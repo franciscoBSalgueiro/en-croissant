@@ -1,9 +1,10 @@
 import {
   AppShell,
   Header,
-  MantineProvider, Navbar
+  MantineProvider
 } from "@mantine/core";
 import type { AppProps } from "next/app";
+import { SideBar } from "../components/Sidebar";
 
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -18,9 +19,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <AppShell
         padding="md"
         navbar={
-          <Navbar width={{ base: 300 }} height={500} p="xs">
-            {/* Navbar content */}
-          </Navbar>
+          <SideBar />
         }
         header={
           <Header height={60} p="xs">

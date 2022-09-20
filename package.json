@@ -13,6 +13,7 @@
     "@mantine/core": "^5.3.3",
     "@mantine/hooks": "^5.3.3",
     "@mantine/next": "^5.3.3",
+    "@tabler/icons": "^1.96.0",
     "@tauri-apps/api": "^1.1.0",
     "next": "^12.2.5",
     "react": "^18.2.0",

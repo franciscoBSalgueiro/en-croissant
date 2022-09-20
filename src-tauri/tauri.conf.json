@@ -55,7 +55,7 @@
     },
     "windows": [
       {
-        "fullscreen": true,
+        "maximized": true,
         "title": "en-croissant"
       }
     ]

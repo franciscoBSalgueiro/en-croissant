@@ -6,6 +6,7 @@ specifiers:
   '@mantine/core': ^5.3.3
   '@mantine/hooks': ^5.3.3
   '@mantine/next': ^5.3.3
+  '@tabler/icons': ^1.96.0
   '@tauri-apps/api': ^1.1.0
   '@tauri-apps/cli': ^1.1.0
   '@types/node': ^18.7.11
@@ -22,6 +23,7 @@ dependencies:
   '@mantine/core': 5.3.3_i2yg2ezuwprqywup3vllzgovyu
   '@mantine/hooks': 5.3.3_react@18.2.0
   '@mantine/next': 5.3.3_4hxywcmnt2wfwqfr6zatdxiv5i
+  '@tabler/icons': 1.96.0_biqbaboplfbrettd7655fr4n2y
   '@tauri-apps/api': 1.1.0
   next: 12.3.0_biqbaboplfbrettd7655fr4n2y
   react: 18.2.0
@@ -567,6 +569,21 @@ packages:
     resolution: {integrity: sha512-rEUrBSGIoSFuYxwBYtlUFMlE2CwGhmW+w9355/5oduSw8e5h2+Tj4UrAGNNgP9915++wj5vkQo0UuOBqOAq4nw==}
     dependencies:
       tslib: 2.4.0
+    dev: false
+
+  /@tabler/icons/1.96.0_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-ZAQ64CHi5sOFQE7COoBmZbhIBtTX+4XNuiVZsr8kcqJX1bmrw6dFU0W9ONJamt/2TO997uVfSqxr2o0WZqZr/g==}
+    peerDependencies:
+      react: ^16.x || 17.x || 18.x
+      react-dom: ^16.x || 17.x || 18.x
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
     dev: false
 
   /@tauri-apps/api/1.1.0:
