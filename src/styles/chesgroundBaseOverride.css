@@ -24,7 +24,6 @@ cg-board {
   user-select: none;
   line-height: 0;
   background-size: cover;
-  cursor: grab;
 }
 
 cg-board square {
@@ -53,7 +52,8 @@ cg-board square.last-move {
   background-size: cover;
   z-index: 2;
   will-change: transform;
-  pointer-events: none;
+  /* pointer-events: none; */
+  cursor: grab;
 }
 
 cg-board piece.dragging {
