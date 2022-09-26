@@ -6,12 +6,15 @@ specifiers:
   '@mantine/core': ^5.3.3
   '@mantine/hooks': ^5.3.3
   '@mantine/next': ^5.3.3
+  '@react-chess/chessground': ^1.3.4
   '@tabler/icons': ^1.96.0
   '@tauri-apps/api': ^1.1.0
   '@tauri-apps/cli': ^1.1.0
   '@types/node': ^18.7.11
   '@types/react': ^18.0.17
   '@types/react-dom': ^18.0.6
+  chess.ts: ^0.16.2
+  chessground: ^8.3.5
   next: ^12.2.5
   react: ^18.2.0
   react-dom: ^18.2.0
@@ -23,8 +26,11 @@ dependencies:
   '@mantine/core': 5.3.3_i2yg2ezuwprqywup3vllzgovyu
   '@mantine/hooks': 5.3.3_react@18.2.0
   '@mantine/next': 5.3.3_4hxywcmnt2wfwqfr6zatdxiv5i
+  '@react-chess/chessground': 1.3.4_biqbaboplfbrettd7655fr4n2y
   '@tabler/icons': 1.96.0_biqbaboplfbrettd7655fr4n2y
   '@tauri-apps/api': 1.1.0
+  chess.ts: 0.16.2
+  chessground: 8.3.5
   next: 12.3.0_biqbaboplfbrettd7655fr4n2y
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
@@ -565,6 +571,17 @@ packages:
       react: 18.2.0
     dev: false
 
+  /@react-chess/chessground/1.3.4_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-DL21YnVw6xDLVkjo1JY0gfIdc0+qAlFpMV7wgE68rGCw03flse8wHWxhzmMgadT2Xj9cu2kv2nDpd9EcCcRvDw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      chessground: 8.3.5
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
   /@swc/helpers/0.4.11:
     resolution: {integrity: sha512-rEUrBSGIoSFuYxwBYtlUFMlE2CwGhmW+w9355/5oduSw8e5h2+Tj4UrAGNNgP9915++wj5vkQo0UuOBqOAq4nw==}
     dependencies:
@@ -766,6 +783,14 @@ packages:
       ansi-styles: 3.2.1
       escape-string-regexp: 1.0.5
       supports-color: 5.5.0
+    dev: false
+
+  /chess.ts/0.16.2:
+    resolution: {integrity: sha512-eqTrUGxN7xLr/SHQcc7AT+Kp1aRQb1iCMn1pBXsmpU06soRH0u+HJmM/vcxKadqqvoDEazu9uFvVoZSKP2pDSg==}
+    dev: false
+
+  /chessground/8.3.5:
+    resolution: {integrity: sha512-MnrQ2sO9FfHcPYwALuLCEQujEUWFqaVzfsn02iOBmFkndzpOk+9zn7rlSwksoJKZ5+LcrA0EaWgN+GzB0gzX8A==}
     dev: false
 
   /clsx/1.1.1:

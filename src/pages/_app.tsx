@@ -1,10 +1,12 @@
-import {
-  AppShell,
-  Header,
-  MantineProvider
-} from "@mantine/core";
+import { AppShell, MantineProvider } from "@mantine/core";
 import type { AppProps } from "next/app";
 import { SideBar } from "../components/Sidebar";
+
+// Chessground styles
+import "chessground/assets/chessground.brown.css";
+import "chessground/assets/chessground.cburnett.css";
+import "../styles/chesgroundBaseOverride.css";
+
 
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -17,15 +19,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       }}
     >
       <AppShell
-        padding="md"
-        navbar={
-          <SideBar />
-        }
-        header={
-          <Header height={60} p="xs">
-            {/* Header content */}
-          </Header>
-        }
+        // padding="md"
+        navbar={<SideBar />}
         styles={(theme) => ({
           main: {
             backgroundColor:
@@ -35,7 +30,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           },
         })}
       >
-        <Component {...pageProps} />;
+        <Component {...pageProps} />
       </AppShell>
     </MantineProvider>
   );
