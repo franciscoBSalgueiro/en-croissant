@@ -2,9 +2,9 @@ import { Button, Group } from "@mantine/core";
 import { useWindowEvent } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import { Chess, PartialMove } from "chess.ts";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatMove, moveToKey, toDests } from "../utils/chess";
-import GameNotation from "./GameNotation";
+import GameNotation, { VariationTree } from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   function makeMove(move: string | PartialMove) {
@@ -19,8 +19,24 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     setChess(newChess);
   }
 
-  const [variation, setVariation] = useState<Chess>(new Chess(initialFen));
+  function buildVariationTree(chess: Chess) {
+    const clone = chess.clone();
+    const tree: VariationTree = {
+      move: clone.history({ verbose: true }).pop(),
+      children: [],
+    };
+    const moves = clone.moves({ verbose: true });
+    for (const move of moves) {
+      clone.move(move);
+      tree.children.push(buildVariationTree(clone));
+    }
+    return tree;
+  }
+
   const [chess, setChess] = useState(new Chess(initialFen));
+  const [variationTree, setVariationTree] = useState<VariationTree>(
+    buildVariationTree(chess)
+  );
 
   const [orientation, setOrientation] = useState("w");
   const turn = formatMove(chess.turn());
@@ -33,19 +49,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       undoMove();
     }
   });
-
-  useEffect(() => {
-    if (chess.history().length > variation?.history().length) {
-      setVariation(chess);
-    }
-  }, [chess]);
-
-  const history = variation.clone();
-  const moves = [];
-  while (history.history().length) {
-    moves.push(history.clone());
-    history.undo();
-  }
 
   return (
     <>
@@ -81,7 +84,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           />
         </div>
         <div>
-          <GameNotation moves={moves.reverse()} setChess={setChess} />
+          <GameNotation tree={variationTree} setChess={setChess} />
         </div>
       </Group>
 

@@ -1,33 +1,47 @@
 import { Button, Paper, SimpleGrid } from "@mantine/core";
-import { Chess } from "chess.ts";
+import { Chess, Move } from "chess.ts";
+
+export interface VariationTree {
+  move: Move;
+  children: VariationTree[];
+}
 
 function GameNotation({
-  moves,
+  tree,
   setChess,
 }: {
-  moves: Chess[];
+  tree: VariationTree;
   setChess: (move: Chess) => void;
 }) {
   return (
     <Paper withBorder p="md">
       <SimpleGrid cols={2}>
-        {moves.map((chess) => (
-          <MoveCell move={chess} />
-        ))}
+        <RenderVariationTree tree={tree} />
       </SimpleGrid>
     </Paper>
   );
 
-  function MoveCell({ move }: { move: Chess }) {
+  function MoveCell({ move }: { move: Move }) {
     return (
       <Button
         variant="subtle"
-        onClick={() => {
-          setChess(move);
-        }}
+        // onClick={() => {
+        //   setChess(move);
+        // }}
       >
-        {move.history().pop()}
+        {move.san}
       </Button>
+    );
+  }
+
+  function RenderVariationTree({ tree }: { tree: VariationTree }) {
+    return (
+      <>
+        <MoveCell move={tree.move} />
+        {tree.children.map((child) => (
+          <RenderVariationTree tree={child} />
+        ))}
+      </>
     );
   }
 }
