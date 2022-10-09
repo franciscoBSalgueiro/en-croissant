@@ -1,9 +1,10 @@
-import { Button, Group, SimpleGrid } from "@mantine/core";
+import { Button, Group } from "@mantine/core";
 import { useWindowEvent } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import { Chess, PartialMove } from "chess.ts";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatMove, moveToKey, toDests } from "../utils/chess";
+import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   function makeMove(move: string | PartialMove) {
@@ -18,19 +19,13 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     setChess(newChess);
   }
 
+  const [variation, setVariation] = useState<Chess>(new Chess(initialFen));
   const [chess, setChess] = useState(new Chess(initialFen));
 
   const [orientation, setOrientation] = useState("w");
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
   const lastMove = moveToKey(chess.history({ verbose: true }).pop());
-  const history = chess.clone();
-  const moves = history.history().map((_, i) => {
-    if (i > 0) {
-      history.undo();
-    }
-    return history.clone();
-  });
 
   useWindowEvent("keydown", (event) => {
     if (event.code === "ArrowLeft") {
@@ -39,9 +34,22 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     }
   });
 
+  useEffect(() => {
+    if (chess.history().length > variation?.history().length) {
+      setVariation(chess);
+    }
+  }, [chess]);
+
+  const history = variation.clone();
+  const moves = [];
+  while (history.history().length) {
+    moves.push(history.clone());
+    history.undo();
+  }
+
   return (
     <>
-      <Group grow>
+      <Group grow align={"flex-start"}>
         <div
           style={{
             width: "70vw",
@@ -72,35 +80,17 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             }}
           />
         </div>
-
-        <SimpleGrid cols={2}>
-          {moves.reverse().map((chess) => (
-            <MoveCell move={chess} />
-          ))}
-        </SimpleGrid>
+        <div>
+          <GameNotation moves={moves.reverse()} setChess={setChess} />
+        </div>
       </Group>
 
       <Button onClick={() => setOrientation(orientation === "w" ? "b" : "w")}>
         Flip
       </Button>
       <Button onClick={() => undoMove()}>Back</Button>
-      <Button onClick={() => setChess(new Chess())}>Test</Button>
     </>
   );
-
-  function MoveCell({ move }: { move: Chess }) {
-    return (
-      <Group position="center">
-        <Button
-          onClick={() => {
-            setChess(move);
-          }}
-        >
-          {move.history().pop()}
-        </Button>
-      </Group>
-    );
-  }
 }
 
 export default BoardAnalysis;
