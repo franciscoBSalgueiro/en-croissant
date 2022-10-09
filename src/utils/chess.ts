@@ -1,6 +1,9 @@
-// import { SQUARES } from 'chess.ts';
-import { SQUARES } from 'chess.ts';
-import { Key } from 'chessground/types';
+import { Move, SQUARES } from "chess.ts";
+import { Key } from "chessground/types";
+
+export function moveToKey(move: Move): Key[] {
+  return move ? ([move.from, move.to] as Key[]) : null;
+}
 
 export function toDests(chess): Map<Key, Key[]> {
   const dests = new Map();
@@ -13,4 +16,8 @@ export function toDests(chess): Map<Key, Key[]> {
       );
   });
   return dests;
+}
+
+export function formatMove(orientation: string) {
+  return orientation === "w" ? "white" : "black";
 }
