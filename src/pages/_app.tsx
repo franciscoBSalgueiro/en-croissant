@@ -7,31 +7,32 @@ import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
 import "../styles/chesgroundBaseOverride.css";
 
-
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <MantineProvider
-      withGlobalStyles
-      withNormalizeCSS
-      theme={{
-        colorScheme: "dark",
-      }}
-    >
-      <AppShell
-        // padding="md"
-        navbar={<SideBar />}
-        styles={(theme) => ({
-          main: {
-            backgroundColor:
-              theme.colorScheme === "dark"
-                ? theme.colors.dark[8]
-                : theme.colors.gray[0],
-          },
-        })}
+    // <div onContextMenu={(e) => e.preventDefault()}>
+      <MantineProvider
+        withGlobalStyles
+        withNormalizeCSS
+        theme={{
+          colorScheme: "dark",
+        }}
       >
-        <Component {...pageProps} />
-      </AppShell>
-    </MantineProvider>
+        <AppShell
+          // padding="md"
+          navbar={<SideBar />}
+          styles={(theme) => ({
+            main: {
+              backgroundColor:
+                theme.colorScheme === "dark"
+                  ? theme.colors.dark[8]
+                  : theme.colors.gray[0],
+            },
+          })}
+        >
+          <Component {...pageProps} />
+        </AppShell>
+      </MantineProvider>
+    // </div>
   );
 }

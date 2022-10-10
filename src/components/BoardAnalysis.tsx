@@ -1,4 +1,5 @@
 import { Button, Group } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import { Chess, PartialMove } from "chess.ts";
 import { useState } from "react";
@@ -10,8 +11,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [tree, setTree] = useState<VariationTree>(
     buildVariationTree(new Chess(initialFen))
   );
-  // current position
-  const [chess, setChess] = useState<Chess>(tree.position);
+  const chess = tree.position;
 
   // Board orientation
   const [orientation, setOrientation] = useState("w");
@@ -51,22 +51,33 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       tree.children.push(newTree);
       setTree(newTree);
     }
-    setChess(newPosition);
   }
 
   function undoMove() {
     if (tree.parent) {
       setTree(tree.parent);
-      setChess(tree.parent.position);
     }
+  }
+
+  function redoMove() {
+    if (tree.children.length > 0) {
+      setTree(tree.children[0]);
+    }
+  }
+
+  function flipBoard() {
+    setOrientation(orientation === "w" ? "b" : "w");
   }
 
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
   const lastMove = moveToKey(getLastMove(chess));
 
-  console.log(tree);
-  console.log(chess.pgn());
+  useHotkeys([
+    ['ArrowLeft', () => undoMove()],
+    ['ArrowRight', () => redoMove()],
+    ['f', () => flipBoard()],
+  ]);
 
   return (
     <>
@@ -102,14 +113,17 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           />
         </div>
         <div>
-          <GameNotation tree={tree} setChess={setChess} />
+          <GameNotation tree={tree} setTree={setTree} />
         </div>
       </Group>
 
-      <Button onClick={() => setOrientation(orientation === "w" ? "b" : "w")}>
-        Flip
-      </Button>
+      <Button onClick={() => flipBoard()}>Flip</Button>
       <Button onClick={() => undoMove()}>Back</Button>
+      <Button
+        onClick={() => setTree(buildVariationTree(new Chess(initialFen)))}
+      >
+        Reset
+      </Button>
     </>
   );
 }

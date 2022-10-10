@@ -17,12 +17,13 @@ function getTopVariation(tree: VariationTree): VariationTree {
 
 function GameNotation({
   tree,
-  setChess,
+  setTree,
 }: {
   tree: VariationTree;
-  setChess: (move: Chess) => void;
+  setTree: (tree: VariationTree) => void;
 }) {
   const topVariation = getTopVariation(tree);
+  const currentVariation = tree;
   return (
     <Paper withBorder p="md">
       {/* <SimpleGrid cols={2}> */}
@@ -31,13 +32,15 @@ function GameNotation({
     </Paper>
   );
 
-  function MoveCell({ move }: { move: Move }) {
+  function MoveCell({ move, tree }: { move: Move; tree: VariationTree }) {
+    const isCurrentVariation = tree === currentVariation;
     return (
       <Button
-        variant="subtle"
-        // onClick={() => {
-        //   setChess(move);
-        // }}
+        // disabled={isCurrentVariation}
+        variant={isCurrentVariation ? "light" : "subtle"}
+        onClick={() => {
+          setTree(tree);
+        }}
       >
         {move.san}
       </Button>
@@ -49,7 +52,7 @@ function GameNotation({
     return (
       <>
         <span>
-          {lastMove && <MoveCell move={lastMove} />}
+          {lastMove && <MoveCell move={lastMove} tree={tree} />}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} />
           )}
