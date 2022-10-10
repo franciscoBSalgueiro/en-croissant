@@ -1,6 +1,20 @@
 import { Chess, Move, SQUARES } from "chess.ts";
 import { Key } from "chessground/types";
 
+
+export interface VariationTree {
+  parent: VariationTree | null;
+  position: Chess;
+  children: VariationTree[];
+}
+
+export function getTopVariation(tree: VariationTree): VariationTree {
+  if (tree.parent) {
+    return getTopVariation(tree.parent);
+  }
+  return tree;
+}
+
 export function moveToKey(move: Move | undefined) {
   return move ? ([move.from, move.to] as Key[]) : undefined;
 }

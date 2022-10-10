@@ -3,8 +3,8 @@ import { useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import { Chess, PartialMove } from "chess.ts";
 import { useState } from "react";
-import { formatMove, getLastMove, moveToKey, toDests } from "../utils/chess";
-import GameNotation, { VariationTree } from "./GameNotation";
+import { formatMove, getLastMove, getTopVariation, moveToKey, toDests, VariationTree } from "../utils/chess";
+import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   // Variation tree of all the previous moves
@@ -65,6 +65,18 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     }
   }
 
+  function goToStart() {
+    setTree(getTopVariation(tree));
+  }
+
+  function goToEnd() {
+    let currentTree = tree;
+    while (currentTree.children.length > 0) {
+      currentTree = currentTree.children[0];
+    }
+    setTree(currentTree);
+  }
+
   function flipBoard() {
     setOrientation(orientation === "w" ? "b" : "w");
   }
@@ -76,6 +88,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   useHotkeys([
     ['ArrowLeft', () => undoMove()],
     ['ArrowRight', () => redoMove()],
+    ['ArrowUp', () => goToStart()],
+    ['ArrowDown', () => goToEnd()],
     ['f', () => flipBoard()],
   ]);
 

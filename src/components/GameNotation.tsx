@@ -1,19 +1,7 @@
 import { Button, Paper } from "@mantine/core";
-import { Chess, Move } from "chess.ts";
-import { getLastMove } from "../utils/chess";
+import { Move } from "chess.ts";
+import { getLastMove, getTopVariation, VariationTree } from "../utils/chess";
 
-export interface VariationTree {
-  parent: VariationTree | null;
-  position: Chess;
-  children: VariationTree[];
-}
-
-function getTopVariation(tree: VariationTree): VariationTree {
-  if (tree.parent) {
-    return getTopVariation(tree.parent);
-  }
-  return tree;
-}
 
 function GameNotation({
   tree,
