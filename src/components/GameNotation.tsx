@@ -1,9 +1,18 @@
-import { Button, Paper, SimpleGrid } from "@mantine/core";
+import { Button, Paper } from "@mantine/core";
 import { Chess, Move } from "chess.ts";
+import { getLastMove } from "../utils/chess";
 
 export interface VariationTree {
-  move: Move;
+  parent: VariationTree | null;
+  position: Chess;
   children: VariationTree[];
+}
+
+function getTopVariation(tree: VariationTree): VariationTree {
+  if (tree.parent) {
+    return getTopVariation(tree.parent);
+  }
+  return tree;
 }
 
 function GameNotation({
@@ -13,11 +22,12 @@ function GameNotation({
   tree: VariationTree;
   setChess: (move: Chess) => void;
 }) {
+  const topVariation = getTopVariation(tree);
   return (
     <Paper withBorder p="md">
-      <SimpleGrid cols={2}>
-        <RenderVariationTree tree={tree} />
-      </SimpleGrid>
+      {/* <SimpleGrid cols={2}> */}
+      <RenderVariationTree tree={topVariation} />
+      {/* </SimpleGrid> */}
     </Paper>
   );
 
@@ -35,11 +45,20 @@ function GameNotation({
   }
 
   function RenderVariationTree({ tree }: { tree: VariationTree }) {
+    const lastMove = getLastMove(tree.position);
     return (
       <>
-        <MoveCell move={tree.move} />
-        {tree.children.map((child) => (
-          <RenderVariationTree tree={child} />
+        <span>
+          {lastMove && <MoveCell move={lastMove} />}
+          {tree.children.length > 0 && (
+            <RenderVariationTree tree={tree.children[0]} />
+          )}
+        </span>
+        {tree.children.slice(1).map((child) => (
+          <>
+            <p>Test</p>
+            <RenderVariationTree tree={child} />
+          </>
         ))}
       </>
     );

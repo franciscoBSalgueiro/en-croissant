@@ -1,11 +1,11 @@
-import { Move, SQUARES } from "chess.ts";
+import { Chess, Move, SQUARES } from "chess.ts";
 import { Key } from "chessground/types";
 
-export function moveToKey(move: Move): Key[] {
-  return move ? ([move.from, move.to] as Key[]) : null;
+export function moveToKey(move: Move | undefined) {
+  return move ? ([move.from, move.to] as Key[]) : undefined;
 }
 
-export function toDests(chess): Map<Key, Key[]> {
+export function toDests(chess: Chess): Map<Key, Key[]> {
   const dests = new Map();
   Object.keys(SQUARES).forEach((s) => {
     const ms = chess.moves({ square: s, verbose: true });
@@ -20,4 +20,8 @@ export function toDests(chess): Map<Key, Key[]> {
 
 export function formatMove(orientation: string) {
   return orientation === "w" ? "white" : "black";
+}
+
+export function getLastMove(chess: Chess) {
+  return chess.history({ verbose: true }).pop();
 }

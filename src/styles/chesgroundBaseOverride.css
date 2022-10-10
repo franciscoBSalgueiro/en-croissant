@@ -52,7 +52,7 @@ cg-board square.last-move {
   background-size: cover;
   z-index: 2;
   will-change: transform;
-  /* pointer-events: none; */
+  pointer-events: none;
   cursor: grab;
 }
 

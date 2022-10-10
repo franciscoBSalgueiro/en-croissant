@@ -1,54 +1,72 @@
 import { Button, Group } from "@mantine/core";
-import { useWindowEvent } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import { Chess, PartialMove } from "chess.ts";
 import { useState } from "react";
-import { formatMove, moveToKey, toDests } from "../utils/chess";
+import { formatMove, getLastMove, moveToKey, toDests } from "../utils/chess";
 import GameNotation, { VariationTree } from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
-  function makeMove(move: string | PartialMove) {
-    const newChess = chess.clone();
-    newChess.move(move);
-    setChess(newChess);
-  }
+  // Variation tree of all the previous moves
+  const [tree, setTree] = useState<VariationTree>(
+    buildVariationTree(new Chess(initialFen))
+  );
+  // current position
+  const [chess, setChess] = useState<Chess>(tree.position);
 
-  function undoMove() {
-    const newChess = chess.clone();
-    newChess.undo();
-    setChess(newChess);
-  }
+  // Board orientation
+  const [orientation, setOrientation] = useState("w");
 
-  function buildVariationTree(chess: Chess) {
-    const clone = chess.clone();
+  // Retursn a tree of all the previous moves
+  function buildVariationTree(chess: Chess): VariationTree {
     const tree: VariationTree = {
-      move: clone.history({ verbose: true }).pop(),
+      parent: null,
+      position: chess,
       children: [],
     };
-    const moves = clone.moves({ verbose: true });
-    for (const move of moves) {
-      clone.move(move);
-      tree.children.push(buildVariationTree(clone));
+
+    if (chess.history().length > 0) {
+      const parent = chess.undo();
+      if (parent) {
+        tree.parent = buildVariationTree(chess);
+      }
     }
+
     return tree;
   }
 
-  const [chess, setChess] = useState(new Chess(initialFen));
-  const [variationTree, setVariationTree] = useState<VariationTree>(
-    buildVariationTree(chess)
-  );
+  function appendMoveToTree(move: PartialMove): void {
+    const newPosition = chess.clone();
+    newPosition.move(move);
+    const newTree: VariationTree = {
+      parent: tree,
+      position: newPosition,
+      children: [],
+    };
+    const newTreeParent = tree.children.find(
+      (child) => child.position.fen() === newPosition.fen()
+    );
+    if (newTreeParent) {
+      setTree(newTreeParent);
+    } else {
+      tree.children.push(newTree);
+      setTree(newTree);
+    }
+    setChess(newPosition);
+  }
 
-  const [orientation, setOrientation] = useState("w");
+  function undoMove() {
+    if (tree.parent) {
+      setTree(tree.parent);
+      setChess(tree.parent.position);
+    }
+  }
+
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
-  const lastMove = moveToKey(chess.history({ verbose: true }).pop());
+  const lastMove = moveToKey(getLastMove(chess));
 
-  useWindowEvent("keydown", (event) => {
-    if (event.code === "ArrowLeft") {
-      event.preventDefault();
-      undoMove();
-    }
-  });
+  console.log(tree);
+  console.log(chess.pgn());
 
   return (
     <>
@@ -73,7 +91,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                 dests: dests,
                 events: {
                   after: (orig, dest) => {
-                    makeMove({ from: orig, to: dest });
+                    appendMoveToTree({ from: orig, to: dest });
                   },
                 },
               },
@@ -84,7 +102,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           />
         </div>
         <div>
-          <GameNotation tree={variationTree} setChess={setChess} />
+          <GameNotation tree={tree} setChess={setChess} />
         </div>
       </Group>
 
