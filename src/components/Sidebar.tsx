@@ -16,7 +16,7 @@ import {
   IconUser,
   TablerIcon
 } from "@tabler/icons";
-import { useState } from "react";
+import { useRouter } from "next/router";
 
 const useStyles = createStyles((theme) => ({
   link: {
@@ -54,41 +54,47 @@ const useStyles = createStyles((theme) => ({
 interface NavbarLinkProps {
   icon: TablerIcon;
   label: string;
+  url: string;
   active?: boolean;
-  onClick?(): void;
 }
 
-function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
+function NavbarLink({
+  url,
+  icon: Icon,
+  label,
+  active,
+}: NavbarLinkProps) {
   const { classes, cx } = useStyles();
   return (
     <Tooltip label={label} position="right" transitionDuration={0}>
-      <UnstyledButton
-        onClick={onClick}
-        className={cx(classes.link, { [classes.active]: active })}
-      >
-        <Icon stroke={1.5} />
-      </UnstyledButton>
+      <a href={url}>
+        <UnstyledButton
+          className={cx(classes.link, { [classes.active]: active })}
+        >
+          <Icon stroke={1.5} />
+        </UnstyledButton>
+      </a>
     </Tooltip>
   );
 }
 
-const mockdata = [
-  { icon: IconHome2, label: "Home" },
-  { icon: IconGauge, label: "Dashboard" },
-  { icon: IconDeviceDesktopAnalytics, label: "Analytics" },
-  { icon: IconUser, label: "Account" },
-  { icon: IconSettings, label: "Settings" },
+const linksdata = [
+  { icon: IconHome2, label: "Home", url: "/" },
+  { icon: IconGauge, label: "Dashboard", url: "/dashboard" },
+  { icon: IconDeviceDesktopAnalytics, label: "Analytics", url: "/analytics" },
+  { icon: IconUser, label: "Account", url: "/account" },
+  { icon: IconSettings, label: "Settings", url: "/settings" },
 ];
 
 export function SideBar() {
-  const [active, setActive] = useState(2);
+  const router = useRouter();
 
-  const links = mockdata.map((link, index) => (
+  const links = linksdata.map((link, index) => (
     <NavbarLink
       {...link}
+      url={link.url}
       key={link.label}
-      active={index === active}
-      onClick={() => setActive(index)}
+      active={router.pathname === link.url}
     />
   ));
 
@@ -102,12 +108,12 @@ export function SideBar() {
       </Navbar.Section>
       <Navbar.Section>
         <Stack justify="center" spacing={0}>
-          <a href="/settings">
-            <NavbarLink icon={IconSwitchHorizontal} label="Change account" />
-          </a>
-          <a href="/">
-            <NavbarLink icon={IconLogout} label="Logout" />
-          </a>
+          <NavbarLink
+            icon={IconSwitchHorizontal}
+            label="Change account"
+            url="/switch"
+          />
+          <NavbarLink icon={IconLogout} label="Logout" url="/logout" />
         </Stack>
       </Navbar.Section>
     </Navbar>

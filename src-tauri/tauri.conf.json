@@ -29,7 +29,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "org.en-croissant",
+      "identifier": "en-croissant",
       "longDescription": "",
       "macOS": {
         "entitlements": null,

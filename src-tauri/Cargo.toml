@@ -18,6 +18,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.1", features = ["api-all"] }
 zip = "0.6.2"
+uciengine = "0.1.33"
 
 [features]
 # by default Tauri runs in production mode

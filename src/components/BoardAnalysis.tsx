@@ -1,7 +1,7 @@
 import { Button, Group } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
 import { useState } from "react";
 import {
@@ -14,6 +14,7 @@ import {
   VariationTree
 } from "../utils/chess";
 import GameNotation from "./GameNotation";
+import LoadingButton from "./LoadingButton";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   // Variation tree of all the previous moves
@@ -144,7 +145,26 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         Reset
       </Button>
 
-      <Button onClick={() => invoke("download_file", {url: "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip", path: "stockfish.zip"}).then(message => console.log(message)) }>Download</Button>
+      <LoadingButton
+        onClick={() => {
+          return invoke("download_file", {
+            url: "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
+            path: "engines",
+          });
+        }}
+      >
+        Download Stockfish
+      </LoadingButton>
+      <LoadingButton
+        onClick={() => {
+          return invoke("download_file", {
+            url: "http://komodochess.com/pub/komodo-13.zip",
+            path: "engines",
+          });
+        }}
+      >
+        Download Komodo 13
+      </LoadingButton>
     </>
   );
 }
