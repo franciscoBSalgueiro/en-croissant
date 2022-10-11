@@ -15,6 +15,13 @@ export function getTopVariation(tree: VariationTree): VariationTree {
   return tree;
 }
 
+export function getBottomVariation(tree: VariationTree): VariationTree {
+  if (tree.children.length) {
+    return getBottomVariation(tree.children[0]);
+  }
+  return tree;
+}
+
 export function moveToKey(move: Move | undefined) {
   return move ? ([move.from, move.to] as Key[]) : undefined;
 }

@@ -1,9 +1,18 @@
 import { Button, Group } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
+import { invoke } from '@tauri-apps/api/tauri';
 import { Chess, PartialMove } from "chess.ts";
 import { useState } from "react";
-import { formatMove, getLastMove, getTopVariation, moveToKey, toDests, VariationTree } from "../utils/chess";
+import {
+  formatMove,
+  getBottomVariation,
+  getLastMove,
+  getTopVariation,
+  moveToKey,
+  toDests,
+  VariationTree
+} from "../utils/chess";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
@@ -70,11 +79,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   }
 
   function goToEnd() {
-    let currentTree = tree;
-    while (currentTree.children.length > 0) {
-      currentTree = currentTree.children[0];
-    }
-    setTree(currentTree);
+    setTree(getBottomVariation(tree));
   }
 
   function flipBoard() {
@@ -86,11 +91,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const lastMove = moveToKey(getLastMove(chess));
 
   useHotkeys([
-    ['ArrowLeft', () => undoMove()],
-    ['ArrowRight', () => redoMove()],
-    ['ArrowUp', () => goToStart()],
-    ['ArrowDown', () => goToEnd()],
-    ['f', () => flipBoard()],
+    ["ArrowLeft", () => undoMove()],
+    ["ArrowRight", () => redoMove()],
+    ["ArrowUp", () => goToStart()],
+    ["ArrowDown", () => goToEnd()],
+    ["f", () => flipBoard()],
   ]);
 
   return (
@@ -138,6 +143,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       >
         Reset
       </Button>
+
+      <Button onClick={() => invoke("download_file", {url: "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip", path: "stockfish.zip"}).then(message => console.log(message)) }>Download</Button>
     </>
   );
 }

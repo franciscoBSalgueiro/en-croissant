@@ -2,7 +2,6 @@ import { Button, Paper } from "@mantine/core";
 import { Move } from "chess.ts";
 import { getLastMove, getTopVariation, VariationTree } from "../utils/chess";
 
-
 function GameNotation({
   tree,
   setTree,
@@ -47,8 +46,9 @@ function GameNotation({
         </span>
         {tree.children.slice(1).map((child) => (
           <>
-            <p>Test</p>
-            <RenderVariationTree tree={child} />
+            <div>
+              <RenderVariationTree tree={child} />
+            </div>
           </>
         ))}
       </>
