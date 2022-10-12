@@ -5,13 +5,26 @@ import LoadingButton from "../components/LoadingButton";
 
 export default function Page() {
   const [engines, setEngines] = useState<string[]>([]);
-  useEffect(() => {
+
+  async function downloadEngine(url: string) {
+    await invoke("download_file", {
+      url,
+      path: "engines",
+    });
+    refreshEngines();
+  }
+
+  function refreshEngines() {
     invoke("list_folders", {
       directory: "engines",
     }).then((res) => {
       const engineStrings = res as string;
       setEngines(engineStrings.split(","));
     });
+  }
+
+  useEffect(() => {
+    refreshEngines();
   }, []);
 
   const data = engines.map((engine, index) => {
@@ -38,22 +51,18 @@ export default function Page() {
     <div>
       <EngineTable data={data} />
       <LoadingButton
-        onClick={() => {
-          return invoke("download_file", {
-            url: "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
-            path: "engines",
-          });
-        }}
+        onClick={() =>
+          downloadEngine(
+            "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
+          )
+        }
       >
         Download Stockfish
       </LoadingButton>
       <LoadingButton
-        onClick={() => {
-          return invoke("download_file", {
-            url: "http://komodochess.com/pub/komodo-13.zip",
-            path: "engines",
-          });
-        }}
+        onClick={() =>
+          downloadEngine("http://komodochess.com/pub/komodo-13.zip")
+        }
       >
         Download Komodo 13
       </LoadingButton>

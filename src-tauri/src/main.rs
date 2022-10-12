@@ -23,9 +23,7 @@ fn greet(name: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet])
-        .invoke_handler(tauri::generate_handler![download_file])
-        .invoke_handler(tauri::generate_handler![list_folders])
+        .invoke_handler(tauri::generate_handler![download_file, list_folders])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
