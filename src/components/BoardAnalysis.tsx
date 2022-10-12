@@ -1,8 +1,10 @@
 import { Button, Group, Switch } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   formatMove,
   getBottomVariation,
@@ -16,6 +18,7 @@ import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [engineOn, setEngineOn] = useState(false);
+  const [engineMove, setEngineMove] = useState<string | null>(null);
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
@@ -99,6 +102,24 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     ["f", () => flipBoard()],
   ]);
 
+  async function waitForMove() {
+    await listen("rs2js", (event) => {
+      4;
+      console.log("js: rs2js: " + event.payload + Math.random());
+      setEngineMove(event.payload as string);
+    });
+  }
+
+  useEffect(() => {
+    waitForMove();
+  }, []);
+
+  useEffect(() => {
+    if (engineOn) {
+      invoke("js2rs", { message: "ok" });
+    }
+  }, [engineOn]);
+
   return (
     <>
       <Group grow align={"flex-start"}>
@@ -134,7 +155,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </div>
         <div>
           <GameNotation tree={tree} setTree={setTree} />
-          {engineOn && <div>Engine</div>}
+          {engineOn && <div>{engineMove}</div>}
         </div>
       </Group>
 
