@@ -1,7 +1,6 @@
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Switch } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
-import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
 import { useState } from "react";
 import {
@@ -14,9 +13,10 @@ import {
   VariationTree
 } from "../utils/chess";
 import GameNotation from "./GameNotation";
-import LoadingButton from "./LoadingButton";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
+  const [engineOn, setEngineOn] = useState(false);
+
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
     buildVariationTree(new Chess(initialFen))
@@ -134,37 +134,26 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </div>
         <div>
           <GameNotation tree={tree} setTree={setTree} />
+          {engineOn && <div>Engine</div>}
         </div>
       </Group>
 
-      <Button onClick={() => flipBoard()}>Flip</Button>
-      <Button onClick={() => undoMove()}>Back</Button>
-      <Button
-        onClick={() => setTree(buildVariationTree(new Chess(initialFen)))}
-      >
-        Reset
-      </Button>
-
-      <LoadingButton
-        onClick={() => {
-          return invoke("download_file", {
-            url: "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
-            path: "engines",
-          });
-        }}
-      >
-        Download Stockfish
-      </LoadingButton>
-      <LoadingButton
-        onClick={() => {
-          return invoke("download_file", {
-            url: "http://komodochess.com/pub/komodo-13.zip",
-            path: "engines",
-          });
-        }}
-      >
-        Download Komodo 13
-      </LoadingButton>
+      <Group position={"center"}>
+        <Button onClick={() => flipBoard()}>Flip</Button>
+        <Button onClick={() => undoMove()}>Back</Button>
+        <Button
+          onClick={() => setTree(buildVariationTree(new Chess(initialFen)))}
+        >
+          Reset
+        </Button>
+        <Switch
+          checked={engineOn}
+          onChange={(event) => setEngineOn(event.currentTarget.checked)}
+          onLabel="On"
+          offLabel="Off"
+          size="lg"
+        />
+      </Group>
     </>
   );
 }

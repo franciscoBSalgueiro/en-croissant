@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 import { EngineTable } from "../components/EngineTable";
+import LoadingButton from "../components/LoadingButton";
 
 export default function Page() {
   const [engines, setEngines] = useState<string[]>([]);
@@ -36,6 +37,26 @@ export default function Page() {
   return (
     <div>
       <EngineTable data={data} />
+      <LoadingButton
+        onClick={() => {
+          return invoke("download_file", {
+            url: "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
+            path: "engines",
+          });
+        }}
+      >
+        Download Stockfish
+      </LoadingButton>
+      <LoadingButton
+        onClick={() => {
+          return invoke("download_file", {
+            url: "http://komodochess.com/pub/komodo-13.zip",
+            path: "engines",
+          });
+        }}
+      >
+        Download Komodo 13
+      </LoadingButton>
     </div>
   );
 }
