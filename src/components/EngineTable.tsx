@@ -1,50 +1,151 @@
-import { Avatar, Checkbox, createStyles, Group, ScrollArea, Table, Text } from '@mantine/core';
-import { useState } from 'react';
+import { Button, Group, Image, ScrollArea, Table, Text } from "@mantine/core";
+import { useOs } from "@mantine/hooks";
+import { IconPlus } from "@tabler/icons";
+import { invoke } from "@tauri-apps/api/tauri";
+import { useEffect, useState } from "react";
+import { ProgressButton } from "./ProgressButton";
 
-const useStyles = createStyles((theme) => ({
-  rowSelected: {
-    backgroundColor:
-      theme.colorScheme === 'dark'
-        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
-        : theme.colors[theme.primaryColor][0],
-  },
-}));
-
-interface EngineTableProps {
-  data: { image: string; name: string; email: string; job: string; id: string }[];
+export enum EngineStatus {
+  Installed,
+  Downloading,
+  NotInstalled,
 }
 
-export function EngineTable({ data }: EngineTableProps) {
-  const { classes, cx } = useStyles();
-  const [selection, setSelection] = useState(['1']);
-  const toggleRow = (id: string) =>
-    setSelection((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-  const toggleAll = () =>
-    setSelection((current) => (current.length === data.length ? [] : data.map((item) => item.id)));
+interface Engine {
+  image: string;
+  name: string;
+  status: EngineStatus;
+  id: number;
+  downloadLink: string;
+  rootPath: string;
+  path: string;
+  progress?: number;
+}
 
-  const rows = data.map((item) => {
-    const selected = selection.includes(item.id);
+export default function EngineTable() {
+  const os = useOs();
+
+  const [directories, setDirectories] = useState<string[]>([]);
+  const [engines, setEngines] = useState<Engine[]>([]);
+
+  async function downloadEngine(url: string) {
+    invoke("download_file", {
+      url,
+      path: "engines",
+    });
+    // FIXME: track real progress of download
+    for (let i = 0; i < 100; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      setEngines((engines) =>
+        engines.map((engine) => {
+          if (engine.downloadLink === url) {
+            return { ...engine, progress: i };
+          }
+          return engine;
+        })
+      );
+    }
+  }
+
+  function refreshEngines() {
+    invoke("list_folders", {
+      directory: "engines",
+    }).then((res) => {
+      const engineStrings = res as string;
+      setDirectories(engineStrings.split(","));
+    });
+  }
+
+  async function removeEngine(id: number) {
+    await invoke("remove_folder", {
+      directory: "engines/" + engines[id].rootPath,
+    });
+    refreshEngines();
+  }
+
+  function installEngine(id: number) {
+    downloadEngine(engines[id].downloadLink).then(() => {
+      refreshEngines();
+    });
+  }
+
+  useEffect(() => {
+    refreshEngines();
+  }, []);
+
+  useEffect(() => {
+    const defaultEngines: Engine[] = [
+      {
+        image: "/stockfish.png",
+        name: "Stockfish 15",
+        status: EngineStatus.NotInstalled,
+        id: 0,
+        downloadLink:
+          os === "windows"
+            ? "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
+            : "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
+        rootPath:
+          os === "windows"
+            ? "stockfish_15_win_x64_avx2"
+            : "stockfish_15_linux_x64_bmi2",
+        path:
+          os === "windows"
+            ? "stockfish_15_win_x64_avx2/stockfish_15_win_x64_avx2.exe"
+            : "stockfish_15_linux_x64_bmi2/stockfish_15_linux_x64_bmi2",
+      },
+      {
+        image: "/komodo.png",
+        name: "Komodo 13",
+        status: EngineStatus.NotInstalled,
+        id: 1,
+        downloadLink: "https://komodochess.com/pub/komodo-13.zip",
+        rootPath: "komodo-13_201fd6",
+        path:
+          os === "windows"
+            ? "komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
+            : "komodo-13_201fd6/Linux/komodo-13.02-bmi2",
+      },
+    ];
+    directories.forEach((engine) => {
+      const engineIndex = defaultEngines.findIndex(
+        (e) => e.rootPath === engine
+      );
+      if (engineIndex !== -1) {
+        defaultEngines[engineIndex].status = EngineStatus.Installed;
+      }
+    });
+    setEngines(defaultEngines);
+  }, [directories]);
+
+  function handleInstallClick(loaded: boolean, id: number) {
+    if (loaded) {
+      console.log("uninstall");
+      removeEngine(id);
+    } else {
+      installEngine(id);
+    }
+  }
+
+  const rows = engines.map((item) => {
     return (
-      <tr key={item.id} className={cx({ [classes.rowSelected]: selected })}>
-        <td>
-          <Checkbox
-            checked={selection.includes(item.id)}
-            onChange={() => toggleRow(item.id)}
-            transitionDuration={0}
-          />
-        </td>
+      <tr key={item.id}>
         <td>
           <Group spacing="sm">
-            <Avatar size={26} src={item.image} radius={26} />
-            <Text size="sm" weight={500}>
+            <Image width={60} height={60} src={item.image} />
+            <Text size="md" weight={500}>
               {item.name}
             </Text>
           </Group>
         </td>
-        <td>{item.email}</td>
-        <td>{item.job}</td>
+        <td>{item.status}</td>
+        <td>
+          <ProgressButton
+            loaded={item.status === EngineStatus.Installed}
+            onClick={handleInstallClick}
+            progress={item.progress ?? 0}
+            id={item.id}
+          />
+        </td>
       </tr>
     );
   });
@@ -54,20 +155,19 @@ export function EngineTable({ data }: EngineTableProps) {
       <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
         <thead>
           <tr>
-            <th style={{ width: 40 }}>
-              <Checkbox
-                onChange={toggleAll}
-                checked={selection.length === data.length}
-                indeterminate={selection.length > 0 && selection.length !== data.length}
-                transitionDuration={0}
-              />
-            </th>
             <th>Engine</th>
             <th>ELO</th>
             <th>Status</th>
           </tr>
         </thead>
-        <tbody>{rows}</tbody>
+        <tbody>
+          {rows}
+          <tr>
+            <Button variant="default" rightIcon={<IconPlus size={14} />}>
+              Add new
+            </Button>
+          </tr>
+        </tbody>
       </Table>
     </ScrollArea>
   );

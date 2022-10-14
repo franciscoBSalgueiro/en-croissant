@@ -29,7 +29,7 @@ fn main() {
         .manage(AsyncProcInputTx {
             inner: Mutex::new(async_proc_input_tx),
         })
-        .invoke_handler(tauri::generate_handler![download_file, list_folders, js2rs])
+        .invoke_handler(tauri::generate_handler![download_file, list_folders, remove_folder, js2rs])
         .setup(|app| {
             tauri::async_runtime::spawn(async move {
                 async_process_model(async_proc_input_rx, async_proc_output_tx).await
@@ -138,6 +138,16 @@ async fn list_folders(directory: String) -> Result<String, String> {
         }
     }
     Ok(folders.join(","))
+}
+
+
+#[tauri::command]
+async fn remove_folder(directory: String) -> Result<String, String> {
+    let path = Path::new(&directory);
+    if path.is_dir() {
+        std::fs::remove_dir_all(path).unwrap();
+    }
+    Ok("removed".to_string())
 }
 
 // async fn remove_file(path: &String) {
