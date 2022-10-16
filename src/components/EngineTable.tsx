@@ -1,6 +1,7 @@
 import { Button, Group, Image, ScrollArea, Table, Text } from "@mantine/core";
 import { useOs } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons";
+import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 import { ProgressButton } from "./ProgressButton";
@@ -28,23 +29,24 @@ export default function EngineTable() {
   const [directories, setDirectories] = useState<string[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
 
-  async function downloadEngine(url: string) {
+  async function downloadEngine(id:number, url: string) {
     invoke("download_file", {
+      id,
       url,
       path: "engines",
     });
     // FIXME: track real progress of download
-    for (let i = 0; i < 100; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      setEngines((engines) =>
-        engines.map((engine) => {
-          if (engine.downloadLink === url) {
-            return { ...engine, progress: i };
-          }
-          return engine;
-        })
-      );
-    }
+    // for (let i = 0; i < 100; i++) {
+    //   await new Promise((resolve) => setTimeout(resolve, 50));
+    //   setEngines((engines) =>
+    //     engines.map((engine) => {
+    //       if (engine.downloadLink === url) {
+    //         return { ...engine, progress: i };
+    //       }
+    //       return engine;
+    //     })
+    //   );
+    // }
   }
 
   function refreshEngines() {
@@ -64,12 +66,30 @@ export default function EngineTable() {
   }
 
   function installEngine(id: number) {
-    downloadEngine(engines[id].downloadLink).then(() => {
+    downloadEngine(id, engines[id].downloadLink).then(() => {
       refreshEngines();
     });
   }
 
+  async function getEngineProgress() {
+    await listen("download_progress", (event) => {
+      const { progress, id } = event.payload as any;
+      if (progress === 100) {
+        refreshEngines();
+      }
+      setEngines((engines) =>
+        engines.map((engine) => {
+          if (engine.id === id) {
+            return { ...engine, progress };
+          }
+          return engine;
+        })
+      );
+    });
+  }
+
   useEffect(() => {
+    getEngineProgress();
     refreshEngines();
   }, []);
 

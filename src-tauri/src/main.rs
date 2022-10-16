@@ -5,89 +5,71 @@
 
 use std::{fs::create_dir_all, io::Cursor, path::Path};
 
-use tauri::api::http;
-
+use futures_util::StreamExt;
 use tauri::Manager;
-use tokio::sync::mpsc;
-use tokio::sync::Mutex;
-use tracing::info;
-use tracing_subscriber;
 use uciengine::uciengine::GoJob;
 use uciengine::uciengine::UciEngine;
 
-struct AsyncProcInputTx {
-    inner: Mutex<mpsc::Sender<String>>,
-}
+use reqwest::Client;
 
 fn main() {
-    tracing_subscriber::fmt::init();
-
-    let (async_proc_input_tx, async_proc_input_rx) = mpsc::channel(1);
-    let (async_proc_output_tx, mut async_proc_output_rx) = mpsc::channel(1);
-
     tauri::Builder::default()
-        .manage(AsyncProcInputTx {
-            inner: Mutex::new(async_proc_input_tx),
-        })
-        .invoke_handler(tauri::generate_handler![download_file, list_folders, remove_folder, js2rs])
-        .setup(|app| {
-            tauri::async_runtime::spawn(async move {
-                async_process_model(async_proc_input_rx, async_proc_output_tx).await
-            });
-
-            let app_handle = app.handle();
-            tauri::async_runtime::spawn(async move {
-                loop {
-                    if let Some(output) = async_proc_output_rx.recv().await {
-                        rs2js(output, &app_handle).await;
-                    }
-                }
-            });
-
-            Ok(())
-        })
+        .invoke_handler(tauri::generate_handler![
+            download_file,
+            list_folders,
+            remove_folder,
+            get_best_moves
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-async fn rs2js<R: tauri::Runtime>(message: String, manager: &impl Manager<R>) {
-    let bestmove = getBestMoves().await;
-    info!(?message, "rs2js");
-    manager
-        .emit_all("rs2js", format!("rs: {}", bestmove.unwrap()))
-        .unwrap();
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+    progress: f64,
+    id: u64,
 }
 
 #[tauri::command]
-async fn js2rs(message: String, state: tauri::State<'_, AsyncProcInputTx>) -> Result<(), String> {
-    info!(?message, "js2rs");
-    let async_proc_input_tx = state.inner.lock().await;
-    async_proc_input_tx
-        .send(message)
+async fn download_file(
+    id: u64,
+    url: String,
+    path: String,
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    println!("Downloading file from {}", url);
+    let client = Client::new();
+    let res = client
+        .get(&url)
+        .send()
         .await
-        .map_err(|e| e.to_string())
-}
+        .or(Err(format!("Failed to GET from '{}'", &url)))?;
+    let total_size = res
+        .content_length()
+        .ok_or(format!("Failed to get content length from '{}'", &url))?;
 
-async fn async_process_model(
-    mut input_rx: mpsc::Receiver<String>,
-    output_tx: mpsc::Sender<String>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    while let Some(input) = input_rx.recv().await {
-        let output = input;
-        output_tx.send(output).await?;
+    let mut file: Vec<u8> = Vec::new();
+    let mut downloaded: u64 = 0;
+    let mut stream = res.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item.or(Err(format!("Failed to get chunk from '{}'", &url)))?;
+        file.extend_from_slice(&chunk);
+        downloaded += chunk.len() as u64;
+        let progress = (downloaded as f64 / total_size as f64) * 100.0;
+        println!("Downloaded {}%", progress);
+        // emit object with progress and id
+        app.emit_all("download_progress", Payload { progress, id })
+            .unwrap();
     }
 
-    Ok(())
-}
-
-#[tauri::command]
-async fn download_file(url: String, path: String) -> Result<String, String> {
-    println!("Downloading file from {}", url);
-    let client = http::ClientBuilder::new().build().unwrap();
-    let request = http::HttpRequestBuilder::new("GET", &url).unwrap();
-    let response = client.send(request).await.unwrap();
-    let file = response.bytes().await.unwrap().data;
     let path = Path::new(&path);
+
+    // let client = http::ClientBuilder::new().build().unwrap();
+    // let request = http::HttpRequestBuilder::new("GET", &url).unwrap();
+    // let response = client.send(request).await.unwrap();
+    // let file = response.bytes().await.unwrap().data;
+    // let path = Path::new(&path);
     // write(&path, &file).unwrap();
     unzip_file(path, file).await;
     // remove_file(&path).await;
@@ -140,7 +122,6 @@ async fn list_folders(directory: String) -> Result<String, String> {
     Ok(folders.join(","))
 }
 
-
 #[tauri::command]
 async fn remove_folder(directory: String) -> Result<String, String> {
     let path = Path::new(&directory);
@@ -150,20 +131,16 @@ async fn remove_folder(directory: String) -> Result<String, String> {
     Ok("removed".to_string())
 }
 
-// async fn remove_file(path: &String) {
-//     println!("Removing file {}", path);
-//     std::fs::remove_file(path).unwrap();
-//     println!("File removed");
-// }
-
-async fn getBestMoves() -> Result<String, String> {
+#[tauri::command]
+async fn get_best_moves(engine: String, app: tauri::AppHandle) -> Result<String, String> {
     let go_job = GoJob::new()
         .uci_opt("UCI_Variant", "chess")
         .pos_startpos()
         .go_opt("depth", 21);
-    let engine = UciEngine::new("./engines/stockfish_15_win_x64_avx2/stockfish_15_x64_avx2.exe");
+    let engine = UciEngine::new(engine);
 
     let go_result = engine.go(go_job).await;
     let best_move = go_result.unwrap().bestmove.unwrap();
+    app.emit_all("best_move", &best_move).unwrap();
     Ok(best_move)
 }

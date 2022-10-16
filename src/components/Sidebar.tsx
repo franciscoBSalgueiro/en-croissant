@@ -7,10 +7,9 @@ import {
   UnstyledButton
 } from "@mantine/core";
 import {
-  IconDeviceDesktopAnalytics,
-  IconGauge,
-  IconHome2,
+  IconDatabase, IconHome2,
   IconLogout,
+  IconRobot,
   IconSettings,
   IconSwitchHorizontal,
   IconUser,
@@ -80,8 +79,8 @@ function NavbarLink({
 
 const linksdata = [
   { icon: IconHome2, label: "Home", url: "/" },
-  { icon: IconGauge, label: "Dashboard", url: "/dashboard" },
-  { icon: IconDeviceDesktopAnalytics, label: "Analytics", url: "/analytics" },
+  { icon: IconDatabase, label: "Databases", url: "/databases" },
+  { icon: IconRobot, label: "Engines", url: "/engines" },
   { icon: IconUser, label: "Account", url: "/account" },
   { icon: IconSettings, label: "Settings", url: "/settings" },
 ];

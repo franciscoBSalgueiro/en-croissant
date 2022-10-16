@@ -22,6 +22,8 @@ uciengine = "0.1.33"
 tokio = { version = "1.21.2", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
+futures-util = "0.3.24"
+reqwest = { version = "0.11.6", features = ["stream"] }
 
 [features]
 # by default Tauri runs in production mode

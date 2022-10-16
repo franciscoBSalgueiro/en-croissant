@@ -103,9 +103,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   ]);
 
   async function waitForMove() {
-    await listen("rs2js", (event) => {
-      4;
-      console.log("js: rs2js: " + event.payload + Math.random());
+    await listen("best_move", (event) => {
       setEngineMove(event.payload as string);
     });
   }
@@ -116,7 +114,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   useEffect(() => {
     if (engineOn) {
-      invoke("js2rs", { message: "ok" });
+      invoke("get_best_moves", { engine: "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2"});
     }
   }, [engineOn]);
 
