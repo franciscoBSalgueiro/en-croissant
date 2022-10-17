@@ -14,6 +14,7 @@ import {
   toDests,
   VariationTree
 } from "../utils/chess";
+import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
@@ -153,7 +154,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </div>
         <div>
           <GameNotation tree={tree} setTree={setTree} />
-          {engineOn && <div>{engineMove}</div>}
+          <BestMoves engineMove={engineMove} />
         </div>
       </Group>
 

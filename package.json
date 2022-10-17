@@ -10,23 +10,23 @@
   "dependencies": {
     "@emotion/react": "^11.10.4",
     "@emotion/server": "^11.10.0",
-    "@mantine/core": "^5.3.3",
-    "@mantine/hooks": "^5.3.3",
-    "@mantine/next": "^5.3.3",
+    "@mantine/core": "^5.5.5",
+    "@mantine/hooks": "^5.5.5",
+    "@mantine/next": "^5.5.5",
     "@react-chess/chessground": "^1.3.4",
-    "@tabler/icons": "^1.96.0",
+    "@tabler/icons": "^1.104.0",
     "@tauri-apps/api": "^1.1.0",
     "chess.ts": "^0.16.2",
     "chessground": "^8.3.5",
-    "next": "^12.2.5",
+    "next": "^12.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.1.0",
-    "@types/node": "^18.7.11",
-    "@types/react": "^18.0.17",
+    "@tauri-apps/cli": "^1.1.1",
+    "@types/node": "^18.11.0",
+    "@types/react": "^18.0.21",
     "@types/react-dom": "^18.0.6",
-    "typescript": "^4.7.4"
+    "typescript": "^4.8.4"
   }
 }

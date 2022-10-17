@@ -25,6 +25,10 @@ function GameNotation({
       <Button
         // disabled={isCurrentVariation}
         variant={isCurrentVariation ? "light" : "subtle"}
+        onContextMenu={(e: React.MouseEvent<HTMLButtonElement>) => {
+          tree.parent?.children.splice(tree.parent.children.indexOf(tree), 1);
+          setTree(tree.parent!);
+        }}
         onClick={() => {
           setTree(tree);
         }}
