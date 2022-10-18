@@ -3,9 +3,12 @@ import type { AppProps } from "next/app";
 import { SideBar } from "../components/Sidebar";
 
 // Chessground styles
-import "chessground/assets/chessground.brown.css";
+// import "chessground/assets/chessground.brown.css";
 import "chessground/assets/chessground.cburnett.css";
-import "../styles/chesgroundBaseOverride.css";
+import "../styles/chessgroundBaseOverride.css";
+import "../styles/chessgroundColorsOverride.css";
+import "../styles/chessgroundPiecesOverride.css";
+
 
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
