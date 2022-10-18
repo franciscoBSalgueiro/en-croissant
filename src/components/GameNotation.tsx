@@ -15,13 +15,18 @@ function GameNotation({
   const topVariation = tree.getTopVariation();
 
   function promoteVariant(variation: VariationTree) {
+    const isCurrent = variation === tree;
     const parent = variation.parent;
     if (parent) {
       parent.children = [
         variation,
         ...parent.children.filter((child) => child !== variation),
       ];
-      setTree(variation);
+      if (isCurrent) {
+        forceUpdate();
+      } else {
+        setTree(variation);
+      }
     }
   }
 
