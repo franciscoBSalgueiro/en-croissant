@@ -53,7 +53,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     const newChess = tree.position.clone();
     newChess.move(move);
     const newTree = new VariationTree(tree, newChess);
-    tree.children.push(newTree);
+    if (tree.children.length === 0) {
+      tree.children = [newTree];
+    } else if (tree.children[0].position.fen() !== newChess.fen()) {
+      tree.children.push(newTree);
+    }
     setTree(newTree);
   }
 
@@ -159,8 +163,10 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </Stack>
 
         <Stack>
-          <GameNotation tree={tree} setTree={setTree} />
-          <MoveControls />
+          <Stack>
+            <GameNotation tree={tree} setTree={setTree} />
+            <MoveControls />
+          </Stack>
           <BestMoves engineMove={engineMove} />
         </Stack>
       </Group>
