@@ -1,4 +1,4 @@
-import { Button, Menu, Paper } from "@mantine/core";
+import { Box, Button, Menu, Paper } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
 import { IconChevronUp, IconTrash } from "@tabler/icons";
 import { Move } from "chess.ts";
@@ -45,9 +45,11 @@ function GameNotation({
 
   return (
     <Paper withBorder p="md">
-      {/* <SimpleGrid cols={2}> */}
-      <RenderVariationTree tree={topVariation} />
-      {/* </SimpleGrid> */}
+      <Box sx={{ minHeight: "300px" }}>
+        {/* <SimpleGrid cols={2}> */}
+        <RenderVariationTree tree={topVariation} />
+        {/* </SimpleGrid> */}
+      </Box>
     </Paper>
   );
 

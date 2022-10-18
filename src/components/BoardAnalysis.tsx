@@ -152,22 +152,21 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             >
               Reset
             </Button>
-            <Switch
-              checked={engineOn}
-              onChange={(event) => setEngineOn(event.currentTarget.checked)}
-              onLabel="On"
-              offLabel="Off"
-              size="lg"
-            />
           </Group>
         </Stack>
 
         <Stack>
-          <Stack>
-            <GameNotation tree={tree} setTree={setTree} />
-            <MoveControls />
-          </Stack>
-          <BestMoves engineMove={engineMove} />
+          <Switch
+            checked={engineOn}
+            onChange={(event) => setEngineOn(event.currentTarget.checked)}
+            onLabel="On"
+            offLabel="Off"
+            size="lg"
+          />
+          {engineOn && <BestMoves engineMove={engineMove} />}
+
+          <GameNotation tree={tree} setTree={setTree} />
+          <MoveControls />
         </Stack>
       </Group>
     </>
@@ -176,16 +175,16 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   function MoveControls() {
     return (
       <Group grow>
-        <ActionIcon onClick={() => goToStart()}>
+        <ActionIcon variant="light" size="xl" onClick={() => goToStart()}>
           <IconChevronsLeft />
         </ActionIcon>
-        <ActionIcon onClick={() => undoMove()}>
+        <ActionIcon variant="light" size="xl" onClick={() => undoMove()}>
           <IconChevronLeft />
         </ActionIcon>
-        <ActionIcon onClick={() => redoMove()}>
+        <ActionIcon variant="light" size="xl" onClick={() => redoMove()}>
           <IconChevronRight />
         </ActionIcon>
-        <ActionIcon onClick={() => goToEnd()}>
+        <ActionIcon variant="light" size="xl" onClick={() => goToEnd()}>
           <IconChevronsRight />
         </ActionIcon>
       </Group>
