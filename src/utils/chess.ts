@@ -36,6 +36,17 @@ export class VariationTree {
   getLastMove(): Move | null {
     return this.position.history({ verbose: true }).slice(-1)[0] || null;
   }
+
+  isInBranch(tree: VariationTree): boolean {
+    if (this.equals(tree)) {
+      return true;
+    }
+    if (this.parent === null) {
+      return false;
+    }
+    return this.parent.isInBranch(tree);
+  }
+
 }
 
 export function moveToKey(move: Move | null) {

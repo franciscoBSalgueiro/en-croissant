@@ -14,7 +14,7 @@ function GameNotation({
   const forceUpdate = useForceUpdate();
   const topVariation = tree.getTopVariation();
 
-  function promoteVariant(variation: VariationTree) {
+  function promoteVariation(variation: VariationTree) {
     const isCurrent = variation === tree;
     const parent = variation.parent;
     if (parent) {
@@ -30,12 +30,12 @@ function GameNotation({
     }
   }
 
-  function deleteVariant(variation: VariationTree) {
-    const isCurrent = variation.equals(tree);
+  function deleteVariation(variation: VariationTree) {
+    const isInCurrentBranch = tree.isInBranch(variation);
     const parent = variation.parent;
     if (parent) {
       parent.children = parent.children.filter((child) => child !== variation);
-      if (isCurrent) {
+      if (isInCurrentBranch) {
         setTree(parent);
       } else {
         forceUpdate();
@@ -66,7 +66,6 @@ function GameNotation({
       <Menu opened={open} width={200}>
         <Menu.Target ref={ref}>
           <Button
-            // disabled={isCurrentVariation}
             variant={isCurrentVariation ? "light" : "subtle"}
             onContextMenu={() => {
               toggleOpen();
@@ -83,14 +82,14 @@ function GameNotation({
           <Menu.Label>Actions</Menu.Label>
           <Menu.Item
             icon={<IconChevronUp size={14} />}
-            onClick={() => promoteVariant(variation)}
+            onClick={() => promoteVariation(variation)}
           >
-            Promote Variant
+            Promote Variation
           </Menu.Item>
           <Menu.Item
             color="red"
             icon={<IconTrash size={14} />}
-            onClick={() => deleteVariant(variation)}
+            onClick={() => deleteVariation(variation)}
           >
             Delete Move
           </Menu.Item>
