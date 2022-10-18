@@ -1,5 +1,12 @@
-import { ActionIcon, Button, Group, Stack, Switch } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import {
+  ActionIcon,
+  AspectRatio,
+  Button,
+  Group,
+  Stack,
+  Switch
+} from "@mantine/core";
+import { useElementSize, useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import {
   IconChevronLeft,
@@ -11,11 +18,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
 import { useEffect, useState } from "react";
-import {
-  formatMove, moveToKey,
-  toDests,
-  VariationTree
-} from "../utils/chess";
+import { formatMove, moveToKey, toDests, VariationTree } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
@@ -109,21 +112,16 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     }
   }, [engineOn]);
 
+  const { ref, width, height } = useElementSize();
+
   return (
     <>
       <Group grow align={"flex-start"}>
         <Stack>
-          <div
-            style={{
-              width: "70vw",
-              height: "70vw",
-              maxHeight: "90vh",
-              maxWidth: "90vh",
-              margin: "auto",
-            }}
-          >
+          <AspectRatio ref={ref} ratio={1}>
             <Chessground
-              contained
+              width={width}
+              height={height}
               config={{
                 orientation: formatMove(orientation),
                 fen: chess.fen(),
@@ -142,7 +140,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                 lastMove,
               }}
             />
-          </div>
+          </AspectRatio>
           <Group position={"center"}>
             <Button onClick={() => flipBoard()}>Flip</Button>
             <Button
