@@ -1,28 +1,44 @@
 import { Chess, Move, SQUARES } from "chess.ts";
 import { Key } from "chessground/types";
 
-
-export interface VariationTree {
+export class VariationTree {
   parent: VariationTree | null;
   position: Chess;
   children: VariationTree[];
-}
-
-export function getTopVariation(tree: VariationTree): VariationTree {
-  if (tree.parent) {
-    return getTopVariation(tree.parent);
+  constructor(
+    parent: VariationTree | null,
+    position: Chess,
+    children?: VariationTree[]
+  ) {
+    this.parent = parent;
+    this.position = position;
+    this.children = children ?? [];
   }
-  return tree;
-}
 
-export function getBottomVariation(tree: VariationTree): VariationTree {
-  if (tree.children.length) {
-    return getBottomVariation(tree.children[0]);
+  equals(other: VariationTree): boolean {
+    return this.position.pgn() === other.position.pgn();
   }
-  return tree;
+
+  getTopVariation(): VariationTree {
+    if (this.parent === null) {
+      return this;
+    }
+    return this.parent.getTopVariation();
+  }
+
+  getBottomVariation(): VariationTree {
+    if (this.children.length === 0) {
+      return this;
+    }
+    return this.children[0].getBottomVariation();
+  }
+
+  getLastMove(): Move | null {
+    return this.position.history({ verbose: true }).slice(-1)[0] || null;
+  }
 }
 
-export function moveToKey(move: Move | undefined) {
+export function moveToKey(move: Move | null) {
   return move ? ([move.from, move.to] as Key[]) : undefined;
 }
 
@@ -41,8 +57,4 @@ export function toDests(chess: Chess): Map<Key, Key[]> {
 
 export function formatMove(orientation: string) {
   return orientation === "w" ? "white" : "black";
-}
-
-export function getLastMove(chess: Chess) {
-  return chess.history({ verbose: true }).pop();
 }

@@ -1,6 +1,8 @@
-import { Button, Paper } from "@mantine/core";
+import { Button, Menu, Paper } from "@mantine/core";
+import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
+import { IconChevronUp, IconTrash } from "@tabler/icons";
 import { Move } from "chess.ts";
-import { getLastMove, getTopVariation, VariationTree } from "../utils/chess";
+import { VariationTree } from "../utils/chess";
 
 function GameNotation({
   tree,
@@ -9,8 +11,33 @@ function GameNotation({
   tree: VariationTree;
   setTree: (tree: VariationTree) => void;
 }) {
-  const topVariation = getTopVariation(tree);
-  const currentVariation = tree;
+  const forceUpdate = useForceUpdate();
+  const topVariation = tree.getTopVariation();
+
+  function promoteVariant(variation: VariationTree) {
+    const parent = variation.parent;
+    if (parent) {
+      parent.children = [
+        variation,
+        ...parent.children.filter((child) => child !== variation),
+      ];
+      setTree(variation);
+    }
+  }
+
+  function deleteVariant(variation: VariationTree) {
+    const isCurrent = variation.equals(tree);
+    const parent = variation.parent;
+    if (parent) {
+      parent.children = parent.children.filter((child) => child !== variation);
+      if (isCurrent) {
+        setTree(parent);
+      } else {
+        forceUpdate();
+      }
+    }
+  }
+
   return (
     <Paper withBorder p="md">
       {/* <SimpleGrid cols={2}> */}
@@ -19,31 +46,60 @@ function GameNotation({
     </Paper>
   );
 
-  function MoveCell({ move, tree }: { move: Move; tree: VariationTree }) {
-    const isCurrentVariation = tree === currentVariation;
+  function MoveCell({
+    move,
+    variation,
+  }: {
+    move: Move;
+    variation: VariationTree;
+  }) {
+    const isCurrentVariation = variation.equals(tree);
+    const [open, toggleOpen] = useToggle();
+    const ref = useClickOutside(() => toggleOpen(false));
+
     return (
-      <Button
-        // disabled={isCurrentVariation}
-        variant={isCurrentVariation ? "light" : "subtle"}
-        onContextMenu={(e: React.MouseEvent<HTMLButtonElement>) => {
-          tree.parent?.children.splice(tree.parent.children.indexOf(tree), 1);
-          setTree(tree.parent!);
-        }}
-        onClick={() => {
-          setTree(tree);
-        }}
-      >
-        {move.san}
-      </Button>
+      <Menu opened={open} width={200}>
+        <Menu.Target ref={ref}>
+          <Button
+            // disabled={isCurrentVariation}
+            variant={isCurrentVariation ? "light" : "subtle"}
+            onContextMenu={() => {
+              toggleOpen();
+            }}
+            onClick={() => {
+              setTree(variation);
+              toggleOpen(false);
+            }}
+          >
+            {move.san}
+          </Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>Actions</Menu.Label>
+          <Menu.Item
+            icon={<IconChevronUp size={14} />}
+            onClick={() => promoteVariant(variation)}
+          >
+            Promote Variant
+          </Menu.Item>
+          <Menu.Item
+            color="red"
+            icon={<IconTrash size={14} />}
+            onClick={() => deleteVariant(variation)}
+          >
+            Delete Move
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
     );
   }
 
   function RenderVariationTree({ tree }: { tree: VariationTree }) {
-    const lastMove = getLastMove(tree.position);
+    const lastMove = tree.getLastMove();
     return (
       <>
         <span>
-          {lastMove && <MoveCell move={lastMove} tree={tree} />}
+          {lastMove && <MoveCell move={lastMove} variation={tree} />}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} />
           )}
