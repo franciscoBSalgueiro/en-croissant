@@ -4,7 +4,9 @@ import {
   Button,
   Group,
   Stack,
-  Switch
+  Switch,
+  Text,
+  Tooltip
 } from "@mantine/core";
 import { useElementSize, useHotkeys } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
@@ -12,9 +14,10 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconChevronsLeft,
-  IconChevronsRight
+  IconChevronsRight,
+  IconSwitchVertical
 } from "@tabler/icons";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
 import { useEffect, useState } from "react";
@@ -22,9 +25,19 @@ import { formatMove, moveToKey, toDests, VariationTree } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
+export interface EngineVariation {
+  moves: string[];
+  score: number;
+  depth: number;
+}
+
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [engineOn, setEngineOn] = useState(false);
-  const [engineMove, setEngineMove] = useState<string | null>(null);
+  const [engineVariation, setEngineVariation] = useState<EngineVariation>({
+    moves: [],
+    score: 0,
+    depth: 0
+  });
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
@@ -99,7 +112,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   async function waitForMove() {
     await listen("best_move", (event) => {
-      setEngineMove(event.payload as string);
+      const { pv, depth, score } = event.payload as any;
+      // limit to 3 moves
+      const moves = pv.split(" ").slice(0, 3);
+      setEngineVariation({
+        moves,
+        depth,
+        score,
+      });
     });
   }
 
@@ -113,6 +133,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         engine:
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
       });
+    } else {
+      emit("pause_engine");
     }
   }, [engineOn]);
 
@@ -146,13 +168,19 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             />
           </AspectRatio>
           <Group position={"center"}>
-            <Button onClick={() => flipBoard()}>Flip</Button>
+            <Tooltip label={"Flip Board"}>
+              <ActionIcon onClick={() => flipBoard()}>
+                <IconSwitchVertical />
+              </ActionIcon>
+            </Tooltip>
             <Button
               onClick={() => setTree(buildVariationTree(new Chess(initialFen)))}
             >
               Reset
             </Button>
           </Group>
+          <Text>{chess.fen()}</Text>
+          <Text>{chess.pgn()}</Text>
         </Stack>
 
         <Stack>
@@ -163,7 +191,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             offLabel="Off"
             size="lg"
           />
-          {engineOn && <BestMoves engineMove={engineMove} />}
+          {engineOn && <BestMoves engineVariation={engineVariation} />}
 
           <GameNotation tree={tree} setTree={setTree} />
           <MoveControls />

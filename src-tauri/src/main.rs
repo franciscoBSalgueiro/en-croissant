@@ -3,14 +3,23 @@
     windows_subsystem = "windows"
 )]
 
-use std::{fs::create_dir_all, io::Cursor, path::Path};
+use std::{
+    fs::create_dir_all,
+    io::Cursor,
+    // process::Command,
+    path::Path,
+    process::Stdio,
+};
 
 use futures_util::StreamExt;
 use tauri::Manager;
-use uciengine::uciengine::GoJob;
-use uciengine::uciengine::UciEngine;
 
 use reqwest::Client;
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
+    process::{self, ChildStdin, ChildStdout, Command},
+    sync::mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver, UnboundedSender},
+};
 
 fn main() {
     tauri::Builder::default()
@@ -25,7 +34,7 @@ fn main() {
 }
 
 #[derive(Clone, serde::Serialize)]
-struct Payload {
+struct DownloadFilePayload {
     progress: f64,
     id: u64,
 }
@@ -59,7 +68,7 @@ async fn download_file(
         let progress = (downloaded as f64 / total_size as f64) * 100.0;
         println!("Downloaded {}%", progress);
         // emit object with progress and id
-        app.emit_all("download_progress", Payload { progress, id })
+        app.emit_all("download_progress", DownloadFilePayload { progress, id })
             .unwrap();
     }
 
@@ -131,16 +140,109 @@ async fn remove_folder(directory: String) -> Result<String, String> {
     Ok("removed".to_string())
 }
 
-#[tauri::command]
-async fn get_best_moves(engine: String, app: tauri::AppHandle) -> Result<String, String> {
-    let go_job = GoJob::new()
-        .uci_opt("UCI_Variant", "chess")
-        .pos_startpos()
-        .go_opt("depth", 21);
-    let engine = UciEngine::new(engine);
+#[derive(Clone, serde::Serialize)]
+struct BestFilePayload {
+    depth: u64,
+    score: i64,
+    pv: String,
+}
 
-    let go_result = engine.go(go_job).await;
-    let best_move = go_result.unwrap().bestmove.unwrap();
-    app.emit_all("best_move", &best_move).unwrap();
-    Ok(best_move)
+#[tauri::command]
+async fn get_best_moves(engine: String, app: tauri::AppHandle) {
+    // start engine command
+    // let child = Command::new(engine)
+    //     .arg("uci")
+    //     .spawn()
+    //     .expect("Failed to start engine");
+    let mut child = match Command::new(&engine)
+        .arg("go infinite")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(e) => panic!("Unable to start process `{}`. {}", &engine, e),
+    };
+
+    let mut stdin = child.stdin.take().expect("Failed to open stdin");
+    let stdout = child
+        .stdout
+        .take()
+        .expect("child did not have a handle to stdout");
+    let stderr = child
+        .stderr
+        .take()
+        .expect("child did not have a handle to stderr");
+
+    let mut stdout_reader = BufReader::new(stdout).lines();
+    let mut stderr_reader = BufReader::new(stderr).lines();
+
+    loop {
+        tokio::select! {
+            result = stdout_reader.next_line() => {
+                match result {
+                        Ok(Some(line)) => {
+                        println!("stdout: {}", &line);
+                        if line.starts_with("info") && !line.contains("currmove") {
+                            app.emit_all("best_move",
+                            parseUCIInfo(&line)
+                        ).unwrap();
+                    }
+
+                        // if line.contains("uciok") {
+                        //     // write to engine
+                        //     // stdin.write_all(b"isready\n").await.unwrap();
+                        //     println!("writing to engine");
+                        //  }
+                    },
+                    Err(_) => break,
+                    _ => (),
+                }
+            }
+            result = stderr_reader.next_line() => {
+                match result {
+                    Ok(Some(line)) => println!("Stderr: {}", line),
+                    Err(_) => break,
+                    _ => (),
+                }
+            }
+            result = child.wait() => {
+                match result {
+                    Ok(exit_code) => println!("Child process exited with {}", exit_code),
+                    _ => (),
+                }
+                break // child process exited
+            }
+        };
+    }
+
+    // app.emit_all("best_move", &best_move).unwrap();
+    // Ok(best_move)
+}
+
+fn parseUCIInfo(info: &str) -> Option<BestFilePayload> {
+    let mut depth = 0;
+    let mut score = 0;
+    let mut pv = String::new();
+    // example input: info depth 1 seldepth 1 multipv 1 score cp 0 nodes 20 nps 10000 tbhits 0 time 2 pv e2e4
+    for (i, s) in info.split_whitespace().enumerate() {
+        match s {
+            "depth" => depth = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap(),
+            "score" => {
+                score = info.split_whitespace().nth(i + 2).unwrap().parse().unwrap();
+            }
+            "pv" => {
+                pv = info
+                    .split_whitespace()
+                    .skip(i + 1)
+                    .take_while(|x| !x.starts_with("currmove"))
+                    .collect::<Vec<&str>>()
+                    .join(" ");
+            }
+            _ => (),
+        }
+    }
+    Some(BestFilePayload { depth, score, pv })
 }
