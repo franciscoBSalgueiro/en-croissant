@@ -147,7 +147,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
       });
     } else {
-      emit("pause_engine");
+      emit("stop_engine");
     }
   }, [engineOn]);
 

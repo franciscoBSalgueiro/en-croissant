@@ -3,22 +3,15 @@
     windows_subsystem = "windows"
 )]
 
-use std::{
-    fs::create_dir_all,
-    io::Cursor,
-    // process::Command,
-    path::Path,
-    process::Stdio,
-};
+use std::{fs::create_dir_all, io::Cursor, path::Path, process::Stdio};
 
 use futures_util::StreamExt;
 use tauri::Manager;
 
 use reqwest::Client;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
-    process::{self, ChildStdin, ChildStdout, Command},
-    sync::mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver, UnboundedSender},
+    io::{AsyncBufReadExt, BufReader},
+    process::Command,
 };
 
 fn main() {
@@ -166,7 +159,6 @@ async fn get_best_moves(engine: String, app: tauri::AppHandle) {
         Err(e) => panic!("Unable to start process `{}`. {}", &engine, e),
     };
 
-    let mut stdin = child.stdin.take().expect("Failed to open stdin");
     let stdout = child
         .stdout
         .take()
@@ -179,8 +171,24 @@ async fn get_best_moves(engine: String, app: tauri::AppHandle) {
     let mut stdout_reader = BufReader::new(stdout).lines();
     let mut stderr_reader = BufReader::new(stderr).lines();
 
+    // FIXME: bad way to do this. it kills the engine but doesnt stop the thread
+    // probably this should be a oneshot channel
+    let (tx, mut rx) = tokio::sync::broadcast::channel(16);
+
+    app.listen_global("stop_engine", move |_| {
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            tx.send(()).unwrap();
+        });
+    });
+
     loop {
         tokio::select! {
+            _ = rx.recv() => {
+                println!("Killing engine");
+                child.kill().await.unwrap();
+                break
+            }
             result = stdout_reader.next_line() => {
                 match result {
                         Ok(Some(line)) => {
@@ -217,9 +225,6 @@ async fn get_best_moves(engine: String, app: tauri::AppHandle) {
             }
         };
     }
-
-    // app.emit_all("best_move", &best_move).unwrap();
-    // Ok(best_move)
 }
 
 fn parseUCIInfo(info: &str) -> Option<BestFilePayload> {
