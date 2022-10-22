@@ -171,11 +171,9 @@ async fn get_best_moves(engine: String, app: tauri::AppHandle) {
     let mut stdout_reader = BufReader::new(stdout).lines();
     let mut stderr_reader = BufReader::new(stderr).lines();
 
-    // FIXME: bad way to do this. it kills the engine but doesnt stop the thread
-    // probably this should be a oneshot channel
     let (tx, mut rx) = tokio::sync::broadcast::channel(16);
 
-    app.listen_global("stop_engine", move |_| {
+    let id = app.listen_global("stop_engine", move |_| {
         let tx = tx.clone();
         tokio::spawn(async move {
             tx.send(()).unwrap();
@@ -187,6 +185,7 @@ async fn get_best_moves(engine: String, app: tauri::AppHandle) {
             _ = rx.recv() => {
                 println!("Killing engine");
                 child.kill().await.unwrap();
+                app.unlisten(id);
                 break
             }
             result = stdout_reader.next_line() => {
