@@ -26,7 +26,7 @@ import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
 export interface EngineVariation {
-  moves: string[];
+  moves: Chess[];
   score: number;
   depth: number;
 }
@@ -36,7 +36,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [engineVariation, setEngineVariation] = useState<EngineVariation>({
     moves: [],
     score: 0,
-    depth: 0
+    depth: 0,
   });
 
   // Variation tree of all the previous moves
@@ -112,14 +112,27 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   async function waitForMove() {
     await listen("best_move", (event) => {
-      const { pv, depth, score } = event.payload as any;
-      // limit to 3 moves
-      const moves = pv.split(" ").slice(0, 3);
-      setEngineVariation({
-        moves,
-        depth,
-        score,
-      });
+      const { pv, depth, score } = event.payload as {
+        pv: String;
+        depth: number;
+        score: number;
+      };
+      // limit to 10 moves
+      const moves = pv.split(" ").slice(0, 10);
+      if (chess) {
+        const newChess = chess.clone();
+        const chesses = moves.map((move) => {
+          newChess.move(move, {sloppy: true});
+          return newChess.clone();
+        });
+        if (chesses.length > 5) {
+          setEngineVariation({
+            moves: chesses,
+            score,
+            depth,
+          });
+        }
+      }
     });
   }
 

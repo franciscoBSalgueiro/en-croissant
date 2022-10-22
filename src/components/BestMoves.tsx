@@ -1,4 +1,5 @@
-import { Box, Paper, Table, Text } from "@mantine/core";
+import { Box, Button, Paper, Table, Text } from "@mantine/core";
+import { Chess } from "chess.ts";
 import { EngineVariation } from "./BoardAnalysis";
 
 function ScoreBubble({ score }: { score: number }) {
@@ -17,6 +18,18 @@ function ScoreBubble({ score }: { score: number }) {
   );
 }
 
+function MoveCell({ move }: { move: Chess }) {
+  return (
+    <Button
+      variant="subtle"
+      onClick={() => {
+      }}
+    >
+      {move.history()[move.history().length - 1]}
+    </Button>
+  );
+}
+
 function BestMoves({ engineVariation }: { engineVariation: EngineVariation }) {
   return (
     <>
@@ -26,7 +39,11 @@ function BestMoves({ engineVariation }: { engineVariation: EngineVariation }) {
         <Table withBorder>
           <tbody>
             <tr>
-              <td>{engineVariation.moves}</td>
+              <td>
+                {engineVariation.moves.map((move) => (
+                  <MoveCell move={move} />
+                ))}
+              </td>
               <td>
                 <ScoreBubble score={engineVariation.score / 100} />
               </td>
