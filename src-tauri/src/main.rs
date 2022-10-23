@@ -10,7 +10,7 @@ use tauri::Manager;
 
 use reqwest::Client;
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::Command,
 };
 
@@ -134,42 +134,37 @@ async fn remove_folder(directory: String) -> Result<String, String> {
 }
 
 #[derive(Clone, serde::Serialize)]
-struct BestFilePayload {
+struct BestMovePayload {
     depth: u64,
     score: i64,
     pv: String,
 }
 
 #[tauri::command]
-async fn get_best_moves(engine: String, app: tauri::AppHandle) {
+async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
     // start engine command
     // let child = Command::new(engine)
     //     .arg("uci")
     //     .spawn()
     //     .expect("Failed to start engine");
-    let mut child = match Command::new(&engine)
-        .arg("go infinite")
+    let mut child = Command::new(&engine)
+        // .arg(format!("position fen {}\n", fen))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .kill_on_drop(true)
+        // .kill_on_drop(true)
         .spawn()
-    {
-        Ok(c) => c,
-        Err(e) => panic!("Unable to start process `{}`. {}", &engine, e),
-    };
+        .expect("Failed to start engine");
 
+    let stdin = child
+        .stdin
+        .take()
+        .expect("child did not have a handle to stdin");
     let stdout = child
         .stdout
         .take()
         .expect("child did not have a handle to stdout");
-    let stderr = child
-        .stderr
-        .take()
-        .expect("child did not have a handle to stderr");
-
     let mut stdout_reader = BufReader::new(stdout).lines();
-    let mut stderr_reader = BufReader::new(stderr).lines();
 
     let (tx, mut rx) = tokio::sync::broadcast::channel(16);
 
@@ -180,53 +175,119 @@ async fn get_best_moves(engine: String, app: tauri::AppHandle) {
         });
     });
 
-    loop {
-        tokio::select! {
-            _ = rx.recv() => {
-                println!("Killing engine");
-                child.kill().await.unwrap();
-                app.unlisten(id);
-                break
-            }
-            result = stdout_reader.next_line() => {
-                match result {
-                        Ok(Some(line)) => {
-                        println!("stdout: {}", &line);
-                        if line.starts_with("info") && !line.contains("currmove") {
-                            app.emit_all("best_move",
-                            parseUCIInfo(&line)
-                        ).unwrap();
-                    }
+    tokio::spawn(async move {
+        // run engine process and wait for exit code
+        let status = child
+            .wait()
+            .await
+            .expect("engine process encountered an error");
+        println!("engine process exit status : {}", status);
+    });
 
-                        // if line.contains("uciok") {
-                        //     // write to engine
-                        //     // stdin.write_all(b"isready\n").await.unwrap();
-                        //     println!("writing to engine");
-                        //  }
-                    },
-                    Err(_) => break,
-                    _ => (),
-                }
-            }
-            result = stderr_reader.next_line() => {
+    // tokio::spawn(async move {
+    //     println!("Starting engine");
+    //     let mut stdin = stdin;
+    //     let write_result = stdin.write_all(b"go\n").await;
+    //     if let Err(e) = write_result {
+    //         println!("Error writing to stdin: {}", e);
+    //     }
+    // });
+
+    tokio::spawn(async move {
+        let mut stdin = stdin;
+        let res1 = stdin
+            .write_all(format!("position fen {}\n", &fen).as_bytes())
+            .await;
+        let res2 = stdin.write_all(b"go infinite\n").await;
+        if let Err(e) = res1 {
+            println!("Error writing to stdin: {}", e);
+        }
+        if let Err(e) = res2 {
+            println!("Error writing to stdin: {}", e);
+        }
+
+        loop {
+            tokio::select! {
+                    _ = rx.recv() => {
+                        println!("Killing engine");
+                        stdin.write_all(b"stop\n").await.unwrap();
+                        app.unlisten(id);
+                        break
+                    }
+                    result = stdout_reader.next_line() => {
                 match result {
-                    Ok(Some(line)) => println!("Stderr: {}", line),
-                    Err(_) => break,
-                    _ => (),
+                    Ok(line_opt) => {
+                        if let Some(line) = line_opt {
+                            println!("line: {}", line);
+                            if line == "readyok" {
+                                println!("Engine ready");
+                            }
+                            if line.starts_with("info") && line.contains("pv") {
+                                app.emit_all("best_move", parse_uci(&line)).unwrap();
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        println!("engine read error {:?}", err);
+                        break;
+                    }
                 }
             }
-            result = child.wait() => {
-                match result {
-                    Ok(exit_code) => println!("Child process exited with {}", exit_code),
-                    _ => (),
                 }
-                break // child process exited
-            }
-        };
-    }
+
+            // match rx.recv().await {
+            //     Ok(_) => {
+            //         println!("Stopping engine");
+            //         stdin.write_all(b"stop\n").await.unwrap();
+            //         app.unlisten(id);
+            //         break;
+            //     }
+            //     Err(_) => {
+            //         println!("Stopping engine");
+            //         stdin.write_all(b"stop\n").await.unwrap();
+            //         break;
+            //     }
+            // }
+            // tokio::select! {
+            //     // _ = rx.recv() => {
+            //     //     println!("Killing engine");
+            //     //     child.kill().await.unwrap();
+            //     //     app.unlisten(id);
+            //     //     break
+            //     // }
+            //     result = stdout_reader.next_line() => {
+            //             match result {
+            //                 Ok(Some(line)) => {
+            //                 // println!("stdout: {}", &line);
+            //                 if line.starts_with("info") && !line.contains("currmove") {
+            //                     app.emit_all("best_move",
+            //                     parseUCIInfo(&line)
+            //                 ).unwrap();
+            //             }
+
+            //                 // if line.contains("uciok") {
+            //                 //     // write to engine
+            //                 //     // stdin.write_all(b"isready\n").await.unwrap();
+            //                 //     println!("writing to engine");
+            //                 //  }
+            //             },
+            //             Err(_) => break,
+            //             _ => (),
+            //         }
+            //     }
+            //     result = stderr_reader.next_line() => {
+            //         match result {
+            //             Ok(Some(line)) => println!("Stderr: {}", line),
+            //             Err(_) => break,
+            //             _ => (),
+            //         }
+            //     }
+            // };
+        }
+    });
 }
 
-fn parseUCIInfo(info: &str) -> Option<BestFilePayload> {
+fn parse_uci(info: &str) -> Option<BestMovePayload> {
     let mut depth = 0;
     let mut score = 0;
     let mut pv = String::new();
@@ -248,5 +309,5 @@ fn parseUCIInfo(info: &str) -> Option<BestFilePayload> {
             _ => (),
         }
     }
-    Some(BestFilePayload { depth, score, pv })
+    Some(BestMovePayload { depth, score, pv })
 }

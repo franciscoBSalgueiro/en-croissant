@@ -62,6 +62,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     return tree;
   }
 
+  function resetEngineVariation() {
+    setEngineVariation({
+      moves: [],
+      score: 0,
+      depth: 0,
+    });
+  }
+
   function makeMove(move: PartialMove) {
     const newChess = tree.position.clone();
     newChess.move(move);
@@ -77,21 +85,25 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   function undoMove() {
     if (tree.parent) {
       setTree(tree.parent);
+      resetEngineVariation();
     }
   }
 
   function redoMove() {
     if (tree.children.length > 0) {
       setTree(tree.children[0]);
+      resetEngineVariation();
     }
   }
 
   function goToStart() {
     setTree(tree.getTopVariation());
+    resetEngineVariation();
   }
 
   function goToEnd() {
     setTree(tree.getBottomVariation());
+    resetEngineVariation();
   }
 
   function flipBoard() {
@@ -122,7 +134,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       if (chess) {
         const newChess = chess.clone();
         const chesses = moves.map((move) => {
-          newChess.move(move, {sloppy: true});
+          newChess.move(move, { sloppy: true });
           return newChess.clone();
         });
         if (chesses.length > 5) {
@@ -145,6 +157,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       invoke("get_best_moves", {
         engine:
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
+        fen: chess.fen(),
       });
     } else {
       emit("stop_engine");
@@ -204,7 +217,12 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             offLabel="Off"
             size="lg"
           />
-          {engineOn && <BestMoves engineVariation={engineVariation} />}
+          {/* {engineOn && <BestMoves engineVariation={engineVariation} />} */}
+          <BestMoves
+            engineVariation={engineVariation}
+            tree={tree}
+            setTree={setTree}
+          />
 
           <GameNotation tree={tree} setTree={setTree} />
           <MoveControls />

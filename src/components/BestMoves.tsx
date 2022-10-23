@@ -1,5 +1,6 @@
 import { Box, Button, Paper, Table, Text } from "@mantine/core";
 import { Chess } from "chess.ts";
+import { getLastChessMove, VariationTree } from "../utils/chess";
 import { EngineVariation } from "./BoardAnalysis";
 
 function ScoreBubble({ score }: { score: number }) {
@@ -18,19 +19,38 @@ function ScoreBubble({ score }: { score: number }) {
   );
 }
 
-function MoveCell({ move }: { move: Chess }) {
-  return (
-    <Button
-      variant="subtle"
-      onClick={() => {
-      }}
-    >
-      {move.history()[move.history().length - 1]}
-    </Button>
-  );
+interface BestMovesProps {
+  engineVariation: EngineVariation;
+  tree: VariationTree;
+  setTree: (tree: VariationTree) => void;
 }
 
-function BestMoves({ engineVariation }: { engineVariation: EngineVariation }) {
+function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
+  function addChessesToVariationTree(chesses: Chess[]): void {
+    let currentTree = tree;
+    for (const chess of chesses) {
+      currentTree.children.push(new VariationTree(currentTree, chess));
+      currentTree = currentTree.children[currentTree.children.length - 1];
+    }
+    setTree(currentTree);
+  }
+  function MoveCell({ index }: { index: number }) {
+    // if (getLastChessMove(chess) == null) {
+    // console.log(chess.history());
+    // }
+    return (
+      <Button
+        variant="subtle"
+        onClick={() => {
+          addChessesToVariationTree(
+            engineVariation.moves.slice(0, index + 1)
+          );
+        }}
+      >
+        {getLastChessMove(engineVariation.moves[index])?.san ?? "No move"}
+      </Button>
+    );
+  }
   return (
     <>
       <Paper p="md" radius="sm" withBorder>
@@ -40,8 +60,8 @@ function BestMoves({ engineVariation }: { engineVariation: EngineVariation }) {
           <tbody>
             <tr>
               <td>
-                {engineVariation.moves.map((move) => (
-                  <MoveCell move={move} />
+                {engineVariation.moves.map((move, index) => (
+                  <MoveCell index={index} />
                 ))}
               </td>
               <td>

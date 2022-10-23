@@ -34,7 +34,7 @@ export class VariationTree {
   }
 
   getLastMove(): Move | null {
-    return this.position.history({ verbose: true }).slice(-1)[0] || null;
+    return getLastChessMove(this.position);
   }
 
   isInBranch(tree: VariationTree): boolean {
@@ -46,7 +46,6 @@ export class VariationTree {
     }
     return this.parent.isInBranch(tree);
   }
-
 }
 
 export function moveToKey(move: Move | null) {
@@ -68,4 +67,8 @@ export function toDests(chess: Chess): Map<Key, Key[]> {
 
 export function formatMove(orientation: string) {
   return orientation === "w" ? "white" : "black";
+}
+
+export function getLastChessMove(chess: Chess): Move | null {
+  return chess.history({ verbose: true }).slice(-1)[0] || null;
 }
