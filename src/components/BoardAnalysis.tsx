@@ -20,7 +20,7 @@ import {
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { formatMove, moveToKey, toDests, VariationTree } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
@@ -31,29 +31,35 @@ export interface EngineVariation {
   depth: number;
 }
 
-interface TempVariation {
-  moves: string[];
-  score: number;
-  depth: number;
-}
-
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
+  // Variation tree of all the previous moves
+  const [tree, setTree] = useState<VariationTree>(
+    buildVariationTree(new Chess(initialFen))
+  );
+
   const [engineOn, setEngineOn] = useState(false);
-  const [tempVariation, setTempVariation] = useState<TempVariation>({
-    moves: [],
-    score: 0,
-    depth: 0,
-  });
+
   const [engineVariation, setEngineVariation] = useState<EngineVariation>({
     moves: null,
     score: 0,
     depth: 0,
   });
 
-  // Variation tree of all the previous moves
-  const [tree, setTree] = useState<VariationTree>(
-    buildVariationTree(new Chess(initialFen))
+  const setEngineVar = useCallback(
+    (moves: string[], score: number, depth: number) => {
+      const newChess = tree.position.clone();
+      for (let turn of moves) {
+        newChess.move(turn, { sloppy: true });
+      }
+      setEngineVariation({
+        moves: newChess,
+        score: score,
+        depth: depth,
+      });
+    },
+    [tree]
   );
+
   const chess = tree.position;
 
   // Board orientation
@@ -143,11 +149,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       // limit to 10 moves
       if (pv.length > 10) {
         const moves = pv.split(" ").slice(0, 10);
-        setTempVariation({
-          moves,
-          score,
-          depth,
-        });
+        setEngineVar(moves, score, depth);
       }
     });
   }
@@ -155,19 +157,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   useEffect(() => {
     waitForMove();
   }, []);
-
-  useEffect(() => {
-    const { moves, score, depth } = tempVariation;
-    const newChess = tree.position.clone();
-    for (let turn of moves) {
-      newChess.move(turn, { sloppy: true });
-    }
-    setEngineVariation({
-      moves: newChess,
-      score: score,
-      depth: depth,
-    });
-  }, [tree, tempVariation]);
 
   useEffect(() => {
     if (engineOn) {
