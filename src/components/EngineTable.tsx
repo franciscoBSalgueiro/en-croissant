@@ -140,7 +140,6 @@ export default function EngineTable() {
 
   function handleInstallClick(loaded: boolean, id: number) {
     if (loaded) {
-      console.log("uninstall");
       removeEngine(id);
     } else {
       installEngine(id);

@@ -1,6 +1,5 @@
 import { Box, Button, Paper, Table, Text } from "@mantine/core";
-import { Chess } from "chess.ts";
-import { getLastChessMove, VariationTree } from "../utils/chess";
+import { VariationTree } from "../utils/chess";
 import { EngineVariation } from "./BoardAnalysis";
 
 function ScoreBubble({ score }: { score: number }) {
@@ -26,28 +25,25 @@ interface BestMovesProps {
 }
 
 function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
-  function addChessesToVariationTree(chesses: Chess[]): void {
-    let currentTree = tree;
-    for (const chess of chesses) {
-      currentTree.children.push(new VariationTree(currentTree, chess));
-      currentTree = currentTree.children[currentTree.children.length - 1];
+  function MoveCell({ move, index }: { move: String; index: number }) {
+    function addChessToTree(index: number) {
+      let newTree = tree;
+      const newChess = newTree.position.clone();
+      for (let i = 0; i <= index; i++) {
+        newChess.move(engineVariation.moves?.history()[i + tree.position.history().length] || "");
+        newTree.addChild(newChess.clone());
+        newTree = newTree.children[0];
+      }
+      setTree(newTree);
     }
-    setTree(currentTree);
-  }
-  function MoveCell({ index }: { index: number }) {
-    // if (getLastChessMove(chess) == null) {
-    // console.log(chess.history());
-    // }
     return (
       <Button
         variant="subtle"
         onClick={() => {
-          addChessesToVariationTree(
-            engineVariation.moves.slice(0, index + 1)
-          );
+          addChessToTree(index);
         }}
       >
-        {getLastChessMove(engineVariation.moves[index])?.san ?? "No move"}
+        {move}
       </Button>
     );
   }
@@ -60,8 +56,8 @@ function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
           <tbody>
             <tr>
               <td>
-                {engineVariation.moves.map((move, index) => (
-                  <MoveCell index={index} />
+                {engineVariation.moves?.history().slice(tree.position.history().length).map((move, index) => (
+                  <MoveCell move={move} index={index} />
                 ))}
               </td>
               <td>

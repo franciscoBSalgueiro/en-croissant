@@ -26,15 +26,26 @@ import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
 export interface EngineVariation {
-  moves: Chess[];
+  moves: Chess | null;
+  score: number;
+  depth: number;
+}
+
+interface TempVariation {
+  moves: string[];
   score: number;
   depth: number;
 }
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [engineOn, setEngineOn] = useState(false);
-  const [engineVariation, setEngineVariation] = useState<EngineVariation>({
+  const [tempVariation, setTempVariation] = useState<TempVariation>({
     moves: [],
+    score: 0,
+    depth: 0,
+  });
+  const [engineVariation, setEngineVariation] = useState<EngineVariation>({
+    moves: null,
     score: 0,
     depth: 0,
   });
@@ -64,7 +75,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   function resetEngineVariation() {
     setEngineVariation({
-      moves: [],
+      moves: null,
       score: 0,
       depth: 0,
     });
@@ -130,20 +141,13 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         score: number;
       };
       // limit to 10 moves
-      const moves = pv.split(" ").slice(0, 10);
-      if (chess) {
-        const newChess = chess.clone();
-        const chesses = moves.map((move) => {
-          newChess.move(move, { sloppy: true });
-          return newChess.clone();
+      if (pv.length > 10) {
+        const moves = pv.split(" ").slice(0, 10);
+        setTempVariation({
+          moves,
+          score,
+          depth,
         });
-        if (chesses.length > 5) {
-          setEngineVariation({
-            moves: chesses,
-            score,
-            depth,
-          });
-        }
       }
     });
   }
@@ -151,6 +155,19 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   useEffect(() => {
     waitForMove();
   }, []);
+
+  useEffect(() => {
+    const { moves, score, depth } = tempVariation;
+    const newChess = tree.position.clone();
+    for (let turn of moves) {
+      newChess.move(turn, { sloppy: true });
+    }
+    setEngineVariation({
+      moves: newChess,
+      score: score,
+      depth: depth,
+    });
+  }, [tree, tempVariation]);
 
   useEffect(() => {
     if (engineOn) {
@@ -218,11 +235,13 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             size="lg"
           />
           {/* {engineOn && <BestMoves engineVariation={engineVariation} />} */}
-          <BestMoves
-            engineVariation={engineVariation}
-            tree={tree}
-            setTree={setTree}
-          />
+          {engineVariation.moves && (
+            <BestMoves
+              engineVariation={engineVariation}
+              tree={tree}
+              setTree={setTree}
+            />
+          )}
 
           <GameNotation tree={tree} setTree={setTree} />
           <MoveControls />

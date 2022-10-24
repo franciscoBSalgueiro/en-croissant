@@ -46,6 +46,10 @@ export class VariationTree {
     }
     return this.parent.isInBranch(tree);
   }
+
+  addChild(tree: Chess): void {
+    this.children.push(new VariationTree(this, tree));
+  }
 }
 
 export function moveToKey(move: Move | null) {
