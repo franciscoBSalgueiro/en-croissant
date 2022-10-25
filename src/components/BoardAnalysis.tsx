@@ -189,6 +189,22 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   dests: dests,
                   events: {
                     after: (orig, dest) => {
+                      if (chess.get(orig)?.type === "k") {
+                        switch (dest) {
+                          case "h1":
+                            dest = "g1";
+                            break;
+                          case "a1":
+                            dest = "c1";
+                            break;
+                          case "h8":
+                            dest = "g8";
+                            break;
+                          case "a8":
+                            dest = "c8";
+                            break;
+                        }
+                      }
                       makeMove({ from: orig, to: dest });
                     },
                   },

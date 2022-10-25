@@ -60,11 +60,23 @@ export function toDests(chess: Chess): Map<Key, Key[]> {
   const dests = new Map();
   Object.keys(SQUARES).forEach((s) => {
     const ms = chess.moves({ square: s, verbose: true });
-    if (ms.length)
-      dests.set(
-        s,
-        ms.map((m) => m.to)
-      );
+    ms.forEach((m) => {
+      const to = m.to;
+      if (dests.has(s)) {
+        dests.get(s).push(to);
+      } else {
+        dests.set(s, [to]);
+      }
+      // allow to move the piece to rook square in case of castling
+      if (m.piece === "k") {
+        if (m.flags.includes("k")) {
+          dests.get(s).push(m.color === "w" ? "h1" : "h8");
+        }
+        if (m.flags.includes("q")) {
+          dests.get(s).push(m.color === "w" ? "a1" : "a8");
+        }
+      }
+    });
   });
   return dests;
 }
