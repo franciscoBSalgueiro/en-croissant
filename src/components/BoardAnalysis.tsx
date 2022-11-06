@@ -21,7 +21,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
 import { useCallback, useEffect, useState } from "react";
-import { formatMove, moveToKey, toDests, VariationTree } from "../utils/chess";
+import { formatMove, getLastChessMove, moveToKey, toDests, VariationTree } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
@@ -36,6 +36,10 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [tree, setTree] = useState<VariationTree>(
     buildVariationTree(new Chess(initialFen))
   );
+  console.time("buildChess");
+  const chess = new Chess();
+  chess.loadPgn(tree.position);
+  console.timeEnd("buildChess");
 
   const [engineOn, setEngineOn] = useState(false);
 
@@ -47,10 +51,12 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   const setEngineVar = useCallback(
     (moves: string[], score: number, depth: number) => {
-      const newChess = tree.position.clone();
+      const newChess = chess.clone();
+
       for (let turn of moves) {
         newChess.move(turn, { sloppy: true });
       }
+      console.log(newChess.history());
       setEngineVariation({
         moves: newChess,
         score: score,
@@ -60,14 +66,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     [tree]
   );
 
-  const chess = tree.position;
-
   // Board orientation
   const [orientation, setOrientation] = useState("w");
 
   // Retursn a tree of all the previous moves
   function buildVariationTree(chess: Chess): VariationTree {
-    const tree = new VariationTree(null, chess);
+    console.time("buildVariationTree");
+
+    const tree = new VariationTree(null, chess.pgn());
 
     if (chess.history().length > 0) {
       const parent = chess.undo();
@@ -75,7 +81,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         tree.parent = buildVariationTree(chess);
       }
     }
-
+    console.timeEnd("buildVariationTree");
     return tree;
   }
 
@@ -88,15 +94,16 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   }
 
   function makeMove(move: PartialMove) {
-    const newChess = tree.position.clone();
-    newChess.move(move);
-    const newTree = new VariationTree(tree, newChess);
+    console.time("makeMove");
+    chess.move(move);
+    const newTree = new VariationTree(tree, chess.pgn());
     if (tree.children.length === 0) {
       tree.children = [newTree];
-    } else if (tree.children[0].position.fen() !== newChess.fen()) {
+    } else if (tree.children[0].position !== chess.pgn()) {
       tree.children.push(newTree);
     }
     setTree(newTree);
+    console.timeEnd("makeMove");
   }
 
   function undoMove() {
@@ -127,9 +134,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     setOrientation(orientation === "w" ? "b" : "w");
   }
 
+  console.time("utils");
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
-  const lastMove = moveToKey(tree.getLastMove());
+  const lastMove = moveToKey(getLastChessMove(chess));
+  console.timeEnd("utils");
 
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
@@ -147,6 +156,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         score: number;
       };
       // limit to 10 moves
+      console.log(pv);
       if (pv.length > 10) {
         const moves = pv.split(" ").slice(0, 10);
         setEngineVar(moves, score, depth);
@@ -166,11 +176,15 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         fen: chess.fen(),
       });
     } else {
+      console.time("stop");
       emit("stop_engine");
+      console.timeEnd("stop");
     }
   }, [engineOn]);
 
+  console.time("getsize");
   const { ref, width, height } = useElementSize();
+  console.timeEnd("getsize");
 
   return (
     <>
@@ -240,7 +254,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             size="lg"
           />
           {/* {engineOn && <BestMoves engineVariation={engineVariation} />} */}
-          {engineVariation.moves && (
+          {engineVariation.moves && false && (
             <BestMoves
               engineVariation={engineVariation}
               tree={tree}

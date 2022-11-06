@@ -1,7 +1,6 @@
 import { Box, Button, Menu, Paper } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
 import { IconChevronUp, IconTrash } from "@tabler/icons";
-import { Move } from "chess.ts";
 import { VariationTree } from "../utils/chess";
 
 function GameNotation({
@@ -57,7 +56,7 @@ function GameNotation({
     move,
     variation,
   }: {
-    move: Move;
+    move: string;
     variation: VariationTree;
   }) {
     const isCurrentVariation = variation.equals(tree);
@@ -77,7 +76,7 @@ function GameNotation({
               toggleOpen(false);
             }}
           >
-            {move.san}
+            {move}
           </Button>
         </Menu.Target>
         <Menu.Dropdown>
@@ -101,7 +100,8 @@ function GameNotation({
   }
 
   function RenderVariationTree({ tree }: { tree: VariationTree }) {
-    const lastMove = tree.getLastMove();
+    const moves = tree.position.split(" ");
+    const lastMove = moves[moves.length - 1];
     return (
       <>
         <span>

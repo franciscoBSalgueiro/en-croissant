@@ -1,4 +1,5 @@
 import { Box, Button, Paper, Table, Text } from "@mantine/core";
+import { Chess } from "chess.ts";
 import { VariationTree } from "../utils/chess";
 import { EngineVariation } from "./BoardAnalysis";
 
@@ -25,13 +26,16 @@ interface BestMovesProps {
 }
 
 function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
+  const chess = new Chess();
+  chess.loadPgn(tree.position);
   function MoveCell({ move, index }: { move: String; index: number }) {
     function addChessToTree(index: number) {
       let newTree = tree;
-      const newChess = newTree.position.clone();
+      const newChess = new Chess();
+      newChess.loadPgn(newTree.position);
       for (let i = 0; i <= index; i++) {
-        newChess.move(engineVariation.moves?.history()[i + tree.position.history().length] || "");
-        newTree.addChild(newChess.clone());
+        newChess.move(engineVariation.moves?.history()[i + newChess.history().length] || "");
+        newTree.addChild(newChess.pgn());
         newTree = newTree.children[0];
       }
       setTree(newTree);
@@ -56,7 +60,7 @@ function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
           <tbody>
             <tr>
               <td>
-                {engineVariation.moves?.history().slice(tree.position.history().length).map((move, index) => (
+                {engineVariation.moves?.history().slice(chess.history().length).map((move, index) => (
                   <MoveCell move={move} index={index} />
                 ))}
               </td>

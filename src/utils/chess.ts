@@ -3,11 +3,11 @@ import { Key } from "chessground/types";
 
 export class VariationTree {
   parent: VariationTree | null;
-  position: Chess;
+  position: string;
   children: VariationTree[];
   constructor(
     parent: VariationTree | null,
-    position: Chess,
+    position: string,
     children?: VariationTree[]
   ) {
     this.parent = parent;
@@ -16,7 +16,7 @@ export class VariationTree {
   }
 
   equals(other: VariationTree): boolean {
-    return this.position.pgn() === other.position.pgn();
+    return this.position === other.position;
   }
 
   getTopVariation(): VariationTree {
@@ -33,9 +33,9 @@ export class VariationTree {
     return this.children[0].getBottomVariation();
   }
 
-  getLastMove(): Move | null {
-    return getLastChessMove(this.position);
-  }
+  // getLastMove(): Move | null {
+  //   return getLastChessMove(this.position);
+  // }
 
   isInBranch(tree: VariationTree): boolean {
     if (this.equals(tree)) {
@@ -47,7 +47,7 @@ export class VariationTree {
     return this.parent.isInBranch(tree);
   }
 
-  addChild(tree: Chess): void {
+  addChild(tree: string): void {
     this.children.push(new VariationTree(this, tree));
   }
 }
