@@ -1,7 +1,6 @@
 import { Box, Button, Paper, Table, Text } from "@mantine/core";
 import { Chess } from "chess.ts";
-import { VariationTree } from "../utils/chess";
-import { EngineVariation } from "./BoardAnalysis";
+import { EngineVariation, getLastChessMove } from "../utils/chess";
 
 function ScoreBubble({ score }: { score: number }) {
   return (
@@ -21,30 +20,18 @@ function ScoreBubble({ score }: { score: number }) {
 
 interface BestMovesProps {
   engineVariation: EngineVariation;
-  tree: VariationTree;
-  setTree: (tree: VariationTree) => void;
+  chess: Chess;
+  makeMoves: (moves: string[]) => void;
 }
 
-function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
-  const chess = new Chess();
-  chess.loadPgn(tree.position);
-  function MoveCell({ move, index }: { move: String; index: number }) {
-    function addChessToTree(index: number) {
-      let newTree = tree;
-      const newChess = new Chess();
-      newChess.loadPgn(newTree.position);
-      for (let i = 0; i <= index; i++) {
-        newChess.move(engineVariation.moves?.history()[i + newChess.history().length] || "");
-        newTree.addChild(newChess.pgn());
-        newTree = newTree.children[0];
-      }
-      setTree(newTree);
-    }
+function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
+  const newChess = new Chess(chess.fen());
+  function MoveCell({ move, index }: { move: string, index: number }) {
     return (
       <Button
         variant="subtle"
         onClick={() => {
-          addChessToTree(index);
+          makeMoves(engineVariation.moves.slice(0, index + 1));
         }}
       >
         {move}
@@ -60,9 +47,10 @@ function BestMoves({ engineVariation, tree, setTree }: BestMovesProps) {
           <tbody>
             <tr>
               <td>
-                {engineVariation.moves?.history().slice(chess.history().length).map((move, index) => (
-                  <MoveCell move={move} index={index} />
-                ))}
+                {engineVariation.moves.map((move, index) => {
+                  newChess.move(move, { sloppy: true });
+                  return <MoveCell move={getLastChessMove(newChess)?.san!} index={index} key={index} />;
+                })}
               </td>
               <td>
                 <ScoreBubble score={engineVariation.score / 100} />

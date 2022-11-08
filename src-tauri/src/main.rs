@@ -133,7 +133,7 @@ async fn remove_folder(directory: String) -> Result<String, String> {
     Ok("removed".to_string())
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, serde::Serialize, Debug)]
 struct BestMovePayload {
     depth: u64,
     score: i64,
@@ -147,6 +147,7 @@ async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
     //     .arg("uci")
     //     .spawn()
     //     .expect("Failed to start engine");
+    println!("{}", &fen);
     let mut child = Command::new(&engine)
         // .arg(format!("position fen {}\n", fen))
         .stdin(Stdio::piped())
@@ -196,12 +197,13 @@ async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
     tokio::spawn(async move {
         let mut stdin = stdin;
         let res1 = stdin
+            // .write_all(b"position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1\n")
             .write_all(format!("position fen {}\n", &fen).as_bytes())
             .await;
-        let res2 = stdin.write_all(b"go infinite\n").await;
         if let Err(e) = res1 {
             println!("Error writing to stdin: {}", e);
         }
+        let res2 = stdin.write_all(b"go infinite\n").await;
         if let Err(e) = res2 {
             println!("Error writing to stdin: {}", e);
         }
@@ -218,11 +220,11 @@ async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
                 match result {
                     Ok(line_opt) => {
                         if let Some(line) = line_opt {
-                            println!("line: {}", line);
                             if line == "readyok" {
                                 println!("Engine ready");
                             }
                             if line.starts_with("info") && line.contains("pv") {
+                                println!("line: {:?}", parse_uci(&line));
                                 app.emit_all("best_move", parse_uci(&line)).unwrap();
                             }
                         }

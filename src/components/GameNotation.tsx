@@ -100,7 +100,7 @@ function GameNotation({
   }
 
   function RenderVariationTree({ tree }: { tree: VariationTree }) {
-    const moves = tree.position.split(" ");
+    const moves = tree.pgn.split(" ");
     const lastMove = moves[moves.length - 1];
     return (
       <>

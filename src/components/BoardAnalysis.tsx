@@ -20,59 +20,34 @@ import {
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
-import { useCallback, useEffect, useState } from "react";
-import { formatMove, getLastChessMove, moveToKey, toDests, VariationTree } from "../utils/chess";
+import { useEffect, useState } from "react";
+import {
+  EngineVariation,
+  formatMove,
+  getLastChessMove,
+  moveToKey,
+  toDests,
+  VariationTree
+} from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
-
-export interface EngineVariation {
-  moves: Chess | null;
-  score: number;
-  depth: number;
-}
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
     buildVariationTree(new Chess(initialFen))
   );
-  console.time("buildChess");
+  const [engineVariation, setEngineVariation] = useState<EngineVariation>();
   const chess = new Chess();
-  chess.loadPgn(tree.position);
-  console.timeEnd("buildChess");
+  chess.loadPgn(tree.pgn);
 
   const [engineOn, setEngineOn] = useState(false);
-
-  const [engineVariation, setEngineVariation] = useState<EngineVariation>({
-    moves: null,
-    score: 0,
-    depth: 0,
-  });
-
-  const setEngineVar = useCallback(
-    (moves: string[], score: number, depth: number) => {
-      const newChess = chess.clone();
-
-      for (let turn of moves) {
-        newChess.move(turn, { sloppy: true });
-      }
-      console.log(newChess.history());
-      setEngineVariation({
-        moves: newChess,
-        score: score,
-        depth: depth,
-      });
-    },
-    [tree]
-  );
 
   // Board orientation
   const [orientation, setOrientation] = useState("w");
 
   // Retursn a tree of all the previous moves
   function buildVariationTree(chess: Chess): VariationTree {
-    console.time("buildVariationTree");
-
     const tree = new VariationTree(null, chess.pgn());
 
     if (chess.history().length > 0) {
@@ -81,64 +56,63 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         tree.parent = buildVariationTree(chess);
       }
     }
-    console.timeEnd("buildVariationTree");
     return tree;
   }
 
-  function resetEngineVariation() {
-    setEngineVariation({
-      moves: null,
-      score: 0,
-      depth: 0,
-    });
-  }
-
   function makeMove(move: PartialMove) {
-    console.time("makeMove");
     chess.move(move);
     const newTree = new VariationTree(tree, chess.pgn());
     if (tree.children.length === 0) {
       tree.children = [newTree];
-    } else if (tree.children[0].position !== chess.pgn()) {
+    } else if (tree.children[0].pgn !== chess.pgn()) {
       tree.children.push(newTree);
     }
     setTree(newTree);
-    console.timeEnd("makeMove");
+  }
+
+  function makeMoves(moves: string[]) {
+    let parentTree = tree;
+    let newTree = tree;
+    moves.forEach((move) => {
+      chess.move(move, { sloppy: true });
+      newTree = new VariationTree(parentTree, chess.pgn());
+      if (parentTree.children.length === 0) {
+        parentTree.children = [newTree];
+      } else if (parentTree.children[0].pgn !== chess.pgn()) {
+        parentTree.children.push(newTree);
+      }
+      parentTree = newTree;
+    });
+    setTree(newTree);
   }
 
   function undoMove() {
     if (tree.parent) {
       setTree(tree.parent);
-      resetEngineVariation();
     }
   }
 
   function redoMove() {
     if (tree.children.length > 0) {
       setTree(tree.children[0]);
-      resetEngineVariation();
     }
   }
 
   function goToStart() {
     setTree(tree.getTopVariation());
-    resetEngineVariation();
   }
 
   function goToEnd() {
     setTree(tree.getBottomVariation());
-    resetEngineVariation();
   }
 
   function flipBoard() {
     setOrientation(orientation === "w" ? "b" : "w");
   }
 
-  console.time("utils");
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
   const lastMove = moveToKey(getLastChessMove(chess));
-  console.timeEnd("utils");
 
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
@@ -148,18 +122,25 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     ["f", () => flipBoard()],
   ]);
 
+  console.log(engineVariation);
+
   async function waitForMove() {
     await listen("best_move", (event) => {
+      console.log(event);
       const { pv, depth, score } = event.payload as {
         pv: String;
         depth: number;
         score: number;
       };
       // limit to 10 moves
-      console.log(pv);
-      if (pv.length > 10) {
-        const moves = pv.split(" ").slice(0, 10);
-        setEngineVar(moves, score, depth);
+      const moves = pv.split(" ").slice(0, 10);
+
+      if (moves.length > 5) {
+        setEngineVariation({
+          moves,
+          depth,
+          score,
+        });
       }
     });
   }
@@ -170,21 +151,18 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   useEffect(() => {
     if (engineOn) {
+      console.log(chess.fen());
       invoke("get_best_moves", {
         engine:
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
         fen: chess.fen(),
       });
     } else {
-      console.time("stop");
       emit("stop_engine");
-      console.timeEnd("stop");
     }
   }, [engineOn]);
 
-  console.time("getsize");
   const { ref, width, height } = useElementSize();
-  console.timeEnd("getsize");
 
   return (
     <>
@@ -253,13 +231,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             offLabel="Off"
             size="lg"
           />
-          {/* {engineOn && <BestMoves engineVariation={engineVariation} />} */}
-          {engineVariation.moves && false && (
-            <BestMoves
-              engineVariation={engineVariation}
-              tree={tree}
-              setTree={setTree}
-            />
+          {engineOn && engineVariation && (
+            <>
+              <BestMoves
+                engineVariation={engineVariation}
+                chess={chess}
+                makeMoves={makeMoves}
+              />
+            </>
           )}
 
           <GameNotation tree={tree} setTree={setTree} />

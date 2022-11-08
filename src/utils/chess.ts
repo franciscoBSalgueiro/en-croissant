@@ -1,22 +1,46 @@
 import { Chess, Move, SQUARES } from "chess.ts";
 import { Key } from "chessground/types";
 
+export interface EngineVariation {
+  moves: string[];
+  score: number;
+  depth: number;
+}
+
 export class VariationTree {
   parent: VariationTree | null;
-  position: string;
+  pgn: string;
+  chess: Chess;
+  lastMove: Move | null;
   children: VariationTree[];
+  score: number;
+  depth: number;
+
   constructor(
     parent: VariationTree | null,
     position: string,
-    children?: VariationTree[]
+    children?: VariationTree[],
+    score?: number,
+    depth?: number
   ) {
     this.parent = parent;
-    this.position = position;
+    this.pgn = position;
     this.children = children ?? [];
+    this.score = score ?? 0;
+    this.depth = depth ?? 0;
+    const chess = new Chess();
+    chess.loadPgn(position);
+    this.chess = chess;
+    const history = chess.history({ verbose: true });
+    if (history.length === 0) {
+      this.lastMove = null;
+    } else {
+      this.lastMove = history[history.length - 1];
+    }
   }
 
   equals(other: VariationTree): boolean {
-    return this.position === other.position;
+    return this.pgn === other.pgn;
   }
 
   getTopVariation(): VariationTree {
@@ -47,8 +71,8 @@ export class VariationTree {
     return this.parent.isInBranch(tree);
   }
 
-  addChild(tree: string): void {
-    this.children.push(new VariationTree(this, tree));
+  addChild(pgn: string, score?: number, depth?: number): void {
+    this.children.push(new VariationTree(this, pgn, [], score, depth));
   }
 }
 
