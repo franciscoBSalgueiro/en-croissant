@@ -1,6 +1,22 @@
-import { Box, Button, Paper, Table, Text } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Container,
+  createStyles,
+  Group,
+  Paper,
+  Table,
+  Text,
+  Title
+} from "@mantine/core";
 import { Chess } from "chess.ts";
 import { EngineVariation, getLastChessMove } from "../utils/chess";
+
+const useStyles = createStyles((theme) => ({
+  subtitle: {
+    color: theme.fn.rgba(theme.white, 0.65),
+  },
+}));
 
 function ScoreBubble({ score }: { score: number }) {
   return (
@@ -9,11 +25,13 @@ function ScoreBubble({ score }: { score: number }) {
         backgroundColor:
           score >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
-        padding: theme.spacing.md,
+        padding: theme.spacing.xs,
         borderRadius: theme.radius.md,
       })}
     >
-      <Text color={score >= 0 ? "black" : "white"}>{score}</Text>
+      <Text weight={700} color={score >= 0 ? "black" : "white"} size="md">
+        {(score < 0 ? "" : "+") + score.toFixed(2)}
+      </Text>
     </Box>
   );
 }
@@ -25,8 +43,14 @@ interface BestMovesProps {
 }
 
 function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
+  const { classes } = useStyles();
+
   const newChess = new Chess(chess.fen());
-  function MoveCell({ move, index }: { move: string, index: number }) {
+  let score = engineVariation.score;
+  if (chess.turn() === "b") {
+    score = -score;
+  }
+  function MoveCell({ move, index }: { move: string; index: number }) {
     return (
       <Button
         variant="subtle"
@@ -40,43 +64,57 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
   }
   return (
     <>
-      <Paper p="md" radius="sm" withBorder>
-        <h1>Stockfish</h1>
-        <p>Depth: {engineVariation.depth}</p>
+      <Paper shadow="sm" p="lg" radius="md" withBorder>
+        <Group position="apart" mt="md" mb="xs">
+          <Title>Stockfish 13</Title>
+          <Container m={0}>
+            <Text
+              size="xs"
+              transform="uppercase"
+              weight={700}
+              className={classes.subtitle}
+            >
+              Depth
+            </Text>
+            <Title>{engineVariation.depth}</Title>
+          </Container>
+        </Group>
+
         <Table withBorder>
           <tbody>
             <tr>
               <td>
                 {engineVariation.moves.map((move, index) => {
                   newChess.move(move, { sloppy: true });
-                  return <MoveCell move={getLastChessMove(newChess)?.san!} index={index} key={index} />;
+                  return (
+                    <MoveCell
+                      move={getLastChessMove(newChess)?.san!}
+                      index={index}
+                      key={index}
+                    />
+                  );
                 })}
               </td>
               <td>
-                <ScoreBubble score={engineVariation.score / 100} />
+                <ScoreBubble score={score / 100} />
               </td>
             </tr>
             <tr>
-              <td>Move 2</td>
               <td>
-                <ScoreBubble score={-1.6} />
+                {engineVariation.moves.map((move, index) => {
+                  newChess.move(move, { sloppy: true });
+                  return (
+                    <MoveCell
+                      move={getLastChessMove(newChess)?.san!}
+                      index={index}
+                      key={index}
+                    />
+                  );
+                })}
               </td>
-            </tr>
-          </tbody>
-        </Table>
-      </Paper>
-
-      <Paper p="md" radius="sm" withBorder>
-        <h1>Stockfish</h1>
-        <Table withBorder>
-          <tbody>
-            <tr>
-              <td>Move 1</td>
-              <td>Score 1</td>
-            </tr>
-            <tr>
-              <td>Move 2</td>
-              <td>Score 2</td>
+              <td>
+                <ScoreBubble score={score / 100} />
+              </td>
             </tr>
           </tbody>
         </Table>
