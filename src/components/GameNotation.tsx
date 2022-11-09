@@ -46,7 +46,7 @@ function GameNotation({
     <Paper withBorder p="md">
       <Box sx={{ minHeight: "300px" }}>
         {/* <SimpleGrid cols={2}> */}
-        <RenderVariationTree tree={topVariation} />
+        <RenderVariationTree tree={topVariation} depth={0} />
         {/* </SimpleGrid> */}
       </Box>
     </Paper>
@@ -67,6 +67,7 @@ function GameNotation({
       <Menu opened={open} width={200}>
         <Menu.Target ref={ref}>
           <Button
+            sx={{width: "80px"}}
             variant={isCurrentVariation ? "light" : "subtle"}
             onContextMenu={() => {
               toggleOpen();
@@ -99,7 +100,13 @@ function GameNotation({
     );
   }
 
-  function RenderVariationTree({ tree }: { tree: VariationTree }) {
+  function RenderVariationTree({
+    tree,
+    depth,
+  }: {
+    tree: VariationTree;
+    depth: number;
+  }) {
     const moves = tree.pgn.split(" ");
     const lastMove = moves[moves.length - 1];
     return (
@@ -107,13 +114,15 @@ function GameNotation({
         <span>
           {lastMove && <MoveCell move={lastMove} variation={tree} />}
           {tree.children.length > 0 && (
-            <RenderVariationTree tree={tree.children[0]} />
+            <RenderVariationTree tree={tree.children[0]} depth={depth + 1} />
           )}
         </span>
         {tree.children.slice(1).map((child) => (
           <>
             <div>
-              <RenderVariationTree tree={child} />
+              <span style={{ marginLeft: (depth * 80) + "px" }} />
+
+              <RenderVariationTree tree={child} depth={depth + 1} />
             </div>
           </>
         ))}

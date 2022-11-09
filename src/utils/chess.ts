@@ -74,6 +74,25 @@ export class VariationTree {
   addChild(pgn: string, score?: number, depth?: number): void {
     this.children.push(new VariationTree(this, pgn, [], score, depth));
   }
+
+  getNumberOfChildren(): number {
+    let count = 0;
+    for (const child of this.children) {
+      count += 1 + child.getNumberOfChildren();
+    }
+    return count;
+  }
+
+  getNumberOfBranches(): number {
+    let count = 0;
+    for (let i = 0; i < this.children.length; i++) {
+      if (i !== 0) {
+        count += 1
+      }
+      count += this.children[i].getNumberOfBranches();
+    }
+    return count;
+  }
 }
 
 export function moveToKey(move: Move | null) {

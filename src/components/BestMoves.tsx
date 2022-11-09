@@ -3,6 +3,7 @@ import {
   Button,
   Container,
   createStyles,
+  Flex,
   Group,
   Paper,
   Table,
@@ -92,7 +93,10 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
           <tbody>
             <tr>
               <td>
-                <Group spacing="xs">
+                <ScoreBubble score={score / 100} />
+              </td>
+              <td>
+                <Flex gap="xs" direction="row" wrap="nowrap">
                   {engineVariation.moves.map((move, index) => {
                     newChess.move(move, { sloppy: true });
                     return (
@@ -103,13 +107,13 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
                       />
                     );
                   })}
-                </Group>
-              </td>
-              <td>
-                <ScoreBubble score={score / 100} />
+                </Flex>
               </td>
             </tr>
             <tr>
+              <td>
+                <ScoreBubble score={score / 100} />
+              </td>
               <td>
                 {engineVariation.moves.map((move, index) => {
                   newChess.move(move, { sloppy: true });
@@ -121,9 +125,6 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
                     />
                   );
                 })}
-              </td>
-              <td>
-                <ScoreBubble score={score / 100} />
               </td>
             </tr>
           </tbody>

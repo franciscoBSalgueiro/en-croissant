@@ -122,11 +122,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     ["f", () => flipBoard()],
   ]);
 
-  console.log(engineVariation);
-
   async function waitForMove() {
     await listen("best_move", (event) => {
-      console.log(event);
       const { pv, depth, score } = event.payload as {
         pv: String;
         depth: number;
@@ -151,6 +148,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   useEffect(() => {
     if (engineOn) {
+      emit("stop_engine");
       invoke("get_best_moves", {
         engine:
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
@@ -159,7 +157,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     } else {
       emit("stop_engine");
     }
-  }, [engineOn]);
+  }, [tree, engineOn]);
 
   const { ref, width, height } = useElementSize();
 
@@ -223,6 +221,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </Stack>
 
         <Stack>
+          {/* <div>{tree.getTopVariation().getNumberOfChildren()}</div>
+          {tree.getTopVariation().getNumberOfBranches()} */}
           <Switch
             checked={engineOn}
             onChange={(event) => setEngineOn(event.currentTarget.checked)}
