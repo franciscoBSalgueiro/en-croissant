@@ -27,9 +27,18 @@ function ScoreBubble({ score }: { score: number }) {
         textAlign: "center",
         padding: theme.spacing.xs,
         borderRadius: theme.radius.md,
+        width: 80,
       })}
     >
-      <Text weight={700} color={score >= 0 ? "black" : "white"} size="md">
+      <Text
+        weight={700}
+        color={score >= 0 ? "black" : "white"}
+        size="md"
+        align="center"
+        sx={(theme) => ({
+          fontFamily: theme.fontFamilyMonospace,
+        })}
+      >
         {(score < 0 ? "" : "+") + score.toFixed(2)}
       </Text>
     </Box>
@@ -79,21 +88,22 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
             <Title>{engineVariation.depth}</Title>
           </Container>
         </Group>
-
-        <Table withBorder>
+        <Table>
           <tbody>
             <tr>
               <td>
-                {engineVariation.moves.map((move, index) => {
-                  newChess.move(move, { sloppy: true });
-                  return (
-                    <MoveCell
-                      move={getLastChessMove(newChess)?.san!}
-                      index={index}
-                      key={index}
-                    />
-                  );
-                })}
+                <Group spacing="xs">
+                  {engineVariation.moves.map((move, index) => {
+                    newChess.move(move, { sloppy: true });
+                    return (
+                      <MoveCell
+                        move={getLastChessMove(newChess)?.san!}
+                        index={index}
+                        key={index}
+                      />
+                    );
+                  })}
+                </Group>
               </td>
               <td>
                 <ScoreBubble score={score / 100} />
