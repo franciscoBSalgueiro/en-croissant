@@ -69,8 +69,9 @@ function GameNotation({
           <Button
             sx={{width: "80px"}}
             variant={isCurrentVariation ? "light" : "subtle"}
-            onContextMenu={() => {
+            onContextMenu={(e: any) => {
               toggleOpen();
+              e.preventDefault();
             }}
             onClick={() => {
               setTree(variation);
