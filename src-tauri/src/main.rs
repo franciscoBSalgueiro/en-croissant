@@ -3,6 +3,8 @@
     windows_subsystem = "windows"
 )]
 
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 use std::{fs::create_dir_all, io::Cursor, path::Path, process::Stdio};
 
 use futures_util::StreamExt;
@@ -153,6 +155,7 @@ async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .creation_flags(CREATE_NO_WINDOW)
         // .kill_on_drop(true)
         .spawn()
         .expect("Failed to start engine");
