@@ -3,6 +3,7 @@
     windows_subsystem = "windows"
 )]
 
+#[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 use std::{fs::create_dir_all, io::Cursor, path::Path, process::Stdio};
@@ -145,17 +146,18 @@ struct BestMovePayload {
 #[tauri::command]
 async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
     // start engine command
-    // let child = Command::new(engine)
-    //     .arg("uci")
-    //     .spawn()
-    //     .expect("Failed to start engine");
     println!("{}", &fen);
-    let mut child = Command::new(&engine)
-        // .arg(format!("position fen {}\n", fen))
+
+    let mut command = Command::new(&engine);
+    command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .creation_flags(CREATE_NO_WINDOW)
+        .stderr(Stdio::piped());
+
+    #[cfg(target_os = "windows")]
+    command.creation_flags(CREATE_NO_WINDOW);
+
+    let mut child = command
         // .kill_on_drop(true)
         .spawn()
         .expect("Failed to start engine");
