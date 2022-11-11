@@ -8,7 +8,7 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
-import { useElementSize, useHotkeys } from "@mantine/hooks";
+import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import {
   IconChevronLeft,
@@ -33,6 +33,11 @@ import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
+  const [showDests, setShowDests] = useLocalStorage<boolean>({
+    key: "show-dests",
+    defaultValue: true,
+  });
+
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
     buildVariationTree(new Chess(initialFen))
@@ -176,6 +181,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   free: false,
                   color: turn,
                   dests: dests,
+                  showDests,
                   events: {
                     after: (orig, dest) => {
                       if (chess.get(orig)?.type === "k") {

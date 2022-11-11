@@ -1,11 +1,12 @@
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const  EngineTable = dynamic(() => import('../components/EngineTable'), { ssr: false })
+const SettingsController = dynamic(
+  () => import("../components/SettingsController"),
+  {
+    ssr: false,
+  }
+);
 
 export default function Page() {
-  return (
-    <div>
-      <EngineTable />
-    </div>
-  );
+  return <SettingsController />;
 }
