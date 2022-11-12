@@ -3,10 +3,9 @@ import {
   AspectRatio,
   Button,
   Group,
+  SimpleGrid,
   Stack,
-  Switch,
-  Text,
-  Tooltip
+  Switch, Tooltip
 } from "@mantine/core";
 import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
@@ -168,12 +167,21 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   return (
     <>
-      <Group grow align={"flex-start"}>
-        <Stack>
-          <AspectRatio ref={ref} ratio={1}>
+      <SimpleGrid cols={2} breakpoints={[{ maxWidth: 1120, cols: 1 }]}>
+        <Stack justify="center">
+          <AspectRatio
+            ref={ref}
+            ratio={1}
+            style={{
+              width: "100%",
+              maxWidth: "90vh",
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
+          >
             <Chessground
-              width={width}
-              height={height}
+            width={width}
+            height={height}
               config={{
                 orientation: formatMove(orientation),
                 fen: chess.fen(),
@@ -210,6 +218,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
               }}
             />
           </AspectRatio>
+
           <Group position={"center"}>
             <Tooltip label={"Flip Board"}>
               <ActionIcon onClick={() => flipBoard()}>
@@ -222,8 +231,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
               Reset
             </Button>
           </Group>
-          <Text>{chess.fen()}</Text>
-          <Text>{chess.pgn()}</Text>
+          {/* <Text>{chess.fen()}</Text>
+          <Text>{chess.pgn()}</Text> */}
         </Stack>
 
         <Stack>
@@ -249,7 +258,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           <GameNotation tree={tree} setTree={setTree} />
           <MoveControls />
         </Stack>
-      </Group>
+      </SimpleGrid>
     </>
   );
 
