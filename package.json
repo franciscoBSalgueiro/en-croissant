@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 1420",
     "build": "next build && next export -o dist",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "pretty": "prettier --write \"./src/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@emotion/react": "^11.10.5",
@@ -28,6 +29,7 @@
     "@types/node": "^18.11.9",
     "@types/react": "^18.0.25",
     "@types/react-dom": "^18.0.8",
+    "prettier": "^2.7.1",
     "typescript": "^4.8.4"
   }
 }

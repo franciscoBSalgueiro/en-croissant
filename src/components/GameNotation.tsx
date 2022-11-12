@@ -67,7 +67,7 @@ function GameNotation({
       <Menu opened={open} width={200}>
         <Menu.Target ref={ref}>
           <Button
-            sx={{width: "80px"}}
+            sx={{ width: "80px" }}
             variant={isCurrentVariation ? "light" : "subtle"}
             onContextMenu={(e: any) => {
               toggleOpen();
@@ -121,7 +121,11 @@ function GameNotation({
         {tree.children.slice(1).map((child) => (
           <>
             <div>
-              <span style={{ marginLeft: (depth * 80) + "px" }} />
+              <span
+                style={{
+                  marginLeft: depth * 80 + "px",
+                }}
+              />
 
               <RenderVariationTree tree={child} depth={depth + 1} />
             </div>

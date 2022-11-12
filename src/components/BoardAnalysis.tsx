@@ -5,7 +5,8 @@ import {
   Group,
   SimpleGrid,
   Stack,
-  Switch, Tooltip
+  Switch,
+  Tooltip,
 } from "@mantine/core";
 import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
@@ -14,7 +15,7 @@ import {
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconSwitchVertical
+  IconSwitchVertical,
 } from "@tabler/icons";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -26,7 +27,7 @@ import {
   getLastChessMove,
   moveToKey,
   toDests,
-  VariationTree
+  VariationTree,
 } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
@@ -180,8 +181,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             }}
           >
             <Chessground
-            width={width}
-            height={height}
+              width={width}
+              height={height}
               config={{
                 orientation: formatMove(orientation),
                 fen: chess.fen(),
@@ -208,7 +209,10 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                             break;
                         }
                       }
-                      makeMove({ from: orig, to: dest });
+                      makeMove({
+                        from: orig,
+                        to: dest,
+                      });
                     },
                   },
                 },

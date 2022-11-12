@@ -8,7 +8,7 @@ import {
   Paper,
   Table,
   Text,
-  Title
+  Title,
 } from "@mantine/core";
 import { Chess } from "chess.ts";
 import { EngineVariation, getLastChessMove } from "../utils/chess";
@@ -98,7 +98,9 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
               <td>
                 <Flex gap="xs" direction="row" wrap="nowrap">
                   {engineVariation.moves.map((move, index) => {
-                    newChess.move(move, { sloppy: true });
+                    newChess.move(move, {
+                      sloppy: true,
+                    });
                     return (
                       <MoveCell
                         move={getLastChessMove(newChess)?.san!}
@@ -116,7 +118,9 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
               </td>
               <td>
                 {engineVariation.moves.map((move, index) => {
-                  newChess.move(move, { sloppy: true });
+                  newChess.move(move, {
+                    sloppy: true,
+                  });
                   return (
                     <MoveCell
                       move={getLastChessMove(newChess)?.san!}

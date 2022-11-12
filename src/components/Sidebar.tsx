@@ -4,16 +4,17 @@ import {
   Navbar,
   Stack,
   Tooltip,
-  UnstyledButton
+  UnstyledButton,
 } from "@mantine/core";
 import {
-  IconDatabase, IconHome2,
+  IconDatabase,
+  IconHome2,
   IconLogout,
   IconRobot,
   IconSettings,
   IconSwitchHorizontal,
   IconUser,
-  TablerIcon
+  TablerIcon,
 } from "@tabler/icons";
 import { useRouter } from "next/router";
 
@@ -44,8 +45,10 @@ const useStyles = createStyles((theme) => ({
         variant: "light",
         color: theme.primaryColor,
       }).background,
-      color: theme.fn.variant({ variant: "light", color: theme.primaryColor })
-        .color,
+      color: theme.fn.variant({
+        variant: "light",
+        color: theme.primaryColor,
+      }).color,
     },
   },
 }));
@@ -57,18 +60,15 @@ interface NavbarLinkProps {
   active?: boolean;
 }
 
-function NavbarLink({
-  url,
-  icon: Icon,
-  label,
-  active,
-}: NavbarLinkProps) {
+function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
   const { classes, cx } = useStyles();
   return (
     <Tooltip label={label} position="right" transitionDuration={0}>
       <a href={url}>
         <UnstyledButton
-          className={cx(classes.link, { [classes.active]: active })}
+          className={cx(classes.link, {
+            [classes.active]: active,
+          })}
         >
           <Icon stroke={1.5} />
         </UnstyledButton>

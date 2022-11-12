@@ -2,9 +2,7 @@ import dynamic from "next/dynamic";
 
 const SettingsController = dynamic(
   () => import("../components/SettingsController"),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 export default function Page() {
