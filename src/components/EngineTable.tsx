@@ -1,4 +1,15 @@
-import { Button, Group, Image, ScrollArea, Table, Text } from "@mantine/core";
+import {
+  Button,
+  FileInput,
+  Group,
+  Image,
+  Modal,
+  ScrollArea,
+  Table,
+  Text,
+  TextInput
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import { IconCheck, IconPlus, IconTrash } from "@tabler/icons";
@@ -24,11 +35,36 @@ interface Engine {
   progress?: number;
 }
 
+interface EngineSettings {
+  name: string;
+  binary: File | null;
+  image: File | null;
+}
+
 export default function EngineTable() {
   const os = useOs();
 
   const [directories, setDirectories] = useState<string[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
+  const [opened, setOpened] = useState(false);
+
+  const form = useForm<EngineSettings>({
+    initialValues: {
+      name: "",
+      binary: null,
+      image: null,
+    },
+
+    validate: {
+      name: (value) => {
+        if (!value) return "Name is required";
+        if (engines.find((e) => e.name === value)) return "Name already used";
+      },
+      binary: (value: File | null) => {
+        if (!value) return "Path is required";
+      },
+    },
+  });
 
   async function downloadEngine(id: number, url: string) {
     invoke("download_file", {
@@ -171,24 +207,67 @@ export default function EngineTable() {
   });
 
   return (
-    <ScrollArea>
-      <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
-        <thead>
-          <tr>
-            <th>Engine</th>
-            <th>ELO</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows}
-          <tr>
-            <Button variant="default" rightIcon={<IconPlus size={14} />}>
-              Add new
-            </Button>
-          </tr>
-        </tbody>
-      </Table>
-    </ScrollArea>
+    <>
+      <Modal
+        opened={opened}
+        onClose={() => setOpened(false)}
+        title="New Engine"
+      >
+        <form onSubmit={form.onSubmit((values) => console.log(values))}>
+          <TextInput
+            label="Name"
+            placeholder="Engine's Name"
+            withAsterisk
+            {...form.getInputProps("name")}
+          />
+
+          <FileInput
+            label="Binary file"
+            placeholder="Engine's Binary Path"
+            accept="application/octet-stream"
+            withAsterisk
+            {...form.getInputProps("binary")}
+          />
+
+          <FileInput
+            label="Image file"
+            placeholder="Engine's Image"
+            accept="image/*"
+            {...form.getInputProps("image")}
+          />
+
+          {form.values.image && (
+            <Image pt="md" px="md" radius="md" src={URL.createObjectURL(form.values.image)} />
+          )}
+
+          <Button fullWidth mt="xl" type="submit">
+            Add
+          </Button>
+        </form>
+      </Modal>
+      <ScrollArea>
+        <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
+          <thead>
+            <tr>
+              <th>Engine</th>
+              <th>ELO</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows}
+            <tr>
+              <Button
+                onClick={() => setOpened(true)}
+                variant="default"
+                rightIcon={<IconPlus size={14} />}
+              >
+                Add new
+              </Button>
+            </tr>
+          </tbody>
+        </Table>
+      </ScrollArea>
+    </>
   );
 }

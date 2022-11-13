@@ -6,8 +6,8 @@ const EngineTable = dynamic(() => import("../components/EngineTable"), {
 
 export default function Page() {
   return (
-    <div>
+    <>
       <EngineTable />
-    </div>
+    </>
   );
 }
