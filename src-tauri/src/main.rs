@@ -194,6 +194,16 @@ async fn get_best_moves(engine: String, fen: String, numberLines: usize, app: ta
         println!("engine process exit status : {}", status);
     });
 
+    let mut engine_lines = Vec::new();
+    for _ in 0..numberLines {
+        engine_lines.push(BestMovePayload {
+            depth: 0,
+            score: 0,
+            pv: "".to_string(),
+            multipv: 0,
+        });
+    }
+
     // tokio::spawn(async move {
     //     println!("Starting engine");
     //     let mut stdin = stdin;
@@ -220,81 +230,39 @@ async fn get_best_moves(engine: String, fen: String, numberLines: usize, app: ta
 
         loop {
             tokio::select! {
-                    _ = rx.recv() => {
-                        println!("Killing engine");
-                        stdin.write_all(b"stop\n").await.unwrap();
-                        app.unlisten(id);
-                        break
-                    }
-                    result = stdout_reader.next_line() => {
-                match result {
-                    Ok(line_opt) => {
-                        if let Some(line) = line_opt {
-                            if line == "readyok" {
-                                println!("Engine ready");
-                            }
-                            if line.starts_with("info") && line.contains("pv") {
-                                println!("line: {:?}", parse_uci(&line));
-                                app.emit_all("best_move", parse_uci(&line)).unwrap();
+                _ = rx.recv() => {
+                    println!("Killing engine");
+                    stdin.write_all(b"stop\n").await.unwrap();
+                    app.unlisten(id);
+                    break
+                }
+                result = stdout_reader.next_line() => {
+                    match result {
+                        Ok(line_opt) => {
+                            if let Some(line) = line_opt {
+                                if line == "readyok" {
+                                    println!("Engine ready");
+                                }
+                                if line.starts_with("info") && line.contains("pv") {
+                                    println!("line: {:?}", parse_uci(&line));
+                                    let best_moves = parse_uci(&line).unwrap();
+                                    let multipv = best_moves.multipv;
+                                    engine_lines[multipv - 1] = best_moves;
+                                    if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) {
+                                        // println!("Sending best moves");
+                                        let payload = engine_lines.clone();
+                                        app.emit_all("best_moves", payload).unwrap();
+                                    }
+                                }
                             }
                         }
-                    }
-                    Err(err) => {
-                        println!("engine read error {:?}", err);
-                        break;
+                        Err(err) => {
+                            println!("engine read error {:?}", err);
+                            break;
+                        }
                     }
                 }
             }
-                }
-
-            // match rx.recv().await {
-            //     Ok(_) => {
-            //         println!("Stopping engine");
-            //         stdin.write_all(b"stop\n").await.unwrap();
-            //         app.unlisten(id);
-            //         break;
-            //     }
-            //     Err(_) => {
-            //         println!("Stopping engine");
-            //         stdin.write_all(b"stop\n").await.unwrap();
-            //         break;
-            //     }
-            // }
-            // tokio::select! {
-            //     // _ = rx.recv() => {
-            //     //     println!("Killing engine");
-            //     //     child.kill().await.unwrap();
-            //     //     app.unlisten(id);
-            //     //     break
-            //     // }
-            //     result = stdout_reader.next_line() => {
-            //             match result {
-            //                 Ok(Some(line)) => {
-            //                 // println!("stdout: {}", &line);
-            //                 if line.starts_with("info") && !line.contains("currmove") {
-            //                     app.emit_all("best_move",
-            //                     parseUCIInfo(&line)
-            //                 ).unwrap();
-            //             }
-
-            //                 // if line.contains("uciok") {
-            //                 //     // write to engine
-            //                 //     // stdin.write_all(b"isready\n").await.unwrap();
-            //                 //     println!("writing to engine");
-            //                 //  }
-            //             },
-            //             Err(_) => break,
-            //             _ => (),
-            //         }
-            //     }
-            //     result = stderr_reader.next_line() => {
-            //         match result {
-            //             Ok(Some(line)) => println!("Stderr: {}", line),
-            //             Err(_) => break,
-            //             _ => (),
-            //         }
-            //     }
-            // };
         }
     });
 }
@@ -325,5 +293,10 @@ fn parse_uci(info: &str) -> Option<BestMovePayload> {
             _ => (),
         }
     }
-    Some(BestMovePayload { depth, score, pv, multipv })
+    Some(BestMovePayload {
+        depth,
+        score,
+        pv,
+        multipv,
+    })
 }

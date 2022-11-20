@@ -48,7 +48,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "number-lines",
     defaultValue: 3,
   });
-  const [engineVariation, setEngineVariation] = useState<EngineVariation[]>(Array());
+  const [engineVariation, setEngineVariation] = useState<EngineVariation[]>([]);
 
   const [engineOn, setEngineOn] = useState(false);
 
@@ -76,6 +76,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     } else if (tree.children[0].pgn !== chess.pgn()) {
       tree.children.push(newTree);
     }
+    setEngineVariation([]);
     setTree(newTree);
   }
 
@@ -132,28 +133,8 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   ]);
 
   async function waitForMove() {
-    await listen("best_move", (event) => {
-      const { pv, depth, score, multipv } = event.payload as {
-        pv: String;
-        depth: number;
-        score: number;
-        multipv: number;
-      };
-      // limit to 10 moves
-      const moves = pv.split(" ").slice(0, 10);
-
-      if (moves.length > 5) {
-        setEngineVariation((prev) => {
-          prev[multipv - 1] = {
-            moves,
-            depth,
-            score,
-            multipv,
-          };
-          return [...prev];
-        }
-        );
-      }
+    await listen("best_moves", (event) => {
+      setEngineVariation(event.payload as EngineVariation[]);
     });
   }
 
@@ -264,6 +245,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             <>
               <BestMoves
                 engineVariations={engineVariation}
+                numberLines={numberLines}
                 chess={chess}
                 makeMoves={makeMoves}
               />

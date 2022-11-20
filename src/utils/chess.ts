@@ -2,7 +2,7 @@ import { Chess, Move, SQUARES } from "chess.ts";
 import { Key } from "chessground/types";
 
 export interface EngineVariation {
-    moves: string[];
+    pv: string;
     score: number;
     depth: number;
     multipv: number;
