@@ -7,7 +7,7 @@ import {
   ScrollArea,
   Table,
   Text,
-  TextInput
+  TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
@@ -237,7 +237,12 @@ export default function EngineTable() {
           />
 
           {form.values.image && (
-            <Image pt="md" px="md" radius="md" src={URL.createObjectURL(form.values.image)} />
+            <Image
+              pt="md"
+              px="md"
+              radius="md"
+              src={URL.createObjectURL(form.values.image)}
+            />
           )}
 
           <Button fullWidth mt="xl" type="submit">

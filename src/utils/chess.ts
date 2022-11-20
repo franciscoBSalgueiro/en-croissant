@@ -5,6 +5,7 @@ export interface EngineVariation {
     moves: string[];
     score: number;
     depth: number;
+    multipv: number;
 }
 
 export class VariationTree {

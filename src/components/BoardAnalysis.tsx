@@ -6,7 +6,7 @@ import {
   SimpleGrid,
   Stack,
   Switch,
-  Tooltip,
+  Tooltip
 } from "@mantine/core";
 import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
@@ -15,7 +15,7 @@ import {
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconSwitchVertical,
+  IconSwitchVertical
 } from "@tabler/icons";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -27,7 +27,7 @@ import {
   getLastChessMove,
   moveToKey,
   toDests,
-  VariationTree,
+  VariationTree
 } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
@@ -42,9 +42,13 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [tree, setTree] = useState<VariationTree>(
     buildVariationTree(new Chess(initialFen))
   );
-  const [engineVariation, setEngineVariation] = useState<EngineVariation>();
   const chess = new Chess();
   chess.loadPgn(tree.pgn);
+  const [numberLines, _] = useLocalStorage<number>({
+    key: "number-lines",
+    defaultValue: 3,
+  });
+  const [engineVariation, setEngineVariation] = useState<EngineVariation[]>(Array());
 
   const [engineOn, setEngineOn] = useState(false);
 
@@ -129,20 +133,26 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   async function waitForMove() {
     await listen("best_move", (event) => {
-      const { pv, depth, score } = event.payload as {
+      const { pv, depth, score, multipv } = event.payload as {
         pv: String;
         depth: number;
         score: number;
+        multipv: number;
       };
       // limit to 10 moves
       const moves = pv.split(" ").slice(0, 10);
 
       if (moves.length > 5) {
-        setEngineVariation({
-          moves,
-          depth,
-          score,
-        });
+        setEngineVariation((prev) => {
+          prev[multipv - 1] = {
+            moves,
+            depth,
+            score,
+            multipv,
+          };
+          return [...prev];
+        }
+        );
       }
     });
   }
@@ -158,6 +168,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         engine:
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
         fen: chess.fen(),
+        numberLines,
       });
     } else {
       emit("stop_engine");
@@ -252,7 +263,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           {engineOn && engineVariation && (
             <>
               <BestMoves
-                engineVariation={engineVariation}
+                engineVariations={engineVariation}
                 chess={chess}
                 makeMoves={makeMoves}
               />

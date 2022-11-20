@@ -138,15 +138,19 @@ async fn remove_folder(directory: String) -> Result<String, String> {
 
 #[derive(Clone, serde::Serialize, Debug)]
 struct BestMovePayload {
-    depth: u64,
+    depth: usize,
     score: i64,
     pv: String,
+    multipv: usize,
 }
 
 #[tauri::command]
-async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
+async fn get_best_moves(engine: String, fen: String, numberLines: usize, app: tauri::AppHandle) {
     // start engine command
     println!("{}", &fen);
+
+    // Check number of lines is between 1 and 5
+    assert!(numberLines > 0 && numberLines < 6);
 
     let mut command = Command::new(&engine);
     command
@@ -201,17 +205,18 @@ async fn get_best_moves(engine: String, fen: String, app: tauri::AppHandle) {
 
     tokio::spawn(async move {
         let mut stdin = stdin;
-        let res1 = stdin
-            // .write_all(b"position fen rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1\n")
+        stdin
             .write_all(format!("position fen {}\n", &fen).as_bytes())
-            .await;
-        if let Err(e) = res1 {
-            println!("Error writing to stdin: {}", e);
-        }
-        let res2 = stdin.write_all(b"go infinite\n").await;
-        if let Err(e) = res2 {
-            println!("Error writing to stdin: {}", e);
-        }
+            .await
+            .expect("Failed to write position");
+        stdin
+            .write_all(format!("setoption name multipv value {}\n", &numberLines).as_bytes())
+            .await
+            .expect("Failed to write setoption");
+        stdin
+            .write_all(b"go infinite\n")
+            .await
+            .expect("Failed to write go");
 
         loop {
             tokio::select! {
@@ -298,6 +303,7 @@ fn parse_uci(info: &str) -> Option<BestMovePayload> {
     let mut depth = 0;
     let mut score = 0;
     let mut pv = String::new();
+    let mut multipv = 0;
     // example input: info depth 1 seldepth 1 multipv 1 score cp 0 nodes 20 nps 10000 tbhits 0 time 2 pv e2e4
     for (i, s) in info.split_whitespace().enumerate() {
         match s {
@@ -313,8 +319,11 @@ fn parse_uci(info: &str) -> Option<BestMovePayload> {
                     .collect::<Vec<&str>>()
                     .join(" ");
             }
+            "multipv" => {
+                multipv = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap();
+            }
             _ => (),
         }
     }
-    Some(BestMovePayload { depth, score, pv })
+    Some(BestMovePayload { depth, score, pv, multipv })
 }

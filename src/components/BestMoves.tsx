@@ -4,11 +4,10 @@ import {
   Container,
   createStyles,
   Flex,
-  Group,
-  Paper,
+  Group, Paper,
   Table,
   Text,
-  Title,
+  Title
 } from "@mantine/core";
 import { Chess } from "chess.ts";
 import { EngineVariation, getLastChessMove } from "../utils/chess";
@@ -47,20 +46,16 @@ function ScoreBubble({ score }: { score: number }) {
 }
 
 interface BestMovesProps {
-  engineVariation: EngineVariation;
+  engineVariations: EngineVariation[];
   chess: Chess;
   makeMoves: (moves: string[]) => void;
 }
 
-function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
+function BestMoves({ engineVariations, chess, makeMoves }: BestMovesProps) {
   const { classes } = useStyles();
-
-  const newChess = new Chess(chess.fen());
-  let score = engineVariation.score;
-  if (chess.turn() === "b") {
-    score = -score;
-  }
-  function MoveCell({ move, index }: { move: string; index: number }) {
+  console.log(engineVariations);
+  
+  function MoveCell({ engineVariation, move, index }: { engineVariation: EngineVariation, move: string; index: number }) {
     return (
       <Button
         variant="subtle"
@@ -86,51 +81,44 @@ function BestMoves({ engineVariation, chess, makeMoves }: BestMovesProps) {
             >
               Depth
             </Text>
-            <Title>{engineVariation.depth}</Title>
+            <Title>{engineVariations[0]?.depth ?? 0}</Title>
           </Container>
         </Group>
         <Table>
           <tbody>
-            <tr>
-              <td>
-                <ScoreBubble score={score / 100} />
-              </td>
-              <td>
-                <Flex gap="xs" direction="row" wrap="nowrap">
-                  {engineVariation.moves.map((move, index) => {
-                    newChess.move(move, {
-                      sloppy: true,
-                    });
-                    return (
-                      <MoveCell
-                        move={getLastChessMove(newChess)?.san!}
-                        index={index}
-                        key={index}
-                      />
-                    );
-                  })}
-                </Flex>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <ScoreBubble score={score / 100} />
-              </td>
-              <td>
-                {engineVariation.moves.map((move, index) => {
-                  newChess.move(move, {
-                    sloppy: true,
-                  });
-                  return (
-                    <MoveCell
-                      move={getLastChessMove(newChess)?.san!}
-                      index={index}
-                      key={index}
-                    />
-                  );
-                })}
-              </td>
-            </tr>
+            {engineVariations.every((v) => v) && engineVariations.map((engineVariation) => {
+              const newChess = new Chess(chess.fen());
+              let score = engineVariation.score;
+              if (chess.turn() === "b") {
+                score = -score;
+              }
+              return (
+              <tr>
+                <td>
+                  {engineVariation.depth}
+                </td>
+                <td>
+                  <ScoreBubble score={score / 100} />
+                </td>
+                <td>
+                  <Flex gap="xs" direction="row" wrap="nowrap">
+                    {engineVariation.moves.map((move, index) => {
+                      newChess.move(move, {
+                        sloppy: true,
+                      });
+                      return (
+                        <MoveCell
+                          engineVariation={engineVariation}
+                          move={getLastChessMove(newChess)?.san!}
+                          index={index}
+                          key={index}
+                        />
+                      );
+                    })}
+                  </Flex>
+                </td>
+              </tr>
+            )})}
           </tbody>
         </Table>
       </Paper>
