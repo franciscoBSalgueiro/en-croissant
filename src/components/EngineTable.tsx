@@ -10,7 +10,6 @@ import {
   TextInput
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { OsType, type } from '@tauri-apps/api/os';
 
 import { showNotification } from "@mantine/notifications";
 import { IconCheck, IconPlus, IconReload, IconTrash } from "@tabler/icons";
@@ -26,69 +25,23 @@ import {
 import { appDataDir } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
+import {
+  Engine,
+  EngineSettings,
+  EngineStatus,
+  getDefaultEngines,
+  getEngineSettings
+} from "../utils/engines";
 import { ProgressButton } from "./ProgressButton";
 
-export enum EngineStatus {
-  Installed,
-  Downloading,
-  NotInstalled,
-}
-
-interface Engine {
-  image: string;
-  name: string;
-  status: EngineStatus;
-  downloadLink?: string;
-  path: string;
-  progress?: number;
-}
-
-interface EngineSettings {
-  name: string;
-  binary: string;
-  image: string;
-}
-
-export default function EngineTable({ os }: { os: OsType }) {
-  const defaultEngines: Engine[] = [
-    {
-      image: "/stockfish.png",
-      name: "Stockfish 15",
-      status: EngineStatus.NotInstalled,
-      downloadLink:
-        os === "Windows_NT"
-          ? "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
-          : "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
-      path:
-        os === "Windows_NT"
-          ? "engines/stockfish_15_win_x64_avx2/stockfish_15_x64_avx2.exe"
-          : "engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
-    },
-    {
-      image: "/komodo.png",
-      name: "Komodo 13",
-      status: EngineStatus.NotInstalled,
-      downloadLink: "https://komodochess.com/pub/komodo-13.zip",
-      path:
-        os === "Windows_NT"
-          ? "engines/komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
-          : "engines/komodo-13_201fd6/Linux/komodo-13.02-bmi2",
-    },
-  ];
-
+export default function EngineTable() {
+  const defaultEngines = getDefaultEngines();
   const [engines, setEngines] = useState<Engine[]>(defaultEngines);
   const [opened, setOpened] = useState(false);
   const [engineSettings, setEngineSettings] = useState<EngineSettings[]>([]);
 
   async function readConfig() {
-    const text = await readTextFile("engines/engines.json", {
-      dir: BaseDirectory.AppData,
-    });
-    const data = JSON.parse(text);
-    if (data) {
-      const engineSettings = data as EngineSettings[];
-      setEngineSettings(engineSettings);
-    }
+    setEngineSettings(await getEngineSettings());
   }
 
   async function reloadEngines() {
@@ -320,42 +273,43 @@ export default function EngineTable({ os }: { os: OsType }) {
             </tr>
           </thead>
           <tbody>
-            {engines.map((item, index) => {
-              return (
-                <tr key={index}>
-                  <td>
-                    <Group spacing="sm">
-                      <Image
-                        width={60}
-                        height={60}
-                        src={item.image !== "" ? item.image : null}
+            {engines &&
+              engines.map((item, index) => {
+                return (
+                  <tr key={index}>
+                    <td>
+                      <Group spacing="sm">
+                        <Image
+                          width={60}
+                          height={60}
+                          src={item.image !== "" ? item.image : null}
+                        />
+                        <Text size="md" weight={500}>
+                          {item.name}
+                        </Text>
+                      </Group>
+                    </td>
+                    <td>
+                      {item.path}
+                      {item.status === EngineStatus.NotInstalled &&
+                        !item.downloadLink && (
+                          <Text c="red">ERROR: Missing File</Text>
+                        )}
+                    </td>
+                    <td>
+                      <ProgressButton
+                        loaded={
+                          !item.downloadLink ||
+                          item.status === EngineStatus.Installed
+                        }
+                        onClick={handleInstallClick}
+                        progress={item.progress ?? 0}
+                        id={index}
                       />
-                      <Text size="md" weight={500}>
-                        {item.name}
-                      </Text>
-                    </Group>
-                  </td>
-                  <td>
-                    {item.path}
-                    {item.status === EngineStatus.NotInstalled &&
-                      !item.downloadLink && (
-                        <Text c="red">ERROR: Missing File</Text>
-                      )}
-                  </td>
-                  <td>
-                    <ProgressButton
-                      loaded={
-                        !item.downloadLink ||
-                        item.status === EngineStatus.Installed
-                      }
-                      onClick={handleInstallClick}
-                      progress={item.progress ?? 0}
-                      id={index}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
+                    </td>
+                  </tr>
+                );
+              })}
             <tr>
               <td>
                 <Button
@@ -372,15 +326,4 @@ export default function EngineTable({ os }: { os: OsType }) {
       </ScrollArea>
     </>
   );
-}
-
-
-export async function getStaticProps() {
-  const os = await type();
-
-  return {
-    props: {
-      os,
-    },
-  };
 }

@@ -8,18 +8,25 @@ import {
   Switch,
   Tooltip
 } from "@mantine/core";
-import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
+import {
+  useElementSize,
+  useHotkeys,
+  useLocalStorage,
+  useToggle
+} from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import {
   IconChevronLeft,
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
+  IconSettings,
   IconSwitchVertical
 } from "@tabler/icons";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, PartialMove } from "chess.ts";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
   EngineVariation,
@@ -30,14 +37,22 @@ import {
   VariationTree
 } from "../utils/chess";
 import BestMoves from "./BestMoves";
+import DepthSlider from "./DepthSlider";
 import GameNotation from "./GameNotation";
-import ImageCheckbox from "./ImageCheckbox";
+
+const EngineSettingsBoard = dynamic(
+  () => import("../components/EngineSettingsBoard"),
+  {
+    ssr: false,
+  }
+);
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
   });
+  const [showSettings, toggleShowSettings] = useToggle();
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
@@ -233,24 +248,29 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </Stack>
 
         <Stack>
-          {/* <div>{tree.getTopVariation().getNumberOfChildren()}</div>
-          {tree.getTopVariation().getNumberOfBranches()} */}
-          <Switch
-            checked={engineOn}
-            onChange={(event) => setEngineOn(event.currentTarget.checked)}
-            onLabel="On"
-            offLabel="Off"
-            size="lg"
-          />
-          <SimpleGrid
-            cols={4}
-            breakpoints={[
-              { maxWidth: "md", cols: 2 },
-              { maxWidth: "sm", cols: 1 },
-            ]}
-          >
-            <ImageCheckbox title="Stockfish 15" image="/stockfish.png" />
-          </SimpleGrid>
+          <Group position="apart">
+            <Switch
+              checked={engineOn}
+              onChange={(event) => setEngineOn(event.currentTarget.checked)}
+              onLabel="On"
+              offLabel="Off"
+              size="lg"
+            />
+            <ActionIcon
+              onClick={() => {
+                toggleShowSettings();
+              }}
+            >
+              <IconSettings />
+            </ActionIcon>
+          </Group>
+
+          {showSettings && (
+            <>
+              <DepthSlider />
+              <EngineSettingsBoard />
+            </>
+          )}
           {engineOn && engineVariation && (
             <>
               <BestMoves
