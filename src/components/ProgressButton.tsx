@@ -44,7 +44,7 @@ export function ProgressButton({
       color={loaded ? "red" : theme.primaryColor}
     >
       <div className={classes.label}>
-        {progress !== 0 ? "Installing" : loaded ? "Uninstall" : "Install"}
+        {progress !== 0 ? "Installing" : loaded ? "Remove" : "Install"}
       </div>
       {progress !== 0 && (
         <Progress

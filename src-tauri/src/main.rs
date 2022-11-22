@@ -9,7 +9,10 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 use std::{fs::create_dir_all, io::Cursor, path::Path, process::Stdio};
 
 use futures_util::StreamExt;
-use tauri::Manager;
+use tauri::{
+    api::path::{resolve_path, BaseDirectory},
+    Manager,
+};
 
 use reqwest::Client;
 use tokio::{
@@ -19,9 +22,25 @@ use tokio::{
 
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            // Check if the directory exists, if not, create it
+            let path = resolve_path(
+                &app.config(),
+                app.package_info(),
+                &app.env(),
+                "engines",
+                Some(BaseDirectory::AppData),
+            )
+            .unwrap();
+            if !Path::new(&path).exists() {
+                create_dir_all(&path).unwrap();
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             download_file,
             list_folders,
+            file_exists,
             remove_folder,
             get_best_moves
         ])
@@ -33,6 +52,7 @@ fn main() {
 struct DownloadFilePayload {
     progress: f64,
     id: u64,
+    finished: bool,
 }
 
 #[tauri::command]
@@ -64,8 +84,15 @@ async fn download_file(
         let progress = (downloaded as f64 / total_size as f64) * 100.0;
         println!("Downloaded {}%", progress);
         // emit object with progress and id
-        app.emit_all("download_progress", DownloadFilePayload { progress, id })
-            .unwrap();
+        app.emit_all(
+            "download_progress",
+            DownloadFilePayload {
+                progress,
+                id,
+                finished: false,
+            },
+        )
+        .unwrap();
     }
 
     let path = Path::new(&path);
@@ -77,6 +104,15 @@ async fn download_file(
     // let path = Path::new(&path);
     // write(&path, &file).unwrap();
     unzip_file(path, file).await;
+    app.emit_all(
+        "download_progress",
+        DownloadFilePayload {
+            progress: 100.0,
+            id,
+            finished: true,
+        },
+    )
+    .unwrap();
     // remove_file(&path).await;
     Ok("downloaded_file".to_string())
 }
@@ -109,6 +145,11 @@ async fn unzip_file(path: &Path, file: Vec<u8>) {
             std::io::copy(&mut file, &mut outfile).unwrap();
         }
     }
+}
+
+#[tauri::command]
+fn file_exists(path: String) -> bool {
+    Path::new(&path).exists()
 }
 
 #[tauri::command]

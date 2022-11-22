@@ -12,11 +12,15 @@
   },
   "tauri": {
     "allowlist": {
-      "all": true
+      "all": true,
+      "fs": {
+        "all": true,
+        "scope": ["$APPDATA/engines/*"]
+      }
     },
     "bundle": {
       "active": true,
-      "category": "DeveloperTool",
+      "category": "BoardGame",
       "copyright": "",
       "deb": {
         "depends": []

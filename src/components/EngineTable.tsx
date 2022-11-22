@@ -1,19 +1,28 @@
 import {
   Button,
-  FileInput,
   Group,
   Image,
+  Input,
   Modal,
   ScrollArea,
   Table,
   Text,
-  TextInput,
+  TextInput
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
-import { IconCheck, IconPlus, IconTrash } from "@tabler/icons";
+import { IconCheck, IconPlus, IconReload, IconTrash } from "@tabler/icons";
+import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
+import {
+  BaseDirectory,
+  exists,
+  readTextFile,
+  removeDir,
+  writeTextFile
+} from "@tauri-apps/api/fs";
+import { appDataDir } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 import { ProgressButton } from "./ProgressButton";
@@ -28,31 +37,95 @@ interface Engine {
   image: string;
   name: string;
   status: EngineStatus;
-  id: number;
-  downloadLink: string;
-  rootPath: string;
+  downloadLink?: string;
   path: string;
   progress?: number;
 }
 
 interface EngineSettings {
   name: string;
-  binary: File | null;
-  image: File | null;
+  binary: string;
+  image: string;
 }
 
 export default function EngineTable() {
   const os = useOs();
 
-  const [directories, setDirectories] = useState<string[]>([]);
-  const [engines, setEngines] = useState<Engine[]>([]);
+  const defaultEngines: Engine[] = [
+    {
+      image: "/stockfish.png",
+      name: "Stockfish 15",
+      status: EngineStatus.NotInstalled,
+      downloadLink:
+        os === "windows"
+          ? "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
+          : "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
+      path:
+        os === "windows"
+          ? "engines/stockfish_15_win_x64_avx2/stockfish_15_x64_avx2.exe"
+          : "engines/stockfish_15_linux_x64_bmi2/stockfish_15_linux_x64_bmi2",
+    },
+    {
+      image: "/komodo.png",
+      name: "Komodo 13",
+      status: EngineStatus.NotInstalled,
+      downloadLink: "https://komodochess.com/pub/komodo-13.zip",
+      path:
+        os === "windows"
+          ? "engines/komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
+          : "engines/komodo-13_201fd6/Linux/komodo-13.02-bmi2",
+    },
+  ];
+
+  const [engines, setEngines] = useState<Engine[]>(defaultEngines);
   const [opened, setOpened] = useState(false);
+  const [engineSettings, setEngineSettings] = useState<EngineSettings[]>([]);
+
+  async function readConfig() {
+    const text = await readTextFile("engines/engines.json", {
+      dir: BaseDirectory.AppData,
+    });
+    const data = JSON.parse(text);
+    if (data) {
+      const engineSettings = data as EngineSettings[];
+      setEngineSettings(engineSettings);
+    }
+  }
+
+  async function reloadEngines() {
+    const engines = await Promise.all(
+      engineSettings.map(async (engine) => {
+        const exists = await invoke("file_exists", {
+          path: engine.binary,
+        });
+        return {
+          image: engine.image,
+          name: engine.name,
+          status: exists ? EngineStatus.Installed : EngineStatus.NotInstalled,
+          path: engine.binary,
+        };
+      })
+    );
+    const updatedDefaultEngines = await Promise.all(
+      defaultEngines.map(async (engine) => {
+        const installed = await exists(engine.path, {
+          dir: BaseDirectory.AppData,
+        });
+        engine.status = installed
+          ? EngineStatus.Installed
+          : EngineStatus.NotInstalled;
+        return engine;
+      })
+    );
+
+    setEngines([...updatedDefaultEngines, ...engines]);
+  }
 
   const form = useForm<EngineSettings>({
     initialValues: {
       name: "",
-      binary: null,
-      image: null,
+      binary: "",
+      image: "",
     },
 
     validate: {
@@ -60,8 +133,8 @@ export default function EngineTable() {
         if (!value) return "Name is required";
         if (engines.find((e) => e.name === value)) return "Name already used";
       },
-      binary: (value: File | null) => {
-        if (!value) return "Path is required";
+      binary: (value) => {
+        if (!value) return "Binary is required";
       },
     },
   });
@@ -70,141 +143,91 @@ export default function EngineTable() {
     invoke("download_file", {
       id,
       url,
-      path: "engines",
-    });
-  }
-
-  function refreshEngines() {
-    invoke("list_folders", {
-      directory: "engines",
-    }).then((res) => {
-      const engineStrings = res as string;
-      setDirectories(engineStrings.split(","));
+      path: (await appDataDir()) + "engines",
     });
   }
 
   async function removeEngine(id: number) {
-    await invoke("remove_folder", {
-      directory: "engines/" + engines[id].rootPath,
-    });
+    if (engines[id].downloadLink) {
+      await removeDir(
+        engines[id].path.substring(0, engines[id].path.lastIndexOf("/")),
+        { dir: BaseDirectory.AppData, recursive: true }
+      );
+      readConfig();
+    } else {
+      // Remove from config
+      const newEngineSettings = engineSettings.filter(
+        (e) => e.name !== engines[id].name
+      );
+      setEngineSettings(newEngineSettings);
+    }
     showNotification({
       icon: <IconTrash />,
       color: "red",
-      title: "Engine uninstalled",
+      title: "Engine removed",
       message: "The engine has been installed successfully",
-    });
-    refreshEngines();
-  }
-
-  function installEngine(id: number) {
-    downloadEngine(id, engines[id].downloadLink).then(() => {
-      refreshEngines();
     });
   }
 
   async function getEngineProgress() {
     await listen("download_progress", (event) => {
-      const { progress, id } = event.payload as any;
-      if (progress === 100) {
+      const { progress, id, finished } = event.payload as any;
+      if (finished) {
         showNotification({
           icon: <IconCheck />,
           color: "green",
           title: "Engine installed",
           message: "The engine has been installed successfully",
         });
-        refreshEngines();
+        reloadEngines();
+      } else {
+        setEngines((engines) =>
+          engines.map((engine, index) => {
+            if (index === id) {
+              return {
+                ...engine,
+                progress,
+              };
+            }
+            return engine;
+          })
+        );
       }
-      setEngines((engines) =>
-        engines.map((engine) => {
-          if (engine.id === id) {
-            return { ...engine, progress };
-          }
-          return engine;
-        })
-      );
     });
   }
 
   useEffect(() => {
+    readConfig();
     getEngineProgress();
-    refreshEngines();
+    // refreshEngines();
   }, []);
 
   useEffect(() => {
-    const defaultEngines: Engine[] = [
-      {
-        image: "/stockfish.png",
-        name: "Stockfish 15",
-        status: EngineStatus.NotInstalled,
-        id: 0,
-        downloadLink:
-          os === "windows"
-            ? "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
-            : "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
-        rootPath:
-          os === "windows"
-            ? "stockfish_15_win_x64_avx2"
-            : "stockfish_15_linux_x64_bmi2",
-        path:
-          os === "windows"
-            ? "stockfish_15_win_x64_avx2/stockfish_15_win_x64_avx2.exe"
-            : "stockfish_15_linux_x64_bmi2/stockfish_15_linux_x64_bmi2",
-      },
-      {
-        image: "/komodo.png",
-        name: "Komodo 13",
-        status: EngineStatus.NotInstalled,
-        id: 1,
-        downloadLink: "https://komodochess.com/pub/komodo-13.zip",
-        rootPath: "komodo-13_201fd6",
-        path:
-          os === "windows"
-            ? "komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
-            : "komodo-13_201fd6/Linux/komodo-13.02-bmi2",
-      },
-    ];
-    directories.forEach((engine) => {
-      const engineIndex = defaultEngines.findIndex(
-        (e) => e.rootPath === engine
-      );
-      if (engineIndex !== -1) {
-        defaultEngines[engineIndex].status = EngineStatus.Installed;
+    // update file if the contents of the file change
+    readTextFile("engines/engines.json", { dir: BaseDirectory.AppData }).then(
+      (text) => {
+        const data = JSON.parse(text);
+        if (data !== engineSettings) {
+          writeTextFile(
+            "engines/engines.json",
+            JSON.stringify(engineSettings),
+            {
+              dir: BaseDirectory.AppData,
+            }
+          );
+        }
       }
-    });
-    setEngines(defaultEngines);
-  }, [directories]);
+    );
+    reloadEngines();
+  }, [engineSettings]);
 
   function handleInstallClick(loaded: boolean, id: number) {
     if (loaded) {
       removeEngine(id);
     } else {
-      installEngine(id);
+      downloadEngine(id, engines[id].downloadLink!);
     }
   }
-
-  const rows = engines.map((item) => {
-    return (
-      <tr key={item.id}>
-        <td>
-          <Group spacing="sm">
-            <Image width={60} height={60} src={item.image} />
-            <Text size="md" weight={500}>
-              {item.name}
-            </Text>
-          </Group>
-        </td>
-        <td>{item.status}</td>
-        <td>
-          <ProgressButton
-            loaded={item.status === EngineStatus.Installed}
-            onClick={handleInstallClick}
-            progress={item.progress ?? 0}
-            id={item.id}
-          />
-        </td>
-      </tr>
-    );
-  });
 
   return (
     <>
@@ -213,7 +236,12 @@ export default function EngineTable() {
         onClose={() => setOpened(false)}
         title="New Engine"
       >
-        <form onSubmit={form.onSubmit((values) => console.log(values))}>
+        <form
+          onSubmit={form.onSubmit(async (values) => {
+            setEngineSettings((engineSettings) => [...engineSettings, values]);
+            setOpened(false);
+          })}
+        >
           <TextInput
             label="Name"
             placeholder="Engine's Name"
@@ -221,29 +249,58 @@ export default function EngineTable() {
             {...form.getInputProps("name")}
           />
 
-          <FileInput
+          <Input.Wrapper
             label="Binary file"
-            placeholder="Engine's Binary Path"
-            accept="application/octet-stream"
+            description="Click to select the binary file"
             withAsterisk
             {...form.getInputProps("binary")}
-          />
+          >
+            <Input
+              component="button"
+              type="button"
+              // accept="application/octet-stream"
+              onClick={async () => {
+                const selected = await open({
+                  multiple: false,
+                  filters: [
+                    {
+                      name: "Binary",
+                      extensions: ["exe", "bin", "sh"],
+                    },
+                  ],
+                });
+                form.setFieldValue("binary", selected as string);
+              }}
+            >
+              <Text lineClamp={1}>{form.values.binary}</Text>
+            </Input>
+          </Input.Wrapper>
 
-          <FileInput
+          <Input.Wrapper
             label="Image file"
-            placeholder="Engine's Image"
-            accept="image/*"
+            description="Click to select the image file"
             {...form.getInputProps("image")}
-          />
-
-          {form.values.image && (
-            <Image
-              pt="md"
-              px="md"
-              radius="md"
-              src={URL.createObjectURL(form.values.image)}
-            />
-          )}
+          >
+            <Input
+              component="button"
+              type="button"
+              // accept="application/octet-stream"
+              onClick={async () => {
+                const selected = await open({
+                  multiple: false,
+                  filters: [
+                    {
+                      name: "Image",
+                      extensions: ["png", "jpeg"],
+                    },
+                  ],
+                });
+                form.setFieldValue("image", selected as string);
+              }}
+            >
+              <Text lineClamp={1}>{form.values.image}</Text>
+            </Input>
+          </Input.Wrapper>
 
           <Button fullWidth mt="xl" type="submit">
             Add
@@ -251,24 +308,64 @@ export default function EngineTable() {
         </form>
       </Modal>
       <ScrollArea>
+        <Button leftIcon={<IconReload />} onClick={() => readConfig()}>
+          Reload
+        </Button>
         <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
           <thead>
             <tr>
               <th>Engine</th>
-              <th>ELO</th>
+              <th>Path</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {rows}
+            {engines.map((item, index) => {
+              return (
+                <tr key={index}>
+                  <td>
+                    <Group spacing="sm">
+                      <Image
+                        width={60}
+                        height={60}
+                        src={item.image !== "" ? item.image : null}
+                      />
+                      <Text size="md" weight={500}>
+                        {item.name}
+                      </Text>
+                    </Group>
+                  </td>
+                  <td>
+                    {item.path}
+                    {item.status === EngineStatus.NotInstalled &&
+                      !item.downloadLink && (
+                        <Text c="red">ERROR: Missing File</Text>
+                      )}
+                  </td>
+                  <td>
+                    <ProgressButton
+                      loaded={
+                        !item.downloadLink ||
+                        item.status === EngineStatus.Installed
+                      }
+                      onClick={handleInstallClick}
+                      progress={item.progress ?? 0}
+                      id={index}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
             <tr>
-              <Button
-                onClick={() => setOpened(true)}
-                variant="default"
-                rightIcon={<IconPlus size={14} />}
-              >
-                Add new
-              </Button>
+              <td>
+                <Button
+                  onClick={() => setOpened(true)}
+                  variant="default"
+                  rightIcon={<IconPlus size={14} />}
+                >
+                  Add new
+                </Button>
+              </td>
             </tr>
           </tbody>
         </Table>

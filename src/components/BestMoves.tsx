@@ -112,7 +112,7 @@ function BestMoves({
             {engineVariations.map((engineVariation) => {
               const newChess = new Chess(chess.fen());
               let score = engineVariation.score;
-              let moves = engineVariation.pv.split(" ").slice(0, 10);
+              let moves = engineVariation.pv.split(" ").slice(0, 6);
               if (chess.turn() === "b") {
                 score = -score;
               }
