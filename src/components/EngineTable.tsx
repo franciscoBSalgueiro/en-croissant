@@ -10,7 +10,8 @@ import {
   TextInput
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useOs } from "@mantine/hooks";
+import { OsType, type } from '@tauri-apps/api/os';
+
 import { showNotification } from "@mantine/notifications";
 import { IconCheck, IconPlus, IconReload, IconTrash } from "@tabler/icons";
 import { open } from "@tauri-apps/api/dialog";
@@ -48,22 +49,20 @@ interface EngineSettings {
   image: string;
 }
 
-export default function EngineTable() {
-  const os = useOs();
-
+export default function EngineTable({ os }: { os: OsType }) {
   const defaultEngines: Engine[] = [
     {
       image: "/stockfish.png",
       name: "Stockfish 15",
       status: EngineStatus.NotInstalled,
       downloadLink:
-        os === "windows"
+        os === "Windows_NT"
           ? "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
           : "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
       path:
-        os === "windows"
+        os === "Windows_NT"
           ? "engines/stockfish_15_win_x64_avx2/stockfish_15_x64_avx2.exe"
-          : "engines/stockfish_15_linux_x64_bmi2/stockfish_15_linux_x64_bmi2",
+          : "engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
     },
     {
       image: "/komodo.png",
@@ -71,7 +70,7 @@ export default function EngineTable() {
       status: EngineStatus.NotInstalled,
       downloadLink: "https://komodochess.com/pub/komodo-13.zip",
       path:
-        os === "windows"
+        os === "Windows_NT"
           ? "engines/komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
           : "engines/komodo-13_201fd6/Linux/komodo-13.02-bmi2",
     },
@@ -173,6 +172,7 @@ export default function EngineTable() {
     await listen("download_progress", (event) => {
       const { progress, id, finished } = event.payload as any;
       if (finished) {
+        // FIXME - avoid duplicate notifications
         showNotification({
           icon: <IconCheck />,
           color: "green",
@@ -372,4 +372,15 @@ export default function EngineTable() {
       </ScrollArea>
     </>
   );
+}
+
+
+export async function getStaticProps() {
+  const os = await type();
+
+  return {
+    props: {
+      os,
+    },
+  };
 }

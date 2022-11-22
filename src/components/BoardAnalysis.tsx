@@ -31,6 +31,7 @@ import {
 } from "../utils/chess";
 import BestMoves from "./BestMoves";
 import GameNotation from "./GameNotation";
+import ImageCheckbox from "./ImageCheckbox";
 
 function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [showDests, setShowDests] = useLocalStorage<boolean>({
@@ -241,6 +242,15 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             offLabel="Off"
             size="lg"
           />
+          <SimpleGrid
+            cols={4}
+            breakpoints={[
+              { maxWidth: "md", cols: 2 },
+              { maxWidth: "sm", cols: 1 },
+            ]}
+          >
+            <ImageCheckbox title="Stockfish 15" image="/stockfish.png" />
+          </SimpleGrid>
           {engineOn && engineVariation && (
             <>
               <BestMoves
