@@ -53,8 +53,15 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "show-dests",
     defaultValue: true,
   });
+  const [maxDepth, setMaxDepth] = useLocalStorage<number>({
+    key: "max-depth",
+    defaultValue: 24,
+  });
   const [showSettings, toggleShowSettings] = useToggle();
-  const [selectedEngines, setSelectedEngines] = useState<Engine[]>([]);
+  const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
+    key: "selected-engines",
+    defaultValue: [],
+  });
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
@@ -167,6 +174,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         engine:
           "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
         fen: chess.fen(),
+        depth: maxDepth,
         numberLines,
       });
     } else {
@@ -269,8 +277,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
           {showSettings && (
             <>
-              <DepthSlider />
-              <EngineSettingsBoard setSelectedEngines={setSelectedEngines} />
+              <DepthSlider value={maxDepth} setValue={setMaxDepth} />
+              <EngineSettingsBoard
+                selectedEngines={selectedEngines}
+                setSelectedEngines={setSelectedEngines}
+              />
             </>
           )}
           {engineOn &&

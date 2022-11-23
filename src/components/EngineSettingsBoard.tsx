@@ -9,8 +9,10 @@ import {
 import ImageCheckbox from "./ImageCheckbox";
 
 function EngineSettingsBoard({
+  selectedEngines,
   setSelectedEngines,
 }: {
+  selectedEngines: Engine[];
   setSelectedEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
 }) {
   const [engines, setEngines] = useState<Engine[]>(getDefaultEngines());
@@ -36,6 +38,9 @@ function EngineSettingsBoard({
             key={engine.name}
             title={engine.name}
             image={engine.image}
+            checked={selectedEngines.some(
+              (selectedEngine) => selectedEngine.name === engine.name
+            )}
             onChange={(checked) => {
               if (checked) {
                 setSelectedEngines((engines: Engine[]) => [...engines, engine]);

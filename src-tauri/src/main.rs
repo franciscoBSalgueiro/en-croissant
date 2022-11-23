@@ -186,7 +186,7 @@ struct BestMovePayload {
 }
 
 #[tauri::command]
-async fn get_best_moves(engine: String, fen: String, numberLines: usize, app: tauri::AppHandle) {
+async fn get_best_moves(engine: String, fen: String, depth: usize, numberLines: usize, app: tauri::AppHandle) {
     // start engine command
     println!("{}", &fen);
 
@@ -265,7 +265,7 @@ async fn get_best_moves(engine: String, fen: String, numberLines: usize, app: ta
             .await
             .expect("Failed to write setoption");
         stdin
-            .write_all(b"go infinite\n")
+            .write_all(format!("go depth {}\n", &depth).as_bytes())
             .await
             .expect("Failed to write go");
 

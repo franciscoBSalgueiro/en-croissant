@@ -1,8 +1,12 @@
 import { Slider } from "@mantine/core";
-import { useState } from "react";
 
-export default function DepthSlider() {
-  const [value, setValue] = useState(24);
+export default function DepthSlider({
+  value,
+  setValue,
+}: {
+  value: number;
+  setValue: React.Dispatch<React.SetStateAction<number>>;
+}) {
   const MARKS = [
     { value: 10, label: "10" },
     { value: 20, label: "20" },
