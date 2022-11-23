@@ -47,7 +47,7 @@ export function getDefaultEngines(): Engine[] {
             path:
                 os === "windows"
                     ? "engines/komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
-                    : "engines/komodo-13_201fd6/Linux/komodo-13.02-bmi2",
+                    : "engines/komodo-13_201fd6/Linux/komodo-13.02-linux-bmi2",
         },
     ];
 }

@@ -13,6 +13,7 @@ import {
 } from "@mantine/core";
 import { Chess } from "chess.ts";
 import { EngineVariation, getLastChessMove } from "../utils/chess";
+import { Engine } from "../utils/engines";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -48,6 +49,7 @@ function ScoreBubble({ score }: { score: number }) {
 }
 
 interface BestMovesProps {
+  engine: Engine;
   engineVariations: EngineVariation[];
   numberLines: number;
   chess: Chess;
@@ -59,6 +61,7 @@ function BestMoves({
   numberLines,
   chess,
   makeMoves,
+  engine
 }: BestMovesProps) {
   const { classes } = useStyles();
 
@@ -86,7 +89,7 @@ function BestMoves({
     <>
       <Paper shadow="sm" p="lg" radius="md" withBorder>
         <Group position="apart" mt="md" mb="xs">
-          <Title>Stockfish 13</Title>
+          <Title>{engine.name}</Title>
           <Container m={0}>
             <Text
               size="xs"

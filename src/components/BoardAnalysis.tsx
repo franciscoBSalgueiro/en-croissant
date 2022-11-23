@@ -36,6 +36,7 @@ import {
   toDests,
   VariationTree
 } from "../utils/chess";
+import { Engine } from "../utils/engines";
 import BestMoves from "./BestMoves";
 import DepthSlider from "./DepthSlider";
 import GameNotation from "./GameNotation";
@@ -53,6 +54,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     defaultValue: true,
   });
   const [showSettings, toggleShowSettings] = useToggle();
+  const [selectedEngines, setSelectedEngines] = useState<Engine[]>([]);
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
@@ -268,19 +270,22 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           {showSettings && (
             <>
               <DepthSlider />
-              <EngineSettingsBoard />
+              <EngineSettingsBoard setSelectedEngines={setSelectedEngines} />
             </>
           )}
-          {engineOn && engineVariation && (
-            <>
-              <BestMoves
-                engineVariations={engineVariation}
-                numberLines={numberLines}
-                chess={chess}
-                makeMoves={makeMoves}
-              />
-            </>
-          )}
+          {engineOn &&
+            engineVariation &&
+            selectedEngines.map((engine) => {
+              return (
+                <BestMoves
+                  engine={engine}
+                  engineVariations={engineVariation}
+                  numberLines={numberLines}
+                  chess={chess}
+                  makeMoves={makeMoves}
+                />
+              );
+            })}
 
           <GameNotation tree={tree} setTree={setTree} />
           <MoveControls />
