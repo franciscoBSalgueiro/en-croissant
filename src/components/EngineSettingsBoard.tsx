@@ -17,7 +17,6 @@ function EngineSettingsBoard({
 }) {
   const [engines, setEngines] = useState<Engine[]>(getDefaultEngines());
 
-  console.log(engines);
   useEffect(() => {
     getEngines().then((engines) => {
       setEngines(engines);

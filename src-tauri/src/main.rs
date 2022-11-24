@@ -20,6 +20,14 @@ use tokio::{
     process::Command,
 };
 
+#[derive(Debug, serde::Serialize, Copy, Clone)]
+pub enum Score {
+    #[serde(rename = "cp")]
+    Cp(i64),
+    #[serde(rename = "mate")]
+    Mate(i64),
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -180,13 +188,19 @@ async fn remove_folder(directory: String) -> Result<String, String> {
 #[derive(Clone, serde::Serialize, Debug)]
 struct BestMovePayload {
     depth: usize,
-    score: i64,
+    score: Score,
     pv: String,
     multipv: usize,
 }
 
 #[tauri::command]
-async fn get_best_moves(engine: String, fen: String, depth: usize, numberLines: usize, app: tauri::AppHandle) {
+async fn get_best_moves(
+    engine: String,
+    fen: String,
+    depth: usize,
+    numberLines: usize,
+    app: tauri::AppHandle,
+) {
     // start engine command
     println!("{}", &fen);
 
@@ -239,7 +253,7 @@ async fn get_best_moves(engine: String, fen: String, depth: usize, numberLines: 
     for _ in 0..numberLines {
         engine_lines.push(BestMovePayload {
             depth: 0,
-            score: 0,
+            score: Score::Cp(0),
             pv: "".to_string(),
             multipv: 0,
         });
@@ -310,7 +324,7 @@ async fn get_best_moves(engine: String, fen: String, depth: usize, numberLines: 
 
 fn parse_uci(info: &str) -> Option<BestMovePayload> {
     let mut depth = 0;
-    let mut score = 0;
+    let mut score = Score::Cp(0);
     let mut pv = String::new();
     let mut multipv = 0;
     // example input: info depth 1 seldepth 1 multipv 1 score cp 0 nodes 20 nps 10000 tbhits 0 time 2 pv e2e4
@@ -318,7 +332,12 @@ fn parse_uci(info: &str) -> Option<BestMovePayload> {
         match s {
             "depth" => depth = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap(),
             "score" => {
-                score = info.split_whitespace().nth(i + 2).unwrap().parse().unwrap();
+                if info.split_whitespace().nth(i + 1).unwrap() == "cp" {
+                    score = Score::Cp(info.split_whitespace().nth(i + 2).unwrap().parse().unwrap());
+                } else {
+                    score =
+                        Score::Mate(info.split_whitespace().nth(i + 2).unwrap().parse().unwrap());
+                }
             }
             "pv" => {
                 pv = info

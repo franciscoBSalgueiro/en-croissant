@@ -1,9 +1,14 @@
 import { Chess, Move, SQUARES } from "chess.ts";
 import { Key } from "chessground/types";
 
+interface Score {
+    cp?: number;
+    mate?: number;
+}
+
 export interface EngineVariation {
     pv: string;
-    score: number;
+    score: Score;
     depth: number;
     multipv: number;
 }

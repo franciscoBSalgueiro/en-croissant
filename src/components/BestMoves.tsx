@@ -21,7 +21,14 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function ScoreBubble({ score }: { score: number }) {
+function ScoreBubble({ score, type }: { score: number, type: "cp" | "mate" }) {
+  let scoreText = "";
+  if (type === "cp") {
+    scoreText = Math.abs(score / 100).toFixed(2);
+  } else {
+    scoreText = "M" + Math.abs(score);
+  }
+  scoreText = (score > 0 ? "+" : "-") + scoreText;
   return (
     <Box
       sx={(theme) => ({
@@ -42,7 +49,7 @@ function ScoreBubble({ score }: { score: number }) {
           fontFamily: theme.fontFamilyMonospace,
         })}
       >
-        {(score < 0 ? "" : "+") + score.toFixed(2)}
+        {scoreText}
       </Text>
     </Box>
   );
@@ -114,7 +121,16 @@ function BestMoves({
               ))}
             {engineVariations.map((engineVariation) => {
               const newChess = new Chess(chess.fen());
-              let score = engineVariation.score;
+              let score = 0;
+              let type: "mate" | "cp" = "cp";
+              if (engineVariation.score.cp) {
+                score = engineVariation.score.cp;
+                type = "cp";
+              }
+              if (engineVariation.score.mate) {
+                score = engineVariation.score.mate;
+                type = "mate";
+              }
               let moves = engineVariation.pv.split(" ").slice(0, 6);
               if (chess.turn() === "b") {
                 score = -score;
@@ -122,7 +138,7 @@ function BestMoves({
               return (
                 <tr>
                   <td>
-                    <ScoreBubble score={score / 100} />
+                    <ScoreBubble score={score} type={type} />
                   </td>
                   <td>
                     <Flex gap="xs" direction="row" wrap="nowrap">
