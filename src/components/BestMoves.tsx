@@ -11,7 +11,7 @@ import {
   Text,
   Title
 } from "@mantine/core";
-import { Chess } from "chess.ts";
+import { Chess, Color } from "chess.ts";
 import { EngineVariation, getLastChessMove } from "../utils/chess";
 import { Engine } from "../utils/engines";
 
@@ -21,7 +21,7 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function ScoreBubble({ score, type }: { score: number, type: "cp" | "mate" }) {
+function ScoreBubble({ score, type }: { score: number; type: "cp" | "mate" }) {
   let scoreText = "";
   if (type === "cp") {
     scoreText = Math.abs(score / 100).toFixed(2);
@@ -68,7 +68,7 @@ function BestMoves({
   numberLines,
   chess,
   makeMoves,
-  engine
+  engine,
 }: BestMovesProps) {
   const { classes } = useStyles();
 
@@ -76,11 +76,16 @@ function BestMoves({
     moves,
     move,
     index,
+    turn,
+    moveNumber,
   }: {
     moves: string[];
     move: string;
     index: number;
+    turn: Color;
+    moveNumber: number;
   }) {
+    const first = index === 0;
     return (
       <Button
         variant="subtle"
@@ -88,6 +93,8 @@ function BestMoves({
           makeMoves(moves.slice(0, index + 1));
         }}
       >
+        {(turn === "b" || first) && <span>{moveNumber.toFixed(0) + "."}</span>}
+        {first && turn === "w" && ".."}
         {move}
       </Button>
     );
@@ -148,6 +155,8 @@ function BestMoves({
                         });
                         return (
                           <MoveCell
+                            moveNumber={(chess.history().length + newChess.history().length) / 2}
+                            turn={newChess.turn()}
                             moves={moves}
                             move={getLastChessMove(newChess)?.san!}
                             index={index}
