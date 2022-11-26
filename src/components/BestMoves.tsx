@@ -14,6 +14,7 @@ import {
   Title
 } from "@mantine/core";
 import { Chess, Color } from "chess.ts";
+import { useState } from "react";
 import { EngineVariation, getLastChessMove } from "../utils/chess";
 import { Engine } from "../utils/engines";
 
@@ -74,6 +75,67 @@ function BestMoves({
 }: BestMovesProps) {
   const { classes } = useStyles();
 
+  function AnalysisRow({
+    score,
+    type,
+    moves,
+  }: {
+    score: number;
+    type: "cp" | "mate";
+    moves: string[];
+  }) {
+    const newChess = new Chess(chess.fen());
+    const [open, setOpen] = useState(false);
+    return (
+      <tr style={{ verticalAlign: "top" }}>
+        <td>
+          <ScoreBubble score={score} type={type} />
+        </td>
+        <td>
+          <Flex
+            direction="row"
+            wrap="wrap"
+            sx={{
+              height: open ? "100%" : 35,
+              overflow: "hidden",
+            }}
+          >
+            {moves.map((move, index) => {
+              newChess.move(move, {
+                sloppy: true,
+              });
+              return (
+                <MoveCell
+                  moveNumber={
+                    (chess.history().length + newChess.history().length) / 2
+                  }
+                  turn={newChess.turn()}
+                  moves={moves}
+                  move={getLastChessMove(newChess)?.san!}
+                  index={index}
+                  key={index}
+                />
+              );
+            })}
+          </Flex>
+        </td>
+        <td>
+          <ActionIcon
+            style={{
+              transition: 'transform 200ms ease',
+              transform: open
+                ? `rotate(180deg)`
+                : "none",
+            }}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <ChevronIcon />
+          </ActionIcon>
+        </td>
+      </tr>
+    );
+  }
+
   function MoveCell({
     moves,
     move,
@@ -129,7 +191,6 @@ function BestMoves({
                 </tr>
               ))}
             {engineVariations.map((engineVariation) => {
-              const newChess = new Chess(chess.fen());
               let score = 0;
               let type: "mate" | "cp" = "cp";
               if (engineVariation.score.cp) {
@@ -144,48 +205,7 @@ function BestMoves({
               if (chess.turn() === "b") {
                 score = -score;
               }
-              return (
-                <tr>
-                  <td>
-                    <ScoreBubble score={score} type={type} />
-                  </td>
-                  <td>
-                    <Flex
-                      direction="row"
-                      wrap="wrap"
-                      sx={{
-                        height: 35,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {moves.map((move, index) => {
-                        newChess.move(move, {
-                          sloppy: true,
-                        });
-                        return (
-                          <MoveCell
-                            moveNumber={
-                              (chess.history().length +
-                                newChess.history().length) /
-                              2
-                            }
-                            turn={newChess.turn()}
-                            moves={moves}
-                            move={getLastChessMove(newChess)?.san!}
-                            index={index}
-                            key={index}
-                          />
-                        );
-                      })}
-                    </Flex>
-                  </td>
-                  <td>
-                    <ActionIcon>
-                      <ChevronIcon />
-                    </ActionIcon>
-                  </td>
-                </tr>
-              );
+              return <AnalysisRow score={score} type={type} moves={moves} />;
             })}
           </tbody>
         </Table>
