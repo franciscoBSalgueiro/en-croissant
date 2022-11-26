@@ -2,8 +2,7 @@ import {
   ActionIcon,
   AspectRatio,
   Button,
-  Collapse,
-  Group,
+  Collapse, Group,
   SimpleGrid,
   Stack,
   Switch,
@@ -41,6 +40,7 @@ import { Engine } from "../utils/engines";
 import BestMoves from "./BestMoves";
 import DepthSlider from "./DepthSlider";
 import GameNotation from "./GameNotation";
+import LinesSlider from "./LinesSlider";
 
 const EngineSettingsBoard = dynamic(
   () => import("../components/EngineSettingsBoard"),
@@ -70,7 +70,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   );
   const chess = new Chess();
   chess.loadPgn(tree.pgn);
-  const [numberLines, _] = useLocalStorage<number>({
+  const [numberLines, setNumberLines] = useLocalStorage<number>({
     key: "number-lines",
     defaultValue: 3,
   });
@@ -176,7 +176,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         fen: chess.fen(),
         depth: maxDepth,
         numberLines,
-        numberThreads: 15
+        numberThreads: 15,
       });
     } else {
       emit("stop_engine");
@@ -276,11 +276,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             </ActionIcon>
           </Group>
           <Collapse in={showSettings}>
-            <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-            <EngineSettingsBoard
-              selectedEngines={selectedEngines}
-              setSelectedEngines={setSelectedEngines}
-            />
+            <Stack spacing="xl">
+              <DepthSlider value={maxDepth} setValue={setMaxDepth} />
+              <LinesSlider value={numberLines} setValue={setNumberLines} />
+              <EngineSettingsBoard
+                selectedEngines={selectedEngines}
+                setSelectedEngines={setSelectedEngines}
+              />
+            </Stack>
           </Collapse>
           {engineOn &&
             engineVariation &&
