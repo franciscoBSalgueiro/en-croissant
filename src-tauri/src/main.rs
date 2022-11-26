@@ -198,14 +198,15 @@ async fn get_best_moves(
     engine: String,
     fen: String,
     depth: usize,
-    numberLines: usize,
+    number_lines: usize,
+    number_threads: usize,
     app: tauri::AppHandle,
 ) {
     // start engine command
     println!("{}", &fen);
 
     // Check number of lines is between 1 and 5
-    assert!(numberLines > 0 && numberLines < 6);
+    assert!(number_lines > 0 && number_lines < 6);
 
     let mut command = Command::new(&engine);
     command
@@ -250,7 +251,7 @@ async fn get_best_moves(
     });
 
     let mut engine_lines = Vec::new();
-    for _ in 0..numberLines {
+    for _ in 0..number_lines {
         engine_lines.push(BestMovePayload {
             depth: 0,
             score: Score::Cp(0),
@@ -275,7 +276,11 @@ async fn get_best_moves(
             .await
             .expect("Failed to write position");
         stdin
-            .write_all(format!("setoption name multipv value {}\n", &numberLines).as_bytes())
+            .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
+            .await
+            .expect("Failed to write setoption");
+        stdin
+            .write_all(format!("setoption name multipv value {}\n", &number_lines).as_bytes())
             .await
             .expect("Failed to write setoption");
         stdin

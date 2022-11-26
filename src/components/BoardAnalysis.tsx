@@ -172,11 +172,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     if (engineOn) {
       emit("stop_engine");
       invoke("get_best_moves", {
-        engine:
-          "/home/francisco/Documents/prog/en-croissant/src-tauri/engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
+        engine: selectedEngines[0].path,
         fen: chess.fen(),
         depth: maxDepth,
         numberLines,
+        numberThreads: 15
       });
     } else {
       emit("stop_engine");
