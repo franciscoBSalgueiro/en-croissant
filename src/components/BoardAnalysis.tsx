@@ -2,6 +2,7 @@ import {
   ActionIcon,
   AspectRatio,
   Button,
+  Collapse,
   Group,
   SimpleGrid,
   Stack,
@@ -274,16 +275,13 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
               <IconSettings />
             </ActionIcon>
           </Group>
-
-          {showSettings && (
-            <>
-              <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-              <EngineSettingsBoard
-                selectedEngines={selectedEngines}
-                setSelectedEngines={setSelectedEngines}
-              />
-            </>
-          )}
+          <Collapse in={showSettings}>
+            <DepthSlider value={maxDepth} setValue={setMaxDepth} />
+            <EngineSettingsBoard
+              selectedEngines={selectedEngines}
+              setSelectedEngines={setSelectedEngines}
+            />
+          </Collapse>
           {engineOn &&
             engineVariation &&
             selectedEngines.map((engine) => {

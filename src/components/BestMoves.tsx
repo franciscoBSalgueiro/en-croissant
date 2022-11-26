@@ -1,6 +1,8 @@
 import {
+  ActionIcon,
   Box,
   Button,
+  ChevronIcon,
   Container,
   createStyles,
   Flex,
@@ -138,7 +140,7 @@ function BestMoves({
                 score = engineVariation.score.mate;
                 type = "mate";
               }
-              let moves = engineVariation.pv.split(" ").slice(0, 6);
+              let moves = engineVariation.pv.split(" ");
               if (chess.turn() === "b") {
                 score = -score;
               }
@@ -148,14 +150,25 @@ function BestMoves({
                     <ScoreBubble score={score} type={type} />
                   </td>
                   <td>
-                    <Flex gap="xs" direction="row" wrap="nowrap">
+                    <Flex
+                      direction="row"
+                      wrap="wrap"
+                      sx={{
+                        height: 35,
+                        overflow: "hidden",
+                      }}
+                    >
                       {moves.map((move, index) => {
                         newChess.move(move, {
                           sloppy: true,
                         });
                         return (
                           <MoveCell
-                            moveNumber={(chess.history().length + newChess.history().length) / 2}
+                            moveNumber={
+                              (chess.history().length +
+                                newChess.history().length) /
+                              2
+                            }
                             turn={newChess.turn()}
                             moves={moves}
                             move={getLastChessMove(newChess)?.san!}
@@ -165,6 +178,11 @@ function BestMoves({
                         );
                       })}
                     </Flex>
+                  </td>
+                  <td>
+                    <ActionIcon>
+                      <ChevronIcon />
+                    </ActionIcon>
                   </td>
                 </tr>
               );
