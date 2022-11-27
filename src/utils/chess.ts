@@ -7,7 +7,8 @@ export interface Score {
 }
 
 export interface EngineVariation {
-    pv: string[];
+    uciMoves: string[];
+    sanMoves: string[];
     score: Score;
     depth: number;
     multipv: number;

@@ -77,14 +77,20 @@ function BestMoves({
   const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
   const { classes } = useStyles();
 
+  useEffect(() => {
+    setEngineVariation([]);
+  }, [chess]);
+
   function AnalysisRow({
     score,
     type,
     moves,
+    uciMoves,
   }: {
     score: number;
     type: "cp" | "mate";
     moves: string[];
+    uciMoves: string[];
   }) {
     const [open, setOpen] = useState(false);
     return (
@@ -110,7 +116,7 @@ function BestMoves({
                 <MoveCell
                   moveNumber={move_number}
                   isBlack={is_black}
-                  moves={moves}
+                  moves={uciMoves}
                   move={move}
                   index={index}
                   key={index}
@@ -218,7 +224,8 @@ function BestMoves({
                   key={i}
                   score={score}
                   type={type}
-                  moves={engineVariation.pv}
+                  moves={engineVariation.sanMoves}
+                  uciMoves={engineVariation.uciMoves}
                 />
               );
             })}

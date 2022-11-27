@@ -196,7 +196,10 @@ async fn remove_folder(directory: String) -> Result<String, String> {
 struct BestMovePayload {
     depth: usize,
     score: Score,
-    pv: Vec<String>,
+    #[serde(rename = "sanMoves")]
+    san_moves: Vec<String>,
+    #[serde(rename = "uciMoves")]
+    uci_moves: Vec<String>,
     multipv: usize,
 }
 
@@ -274,7 +277,8 @@ async fn get_best_moves(
         engine_lines.push(BestMovePayload {
             depth: 0,
             score: Score::Cp(0),
-            pv: Vec::new(),
+            san_moves: Vec::new(),
+            uci_moves: Vec::new(),
             multipv: 0,
         });
     }
@@ -326,15 +330,13 @@ async fn get_best_moves(
                                 }
                                 if line.starts_with("info") && line.contains("pv") {
                                     let best_moves = parse_uci(&line, &fen).unwrap();
-                                    println!("line: {:?}", best_moves);
                                     let multipv = best_moves.multipv;
                                     engine_lines[multipv - 1] = best_moves;
 
-                                    if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) && depth > 15 {
+                                    if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) && engine_lines[0].depth >= 10 {
                                         let now = SystemTime::now();
                                         now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
-                                        if now_ms - last_sent_ms > 500 {
-                                            println!("Sending best moves");
+                                        if now_ms - last_sent_ms > 300 {
                                             let payload = engine_lines.clone();
                                             app.emit_all("best_moves", payload).unwrap();
                                             last_sent_ms = now_ms;
@@ -385,21 +387,23 @@ fn parse_uci(info: &str, fen: &str) -> Option<BestMovePayload> {
             _ => (),
         }
     }
-    let mut moves = Vec::new();
+    let mut san_moves = Vec::new();
+    let uci_moves: Vec<String> = pv.split_whitespace().map(|x| x.to_string()).collect();
 
     let fen: Fen = fen.parse().unwrap();
     let mut pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
-    for m in pv.split_whitespace() {
+    for m in &uci_moves {
         let uci: Uci = m.parse().unwrap();
         let m = uci.to_move(&pos).unwrap();
         pos.play_unchecked(&m);
         let san = San::from_move(&pos, &m);
-        moves.push(san.to_string());
+        san_moves.push(san.to_string());
     }
     Some(BestMovePayload {
         depth,
         score,
-        pv: moves,
+        san_moves,
+        uci_moves,
         multipv,
     })
 }
