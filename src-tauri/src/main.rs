@@ -6,7 +6,7 @@
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-use std::{fs::create_dir_all, io::Cursor, path::Path, process::Stdio};
+use std::{fs::create_dir_all, io::Cursor, path::{Path, PathBuf}, process::Stdio};
 
 use futures_util::StreamExt;
 use tauri::{
@@ -196,19 +196,31 @@ struct BestMovePayload {
 #[tauri::command]
 async fn get_best_moves(
     engine: String,
+    relative: bool,
     fen: String,
     depth: usize,
     number_lines: usize,
     number_threads: usize,
     app: tauri::AppHandle,
 ) {
+    let mut path = PathBuf::from(engine);
+    if relative {
+        path = resolve_path(
+            &app.config(),
+            app.package_info(),
+            &app.env(),
+            path,
+            Some(BaseDirectory::AppData),
+        )
+        .unwrap();
+    }
     // start engine command
     println!("{}", &fen);
 
     // Check number of lines is between 1 and 5
     assert!(number_lines > 0 && number_lines < 6);
 
-    let mut command = Command::new(&engine);
+    let mut command = Command::new(&path);
     command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

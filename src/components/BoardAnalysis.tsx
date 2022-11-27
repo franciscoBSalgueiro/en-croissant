@@ -177,6 +177,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         depth: maxDepth,
         numberLines,
         numberThreads: 15,
+        relative: !!selectedEngines[0].downloadLink,
       });
     } else {
       emit("stop_engine");
