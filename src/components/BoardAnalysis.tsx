@@ -2,7 +2,8 @@ import {
   ActionIcon,
   AspectRatio,
   Button,
-  Collapse, Group,
+  Collapse,
+  Group,
   SimpleGrid,
   Stack,
   Switch,
@@ -23,13 +24,12 @@ import {
   IconSettings,
   IconSwitchVertical
 } from "@tabler/icons";
-import { emit, listen } from "@tauri-apps/api/event";
+import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Chess, PartialMove } from "chess.ts";
+import { Chess, KING, Square } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
-  EngineVariation,
   formatMove,
   getLastChessMove,
   moveToKey,
@@ -74,7 +74,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "number-lines",
     defaultValue: 3,
   });
-  const [engineVariation, setEngineVariation] = useState<EngineVariation[]>([]);
 
   const [engineOn, setEngineOn] = useState(false);
 
@@ -94,7 +93,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     return tree;
   }
 
-  function makeMove(move: PartialMove) {
+  function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     chess.move(move);
     const newTree = new VariationTree(tree, chess.pgn());
     if (tree.children.length === 0) {
@@ -102,7 +101,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     } else if (tree.children[0].pgn !== chess.pgn()) {
       tree.children.push(newTree);
     }
-    setEngineVariation([]);
     setTree(newTree);
   }
 
@@ -158,16 +156,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     ["f", () => flipBoard()],
   ]);
 
-  async function waitForMove() {
-    await listen("best_moves", (event) => {
-      setEngineVariation(event.payload as EngineVariation[]);
-    });
-  }
-
-  useEffect(() => {
-    waitForMove();
-  }, []);
-
   useEffect(() => {
     if (engineOn) {
       emit("stop_engine");
@@ -176,7 +164,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         fen: chess.fen(),
         depth: maxDepth,
         numberLines,
-        numberThreads: 15,
+        numberThreads: 8,
         relative: !!selectedEngines[0].downloadLink,
       });
     } else {
@@ -213,7 +201,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   showDests,
                   events: {
                     after: (orig, dest) => {
-                      if (chess.get(orig)?.type === "k") {
+                      if (orig === "a0" || dest === "a0") {
+                        // NOTE: Idk if this can happen
+                        return;
+                      }
+                      if (chess.get(orig)?.type === KING) {
                         switch (dest) {
                           case "h1":
                             dest = "g1";
@@ -287,15 +279,15 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             </Stack>
           </Collapse>
           {engineOn &&
-            engineVariation &&
-            selectedEngines.map((engine) => {
+            selectedEngines.map((engine, index) => {
               return (
                 <BestMoves
+                  key={index}
                   engine={engine}
-                  engineVariations={engineVariation}
                   numberLines={numberLines}
                   chess={chess}
                   makeMoves={makeMoves}
+                  half_moves={tree.half_moves}
                 />
               );
             })}

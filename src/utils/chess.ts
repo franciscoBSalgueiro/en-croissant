@@ -1,13 +1,13 @@
-import { Chess, Move, SQUARES } from "chess.ts";
+import { Chess, Move, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
 
-interface Score {
+export interface Score {
     cp?: number;
     mate?: number;
 }
 
 export interface EngineVariation {
-    pv: string;
+    pv: string[];
     score: Score;
     depth: number;
     multipv: number;
@@ -21,6 +21,7 @@ export class VariationTree {
     children: VariationTree[];
     score: number;
     depth: number;
+    half_moves: number;
 
     constructor(
         parent: VariationTree | null,
@@ -34,6 +35,7 @@ export class VariationTree {
         this.children = children ?? [];
         this.score = score ?? 0;
         this.depth = depth ?? 0;
+        this.half_moves = parent ? parent.half_moves + 1 : 0;
         const chess = new Chess();
         chess.loadPgn(position);
         this.chess = chess;
@@ -41,7 +43,7 @@ export class VariationTree {
         if (history.length === 0) {
             this.lastMove = null;
         } else {
-            this.lastMove = history[history.length - 1];
+            this.lastMove = history[history.length - 1] as Move;
         }
     }
 
@@ -107,8 +109,8 @@ export function moveToKey(move: Move | null) {
 
 export function toDests(chess: Chess): Map<Key, Key[]> {
     const dests = new Map();
-    Object.keys(SQUARES).forEach((s) => {
-        const ms = chess.moves({ square: s, verbose: true });
+    SQUARES.forEach((s: Square) => {
+        const ms = chess.moves({ square: s, verbose: true }) as Move[];
         ms.forEach((m) => {
             const to = m.to;
             if (dests.has(s)) {
@@ -135,5 +137,9 @@ export function formatMove(orientation: string) {
 }
 
 export function getLastChessMove(chess: Chess): Move | null {
-    return chess.history({ verbose: true }).slice(-1)[0] || null;
+    const move = chess.undo();
+    if (move) {
+        chess.move(move);
+    }
+    return move;
 }

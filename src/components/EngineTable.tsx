@@ -121,35 +121,35 @@ export default function EngineTable() {
     });
   }
 
-  async function getEngineProgress() {
-    await listen("download_progress", (event) => {
-      const { progress, id, finished } = event.payload as any;
-      if (finished) {
-        // FIXME - avoid duplicate notifications
-        showNotification({
-          icon: <IconCheck />,
-          color: "green",
-          title: "Engine installed",
-          message: "The engine has been installed successfully",
-        });
-        reloadEngines();
-      } else {
-        setEngines((engines) =>
-          engines.map((engine, index) => {
-            if (index === id) {
-              return {
-                ...engine,
-                progress,
-              };
-            }
-            return engine;
-          })
-        );
-      }
-    });
-  }
-
   useEffect(() => {
+    async function getEngineProgress() {
+      await listen("download_progress", (event) => {
+        const { progress, id, finished } = event.payload as any;
+        if (finished) {
+          // FIXME - avoid duplicate notifications
+          showNotification({
+            icon: <IconCheck />,
+            color: "green",
+            title: "Engine installed",
+            message: "The engine has been installed successfully",
+          });
+          reloadEngines();
+        } else {
+          setEngines((engines) =>
+            engines.map((engine, index) => {
+              if (index === id) {
+                return {
+                  ...engine,
+                  progress,
+                };
+              }
+              return engine;
+            })
+          );
+        }
+      });
+    }
+
     readConfig();
     getEngineProgress();
     // refreshEngines();

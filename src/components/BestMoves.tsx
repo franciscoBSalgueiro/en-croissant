@@ -13,9 +13,10 @@ import {
   Text,
   Title
 } from "@mantine/core";
-import { Chess, Color } from "chess.ts";
-import { useState } from "react";
-import { EngineVariation, getLastChessMove } from "../utils/chess";
+import { listen } from "@tauri-apps/api/event";
+import { Chess } from "chess.js";
+import { useEffect, useState } from "react";
+import { EngineVariation } from "../utils/chess";
 import { Engine } from "../utils/engines";
 
 const useStyles = createStyles((theme) => ({
@@ -60,19 +61,20 @@ function ScoreBubble({ score, type }: { score: number; type: "cp" | "mate" }) {
 
 interface BestMovesProps {
   engine: Engine;
-  engineVariations: EngineVariation[];
   numberLines: number;
   chess: Chess;
   makeMoves: (moves: string[]) => void;
+  half_moves: number;
 }
 
 function BestMoves({
-  engineVariations,
   numberLines,
   chess,
   makeMoves,
   engine,
+  half_moves
 }: BestMovesProps) {
+  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
   const { classes } = useStyles();
 
   function AnalysisRow({
@@ -84,7 +86,6 @@ function BestMoves({
     type: "cp" | "mate";
     moves: string[];
   }) {
-    const newChess = new Chess(chess.fen());
     const [open, setOpen] = useState(false);
     return (
       <tr style={{ verticalAlign: "top" }}>
@@ -101,17 +102,16 @@ function BestMoves({
             }}
           >
             {moves.map((move, index) => {
-              newChess.move(move, {
-                sloppy: true,
-              });
+              const total_moves = half_moves + index + 1;
+              const is_black = total_moves % 2 === 1;
+              const move_number = Math.ceil(total_moves / 2);
+
               return (
                 <MoveCell
-                  moveNumber={
-                    (chess.history().length + newChess.history().length) / 2
-                  }
-                  turn={newChess.turn()}
+                  moveNumber={move_number}
+                  isBlack={is_black}
                   moves={moves}
-                  move={getLastChessMove(newChess)?.san!}
+                  move={move}
                   index={index}
                   key={index}
                 />
@@ -122,10 +122,8 @@ function BestMoves({
         <td>
           <ActionIcon
             style={{
-              transition: 'transform 200ms ease',
-              transform: open
-                ? `rotate(180deg)`
-                : "none",
+              transition: "transform 200ms ease",
+              transform: open ? `rotate(180deg)` : "none",
             }}
             onClick={() => setOpen((v) => !v)}
           >
@@ -140,13 +138,13 @@ function BestMoves({
     moves,
     move,
     index,
-    turn,
+    isBlack,
     moveNumber,
   }: {
     moves: string[];
     move: string;
     index: number;
-    turn: Color;
+    isBlack: boolean;
     moveNumber: number;
   }) {
     const first = index === 0;
@@ -157,12 +155,23 @@ function BestMoves({
           makeMoves(moves.slice(0, index + 1));
         }}
       >
-        {(turn === "b" || first) && <span>{moveNumber.toFixed(0) + "."}</span>}
-        {first && turn === "w" && ".."}
+        {(isBlack || first) && <span>{moveNumber.toFixed(0) + "."}</span>}
+        {first && !isBlack && ".."}
         {move}
       </Button>
     );
   }
+
+  useEffect(() => {
+    async function waitForMove() {
+      await listen("best_moves", (event) => {
+        setEngineVariation(event.payload as EngineVariation[]);
+      });
+    }
+
+    waitForMove();
+  }, []);
+
   return (
     <>
       <Paper shadow="sm" p="lg" radius="md" withBorder>
@@ -183,14 +192,14 @@ function BestMoves({
         <Table>
           <tbody>
             {engineVariations.length === 0 &&
-              Array.apply(null, Array(numberLines)).map((_) => (
-                <tr>
+              Array.apply(null, Array(numberLines)).map((_, i) => (
+                <tr key={i}>
                   <td>
                     <Skeleton height={50} radius="xl" p={5} />
                   </td>
                 </tr>
               ))}
-            {engineVariations.map((engineVariation) => {
+            {engineVariations.map((engineVariation, i) => {
               let score = 0;
               let type: "mate" | "cp" = "cp";
               if (engineVariation.score.cp) {
@@ -201,11 +210,17 @@ function BestMoves({
                 score = engineVariation.score.mate;
                 type = "mate";
               }
-              let moves = engineVariation.pv.split(" ");
               if (chess.turn() === "b") {
                 score = -score;
               }
-              return <AnalysisRow score={score} type={type} moves={moves} />;
+              return (
+                <AnalysisRow
+                  key={i}
+                  score={score}
+                  type={type}
+                  moves={engineVariation.pv}
+                />
+              );
             })}
           </tbody>
         </Table>

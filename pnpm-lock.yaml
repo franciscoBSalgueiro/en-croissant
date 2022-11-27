@@ -15,7 +15,7 @@ specifiers:
   '@types/node': ^18.11.9
   '@types/react': ^18.0.25
   '@types/react-dom': ^18.0.8
-  chess.ts: ^0.16.2
+  chess.js: 1.0.0-alpha.0
   chessground: ^8.3.5
   next: ^13.0.2
   prettier: ^2.7.1
@@ -34,7 +34,7 @@ dependencies:
   '@react-chess/chessground': 1.3.4_biqbaboplfbrettd7655fr4n2y
   '@tabler/icons': 1.110.0_biqbaboplfbrettd7655fr4n2y
   '@tauri-apps/api': 1.2.0
-  chess.ts: 0.16.2
+  chess.js: 1.0.0-alpha.0
   chessground: 8.3.5
   next: 13.0.2_biqbaboplfbrettd7655fr4n2y
   react: 18.2.0
@@ -813,8 +813,8 @@ packages:
       supports-color: 5.5.0
     dev: false
 
-  /chess.ts/0.16.2:
-    resolution: {integrity: sha512-eqTrUGxN7xLr/SHQcc7AT+Kp1aRQb1iCMn1pBXsmpU06soRH0u+HJmM/vcxKadqqvoDEazu9uFvVoZSKP2pDSg==}
+  /chess.js/1.0.0-alpha.0:
+    resolution: {integrity: sha512-nwEDlNEOZR/FaKW1DZLYtjgJrtAlxBW/6Fp4Hk8QXqpCCLrXweOU6/vKfJ/jNHT2gPqasxi0/ZPslcWAAdzozg==}
     dev: false
 
   /chessground/8.3.5:

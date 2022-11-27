@@ -6,9 +6,16 @@
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-use std::{fs::create_dir_all, io::Cursor, path::{Path, PathBuf}, process::Stdio};
+use std::{
+    fs::create_dir_all,
+    io::Cursor,
+    path::{Path, PathBuf},
+    process::Stdio,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use futures_util::StreamExt;
+use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Position};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
@@ -189,7 +196,7 @@ async fn remove_folder(directory: String) -> Result<String, String> {
 struct BestMovePayload {
     depth: usize,
     score: Score,
-    pv: String,
+    pv: Vec<String>,
     multipv: usize,
 }
 
@@ -267,7 +274,7 @@ async fn get_best_moves(
         engine_lines.push(BestMovePayload {
             depth: 0,
             score: Score::Cp(0),
-            pv: "".to_string(),
+            pv: Vec::new(),
             multipv: 0,
         });
     }
@@ -300,6 +307,8 @@ async fn get_best_moves(
             .await
             .expect("Failed to write go");
 
+        let mut last_sent_ms = 0;
+        let mut now_ms;
         loop {
             tokio::select! {
                 _ = rx.recv() => {
@@ -316,14 +325,20 @@ async fn get_best_moves(
                                     println!("Engine ready");
                                 }
                                 if line.starts_with("info") && line.contains("pv") {
-                                    println!("line: {:?}", parse_uci(&line));
-                                    let best_moves = parse_uci(&line).unwrap();
+                                    let best_moves = parse_uci(&line, &fen).unwrap();
+                                    println!("line: {:?}", best_moves);
                                     let multipv = best_moves.multipv;
                                     engine_lines[multipv - 1] = best_moves;
-                                    if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) {
-                                        // println!("Sending best moves");
-                                        let payload = engine_lines.clone();
-                                        app.emit_all("best_moves", payload).unwrap();
+
+                                    if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) && depth > 15 {
+                                        let now = SystemTime::now();
+                                        now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
+                                        if now_ms - last_sent_ms > 500 {
+                                            println!("Sending best moves");
+                                            let payload = engine_lines.clone();
+                                            app.emit_all("best_moves", payload).unwrap();
+                                            last_sent_ms = now_ms;
+                                        }
                                     }
                                 }
                             }
@@ -339,7 +354,7 @@ async fn get_best_moves(
     });
 }
 
-fn parse_uci(info: &str) -> Option<BestMovePayload> {
+fn parse_uci(info: &str, fen: &str) -> Option<BestMovePayload> {
     let mut depth = 0;
     let mut score = Score::Cp(0);
     let mut pv = String::new();
@@ -370,10 +385,21 @@ fn parse_uci(info: &str) -> Option<BestMovePayload> {
             _ => (),
         }
     }
+    let mut moves = Vec::new();
+
+    let fen: Fen = fen.parse().unwrap();
+    let mut pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
+    for m in pv.split_whitespace() {
+        let uci: Uci = m.parse().unwrap();
+        let m = uci.to_move(&pos).unwrap();
+        pos.play_unchecked(&m);
+        let san = San::from_move(&pos, &m);
+        moves.push(san.to_string());
+    }
     Some(BestMovePayload {
         depth,
         score,
-        pv,
+        pv: moves,
         multipv,
     })
 }
