@@ -13,9 +13,8 @@ import {
   Text,
   Title
 } from "@mantine/core";
-import { listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { EngineVariation } from "../utils/chess";
 import { Engine } from "../utils/engines";
 
@@ -60,6 +59,7 @@ function ScoreBubble({ score, type }: { score: number; type: "cp" | "mate" }) {
 }
 
 interface BestMovesProps {
+  engineVariations: EngineVariation[];
   engine: Engine;
   numberLines: number;
   chess: Chess;
@@ -68,18 +68,14 @@ interface BestMovesProps {
 }
 
 function BestMoves({
+  engineVariations,
   numberLines,
   chess,
   makeMoves,
   engine,
   half_moves
 }: BestMovesProps) {
-  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
   const { classes } = useStyles();
-
-  useEffect(() => {
-    setEngineVariation([]);
-  }, [chess]);
 
   function AnalysisRow({
     score,
@@ -167,16 +163,6 @@ function BestMoves({
       </Button>
     );
   }
-
-  useEffect(() => {
-    async function waitForMove() {
-      await listen("best_moves", (event) => {
-        setEngineVariation(event.payload as EngineVariation[]);
-      });
-    }
-
-    waitForMove();
-  }, []);
 
   return (
     <>

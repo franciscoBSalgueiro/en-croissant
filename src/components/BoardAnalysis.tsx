@@ -24,15 +24,17 @@ import {
   IconSettings,
   IconSwitchVertical
 } from "@tabler/icons";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, KING, Square } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
+  EngineVariation,
   formatMove,
   getLastChessMove,
   moveToKey,
+  parseUci,
   toDests,
   VariationTree
 } from "../utils/chess";
@@ -74,6 +76,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "number-lines",
     defaultValue: 3,
   });
+  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
 
   const [engineOn, setEngineOn] = useState(false);
 
@@ -101,6 +104,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     } else if (tree.children[0].pgn !== chess.pgn()) {
       tree.children.push(newTree);
     }
+    setEngineVariation([]);
     setTree(newTree);
   }
 
@@ -117,6 +121,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
       }
       parentTree = newTree;
     });
+    setEngineVariation([]);
     setTree(newTree);
   }
 
@@ -173,6 +178,15 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   }, [tree, engineOn]);
 
   const { ref, width, height } = useElementSize();
+  useEffect(() => {
+    async function waitForMove() {
+      await listen("best_moves", (event) => {
+        setEngineVariation(event.payload as EngineVariation[]);
+      });
+    }
+
+    waitForMove();
+  }, []);
 
   return (
     <>
@@ -231,6 +245,22 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                 turnColor: turn,
                 check: chess.inCheck(),
                 lastMove,
+                // add an arrow between a1 and b2
+                drawable: {
+                  enabled: true,
+                  visible: true,
+                  defaultSnapToValidMove: true,
+                  eraseOnClick: true,
+                  autoShapes: engineVariations.map((variation, i) => {
+                    const move = variation.uciMoves[0];
+                    const { from, to } = parseUci(move);
+                    return {
+                      orig: from,
+                      dest: to,
+                      brush: i === 0 ? "paleBlue" : "paleGrey"
+                    };
+                  }),   
+                },
               }}
             />
           </AspectRatio>
@@ -285,6 +315,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   key={index}
                   engine={engine}
                   numberLines={numberLines}
+                  engineVariations={engineVariations}
                   chess={chess}
                   makeMoves={makeMoves}
                   half_moves={tree.half_moves}

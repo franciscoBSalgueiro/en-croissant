@@ -144,3 +144,9 @@ export function getLastChessMove(chess: Chess): Move | null {
     }
     return move;
 }
+
+export function parseUci(move: string) {
+    const from = move.substring(0, 2) as Square;
+    const to = move.substring(2, 4) as Square;
+    return { from, to };
+}
