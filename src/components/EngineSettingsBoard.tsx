@@ -1,4 +1,4 @@
-import { SimpleGrid } from "@mantine/core";
+import { Grid } from "@mantine/core";
 import { useEffect, useState } from "react";
 import {
   Engine,
@@ -23,35 +23,34 @@ function EngineSettingsBoard({
     });
   }, []);
   return (
-    <SimpleGrid
-      cols={4}
-      breakpoints={[
-        { maxWidth: "md", cols: 2 },
-        { maxWidth: "sm", cols: 1 },
-      ]}
-    >
+    <Grid grow>
       {engines
         .filter((engine) => engine.status === EngineStatus.Installed)
         .map((engine) => (
-          <ImageCheckbox
-            key={engine.name}
-            title={engine.name}
-            image={engine.image}
-            checked={selectedEngines.some(
-              (selectedEngine) => selectedEngine.name === engine.name
-            )}
-            onChange={(checked) => {
-              if (checked) {
-                setSelectedEngines((engines: Engine[]) => [...engines, engine]);
-              } else {
-                setSelectedEngines((engines) =>
-                  engines.filter((e) => e.name !== engine.name)
-                );
-              }
-            }}
-          />
+          <Grid.Col span={4}>
+            <ImageCheckbox
+              key={engine.name}
+              title={engine.name}
+              image={engine.image}
+              checked={selectedEngines.some(
+                (selectedEngine) => selectedEngine.name === engine.name
+              )}
+              onChange={(checked) => {
+                if (checked) {
+                  setSelectedEngines((engines: Engine[]) => [
+                    ...engines,
+                    engine,
+                  ]);
+                } else {
+                  setSelectedEngines((engines) =>
+                    engines.filter((e) => e.name !== engine.name)
+                  );
+                }
+              }}
+            />
+          </Grid.Col>
         ))}
-    </SimpleGrid>
+    </Grid>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   SimpleGrid,
   Stack,
   Switch,
+  Text,
   Tooltip
 } from "@mantine/core";
 import {
@@ -76,7 +77,9 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "number-lines",
     defaultValue: 3,
   });
-  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
+  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
+    []
+  );
 
   const [engineOn, setEngineOn] = useState(false);
 
@@ -257,9 +260,9 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                     return {
                       orig: from,
                       dest: to,
-                      brush: i === 0 ? "paleBlue" : "paleGrey"
+                      brush: i === 0 ? "paleBlue" : "paleGrey",
                     };
-                  }),   
+                  }),
                 },
               }}
             />
@@ -283,13 +286,20 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
         <Stack>
           <Group position="apart">
-            <Switch
-              checked={engineOn}
-              onChange={(event) => setEngineOn(event.currentTarget.checked)}
-              onLabel="On"
-              offLabel="Off"
-              size="lg"
-            />
+            <Group>
+              <Switch
+                checked={engineOn}
+                onChange={(event) => setEngineOn(event.currentTarget.checked)}
+                onLabel="On"
+                offLabel="Off"
+                size="lg"
+                disabled={selectedEngines.length === 0}
+              />
+              {selectedEngines.length === 0 && (
+                <Text color="red">No engines selected</Text>
+              )}
+            </Group>
+
             <ActionIcon
               onClick={() => {
                 toggleShowSettings();
