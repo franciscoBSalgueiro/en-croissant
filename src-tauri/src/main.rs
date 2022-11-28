@@ -15,7 +15,7 @@ use std::{
 };
 
 use futures_util::StreamExt;
-use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Position};
+use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Position, Color};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
@@ -392,6 +392,12 @@ fn parse_uci(info: &str, fen: &str) -> Option<BestMovePayload> {
 
     let fen: Fen = fen.parse().unwrap();
     let mut pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
+    if pos.turn() == Color::Black {
+        score = match score {
+            Score::Cp(x) => Score::Cp(-x),
+            Score::Mate(x) => Score::Mate(-x),
+        };
+    }
     for m in &uci_moves {
         let uci: Uci = m.parse().unwrap();
         let m = uci.to_move(&pos).unwrap();

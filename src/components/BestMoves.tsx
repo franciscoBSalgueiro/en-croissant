@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 import { Chess } from "chess.js";
 import { useState } from "react";
-import { EngineVariation } from "../utils/chess";
+import { EngineVariation, Score } from "../utils/chess";
 import { Engine } from "../utils/engines";
 
 const useStyles = createStyles((theme) => ({
@@ -24,19 +24,21 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function ScoreBubble({ score, type }: { score: number; type: "cp" | "mate" }) {
+function ScoreBubble({ score }: { score: Score }) {
+  const scoreNumber = score.cp || score.mate;
   let scoreText = "";
+  const type = score.cp ? "cp" : "mate";
   if (type === "cp") {
-    scoreText = Math.abs(score / 100).toFixed(2);
+    scoreText = Math.abs(scoreNumber / 100).toFixed(2);
   } else {
-    scoreText = "M" + Math.abs(score);
+    scoreText = "M" + Math.abs(scoreNumber);
   }
-  scoreText = (score > 0 ? "+" : "-") + scoreText;
+  scoreText = (scoreNumber > 0 ? "+" : "-") + scoreText;
   return (
     <Box
       sx={(theme) => ({
         backgroundColor:
-          score >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
+          scoreNumber >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
         padding: theme.spacing.xs,
         borderRadius: theme.radius.md,
@@ -45,7 +47,7 @@ function ScoreBubble({ score, type }: { score: number; type: "cp" | "mate" }) {
     >
       <Text
         weight={700}
-        color={score >= 0 ? "black" : "white"}
+        color={scoreNumber >= 0 ? "black" : "white"}
         size="md"
         align="center"
         sx={(theme) => ({
@@ -79,12 +81,10 @@ function BestMoves({
 
   function AnalysisRow({
     score,
-    type,
     moves,
     uciMoves,
   }: {
-    score: number;
-    type: "cp" | "mate";
+    score: Score;
     moves: string[];
     uciMoves: string[];
   }) {
@@ -92,7 +92,7 @@ function BestMoves({
     return (
       <tr style={{ verticalAlign: "top" }}>
         <td>
-          <ScoreBubble score={score} type={type} />
+          <ScoreBubble score={score} />
         </td>
         <td>
           <Flex
@@ -192,24 +192,10 @@ function BestMoves({
                 </tr>
               ))}
             {engineVariations.map((engineVariation) => {
-              let score = 0;
-              let type: "mate" | "cp" = "cp";
-              if (engineVariation.score.cp) {
-                score = engineVariation.score.cp;
-                type = "cp";
-              }
-              if (engineVariation.score.mate) {
-                score = engineVariation.score.mate;
-                type = "mate";
-              }
-              if (chess.turn() === "b") {
-                score = -score;
-              }
               return (
                 <AnalysisRow
                   key={engineVariation.sanMoves.join("")}
-                  score={score}
-                  type={type}
+                  score={engineVariation.score}
                   moves={engineVariation.sanMoves}
                   uciMoves={engineVariation.uciMoves}
                 />

@@ -1,15 +1,14 @@
 import { Chess, Move, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
 
-export interface Score {
-    cp?: number;
-    mate?: number;
+export type Score = {
+    [key in "cp" | "mate"]: number;
 }
 
 export interface EngineVariation {
     uciMoves: string[];
     sanMoves: string[];
-    score: Score;
+    score: Score,
     depth: number;
     multipv: number;
 }
