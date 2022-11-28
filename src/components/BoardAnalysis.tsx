@@ -312,8 +312,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
             </Group>
             <Collapse in={showSettings}>
               <Stack spacing="xl">
-                <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-                <LinesSlider value={numberLines} setValue={setNumberLines} />
+                <div>
+                  <Text size="sm">Engine Depth</Text>
+                  <DepthSlider value={maxDepth} setValue={setMaxDepth} />
+                </div>
+                <div>
+                  <Text size="sm">Number of lines</Text>
+                  <LinesSlider value={numberLines} setValue={setNumberLines} />
+                </div>
                 <EngineSettingsBoard
                   selectedEngines={selectedEngines}
                   setSelectedEngines={setSelectedEngines}
