@@ -83,12 +83,14 @@ function BestMoves({
     score,
     moves,
     uciMoves,
+    index,
   }: {
     score: Score;
     moves: string[];
     uciMoves: string[];
+    index: number;
   }) {
-    const [open, setOpen] = useState(false);
+    const currentOpen = open[index];
     return (
       <tr style={{ verticalAlign: "top" }}>
         <td>
@@ -99,7 +101,7 @@ function BestMoves({
             direction="row"
             wrap="wrap"
             sx={{
-              height: open ? "100%" : 35,
+              height: currentOpen ? "100%" : 35,
               overflow: "hidden",
             }}
           >
@@ -125,9 +127,16 @@ function BestMoves({
           <ActionIcon
             style={{
               transition: "transform 200ms ease",
-              transform: open ? `rotate(180deg)` : "none",
+              transform: currentOpen ? `rotate(180deg)` : "none",
             }}
-            onClick={() => setOpen((v) => !v)}
+            onClick={() =>
+              setOpen((prev) => {
+                return {
+                  ...prev,
+                  [index]: !prev[index],
+                };
+              })
+            }
           >
             <ChevronIcon />
           </ActionIcon>
@@ -164,6 +173,8 @@ function BestMoves({
     );
   }
 
+  const [open, setOpen] = useState<boolean[]>([]);
+
   return (
     <>
       <Paper shadow="sm" p="lg" radius="md" withBorder>
@@ -191,13 +202,14 @@ function BestMoves({
                   </td>
                 </tr>
               ))}
-            {engineVariations.map((engineVariation) => {
+            {engineVariations.map((engineVariation, index) => {
               return (
                 <AnalysisRow
                   key={engineVariation.sanMoves.join("")}
                   score={engineVariation.score}
                   moves={engineVariation.sanMoves}
                   uciMoves={engineVariation.uciMoves}
+                  index={index}
                 />
               );
             })}
