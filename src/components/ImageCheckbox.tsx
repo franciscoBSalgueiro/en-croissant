@@ -100,18 +100,3 @@ export default function ImageCheckbox({
     </UnstyledButton>
   );
 }
-
-// export function ImageCheckboxes() {
-//   const items = mockdata.map((item) => <ImageCheckbox {...item} key={item.title} />);
-//   return (
-//     <SimpleGrid
-//       cols={4}
-//       breakpoints={[
-//         { maxWidth: 'md', cols: 2 },
-//         { maxWidth: 'sm', cols: 1 },
-//       ]}
-//     >
-//       {items}
-//     </SimpleGrid>
-//   );
-// }

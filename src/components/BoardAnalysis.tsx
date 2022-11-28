@@ -321,10 +321,10 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
               </Stack>
             </Collapse>
             {engineOn &&
-              selectedEngines.map((engine, index) => {
+              selectedEngines.map((engine) => {
                 return (
                   <BestMoves
-                    key={index}
+                    key={engine.name}
                     engine={engine}
                     numberLines={numberLines}
                     engineVariations={engineVariations}

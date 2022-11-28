@@ -73,7 +73,7 @@ function BestMoves({
   chess,
   makeMoves,
   engine,
-  half_moves
+  half_moves,
 }: BestMovesProps) {
   const { classes } = useStyles();
 
@@ -115,7 +115,7 @@ function BestMoves({
                   moves={uciMoves}
                   move={move}
                   index={index}
-                  key={index}
+                  key={total_moves + move}
                 />
               );
             })}
@@ -191,7 +191,7 @@ function BestMoves({
                   </td>
                 </tr>
               ))}
-            {engineVariations.map((engineVariation, i) => {
+            {engineVariations.map((engineVariation) => {
               let score = 0;
               let type: "mate" | "cp" = "cp";
               if (engineVariation.score.cp) {
@@ -207,7 +207,7 @@ function BestMoves({
               }
               return (
                 <AnalysisRow
-                  key={i}
+                  key={engineVariation.sanMoves.join("")}
                   score={score}
                   type={type}
                   moves={engineVariation.sanMoves}
