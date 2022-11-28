@@ -27,9 +27,8 @@ function EngineSettingsBoard({
       {engines
         .filter((engine) => engine.status === EngineStatus.Installed)
         .map((engine) => (
-          <Grid.Col span={4}>
+          <Grid.Col span={4} key={engine.name}>
             <ImageCheckbox
-              key={engine.name}
               title={engine.name}
               image={engine.image}
               checked={selectedEngines.some(
