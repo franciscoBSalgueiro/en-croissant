@@ -43,6 +43,7 @@ import {
 import { Engine } from "../utils/engines";
 import BestMoves from "./BestMoves";
 import DepthSlider from "./DepthSlider";
+import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 import LinesSlider from "./LinesSlider";
 
@@ -358,6 +359,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
             <GameNotation tree={tree} setTree={setTree} />
             <MoveControls />
+            <FenInput setBoardFen={() => {}} />
           </Stack>
         </ScrollArea>
       </SimpleGrid>
