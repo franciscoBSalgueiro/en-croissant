@@ -43,7 +43,6 @@ import {
 import { Engine } from "../utils/engines";
 import BestMoves from "./BestMoves";
 import DepthSlider from "./DepthSlider";
-import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 import LinesSlider from "./LinesSlider";
 
@@ -301,67 +300,75 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
           <Text>{chess.pgn()}</Text> */}
         </Stack>
 
-        <ScrollArea style={{ height: "95vh" }} offsetScrollbars>
-          <Stack>
-            <Group position="apart">
-              <Group>
-                <Switch
-                  checked={engineOn}
-                  onChange={(event) => setEngineOn(event.currentTarget.checked)}
-                  onLabel="On"
-                  offLabel="Off"
-                  size="lg"
-                  disabled={selectedEngines.length === 0}
-                />
-                {selectedEngines.length === 0 && (
-                  <Text color="red">No engines selected</Text>
-                )}
-              </Group>
-
-              <ActionIcon
-                onClick={() => {
-                  toggleShowSettings();
-                }}
-              >
-                <IconSettings />
-              </ActionIcon>
-            </Group>
-            <Collapse in={showSettings}>
-              <Stack spacing="xl">
-                <div>
-                  <Text size="sm">Engine Depth</Text>
-                  <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-                </div>
-                <div>
-                  <Text size="sm">Number of lines</Text>
-                  <LinesSlider value={numberLines} setValue={setNumberLines} />
-                </div>
-                <EngineSettingsBoard
-                  selectedEngines={selectedEngines}
-                  setSelectedEngines={setSelectedEngines}
-                />
-              </Stack>
-            </Collapse>
-            {engineOn &&
-              selectedEngines.map((engine) => {
-                return (
-                  <BestMoves
-                    key={engine.name}
-                    engine={engine}
-                    numberLines={numberLines}
-                    engineVariations={engineVariations}
-                    chess={chess}
-                    makeMoves={makeMoves}
-                    half_moves={tree.half_moves}
+        <Stack>
+          <ScrollArea style={{ height: "85vh" }} offsetScrollbars>
+            <Stack>
+              <Group position="apart">
+                <Group>
+                  <Switch
+                    checked={engineOn}
+                    onChange={(event) =>
+                      setEngineOn(event.currentTarget.checked)
+                    }
+                    onLabel="On"
+                    offLabel="Off"
+                    size="lg"
+                    disabled={selectedEngines.length === 0}
                   />
-                );
-              })}
+                  {selectedEngines.length === 0 && (
+                    <Text color="red">No engines selected</Text>
+                  )}
+                </Group>
 
-            <GameNotation tree={tree} setTree={setTree} />
-            <MoveControls />
-            <FenInput setBoardFen={() => {}} />
-          </Stack>
-        </ScrollArea>
+                <ActionIcon
+                  onClick={() => {
+                    toggleShowSettings();
+                  }}
+                >
+                  <IconSettings />
+                </ActionIcon>
+              </Group>
+              <Collapse in={showSettings}>
+                <Stack spacing="xl">
+                  <div>
+                    <Text size="sm">Engine Depth</Text>
+                    <DepthSlider value={maxDepth} setValue={setMaxDepth} />
+                  </div>
+                  <div>
+                    <Text size="sm">Number of lines</Text>
+                    <LinesSlider
+                      value={numberLines}
+                      setValue={setNumberLines}
+                    />
+                  </div>
+                  <EngineSettingsBoard
+                    selectedEngines={selectedEngines}
+                    setSelectedEngines={setSelectedEngines}
+                  />
+                </Stack>
+              </Collapse>
+              {engineOn &&
+                selectedEngines.map((engine) => {
+                  return (
+                    <BestMoves
+                      key={engine.name}
+                      engine={engine}
+                      numberLines={numberLines}
+                      engineVariations={engineVariations}
+                      chess={chess}
+                      makeMoves={makeMoves}
+                      half_moves={tree.half_moves}
+                    />
+                  );
+                })}
+
+              <GameNotation tree={tree} setTree={setTree} />
+            </Stack>
+
+            {/* <FenInput setBoardFen={() => {}} /> */}
+          </ScrollArea>
+          <MoveControls />
+        </Stack>
       </SimpleGrid>
     </>
   );
