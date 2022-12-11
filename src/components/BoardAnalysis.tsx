@@ -181,6 +181,21 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     }
   }, [tree, engineOn]);
 
+  useEffect(() => {
+    setEngineVariation([]);
+    if (engineOn) {
+      emit("stop_engine");
+      invoke("get_best_moves", {
+        engine: selectedEngines[0].path,
+        fen: chess.fen(),
+        depth: maxDepth,
+        numberLines,
+        numberThreads: 8,
+        relative: !!selectedEngines[0].downloadLink,
+      });
+    }
+  }, [maxDepth, numberLines]);
+
   const { ref, width, height } = useElementSize();
   useEffect(() => {
     async function waitForMove() {

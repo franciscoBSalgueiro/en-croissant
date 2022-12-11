@@ -336,7 +336,7 @@ async fn get_best_moves(
                                     if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) && engine_lines[0].depth >= 10 {
                                         let now = SystemTime::now();
                                         now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
-                                        if now_ms - last_sent_ms > 300 {
+                                        if now_ms - last_sent_ms > 300 || engine_lines[0].depth == depth {
                                             let payload = engine_lines.clone();
                                             app.emit_all("best_moves", payload).unwrap();
                                             last_sent_ms = now_ms;
