@@ -35,6 +35,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
             navbar={<SideBar />}
             styles={(theme) => ({
               main: {
+                userSelect: "none",
                 backgroundColor:
                   theme.colorScheme === "dark"
                     ? theme.colors.dark[8]
