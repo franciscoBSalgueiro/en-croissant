@@ -15,7 +15,7 @@ use std::{
 };
 
 use futures_util::StreamExt;
-use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Position, Color};
+use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Color, Position};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
@@ -83,7 +83,7 @@ async fn download_file(
         .get(&url)
         .send()
         .await
-        .or(Err(format!("Failed to GET from '{}'", &url)))?;
+        .map_err(|_| format!("Failed to GET from '{}'", &url))?;
     let total_size = res
         .content_length()
         .ok_or(format!("Failed to get content length from '{}'", &url))?;
@@ -93,7 +93,7 @@ async fn download_file(
     let mut stream = res.bytes_stream();
 
     while let Some(item) = stream.next().await {
-        let chunk = item.or(Err(format!("Failed to get chunk from '{}'", &url)))?;
+        let chunk = item.map_err(|_| format!("Failed to get chunk from '{}'", &url))?;
         file.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
         let progress = (downloaded as f64 / total_size as f64) * 100.0;
@@ -137,7 +137,7 @@ async fn unzip_file(path: &Path, file: Vec<u8>) {
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         let outpath = path.join(file.mangled_name());
-        if (&*file.name()).ends_with('/') {
+        if (*file.name()).ends_with('/') {
             println!(
                 "File {} extracted to \"{}\"",
                 i,
@@ -153,7 +153,7 @@ async fn unzip_file(path: &Path, file: Vec<u8>) {
             );
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
-                    create_dir_all(&p).unwrap();
+                    create_dir_all(p).unwrap();
                 }
             }
             let mut outfile = std::fs::File::create(&outpath).unwrap();
@@ -273,15 +273,6 @@ async fn get_best_moves(
     });
 
     let mut engine_lines = Vec::new();
-    for _ in 0..number_lines {
-        engine_lines.push(BestMovePayload {
-            depth: 0,
-            score: Score::Cp(0),
-            san_moves: Vec::new(),
-            uci_moves: Vec::new(),
-            multipv: 0,
-        });
-    }
 
     // tokio::spawn(async move {
     //     println!("Starting engine");
@@ -331,16 +322,20 @@ async fn get_best_moves(
                                 if line.starts_with("info") && line.contains("pv") {
                                     let best_moves = parse_uci(&line, &fen).unwrap();
                                     let multipv = best_moves.multipv;
-                                    engine_lines[multipv - 1] = best_moves;
+                                    let depth = best_moves.depth;
+                                    engine_lines.push(best_moves);
 
-                                    if engine_lines.iter().all(|x| x.depth == engine_lines[0].depth) && engine_lines[0].depth >= 10 {
-                                        let now = SystemTime::now();
-                                        now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
-                                        if now_ms - last_sent_ms > 300 || engine_lines[0].depth == depth {
-                                            let payload = engine_lines.clone();
-                                            app.emit_all("best_moves", payload).unwrap();
-                                            last_sent_ms = now_ms;
+                                    if multipv == number_lines {
+                                        if depth >= 10 {
+                                            let now = SystemTime::now();
+                                            now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
+
+                                            if now_ms - last_sent_ms > 300 {
+                                                app.emit_all("best_moves", &engine_lines).unwrap();
+                                                last_sent_ms = now_ms;
+                                            }
                                         }
+                                        engine_lines.clear();
                                     }
                                 }
                             }
