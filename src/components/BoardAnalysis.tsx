@@ -2,28 +2,19 @@ import {
   ActionIcon,
   AspectRatio,
   Button,
-  Collapse,
   Group,
   ScrollArea,
   SimpleGrid,
   Stack,
-  Switch,
-  Text,
   Tooltip
 } from "@mantine/core";
-import {
-  useElementSize,
-  useHotkeys,
-  useLocalStorage,
-  useToggle
-} from "@mantine/hooks";
+import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import {
   IconChevronLeft,
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconSettings,
   IconSwitchVertical
 } from "@tabler/icons";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -42,9 +33,7 @@ import {
 } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import BestMoves from "./BestMoves";
-import DepthSlider from "./DepthSlider";
 import GameNotation from "./GameNotation";
-import LinesSlider from "./LinesSlider";
 
 const EngineSettingsBoard = dynamic(
   () => import("../components/EngineSettingsBoard"),
@@ -62,7 +51,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "max-depth",
     defaultValue: 24,
   });
-  const [showSettings, toggleShowSettings] = useToggle();
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
     key: "selected-engines",
     defaultValue: [],
@@ -172,7 +160,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         engine: selectedEngines[0].path,
         fen: chess.fen(),
         depth: maxDepth,
-        numberLines,
+        numberLines: Math.min(numberLines, chess.moves().length),
         numberThreads: 8,
         relative: !!selectedEngines[0].downloadLink,
       });
@@ -303,50 +291,16 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         <Stack>
           <ScrollArea style={{ height: "85vh" }} offsetScrollbars>
             <Stack>
-              <Group position="apart">
-                <Group>
-                  <Switch
-                    checked={engineOn}
-                    onChange={(event) =>
-                      setEngineOn(event.currentTarget.checked)
-                    }
-                    onLabel="On"
-                    offLabel="Off"
-                    size="lg"
-                    disabled={selectedEngines.length === 0}
-                  />
-                  {selectedEngines.length === 0 && (
-                    <Text color="red">No engines selected</Text>
-                  )}
-                </Group>
-
-                <ActionIcon
-                  onClick={() => {
-                    toggleShowSettings();
-                  }}
-                >
-                  <IconSettings />
-                </ActionIcon>
-              </Group>
-              <Collapse in={showSettings}>
-                <Stack spacing="xl">
-                  <div>
-                    <Text size="sm">Engine Depth</Text>
-                    <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-                  </div>
-                  <div>
-                    <Text size="sm">Number of lines</Text>
-                    <LinesSlider
-                      value={numberLines}
-                      setValue={setNumberLines}
-                    />
-                  </div>
-                  <EngineSettingsBoard
-                    selectedEngines={selectedEngines}
-                    setSelectedEngines={setSelectedEngines}
-                  />
-                </Stack>
-              </Collapse>
+              <EngineSettingsBoard
+                selectedEngines={selectedEngines}
+                setSelectedEngines={setSelectedEngines}
+                engineOn={engineOn}
+                setEngineOn={setEngineOn}
+                maxDepth={maxDepth}
+                setMaxDepth={setMaxDepth}
+                numberLines={numberLines}
+                setNumberLines={setNumberLines}
+              />
               {engineOn &&
                 selectedEngines.map((engine) => {
                   return (
