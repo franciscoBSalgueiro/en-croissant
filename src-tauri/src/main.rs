@@ -324,9 +324,8 @@ async fn get_best_moves(
                                     let multipv = best_moves.multipv;
                                     let depth = best_moves.depth;
                                     engine_lines.push(best_moves);
-
                                     if multipv == number_lines {
-                                        if depth >= 10 {
+                                        if depth >= 10 && engine_lines.iter().all(|x| x.depth == depth) {
                                             let now = SystemTime::now();
                                             now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
 
