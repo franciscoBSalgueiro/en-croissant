@@ -194,6 +194,7 @@ async fn remove_folder(directory: String) -> Result<String, String> {
 
 #[derive(Clone, serde::Serialize, Debug)]
 struct BestMovePayload {
+    engine: String,
     depth: usize,
     score: Score,
     #[serde(rename = "sanMoves")]
@@ -213,7 +214,7 @@ async fn get_best_moves(
     number_threads: usize,
     app: tauri::AppHandle,
 ) {
-    let mut path = PathBuf::from(engine);
+    let mut path = PathBuf::from(&engine);
     if relative {
         path = resolve_path(
             &app.config(),
@@ -225,6 +226,8 @@ async fn get_best_moves(
         .unwrap();
     }
     // start engine command
+    println!("RUNNING ENGINE");
+    println!("{}", &path.display());
     println!("{}", &fen);
 
     // Check number of lines is between 1 and 5
@@ -320,7 +323,7 @@ async fn get_best_moves(
                                     println!("Engine ready");
                                 }
                                 if line.starts_with("info") && line.contains("pv") {
-                                    let best_moves = parse_uci(&line, &fen).unwrap();
+                                    let best_moves = parse_uci(&line, &fen, &engine).unwrap();
                                     let multipv = best_moves.multipv;
                                     let depth = best_moves.depth;
                                     engine_lines.push(best_moves);
@@ -350,7 +353,7 @@ async fn get_best_moves(
     });
 }
 
-fn parse_uci(info: &str, fen: &str) -> Option<BestMovePayload> {
+fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload> {
     let mut depth = 0;
     let mut score = Score::Cp(0);
     let mut pv = String::new();
@@ -405,5 +408,6 @@ fn parse_uci(info: &str, fen: &str) -> Option<BestMovePayload> {
         san_moves,
         uci_moves,
         multipv,
+        engine: engine.to_string(),
     })
 }

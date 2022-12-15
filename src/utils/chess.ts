@@ -6,6 +6,7 @@ export type Score = {
 }
 
 export interface EngineVariation {
+    engine: string;
     uciMoves: string[];
     sanMoves: string[];
     score: Score,

@@ -66,7 +66,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "number-lines",
     defaultValue: 3,
   });
-  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
+  const [engineVariations, setEngineVariation] = useState<EngineVariation[][]>(
     []
   );
 
@@ -156,14 +156,16 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   useEffect(() => {
     if (engineOn) {
       emit("stop_engine");
-      invoke("get_best_moves", {
-        engine: selectedEngines[0].path,
-        fen: chess.fen(),
-        depth: maxDepth,
-        numberLines: Math.min(numberLines, chess.moves().length),
-        numberThreads: 8,
-        relative: !!selectedEngines[0].downloadLink,
-      });
+      for (const engine of selectedEngines) {
+        invoke("get_best_moves", {
+          engine: engine.path,
+          fen: chess.fen(),
+          depth: maxDepth,
+          numberLines: Math.min(numberLines, chess.moves().length),
+          numberThreads: 8,
+          relative: !!engine.downloadLink,
+        });
+      }
     } else {
       emit("stop_engine");
     }
@@ -173,14 +175,16 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     setEngineVariation([]);
     if (engineOn) {
       emit("stop_engine");
-      invoke("get_best_moves", {
-        engine: selectedEngines[0].path,
-        fen: chess.fen(),
-        depth: maxDepth,
-        numberLines,
-        numberThreads: 8,
-        relative: !!selectedEngines[0].downloadLink,
-      });
+      for (const engine of selectedEngines) {
+        invoke("get_best_moves", {
+          engine: engine.path,
+          fen: chess.fen(),
+          depth: maxDepth,
+          numberLines: Math.min(numberLines, chess.moves().length),
+          numberThreads: 8,
+          relative: !!engine.downloadLink,
+        });
+      }
     }
   }, [maxDepth, numberLines]);
 
@@ -188,7 +192,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   useEffect(() => {
     async function waitForMove() {
       await listen("best_moves", (event) => {
-        setEngineVariation(event.payload as EngineVariation[]);
+        console.log(event.payload);
+        const ev = event.payload as EngineVariation[];
+        setEngineVariation((prev) =>
+          prev.filter((e) => e[0].engine !== ev[0].engine).concat([ev])
+        );
       });
     }
 
@@ -258,15 +266,18 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   visible: true,
                   defaultSnapToValidMove: true,
                   eraseOnClick: true,
-                  autoShapes: engineVariations.map((variation, i) => {
-                    const move = variation.uciMoves[0];
-                    const { from, to } = parseUci(move);
-                    return {
-                      orig: from,
-                      dest: to,
-                      brush: i === 0 ? "paleBlue" : "paleGrey",
-                    };
-                  }),
+                  autoShapes:
+                    engineVariations.length > 0
+                      ? engineVariations[0].map((variation, i) => {
+                          const move = variation.uciMoves[0];
+                          const { from, to } = parseUci(move);
+                          return {
+                            orig: from,
+                            dest: to,
+                            brush: i === 0 ? "paleBlue" : "paleGrey",
+                          };
+                        })
+                      : [],
                 },
               }}
             />
@@ -308,7 +319,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                       key={engine.name}
                       engine={engine}
                       numberLines={numberLines}
-                      engineVariations={engineVariations}
+                      engineVariations={
+                        engineVariations.find(
+                          (e) => e[0].engine === engine.path
+                        ) ?? []
+                      }
                       chess={chess}
                       makeMoves={makeMoves}
                       half_moves={tree.half_moves}
