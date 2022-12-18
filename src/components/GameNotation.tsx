@@ -122,7 +122,7 @@ function GameNotation({
       <>
         <span>
           {tree.half_moves > 0 && (first || is_white) && <span style={{paddingLeft: (tree.half_moves == 1 || first) ?  0 : 12}}>{move_number}{is_white ? "." : "..." }</span>}
-          {lastMove && <MoveCell move={lastMove} variation={tree} />}
+          {lastMove && <MoveCell move={lastMove + tree.annotation} variation={tree} />}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} depth={depth + 1} />
           )}

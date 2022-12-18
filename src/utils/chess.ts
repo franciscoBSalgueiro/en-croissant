@@ -5,6 +5,16 @@ export type Score = {
     [key in "cp" | "mate"]: number;
 }
 
+enum Annotation {
+    None = "",
+    Good = "!",
+    Brilliant = "!!",
+    Mistake = "?",
+    Blunder = "??",
+    Dubious = "?!",
+    Interesting = "!?"
+}
+
 export interface EngineVariation {
     engine: string;
     uciMoves: string[];
@@ -24,6 +34,7 @@ export class VariationTree {
     score: number;
     depth: number;
     half_moves: number;
+    annotation: Annotation = Annotation.Blunder;
 
     constructor(
         parent: VariationTree | null,
