@@ -93,7 +93,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     const newTree = new VariationTree(tree, chess.pgn());
     if (tree.children.length === 0) {
       tree.children = [newTree];
-    } else if (tree.children[0].pgn !== chess.pgn()) {
+    } else if (tree.children.every((child) => child.pgn !== chess.pgn())) {
       tree.children.push(newTree);
     }
     setEngineVariation([]);
