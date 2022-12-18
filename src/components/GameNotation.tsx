@@ -46,7 +46,7 @@ function GameNotation({
     <Paper withBorder p="md">
       <Box sx={{ minHeight: "300px" }}>
         {/* <SimpleGrid cols={2}> */}
-        <RenderVariationTree tree={topVariation} depth={0} />
+        <RenderVariationTree tree={topVariation} depth={0} first/>
         {/* </SimpleGrid> */}
       </Box>
     </Paper>
@@ -67,8 +67,11 @@ function GameNotation({
       <Menu opened={open} width={200}>
         <Menu.Target ref={ref}>
           <Button
-            sx={{ width: "80px" }}
+            // sx={{ width: "80px" }}
+            // sx={{ p }}
+            p={4}
             variant={isCurrentVariation ? "light" : "subtle"}
+            color={isCurrentVariation ? "blue" : "gray"}
             onContextMenu={(e: any) => {
               toggleOpen();
               e.preventDefault();
@@ -104,31 +107,41 @@ function GameNotation({
   function RenderVariationTree({
     tree,
     depth,
+    first
   }: {
     tree: VariationTree;
     depth: number;
+    first?: boolean;
   }) {
     const moves = tree.pgn.split(" ");
     const lastMove = moves[moves.length - 1];
+    const variations = tree.children;
+    const move_number = Math.ceil(tree.half_moves / 2);
+    const is_white = tree.half_moves % 2 === 1;
     return (
       <>
         <span>
+          {tree.half_moves > 0 && (first || is_white) && <span style={{paddingLeft: (tree.half_moves == 1 || first) ?  0 : 12}}>{move_number}{is_white ? "." : "..." }</span>}
           {lastMove && <MoveCell move={lastMove} variation={tree} />}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} depth={depth + 1} />
           )}
         </span>
-        {tree.children.slice(1).map((child) => (
+        {variations.slice(1).map((variation) => (
           <>
-            <div>
-              <span
-                style={{
-                  marginLeft: depth * 80 + "px",
-                }}
-              />
-
-              <RenderVariationTree tree={child} depth={depth + 1} />
-            </div>
+            {depth == 1 ? (
+              <div>
+                {"("}
+                <RenderVariationTree tree={variation} depth={depth + 2} first/>
+                {")"}
+              </div>
+            ) : (
+              <>
+                {"("}
+                <RenderVariationTree tree={variation} depth={depth + 2} first/>
+                {")"}
+              </>
+            )}
           </>
         ))}
       </>
