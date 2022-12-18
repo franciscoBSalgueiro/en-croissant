@@ -113,8 +113,7 @@ function GameNotation({
     depth: number;
     first?: boolean;
   }) {
-    const moves = tree.pgn.split(" ");
-    const lastMove = moves[moves.length - 1];
+    const lastMove = tree.move;
     const variations = tree.children;
     const move_number = Math.ceil(tree.half_moves / 2);
     const is_white = tree.half_moves % 2 === 1;

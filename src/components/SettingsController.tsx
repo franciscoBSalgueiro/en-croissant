@@ -6,13 +6,23 @@ function SettingsController() {
     key: "show-dests",
     defaultValue: true,
   });
+  const [showArrows, setShowArrows] = useLocalStorage<boolean>({
+    key: "show-arrows",
+    defaultValue: true,
+  });
 
   return (
     <div>
       <Switch
         checked={showDests}
-        label="Arrows on board"
+        label="Show piece destinations"
         onChange={(event) => setShowDests(event.currentTarget.checked)}
+      />
+      
+      <Switch
+        checked={showArrows}
+        label="Show best move arrows"
+        onChange={(event) => setShowArrows(event.currentTarget.checked)}
       />
     </div>
   );

@@ -1,8 +1,6 @@
 import {
   ActionIcon,
-  AspectRatio,
-  Button,
-  Group,
+  AspectRatio, Group,
   ScrollArea,
   SimpleGrid,
   Stack,
@@ -47,6 +45,10 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     key: "show-dests",
     defaultValue: true,
   });
+  const [showArrows, setShowArrows] = useLocalStorage<boolean>({
+    key: "show-arrows",
+    defaultValue: true,
+  });
   const [maxDepth, setMaxDepth] = useLocalStorage<number>({
     key: "max-depth",
     defaultValue: 24,
@@ -58,10 +60,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
-    buildVariationTree(new Chess(initialFen))
+    // buildVariationTree(new Chess(initialFen))
+    new VariationTree(null, initialFen, null)
   );
-  const chess = new Chess();
-  chess.loadPgn(tree.pgn);
+  console.log(tree.fen);
+  const chess = new Chess(tree.fen);
   const [numberLines, setNumberLines] = useLocalStorage<number>({
     key: "number-lines",
     defaultValue: 3,
@@ -76,24 +79,24 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [orientation, setOrientation] = useState("w");
 
   // Retursn a tree of all the previous moves
-  function buildVariationTree(chess: Chess): VariationTree {
-    const tree = new VariationTree(null, chess.pgn());
+  // function buildVariationTree(chess: Chess): VariationTree {
+  //   const tree = new VariationTree(null, chess.pgn());
 
-    if (chess.history().length > 0) {
-      const parent = chess.undo();
-      if (parent) {
-        tree.parent = buildVariationTree(chess);
-      }
-    }
-    return tree;
-  }
+  //   if (chess.history().length > 0) {
+  //     const parent = chess.undo();
+  //     if (parent) {
+  //       tree.parent = buildVariationTree(chess);
+  //     }
+  //   }
+  //   return tree;
+  // }
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
-    chess.move(move);
-    const newTree = new VariationTree(tree, chess.pgn());
+    const newMove = chess.move(move);
+    const newTree = new VariationTree(tree, chess.fen(), newMove?.san ?? "" );
     if (tree.children.length === 0) {
       tree.children = [newTree];
-    } else if (tree.children.every((child) => child.pgn !== chess.pgn())) {
+    } else if (tree.children.every((child) => child.fen !== chess.fen())) {
       tree.children.push(newTree);
     }
     setEngineVariation([]);
@@ -104,11 +107,11 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     let parentTree = tree;
     let newTree = tree;
     moves.forEach((move) => {
-      chess.move(move, { sloppy: true });
-      newTree = new VariationTree(parentTree, chess.pgn());
+      const newMove = chess.move(move, { sloppy: true });
+      newTree = new VariationTree(parentTree, chess.fen(), newMove?.san ?? "");
       if (parentTree.children.length === 0) {
         parentTree.children = [newTree];
-      } else if (parentTree.children[0].pgn !== chess.pgn()) {
+      } else if (parentTree.children[0].fen !== chess.fen()) {
         parentTree.children.push(newTree);
       }
       parentTree = newTree;
@@ -203,6 +206,14 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
     waitForMove();
   }, []);
 
+  useEffect(() => {
+    chess.load(initialFen);
+    setTree(
+      new VariationTree(null, initialFen, null)
+    );
+    setEngineOn(false);
+  }, [initialFen]);
+
   return (
     <>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 1120, cols: 1 }]}>
@@ -267,7 +278,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   defaultSnapToValidMove: true,
                   eraseOnClick: true,
                   autoShapes:
-                    engineVariations.length > 0
+                  showArrows && engineVariations.length > 0 && engineOn
                       ? engineVariations[0].map((variation, i) => {
                           const move = variation.uciMoves[0];
                           const { from, to } = parseUci(move);
@@ -289,11 +300,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                 <IconSwitchVertical />
               </ActionIcon>
             </Tooltip>
-            <Button
-              onClick={() => setTree(buildVariationTree(new Chess(initialFen)))}
-            >
-              Reset
-            </Button>
           </Group>
           {/* <Text>{chess.fen()}</Text>
           <Text>{chess.pgn()}</Text> */}

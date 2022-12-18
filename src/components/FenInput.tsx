@@ -1,4 +1,4 @@
-import { Button, TextInput } from "@mantine/core";
+import { TextInput } from "@mantine/core";
 import { validateFen } from "chess.js";
 import { useEffect, useState } from "react";
 
@@ -26,7 +26,6 @@ function FenInput({
         onChange={(event) => setFen(event.currentTarget.value)}
         error={error}
       />
-      <Button onClick={() => setBoardFen(fen)}>Submit</Button>
     </>
   );
 }

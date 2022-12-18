@@ -27,24 +27,27 @@ export interface EngineVariation {
 
 export class VariationTree {
     parent: VariationTree | null;
-    pgn: string;
+    fen: string;
+    move: string | null;
     chess: Chess;
     lastMove: Move | null;
     children: VariationTree[];
     score: number;
     depth: number;
     half_moves: number;
-    annotation: Annotation = Annotation.Blunder;
+    annotation: Annotation = Annotation.None;
 
     constructor(
         parent: VariationTree | null,
         position: string,
+        move: string | null,
         children?: VariationTree[],
         score?: number,
         depth?: number
     ) {
         this.parent = parent;
-        this.pgn = position;
+        this.fen = position;
+        this.move = move;
         this.children = children ?? [];
         this.score = score ?? 0;
         this.depth = depth ?? 0;
@@ -61,7 +64,7 @@ export class VariationTree {
     }
 
     equals(other: VariationTree): boolean {
-        return this.pgn === other.pgn;
+        return this.fen === other.fen;
     }
 
     getTopVariation(): VariationTree {
@@ -92,8 +95,10 @@ export class VariationTree {
         return this.parent.isInBranch(tree);
     }
 
-    addChild(pgn: string, score?: number, depth?: number): void {
-        this.children.push(new VariationTree(this, pgn, [], score, depth));
+    addChild(move: string, score?: number, depth?: number): void {
+        const chess = new Chess();
+        const newMove = chess.move(move);
+        this.children.push(new VariationTree(this, chess.fen(), newMove?.san ?? "", [], score, depth));
     }
 
     getNumberOfChildren(): number {
