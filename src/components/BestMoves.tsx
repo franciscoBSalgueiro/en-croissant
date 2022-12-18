@@ -8,10 +8,13 @@ import {
   Flex,
   Group,
   Paper,
+  Progress,
   Skeleton,
+  Stack,
   Table,
   Text,
-  Title
+  Title,
+  Tooltip
 } from "@mantine/core";
 import { Chess } from "chess.js";
 import { useState } from "react";
@@ -67,6 +70,7 @@ interface BestMovesProps {
   chess: Chess;
   makeMoves: (moves: string[]) => void;
   half_moves: number;
+  max_depth: number;
 }
 
 function BestMoves({
@@ -76,8 +80,14 @@ function BestMoves({
   makeMoves,
   engine,
   half_moves,
+  max_depth,
 }: BestMovesProps) {
   const { classes } = useStyles();
+  const depth = engineVariations[0]?.depth ?? 0;
+  const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
+  const progress = (depth / max_depth) * 100;
+  console.log(depth);
+  console.log(max_depth);
 
   function AnalysisRow({
     score,
@@ -178,20 +188,30 @@ function BestMoves({
   return (
     <>
       <Paper shadow="sm" p="lg" radius="md" withBorder>
-        <Group position="apart" mt="md" mb="xs">
-          <Title>{engine.name}</Title>
-          <Container m={0}>
-            <Text
-              size="xs"
-              transform="uppercase"
-              weight={700}
-              className={classes.subtitle}
-            >
-              Depth
-            </Text>
-            <Title>{engineVariations[0]?.depth ?? 0}</Title>
-          </Container>
-        </Group>
+        <Stack spacing="xs" mb="md">
+          <Group position="apart">
+            <Group align="baseline">
+              <Title>{engine.name}</Title>
+              {progress < 100 && (
+                <Tooltip label={"How fast the engine is running"}>
+                  <Text>{nps}k nodes/s</Text>
+                </Tooltip>
+              )}
+            </Group>
+            <Container m={0}>
+              <Text
+                size="xs"
+                transform="uppercase"
+                weight={700}
+                className={classes.subtitle}
+              >
+                Depth
+              </Text>
+              <Title>{depth}</Title>
+            </Container>
+          </Group>
+          <Progress value={progress} animate={progress < 100} />
+        </Stack>
         <Table>
           <tbody>
             {engineVariations.length === 0 &&

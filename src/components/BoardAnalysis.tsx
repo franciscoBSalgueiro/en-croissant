@@ -327,6 +327,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                       chess={chess}
                       makeMoves={makeMoves}
                       half_moves={tree.half_moves}
+                      max_depth={maxDepth}
                     />
                   );
                 })}

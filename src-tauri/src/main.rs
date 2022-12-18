@@ -202,6 +202,7 @@ struct BestMovePayload {
     #[serde(rename = "uciMoves")]
     uci_moves: Vec<String>,
     multipv: usize,
+    nps: usize,
 }
 
 #[tauri::command]
@@ -358,6 +359,7 @@ fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload> {
     let mut score = Score::Cp(0);
     let mut pv = String::new();
     let mut multipv = 0;
+    let mut nps = 0;
     // example input: info depth 1 seldepth 1 multipv 1 score cp 0 nodes 20 nps 10000 tbhits 0 time 2 pv e2e4
     for (i, s) in info.split_whitespace().enumerate() {
         match s {
@@ -370,6 +372,10 @@ fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload> {
                         Score::Mate(info.split_whitespace().nth(i + 2).unwrap().parse().unwrap());
                 }
             }
+            "nps" => nps = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap(),
+            "multipv" => {
+                multipv = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap();
+            }
             "pv" => {
                 pv = info
                     .split_whitespace()
@@ -377,9 +383,6 @@ fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload> {
                     .take_while(|x| !x.starts_with("currmove"))
                     .collect::<Vec<&str>>()
                     .join(" ");
-            }
-            "multipv" => {
-                multipv = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap();
             }
             _ => (),
         }
@@ -409,5 +412,6 @@ fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload> {
         uci_moves,
         multipv,
         engine: engine.to_string(),
+        nps,
     })
 }

@@ -12,6 +12,7 @@ export interface EngineVariation {
     score: Score,
     depth: number;
     multipv: number;
+    nps: number;
 }
 
 export class VariationTree {
