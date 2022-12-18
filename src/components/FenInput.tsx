@@ -19,14 +19,15 @@ function FenInput({
     }
   }, [fen]);
   return (
-    <>
+    <form onSubmit={(e) => {e.preventDefault(); setBoardFen(fen)}}>
       <TextInput
         label="Insert FEN"
         value={fen}
         onChange={(event) => setFen(event.currentTarget.value)}
         error={error}
       />
-    </>
+      {/* <Button onClick={() => setBoardFen(fen)}>Submit</Button> */}
+    </form>
   );
 }
 
