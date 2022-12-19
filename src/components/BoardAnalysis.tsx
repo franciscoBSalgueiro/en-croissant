@@ -15,7 +15,7 @@ import {
   IconChevronsRight,
   IconSwitchVertical
 } from "@tabler/icons";
-import { emit, listen } from "@tauri-apps/api/event";
+import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Chess, KING, Square } from "chess.js";
 import dynamic from "next/dynamic";
@@ -60,7 +60,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
-    // buildVariationTree(new Chess(initialFen))
     new VariationTree(null, initialFen, null)
   );
   console.log(tree.fen);
@@ -74,22 +73,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   );
 
   const [engineOn, setEngineOn] = useState(false);
-
-  // Board orientation
   const [orientation, setOrientation] = useState("w");
-
-  // Retursn a tree of all the previous moves
-  // function buildVariationTree(chess: Chess): VariationTree {
-  //   const tree = new VariationTree(null, chess.pgn());
-
-  //   if (chess.history().length > 0) {
-  //     const parent = chess.undo();
-  //     if (parent) {
-  //       tree.parent = buildVariationTree(chess);
-  //     }
-  //   }
-  //   return tree;
-  // }
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     const newMove = chess.move(move);
@@ -192,19 +176,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   }, [maxDepth, numberLines]);
 
   const { ref, width, height } = useElementSize();
-  useEffect(() => {
-    async function waitForMove() {
-      await listen("best_moves", (event) => {
-        console.log(event.payload);
-        const ev = event.payload as EngineVariation[];
-        setEngineVariation((prev) =>
-          prev.filter((e) => e[0].engine !== ev[0].engine).concat([ev])
-        );
-      });
-    }
-
-    waitForMove();
-  }, []);
 
   useEffect(() => {
     chess.load(initialFen);
@@ -271,7 +242,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                 turnColor: turn,
                 check: chess.inCheck(),
                 lastMove,
-                // add an arrow between a1 and b2
                 drawable: {
                   enabled: true,
                   visible: true,
@@ -301,8 +271,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
               </ActionIcon>
             </Tooltip>
           </Group>
-          {/* <Text>{chess.fen()}</Text>
-          <Text>{chess.pgn()}</Text> */}
         </Stack>
 
         <Stack>
@@ -325,11 +293,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                       key={engine.name}
                       engine={engine}
                       numberLines={numberLines}
-                      engineVariations={
-                        engineVariations.find(
-                          (e) => e[0].engine === engine.path
-                        ) ?? []
-                      }
                       chess={chess}
                       makeMoves={makeMoves}
                       half_moves={tree.half_moves}
@@ -340,8 +303,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
               <GameNotation tree={tree} setTree={setTree} />
             </Stack>
-
-            {/* <FenInput setBoardFen={() => {}} /> */}
           </ScrollArea>
           <MoveControls />
         </Stack>

@@ -16,8 +16,9 @@ import {
   Title,
   Tooltip
 } from "@mantine/core";
+import { listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EngineVariation, Score } from "../utils/chess";
 import { Engine } from "../utils/engines";
 
@@ -64,7 +65,6 @@ function ScoreBubble({ score }: { score: Score }) {
 }
 
 interface BestMovesProps {
-  engineVariations: EngineVariation[];
   engine: Engine;
   numberLines: number;
   chess: Chess;
@@ -74,7 +74,6 @@ interface BestMovesProps {
 }
 
 function BestMoves({
-  engineVariations,
   numberLines,
   chess,
   makeMoves,
@@ -82,12 +81,26 @@ function BestMoves({
   half_moves,
   max_depth,
 }: BestMovesProps) {
+  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const progress = (depth / max_depth) * 100;
-  console.log(depth);
-  console.log(max_depth);
+
+  
+  useEffect(() => {
+    async function waitForMove() {
+      await listen("best_moves", (event) => {
+        const ev = event.payload as EngineVariation[];
+        if (ev[0].engine === engine.path) {
+          setEngineVariation(ev);
+        }
+      });
+    }
+
+    waitForMove();
+  }, []);
+
 
   function AnalysisRow({
     score,
@@ -101,6 +114,7 @@ function BestMoves({
     index: number;
   }) {
     const currentOpen = open[index];
+
     return (
       <tr style={{ verticalAlign: "top" }}>
         <td>
