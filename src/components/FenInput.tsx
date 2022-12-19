@@ -1,32 +1,39 @@
 import { TextInput } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { validateFen } from "chess.js";
-import { useEffect, useState } from "react";
 
-function FenInput({
-  setBoardFen,
-}: {
-  setBoardFen: (fen: string) => void;
-}) {
-  const [fen, setFen] = useState("");
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const v = validateFen(fen);
-    if (v.valid) {
-      setError("");
-    } else {
-      setError("Invalid FEN: " + v.error);
-    }
-  }, [fen]);
+function FenInput({ setBoardFen }: { setBoardFen: (fen: string) => void }) {
+  const form = useForm({
+    initialValues: {
+      fen: "",
+      pgn: "",
+    },
+    validate: {
+      fen: (value) => {
+        const v = validateFen(value);
+        if (v.valid) {
+          return null;
+        } else {
+          return v.error;
+        }
+      },
+      pgn: (value) => {
+        return null;
+      }
+    },
+  });
   return (
-    <form onSubmit={(e) => {e.preventDefault(); setBoardFen(fen)}}>
+    <form onSubmit={form.onSubmit(() => setBoardFen(form.values.fen))}>
       <TextInput
-        label="Insert FEN"
-        value={fen}
-        onChange={(event) => setFen(event.currentTarget.value)}
-        error={error}
+        label="FEN"
+        placeholder="Enter FEN"
+        {...form.getInputProps("fen")}
       />
-      {/* <Button onClick={() => setBoardFen(fen)}>Submit</Button> */}
+      <TextInput
+        label="PGN"
+        placeholder="Enter PGN"
+        {...form.getInputProps("pgn")}
+      />
     </form>
   );
 }
