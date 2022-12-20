@@ -8,6 +8,7 @@ import {
   Tabs,
   Tooltip
 } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import {
@@ -22,7 +23,7 @@ import {
 } from "@tabler/icons";
 import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Chess, DEFAULT_POSITION, KING, Square } from "chess.js";
+import { Chess, DEFAULT_POSITION, KING, Square, validateFen } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
@@ -47,7 +48,6 @@ const EngineSettingsBoard = dynamic(
 );
 
 function BoardAnalysis() {
-  const [initialFen, setInitialFen] = useState(DEFAULT_POSITION);
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -64,10 +64,25 @@ function BoardAnalysis() {
     key: "selected-engines",
     defaultValue: [],
   });
+  const form = useForm({
+    initialValues: {
+      fen: DEFAULT_POSITION,
+    },
+    validate: {
+      fen: (value) => {
+        const v = validateFen(value);
+        if (v.valid) {
+          return null;
+        } else {
+          return v.error;
+        }
+      },
+    },
+  });
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(
-    new VariationTree(null, initialFen, null)
+    new VariationTree(null, form.values.fen, null)
   );
   const chess = new Chess(tree.fen);
   const [numberLines, setNumberLines] = useLocalStorage<number>({
@@ -134,6 +149,10 @@ function BoardAnalysis() {
     setOrientation(orientation === "w" ? "b" : "w");
   }
 
+  function resetToFen(fen: string) {
+    setTree(new VariationTree(null, fen, null));
+  }
+
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
   const lastMove = moveToKey(getLastChessMove(chess));
@@ -184,10 +203,8 @@ function BoardAnalysis() {
   const { ref, width, height } = useElementSize();
 
   useEffect(() => {
-    chess.load(initialFen);
-    setTree(new VariationTree(null, initialFen, null));
-    setEngineOn(false);
-  }, [initialFen]);
+    form.setValues({ fen: tree.fen });
+  }, [tree]);
 
   return (
     <>
@@ -291,7 +308,7 @@ function BoardAnalysis() {
               </Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="info" pt="xs">
-              <FenInput setBoardFen={setInitialFen} fen={chess.fen()} />
+              <FenInput form={form} onSubmit={resetToFen} />
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <ScrollArea style={{ maxHeight: "50vh" }} offsetScrollbars>
