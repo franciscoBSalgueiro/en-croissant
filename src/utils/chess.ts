@@ -36,6 +36,7 @@ export class VariationTree {
     depth: number;
     half_moves: number;
     annotation: Annotation = Annotation.None;
+    comment: string = "";
 
     constructor(
         parent: VariationTree | null,

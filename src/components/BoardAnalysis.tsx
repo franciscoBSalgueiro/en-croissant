@@ -1,9 +1,11 @@
 import {
   ActionIcon,
-  AspectRatio, Group,
+  AspectRatio,
+  Group,
   ScrollArea,
   SimpleGrid,
   Stack,
+  Tabs,
   Tooltip
 } from "@mantine/core";
 import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
@@ -13,11 +15,14 @@ import {
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
-  IconSwitchVertical
+  IconInfoCircle,
+  IconNotes,
+  IconSwitchVertical,
+  IconZoomCheck
 } from "@tabler/icons";
 import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Chess, KING, Square } from "chess.js";
+import { Chess, DEFAULT_POSITION, KING, Square } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
@@ -31,6 +36,7 @@ import {
 } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import BestMoves from "./BestMoves";
+import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 
 const EngineSettingsBoard = dynamic(
@@ -40,7 +46,8 @@ const EngineSettingsBoard = dynamic(
   }
 );
 
-function BoardAnalysis({ initialFen }: { initialFen: string }) {
+function BoardAnalysis() {
+  const [initialFen, setInitialFen] = useState(DEFAULT_POSITION);
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -62,7 +69,6 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
   const [tree, setTree] = useState<VariationTree>(
     new VariationTree(null, initialFen, null)
   );
-  console.log(tree.fen);
   const chess = new Chess(tree.fen);
   const [numberLines, setNumberLines] = useLocalStorage<number>({
     key: "number-lines",
@@ -77,7 +83,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     const newMove = chess.move(move);
-    const newTree = new VariationTree(tree, chess.fen(), newMove?.san ?? "" );
+    const newTree = new VariationTree(tree, chess.fen(), newMove?.san ?? "");
     if (tree.children.length === 0) {
       tree.children = [newTree];
     } else if (tree.children.every((child) => child.fen !== chess.fen())) {
@@ -179,9 +185,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
 
   useEffect(() => {
     chess.load(initialFen);
-    setTree(
-      new VariationTree(null, initialFen, null)
-    );
+    setTree(new VariationTree(null, initialFen, null));
     setEngineOn(false);
   }, [initialFen]);
 
@@ -248,7 +252,7 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
                   defaultSnapToValidMove: true,
                   eraseOnClick: true,
                   autoShapes:
-                  showArrows && engineVariations.length > 0 && engineOn
+                    showArrows && engineVariations.length > 0 && engineOn
                       ? engineVariations[0].map((variation, i) => {
                           const move = variation.uciMoves[0];
                           const { from, to } = parseUci(move);
@@ -274,36 +278,53 @@ function BoardAnalysis({ initialFen }: { initialFen: string }) {
         </Stack>
 
         <Stack>
-          <ScrollArea style={{ height: "85vh" }} offsetScrollbars>
-            <Stack>
-              <EngineSettingsBoard
-                selectedEngines={selectedEngines}
-                setSelectedEngines={setSelectedEngines}
-                engineOn={engineOn}
-                setEngineOn={setEngineOn}
-                maxDepth={maxDepth}
-                setMaxDepth={setMaxDepth}
-                numberLines={numberLines}
-                setNumberLines={setNumberLines}
-              />
-              {engineOn &&
-                selectedEngines.map((engine) => {
-                  return (
-                    <BestMoves
-                      key={engine.name}
-                      engine={engine}
-                      numberLines={numberLines}
-                      chess={chess}
-                      makeMoves={makeMoves}
-                      half_moves={tree.half_moves}
-                      max_depth={maxDepth}
-                    />
-                  );
-                })}
-
-              <GameNotation tree={tree} setTree={setTree} />
-            </Stack>
-          </ScrollArea>
+          <Tabs defaultValue="analysis">
+            <Tabs.List grow>
+              <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
+                Analysis
+              </Tabs.Tab>
+              <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
+                Annotate
+              </Tabs.Tab>
+              <Tabs.Tab value="info" icon={<IconInfoCircle size={16} />}>
+                Info
+              </Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="info" pt="xs">
+              <FenInput setBoardFen={setInitialFen} fen={chess.fen()} />
+            </Tabs.Panel>
+            <Tabs.Panel value="analysis" pt="xs">
+              <ScrollArea style={{ maxHeight: "50vh" }} offsetScrollbars>
+                <Stack>
+                  <EngineSettingsBoard
+                    selectedEngines={selectedEngines}
+                    setSelectedEngines={setSelectedEngines}
+                    engineOn={engineOn}
+                    setEngineOn={setEngineOn}
+                    maxDepth={maxDepth}
+                    setMaxDepth={setMaxDepth}
+                    numberLines={numberLines}
+                    setNumberLines={setNumberLines}
+                  />
+                  {engineOn &&
+                    selectedEngines.map((engine) => {
+                      return (
+                        <BestMoves
+                          key={engine.name}
+                          engine={engine}
+                          numberLines={numberLines}
+                          chess={chess}
+                          makeMoves={makeMoves}
+                          half_moves={tree.half_moves}
+                          max_depth={maxDepth}
+                        />
+                      );
+                    })}
+                </Stack>
+              </ScrollArea>
+            </Tabs.Panel>
+          </Tabs>
+          <GameNotation tree={tree} setTree={setTree} />
           <MoveControls />
         </Stack>
       </SimpleGrid>
