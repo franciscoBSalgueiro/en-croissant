@@ -5,7 +5,7 @@ export type Score = {
     [key in "cp" | "mate"]: number;
 }
 
-enum Annotation {
+export enum Annotation {
     None = "",
     Good = "!",
     Brilliant = "!!",
@@ -13,6 +13,33 @@ enum Annotation {
     Blunder = "??",
     Dubious = "?!",
     Interesting = "!?"
+}
+
+export function annotationColor(annotation: Annotation) {
+    let color: string;
+    switch (annotation) {
+      case Annotation.Brilliant:
+        color = "cyan";
+        break;
+      case "!":
+        color = "teal";
+        break;
+      case "!?":
+        color = "lime";
+        break;
+      case "?!":
+        color = "yellow";
+        break;
+      case "?":
+        color = "orange";
+        break;
+      case "??":
+        color = "red";
+        break;
+      default:
+        color = "gray";
+    }
+    return color;
 }
 
 export interface EngineVariation {

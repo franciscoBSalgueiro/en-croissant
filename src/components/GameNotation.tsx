@@ -1,7 +1,7 @@
 import { Box, Button, Menu, Paper } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
 import { IconChevronUp, IconTrash } from "@tabler/icons";
-import { VariationTree } from "../utils/chess";
+import { Annotation, annotationColor, VariationTree } from "../utils/chess";
 
 function GameNotation({
   tree,
@@ -55,13 +55,16 @@ function GameNotation({
   function MoveCell({
     move,
     variation,
+    annotation
   }: {
     move: string;
     variation: VariationTree;
+    annotation: Annotation;
   }) {
     const isCurrentVariation = variation.equals(tree);
     const [open, toggleOpen] = useToggle();
     const ref = useClickOutside(() => toggleOpen(false));
+    const color = annotationColor(annotation);
 
     return (
       <Menu opened={open} width={200}>
@@ -71,7 +74,7 @@ function GameNotation({
             // sx={{ p }}
             p={4}
             variant={isCurrentVariation ? "light" : "subtle"}
-            color={isCurrentVariation ? "blue" : "gray"}
+            color={(isCurrentVariation && tree.annotation === Annotation.None) ? "blue.0" : color}
             onContextMenu={(e: any) => {
               toggleOpen();
               e.preventDefault();
@@ -81,7 +84,7 @@ function GameNotation({
               toggleOpen(false);
             }}
           >
-            {move}
+            {move + annotation}
           </Button>
         </Menu.Target>
         <Menu.Dropdown>
@@ -121,7 +124,7 @@ function GameNotation({
       <>
         <span>
           {tree.half_moves > 0 && (first || is_white) && <span style={{paddingLeft: (tree.half_moves == 1 || first) ?  0 : 12}}>{move_number}{is_white ? "." : "..." }</span>}
-          {lastMove && <MoveCell move={lastMove + tree.annotation} variation={tree} />}
+          {lastMove && <MoveCell move={lastMove} variation={tree} annotation={tree.annotation} />}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} depth={depth + 1} />
           )}

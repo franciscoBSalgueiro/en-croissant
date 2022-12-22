@@ -6,10 +6,11 @@ import {
   SimpleGrid,
   Stack,
   Tabs,
+  Text,
   Tooltip
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useElementSize, useHotkeys, useLocalStorage } from "@mantine/hooks";
+import { useElementSize, useForceUpdate, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import Chessground from "@react-chess/chessground";
 import {
   IconChevronLeft,
@@ -27,6 +28,8 @@ import { Chess, DEFAULT_POSITION, KING, Square, validateFen } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
+  Annotation,
+  annotationColor,
   EngineVariation,
   formatMove,
   getLastChessMove,
@@ -48,6 +51,7 @@ const EngineSettingsBoard = dynamic(
 );
 
 function BoardAnalysis() {
+  const forceUpdate = useForceUpdate(); 
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -95,6 +99,16 @@ function BoardAnalysis() {
 
   const [engineOn, setEngineOn] = useState(false);
   const [orientation, setOrientation] = useState("w");
+
+  function annotate(annotation: Annotation) {
+    if (tree.annotation === annotation) {
+      tree.annotation = Annotation.None;
+    } else {
+      tree.annotation = annotation;
+    }
+    setTree(tree);
+    forceUpdate();
+  }
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     const newMove = chess.move(move);
@@ -310,6 +324,16 @@ function BoardAnalysis() {
             <Tabs.Panel value="info" pt="xs">
               <FenInput form={form} onSubmit={resetToFen} />
             </Tabs.Panel>
+            <Tabs.Panel value="annotate" pt="xs">
+              <Group grow>
+                <SymbolButton annotation={Annotation.Brilliant}/>
+                <SymbolButton annotation={Annotation.Good} />
+                <SymbolButton annotation={Annotation.Interesting} />
+                <SymbolButton annotation={Annotation.Dubious} />
+                <SymbolButton annotation={Annotation.Mistake} />
+                <SymbolButton annotation={Annotation.Blunder} />
+              </Group>
+            </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <ScrollArea style={{ maxHeight: "50vh" }} offsetScrollbars>
                 <Stack>
@@ -347,6 +371,48 @@ function BoardAnalysis() {
       </SimpleGrid>
     </>
   );
+
+  function SymbolButton({
+    annotation,
+  }: {
+    annotation: Annotation,
+  }) {
+    let label: string;
+    switch (annotation) {
+      case Annotation.Good:
+        label = "Good";
+        break;
+      case Annotation.Brilliant:
+        label = "Brilliant";
+        break;
+      case Annotation.Mistake:
+        label = "Mistake";
+        break;
+      case Annotation.Blunder:
+        label = "Blunder";
+        break;
+      case Annotation.Dubious:
+        label = "Dubious";
+        break;
+      case Annotation.Interesting:
+        label = "Interesting";
+        break;
+      default:
+        label = "Unknown";
+    };
+    const color = annotationColor(annotation);
+    const isActive = tree.annotation === annotation;
+    return (
+      <Tooltip label={label}>
+        <ActionIcon onClick={() => annotate(annotation)} variant={isActive ? "filled" : "default"} color={color}>
+          <Text>
+            {annotation}
+          </Text>
+        </ActionIcon>
+      </Tooltip>
+    );
+  }
+
 
   function MoveControls() {
     return (
