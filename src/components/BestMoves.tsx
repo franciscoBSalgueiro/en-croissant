@@ -1,23 +1,21 @@
 import {
+  Accordion,
   ActionIcon,
   Box,
   Button,
   ChevronIcon,
-  Container,
   createStyles,
   Flex,
   Group,
-  Paper,
   Progress,
   Skeleton,
   Stack,
   Table,
   Text,
-  Title,
   Tooltip
 } from "@mantine/core";
 import { listen } from "@tauri-apps/api/event";
-import { Chess } from "chess.js";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { EngineVariation, Score } from "../utils/chess";
 import { Engine } from "../utils/engines";
@@ -44,9 +42,9 @@ function ScoreBubble({ score }: { score: Score }) {
         backgroundColor:
           scoreNumber >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
-        padding: theme.spacing.xs,
+        padding: 5,
         borderRadius: theme.radius.md,
-        width: 80,
+        width: 70,
       })}
     >
       <Text
@@ -67,7 +65,6 @@ function ScoreBubble({ score }: { score: Score }) {
 interface BestMovesProps {
   engine: Engine;
   numberLines: number;
-  chess: Chess;
   makeMoves: (moves: string[]) => void;
   half_moves: number;
   max_depth: number;
@@ -75,19 +72,19 @@ interface BestMovesProps {
 
 function BestMoves({
   numberLines,
-  chess,
   makeMoves,
   engine,
   half_moves,
   max_depth,
 }: BestMovesProps) {
-  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>([]);
+  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
+    []
+  );
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const progress = (depth / max_depth) * 100;
 
-  
   useEffect(() => {
     async function waitForMove() {
       await listen("best_moves", (event) => {
@@ -100,7 +97,6 @@ function BestMoves({
 
     waitForMove();
   }, []);
-
 
   function AnalysisRow({
     score,
@@ -200,32 +196,42 @@ function BestMoves({
   const [open, setOpen] = useState<boolean[]>([]);
 
   return (
-    <>
-      <Paper shadow="sm" p="lg" radius="md" withBorder>
-        <Stack spacing="xs" mb="md">
-          <Group position="apart">
-            <Group align="baseline">
-              <Title>{engine.name}</Title>
-              {progress < 100 && (
-                <Tooltip label={"How fast the engine is running"}>
-                  <Text>{nps}k nodes/s</Text>
-                </Tooltip>
-              )}
-            </Group>
-            <Container m={0}>
-              <Text
-                size="xs"
-                transform="uppercase"
-                weight={700}
-                className={classes.subtitle}
-              >
-                Depth
-              </Text>
-              <Title>{depth}</Title>
-            </Container>
+    <Accordion.Item value={engine.name}>
+      <Accordion.Control>
+        <Group position="apart">
+          <Group align="baseline">
+            <Image
+              src={engine.image}
+              height={20}
+              width={20}
+              alt={engine.name}
+            />
+            <Text fw="bold" fz="xl">
+              {engine.name}
+            </Text>
+            {progress < 100 && (
+              <Tooltip label={"How fast the engine is running"}>
+                <Text>{nps}k nodes/s</Text>
+              </Tooltip>
+            )}
           </Group>
-          <Progress value={progress} animate={progress < 100} />
-        </Stack>
+          <Stack align="center" spacing={0}>
+            <Text
+              size="xs"
+              transform="uppercase"
+              weight={700}
+              className={classes.subtitle}
+            >
+              Depth
+            </Text>
+            <Text fw="bold" fz="xl">
+              {depth}
+            </Text>
+          </Stack>
+        </Group>
+      </Accordion.Control>
+      <Progress value={progress} animate={progress < 100} size="xs" />
+      <Accordion.Panel>
         <Table>
           <tbody>
             {engineVariations.length === 0 &&
@@ -249,8 +255,8 @@ function BestMoves({
             })}
           </tbody>
         </Table>
-      </Paper>
-    </>
+      </Accordion.Panel>
+    </Accordion.Item>
   );
 }
 

@@ -1,4 +1,5 @@
 import {
+  Accordion,
   ActionIcon,
   AspectRatio,
   Group,
@@ -39,7 +40,8 @@ import {
   Annotation,
   annotationColor,
   EngineVariation,
-  formatMove, moveToKey,
+  formatMove,
+  moveToKey,
   parseUci,
   toDests,
   VariationTree
@@ -366,8 +368,12 @@ function BoardAnalysis() {
                 <AnnotationEditor editor={editor} />
               </Stack>
             </Tabs.Panel>
-            <Tabs.Panel value="analysis" pt="xs" >
-              <ScrollArea style={{ height: "40vh" }} offsetScrollbars type="always">
+            <Tabs.Panel value="analysis" pt="xs">
+              <ScrollArea
+                style={{ height: "40vh" }}
+                offsetScrollbars
+                type="always"
+              >
                 <Stack>
                   <EngineSettingsBoard
                     selectedEngines={selectedEngines}
@@ -379,20 +385,22 @@ function BoardAnalysis() {
                     numberLines={numberLines}
                     setNumberLines={setNumberLines}
                   />
-                  {engineOn &&
-                    selectedEngines.map((engine) => {
-                      return (
-                        <BestMoves
-                          key={engine.name}
-                          engine={engine}
-                          numberLines={numberLines}
-                          chess={chess}
-                          makeMoves={makeMoves}
-                          half_moves={tree.half_moves}
-                          max_depth={maxDepth}
-                        />
-                      );
-                    })}
+                  {engineOn && (
+                    <Accordion variant="separated">
+                      {selectedEngines.map((engine) => {
+                        return (
+                          <BestMoves
+                            key={engine.name}
+                            engine={engine}
+                            numberLines={numberLines}
+                            makeMoves={makeMoves}
+                            half_moves={tree.half_moves}
+                            max_depth={maxDepth}
+                          />
+                        );
+                      })}
+                    </Accordion>
+                  )}
                 </Stack>
               </ScrollArea>
             </Tabs.Panel>

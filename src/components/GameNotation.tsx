@@ -87,7 +87,6 @@ function GameNotation({
     const [open, toggleOpen] = useToggle();
     const ref = useClickOutside(() => toggleOpen(false));
     const color = annotationColor(annotation);
-    console.log(comment);
     const multipleLine =
       comment.split("</p>").length - 1 > 1 ||
       comment.includes("<blockquote>") ||
