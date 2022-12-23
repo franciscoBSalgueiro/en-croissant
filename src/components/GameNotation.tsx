@@ -1,4 +1,10 @@
-import { Box, Button, Menu, Paper } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Menu,
+  Paper,
+  TypographyStylesProvider
+} from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
 import { IconChevronUp, IconTrash } from "@tabler/icons";
 import { Annotation, annotationColor, VariationTree } from "../utils/chess";
@@ -46,7 +52,7 @@ function GameNotation({
     <Paper withBorder p="md">
       <Box sx={{ minHeight: "300px" }}>
         {/* <SimpleGrid cols={2}> */}
-        <RenderVariationTree tree={topVariation} depth={0} first/>
+        <RenderVariationTree tree={topVariation} depth={0} first />
         {/* </SimpleGrid> */}
       </Box>
     </Paper>
@@ -55,7 +61,7 @@ function GameNotation({
   function MoveCell({
     move,
     variation,
-    annotation
+    annotation,
   }: {
     move: string;
     variation: VariationTree;
@@ -74,7 +80,11 @@ function GameNotation({
             // sx={{ p }}
             p={4}
             variant={isCurrentVariation ? "light" : "subtle"}
-            color={(isCurrentVariation && tree.annotation === Annotation.None) ? "blue.0" : color}
+            color={
+              isCurrentVariation && tree.annotation === Annotation.None
+                ? "blue.0"
+                : color
+            }
             onContextMenu={(e: any) => {
               toggleOpen();
               e.preventDefault();
@@ -110,7 +120,7 @@ function GameNotation({
   function RenderVariationTree({
     tree,
     depth,
-    first
+    first,
   }: {
     tree: VariationTree;
     depth: number;
@@ -123,24 +133,44 @@ function GameNotation({
     return (
       <>
         <span>
-          {tree.half_moves > 0 && (first || is_white) && <span style={{paddingLeft: (tree.half_moves == 1 || first) ?  0 : 12}}>{move_number}{is_white ? "." : "..." }</span>}
-          {lastMove && <MoveCell move={lastMove} variation={tree} annotation={tree.annotation} />}
+          {tree.half_moves > 0 && (first || is_white) && (
+            <span
+              style={{ paddingLeft: tree.half_moves == 1 || first ? 0 : 12 }}
+            >
+              {move_number}
+              {is_white ? "." : "..."}
+            </span>
+          )}
+
+          {lastMove && (
+            <MoveCell
+              move={lastMove}
+              variation={tree}
+              annotation={tree.annotation}
+            />
+          )}
+          {tree.comment && (
+            <TypographyStylesProvider>
+              <div dangerouslySetInnerHTML={{ __html: tree.comment }} />
+            </TypographyStylesProvider>
+          )}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} depth={depth + 1} />
           )}
         </span>
+
         {variations.slice(1).map((variation) => (
           <>
             {depth == 1 ? (
               <div>
                 {"("}
-                <RenderVariationTree tree={variation} depth={depth + 2} first/>
+                <RenderVariationTree tree={variation} depth={depth + 2} first />
                 {")"}
               </div>
             ) : (
               <>
                 {"("}
-                <RenderVariationTree tree={variation} depth={depth + 2} first/>
+                <RenderVariationTree tree={variation} depth={depth + 2} first />
                 {")"}
               </>
             )}

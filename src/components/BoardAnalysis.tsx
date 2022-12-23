@@ -10,8 +10,12 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useElementSize, useForceUpdate, useHotkeys, useLocalStorage } from "@mantine/hooks";
-import Chessground from "@react-chess/chessground";
+import {
+  useElementSize,
+  useForceUpdate,
+  useHotkeys,
+  useLocalStorage
+} from "@mantine/hooks";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -24,6 +28,10 @@ import {
 } from "@tabler/icons";
 import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import { Chess, DEFAULT_POSITION, KING, Square, validateFen } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -39,7 +47,9 @@ import {
   VariationTree
 } from "../utils/chess";
 import { Engine } from "../utils/engines";
+import { AnnotationEditor } from "./AnnotationEditor";
 import BestMoves from "./BestMoves";
+import Chessground from "./Chessground";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 
@@ -51,7 +61,7 @@ const EngineSettingsBoard = dynamic(
 );
 
 function BoardAnalysis() {
-  const forceUpdate = useForceUpdate(); 
+  const forceUpdate = useForceUpdate();
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -99,6 +109,31 @@ function BoardAnalysis() {
 
   const [engineOn, setEngineOn] = useState(false);
   const [orientation, setOrientation] = useState("w");
+
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit,
+        Underline,
+        Placeholder.configure({ placeholder: "Write here..." }),
+      ],
+      content: tree.comment,
+      onUpdate: ({ editor }) => {
+        const html = editor.getHTML();
+        if (html === "<p></p>") {
+          tree.comment = "";
+        } else {
+          tree.comment = html;
+        }
+        setTree(tree);
+      },
+    },
+    [tree]
+  );
+
+  // useEffect(() => {
+  //   editor?.commands.setContent(tree.comment);
+  // }, [tree.comment]);
 
   function annotate(annotation: Annotation) {
     if (tree.annotation === annotation) {
@@ -325,14 +360,17 @@ function BoardAnalysis() {
               <FenInput form={form} onSubmit={resetToFen} />
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
-              <Group grow>
-                <SymbolButton annotation={Annotation.Brilliant}/>
-                <SymbolButton annotation={Annotation.Good} />
-                <SymbolButton annotation={Annotation.Interesting} />
-                <SymbolButton annotation={Annotation.Dubious} />
-                <SymbolButton annotation={Annotation.Mistake} />
-                <SymbolButton annotation={Annotation.Blunder} />
-              </Group>
+              <Stack>
+                <Group grow>
+                  <SymbolButton annotation={Annotation.Brilliant} />
+                  <SymbolButton annotation={Annotation.Good} />
+                  <SymbolButton annotation={Annotation.Interesting} />
+                  <SymbolButton annotation={Annotation.Dubious} />
+                  <SymbolButton annotation={Annotation.Mistake} />
+                  <SymbolButton annotation={Annotation.Blunder} />
+                </Group>
+                <AnnotationEditor editor={editor} />
+              </Stack>
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <ScrollArea style={{ maxHeight: "50vh" }} offsetScrollbars>
@@ -372,11 +410,7 @@ function BoardAnalysis() {
     </>
   );
 
-  function SymbolButton({
-    annotation,
-  }: {
-    annotation: Annotation,
-  }) {
+  function SymbolButton({ annotation }: { annotation: Annotation }) {
     let label: string;
     switch (annotation) {
       case Annotation.Good:
@@ -399,20 +433,21 @@ function BoardAnalysis() {
         break;
       default:
         label = "Unknown";
-    };
+    }
     const color = annotationColor(annotation);
     const isActive = tree.annotation === annotation;
     return (
       <Tooltip label={label}>
-        <ActionIcon onClick={() => annotate(annotation)} variant={isActive ? "filled" : "default"} color={color}>
-          <Text>
-            {annotation}
-          </Text>
+        <ActionIcon
+          onClick={() => annotate(annotation)}
+          variant={isActive ? "filled" : "default"}
+          color={color}
+        >
+          <Text>{annotation}</Text>
         </ActionIcon>
       </Tooltip>
     );
   }
-
 
   function MoveControls() {
     return (
