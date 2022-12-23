@@ -366,8 +366,8 @@ function BoardAnalysis() {
                 <AnnotationEditor editor={editor} />
               </Stack>
             </Tabs.Panel>
-            <Tabs.Panel value="analysis" pt="xs">
-              <ScrollArea style={{ maxHeight: "50vh" }} offsetScrollbars>
+            <Tabs.Panel value="analysis" pt="xs" >
+              <ScrollArea style={{ height: "40vh" }} offsetScrollbars type="always">
                 <Stack>
                   <EngineSettingsBoard
                     selectedEngines={selectedEngines}

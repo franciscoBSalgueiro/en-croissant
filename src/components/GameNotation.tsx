@@ -6,7 +6,7 @@ import {
   TypographyStylesProvider
 } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
-import { IconChevronUp, IconTrash } from "@tabler/icons";
+import { IconChevronDown, IconChevronUp, IconTrash } from "@tabler/icons";
 import { Annotation, annotationColor, VariationTree } from "../utils/chess";
 
 function GameNotation({
@@ -35,6 +35,22 @@ function GameNotation({
     }
   }
 
+  function demoteVariation(variation: VariationTree) {
+    const isCurrent = variation === tree;
+    const parent = variation.parent;
+    if (parent) {
+      parent.children = [
+        ...parent.children.filter((child) => child !== variation),
+        variation,
+      ];
+      if (isCurrent) {
+        forceUpdate();
+      } else {
+        setTree(variation);
+      }
+    }
+  }
+
   function deleteVariation(variation: VariationTree) {
     const isInCurrentBranch = tree.isInBranch(variation);
     const parent = variation.parent;
@@ -50,10 +66,8 @@ function GameNotation({
 
   return (
     <Paper withBorder p="md">
-      <Box sx={{ minHeight: "300px" }}>
-        {/* <SimpleGrid cols={2}> */}
+      <Box sx={{ minHeight: "250px" }}>
         <RenderVariationTree tree={topVariation} depth={0} first />
-        {/* </SimpleGrid> */}
       </Box>
     </Paper>
   );
@@ -62,58 +76,99 @@ function GameNotation({
     move,
     variation,
     annotation,
+    comment,
   }: {
     move: string;
     variation: VariationTree;
     annotation: Annotation;
+    comment: string;
   }) {
     const isCurrentVariation = variation.equals(tree);
     const [open, toggleOpen] = useToggle();
     const ref = useClickOutside(() => toggleOpen(false));
     const color = annotationColor(annotation);
+    console.log(comment);
+    const multipleLine =
+      comment.split("</p>").length - 1 > 1 ||
+      comment.includes("<blockquote>") ||
+      comment.includes("<ul>") ||
+      comment.includes("<h");
 
     return (
-      <Menu opened={open} width={200}>
-        <Menu.Target ref={ref}>
-          <Button
-            // sx={{ width: "80px" }}
-            // sx={{ p }}
-            p={4}
-            variant={isCurrentVariation ? "light" : "subtle"}
-            color={
-              isCurrentVariation && tree.annotation === Annotation.None
-                ? "blue.0"
-                : color
-            }
-            onContextMenu={(e: any) => {
-              toggleOpen();
-              e.preventDefault();
+      <>
+        <Menu opened={open} width={200}>
+          <Menu.Target ref={ref}>
+            <Button
+              // sx={{ width: "80px" }}
+              // sx={{ p }}
+              p={4}
+              variant={isCurrentVariation ? "light" : "subtle"}
+              color={
+                isCurrentVariation && tree.annotation === Annotation.None
+                  ? "blue.0"
+                  : color
+              }
+              onContextMenu={(e: any) => {
+                toggleOpen();
+                e.preventDefault();
+              }}
+              onClick={() => {
+                setTree(variation);
+                toggleOpen(false);
+              }}
+            >
+              {move + annotation}
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Label>Actions</Menu.Label>
+            <Menu.Item
+              icon={<IconChevronUp size={14} />}
+              onClick={() => promoteVariation(variation)}
+              disabled={
+                tree.parent === null ||
+                tree.parent.children.length === 1 ||
+                variation === tree.parent.children[0]
+              }
+            >
+              Promote Variation
+            </Menu.Item>
+            <Menu.Item
+              icon={<IconChevronDown size={14} />}
+              onClick={() => demoteVariation(variation)}
+              disabled={
+                tree.parent === null ||
+                tree.parent.children.length === 1 ||
+                variation ===
+                  tree.parent.children[tree.parent.children.length - 1]
+              }
+            >
+              Demote Variation
+            </Menu.Item>
+            <Menu.Item
+              color="red"
+              icon={<IconTrash size={14} />}
+              onClick={() => deleteVariation(variation)}
+            >
+              Delete Move
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+        {comment && (
+          <TypographyStylesProvider
+            style={{
+              display: multipleLine ? "block" : "inline-block",
+              marginLeft: 4,
             }}
-            onClick={() => {
-              setTree(variation);
-              toggleOpen(false);
-            }}
           >
-            {move + annotation}
-          </Button>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Label>Actions</Menu.Label>
-          <Menu.Item
-            icon={<IconChevronUp size={14} />}
-            onClick={() => promoteVariation(variation)}
-          >
-            Promote Variation
-          </Menu.Item>
-          <Menu.Item
-            color="red"
-            icon={<IconTrash size={14} />}
-            onClick={() => deleteVariation(variation)}
-          >
-            Delete Move
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: comment,
+              }}
+            />
+          </TypographyStylesProvider>
+        )}
+      </>
     );
   }
 
@@ -147,12 +202,8 @@ function GameNotation({
               move={lastMove.san}
               variation={tree}
               annotation={tree.annotation}
+              comment={tree.comment}
             />
-          )}
-          {tree.comment && (
-            <TypographyStylesProvider>
-              <div dangerouslySetInnerHTML={{ __html: tree.comment }} />
-            </TypographyStylesProvider>
           )}
           {tree.children.length > 0 && (
             <RenderVariationTree tree={tree.children[0]} depth={depth + 1} />
