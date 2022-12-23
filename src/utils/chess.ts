@@ -3,7 +3,7 @@ import { Key } from "chessground/types";
 
 export type Score = {
     [key in "cp" | "mate"]: number;
-}
+};
 
 export enum Annotation {
     None = "",
@@ -12,32 +12,32 @@ export enum Annotation {
     Mistake = "?",
     Blunder = "??",
     Dubious = "?!",
-    Interesting = "!?"
+    Interesting = "!?",
 }
 
 export function annotationColor(annotation: Annotation) {
     let color: string;
     switch (annotation) {
-      case Annotation.Brilliant:
-        color = "cyan";
-        break;
-      case "!":
-        color = "teal";
-        break;
-      case "!?":
-        color = "lime";
-        break;
-      case "?!":
-        color = "yellow";
-        break;
-      case "?":
-        color = "orange";
-        break;
-      case "??":
-        color = "red";
-        break;
-      default:
-        color = "gray";
+        case Annotation.Brilliant:
+            color = "cyan";
+            break;
+        case "!":
+            color = "teal";
+            break;
+        case "!?":
+            color = "lime";
+            break;
+        case "?!":
+            color = "yellow";
+            break;
+        case "?":
+            color = "orange";
+            break;
+        case "??":
+            color = "red";
+            break;
+        default:
+            color = "gray";
     }
     return color;
 }
@@ -46,7 +46,7 @@ export interface EngineVariation {
     engine: string;
     uciMoves: string[];
     sanMoves: string[];
-    score: Score,
+    score: Score;
     depth: number;
     multipv: number;
     nps: number;
@@ -55,9 +55,7 @@ export interface EngineVariation {
 export class VariationTree {
     parent: VariationTree | null;
     fen: string;
-    move: string | null;
-    chess: Chess;
-    lastMove: Move | null;
+    move: Move | null;
     children: VariationTree[];
     score: number;
     depth: number;
@@ -67,28 +65,19 @@ export class VariationTree {
 
     constructor(
         parent: VariationTree | null,
-        position: string,
-        move: string | null,
+        fen: string,
+        move: Move | null,
         children?: VariationTree[],
         score?: number,
         depth?: number
     ) {
         this.parent = parent;
-        this.fen = position;
+        this.fen = fen;
         this.move = move;
         this.children = children ?? [];
         this.score = score ?? 0;
         this.depth = depth ?? 0;
         this.half_moves = parent ? parent.half_moves + 1 : 0;
-        const chess = new Chess();
-        chess.loadPgn(position);
-        this.chess = chess;
-        const history = chess.history({ verbose: true });
-        if (history.length === 0) {
-            this.lastMove = null;
-        } else {
-            this.lastMove = history[history.length - 1] as Move;
-        }
     }
 
     equals(other: VariationTree): boolean {
@@ -109,10 +98,6 @@ export class VariationTree {
         return this.children[0].getBottomVariation();
     }
 
-    // getLastMove(): Move | null {
-    //   return getLastChessMove(this.position);
-    // }
-
     isInBranch(tree: VariationTree): boolean {
         if (this.equals(tree)) {
             return true;
@@ -121,12 +106,6 @@ export class VariationTree {
             return false;
         }
         return this.parent.isInBranch(tree);
-    }
-
-    addChild(move: string, score?: number, depth?: number): void {
-        const chess = new Chess();
-        const newMove = chess.move(move);
-        this.children.push(new VariationTree(this, chess.fen(), newMove?.san ?? "", [], score, depth));
     }
 
     getNumberOfChildren(): number {
@@ -180,14 +159,6 @@ export function toDests(chess: Chess): Map<Key, Key[]> {
 
 export function formatMove(orientation: string) {
     return orientation === "w" ? "white" : "black";
-}
-
-export function getLastChessMove(chess: Chess): Move | null {
-    const move = chess.undo();
-    if (move) {
-        chess.move(move);
-    }
-    return move;
 }
 
 export function parseUci(move: string) {

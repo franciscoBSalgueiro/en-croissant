@@ -144,7 +144,7 @@ function GameNotation({
 
           {lastMove && (
             <MoveCell
-              move={lastMove}
+              move={lastMove.san}
               variation={tree}
               annotation={tree.annotation}
             />

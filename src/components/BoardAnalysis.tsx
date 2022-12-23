@@ -39,9 +39,7 @@ import {
   Annotation,
   annotationColor,
   EngineVariation,
-  formatMove,
-  getLastChessMove,
-  moveToKey,
+  formatMove, moveToKey,
   parseUci,
   toDests,
   VariationTree
@@ -131,10 +129,6 @@ function BoardAnalysis() {
     [tree]
   );
 
-  // useEffect(() => {
-  //   editor?.commands.setContent(tree.comment);
-  // }, [tree.comment]);
-
   function annotate(annotation: Annotation) {
     if (tree.annotation === annotation) {
       tree.annotation = Annotation.None;
@@ -147,7 +141,7 @@ function BoardAnalysis() {
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     const newMove = chess.move(move);
-    const newTree = new VariationTree(tree, chess.fen(), newMove?.san ?? "");
+    const newTree = new VariationTree(tree, chess.fen(), newMove);
     if (tree.children.length === 0) {
       tree.children = [newTree];
     } else if (tree.children.every((child) => child.fen !== chess.fen())) {
@@ -162,7 +156,7 @@ function BoardAnalysis() {
     let newTree = tree;
     moves.forEach((move) => {
       const newMove = chess.move(move, { sloppy: true });
-      newTree = new VariationTree(parentTree, chess.fen(), newMove?.san ?? "");
+      newTree = new VariationTree(parentTree, chess.fen(), newMove);
       if (parentTree.children.length === 0) {
         parentTree.children = [newTree];
       } else if (parentTree.children[0].fen !== chess.fen()) {
@@ -204,7 +198,7 @@ function BoardAnalysis() {
 
   const turn = formatMove(chess.turn());
   const dests = toDests(chess);
-  const lastMove = moveToKey(getLastChessMove(chess));
+  const lastMove = moveToKey(tree.move);
 
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
