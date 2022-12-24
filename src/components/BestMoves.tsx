@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   ChevronIcon,
+  Collapse,
   createStyles,
   Flex,
   Group,
@@ -21,6 +22,9 @@ import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import { EngineVariation, Score } from "../utils/chess";
 import { Engine } from "../utils/engines";
+import CoresSlide from "./CoresSlider";
+import DepthSlider from "./DepthSlider";
+import LinesSlider from "./LinesSlider";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -29,15 +33,20 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function ScoreBubble({ score }: { score: Score }) {
-  const scoreNumber = score.cp || score.mate;
+  const scoreNumber = score.cp ?? score.mate;
   let scoreText = "";
-  const type = score.cp ? "cp" : "mate";
+  const type = score.cp !== undefined ? "cp" : "mate";
   if (type === "cp") {
     scoreText = Math.abs(scoreNumber / 100).toFixed(2);
   } else {
     scoreText = "M" + Math.abs(scoreNumber);
   }
-  scoreText = (scoreNumber > 0 ? "+" : "-") + scoreText;
+  if (scoreNumber > 0) {
+    scoreText = "+" + scoreText;
+  }
+  if (scoreNumber < 0) {
+    scoreText = "-" + scoreText;
+  }
   return (
     <Box
       sx={(theme) => ({
@@ -66,29 +75,36 @@ function ScoreBubble({ score }: { score: Score }) {
 
 interface BestMovesProps {
   engine: Engine;
-  numberLines: number;
   makeMoves: (moves: string[]) => void;
   half_moves: number;
-  max_depth: number;
   chess: Chess;
 }
 
-function BestMoves({
-  numberLines,
-  makeMoves,
-  engine,
-  half_moves,
-  max_depth,
-  chess,
-}: BestMovesProps) {
+function BestMoves({ makeMoves, engine, half_moves, chess }: BestMovesProps) {
   const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
     []
   );
+  const [numberLines, setNumberLines] = useState<number>(3);
+  const [maxDepth, setMaxDepth] = useState<number>(24);
+  const [cores, setCores] = useState<number>(3);
   const [enabled, setEnabled] = useState<boolean>(false);
+  const [settingsOn, setSettingsOn] = useState<boolean>(false);
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
-  const progress = (depth / max_depth) * 100;
+  const progress = (depth / maxDepth) * 100;
+
+  function startEngine() {
+    emit("stop_engine", engine.path);
+    invoke("get_best_moves", {
+      engine: engine.path,
+      fen: chess.fen(),
+      depth: maxDepth,
+      numberLines: Math.min(numberLines, chess.moves().length),
+      numberThreads: 2 ** cores,
+      relative: !!engine.downloadLink,
+    });
+  }
 
   useEffect(() => {
     async function waitForMove() {
@@ -99,26 +115,22 @@ function BestMoves({
         }
       });
     }
-
     waitForMove();
   }, []);
 
   useEffect(() => {
     if (enabled) {
-      emit("stop_engine", engine.path);
-      invoke("get_best_moves", {
-        engine: engine.path,
-        fen: chess.fen(),
-        depth: max_depth,
-        numberLines: Math.min(numberLines, chess.moves().length),
-        numberThreads: 8,
-        relative: !!engine.downloadLink,
-      });
+      startEngine();
     } else {
-      console.log("stopping engine");
-      emit("stop_engine" , engine.path);
+      emit("stop_engine", engine.path);
     }
-  }, [chess, enabled]);
+  }, [chess, enabled, numberLines, maxDepth, cores]);
+
+  useEffect(() => {
+    if (enabled && progress === 100) {
+      setEnabled(false);
+    }
+  }, [progress]);
 
   function AnalysisRow({
     score,
@@ -233,7 +245,6 @@ function BestMoves({
               <Text fw="bold" fz="xl">
                 {engine.name}
               </Text>
-
               {progress < 100 && enabled && (
                 <Tooltip label={"How fast the engine is running"}>
                   <Text>{nps}k nodes/s</Text>
@@ -255,10 +266,30 @@ function BestMoves({
             </Stack>
           </Group>
         </Accordion.Control>
-        <ActionIcon size="lg">
+        <ActionIcon size="lg" onClick={() => setSettingsOn(!settingsOn)}>
           <IconSettings size={16} />
         </ActionIcon>
       </Box>
+      <Collapse in={settingsOn} px={30} pb={15}>
+        <Group grow>
+          <Text size="sm" fw="bold">
+            Number of Lines
+          </Text>
+          <LinesSlider value={numberLines} setValue={setNumberLines} />
+        </Group>
+        <Group grow>
+          <Text size="sm" fw="bold">
+            Engine Depth
+          </Text>
+          <DepthSlider value={maxDepth} setValue={setMaxDepth} />
+        </Group>
+        <Group grow>
+          <Text size="sm" fw="bold">
+            Number of cores
+          </Text>
+          <CoresSlide value={cores} setValue={setCores} />
+        </Group>
+      </Collapse>
 
       <Progress
         value={progress}

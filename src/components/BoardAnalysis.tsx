@@ -1,8 +1,7 @@
 import {
   Accordion,
   ActionIcon,
-  AspectRatio,
-  Group,
+  AspectRatio, Group,
   ScrollArea,
   SimpleGrid,
   Stack,
@@ -23,8 +22,7 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconInfoCircle,
-  IconNotes,
-  IconSwitchVertical,
+  IconNotes, IconSwitchVertical,
   IconZoomCheck
 } from "@tabler/icons";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -350,6 +348,19 @@ function BoardAnalysis() {
                 type="always"
               >
                 <Stack>
+                  <Accordion variant="separated" multiple chevronSize={0}>
+                    {selectedEngines.map((engine) => {
+                      return (
+                        <BestMoves
+                          key={engine.name}
+                          engine={engine}
+                          makeMoves={makeMoves}
+                          half_moves={tree.half_moves}
+                          chess={chess}
+                        />
+                      );
+                    })}
+                  </Accordion>
                   <EngineSettingsBoard
                     selectedEngines={selectedEngines}
                     setSelectedEngines={setSelectedEngines}
@@ -358,21 +369,6 @@ function BoardAnalysis() {
                     numberLines={numberLines}
                     setNumberLines={setNumberLines}
                   />
-                  <Accordion variant="separated" multiple chevronSize={0}>
-                    {selectedEngines.map((engine) => {
-                      return (
-                        <BestMoves
-                          key={engine.name}
-                          engine={engine}
-                          numberLines={numberLines}
-                          makeMoves={makeMoves}
-                          half_moves={tree.half_moves}
-                          max_depth={maxDepth}
-                          chess={chess}
-                        />
-                      );
-                    })}
-                  </Accordion>
                 </Stack>
               </ScrollArea>
             </Tabs.Panel>

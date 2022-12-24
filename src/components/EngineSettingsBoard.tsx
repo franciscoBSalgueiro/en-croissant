@@ -1,12 +1,7 @@
-import {
-  ActionIcon,
-  Collapse,
-  Grid,
-  Group,
-  Stack, Text
-} from "@mantine/core";
+import { Button, Collapse, Grid, Stack } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
   Engine,
@@ -14,9 +9,7 @@ import {
   getDefaultEngines,
   getEngines
 } from "../utils/engines";
-import DepthSlider from "./DepthSlider";
 import ImageCheckbox from "./ImageCheckbox";
-import LinesSlider from "./LinesSlider";
 
 function EngineSettingsBoard({
   selectedEngines,
@@ -35,60 +28,75 @@ function EngineSettingsBoard({
 }) {
   const [engines, setEngines] = useState<Engine[]>(getDefaultEngines());
   const [showSettings, toggleShowSettings] = useToggle();
+  const router = useRouter();
 
   useEffect(() => {
     getEngines().then((engines) => {
       setEngines(engines);
     });
   }, []);
+  const installedEngines = engines.filter(
+    (engine) => engine.status === EngineStatus.Installed
+  );
+  useEffect(() => {
+    // check if there's any selected engines that are not installed
+    const selectedEnginesNotInstalled = selectedEngines.filter(
+      (selectedEngine) =>
+        !installedEngines.some(
+          (installedEngine) => installedEngine.name === selectedEngine.name
+        )
+    );
+    if (selectedEnginesNotInstalled.length > 0) {
+      setSelectedEngines((engines) =>
+        engines.filter(
+          (engine) =>
+            !selectedEnginesNotInstalled.some(
+              (selectedEngine) => selectedEngine.name === engine.name
+            )
+        )
+      );
+    }
+  }, [engines, selectedEngines, setSelectedEngines]);
   return (
     <>
-      <Group position="right">
-        <ActionIcon
-          onClick={() => {
-            toggleShowSettings();
-          }}
-        >
-          <IconSettings />
-        </ActionIcon>
-      </Group>
+      <Button
+        variant="default"
+        onClick={() => {
+          toggleShowSettings();
+          if (installedEngines.length === 0) {
+            router.push("/engines");
+          }
+        }}
+        leftIcon={<IconSettings size={14} />}
+      >
+        Manage Engines
+      </Button>
       <Collapse in={showSettings}>
         <Stack spacing="xl">
-          <div>
-            <Text size="sm">Engine Depth</Text>
-            <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-          </div>
-          <div>
-            <Text size="sm">Number of lines</Text>
-            <LinesSlider value={numberLines} setValue={setNumberLines} />
-          </div>
-
           <Grid grow>
-            {engines
-              .filter((engine) => engine.status === EngineStatus.Installed)
-              .map((engine) => (
-                <Grid.Col span={4} key={engine.name}>
-                  <ImageCheckbox
-                    title={engine.name}
-                    image={engine.image}
-                    checked={selectedEngines.some(
-                      (selectedEngine) => selectedEngine.name === engine.name
-                    )}
-                    onChange={(checked) => {
-                      if (checked) {
-                        setSelectedEngines((engines: Engine[]) => [
-                          ...engines,
-                          engine,
-                        ]);
-                      } else {
-                        setSelectedEngines((engines) =>
-                          engines.filter((e) => e.name !== engine.name)
-                        );
-                      }
-                    }}
-                  />
-                </Grid.Col>
-              ))}
+            {installedEngines.map((engine) => (
+              <Grid.Col span={4} key={engine.name}>
+                <ImageCheckbox
+                  title={engine.name}
+                  image={engine.image}
+                  checked={selectedEngines.some(
+                    (selectedEngine) => selectedEngine.name === engine.name
+                  )}
+                  onChange={(checked) => {
+                    if (checked) {
+                      setSelectedEngines((engines: Engine[]) => [
+                        ...engines,
+                        engine,
+                      ]);
+                    } else {
+                      setSelectedEngines((engines) =>
+                        engines.filter((e) => e.name !== engine.name)
+                      );
+                    }
+                  }}
+                />
+              </Grid.Col>
+            ))}
           </Grid>
         </Stack>
       </Collapse>

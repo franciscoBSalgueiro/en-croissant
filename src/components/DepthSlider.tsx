@@ -30,7 +30,6 @@ export default function DepthSlider({
       <Slider
         min={10}
         max={60}
-        size="lg"
         value={tempValue}
         onChange={setTempValue}
         marks={MARKS}
