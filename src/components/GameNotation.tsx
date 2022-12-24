@@ -1,12 +1,20 @@
 import {
+  ActionIcon,
   Box,
   Button,
   Menu,
+  Overlay,
   Paper,
   TypographyStylesProvider
 } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
-import { IconChevronDown, IconChevronUp, IconTrash } from "@tabler/icons";
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconEye,
+  IconEyeOff,
+  IconTrash
+} from "@tabler/icons";
 import { Annotation, annotationColor, VariationTree } from "../utils/chess";
 
 function GameNotation({
@@ -18,6 +26,7 @@ function GameNotation({
 }) {
   const forceUpdate = useForceUpdate();
   const topVariation = tree.getTopVariation();
+  const [visible, toggleVisible] = useToggle();
 
   function promoteVariation(variation: VariationTree) {
     const isCurrent = variation === tree;
@@ -65,10 +74,23 @@ function GameNotation({
   }
 
   return (
-    <Paper withBorder p="md">
-      <Box sx={{ minHeight: "250px" }}>
-        <RenderVariationTree tree={topVariation} depth={0} first />
+    <Paper withBorder p="md" sx={{ minHeight: "250px", position: "relative" }}>
+      <Box
+        sx={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          display: "flex",
+          alignItems: "center",
+          zIndex: 10,
+        }}
+      >
+        <ActionIcon onClick={() => toggleVisible()}>
+          {visible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+        </ActionIcon>
       </Box>
+      {visible && <Overlay opacity={0.6} color="#222" blur={3} zIndex={2} />}
+      <RenderVariationTree tree={topVariation} depth={0} first />
     </Paper>
   );
 

@@ -126,12 +126,6 @@ function BestMoves({ makeMoves, engine, half_moves, chess }: BestMovesProps) {
     }
   }, [chess, enabled, numberLines, maxDepth, cores]);
 
-  useEffect(() => {
-    if (enabled && progress === 100) {
-      setEnabled(false);
-    }
-  }, [progress]);
-
   function AnalysisRow({
     score,
     moves,
@@ -232,8 +226,18 @@ function BestMoves({ makeMoves, engine, half_moves, chess }: BestMovesProps) {
   return (
     <Accordion.Item value={engine.name}>
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <ActionIcon size="lg" onClick={() => setEnabled(!enabled)} ml={8}>
-          {enabled ? (
+        <ActionIcon
+          size="lg"
+          onClick={() => {
+            if (progress === 100) {
+              startEngine();
+            } else {
+              setEnabled(!enabled);
+            }
+          }}
+          ml={8}
+        >
+          {enabled && progress < 100 ? (
             <IconPlayerPause size={16} />
           ) : (
             <IconPlayerPlay size={16} />
