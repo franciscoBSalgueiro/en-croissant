@@ -3,9 +3,7 @@ import {
   Collapse,
   Grid,
   Group,
-  Stack,
-  Switch,
-  Text
+  Stack, Text
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons";
@@ -23,8 +21,6 @@ import LinesSlider from "./LinesSlider";
 function EngineSettingsBoard({
   selectedEngines,
   setSelectedEngines,
-  engineOn,
-  setEngineOn,
   numberLines,
   setNumberLines,
   maxDepth,
@@ -32,8 +28,6 @@ function EngineSettingsBoard({
 }: {
   selectedEngines: Engine[];
   setSelectedEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
-  engineOn: boolean;
-  setEngineOn: React.Dispatch<React.SetStateAction<boolean>>;
   numberLines: number;
   setNumberLines: React.Dispatch<React.SetStateAction<number>>;
   maxDepth: number;
@@ -49,21 +43,7 @@ function EngineSettingsBoard({
   }, []);
   return (
     <>
-      <Group position="apart">
-        <Group>
-          <Switch
-            checked={engineOn}
-            onChange={(event) => setEngineOn(event.currentTarget.checked)}
-            onLabel="On"
-            offLabel="Off"
-            size="lg"
-            disabled={selectedEngines.length === 0}
-          />
-          {selectedEngines.length === 0 && (
-            <Text color="red">No engines selected</Text>
-          )}
-        </Group>
-
+      <Group position="right">
         <ActionIcon
           onClick={() => {
             toggleShowSettings();

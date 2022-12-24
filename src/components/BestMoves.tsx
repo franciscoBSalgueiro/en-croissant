@@ -14,8 +14,10 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
-import { listen } from "@tauri-apps/api/event";
-import Image from "next/image";
+import { IconPlayerPause, IconPlayerPlay, IconSettings } from "@tabler/icons";
+import { invoke } from "@tauri-apps/api";
+import { emit, listen } from "@tauri-apps/api/event";
+import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import { EngineVariation, Score } from "../utils/chess";
 import { Engine } from "../utils/engines";
@@ -68,6 +70,7 @@ interface BestMovesProps {
   makeMoves: (moves: string[]) => void;
   half_moves: number;
   max_depth: number;
+  chess: Chess;
 }
 
 function BestMoves({
@@ -76,10 +79,12 @@ function BestMoves({
   engine,
   half_moves,
   max_depth,
+  chess,
 }: BestMovesProps) {
   const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
     []
   );
+  const [enabled, setEnabled] = useState<boolean>(false);
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
@@ -97,6 +102,23 @@ function BestMoves({
 
     waitForMove();
   }, []);
+
+  useEffect(() => {
+    if (enabled) {
+      emit("stop_engine", engine.path);
+      invoke("get_best_moves", {
+        engine: engine.path,
+        fen: chess.fen(),
+        depth: max_depth,
+        numberLines: Math.min(numberLines, chess.moves().length),
+        numberThreads: 8,
+        relative: !!engine.downloadLink,
+      });
+    } else {
+      console.log("stopping engine");
+      emit("stop_engine" , engine.path);
+    }
+  }, [chess, enabled]);
 
   function AnalysisRow({
     score,
@@ -197,40 +219,53 @@ function BestMoves({
 
   return (
     <Accordion.Item value={engine.name}>
-      <Accordion.Control>
-        <Group position="apart">
-          <Group align="baseline">
-            <Image
-              src={engine.image}
-              height={20}
-              width={20}
-              alt={engine.name}
-            />
-            <Text fw="bold" fz="xl">
-              {engine.name}
-            </Text>
-            {progress < 100 && (
-              <Tooltip label={"How fast the engine is running"}>
-                <Text>{nps}k nodes/s</Text>
-              </Tooltip>
-            )}
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <ActionIcon size="lg" onClick={() => setEnabled(!enabled)} ml={8}>
+          {enabled ? (
+            <IconPlayerPause size={16} />
+          ) : (
+            <IconPlayerPlay size={16} />
+          )}
+        </ActionIcon>
+        <Accordion.Control disabled={!enabled && engineVariations.length === 0}>
+          <Group position="apart">
+            <Group align="baseline">
+              <Text fw="bold" fz="xl">
+                {engine.name}
+              </Text>
+
+              {progress < 100 && enabled && (
+                <Tooltip label={"How fast the engine is running"}>
+                  <Text>{nps}k nodes/s</Text>
+                </Tooltip>
+              )}
+            </Group>
+            <Stack align="center" spacing={0}>
+              <Text
+                size="xs"
+                transform="uppercase"
+                weight={700}
+                className={classes.subtitle}
+              >
+                Depth
+              </Text>
+              <Text fw="bold" fz="xl">
+                {depth}
+              </Text>
+            </Stack>
           </Group>
-          <Stack align="center" spacing={0}>
-            <Text
-              size="xs"
-              transform="uppercase"
-              weight={700}
-              className={classes.subtitle}
-            >
-              Depth
-            </Text>
-            <Text fw="bold" fz="xl">
-              {depth}
-            </Text>
-          </Stack>
-        </Group>
-      </Accordion.Control>
-      <Progress value={progress} animate={progress < 100} size="xs" />
+        </Accordion.Control>
+        <ActionIcon size="lg">
+          <IconSettings size={16} />
+        </ActionIcon>
+      </Box>
+
+      <Progress
+        value={progress}
+        animate={progress < 100 && enabled}
+        size="xs"
+        striped={progress < 100 && !enabled}
+      />
       <Accordion.Panel>
         <Table>
           <tbody>

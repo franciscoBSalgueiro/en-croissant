@@ -27,8 +27,6 @@ import {
   IconSwitchVertical,
   IconZoomCheck
 } from "@tabler/icons";
-import { emit } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/tauri";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
@@ -39,16 +37,13 @@ import { useEffect, useState } from "react";
 import {
   Annotation,
   annotationColor,
-  EngineVariation,
   formatMove,
   moveToKey,
-  parseUci,
   toDests,
   VariationTree
 } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import { AnnotationEditor } from "./AnnotationEditor";
-import BestMoves from "./BestMoves";
 import Chessground from "./Chessground";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
@@ -59,6 +54,10 @@ const EngineSettingsBoard = dynamic(
     ssr: false,
   }
 );
+
+const BestMoves = dynamic(() => import("../components/BestMoves"), {
+  ssr: false,
+});
 
 function BoardAnalysis() {
   const forceUpdate = useForceUpdate();
@@ -103,11 +102,7 @@ function BoardAnalysis() {
     key: "number-lines",
     defaultValue: 3,
   });
-  const [engineVariations, setEngineVariation] = useState<EngineVariation[][]>(
-    []
-  );
 
-  const [engineOn, setEngineOn] = useState(false);
   const [orientation, setOrientation] = useState("w");
 
   const editor = useEditor(
@@ -149,7 +144,6 @@ function BoardAnalysis() {
     } else if (tree.children.every((child) => child.fen !== chess.fen())) {
       tree.children.push(newTree);
     }
-    setEngineVariation([]);
     setTree(newTree);
   }
 
@@ -166,7 +160,6 @@ function BoardAnalysis() {
       }
       parentTree = newTree;
     });
-    setEngineVariation([]);
     setTree(newTree);
   }
 
@@ -210,40 +203,22 @@ function BoardAnalysis() {
     ["f", () => flipBoard()],
   ]);
 
-  useEffect(() => {
-    if (engineOn) {
-      emit("stop_engine");
-      for (const engine of selectedEngines) {
-        invoke("get_best_moves", {
-          engine: engine.path,
-          fen: chess.fen(),
-          depth: maxDepth,
-          numberLines: Math.min(numberLines, chess.moves().length),
-          numberThreads: 8,
-          relative: !!engine.downloadLink,
-        });
-      }
-    } else {
-      emit("stop_engine");
-    }
-  }, [tree, engineOn]);
-
-  useEffect(() => {
-    setEngineVariation([]);
-    if (engineOn) {
-      emit("stop_engine");
-      for (const engine of selectedEngines) {
-        invoke("get_best_moves", {
-          engine: engine.path,
-          fen: chess.fen(),
-          depth: maxDepth,
-          numberLines: Math.min(numberLines, chess.moves().length),
-          numberThreads: 8,
-          relative: !!engine.downloadLink,
-        });
-      }
-    }
-  }, [maxDepth, numberLines]);
+  // useEffect(() => {
+  //   setEngineVariation([]);
+  //   if (engineOn) {
+  //     emit("stop_engine");
+  //     for (const engine of selectedEngines) {
+  //       invoke("get_best_moves", {
+  //         engine: engine.path,
+  //         fen: chess.fen(),
+  //         depth: maxDepth,
+  //         numberLines: Math.min(numberLines, chess.moves().length),
+  //         numberThreads: 8,
+  //         relative: !!engine.downloadLink,
+  //       });
+  //     }
+  //   }
+  // }, [maxDepth, numberLines]);
 
   const { ref, width, height } = useElementSize();
 
@@ -308,24 +283,24 @@ function BoardAnalysis() {
                 turnColor: turn,
                 check: chess.inCheck(),
                 lastMove,
-                drawable: {
-                  enabled: true,
-                  visible: true,
-                  defaultSnapToValidMove: true,
-                  eraseOnClick: true,
-                  autoShapes:
-                    showArrows && engineVariations.length > 0 && engineOn
-                      ? engineVariations[0].map((variation, i) => {
-                          const move = variation.uciMoves[0];
-                          const { from, to } = parseUci(move);
-                          return {
-                            orig: from,
-                            dest: to,
-                            brush: i === 0 ? "paleBlue" : "paleGrey",
-                          };
-                        })
-                      : [],
-                },
+                // drawable: {
+                //   enabled: true,
+                //   visible: true,
+                //   defaultSnapToValidMove: true,
+                //   eraseOnClick: true,
+                //   autoShapes:
+                //     showArrows && engineVariations.length > 0
+                //       ? engineVariations[0].map((variation, i) => {
+                //           const move = variation.uciMoves[0];
+                //           const { from, to } = parseUci(move);
+                //           return {
+                //             orig: from,
+                //             dest: to,
+                //             brush: i === 0 ? "paleBlue" : "paleGrey",
+                //           };
+                //         })
+                //       : [],
+                // },
               }}
             />
           </AspectRatio>
@@ -378,29 +353,26 @@ function BoardAnalysis() {
                   <EngineSettingsBoard
                     selectedEngines={selectedEngines}
                     setSelectedEngines={setSelectedEngines}
-                    engineOn={engineOn}
-                    setEngineOn={setEngineOn}
                     maxDepth={maxDepth}
                     setMaxDepth={setMaxDepth}
                     numberLines={numberLines}
                     setNumberLines={setNumberLines}
                   />
-                  {engineOn && (
-                    <Accordion variant="separated">
-                      {selectedEngines.map((engine) => {
-                        return (
-                          <BestMoves
-                            key={engine.name}
-                            engine={engine}
-                            numberLines={numberLines}
-                            makeMoves={makeMoves}
-                            half_moves={tree.half_moves}
-                            max_depth={maxDepth}
-                          />
-                        );
-                      })}
-                    </Accordion>
-                  )}
+                  <Accordion variant="separated" multiple chevronSize={0}>
+                    {selectedEngines.map((engine) => {
+                      return (
+                        <BestMoves
+                          key={engine.name}
+                          engine={engine}
+                          numberLines={numberLines}
+                          makeMoves={makeMoves}
+                          half_moves={tree.half_moves}
+                          max_depth={maxDepth}
+                          chess={chess}
+                        />
+                      );
+                    })}
+                  </Accordion>
                 </Stack>
               </ScrollArea>
             </Tabs.Panel>

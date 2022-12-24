@@ -158,6 +158,7 @@ function GameNotation({
             style={{
               display: multipleLine ? "block" : "inline-block",
               marginLeft: 4,
+              marginRight: 4,
             }}
           >
             <span

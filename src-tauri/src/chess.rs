@@ -155,11 +155,16 @@ pub async fn get_best_moves(
 
     let (tx, mut rx) = tokio::sync::broadcast::channel(16);
 
-    let id = app.listen_global("stop_engine", move |_| {
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            tx.send(()).unwrap();
-        });
+    let eng_id = engine.clone();
+    let id = app.listen_global("stop_engine", move |event| {
+        let payload = event.payload().unwrap();
+        let payload = payload[1..payload.len() - 1].to_string();
+        if payload == eng_id {
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                tx.send(()).unwrap();
+            });
+        }
     });
 
     tokio::spawn(async move {

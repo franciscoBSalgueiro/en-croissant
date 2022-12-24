@@ -15,6 +15,7 @@ export interface Engine {
     downloadLink?: string;
     path: string;
     progress?: number;
+    active?: boolean;
 }
 
 export interface EngineSettings {
