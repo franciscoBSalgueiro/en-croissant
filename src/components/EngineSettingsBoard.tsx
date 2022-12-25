@@ -14,17 +14,9 @@ import ImageCheckbox from "./ImageCheckbox";
 function EngineSettingsBoard({
   selectedEngines,
   setSelectedEngines,
-  numberLines,
-  setNumberLines,
-  maxDepth,
-  setMaxDepth,
 }: {
   selectedEngines: Engine[];
   setSelectedEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
-  numberLines: number;
-  setNumberLines: React.Dispatch<React.SetStateAction<number>>;
-  maxDepth: number;
-  setMaxDepth: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [engines, setEngines] = useState<Engine[]>(getDefaultEngines());
   const [showSettings, toggleShowSettings] = useToggle();

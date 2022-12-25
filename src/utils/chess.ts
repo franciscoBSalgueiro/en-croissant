@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api";
 import { Chess, Move, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
 
@@ -165,4 +166,9 @@ export function parseUci(move: string) {
     const from = move.substring(0, 2) as Square;
     const to = move.substring(2, 4) as Square;
     return { from, to };
+}
+
+export async function getOpening(fen: string): Promise<string> {
+    const name = await invoke("get_opening", { fen });
+    return name as string;
 }

@@ -5,6 +5,8 @@
 
 mod chess;
 mod fs;
+mod db;
+mod opening;
 
 use std::{fs::create_dir_all, path::Path};
 
@@ -15,7 +17,7 @@ use tauri::{
 
 use crate::{
     chess::get_best_moves,
-    fs::{download_file, file_exists, list_folders, remove_folder},
+    fs::{download_file, file_exists, list_folders, remove_folder}, db::read_pgn, opening::get_opening,
 };
 
 fn main() {
@@ -40,7 +42,9 @@ fn main() {
             list_folders,
             file_exists,
             remove_folder,
-            get_best_moves
+            get_best_moves,
+            read_pgn,
+            get_opening
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

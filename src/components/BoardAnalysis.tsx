@@ -1,7 +1,8 @@
 import {
   Accordion,
   ActionIcon,
-  AspectRatio, Group,
+  AspectRatio,
+  Group,
   ScrollArea,
   SimpleGrid,
   Stack,
@@ -22,7 +23,8 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconInfoCircle,
-  IconNotes, IconSwitchVertical,
+  IconNotes,
+  IconSwitchVertical,
   IconZoomCheck
 } from "@tabler/icons";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -53,6 +55,10 @@ const EngineSettingsBoard = dynamic(
   }
 );
 
+const OpeningName = dynamic(() => import("../components/OpeningName"), {
+  ssr: false,
+});
+
 const BestMoves = dynamic(() => import("../components/BestMoves"), {
   ssr: false,
 });
@@ -66,10 +72,6 @@ function BoardAnalysis() {
   const [showArrows, setShowArrows] = useLocalStorage<boolean>({
     key: "show-arrows",
     defaultValue: true,
-  });
-  const [maxDepth, setMaxDepth] = useLocalStorage<number>({
-    key: "max-depth",
-    defaultValue: 24,
   });
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
     key: "selected-engines",
@@ -96,10 +98,6 @@ function BoardAnalysis() {
     new VariationTree(null, form.values.fen, null)
   );
   const chess = new Chess(tree.fen);
-  const [numberLines, setNumberLines] = useLocalStorage<number>({
-    key: "number-lines",
-    defaultValue: 3,
-  });
 
   const [orientation, setOrientation] = useState("w");
 
@@ -201,23 +199,6 @@ function BoardAnalysis() {
     ["f", () => flipBoard()],
   ]);
 
-  // useEffect(() => {
-  //   setEngineVariation([]);
-  //   if (engineOn) {
-  //     emit("stop_engine");
-  //     for (const engine of selectedEngines) {
-  //       invoke("get_best_moves", {
-  //         engine: engine.path,
-  //         fen: chess.fen(),
-  //         depth: maxDepth,
-  //         numberLines: Math.min(numberLines, chess.moves().length),
-  //         numberThreads: 8,
-  //         relative: !!engine.downloadLink,
-  //       });
-  //     }
-  //   }
-  // }, [maxDepth, numberLines]);
-
   const { ref, width, height } = useElementSize();
 
   useEffect(() => {
@@ -303,7 +284,8 @@ function BoardAnalysis() {
             />
           </AspectRatio>
 
-          <Group position={"center"}>
+          <Group position={"apart"}>
+            <OpeningName fen={tree.fen} />
             <Tooltip label={"Flip Board"}>
               <ActionIcon onClick={() => flipBoard()}>
                 <IconSwitchVertical />
@@ -364,10 +346,6 @@ function BoardAnalysis() {
                   <EngineSettingsBoard
                     selectedEngines={selectedEngines}
                     setSelectedEngines={setSelectedEngines}
-                    maxDepth={maxDepth}
-                    setMaxDepth={setMaxDepth}
-                    numberLines={numberLines}
-                    setNumberLines={setNumberLines}
                   />
                 </Stack>
               </ScrollArea>
