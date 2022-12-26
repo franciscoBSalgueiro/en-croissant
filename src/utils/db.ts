@@ -72,6 +72,7 @@ export interface Player {
     id: string;
     name: string;
     rating?: number;
+    image?: string;
 }
 
 export async function query_players(
