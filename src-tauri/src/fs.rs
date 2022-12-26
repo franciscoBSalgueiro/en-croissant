@@ -120,3 +120,21 @@ pub fn externalOpen(path: String, app: tauri::AppHandle) -> Result<(), String> {
         Err("File does not exist".to_string())
     }
 }
+
+#[tauri::command]
+pub fn readDir(path: String) -> Result<Vec<String>, String> {
+    let path = Path::new(&path);
+    let mut files: Vec<String> = Vec::new();
+    if path.exists() {
+        for entry in std::fs::read_dir
+        (path).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let path_string = path.to_str().unwrap();
+            files.push(path_string.to_string());
+        }
+        Ok(files)
+    } else {
+        Err("Path does not exist".to_string())
+    }
+}

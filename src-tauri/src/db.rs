@@ -334,6 +334,56 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) {
     importer.send();
 }
 
+#[derive(Serialize)]
+pub struct DatabaseInfo {
+    title: String,
+    description: String,
+    player_count: usize,
+    game_count: usize,
+    storage_size: usize,
+}
+
+#[tauri::command]
+pub fn getDatabaseInfo(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
+    // get the db/$file as a PathBuf
+    let db_path = PathBuf::from("db").join(file);
+
+    let path = resolve_path(
+        &app.config(),
+        app.package_info(),
+        &app.env(),
+        &db_path,
+        Some(BaseDirectory::AppData),
+    )
+    .or(Err("resolve path"))?;
+
+    let db = rusqlite::Connection::open(&path).expect("open database");
+    let mut stmt = db
+        .prepare("SELECT COUNT(*) FROM player")
+        .expect("prepare player count");
+    let player_count = stmt
+        .query_row([], |row| row.get(0))
+        .expect("get player count");
+
+    let mut stmt = db
+        .prepare("SELECT COUNT(*) FROM game")
+        .expect("prepare game count");
+    let game_count = stmt
+        .query_row([], |row| row.get(0))
+        .expect("get game count");
+
+    let storage_size = path.metadata().expect("get metadata").len() as usize;
+    let filename = path.file_name().expect("get filename").to_string_lossy();
+
+    Ok(DatabaseInfo {
+        title: "test".to_string(),
+        description: filename.to_string(),
+        player_count,
+        game_count,
+        storage_size,
+    })
+}
+
 #[tauri::command]
 pub fn get_number_games(file: PathBuf) -> u64 {
     let db = rusqlite::Connection::open(file).expect("open database");

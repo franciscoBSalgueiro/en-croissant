@@ -17,8 +17,8 @@ use tauri::{
 
 use crate::{
     chess::get_best_moves,
-    db::{convert_pgn, get_games, get_number_games, get_players},
-    fs::{download_file, externalOpen, file_exists},
+    db::{convert_pgn, getDatabaseInfo, get_games, get_number_games, get_players},
+    fs::{download_file, externalOpen, file_exists, readDir},
     opening::get_opening,
 };
 
@@ -56,12 +56,14 @@ fn main() {
             download_file,
             file_exists,
             externalOpen,
+            readDir,
             get_best_moves,
             get_opening,
             convert_pgn,
             get_number_games,
             get_games,
-            get_players
+            get_players,
+            getDatabaseInfo
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

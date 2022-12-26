@@ -1,5 +1,14 @@
 import { invoke } from "@tauri-apps/api";
 
+export interface Database {
+    title?: string;
+    description?: string;
+    game_count?: number;
+    player_count?: number;
+    storage_size?: number;
+    file: string;
+}
+
 interface QueryResponse<T> {
     data: T;
     count: number;
@@ -47,7 +56,6 @@ export async function query_games(
     db: string,
     query: GameQuery
 ): Promise<QueryResponse<Game[]>> {
-    console.log(query);
     return invoke("get_games", {
         file: db,
         query: {
@@ -87,4 +95,16 @@ export async function query_players(
             offset: query.offset,
         },
     });
+}
+
+export function formatBytes(bytes: number, decimals = 2) {
+    if (bytes === 0) return "0 Bytes";
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }

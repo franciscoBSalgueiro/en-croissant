@@ -12,10 +12,11 @@ import {
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { useEffect, useState } from "react";
-import { Game, Outcome, query_games, Speed } from "../utils/db";
+import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
 import { SearchInput } from "./SearchInput";
 
-function GameTable({ file }: { file: string }) {
+function GameTable({ database }: { database: Database }) {
+  const file = database.file;
   const [games, setGames] = useState<Game[]>([]);
   const [count, setCount] = useState(0);
   const [white, setWhite] = useState("");
@@ -44,7 +45,7 @@ function GameTable({ file }: { file: string }) {
       setGames(res.data);
       setCount(res.count);
     });
-  }, [white, black, speed, outcome, skip, limit]);
+  }, [white, black, speed, outcome, skip, limit, file]);
 
   useEffect(() => {
     setLoading(true);
@@ -152,7 +153,7 @@ function GameTable({ file }: { file: string }) {
             { label: "Draw", value: Outcome.Draw },
           ]}
         />
-        <Tooltip label="Counting the total number of games can reduce performance">
+        <Tooltip label="Disabling this may significantly improve performance">
           <Checkbox
             label="Include pagination"
             checked={!skip}
@@ -186,7 +187,7 @@ function GameTable({ file }: { file: string }) {
             total={count / limit}
           />
           <Text weight={500} align="center" p={20}>
-            {count} games found
+            {Intl.NumberFormat().format(count)} games
           </Text>
         </Stack>
       )}
