@@ -89,13 +89,13 @@ pub struct Game {
     white: Player,
     black: Player,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    winner: Option<Color>,
+    outcome: Option<Outcome>,
     #[serde_as(as = "StringWithSeparator<SpaceSeparator, SanPlus>")]
     moves: Vec<SanPlus>,
 }
 
 #[derive(Default, Debug, Serialize)]
-struct Player {
+pub struct Player {
     name: Option<String>,
     rating: Option<u16>,
 }
@@ -145,7 +145,7 @@ impl Importer {
                     date,
                     speed,
                     fen,
-                    winner,
+                    outcome,
                     moves
                 ) VALUES (?1,
                     (SELECT id FROM player WHERE name = ?2),
@@ -160,7 +160,13 @@ impl Importer {
                     game.date,
                     game.speed.map(|s| s as u8),
                     game.fen,
-                    game.winner.map(|c| c as u8),
+                    game.outcome.map(|r| match r {
+                        Outcome::Decisive { winner } => match winner {
+                            Color::White => 1,
+                            Color::Black => 2,
+                        },
+                        Outcome::Draw => 3,
+                    }),
                     game.moves
                         .iter()
                         .map(|m| m.san.to_string())
@@ -218,7 +224,7 @@ impl Visitor for Importer {
             );
         } else if key == b"Result" {
             match Outcome::from_ascii(value.as_bytes()) {
-                Ok(outcome) => self.current.winner = outcome.winner(),
+                Ok(outcome) => self.current.outcome = Some(outcome),
                 Err(_) => self.skip = true,
             }
         } else if key == b"FEN" {
@@ -303,7 +309,7 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) {
                     date TEXT NOT NULL,
                     speed INTEGER NOT NULL,
                     fen TEXT,
-                    winner INTEGER,
+                    outcome INTEGER NOT NULL,
                     moves TEXT NOT NULL,
                     FOREIGN KEY(white) REFERENCES player(id),
                     FOREIGN KEY(black) REFERENCES player(id)
@@ -337,26 +343,28 @@ pub fn get_number_games(file: PathBuf) -> u64 {
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
-pub struct Query {
+pub struct GameQuery {
     pub white: Option<String>,
     pub black: Option<String>,
     pub white_rating: Option<(u16, u16)>,
     pub black_rating: Option<(u16, u16)>,
     pub speed: Option<Speed>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub winner: Option<Color>,
+    pub outcome: Option<Outcome>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
 }
 
 #[tauri::command]
-pub fn get_games(file: PathBuf, query: Query) -> Vec<Game> {
+pub fn get_games(file: PathBuf, query: GameQuery) -> Vec<Game> {
     let db = rusqlite::Connection::open(file).expect("open database");
+
+    println!("{:?}", query);
 
     // get the games that match the query
     let mut stmt = db
         .prepare(
-            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, winner, moves
+            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, outcome, moves
             FROM game
             INNER JOIN player AS white ON white.id = game.white
             INNER JOIN player AS black ON black.id = game.black
@@ -368,7 +376,7 @@ pub fn get_games(file: PathBuf, query: Query) -> Vec<Game> {
                 (:black_rating_min IS NULL OR black_rating >= :black_rating_min) AND
                 (:black_rating_max IS NULL OR black_rating <= :black_rating_max) AND
                 (:speed IS NULL OR speed = :speed) AND
-                (:winner IS NULL OR winner = :winner)
+                (:outcome IS NULL OR outcome = :outcome)
             LIMIT :limit OFFSET :offset",
         )
         .expect("prepare query");
@@ -382,7 +390,13 @@ pub fn get_games(file: PathBuf, query: Query) -> Vec<Game> {
             ":black_rating_min": query.black_rating.map(|(min, _)| min),
             ":black_rating_max": query.black_rating.map(|(_, max)| max),
             ":speed": query.speed.map(|s| s as u8),
-            ":winner": query.winner.map(|c| c as u8),
+            ":outcome": query.outcome.map(|o| match o {
+                Outcome::Decisive { winner } => match winner {
+                    Color::White => 1,
+                    Color::Black => 2,
+                },
+                Outcome::Draw => 3,
+            }),
             ":limit": query.limit,
             ":offset": query.offset,
         })
@@ -399,7 +413,7 @@ pub fn get_games(file: PathBuf, query: Query) -> Vec<Game> {
         let date: String = row.get(5).expect("get date");
         let speed: u8 = row.get(6).expect("get speed");
         let fen: Option<String> = row.get(7).expect("get fen");
-        let winner: Option<u8> = row.get(8).expect("get winner");
+        let outcome: u8 = row.get(8).expect("get outcome");
 
         games.push(Game {
             id: Some(id),
@@ -414,9 +428,62 @@ pub fn get_games(file: PathBuf, query: Query) -> Vec<Game> {
             date: Some(date),
             speed: Some(Speed::from(speed)),
             fen,
-            winner: winner.map(|w| if w == 0 { Color::White } else { Color::Black }),
+            outcome: Some(match outcome {
+                1 => Outcome::Decisive {
+                    winner: Color::White,
+                },
+                2 => Outcome::Decisive {
+                    winner: Color::Black,
+                },
+                3 => Outcome::Draw,
+                _ => unreachable!(),
+            }),
             moves: Vec::new(),
         });
     }
     games
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PlayerQuery {
+    pub name: Option<String>,
+    pub limit: Option<u64>,
+    pub offset: Option<u64>,
+}
+
+#[tauri::command]
+pub fn get_players(file: PathBuf, query: PlayerQuery) -> Vec<Player> {
+    let db = rusqlite::Connection::open(file).expect("open database");
+
+    // get the players that match the query
+    let mut stmt = db
+        // Use LIKE
+        .prepare(
+            "SELECT name
+            FROM player
+            WHERE
+                (:name IS NULL OR name LIKE :name)
+            LIMIT :limit OFFSET :offset",
+        )
+        .expect("prepare query");
+
+    let mut rows = stmt
+        .query(named_params! {
+            ":name": query.name.map(|n| format!("%{}%", n)),
+            ":limit": query.limit,
+            ":offset": query.offset,
+        })
+        .expect("execute query");
+
+    let mut players = Vec::new();
+
+    while let Some(row) = rows.next().expect("get next row") {
+        let name: String = row.get(0).expect("get name");
+
+        players.push(Player {
+            name: Some(name),
+            rating: None,
+        });
+    }
+    players
 }

@@ -3,6 +3,10 @@ import { IconDatabase } from "@tabler/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
+const ConvertButton = dynamic(() => import("../components/ConvertButton"), {
+  ssr: false,
+});
+
 const GameTable = dynamic(() => import("../components/GameTable"), {
   ssr: false,
 });
@@ -172,11 +176,13 @@ export default function Page() {
             storage={item.storage}
           />
         ))}
+        <ConvertButton />
       </Group>
 
       <Title m={30}>Your Database</Title>
+
       <Text>{database?.title}</Text>
-      <GameTable file="C:\\Users\\Francisco\\Documents\\Programas\\tauri\\en-croissant\\src-tauri\\data\\2015-03.pgn.sqlite" />
+      <GameTable file="C:\Users\Francisco\AppData\Roaming\en-croissant\db\lichess_db_standard_rated_2013-01.sqlite" />
     </>
   );
 }
