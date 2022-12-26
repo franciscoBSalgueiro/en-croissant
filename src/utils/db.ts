@@ -1,5 +1,10 @@
 import { invoke } from "@tauri-apps/api";
 
+interface QueryResponse<T> {
+    data: T;
+    count: number;
+}
+
 export const enum Speed {
     UltraBullet = "UltraBullet",
     Bullet = "Bullet",
@@ -40,7 +45,7 @@ export interface Game {
 export async function query_games(
     db: string,
     query: GameQuery
-): Promise<Game[]> {
+): Promise<QueryResponse<Game[]>> {
     console.log(query);
     return invoke("get_games", {
         file: db,

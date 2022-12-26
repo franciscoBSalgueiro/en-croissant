@@ -355,8 +355,14 @@ pub struct GameQuery {
     pub offset: Option<u64>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct QueryResponse<T> {
+    pub data: T,
+    pub count: usize,
+}
+
 #[tauri::command]
-pub fn get_games(file: PathBuf, query: GameQuery) -> Vec<Game> {
+pub fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
     let db = rusqlite::Connection::open(file).expect("open database");
 
     println!("{:?}", query);
@@ -364,7 +370,7 @@ pub fn get_games(file: PathBuf, query: GameQuery) -> Vec<Game> {
     // get the games that match the query
     let mut stmt = db
         .prepare(
-            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, outcome, moves
+            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, outcome, moves, COUNT(*) OVER() AS total
             FROM game
             INNER JOIN player AS white ON white.id = game.white
             INNER JOIN player AS black ON black.id = game.black
@@ -403,6 +409,7 @@ pub fn get_games(file: PathBuf, query: GameQuery) -> Vec<Game> {
         .expect("execute query");
 
     let mut games = Vec::new();
+    let mut count: usize = 0;
 
     while let Some(row) = rows.next().expect("get next row") {
         let id: String = row.get(0).expect("get id");
@@ -414,6 +421,8 @@ pub fn get_games(file: PathBuf, query: GameQuery) -> Vec<Game> {
         let speed: u8 = row.get(6).expect("get speed");
         let fen: Option<String> = row.get(7).expect("get fen");
         let outcome: u8 = row.get(8).expect("get outcome");
+        count = row.get(10).expect("get count");
+
 
         games.push(Game {
             id: Some(id),
@@ -441,7 +450,7 @@ pub fn get_games(file: PathBuf, query: GameQuery) -> Vec<Game> {
             moves: Vec::new(),
         });
     }
-    games
+    QueryResponse { data: games, count }
 }
 
 #[derive(Debug, Clone, Deserialize)]

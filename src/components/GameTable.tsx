@@ -5,6 +5,7 @@ import { SearchInput } from "./SearchInput";
 
 function GameTable({ file }: { file: string }) {
   const [games, setGames] = useState<Game[]>([]);
+  const [count, setCount] = useState(0);
   const [white, setWhite] = useState("");
   const [black, setBlack] = useState("");
   const [speed, setSpeed] = useState<string | null>(null);
@@ -22,7 +23,8 @@ function GameTable({ file }: { file: string }) {
       offset: 0,
     }).then((res) => {
       setLoading(false);
-      setGames(res);
+      setGames(res.data);
+      setCount(res.count);
     });
   }, [white, black, speed, outcome]);
 
@@ -65,6 +67,7 @@ function GameTable({ file }: { file: string }) {
         label="Speed"
         value={speed}
         onChange={setSpeed}
+        clearable
         placeholder="Select speed"
         data={[
           { label: Speed.UltraBullet, value: Speed.UltraBullet },
@@ -79,6 +82,7 @@ function GameTable({ file }: { file: string }) {
         label="Result"
         value={outcome}
         onChange={setOutcome}
+        clearable
         placeholder="Select result"
         data={[
           { label: "White wins", value: Outcome.WhiteWin },
@@ -103,6 +107,9 @@ function GameTable({ file }: { file: string }) {
           </>
         </tbody>
       </Table>
+      <Text weight={500} align="center" p={20}>
+        {count} games found
+      </Text>
     </>
   );
 }
