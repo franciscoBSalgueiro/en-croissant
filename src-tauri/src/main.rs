@@ -18,7 +18,7 @@ use tauri::{
 use crate::{
     chess::get_best_moves,
     db::{convert_pgn, get_games, get_number_games, get_players},
-    fs::{download_file, file_exists},
+    fs::{download_file, externalOpen, file_exists},
     opening::get_opening,
 };
 
@@ -55,6 +55,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             download_file,
             file_exists,
+            externalOpen,
             get_best_moves,
             get_opening,
             convert_pgn,

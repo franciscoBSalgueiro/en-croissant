@@ -1,4 +1,10 @@
-import { Card, createStyles, Group, Text, Title } from "@mantine/core";
+import {
+  Card,
+  createStyles,
+  Group,
+  Text,
+  Title
+} from "@mantine/core";
 import { IconDatabase } from "@tabler/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -6,6 +12,13 @@ import { useState } from "react";
 const ConvertButton = dynamic(() => import("../components/ConvertButton"), {
   ssr: false,
 });
+
+const OpenFolderButton = dynamic(
+  () => import("../components/OpenFolderButton"),
+  {
+    ssr: false,
+  }
+);
 
 const GameTable = dynamic(() => import("../components/GameTable"), {
   ssr: false,
@@ -163,7 +176,10 @@ export default function Page() {
 
   return (
     <>
-      <Title m={30}>Your Collections</Title>
+      <Group align="baseline" m={30}>
+        <Title>Your Databases</Title>
+        <OpenFolderButton path="db" />
+      </Group>
       <Group>
         {data.map((item, i) => (
           <CollectionCard
@@ -179,7 +195,7 @@ export default function Page() {
         <ConvertButton />
       </Group>
 
-      <Title m={30}>Your Database</Title>
+      <Title m={30}>Games</Title>
 
       <Text>{database?.title}</Text>
       <GameTable file="C:\Users\Francisco\AppData\Roaming\en-croissant\db\lichess_db_standard_rated_2015-03.sqlite" />

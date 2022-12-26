@@ -7,7 +7,8 @@ import {
   ScrollArea,
   Table,
   Text,
-  TextInput
+  TextInput,
+  Title
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 
@@ -32,6 +33,7 @@ import {
   getDefaultEngines,
   getEngineSettings
 } from "../utils/engines";
+import OpenFolderButton from "./OpenFolderButton";
 import { ProgressButton } from "./ProgressButton";
 
 export default function EngineTable() {
@@ -260,6 +262,10 @@ export default function EngineTable() {
           </Button>
         </form>
       </Modal>
+      <Group align="baseline" m={30}>
+        <Title>Your Engines</Title>
+        <OpenFolderButton path="engines" />
+      </Group>
       <ScrollArea>
         <Button leftIcon={<IconReload />} onClick={() => readConfig()}>
           Reload

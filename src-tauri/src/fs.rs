@@ -3,7 +3,7 @@ use std::{fs::create_dir_all, io::Cursor, path::Path};
 use reqwest::Client;
 
 use futures_util::StreamExt;
-use tauri::Manager;
+use tauri::{api::shell::open, Manager};
 
 #[derive(Clone, serde::Serialize)]
 pub struct DownloadFilePayload {
@@ -107,4 +107,16 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) {
 #[tauri::command]
 pub fn file_exists(path: String) -> bool {
     Path::new(&path).exists()
+}
+
+#[tauri::command]
+pub fn externalOpen(path: String, app: tauri::AppHandle) -> Result<(), String> {
+    let path = Path::new(&path);
+    let path_string = path.to_str().unwrap();
+    if path.exists() {
+        open(&app.shell_scope(), path_string, None).or(Err("Failed to open file".to_string()))?;
+        Ok(())
+    } else {
+        Err("File does not exist".to_string())
+    }
 }
