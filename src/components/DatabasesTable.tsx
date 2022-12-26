@@ -143,7 +143,6 @@ export default function DatabasesTable() {
         data.file = db;
         db_data.push(data as Database);
       }
-      console.log(db_data);
       setDatabases(db_data);
     }
     getDatabases();
@@ -173,7 +172,6 @@ export default function DatabasesTable() {
 
       <Title m={30}>Games</Title>
 
-      <Text>{database?.title}</Text>
       {database !== null && <GameTable database={database} />}
     </>
   );

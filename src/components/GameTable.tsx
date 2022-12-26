@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Box,
   Checkbox,
   Group,
   LoadingOverlay,
@@ -162,23 +163,23 @@ function GameTable({ database }: { database: Database }) {
         </Tooltip>
       </Stack>
 
-      <Table highlightOnHover>
-        <thead>
-          <tr>
-            <th>White</th>
-            <th>Result</th>
-            <th>Black</th>
-            <th>Date</th>
-            <th>Speed</th>
-          </tr>
-        </thead>
-        <tbody style={{ position: "relative" }}>
-          <>
-            {rows}
-            <LoadingOverlay visible={loading} />
-          </>
-        </tbody>
-      </Table>
+      <Box sx={{ position: "relative" }}>
+        <Table highlightOnHover>
+          <thead>
+            <tr>
+              <th>White</th>
+              <th>Result</th>
+              <th>Black</th>
+              <th>Date</th>
+              <th>Speed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <>{rows}</>
+          </tbody>
+        </Table>
+        <LoadingOverlay visible={loading} />
+      </Box>
       {!skip && (
         <Stack align="center" spacing={0} mt={20}>
           <Pagination
