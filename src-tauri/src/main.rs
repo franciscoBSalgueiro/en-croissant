@@ -4,8 +4,8 @@
 )]
 
 mod chess;
-mod fs;
 mod db;
+mod fs;
 mod opening;
 
 use std::{fs::create_dir_all, path::Path};
@@ -17,14 +17,17 @@ use tauri::{
 
 use crate::{
     chess::get_best_moves,
-    fs::{download_file, file_exists, list_folders, remove_folder}, db::read_pgn, opening::get_opening,
+    db::{convert_pgn, get_games, get_number_games},
+    fs::{download_file, file_exists},
+    opening::get_opening,
 };
 
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            // Check if the directory exists, if not, create it
-            let path = resolve_path(
+            // Check if all the necessary directories exist, and create them if they don't
+
+            let engines_path = resolve_path(
                 &app.config(),
                 app.package_info(),
                 &app.env(),
@@ -32,19 +35,31 @@ fn main() {
                 Some(BaseDirectory::AppData),
             )
             .unwrap();
-            if !Path::new(&path).exists() {
-                create_dir_all(&path).unwrap();
+            if !Path::new(&engines_path).exists() {
+                create_dir_all(&engines_path).unwrap();
+            }
+
+            let db_path = resolve_path(
+                &app.config(),
+                app.package_info(),
+                &app.env(),
+                "db",
+                Some(BaseDirectory::AppData),
+            )
+            .unwrap();
+            if !Path::new(&db_path).exists() {
+                create_dir_all(&db_path).unwrap();
             }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             download_file,
-            list_folders,
             file_exists,
-            remove_folder,
             get_best_moves,
-            read_pgn,
-            get_opening
+            get_opening,
+            convert_pgn,
+            get_number_games,
+            get_games
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

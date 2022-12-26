@@ -61,3 +61,15 @@ lazy_static! {
         map
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_opening() {
+        let opening =
+            get_opening("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR b kq - 1 2").unwrap();
+        assert_eq!(opening, "Bongcloud Attack");
+    }
+}

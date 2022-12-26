@@ -27,6 +27,11 @@ shakmaty = "0.22.0"
 pgn-reader = "0.22.0"
 csv = "1.1.6"
 lazy_static = "1.4.0"
+btoi = "0.4.2"
+rusqlite = { version = "0.28.0", features = ["bundled"] }
+bzip2 = "0.4.3"
+zstd = "0.12.1"
+serde_with = "2.1.0"
 
 [features]
 # by default Tauri runs in production mode
@@ -35,3 +40,6 @@ default = [ "custom-protocol" ]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = [ "tauri/custom-protocol" ]
+
+[profile.test]
+opt-level = 3

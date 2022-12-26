@@ -3,11 +3,9 @@ import { IconDatabase } from "@tabler/icons";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
-const ParseButton = dynamic(
-  () => import("../components/ParseButton"),
-  { ssr: false }
-);
-
+const GameTable = dynamic(() => import("../components/GameTable"), {
+  ssr: false,
+});
 
 const useStyles = createStyles((theme) => ({
   input: {
@@ -178,7 +176,7 @@ export default function Page() {
 
       <Title m={30}>Your Database</Title>
       <Text>{database?.title}</Text>
-      <ParseButton />
+      <GameTable file="C:\\Users\\Francisco\\Documents\\Programas\\tauri\\en-croissant\\src-tauri\\data\\2015-03.pgn.sqlite" />
     </>
   );
 }

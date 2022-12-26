@@ -1,6 +1,4 @@
-
-
-use std::{fs::create_dir_all, path::Path, io::Cursor};
+use std::{fs::create_dir_all, io::Cursor, path::Path};
 
 use reqwest::Client;
 
@@ -109,29 +107,4 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) {
 #[tauri::command]
 pub fn file_exists(path: String) -> bool {
     Path::new(&path).exists()
-}
-
-#[tauri::command]
-pub async fn list_folders(directory: String) -> Result<String, String> {
-    let path = Path::new(&directory);
-    let mut folders = Vec::new();
-    if path.is_dir() {
-        for entry in std::fs::read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_dir() {
-                folders.push(path.file_name().unwrap().to_str().unwrap().to_string());
-            }
-        }
-    }
-    Ok(folders.join(","))
-}
-
-#[tauri::command]
-pub async fn remove_folder(directory: String) -> Result<String, String> {
-    let path = Path::new(&directory);
-    if path.is_dir() {
-        std::fs::remove_dir_all(path).unwrap();
-    }
-    Ok("removed".to_string())
 }
