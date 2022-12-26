@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::San, zobrist::ZobristHash, CastlingMode, Chess, Position};
+use shakmaty::{
+    fen::Fen, san::San, zobrist::ZobristHash, CastlingMode, Chess, Position,
+};
 
 use lazy_static::lazy_static;
 
@@ -28,11 +30,16 @@ const TSV_DATA: [&[u8]; 5] = [
 
 // Create a table at compile time from the TSV data.
 #[tauri::command]
-pub fn get_opening(fen: &str) -> Option<&str> {
-    let fen: Fen = fen.parse().unwrap();
-    let pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
+pub fn get_opening(fen: &str) -> Result<&str, &str> {
+    let fen: Fen = fen.parse().expect("valid fen");
+    let pos: Chess = fen
+        .into_position(CastlingMode::Standard)
+        .or(Err("Invalid Position"))?;
     let hash = pos.zobrist_hash();
-    OPENINGS.get(&hash).map(|o| o.name.as_str())
+    OPENINGS
+        .get(&hash)
+        .map(|o| o.name.as_str())
+        .ok_or("No opening found")
 }
 
 lazy_static! {
