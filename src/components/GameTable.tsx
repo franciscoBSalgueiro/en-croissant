@@ -1,4 +1,12 @@
-import { LoadingOverlay, Select, Table, Text } from "@mantine/core";
+import {
+  Checkbox,
+  LoadingOverlay,
+  Select,
+  Table,
+  Text,
+  Tooltip
+} from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { Game, Outcome, query_games, Speed } from "../utils/db";
 import { SearchInput } from "./SearchInput";
@@ -11,6 +19,7 @@ function GameTable({ file }: { file: string }) {
   const [speed, setSpeed] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [skip, toggleSkip] = useToggle();
 
   useEffect(() => {
     setLoading(true);
@@ -21,12 +30,13 @@ function GameTable({ file }: { file: string }) {
       outcome: outcome === null ? undefined : (outcome as Outcome),
       limit: 10,
       offset: 0,
+      skip_count: skip,
     }).then((res) => {
       setLoading(false);
       setGames(res.data);
       setCount(res.count);
     });
-  }, [white, black, speed, outcome]);
+  }, [white, black, speed, outcome, skip]);
 
   const rows =
     games.length === 0 ? (
@@ -90,6 +100,13 @@ function GameTable({ file }: { file: string }) {
           { label: "Draw", value: Outcome.Draw },
         ]}
       />
+      <Tooltip label="Including the total number of games can reduce performance">
+        <Checkbox
+          label="Include count"
+          checked={!skip}
+          onChange={() => toggleSkip()}
+        />
+      </Tooltip>
       <Table highlightOnHover>
         <thead>
           <tr>
@@ -107,9 +124,11 @@ function GameTable({ file }: { file: string }) {
           </>
         </tbody>
       </Table>
-      <Text weight={500} align="center" p={20}>
-        {count} games found
-      </Text>
+      {!skip && (
+        <Text weight={500} align="center" p={20}>
+          {count} games found
+        </Text>
+      )}
     </>
   );
 }

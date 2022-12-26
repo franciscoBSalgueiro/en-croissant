@@ -344,6 +344,7 @@ pub fn get_number_games(file: PathBuf) -> u64 {
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct GameQuery {
+    pub skip_count: bool,
     pub white: Option<String>,
     pub black: Option<String>,
     pub white_rating: Option<(u16, u16)>,
@@ -358,19 +359,65 @@ pub struct GameQuery {
 #[derive(Debug, Clone, Serialize)]
 pub struct QueryResponse<T> {
     pub data: T,
-    pub count: usize,
+    pub count: Option<usize>,
 }
 
 #[tauri::command]
-pub fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
+pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
     let db = rusqlite::Connection::open(file).expect("open database");
 
     println!("{:?}", query);
+    let count = if query.skip_count {
+        None
+    } else {
+        let mut count_stmt = db
+            .prepare(
+                "SELECT COUNT(*) FROM game INNER JOIN player AS white ON white.id = game.white
+        INNER JOIN player AS black ON black.id = game.black
+        WHERE
+            (:white IS NULL OR white.name = :white) AND
+            (:black IS NULL OR black.name = :black) AND
+            (:white_rating_min IS NULL OR white_rating >= :white_rating_min) AND
+            (:white_rating_max IS NULL OR white_rating <= :white_rating_max) AND
+            (:black_rating_min IS NULL OR black_rating >= :black_rating_min) AND
+            (:black_rating_max IS NULL OR black_rating <= :black_rating_max) AND
+            (:speed IS NULL OR speed = :speed) AND
+            (:outcome IS NULL OR outcome = :outcome)",
+            )
+            .expect("prepare count statement");
 
-    // get the games that match the query
+        let mut count_rows = count_stmt
+            .query(named_params! {
+                ":white": query.white,
+                ":black": query.black,
+                ":white_rating_min": query.white_rating.map(|(min, _)| min),
+                ":white_rating_max": query.white_rating.map(|(_, max)| max),
+                ":black_rating_min": query.black_rating.map(|(min, _)| min),
+                ":black_rating_max": query.black_rating.map(|(_, max)| max),
+                ":speed": query.speed.map(|s| s as u8),
+                ":outcome": query.outcome.map(|o| match o {
+                    Outcome::Decisive { winner } => match winner {
+                        Color::White => 1,
+                        Color::Black => 2,
+                    },
+                    Outcome::Draw => 3,
+                })
+            })
+            .expect("query");
+
+        Some(
+            count_rows
+                .next()
+                .expect("get count")
+                .expect("get count")
+                .get(0)
+                .expect("get count"),
+        )
+    };
+    // get the games that match the query and the total number of games, only up to 10000
     let mut stmt = db
         .prepare(
-            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, outcome, moves, COUNT(*) OVER() AS total
+            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, outcome, moves
             FROM game
             INNER JOIN player AS white ON white.id = game.white
             INNER JOIN player AS black ON black.id = game.black
@@ -409,7 +456,6 @@ pub fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
         .expect("execute query");
 
     let mut games = Vec::new();
-    let mut count: usize = 0;
 
     while let Some(row) = rows.next().expect("get next row") {
         let id: String = row.get(0).expect("get id");
@@ -421,8 +467,6 @@ pub fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
         let speed: u8 = row.get(6).expect("get speed");
         let fen: Option<String> = row.get(7).expect("get fen");
         let outcome: u8 = row.get(8).expect("get outcome");
-        count = row.get(10).expect("get count");
-
 
         games.push(Game {
             id: Some(id),
@@ -461,7 +505,7 @@ pub struct PlayerQuery {
 }
 
 #[tauri::command]
-pub fn get_players(file: PathBuf, query: PlayerQuery) -> Vec<Player> {
+pub async fn get_players(file: PathBuf, query: PlayerQuery) -> Vec<Player> {
     let db = rusqlite::Connection::open(file).expect("open database");
 
     // get the players that match the query

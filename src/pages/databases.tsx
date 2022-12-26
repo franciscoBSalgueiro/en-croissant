@@ -182,7 +182,7 @@ export default function Page() {
       <Title m={30}>Your Database</Title>
 
       <Text>{database?.title}</Text>
-      <GameTable file="C:\Users\Francisco\AppData\Roaming\en-croissant\db\lichess_db_standard_rated_2013-01.sqlite" />
+      <GameTable file="C:\Users\Francisco\AppData\Roaming\en-croissant\db\lichess_db_standard_rated_2015-03.sqlite" />
     </>
   );
 }

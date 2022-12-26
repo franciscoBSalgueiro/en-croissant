@@ -22,6 +22,7 @@ export enum Outcome {
 }
 
 interface GameQuery {
+    skip_count?: boolean;
     white?: string;
     black?: string;
     white_rating?: [number, number];
@@ -50,6 +51,7 @@ export async function query_games(
     return invoke("get_games", {
         file: db,
         query: {
+            skip_count: query.skip_count || false,
             white: query.white,
             black: query.black,
             speed: query.speed,
