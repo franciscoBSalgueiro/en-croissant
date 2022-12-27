@@ -15,15 +15,12 @@ import {
   IconEyeOff,
   IconTrash
 } from "@tabler/icons";
+import { useContext } from "react";
 import { Annotation, annotationColor, VariationTree } from "../utils/chess";
+import { TreeContext } from "./BoardAnalysis";
 
-function GameNotation({
-  tree,
-  setTree,
-}: {
-  tree: VariationTree;
-  setTree: (tree: VariationTree) => void;
-}) {
+function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
+  const tree = useContext(TreeContext);
   const forceUpdate = useForceUpdate();
   const topVariation = tree.getTopVariation();
   const [visible, toggleVisible] = useToggle();

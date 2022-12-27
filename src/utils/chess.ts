@@ -168,7 +168,11 @@ export function parseUci(move: string) {
     return { from, to };
 }
 
-export async function getOpening(fen: string): Promise<string> {
-    const name = await invoke("get_opening", { fen });
-    return name as string;
+export async function getOpening(tree: VariationTree | null): Promise<string> {
+    if (tree === null) {
+        return "";
+    }
+    return invoke("get_opening", { fen: tree.fen })
+        .then((v) => v as string)
+        .catch(() => getOpening(tree.parent));
 }

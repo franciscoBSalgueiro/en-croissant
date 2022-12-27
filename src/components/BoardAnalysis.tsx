@@ -23,25 +23,19 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { Annotation, moveToKey, VariationTree } from "../utils/chess";
+import { createContext, useEffect, useState } from "react";
+import { Annotation, VariationTree } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import AnnotationPanel from "./AnnotationPanel";
+import BestMoves from "./BestMoves";
 import Chessboard from "./Chessboard";
+import EngineSettingsBoard from "./EngineSettingsBoard";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 
-const EngineSettingsBoard = dynamic(
-  () => import("../components/EngineSettingsBoard"),
-  {
-    ssr: false,
-  }
+export const TreeContext = createContext(
+  new VariationTree(null, DEFAULT_POSITION, null)
 );
-
-const BestMoves = dynamic(() => import("../components/BestMoves"), {
-  ssr: false,
-});
 
 function BoardAnalysis() {
   const forceUpdate = useForceUpdate();
@@ -153,8 +147,6 @@ function BoardAnalysis() {
     setTree(new VariationTree(null, fen, null));
   }
 
-  const lastMove = moveToKey(tree.move);
-
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
     ["ArrowRight", () => redoMove()],
@@ -167,9 +159,9 @@ function BoardAnalysis() {
   }, [tree]);
 
   return (
-    <>
+    <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-        <Chessboard chess={chess} lastMove={lastMove} makeMove={makeMove} />
+        <Chessboard makeMove={makeMove} />
 
         <Stack>
           <Tabs defaultValue="analysis">
@@ -222,11 +214,11 @@ function BoardAnalysis() {
               </ScrollArea>
             </Tabs.Panel>
           </Tabs>
-          <GameNotation tree={tree} setTree={setTree} />
+          <GameNotation setTree={setTree} />
           <MoveControls />
         </Stack>
       </SimpleGrid>
-    </>
+    </TreeContext.Provider>
   );
 
   function MoveControls() {

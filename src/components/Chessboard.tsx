@@ -2,18 +2,21 @@ import { ActionIcon, Group, Stack, Tooltip } from "@mantine/core";
 import { useLocalStorage, useToggle } from "@mantine/hooks";
 import { IconSwitchVertical } from "@tabler/icons";
 import { Chess, KING, Square } from "chess.js";
-import { Color, Key } from "chessground/types";
+import { Color } from "chessground/types";
+import { useContext } from "react";
 import Chessground from "react-chessground";
-import { formatMove, toDests } from "../utils/chess";
+import { formatMove, moveToKey, toDests } from "../utils/chess";
+import { TreeContext } from "./BoardAnalysis";
 import OpeningName from "./OpeningName";
 
 interface ChessboardProps {
-  chess: Chess;
-  lastMove?: Key[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
 }
 
-function Chessboard({ chess, lastMove, makeMove }: ChessboardProps) {
+function Chessboard({ makeMove }: ChessboardProps) {
+  const tree = useContext(TreeContext);
+  const chess = new Chess(tree.fen);
+  const lastMove = tree.move;
   const [showDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -72,7 +75,7 @@ function Chessboard({ chess, lastMove, makeMove }: ChessboardProps) {
           }}
           turnColor={turn}
           check={chess.inCheck()}
-          lastMove={lastMove}
+          lastMove={moveToKey(lastMove)}
           // drawable={{
           //   enabled: true,
           //   visible: true,
@@ -95,7 +98,7 @@ function Chessboard({ chess, lastMove, makeMove }: ChessboardProps) {
       </div>
 
       <Group position={"apart"}>
-        <OpeningName fen={fen} />
+        <OpeningName />
 
         <Tooltip label={"Flip Board"}>
           <ActionIcon onClick={() => toggleOrientation()}>
