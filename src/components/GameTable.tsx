@@ -107,7 +107,11 @@ function GameTable({ database }: { database: Database }) {
           </td>
           <td>{game.date}</td>
           <td>{game.speed}</td>
-          <td><Link href={"https://lichess.org/" + game.site} target="_blank">{game.site}</Link></td>
+          <td>
+            <Link href={"https://lichess.org/" + game.site} target="_blank">
+              {game.site}
+            </Link>
+          </td>
         </tr>
       ))
     );
@@ -174,7 +178,7 @@ function GameTable({ database }: { database: Database }) {
               <th>Black</th>
               <th>Date</th>
               <th>Speed</th>
-              <th>Test</th>
+              <th>Link</th>
             </tr>
           </thead>
           <tbody>
@@ -183,12 +187,22 @@ function GameTable({ database }: { database: Database }) {
         </Table>
         <LoadingOverlay visible={loading} />
       </Box>
+      <Select
+        label="Results per page"
+        value={limit.toString()}
+        onChange={(v) => {
+          v && setLimit(parseInt(v));
+        }}
+        sx={{ float: "right" }}
+        data={["5", "10", "25", "50", "100"]}
+        defaultValue={limit.toString()}
+      />
       {!skip && (
         <Stack align="center" spacing={0} mt={20}>
           <Pagination
             page={activePage}
             onChange={setActivePage}
-            total={count / limit}
+            total={Math.ceil(count / limit)}
           />
           <Text weight={500} align="center" p={20}>
             {Intl.NumberFormat().format(count)} games
