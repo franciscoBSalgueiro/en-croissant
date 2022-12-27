@@ -346,7 +346,7 @@ pub struct DatabaseInfo {
 }
 
 #[tauri::command]
-pub fn getDatabaseInfo(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
+pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
     // get the db/$file as a PathBuf
     let db_path = PathBuf::from("db").join(file);
 

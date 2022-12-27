@@ -115,7 +115,7 @@ export async function getDatabases() {
     let dbs = files.filter((file) => file.name?.endsWith(".sqlite"));
     let db_data: Database[] = [];
     for (let db of dbs) {
-      let data = (await invoke("getDatabaseInfo", {
+      let data = (await invoke("get_db_info", {
         file: db.path,
       })) as Database;
       data.file = db.path;
