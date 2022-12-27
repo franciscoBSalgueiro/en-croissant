@@ -18,17 +18,15 @@ import {
   IconChevronsRight,
   IconInfoCircle,
   IconNotes,
-  IconSwitchVertical,
   IconZoomCheck
 } from "@tabler/icons";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Chess, DEFAULT_POSITION, KING, Square, validateFen } from "chess.js";
+import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import Chessground from "react-chessground";
 import {
   Annotation,
   annotationColor,
@@ -39,6 +37,7 @@ import {
 } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import { AnnotationEditor } from "./AnnotationEditor";
+import Chessboard from "./Chessboard";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 
@@ -49,24 +48,12 @@ const EngineSettingsBoard = dynamic(
   }
 );
 
-const OpeningName = dynamic(() => import("../components/OpeningName"), {
-  ssr: false,
-});
-
 const BestMoves = dynamic(() => import("../components/BestMoves"), {
   ssr: false,
 });
 
 function BoardAnalysis() {
   const forceUpdate = useForceUpdate();
-  const [showDests, setShowDests] = useLocalStorage<boolean>({
-    key: "show-dests",
-    defaultValue: true,
-  });
-  const [showArrows, setShowArrows] = useLocalStorage<boolean>({
-    key: "show-arrows",
-    defaultValue: true,
-  });
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
     key: "selected-engines",
     defaultValue: [],
@@ -92,8 +79,6 @@ function BoardAnalysis() {
     new VariationTree(null, form.values.fen, null)
   );
   const chess = new Chess(tree.fen);
-
-  const [orientation, setOrientation] = useState("w");
 
   const editor = useEditor(
     {
@@ -173,10 +158,6 @@ function BoardAnalysis() {
     setTree(tree.getBottomVariation());
   }
 
-  function flipBoard() {
-    setOrientation(orientation === "w" ? "b" : "w");
-  }
-
   function resetToFen(fen: string) {
     setTree(new VariationTree(null, fen, null));
   }
@@ -190,7 +171,6 @@ function BoardAnalysis() {
     ["ArrowRight", () => redoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
-    ["f", () => flipBoard()],
   ]);
 
   useEffect(() => {
@@ -200,81 +180,7 @@ function BoardAnalysis() {
   return (
     <>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-        <Stack justify="center">
-          <div style={{ aspectRatio: 1 }}>
-            <Chessground
-              style={{ justifyContent: "start" }}
-              width={"100%"}
-              height={"100%"}
-              orientation={formatMove(orientation)}
-              fen={chess.fen()}
-              movable={{
-                free: false,
-                color: turn,
-                dests: dests,
-                showDests,
-                events: {
-                  after: (orig, dest) => {
-                    if (orig === "a0" || dest === "a0") {
-                      // NOTE: Idk if this can happen
-                      return;
-                    }
-                    if (chess.get(orig)?.type === KING) {
-                      switch (dest) {
-                        case "h1":
-                          dest = "g1";
-                          break;
-                        case "a1":
-                          dest = "c1";
-                          break;
-                        case "h8":
-                          dest = "g8";
-                          break;
-                        case "a8":
-                          dest = "c8";
-                          break;
-                      }
-                    }
-                    makeMove({
-                      from: orig,
-                      to: dest,
-                    });
-                  },
-                },
-              }}
-              turnColor={turn}
-              check={chess.inCheck()}
-              lastMove={lastMove}
-              // drawable={{
-              //   enabled: true,
-              //   visible: true,
-              //   defaultSnapToValidMove: true,
-              //   eraseOnClick: true,
-              //   autoShapes:
-              //     showArrows && engineVariations.length > 0
-              //       ? engineVariations[0].map((variation, i) => {
-              //           const move = variation.uciMoves[0];
-              //           const { from, to } = parseUci(move);
-              //           return {
-              //             orig: from,
-              //             dest: to,
-              //             brush: i === 0 ? "paleBlue" : "paleGrey",
-              //           };
-              //         })
-              //       : [],
-              // }}
-            />
-          </div>
-
-          <Group position={"apart"}>
-            <OpeningName fen={tree.fen} />
-            <Tooltip label={"Flip Board"}>
-              <ActionIcon onClick={() => flipBoard()}>
-                <IconSwitchVertical />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        </Stack>
+        <Chessboard chess={chess} lastMove={lastMove} makeMove={makeMove} />
 
         <Stack>
           <Tabs defaultValue="analysis">
