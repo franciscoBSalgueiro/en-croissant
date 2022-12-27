@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
 import BoardView from "./BoardView";
 import { SearchInput } from "./SearchInput";
+import SpeeedBadge from "./SpeedBadge";
 
 function GameTable({ database }: { database: Database }) {
   const file = database.file;
@@ -90,7 +91,14 @@ function GameTable({ database }: { database: Database }) {
       </tr>
     ) : (
       games.map((game, i) => (
-        <tr key={i} onClick={() => setSelectedGame(game.moves)}>
+        <tr
+          key={i}
+          onClick={() => {
+            game.moves == selectedGame
+              ? setSelectedGame(null)
+              : setSelectedGame(game.moves);
+          }}
+        >
           <td>
             <Group spacing="sm">
               <Avatar size={40} src={game.white.image} radius={40} />
@@ -119,11 +127,15 @@ function GameTable({ database }: { database: Database }) {
             </Group>
           </td>
           <td>{game.date}</td>
-          <td>{game.speed}</td>
           <td>
-            <Link href={"https://lichess.org/" + game.site} target="_blank">
-              {game.site}
-            </Link>
+            <SpeeedBadge speed={game.speed} />
+          </td>
+          <td>
+            {game.site && (
+              <Link href={"https://lichess.org/" + game.site} target="_blank">
+                {game.site}
+              </Link>
+            )}
           </td>
           <td>
             <Text lineClamp={1}>{game.moves}</Text>
