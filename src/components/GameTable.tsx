@@ -2,9 +2,11 @@ import {
   Avatar,
   Box,
   Checkbox,
+  Grid,
   Group,
   LoadingOverlay,
   Pagination,
+  ScrollArea,
   Select,
   Stack,
   Table,
@@ -15,7 +17,12 @@ import { useToggle } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
+import {
+  Database,
+  Game, Outcome,
+  query_games,
+  Speed
+} from "../utils/db";
 import BoardView from "./BoardView";
 import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
@@ -100,7 +107,7 @@ function GameTable({ database }: { database: Database }) {
           }}
         >
           <td>
-            <Group spacing="sm">
+            <Group spacing="sm" noWrap>
               <Avatar size={40} src={game.white.image} radius={40} />
               <div>
                 <Text size="sm" weight={500}>
@@ -114,7 +121,7 @@ function GameTable({ database }: { database: Database }) {
           </td>
           <td>{game.outcome.replaceAll("1/2", "½")}</td>
           <td>
-            <Group spacing="sm">
+            <Group spacing="sm" noWrap>
               <Avatar size={40} src={game.black.image} radius={40} />
               <div>
                 <Text size="sm" weight={500}>
@@ -145,101 +152,109 @@ function GameTable({ database }: { database: Database }) {
     );
 
   return (
-    <>
-      <Stack>
-        <Group grow>
-          <SearchInput
-            value={white}
-            setValue={setWhite}
-            label="White"
-            file={file}
-          />
-          <SearchInput
-            value={black}
-            setValue={setBlack}
-            label="Black"
-            file={file}
-          />
-        </Group>
+    <Grid grow>
+      <Grid.Col span={3}>
+        <Box sx={{ position: "relative" }}>
+          <ScrollArea>
+            <Table highlightOnHover>
+              <thead>
+                <tr>
+                  <th>White</th>
+                  <th>Result</th>
+                  <th>Black</th>
+                  <th>Date</th>
+                  <th>Speed</th>
+                  <th>Link</th>
+                  <th>Game</th>
+                </tr>
+              </thead>
+              <tbody>
+                <>{rows}</>
+              </tbody>
+            </Table>
+          </ScrollArea>
+          <LoadingOverlay visible={loading} />
+        </Box>
         <Select
-          label="Speed"
-          value={speed}
-          onChange={setSpeed}
-          clearable
-          placeholder="Select speed"
-          data={[
-            { label: Speed.UltraBullet, value: Speed.UltraBullet },
-            { label: Speed.Bullet, value: Speed.Bullet },
-            { label: Speed.Blitz, value: Speed.Blitz },
-            { label: Speed.Rapid, value: Speed.Rapid },
-            { label: Speed.Classical, value: Speed.Classical },
-            { label: Speed.Correspondence, value: Speed.Correspondence },
-          ]}
+          label="Results per page"
+          value={limit.toString()}
+          onChange={(v) => {
+            v && setLimit(parseInt(v));
+          }}
+          sx={{ float: "right" }}
+          data={["5", "10", "25", "50", "100"]}
+          defaultValue={limit.toString()}
         />
-        <Select
-          label="Result"
-          value={outcome}
-          onChange={setOutcome}
-          clearable
-          placeholder="Select result"
-          data={[
-            { label: "White wins", value: Outcome.WhiteWin },
-            { label: "Black wins", value: Outcome.BlackWin },
-            { label: "Draw", value: Outcome.Draw },
-          ]}
-        />
-        <Tooltip label="Disabling this may significantly improve performance">
-          <Checkbox
-            label="Include pagination"
-            checked={!skip}
-            onChange={() => toggleSkip()}
-          />
-        </Tooltip>
-      </Stack>
+        {!skip && (
+          <Stack align="center" spacing={0} mt={20}>
+            <Pagination
+              page={activePage}
+              onChange={setActivePage}
+              total={Math.ceil(count / limit)}
+            />
+            <Text weight={500} align="center" p={20}>
+              {Intl.NumberFormat().format(count)} games
+            </Text>
+          </Stack>
+        )}
+      </Grid.Col>
 
-      <Box sx={{ position: "relative" }}>
-        <Table highlightOnHover>
-          <thead>
-            <tr>
-              <th>White</th>
-              <th>Result</th>
-              <th>Black</th>
-              <th>Date</th>
-              <th>Speed</th>
-              <th>Link</th>
-              <th>Game</th>
-            </tr>
-          </thead>
-          <tbody>
-            <>{rows}</>
-          </tbody>
-        </Table>
-        <LoadingOverlay visible={loading} />
-      </Box>
-      <Select
-        label="Results per page"
-        value={limit.toString()}
-        onChange={(v) => {
-          v && setLimit(parseInt(v));
-        }}
-        sx={{ float: "right" }}
-        data={["5", "10", "25", "50", "100"]}
-        defaultValue={limit.toString()}
-      />
-      {!skip && (
-        <Stack align="center" spacing={0} mt={20}>
-          <Pagination
-            page={activePage}
-            onChange={setActivePage}
-            total={Math.ceil(count / limit)}
+      <Grid.Col span={2}>
+        <Stack>
+          <Group grow>
+            <SearchInput
+              value={white}
+              setValue={setWhite}
+              label="White"
+              file={file}
+            />
+            <SearchInput
+              value={black}
+              setValue={setBlack}
+              label="Black"
+              file={file}
+            />
+          </Group>
+          <Select
+            label="Speed"
+            value={speed}
+            onChange={setSpeed}
+            clearable
+            placeholder="Select speed"
+            data={[
+              { label: Speed.UltraBullet, value: Speed.UltraBullet },
+              { label: Speed.Bullet, value: Speed.Bullet },
+              { label: Speed.Blitz, value: Speed.Blitz },
+              { label: Speed.Rapid, value: Speed.Rapid },
+              { label: Speed.Classical, value: Speed.Classical },
+              { label: Speed.Correspondence, value: Speed.Correspondence },
+            ]}
           />
-          <Text weight={500} align="center" p={20}>
-            {Intl.NumberFormat().format(count)} games
-          </Text>
+          <Select
+            label="Result"
+            value={outcome}
+            onChange={setOutcome}
+            clearable
+            placeholder="Select result"
+            data={[
+              { label: "White wins", value: Outcome.WhiteWin },
+              { label: "Black wins", value: Outcome.BlackWin },
+              { label: "Draw", value: Outcome.Draw },
+            ]}
+          />
+          <Tooltip label="Disabling this may significantly improve performance">
+            <Checkbox
+              label="Include pagination"
+              checked={!skip}
+              onChange={() => toggleSkip()}
+            />
+          </Tooltip>
         </Stack>
-      )}
-      {selectedGame !== null && <BoardView fen={fenFromString(selectedGame)} />}
-    </>
+        {selectedGame !== null && (
+          <BoardView fen={fenFromString(selectedGame)} />
+        )}
+      </Grid.Col>
+    </Grid>
   );
 }
 

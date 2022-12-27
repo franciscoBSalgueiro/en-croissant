@@ -1,23 +1,10 @@
 import { Card, createStyles, Group, Text, Title } from "@mantine/core";
 import { IconDatabase } from "@tabler/icons";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Database, formatBytes, getDatabases } from "../utils/db";
-
-const ConvertButton = dynamic(() => import("../components/ConvertButton"), {
-  ssr: false,
-});
-
-const OpenFolderButton = dynamic(
-  () => import("../components/OpenFolderButton"),
-  {
-    ssr: false,
-  }
-);
-
-const GameTable = dynamic(() => import("../components/GameTable"), {
-  ssr: false,
-});
+import ConvertButton from "./ConvertButton";
+import GameTable from "./GameTable";
+import OpenFolderButton from "./OpenFolderButton";
 
 const useStyles = createStyles(
   (theme, { selected }: { selected: boolean }) => ({

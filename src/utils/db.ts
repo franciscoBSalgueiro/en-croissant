@@ -113,13 +113,13 @@ export function formatBytes(bytes: number, decimals = 2) {
 export async function getDatabases() {
     let files = await readDir("db", { dir: BaseDirectory.AppData });
     let dbs = files.filter((file) => file.name?.endsWith(".sqlite"));
-    let db_data: Database[] = [];
-    for (let db of dbs) {
-      let data = (await invoke("get_db_info", {
-        file: db.path,
-      })) as Database;
-      data.file = db.path;
-      db_data.push(data as Database);
-    }
-    return db_data
-  }
+    return await Promise.all(dbs.map((db) => getDatabase(db.path)));
+}
+
+export async function getDatabase(path: string) {
+    let db = (await invoke("get_db_info", {
+        file: path,
+    })) as Database;
+    db.file = path;
+    return db;
+}
