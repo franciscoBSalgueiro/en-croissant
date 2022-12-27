@@ -2,6 +2,7 @@ import {
   Avatar,
   Box,
   Checkbox,
+  createStyles,
   Grid,
   Group,
   LoadingOverlay,
@@ -17,17 +18,60 @@ import { useToggle } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  Database,
-  Game, Outcome,
-  query_games,
-  Speed
-} from "../utils/db";
+import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
 import BoardView from "./BoardView";
 import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
 
+const useStyles = createStyles((theme) => ({
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+    backgroundColor:
+      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
+    transition: "box-shadow 150ms ease",
+
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderBottom: `1px solid ${
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[3]
+          : theme.colors.gray[2]
+      }`,
+    },
+  },
+  scrolled: {
+    boxShadow: theme.shadows.sm,
+  },
+  row: {
+    cursor: "pointer",
+    "&:hover": {
+      backgroundColor:
+        theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.white,
+    },
+  },
+  rowSelected: {
+    backgroundColor:
+      theme.colorScheme === "dark"
+        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
+        : theme.colors[theme.primaryColor][0],
+
+    "&:hover": {
+      backgroundColor:
+        theme.colorScheme === "dark"
+          ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
+          : theme.colors[theme.primaryColor][0],
+    },
+  },
+}));
+
 function GameTable({ database }: { database: Database }) {
+  const { classes, cx } = useStyles();
   const file = database.file;
   const [games, setGames] = useState<Game[]>([]);
   const [count, setCount] = useState(0);
@@ -37,10 +81,11 @@ function GameTable({ database }: { database: Database }) {
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [skip, toggleSkip] = useToggle();
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(25);
   const [activePage, setActivePage] = useState(1);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const offset = (activePage - 1) * limit;
+  const [scrolled, setScrolled] = useState(false);
 
   function fenFromString(moves: string) {
     const chess = new Chess();
@@ -90,7 +135,7 @@ function GameTable({ database }: { database: Database }) {
   const rows =
     games.length === 0 ? (
       <tr>
-        <td colSpan={5}>
+        <td colSpan={6}>
           <Text weight={500} align="center" p={20}>
             No games found
           </Text>
@@ -105,6 +150,9 @@ function GameTable({ database }: { database: Database }) {
               ? setSelectedGame(null)
               : setSelectedGame(game.moves);
           }}
+          className={cx(classes.row, {
+            [classes.rowSelected]: game.moves == selectedGame,
+          })}
         >
           <td>
             <Group spacing="sm" noWrap>
@@ -144,9 +192,6 @@ function GameTable({ database }: { database: Database }) {
               </Link>
             )}
           </td>
-          <td>
-            <Text lineClamp={1}>{game.moves}</Text>
-          </td>
         </tr>
       ))
     );
@@ -155,9 +200,15 @@ function GameTable({ database }: { database: Database }) {
     <Grid grow>
       <Grid.Col span={3}>
         <Box sx={{ position: "relative" }}>
-          <ScrollArea>
-            <Table highlightOnHover>
-              <thead>
+          <ScrollArea
+            h={600}
+            onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
+            offsetScrollbars
+          >
+            <Table>
+              <thead
+                className={cx(classes.header, { [classes.scrolled]: scrolled })}
+              >
                 <tr>
                   <th>White</th>
                   <th>Result</th>
@@ -165,7 +216,6 @@ function GameTable({ database }: { database: Database }) {
                   <th>Date</th>
                   <th>Speed</th>
                   <th>Link</th>
-                  <th>Game</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,27 +225,29 @@ function GameTable({ database }: { database: Database }) {
           </ScrollArea>
           <LoadingOverlay visible={loading} />
         </Box>
-        <Select
-          label="Results per page"
-          value={limit.toString()}
-          onChange={(v) => {
-            v && setLimit(parseInt(v));
-          }}
-          sx={{ float: "right" }}
-          data={["5", "10", "25", "50", "100"]}
-          defaultValue={limit.toString()}
-        />
         {!skip && (
-          <Stack align="center" spacing={0} mt={20}>
-            <Pagination
-              page={activePage}
-              onChange={setActivePage}
-              total={Math.ceil(count / limit)}
+          <>
+            <Select
+              label="Results per page"
+              value={limit.toString()}
+              onChange={(v) => {
+                v && setLimit(parseInt(v));
+              }}
+              sx={{ float: "right" }}
+              data={["10", "25", "50", "100"]}
+              defaultValue={limit.toString()}
             />
-            <Text weight={500} align="center" p={20}>
-              {Intl.NumberFormat().format(count)} games
-            </Text>
-          </Stack>
+            <Stack align="center" spacing={0} mt={20}>
+              <Pagination
+                page={activePage}
+                onChange={setActivePage}
+                total={Math.ceil(count / limit)}
+              />
+              <Text weight={500} align="center" p={20}>
+                {Intl.NumberFormat().format(count)} games
+              </Text>
+            </Stack>
+          </>
         )}
       </Grid.Col>
 
