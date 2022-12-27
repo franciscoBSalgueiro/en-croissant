@@ -12,6 +12,7 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
 import { SearchInput } from "./SearchInput";
@@ -75,8 +76,8 @@ function GameTable({ database }: { database: Database }) {
         </td>
       </tr>
     ) : (
-      games.map((game) => (
-        <tr key={game.id}>
+      games.map((game, i) => (
+        <tr key={i}>
           <td>
             <Group spacing="sm">
               <Avatar size={40} src={game.white.image} radius={40} />
@@ -106,6 +107,7 @@ function GameTable({ database }: { database: Database }) {
           </td>
           <td>{game.date}</td>
           <td>{game.speed}</td>
+          <td><Link href={"https://lichess.org/" + game.site} target="_blank">{game.site}</Link></td>
         </tr>
       ))
     );
@@ -172,6 +174,7 @@ function GameTable({ database }: { database: Database }) {
               <th>Black</th>
               <th>Date</th>
               <th>Speed</th>
+              <th>Test</th>
             </tr>
           </thead>
           <tbody>

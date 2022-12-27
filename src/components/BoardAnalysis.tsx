@@ -1,7 +1,6 @@
 import {
   Accordion,
   ActionIcon,
-  AspectRatio,
   Group,
   ScrollArea,
   SimpleGrid,
@@ -11,12 +10,7 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import {
-  useElementSize,
-  useForceUpdate,
-  useHotkeys,
-  useLocalStorage
-} from "@mantine/hooks";
+import { useForceUpdate, useHotkeys, useLocalStorage } from "@mantine/hooks";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -34,6 +28,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Chess, DEFAULT_POSITION, KING, Square, validateFen } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import Chessground from "react-chessground";
 import {
   Annotation,
   annotationColor,
@@ -44,7 +39,6 @@ import {
 } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import { AnnotationEditor } from "./AnnotationEditor";
-import Chessground from "./Chessground";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
 
@@ -199,90 +193,78 @@ function BoardAnalysis() {
     ["f", () => flipBoard()],
   ]);
 
-  const { ref, width, height } = useElementSize();
-
   useEffect(() => {
     form.setValues({ fen: tree.fen });
   }, [tree]);
 
   return (
     <>
-      <SimpleGrid cols={2} breakpoints={[{ maxWidth: 1120, cols: 1 }]}>
+      <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
         <Stack justify="center">
-          <AspectRatio
-            ref={ref}
-            ratio={1}
-            style={{
-              width: "100%",
-              maxWidth: "90vh",
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-          >
+          <div style={{ aspectRatio: 1 }}>
             <Chessground
-              width={width}
-              height={height}
-              config={{
-                orientation: formatMove(orientation),
-                fen: chess.fen(),
-                movable: {
-                  free: false,
-                  color: turn,
-                  dests: dests,
-                  showDests,
-                  events: {
-                    after: (orig, dest) => {
-                      if (orig === "a0" || dest === "a0") {
-                        // NOTE: Idk if this can happen
-                        return;
+              style={{ justifyContent: "start" }}
+              width={"100%"}
+              height={"100%"}
+              orientation={formatMove(orientation)}
+              fen={chess.fen()}
+              movable={{
+                free: false,
+                color: turn,
+                dests: dests,
+                showDests,
+                events: {
+                  after: (orig, dest) => {
+                    if (orig === "a0" || dest === "a0") {
+                      // NOTE: Idk if this can happen
+                      return;
+                    }
+                    if (chess.get(orig)?.type === KING) {
+                      switch (dest) {
+                        case "h1":
+                          dest = "g1";
+                          break;
+                        case "a1":
+                          dest = "c1";
+                          break;
+                        case "h8":
+                          dest = "g8";
+                          break;
+                        case "a8":
+                          dest = "c8";
+                          break;
                       }
-                      if (chess.get(orig)?.type === KING) {
-                        switch (dest) {
-                          case "h1":
-                            dest = "g1";
-                            break;
-                          case "a1":
-                            dest = "c1";
-                            break;
-                          case "h8":
-                            dest = "g8";
-                            break;
-                          case "a8":
-                            dest = "c8";
-                            break;
-                        }
-                      }
-                      makeMove({
-                        from: orig,
-                        to: dest,
-                      });
-                    },
+                    }
+                    makeMove({
+                      from: orig,
+                      to: dest,
+                    });
                   },
                 },
-                turnColor: turn,
-                check: chess.inCheck(),
-                lastMove,
-                // drawable: {
-                //   enabled: true,
-                //   visible: true,
-                //   defaultSnapToValidMove: true,
-                //   eraseOnClick: true,
-                //   autoShapes:
-                //     showArrows && engineVariations.length > 0
-                //       ? engineVariations[0].map((variation, i) => {
-                //           const move = variation.uciMoves[0];
-                //           const { from, to } = parseUci(move);
-                //           return {
-                //             orig: from,
-                //             dest: to,
-                //             brush: i === 0 ? "paleBlue" : "paleGrey",
-                //           };
-                //         })
-                //       : [],
-                // },
               }}
+              turnColor={turn}
+              check={chess.inCheck()}
+              lastMove={lastMove}
+              // drawable={{
+              //   enabled: true,
+              //   visible: true,
+              //   defaultSnapToValidMove: true,
+              //   eraseOnClick: true,
+              //   autoShapes:
+              //     showArrows && engineVariations.length > 0
+              //       ? engineVariations[0].map((variation, i) => {
+              //           const move = variation.uciMoves[0];
+              //           const { from, to } = parseUci(move);
+              //           return {
+              //             orig: from,
+              //             dest: to,
+              //             brush: i === 0 ? "paleBlue" : "paleGrey",
+              //           };
+              //         })
+              //       : [],
+              // }}
             />
-          </AspectRatio>
+          </div>
 
           <Group position={"apart"}>
             <OpeningName fen={tree.fen} />

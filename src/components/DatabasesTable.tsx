@@ -2,9 +2,11 @@ import { Card, createStyles, Group, Text, Title } from "@mantine/core";
 import { IconDatabase } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { appDataDir } from "@tauri-apps/api/path";
+import { DEFAULT_POSITION } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Database, formatBytes } from "../utils/db";
+import BoardView from "./BoardView";
 
 const ConvertButton = dynamic(() => import("../components/ConvertButton"), {
   ssr: false,
@@ -173,6 +175,7 @@ export default function DatabasesTable() {
       <Title m={30}>Games</Title>
 
       {database !== null && <GameTable database={database} />}
+      <BoardView fen={DEFAULT_POSITION} />
     </>
   );
 }

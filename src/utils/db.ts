@@ -43,13 +43,13 @@ interface GameQuery {
 }
 
 export interface Game {
-    id: string;
     white: Player;
     black: Player;
     speed: Speed;
     outcome: Outcome;
     moves: string;
     date: string;
+    site: string;
 }
 
 export async function query_games(
