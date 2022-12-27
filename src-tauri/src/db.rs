@@ -4,6 +4,7 @@ use std::{
     fs::File,
     io, mem,
     path::{Path, PathBuf},
+    time::Instant,
 };
 
 use pgn_reader::{BufferedReader, Color, Outcome, RawHeader, SanPlus, Skip, Visitor};
@@ -84,7 +85,7 @@ struct Importer {
 pub struct Game {
     speed: Option<Speed>,
     fen: Option<String>,
-    id: Option<String>,
+    site: Option<String>,
     date: Option<String>,
     white: Player,
     black: Player,
@@ -137,28 +138,28 @@ impl Importer {
 
             tx.execute(
                 "INSERT INTO game (
-                    id,
                     white,
                     black,
                     white_rating,
                     black_rating,
                     date,
                     speed,
+                    site,
                     fen,
                     outcome,
                     moves
-                ) VALUES (?1,
+                ) VALUES (
+                    (SELECT id FROM player WHERE name = ?1),
                     (SELECT id FROM player WHERE name = ?2),
-                    (SELECT id FROM player WHERE name = ?3),
-                    ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
                 rusqlite::params![
-                    game.id,
                     game.white.name,
                     game.black.name,
                     game.white.rating,
                     game.black.rating,
                     game.date,
                     game.speed.map(|s| s as u8),
+                    game.site,
                     game.fen,
                     game.outcome.map(|r| match r {
                         Outcome::Decisive { winner } => match winner {
@@ -211,7 +212,7 @@ impl Visitor for Importer {
                 self.skip = true;
             }
         } else if key == b"Site" {
-            self.current.id = Some(
+            self.current.site = Some(
                 String::from_utf8(
                     value
                         .as_bytes()
@@ -301,13 +302,14 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) {
     // create the games table if it doesn't exist
     db.execute(
         "CREATE TABLE IF NOT EXISTS game (
-                    id TEXT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY,
                     white INTEGER NOT NULL,
                     black INTEGER NOT NULL,
-                    white_rating INTEGER NOT NULL,
-                    black_rating INTEGER NOT NULL,
+                    white_rating INTEGER,
+                    black_rating INTEGER,
                     date TEXT NOT NULL,
                     speed INTEGER NOT NULL,
+                    site TEXT,
                     fen TEXT,
                     outcome INTEGER NOT NULL,
                     moves TEXT NOT NULL,
@@ -414,6 +416,9 @@ pub struct QueryResponse<T> {
 
 #[tauri::command]
 pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
+    // measure time it takes to open the database
+    let start = Instant::now();
+
     let db = rusqlite::Connection::open(file).expect("open database");
 
     println!("{:?}", query);
@@ -454,6 +459,7 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
                 })
             })
             .expect("query");
+        println!("counting: {}", start.elapsed().as_millis());
 
         Some(
             count_rows
@@ -464,10 +470,12 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
                 .expect("get count"),
         )
     };
-    // get the games that match the query and the total number of games, only up to 10000
+    println!("querying: {}", start.elapsed().as_millis());
+
+    // FIXME: this isn't as performant as it could be
     let mut stmt = db
         .prepare(
-            "SELECT game.id, white.name, black.name, white_rating, black_rating, date, speed, fen, outcome, moves
+            "SELECT white.name, black.name, white_rating, black_rating, date, speed, site, fen, outcome, moves
             FROM game
             INNER JOIN player AS white ON white.id = game.white
             INNER JOIN player AS black ON black.id = game.black
@@ -505,21 +513,23 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
         })
         .expect("execute query");
 
+    println!("querying: {}", start.elapsed().as_millis());
+
     let mut games = Vec::new();
 
     while let Some(row) = rows.next().expect("get next row") {
-        let id: String = row.get(0).expect("get id");
-        let white: String = row.get(1).expect("get white");
-        let black: String = row.get(2).expect("get black");
-        let white_rating: u16 = row.get(3).expect("get white rating");
-        let black_rating: u16 = row.get(4).expect("get black rating");
-        let date: String = row.get(5).expect("get date");
-        let speed: u8 = row.get(6).expect("get speed");
+        let white: String = row.get(0).expect("get white");
+        let black: String = row.get(1).expect("get black");
+        let white_rating: u16 = row.get(2).expect("get white rating");
+        let black_rating: u16 = row.get(3).expect("get black rating");
+        let date: String = row.get(4).expect("get date");
+        let speed: u8 = row.get(5).expect("get speed");
+        let site: Option<String> = row.get(6).expect("get site");
         let fen: Option<String> = row.get(7).expect("get fen");
         let outcome: u8 = row.get(8).expect("get outcome");
+        let moves: String = row.get(9).expect("get moves");
 
         games.push(Game {
-            id: Some(id),
             white: Player {
                 name: Some(white),
                 rating: Some(white_rating),
@@ -530,6 +540,7 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
             },
             date: Some(date),
             speed: Some(Speed::from(speed)),
+            site,
             fen,
             outcome: Some(match outcome {
                 1 => Outcome::Decisive {
@@ -544,6 +555,7 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
             moves: Vec::new(),
         });
     }
+    println!("time: {}ms", start.elapsed().as_millis());
     QueryResponse { data: games, count }
 }
 
