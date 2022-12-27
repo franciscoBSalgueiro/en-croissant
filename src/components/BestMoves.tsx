@@ -19,9 +19,10 @@ import { IconPlayerPause, IconPlayerPlay, IconSettings } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { EngineVariation, Score } from "../utils/chess";
 import { Engine } from "../utils/engines";
+import { TreeContext } from "./BoardAnalysis";
 import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";
@@ -76,11 +77,12 @@ function ScoreBubble({ score }: { score: Score }) {
 interface BestMovesProps {
   engine: Engine;
   makeMoves: (moves: string[]) => void;
-  half_moves: number;
-  chess: Chess;
 }
 
-function BestMoves({ makeMoves, engine, half_moves, chess }: BestMovesProps) {
+function BestMoves({ makeMoves, engine }: BestMovesProps) {
+  const tree = useContext(TreeContext);
+  const chess = new Chess(tree.fen);
+  const half_moves = tree.half_moves;
   const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
     []
   );
@@ -98,7 +100,7 @@ function BestMoves({ makeMoves, engine, half_moves, chess }: BestMovesProps) {
     emit("stop_engine", engine.path);
     invoke("get_best_moves", {
       engine: engine.path,
-      fen: chess.fen(),
+      fen: tree.fen,
       depth: maxDepth,
       numberLines: Math.min(numberLines, chess.moves().length),
       numberThreads: 2 ** cores,
@@ -124,7 +126,7 @@ function BestMoves({ makeMoves, engine, half_moves, chess }: BestMovesProps) {
     } else {
       emit("stop_engine", engine.path);
     }
-  }, [chess, enabled, numberLines, maxDepth, cores]);
+  }, [tree.fen, enabled, numberLines, maxDepth, cores]);
 
   function AnalysisRow({
     score,

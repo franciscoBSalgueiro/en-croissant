@@ -200,8 +200,6 @@ function BoardAnalysis() {
                           key={engine.name}
                           engine={engine}
                           makeMoves={makeMoves}
-                          half_moves={tree.half_moves}
-                          chess={chess}
                         />
                       );
                     })}
