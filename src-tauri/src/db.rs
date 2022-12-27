@@ -552,7 +552,10 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
                 3 => Outcome::Draw,
                 _ => unreachable!(),
             }),
-            moves: Vec::new(),
+            moves: moves
+                .split_whitespace()
+                .map(|m| SanPlus::from_ascii(m.as_bytes()).unwrap())
+                .collect(),
         });
     }
     println!("time: {}ms", start.elapsed().as_millis());

@@ -12,9 +12,11 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
+import { Chess } from "chess.js";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
+import BoardView from "./BoardView";
 import { SearchInput } from "./SearchInput";
 
 function GameTable({ database }: { database: Database }) {
@@ -29,10 +31,20 @@ function GameTable({ database }: { database: Database }) {
   const [skip, toggleSkip] = useToggle();
   const [limit, setLimit] = useState(10);
   const [activePage, setActivePage] = useState(1);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const offset = (activePage - 1) * limit;
+
+  function fenFromString(moves: string) {
+    const chess = new Chess();
+    moves.split(" ").map((m) => {
+      chess.move(m);
+    });
+    return chess.fen();
+  }
 
   useEffect(() => {
     setActivePage(1);
+    setSelectedGame(null);
     setLoading(true);
     query_games(file, {
       white: white === "" ? undefined : white,
@@ -51,6 +63,7 @@ function GameTable({ database }: { database: Database }) {
 
   useEffect(() => {
     setLoading(true);
+    setSelectedGame(null);
     query_games(file, {
       white: white === "" ? undefined : white,
       black: black === "" ? undefined : black,
@@ -77,7 +90,7 @@ function GameTable({ database }: { database: Database }) {
       </tr>
     ) : (
       games.map((game, i) => (
-        <tr key={i}>
+        <tr key={i} onClick={() => setSelectedGame(game.moves)}>
           <td>
             <Group spacing="sm">
               <Avatar size={40} src={game.white.image} radius={40} />
@@ -111,6 +124,9 @@ function GameTable({ database }: { database: Database }) {
             <Link href={"https://lichess.org/" + game.site} target="_blank">
               {game.site}
             </Link>
+          </td>
+          <td>
+            <Text lineClamp={1}>{game.moves}</Text>
           </td>
         </tr>
       ))
@@ -179,6 +195,7 @@ function GameTable({ database }: { database: Database }) {
               <th>Date</th>
               <th>Speed</th>
               <th>Link</th>
+              <th>Game</th>
             </tr>
           </thead>
           <tbody>
@@ -209,6 +226,7 @@ function GameTable({ database }: { database: Database }) {
           </Text>
         </Stack>
       )}
+      {selectedGame !== null && <BoardView fen={fenFromString(selectedGame)} />}
     </>
   );
 }
