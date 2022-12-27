@@ -1,11 +1,9 @@
 import { Card, createStyles, Group, Text, Title } from "@mantine/core";
 import { IconDatabase } from "@tabler/icons";
-import { invoke } from "@tauri-apps/api";
-import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { DEFAULT_POSITION } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Database, formatBytes } from "../utils/db";
+import { Database, formatBytes, getDatabases } from "../utils/db";
 import BoardView from "./BoardView";
 
 const ConvertButton = dynamic(() => import("../components/ConvertButton"), {
@@ -131,20 +129,7 @@ export default function DatabasesTable() {
   const database = selected !== null ? databases[selected] : null;
 
   useEffect(() => {
-    async function getDatabases() {
-      let files = await readDir("db", { dir: BaseDirectory.AppData });
-      let dbs = files.filter((file) => file.name?.endsWith(".sqlite"));
-      let db_data: Database[] = [];
-      for (let db of dbs) {
-        let data = (await invoke("getDatabaseInfo", {
-          file: db.path,
-        })) as Database;
-        data.file = db.path;
-        db_data.push(data as Database);
-      }
-      setDatabases(db_data);
-    }
-    getDatabases();
+    getDatabases().then((dbs) => setDatabases(dbs));
   }, []);
 
   return (
@@ -166,7 +151,7 @@ export default function DatabasesTable() {
             storage={item.storage_size ?? 0}
           />
         ))}
-        <ConvertButton />
+        <ConvertButton setDatabases={setDatabases} />
       </Group>
 
       <Title m={30}>Games</Title>

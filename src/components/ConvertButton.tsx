@@ -3,25 +3,12 @@ import { IconPlus } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { useEffect, useState } from "react";
+import { Database, getDatabases } from "../utils/db";
 
 const useStyles = createStyles((theme) => ({
-  input: {
-    position: "fixed",
-    opacity: 0,
-
-    "&:checked + label": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0],
-
-      borderColor: theme.colors.blue[6],
-    },
-  },
-
   card: {
     cursor: "pointer",
-    width: 150,
+    border: 0,
     backgroundColor:
       theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
 
@@ -31,31 +18,14 @@ const useStyles = createStyles((theme) => ({
           ? theme.colors.dark[6]
           : theme.colors.gray[0],
     },
-
-    "&:checked": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0],
-    },
-  },
-
-  label: {
-    marginBottom: theme.spacing.xs,
-    lineHeight: 1,
-    fontWeight: 700,
-    fontSize: theme.fontSizes.xs,
-    letterSpacing: -0.25,
-    textTransform: "uppercase",
-  },
-
-  info: {
-    display: "flex",
-    justifyContent: "space-between",
   },
 }));
 
-function ConvertButton() {
+function ConvertButton({
+  setDatabases,
+}: {
+  setDatabases: (dbs: Database[]) => void;
+}) {
   const [filepath, setFilepath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { classes } = useStyles();
@@ -64,6 +34,7 @@ function ConvertButton() {
     setLoading(true);
     await invoke("convert_pgn", { file: filepath });
     setLoading(false);
+    setDatabases(await getDatabases());
   }
   useEffect(() => {
     if (filepath) {
@@ -78,7 +49,6 @@ function ConvertButton() {
       className={classes.card}
       component="button"
       type="button"
-      // accept="application/octet-stream"
       onClick={async () => {
         const selected = await open({
           multiple: false,

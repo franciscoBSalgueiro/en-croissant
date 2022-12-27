@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api";
+import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 
 export interface Database {
     title?: string;
@@ -108,3 +109,17 @@ export function formatBytes(bytes: number, decimals = 2) {
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
+
+export async function getDatabases() {
+    let files = await readDir("db", { dir: BaseDirectory.AppData });
+    let dbs = files.filter((file) => file.name?.endsWith(".sqlite"));
+    let db_data: Database[] = [];
+    for (let db of dbs) {
+      let data = (await invoke("getDatabaseInfo", {
+        file: db.path,
+      })) as Database;
+      data.file = db.path;
+      db_data.push(data as Database);
+    }
+    return db_data
+  }
