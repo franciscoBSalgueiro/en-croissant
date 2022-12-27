@@ -15,7 +15,7 @@
       "all": true,
       "fs": {
         "all": true,
-        "scope": ["$APPDATA/engines/**"]
+        "scope": ["$APPDATA/**"]
       }
     },
     "bundle": {

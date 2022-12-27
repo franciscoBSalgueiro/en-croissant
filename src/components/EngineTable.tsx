@@ -264,7 +264,7 @@ export default function EngineTable() {
       </Modal>
       <Group align="baseline" m={30}>
         <Title>Your Engines</Title>
-        <OpenFolderButton path="engines" />
+        <OpenFolderButton folder="engines" />
       </Group>
       <ScrollArea>
         <Button leftIcon={<IconReload />} onClick={() => readConfig()}>

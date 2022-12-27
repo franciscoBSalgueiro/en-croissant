@@ -1,7 +1,7 @@
 import { Card, createStyles, Group, Text, Title } from "@mantine/core";
 import { IconDatabase } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
-import { appDataDir } from "@tauri-apps/api/path";
+import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { DEFAULT_POSITION } from "chess.js";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -132,17 +132,14 @@ export default function DatabasesTable() {
 
   useEffect(() => {
     async function getDatabases() {
-      let base_path = await appDataDir();
-      let files: string[] = await invoke("readDir", {
-        path: base_path + "/db",
-      });
-      let dbs = files.filter((file) => file.endsWith(".sqlite"));
+      let files = await readDir("db", { dir: BaseDirectory.AppData });
+      let dbs = files.filter((file) => file.name?.endsWith(".sqlite"));
       let db_data: Database[] = [];
       for (let db of dbs) {
         let data = (await invoke("getDatabaseInfo", {
-          file: db,
+          file: db.path,
         })) as Database;
-        data.file = db;
+        data.file = db.path;
         db_data.push(data as Database);
       }
       setDatabases(db_data);
@@ -154,7 +151,7 @@ export default function DatabasesTable() {
     <>
       <Group align="baseline" m={30}>
         <Title>Your Databases</Title>
-        <OpenFolderButton path="db" />
+        <OpenFolderButton folder="db" />
       </Group>
       <Group>
         {databases.map((item, i) => (

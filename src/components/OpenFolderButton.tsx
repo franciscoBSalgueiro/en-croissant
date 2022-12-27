@@ -1,12 +1,13 @@
 import { ActionIcon } from "@mantine/core";
 import { IconFolder } from "@tabler/icons";
 import { appDataDir } from "@tauri-apps/api/path";
-import { invoke } from "@tauri-apps/api/tauri";
+import { open } from "@tauri-apps/api/shell";
+import path from "path";
 
-function OpenFolderButton({ path }: { path: string }) {
+function OpenFolderButton({ folder }: { folder: string }) {
   async function openAppDirData() {
     let base_path = await appDataDir();
-    invoke("externalOpen", { path: base_path + "/" + path });
+    open(path.join(base_path, folder));
   }
   return (
     <ActionIcon onClick={() => openAppDirData()}>
