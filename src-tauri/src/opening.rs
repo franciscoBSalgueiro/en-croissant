@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen, san::San, zobrist::ZobristHash, CastlingMode, Chess, Position,
-};
+use shakmaty::{fen::Fen, san::San, zobrist::ZobristHash, CastlingMode, Chess, Position};
 
 use lazy_static::lazy_static;
 
@@ -28,10 +26,9 @@ const TSV_DATA: [&[u8]; 5] = [
     include_bytes!("../data/e.tsv"),
 ];
 
-// Create a table at compile time from the TSV data.
 #[tauri::command]
 pub fn get_opening(fen: &str) -> Result<&str, &str> {
-    let fen: Fen = fen.parse().expect("valid fen");
+    let fen: Fen = fen.parse().or(Err("Invalid FEN"))?;
     let pos: Chess = fen
         .into_position(CastlingMode::Standard)
         .or(Err("Invalid Position"))?;

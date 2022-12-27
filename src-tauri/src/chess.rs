@@ -38,7 +38,11 @@ pub struct BestMovePayload {
     nps: usize,
 }
 
-pub fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload> {
+pub fn parse_uci(
+    info: &str,
+    fen: &str,
+    engine: &str,
+) -> Result<BestMovePayload, Box<dyn std::error::Error>> {
     let mut depth = 0;
     let mut score = Score::Cp(0);
     let mut pv = String::new();
@@ -47,18 +51,17 @@ pub fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload>
     // example input: info depth 1 seldepth 1 multipv 1 score cp 0 nodes 20 nps 10000 tbhits 0 time 2 pv e2e4
     for (i, s) in info.split_whitespace().enumerate() {
         match s {
-            "depth" => depth = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap(),
+            "depth" => depth = info.split_whitespace().nth(i + 1).unwrap().parse()?,
             "score" => {
                 if info.split_whitespace().nth(i + 1).unwrap() == "cp" {
-                    score = Score::Cp(info.split_whitespace().nth(i + 2).unwrap().parse().unwrap());
+                    score = Score::Cp(info.split_whitespace().nth(i + 2).unwrap().parse()?);
                 } else {
-                    score =
-                        Score::Mate(info.split_whitespace().nth(i + 2).unwrap().parse().unwrap());
+                    score = Score::Mate(info.split_whitespace().nth(i + 2).unwrap().parse()?);
                 }
             }
-            "nps" => nps = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap(),
+            "nps" => nps = info.split_whitespace().nth(i + 1).unwrap().parse()?,
             "multipv" => {
-                multipv = info.split_whitespace().nth(i + 1).unwrap().parse().unwrap();
+                multipv = info.split_whitespace().nth(i + 1).unwrap().parse()?;
             }
             "pv" => {
                 pv = info
@@ -74,8 +77,8 @@ pub fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload>
     let mut san_moves = Vec::new();
     let uci_moves: Vec<String> = pv.split_whitespace().map(|x| x.to_string()).collect();
 
-    let fen: Fen = fen.parse().unwrap();
-    let mut pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
+    let fen: Fen = fen.parse()?;
+    let mut pos: Chess = fen.into_position(CastlingMode::Standard)?;
     if pos.turn() == Color::Black {
         score = match score {
             Score::Cp(x) => Score::Cp(-x),
@@ -83,13 +86,13 @@ pub fn parse_uci(info: &str, fen: &str, engine: &str) -> Option<BestMovePayload>
         };
     }
     for m in &uci_moves {
-        let uci: Uci = m.parse().unwrap();
-        let m = uci.to_move(&pos).unwrap();
+        let uci: Uci = m.parse()?;
+        let m = uci.to_move(&pos)?;
         pos.play_unchecked(&m);
         let san = San::from_move(&pos, &m);
         san_moves.push(san.to_string());
     }
-    Some(BestMovePayload {
+    Ok(BestMovePayload {
         depth,
         score,
         san_moves,
@@ -109,7 +112,7 @@ pub async fn get_best_moves(
     number_lines: usize,
     number_threads: usize,
     app: tauri::AppHandle,
-) {
+) -> Result<(), String> {
     let mut path = PathBuf::from(&engine);
     if relative {
         path = resolve_path(
@@ -119,7 +122,7 @@ pub async fn get_best_moves(
             path,
             Some(BaseDirectory::AppData),
         )
-        .unwrap();
+        .or(Err("Engine file doesn't exists"))?;
     }
     // start engine command
     println!("RUNNING ENGINE");
@@ -224,21 +227,22 @@ pub async fn get_best_moves(
                                     println!("Engine ready");
                                 }
                                 if line.starts_with("info") && line.contains("pv") {
-                                    let best_moves = parse_uci(&line, &fen, &engine).unwrap();
-                                    let multipv = best_moves.multipv;
-                                    let depth = best_moves.depth;
-                                    engine_lines.push(best_moves);
-                                    if multipv == number_lines {
-                                        if depth >= 10 && engine_lines.iter().all(|x| x.depth == depth) {
-                                            let now = SystemTime::now();
-                                            now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
+                                    if let Ok(best_moves) = parse_uci(&line, &fen, &engine) {
+                                        let multipv = best_moves.multipv;
+                                        let depth = best_moves.depth;
+                                        engine_lines.push(best_moves);
+                                        if multipv == number_lines {
+                                            if depth >= 10 && engine_lines.iter().all(|x| x.depth == depth) {
+                                                let now = SystemTime::now();
+                                                now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
 
-                                            if now_ms - last_sent_ms > 300 {
-                                                app.emit_all("best_moves", &engine_lines).unwrap();
-                                                last_sent_ms = now_ms;
+                                                if now_ms - last_sent_ms > 300 {
+                                                    app.emit_all("best_moves", &engine_lines).unwrap();
+                                                    last_sent_ms = now_ms;
+                                                }
                                             }
+                                            engine_lines.clear();
                                         }
-                                        engine_lines.clear();
                                     }
                                 }
                             }
@@ -252,4 +256,5 @@ pub async fn get_best_moves(
             }
         }
     });
+    Ok(())
 }
