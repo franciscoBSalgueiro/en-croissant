@@ -15,12 +15,17 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
-import { IconPlayerPause, IconPlayerPlay, IconSettings } from "@tabler/icons";
+import { useToggle } from "@mantine/hooks";
+import {
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconSettings, IconTargetArrow
+} from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
-import { EngineVariation, Score } from "../utils/chess";
+import { EngineVariation, Score, swapMove } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import { TreeContext } from "./BoardAnalysis";
 import CoresSlide from "./CoresSlider";
@@ -89,18 +94,19 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
   const [numberLines, setNumberLines] = useState<number>(3);
   const [maxDepth, setMaxDepth] = useState<number>(24);
   const [cores, setCores] = useState<number>(3);
-  const [enabled, setEnabled] = useState<boolean>(false);
-  const [settingsOn, setSettingsOn] = useState<boolean>(false);
+  const [enabled, toggleEnabled] = useToggle();
+  const [settingsOn, toggleSettingsOn] = useToggle();
+  const [threat, toggleThreat] = useToggle();
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const progress = (depth / maxDepth) * 100;
 
-  function startEngine() {
+  async function startEngine() {
     emit("stop_engine", engine.path);
     invoke("get_best_moves", {
       engine: engine.path,
-      fen: tree.fen,
+      fen: threat ? swapMove(tree.fen) : tree.fen,
       depth: maxDepth,
       numberLines: Math.min(numberLines, chess.moves().length),
       numberThreads: 2 ** cores,
@@ -126,7 +132,7 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
     } else {
       emit("stop_engine", engine.path);
     }
-  }, [tree.fen, enabled, numberLines, maxDepth, cores]);
+  }, [tree.fen, enabled, numberLines, maxDepth, cores, threat]);
 
   function AnalysisRow({
     score,
@@ -156,7 +162,7 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
             }}
           >
             {moves.map((move, index) => {
-              const total_moves = half_moves + index + 1;
+              const total_moves = half_moves + index + 1 + (threat ? 1 : 0);
               const is_black = total_moves % 2 === 1;
               const move_number = Math.ceil(total_moves / 2);
 
@@ -213,7 +219,7 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
       <Button
         variant="subtle"
         onClick={() => {
-          makeMoves(moves.slice(0, index + 1));
+          if (!threat) makeMoves(moves.slice(0, index + 1));
         }}
       >
         {(isBlack || first) && <span>{moveNumber.toFixed(0) + "."}</span>}
@@ -234,7 +240,7 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
             if (progress === 100) {
               startEngine();
             } else {
-              setEnabled(!enabled);
+              toggleEnabled();
             }
           }}
           ml={8}
@@ -272,7 +278,12 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
             </Stack>
           </Group>
         </Accordion.Control>
-        <ActionIcon size="lg" onClick={() => setSettingsOn(!settingsOn)}>
+        <Tooltip label="Check the opponent's threat">
+          <ActionIcon size="lg" onClick={() => toggleThreat()}>
+            <IconTargetArrow color={threat ? "red" : "white"} size={16} />
+          </ActionIcon>
+        </Tooltip>
+        <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
           <IconSettings size={16} />
         </ActionIcon>
       </Box>
@@ -302,6 +313,7 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
         animate={progress < 100 && enabled}
         size="xs"
         striped={progress < 100 && !enabled}
+        color={threat ? "red" : "blue"}
       />
       <Accordion.Panel>
         <Table>

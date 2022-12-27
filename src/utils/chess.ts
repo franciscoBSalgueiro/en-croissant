@@ -176,3 +176,11 @@ export async function getOpening(tree: VariationTree | null): Promise<string> {
         .then((v) => v as string)
         .catch(() => getOpening(tree.parent));
 }
+
+export function swapMove(fen: string) {
+    const fenGroups = fen.split(" ");
+    fenGroups[1] = fenGroups[1] === "w" ? "b" : "w";
+    fenGroups[3] = "-"
+
+    return fenGroups.join(" ");
+}

@@ -4,7 +4,7 @@ import { Editor } from "@tiptap/react";
 export function AnnotationEditor({ editor }: { editor: Editor | null }) {
   return (
     <RichTextEditor editor={editor}>
-      <RichTextEditor.Toolbar sticky stickyOffset={60}>
+      <RichTextEditor.Toolbar>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />
           <RichTextEditor.Italic />
