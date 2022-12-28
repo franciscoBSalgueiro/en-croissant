@@ -85,6 +85,23 @@ export class VariationTree {
         return this.fen === other.fen;
     }
 
+    getPGN(): string {
+        let pgn = "";
+        if (this.move !== null) {
+            const moveNumber = Math.ceil(this.half_moves / 2);
+            pgn += `${moveNumber}. ${this.move?.san} `;
+        }
+        if (this.children.length > 0) {
+            pgn += this.children[0].getPGN();
+            if (this.children.length > 1) {
+                this.children
+                    .splice(1)
+                    .forEach((t) => (pgn += ` (${t.getPGN()}) `));
+            }
+        }
+        return pgn;
+    }
+
     getTopVariation(): VariationTree {
         if (this.parent === null) {
             return this;
@@ -180,7 +197,7 @@ export async function getOpening(tree: VariationTree | null): Promise<string> {
 export function swapMove(fen: string) {
     const fenGroups = fen.split(" ");
     fenGroups[1] = fenGroups[1] === "w" ? "b" : "w";
-    fenGroups[3] = "-"
+    fenGroups[3] = "-";
 
     return fenGroups.join(" ");
 }
