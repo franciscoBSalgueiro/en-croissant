@@ -147,7 +147,7 @@ export class VariationTree {
 }
 
 export function moveToKey(move: Move | null) {
-    return move ? ([move.from, move.to] as Key[]) : undefined;
+    return move ? ([move.from, move.to] as Key[]) : [];
 }
 
 export function toDests(chess: Chess): Map<Key, Key[]> {

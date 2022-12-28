@@ -115,10 +115,13 @@ function BoardAnalysis() {
       newTree = new VariationTree(parentTree, chess.fen(), newMove);
       if (parentTree.children.length === 0) {
         parentTree.children = [newTree];
-      } else if (parentTree.children[0].fen !== chess.fen()) {
+        parentTree = newTree;
+      } else if (parentTree.children.every((child) => child.fen !== newTree.fen)) {
         parentTree.children.push(newTree);
+        parentTree = newTree;
+      } else {
+        parentTree = parentTree.children.find((child) => child.fen === newTree.fen)!;
       }
-      parentTree = newTree;
     });
     setTree(newTree);
   }
