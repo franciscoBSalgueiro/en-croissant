@@ -62,7 +62,8 @@ export class VariationTree {
     depth: number;
     half_moves: number;
     annotation: Annotation = Annotation.None;
-    comment: string = "";
+    commentHTML: string = "";
+    commentText: string = "";
 
     constructor(
         parent: VariationTree | null,
@@ -85,18 +86,31 @@ export class VariationTree {
         return this.fen === other.fen;
     }
 
-    getPGN(): string {
+    getPGN(isFirst: boolean = false): string {
         let pgn = "";
         if (this.move !== null) {
+            const isBlack = this.half_moves % 2 === 0;
             const moveNumber = Math.ceil(this.half_moves / 2);
-            pgn += `${moveNumber}. ${this.move?.san} `;
+            if (isBlack) {
+                if (isFirst) {
+                    pgn += `${moveNumber}... `;
+                }
+            } else {
+                pgn += `${moveNumber}. `;
+            }
+            pgn += this.move.san + this.annotation + " ";
+            if (this.commentText !== "") {
+                pgn += `{${this.commentText}} `;
+            }
         }
         if (this.children.length > 0) {
             pgn += this.children[0].getPGN();
             if (this.children.length > 1) {
-                this.children
-                    .splice(1)
-                    .forEach((t) => (pgn += ` (${t.getPGN()}) `));
+                this.children.forEach((t, i) => {
+                    if (i >= 1) {
+                        pgn += ` (${t.getPGN(true)}) `;
+                    }
+                });
             }
         }
         return pgn;

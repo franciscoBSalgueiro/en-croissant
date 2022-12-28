@@ -221,7 +221,7 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
               move={lastMove.san}
               variation={tree}
               annotation={tree.annotation}
-              comment={tree.comment}
+              comment={tree.commentHTML}
             />
           )}
           {tree.children.length > 0 && (

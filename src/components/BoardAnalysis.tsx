@@ -32,6 +32,7 @@ import Chessboard from "./Chessboard";
 import EngineSettingsBoard from "./EngineSettingsBoard";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
+import PgnInput from "./PgnInput";
 
 export const TreeContext = createContext(
   new VariationTree(null, DEFAULT_POSITION, null)
@@ -72,13 +73,15 @@ function BoardAnalysis() {
         Underline,
         Placeholder.configure({ placeholder: "Write here..." }),
       ],
-      content: tree.comment,
+      content: tree.commentHTML,
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
         if (html === "<p></p>") {
-          tree.comment = "";
+          tree.commentHTML = "";
+          tree.commentText = "";
         } else {
-          tree.comment = html;
+          tree.commentHTML = html;
+          tree.commentText = editor.getText();
         }
         setTree(tree);
       },
@@ -116,11 +119,15 @@ function BoardAnalysis() {
       if (parentTree.children.length === 0) {
         parentTree.children = [newTree];
         parentTree = newTree;
-      } else if (parentTree.children.every((child) => child.fen !== newTree.fen)) {
+      } else if (
+        parentTree.children.every((child) => child.fen !== newTree.fen)
+      ) {
         parentTree.children.push(newTree);
         parentTree = newTree;
       } else {
-        parentTree = parentTree.children.find((child) => child.fen === newTree.fen)!;
+        parentTree = parentTree.children.find(
+          (child) => child.fen === newTree.fen
+        )!;
       }
     });
     setTree(newTree);
@@ -180,7 +187,10 @@ function BoardAnalysis() {
               </Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="info" pt="xs">
-              <FenInput form={form} onSubmit={resetToFen} />
+              <Stack>
+                <FenInput form={form} onSubmit={resetToFen} />
+                <PgnInput />
+              </Stack>
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
               <AnnotationPanel
