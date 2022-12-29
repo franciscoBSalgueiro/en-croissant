@@ -5,7 +5,7 @@ import { TreeContext } from "./BoardAnalysis";
 function PgnInput() {
   const tree = useContext(TreeContext);
   const root = tree.getTopVariation();
-  return <Textarea readOnly value={root.getPGN()} />;
+  return <Textarea label="PGN" readOnly value={root.getPGN()} />;
 }
 
 export default PgnInput;

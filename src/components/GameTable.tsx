@@ -12,10 +12,11 @@ import {
   Stack,
   Table,
   Text,
+  TextInput,
   Tooltip
 } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
-import { Chess } from "chess.js";
+import { useDebouncedValue, useHotkeys, useToggle } from "@mantine/hooks";
+import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
@@ -24,6 +25,13 @@ import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
 
 const useStyles = createStyles((theme) => ({
+  titleInput: {
+    input: {
+      fontSize: 34,
+      fontWeight: "bold",
+    },
+  },
+
   header: {
     position: "sticky",
     top: 0,
@@ -83,17 +91,11 @@ function GameTable({ database }: { database: Database }) {
   const [skip, toggleSkip] = useToggle();
   const [limit, setLimit] = useState(25);
   const [activePage, setActivePage] = useState(1);
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const offset = (activePage - 1) * limit;
   const [scrolled, setScrolled] = useState(false);
-
-  function fenFromString(moves: string) {
-    const chess = new Chess();
-    moves.split(" ").map((m) => {
-      chess.move(m);
-    });
-    return chess.fen();
-  }
+  const [title, setTitle] = useState(database.title);
+  const [debouncedTitle] = useDebouncedValue(title, 200);
 
   useEffect(() => {
     setActivePage(1);
@@ -132,6 +134,13 @@ function GameTable({ database }: { database: Database }) {
     });
   }, [offset]);
 
+  useEffect(() => {
+    invoke("rename_db", {
+      file: database.file,
+      name: debouncedTitle,
+    });
+  }, [debouncedTitle]);
+
   const rows =
     games.length === 0 ? (
       <tr>
@@ -146,12 +155,10 @@ function GameTable({ database }: { database: Database }) {
         <tr
           key={i}
           onClick={() => {
-            game.moves == selectedGame
-              ? setSelectedGame(null)
-              : setSelectedGame(game.moves);
+            i == selectedGame ? setSelectedGame(null) : setSelectedGame(i);
           }}
           className={cx(classes.row, {
-            [classes.rowSelected]: game.moves == selectedGame,
+            [classes.rowSelected]: i == selectedGame,
           })}
         >
           <td>
@@ -196,117 +203,161 @@ function GameTable({ database }: { database: Database }) {
       ))
     );
 
-  return (
-    <Grid grow>
-      <Grid.Col span={3}>
-        <Box sx={{ position: "relative" }}>
-          <ScrollArea
-            h={600}
-            onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
-            offsetScrollbars
-          >
-            <Table>
-              <thead
-                className={cx(classes.header, { [classes.scrolled]: scrolled })}
-              >
-                <tr>
-                  <th>White</th>
-                  <th>Result</th>
-                  <th>Black</th>
-                  <th>Date</th>
-                  <th>Speed</th>
-                  <th>Link</th>
-                </tr>
-              </thead>
-              <tbody>
-                <>{rows}</>
-              </tbody>
-            </Table>
-          </ScrollArea>
-          <LoadingOverlay visible={loading} />
-        </Box>
-        {!skip && (
-          <>
-            <Select
-              label="Results per page"
-              value={limit.toString()}
-              onChange={(v) => {
-                v && setLimit(parseInt(v));
-              }}
-              sx={{ float: "right" }}
-              data={["10", "25", "50", "100"]}
-              defaultValue={limit.toString()}
-            />
-            <Stack align="center" spacing={0} mt={20}>
-              <Pagination
-                page={activePage}
-                onChange={setActivePage}
-                total={Math.ceil(count / limit)}
-              />
-              <Text weight={500} align="center" p={20}>
-                {Intl.NumberFormat().format(count)} games
-              </Text>
-            </Stack>
-          </>
-        )}
-      </Grid.Col>
+  useHotkeys([
+    [
+      "ArrowUp",
+      () => {
+        setSelectedGame((prev) => {
+          if (prev === null) {
+            return null;
+          }
+          if (prev === 0) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      },
+    ],
+    [
+      "ArrowDown",
+      () => {
+        setSelectedGame((prev) => {
+          if (prev === null) {
+            return 0;
+          }
+          if (prev === games.length - 1) {
+            return games.length - 1;
+          }
+          return prev + 1;
+        });
+      },
+    ],
+  ]);
 
-      <Grid.Col span={2}>
-        <Stack>
-          <Group grow>
-            <SearchInput
-              value={white}
-              setValue={setWhite}
-              label="White"
-              file={file}
+  return (
+    <>
+      <TextInput
+        variant="unstyled"
+        m={30}
+        size="xl"
+        value={title}
+        onChange={(e) => setTitle(e.currentTarget.value)}
+        className={classes.titleInput}
+        error={title === "" && "Name is required"}
+      />
+      <Grid grow>
+        <Grid.Col span={3}>
+          <Box sx={{ position: "relative" }}>
+            <ScrollArea
+              h={600}
+              onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
+              offsetScrollbars
+            >
+              <Table>
+                <thead
+                  className={cx(classes.header, {
+                    [classes.scrolled]: scrolled,
+                  })}
+                >
+                  <tr>
+                    <th>White</th>
+                    <th>Result</th>
+                    <th>Black</th>
+                    <th>Date</th>
+                    <th>Speed</th>
+                    <th>Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <>{rows}</>
+                </tbody>
+              </Table>
+            </ScrollArea>
+            <LoadingOverlay visible={loading} />
+          </Box>
+          {!skip && (
+            <>
+              <Select
+                label="Results per page"
+                value={limit.toString()}
+                onChange={(v) => {
+                  v && setLimit(parseInt(v));
+                }}
+                sx={{ float: "right" }}
+                data={["10", "25", "50", "100"]}
+                defaultValue={limit.toString()}
+              />
+              <Stack align="center" spacing={0} mt={20}>
+                <Pagination
+                  page={activePage}
+                  onChange={setActivePage}
+                  total={Math.ceil(count / limit)}
+                />
+                <Text weight={500} align="center" p={20}>
+                  {Intl.NumberFormat().format(count)} games
+                </Text>
+              </Stack>
+            </>
+          )}
+        </Grid.Col>
+
+        <Grid.Col span={2}>
+          <Stack>
+            <Group grow>
+              <SearchInput
+                value={white}
+                setValue={setWhite}
+                label="White"
+                file={file}
+              />
+              <SearchInput
+                value={black}
+                setValue={setBlack}
+                label="Black"
+                file={file}
+              />
+            </Group>
+            <Select
+              label="Speed"
+              value={speed}
+              onChange={setSpeed}
+              clearable
+              placeholder="Select speed"
+              data={[
+                { label: Speed.UltraBullet, value: Speed.UltraBullet },
+                { label: Speed.Bullet, value: Speed.Bullet },
+                { label: Speed.Blitz, value: Speed.Blitz },
+                { label: Speed.Rapid, value: Speed.Rapid },
+                { label: Speed.Classical, value: Speed.Classical },
+                { label: Speed.Correspondence, value: Speed.Correspondence },
+              ]}
             />
-            <SearchInput
-              value={black}
-              setValue={setBlack}
-              label="Black"
-              file={file}
+            <Select
+              label="Result"
+              value={outcome}
+              onChange={setOutcome}
+              clearable
+              placeholder="Select result"
+              data={[
+                { label: "White wins", value: Outcome.WhiteWin },
+                { label: "Black wins", value: Outcome.BlackWin },
+                { label: "Draw", value: Outcome.Draw },
+              ]}
             />
-          </Group>
-          <Select
-            label="Speed"
-            value={speed}
-            onChange={setSpeed}
-            clearable
-            placeholder="Select speed"
-            data={[
-              { label: Speed.UltraBullet, value: Speed.UltraBullet },
-              { label: Speed.Bullet, value: Speed.Bullet },
-              { label: Speed.Blitz, value: Speed.Blitz },
-              { label: Speed.Rapid, value: Speed.Rapid },
-              { label: Speed.Classical, value: Speed.Classical },
-              { label: Speed.Correspondence, value: Speed.Correspondence },
-            ]}
-          />
-          <Select
-            label="Result"
-            value={outcome}
-            onChange={setOutcome}
-            clearable
-            placeholder="Select result"
-            data={[
-              { label: "White wins", value: Outcome.WhiteWin },
-              { label: "Black wins", value: Outcome.BlackWin },
-              { label: "Draw", value: Outcome.Draw },
-            ]}
-          />
-          <Tooltip label="Disabling this may significantly improve performance">
-            <Checkbox
-              label="Include pagination"
-              checked={!skip}
-              onChange={() => toggleSkip()}
-            />
-          </Tooltip>
-        </Stack>
-        {selectedGame !== null && (
-          <BoardView fen={fenFromString(selectedGame)} />
-        )}
-      </Grid.Col>
-    </Grid>
+            <Tooltip label="Disabling this may significantly improve performance">
+              <Checkbox
+                label="Include pagination"
+                checked={!skip}
+                onChange={() => toggleSkip()}
+              />
+            </Tooltip>
+          </Stack>
+          {selectedGame !== null && (
+            <BoardView pgn={games[selectedGame].moves} />
+          )}
+        </Grid.Col>
+      </Grid>
+    </>
   );
 }
 

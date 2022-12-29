@@ -139,8 +139,6 @@ export default function DatabasesTable() {
         <ConvertButton setDatabases={setDatabases} />
       </Group>
 
-      <Title m={30}>Games</Title>
-
       {database !== null && <GameTable database={database} />}
     </>
   );

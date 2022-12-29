@@ -1,23 +1,7 @@
-import {
-  Accordion,
-  ActionIcon,
-  Group,
-  ScrollArea,
-  SimpleGrid,
-  Stack,
-  Tabs
-} from "@mantine/core";
+import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useForceUpdate, useHotkeys, useLocalStorage } from "@mantine/hooks";
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsLeft,
-  IconChevronsRight,
-  IconInfoCircle,
-  IconNotes,
-  IconZoomCheck
-} from "@tabler/icons";
+import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { createContext, useState } from "react";
 import { VariationTree } from "../utils/chess";
@@ -28,6 +12,7 @@ import Chessboard from "./Chessboard";
 import EngineSettingsBoard from "./EngineSettingsBoard";
 import FenInput from "./FenInput";
 import GameNotation from "./GameNotation";
+import MoveControls from "./MoveControls";
 import PgnInput from "./PgnInput";
 
 export const TreeContext = createContext(
@@ -164,15 +149,16 @@ function BoardAnalysis() {
                 <Stack>
                   <Accordion variant="separated" multiple chevronSize={0}>
                     {selectedEngines.map((engine, i) => {
-                      console.log(i);
                       return (
-                        <BestMoves
-                          id={i}
-                          key={engine.name}
-                          engine={engine}
-                          makeMoves={makeMoves}
-                          setArrows={setArrows}
-                        />
+                        <Accordion.Item value={engine.path}>
+                          <BestMoves
+                            id={i}
+                            key={engine.name}
+                            engine={engine}
+                            makeMoves={makeMoves}
+                            setArrows={setArrows}
+                          />
+                        </Accordion.Item>
                       );
                     })}
                   </Accordion>
@@ -185,30 +171,16 @@ function BoardAnalysis() {
             </Tabs.Panel>
           </Tabs>
           <GameNotation setTree={setTree} />
-          <MoveControls />
+          <MoveControls
+            goToStart={goToStart}
+            goToEnd={goToEnd}
+            redoMove={redoMove}
+            undoMove={undoMove}
+          />
         </Stack>
       </SimpleGrid>
     </TreeContext.Provider>
   );
-
-  function MoveControls() {
-    return (
-      <Group grow>
-        <ActionIcon variant="light" size="xl" onClick={() => goToStart()}>
-          <IconChevronsLeft />
-        </ActionIcon>
-        <ActionIcon variant="light" size="xl" onClick={() => undoMove()}>
-          <IconChevronLeft />
-        </ActionIcon>
-        <ActionIcon variant="light" size="xl" onClick={() => redoMove()}>
-          <IconChevronRight />
-        </ActionIcon>
-        <ActionIcon variant="light" size="xl" onClick={() => goToEnd()}>
-          <IconChevronsRight />
-        </ActionIcon>
-      </Group>
-    );
-  }
 }
 
 export default BoardAnalysis;

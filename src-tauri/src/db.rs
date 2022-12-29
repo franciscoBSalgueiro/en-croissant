@@ -320,6 +320,15 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) {
     )
     .expect("create games table");
 
+    // create the metadata table
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS metadata (
+            name TEXT NOT NULL
+            description TEXT
+        )",
+        [],
+    );
+
     let file = File::open(&file).expect("open pgn file");
 
     let uncompressed: Box<dyn io::Read> = if extension == OsStr::new("bz2") {
@@ -384,6 +393,16 @@ pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo,
         game_count,
         storage_size,
     })
+}
+
+#[tauri::command]
+pub fn rename_db(file: PathBuf, name: String) -> Result<(), String> {
+    let db = rusqlite::Connection::open(file).expect("open database");
+    db.execute(
+        "INSERT OR IGNORE INTO metadata (name) VALUES (?)",
+        rusqlite::params![name],
+    );
+    Ok(())
 }
 
 #[tauri::command]
