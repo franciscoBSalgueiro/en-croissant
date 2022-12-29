@@ -69,8 +69,12 @@ function Chessboard({ arrows, makeMove }: ChessboardProps) {
     key: "auto-promote",
     defaultValue: true,
   });
+  const [forcedEP] = useLocalStorage<boolean>({
+    key: "forced-en-passant",
+    defaultValue: false,
+  });
   const fen = chess.fen();
-  const dests = toDests(chess);
+  const dests = toDests(chess, forcedEP);
   const turn = formatMove(chess.turn());
   const [pendingMove, setPendingMove] = useState<{
     from: Square;
@@ -138,6 +142,7 @@ function Chessboard({ arrows, makeMove }: ChessboardProps) {
                   // NOTE: Idk if this can happen
                   return;
                 }
+                // allow castling to the rooks
                 if (chess.get(orig)?.type === KING) {
                   switch (dest) {
                     case "h1":

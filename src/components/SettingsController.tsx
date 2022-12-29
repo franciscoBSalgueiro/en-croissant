@@ -43,6 +43,10 @@ function SettingsController() {
     key: "auto-promote",
     defaultValue: true,
   });
+  const [forcedEP, setForcedEP] = useLocalStorage<boolean>({
+    key: "forced-en-passant",
+    defaultValue: false,
+  });
   const { classes } = useStyles();
 
   return (
@@ -107,6 +111,30 @@ function SettingsController() {
             size="lg"
             checked={autoPromote}
             onChange={(event) => setAutoPromote(event.currentTarget.checked)}
+            className={classes.switch}
+          />
+        </Group>
+      </Card>
+      <Card withBorder radius="md" p="xl" className={classes.card}>
+        <Text size="lg" weight={500} className={classes.title}>
+          Anarchy
+        </Text>
+        <Text size="xs" color="dimmed" mt={3} mb="xl">
+          Fun options
+        </Text>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Forced en-passant</Text>
+            <Text size="xs" color="dimmed">
+              Forces you to play en-passant, it is a legal move.
+            </Text>
+          </div>
+          <Switch
+            onLabel="ON"
+            offLabel="OFF"
+            size="lg"
+            checked={forcedEP}
+            onChange={(event) => setForcedEP(event.currentTarget.checked)}
             className={classes.switch}
           />
         </Group>

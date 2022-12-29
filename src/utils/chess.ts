@@ -164,28 +164,34 @@ export function moveToKey(move: Move | null) {
     return move ? ([move.from, move.to] as Key[]) : [];
 }
 
-export function toDests(chess: Chess): Map<Key, Key[]> {
+export function toDests(chess: Chess, forcedEP: boolean): Map<Key, Key[]> {
     const dests = new Map();
-    SQUARES.forEach((s: Square) => {
+    for (const s of SQUARES) {
         const ms = chess.moves({ square: s, verbose: true }) as Move[];
-        ms.forEach((m) => {
+        for (const m of ms) {
             const to = m.to;
             if (dests.has(s)) {
                 dests.get(s).push(to);
             } else {
                 dests.set(s, [to]);
             }
+            // Forced en-passant
+            if (forcedEP && m.flags === "e") {
+                dests.clear();
+                dests.set(s, [to]);
+                return dests;
+            }
             // allow to move the piece to rook square in case of castling
             if (m.piece === "k") {
-                if (m.flags.includes("k")) {
+                if (m.flags === "k") {
                     dests.get(s).push(m.color === "w" ? "h1" : "h8");
                 }
-                if (m.flags.includes("q")) {
+                if (m.flags === "q") {
                     dests.get(s).push(m.color === "w" ? "a1" : "a8");
                 }
             }
-        });
-    });
+        }
+    }
     return dests;
 }
 
