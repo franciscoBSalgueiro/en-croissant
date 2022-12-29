@@ -323,11 +323,19 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) {
     // create the metadata table
     db.execute(
         "CREATE TABLE IF NOT EXISTS metadata (
-            name TEXT NOT NULL
-            description TEXT
+                    key TEXT NOT NULL,
+                    value TEXT NOT NULL
         )",
         [],
-    );
+    )
+    .expect("create metadata table");
+
+    // add an untitled title to the metadata table
+    db.execute(
+        "INSERT OR IGNORE INTO metadata (key, value) VALUES ('title', 'Untitled')",
+        [],
+    )
+    .expect("insert title");
 
     let file = File::open(&file).expect("open pgn file");
 
@@ -356,7 +364,6 @@ pub struct DatabaseInfo {
 
 #[tauri::command]
 pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
-    // get the db/$file as a PathBuf
     let db_path = PathBuf::from("db").join(file);
 
     let path = resolve_path(
@@ -383,11 +390,17 @@ pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo,
         .query_row([], |row| row.get(0))
         .expect("get game count");
 
+    // get the title from the metadata table
+    let mut stmt = db
+        .prepare("SELECT value FROM metadata WHERE key = 'title'")
+        .expect("prepare title");
+    let title = stmt.query_row([], |row| row.get(0)).expect("get title");
+
     let storage_size = path.metadata().expect("get metadata").len() as usize;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     Ok(DatabaseInfo {
-        title: "test".to_string(),
+        title,
         description: filename.to_string(),
         player_count,
         game_count,
@@ -396,12 +409,10 @@ pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo,
 }
 
 #[tauri::command]
-pub fn rename_db(file: PathBuf, name: String) -> Result<(), String> {
+pub fn rename_db(file: PathBuf, title: String) -> Result<(), String> {
     let db = rusqlite::Connection::open(file).expect("open database");
-    db.execute(
-        "INSERT OR IGNORE INTO metadata (name) VALUES (?)",
-        rusqlite::params![name],
-    );
+    db.execute("UPDATE metadata SET value = ? WHERE key = 'title'", [title])
+        .expect("update title");
     Ok(())
 }
 

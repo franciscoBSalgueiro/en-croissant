@@ -98,7 +98,7 @@ function GameTable({ database }: { database: Database }) {
   const offset = (activePage - 1) * limit;
   const [scrolled, setScrolled] = useState(false);
   const [title, setTitle] = useState(database.title);
-  const [debouncedTitle] = useDebouncedValue(title, 200);
+  const [debouncedTitle] = useDebouncedValue(title, 100);
   const [openedSettings, toggleOpenedSettings] = useToggle();
 
   useEffect(() => {
@@ -141,9 +141,13 @@ function GameTable({ database }: { database: Database }) {
   useEffect(() => {
     invoke("rename_db", {
       file: database.file,
-      name: debouncedTitle,
+      title: debouncedTitle,
     });
   }, [debouncedTitle]);
+
+  useEffect(() => {
+    setTitle(database.title);
+  }, [database]);
 
   const rows =
     games.length === 0 ? (

@@ -36,7 +36,7 @@ function BoardView({ pgn }: { pgn: string }) {
 
   return (
     <>
-      <Container>
+      <Container sx={{ width: "100%" }}>
         <AspectRatio ratio={1} mx={100}>
           <Chessground
             animation={{
