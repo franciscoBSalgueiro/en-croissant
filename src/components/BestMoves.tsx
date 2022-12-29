@@ -19,7 +19,8 @@ import { useToggle } from "@mantine/hooks";
 import {
   IconPlayerPause,
   IconPlayerPlay,
-  IconSettings, IconTargetArrow
+  IconSettings,
+  IconTargetArrow
 } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -80,11 +81,13 @@ function ScoreBubble({ score }: { score: Score }) {
 }
 
 interface BestMovesProps {
+  id: number;
   engine: Engine;
   makeMoves: (moves: string[]) => void;
+  setArrows: ((arrows: string[]) => void);
 }
 
-function BestMoves({ makeMoves, engine }: BestMovesProps) {
+function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
   const half_moves = tree.half_moves;
@@ -120,6 +123,13 @@ function BestMoves({ makeMoves, engine }: BestMovesProps) {
         const ev = event.payload as EngineVariation[];
         if (ev[0].engine === engine.path) {
           setEngineVariation(ev);
+          if (id === 0) {
+            setArrows(
+              ev.map((ev) => {
+                return ev.uciMoves[0];
+              })
+            );
+          }
         }
       });
     }

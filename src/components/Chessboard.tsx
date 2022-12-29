@@ -22,11 +22,12 @@ import { BISHOP, Chess, KING, KNIGHT, QUEEN, ROOK, Square } from "chess.js";
 import { Color } from "chessground/types";
 import { useContext, useState } from "react";
 import Chessground from "react-chessground";
-import { formatMove, moveToKey, toDests } from "../utils/chess";
+import { formatMove, moveToKey, parseUci, toDests } from "../utils/chess";
 import { TreeContext } from "./BoardAnalysis";
 import OpeningName from "./OpeningName";
 
 interface ChessboardProps {
+  arrows: string[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
 }
 
@@ -52,7 +53,7 @@ const promotionPieces = [
   },
 ];
 
-function Chessboard({ makeMove }: ChessboardProps) {
+function Chessboard({ arrows, makeMove }: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
   const lastMove = tree.move;
@@ -179,24 +180,23 @@ function Chessboard({ makeMove }: ChessboardProps) {
           turnColor={turn}
           check={chess.inCheck()}
           lastMove={moveToKey(lastMove)}
-          // drawable={{
-          //   enabled: true,
-          //   visible: true,
-          //   defaultSnapToValidMove: true,
-          //   eraseOnClick: true,
-          //   autoShapes:
-          //     showArrows && engineVariations.length > 0
-          //       ? engineVariations[0].map((variation, i) => {
-          //           const move = variation.uciMoves[0];
-          //           const { from, to } = parseUci(move);
-          //           return {
-          //             orig: from,
-          //             dest: to,
-          //             brush: i === 0 ? "paleBlue" : "paleGrey",
-          //           };
-          //         })
-          //       : [],
-          // }}
+          drawable={{
+            enabled: true,
+            visible: true,
+            defaultSnapToValidMove: true,
+            eraseOnClick: true,
+            autoShapes:
+              showArrows && arrows.length > 0
+                ? arrows.map((move, i) => {
+                    const { from, to } = parseUci(move);
+                    return {
+                      orig: from,
+                      dest: to,
+                      brush: i === 0 ? "paleBlue" : "paleGrey",
+                    };
+                  })
+                : [],
+          }}
         />
       </div>
 

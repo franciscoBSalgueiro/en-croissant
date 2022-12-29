@@ -18,7 +18,7 @@ import {
   IconNotes,
   IconZoomCheck
 } from "@tabler/icons";
-import { Chess, DEFAULT_POSITION, Move, Square, validateFen } from "chess.js";
+import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { createContext, useState } from "react";
 import { VariationTree } from "../utils/chess";
 import { Engine } from "../utils/engines";
@@ -60,7 +60,7 @@ function BoardAnalysis() {
   const [tree, setTree] = useState<VariationTree>(
     new VariationTree(null, form.values.fen, null)
   );
-  const [arrows, setArrows] = useState<Move[]>([]);
+  const [arrows, setArrows] = useState<string[]>([]);
   const chess = new Chess(tree.fen);
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
@@ -131,7 +131,7 @@ function BoardAnalysis() {
   return (
     <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-        <Chessboard makeMove={makeMove} />
+        <Chessboard makeMove={makeMove} arrows={arrows} />
 
         <Stack>
           <Tabs defaultValue="analysis">
@@ -163,12 +163,15 @@ function BoardAnalysis() {
               >
                 <Stack>
                   <Accordion variant="separated" multiple chevronSize={0}>
-                    {selectedEngines.map((engine) => {
+                    {selectedEngines.map((engine, i) => {
+                      console.log(i);
                       return (
                         <BestMoves
+                          id={i}
                           key={engine.name}
                           engine={engine}
                           makeMoves={makeMoves}
+                          setArrows={setArrows}
                         />
                       );
                     })}
