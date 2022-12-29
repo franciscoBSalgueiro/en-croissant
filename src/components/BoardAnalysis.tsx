@@ -18,13 +18,9 @@ import {
   IconNotes,
   IconZoomCheck
 } from "@tabler/icons";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
-import { useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
-import { createContext, useEffect, useState } from "react";
-import { Annotation, VariationTree } from "../utils/chess";
+import { Chess, DEFAULT_POSITION, Move, Square, validateFen } from "chess.js";
+import { createContext, useState } from "react";
+import { VariationTree } from "../utils/chess";
 import { Engine } from "../utils/engines";
 import AnnotationPanel from "./AnnotationPanel";
 import BestMoves from "./BestMoves";
@@ -64,40 +60,8 @@ function BoardAnalysis() {
   const [tree, setTree] = useState<VariationTree>(
     new VariationTree(null, form.values.fen, null)
   );
+  const [arrows, setArrows] = useState<Move[]>([]);
   const chess = new Chess(tree.fen);
-
-  const editor = useEditor(
-    {
-      extensions: [
-        StarterKit,
-        Underline,
-        Placeholder.configure({ placeholder: "Write here..." }),
-      ],
-      content: tree.commentHTML,
-      onUpdate: ({ editor }) => {
-        const html = editor.getHTML();
-        if (html === "<p></p>") {
-          tree.commentHTML = "";
-          tree.commentText = "";
-        } else {
-          tree.commentHTML = html;
-          tree.commentText = editor.getText();
-        }
-        setTree(tree);
-      },
-    },
-    [tree]
-  );
-
-  function annotate(annotation: Annotation) {
-    if (tree.annotation === annotation) {
-      tree.annotation = Annotation.None;
-    } else {
-      tree.annotation = annotation;
-    }
-    setTree(tree);
-    forceUpdate();
-  }
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     const newMove = chess.move(move);
@@ -164,10 +128,6 @@ function BoardAnalysis() {
     ["ArrowDown", () => goToEnd()],
   ]);
 
-  useEffect(() => {
-    form.setValues({ fen: tree.fen });
-  }, [tree]);
-
   return (
     <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
@@ -193,11 +153,7 @@ function BoardAnalysis() {
               </Stack>
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
-              <AnnotationPanel
-                editor={editor}
-                curAnnotation={tree.annotation}
-                annotate={annotate}
-              />
+              <AnnotationPanel forceUpdate={forceUpdate} setTree={setTree} />
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <ScrollArea

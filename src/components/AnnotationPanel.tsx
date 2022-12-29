@@ -1,19 +1,27 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { Editor } from "@tiptap/react";
-import { Annotation, annotationColor } from "../utils/chess";
+import { useContext } from "react";
+import { Annotation, annotationColor, VariationTree } from "../utils/chess";
 import { AnnotationEditor } from "./AnnotationEditor";
+import { TreeContext } from "./BoardAnalysis";
 
 interface AnnotationPanelProps {
-  editor: Editor | null;
-  curAnnotation: Annotation;
-  annotate: (a: Annotation) => void; 
+  forceUpdate: () => void;
+  setTree: (t: VariationTree) => void;
 }
 
-function AnnotationPanel({
-  editor,
-  curAnnotation,
-  annotate
-}: AnnotationPanelProps) {
+function AnnotationPanel({ setTree, forceUpdate }: AnnotationPanelProps) {
+  const tree = useContext(TreeContext);
+
+  function annotate(annotation: Annotation) {
+    if (tree.annotation === annotation) {
+      tree.annotation = Annotation.None;
+    } else {
+      tree.annotation = annotation;
+    }
+    setTree(tree);
+    forceUpdate();
+  }
+
   return (
     <Stack>
       <Group grow>
@@ -24,7 +32,7 @@ function AnnotationPanel({
         <SymbolButton annotation={Annotation.Mistake} />
         <SymbolButton annotation={Annotation.Blunder} />
       </Group>
-      <AnnotationEditor editor={editor} />
+      <AnnotationEditor forceUpdate={forceUpdate} setTree={setTree} />
     </Stack>
   );
 
@@ -53,7 +61,7 @@ function AnnotationPanel({
         label = "Unknown";
     }
     const color = annotationColor(annotation);
-    const isActive = curAnnotation === annotation;
+    const isActive = tree.annotation === annotation;
     return (
       <Tooltip label={label}>
         <ActionIcon
