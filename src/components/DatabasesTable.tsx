@@ -1,4 +1,12 @@
-import { Card, createStyles, Group, Text, Title } from "@mantine/core";
+import {
+  Card,
+  createStyles,
+  Group,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title
+} from "@mantine/core";
 import { IconDatabase } from "@tabler/icons";
 import { useEffect, useState } from "react";
 import { Database, formatBytes, getDatabases } from "../utils/db";
@@ -10,7 +18,6 @@ const useStyles = createStyles(
   (theme, { selected }: { selected: boolean }) => ({
     card: {
       cursor: "pointer",
-      width: 300,
       backgroundColor: selected
         ? theme.colorScheme === "dark"
           ? theme.colors.dark[6]
@@ -75,34 +82,36 @@ function CollectionCard({
         className={classes.card}
         onClick={() => setSelected(id)}
       >
-        <Group>
-          <IconDatabase size={24} />
-          <div>
-            <Text weight={500}>{title}</Text>
-            <Text size="xs" color="dimmed">
-              {description}
-            </Text>
-          </div>
-        </Group>
+        <Stack>
+          <Group noWrap>
+            <IconDatabase size={24} />
+            <div>
+              <Text weight={500}>{title}</Text>
+              <Text size="xs" color="dimmed">
+                {description}
+              </Text>
+            </div>
+          </Group>
 
-        <div className={classes.info}>
-          <div>
-            <Text size="sm" color="dimmed" className={classes.label} mt={15}>
-              Games
-            </Text>
-            <Text weight={700} size="xl" sx={{ lineHeight: 1 }}>
-              {Intl.NumberFormat().format(games)}
-            </Text>
+          <div className={classes.info}>
+            <div>
+              <Text size="sm" color="dimmed" className={classes.label} mt={15}>
+                Games
+              </Text>
+              <Text weight={700} size="xl" sx={{ lineHeight: 1 }}>
+                {Intl.NumberFormat().format(games)}
+              </Text>
+            </div>
+            <div>
+              <Text size="sm" color="dimmed" className={classes.label} mt={15}>
+                Storage
+              </Text>
+              <Text weight={700} size="xl" sx={{ lineHeight: 1 }}>
+                {formatBytes(storage)}
+              </Text>
+            </div>
           </div>
-          <div>
-            <Text size="sm" color="dimmed" className={classes.label} mt={15}>
-              Storage
-            </Text>
-            <Text weight={700} size="xl" sx={{ lineHeight: 1 }}>
-              {formatBytes(storage)}
-            </Text>
-          </div>
-        </div>
+        </Stack>
       </Card>
     </>
   );
@@ -123,7 +132,14 @@ export default function DatabasesTable() {
         <Title>Your Databases</Title>
         <OpenFolderButton folder="db" />
       </Group>
-      <Group>
+      <SimpleGrid
+        cols={4}
+        breakpoints={[
+          { maxWidth: 1200, cols: 3, spacing: "md" },
+          { maxWidth: 1000, cols: 2, spacing: "sm" },
+          { maxWidth: 800, cols: 1, spacing: "sm" },
+        ]}
+      >
         {databases.map((item, i) => (
           <CollectionCard
             id={i}
@@ -137,7 +153,7 @@ export default function DatabasesTable() {
           />
         ))}
         <ConvertButton setDatabases={setDatabases} />
-      </Group>
+      </SimpleGrid>
 
       {database !== null && <GameTable database={database} />}
     </>

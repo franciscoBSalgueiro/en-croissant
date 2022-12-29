@@ -1,7 +1,9 @@
 import {
   Avatar,
   Box,
+  Button,
   Checkbox,
+  Collapse,
   createStyles,
   Grid,
   Group,
@@ -16,6 +18,7 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useDebouncedValue, useHotkeys, useToggle } from "@mantine/hooks";
+import { IconSearch } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -96,6 +99,7 @@ function GameTable({ database }: { database: Database }) {
   const [scrolled, setScrolled] = useState(false);
   const [title, setTitle] = useState(database.title);
   const [debouncedTitle] = useDebouncedValue(title, 200);
+  const [openedSettings, toggleOpenedSettings] = useToggle();
 
   useEffect(() => {
     setActivePage(1);
@@ -302,58 +306,94 @@ function GameTable({ database }: { database: Database }) {
         </Grid.Col>
 
         <Grid.Col span={2}>
-          <Stack>
-            <Group grow>
-              <SearchInput
-                value={white}
-                setValue={setWhite}
-                label="White"
-                file={file}
+          <Box my={15}>
+            <Button
+              compact
+              variant="outline"
+              leftIcon={<IconSearch size={15} />}
+              onClick={() => toggleOpenedSettings()}
+            >
+              Search Settings
+            </Button>
+          </Box>
+          <Collapse in={openedSettings}>
+            <Stack>
+              <Group grow>
+                <SearchInput
+                  value={white}
+                  setValue={setWhite}
+                  label="White"
+                  file={file}
+                />
+                <SearchInput
+                  value={black}
+                  setValue={setBlack}
+                  label="Black"
+                  file={file}
+                />
+              </Group>
+              <Select
+                label="Speed"
+                value={speed}
+                onChange={setSpeed}
+                clearable
+                placeholder="Select speed"
+                data={[
+                  { label: Speed.UltraBullet, value: Speed.UltraBullet },
+                  { label: Speed.Bullet, value: Speed.Bullet },
+                  { label: Speed.Blitz, value: Speed.Blitz },
+                  { label: Speed.Rapid, value: Speed.Rapid },
+                  { label: Speed.Classical, value: Speed.Classical },
+                  { label: Speed.Correspondence, value: Speed.Correspondence },
+                ]}
               />
-              <SearchInput
-                value={black}
-                setValue={setBlack}
-                label="Black"
-                file={file}
+              <Select
+                label="Result"
+                value={outcome}
+                onChange={setOutcome}
+                clearable
+                placeholder="Select result"
+                data={[
+                  { label: "White wins", value: Outcome.WhiteWin },
+                  { label: "Black wins", value: Outcome.BlackWin },
+                  { label: "Draw", value: Outcome.Draw },
+                ]}
               />
-            </Group>
-            <Select
-              label="Speed"
-              value={speed}
-              onChange={setSpeed}
-              clearable
-              placeholder="Select speed"
-              data={[
-                { label: Speed.UltraBullet, value: Speed.UltraBullet },
-                { label: Speed.Bullet, value: Speed.Bullet },
-                { label: Speed.Blitz, value: Speed.Blitz },
-                { label: Speed.Rapid, value: Speed.Rapid },
-                { label: Speed.Classical, value: Speed.Classical },
-                { label: Speed.Correspondence, value: Speed.Correspondence },
-              ]}
-            />
-            <Select
-              label="Result"
-              value={outcome}
-              onChange={setOutcome}
-              clearable
-              placeholder="Select result"
-              data={[
-                { label: "White wins", value: Outcome.WhiteWin },
-                { label: "Black wins", value: Outcome.BlackWin },
-                { label: "Draw", value: Outcome.Draw },
-              ]}
-            />
-            <Tooltip label="Disabling this may significantly improve performance">
-              <Checkbox
-                label="Include pagination"
-                checked={!skip}
-                onChange={() => toggleSkip()}
-              />
-            </Tooltip>
-          </Stack>
+              <Tooltip label="Disabling this may significantly improve performance">
+                <Checkbox
+                  label="Include pagination"
+                  checked={!skip}
+                  onChange={() => toggleSkip()}
+                />
+              </Tooltip>
+            </Stack>
+          </Collapse>
           {selectedGame !== null && (
-            <BoardView pgn={games[selectedGame].moves} />
+            <>
+              <Stack>
+                <Group align="apart" grow>
+                  <Stack align="center" spacing={0}>
+                    <Avatar src={games[selectedGame].white.image} />
+                    <Text weight={500} align="right">
+                      {games[selectedGame].white.name}
+                    </Text>
+                  </Stack>
+                  <Stack align="center" spacing={0}>
+                    <Text>
+                      {games[selectedGame].outcome.replaceAll("1/2", "½")}
+                    </Text>
+                    <Text c="dimmed">{games[selectedGame].date}</Text>
+                  </Stack>
+                  <Stack align="center" spacing={0}>
+                    <Avatar src={games[selectedGame].white.image} />
+                    <Text weight={500} align="left">
+                      {games[selectedGame].black.name}
+                    </Text>
+                  </Stack>
+                </Group>
+                <BoardView pgn={games[selectedGame].moves} />
+              </Stack>
+            </>
           )}
         </Grid.Col>
       </Grid>

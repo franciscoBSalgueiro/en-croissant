@@ -1,4 +1,4 @@
-import { AspectRatio, Container } from "@mantine/core";
+import { AspectRatio, Container, ScrollArea } from "@mantine/core";
 import { useCounter, useHotkeys } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
@@ -49,7 +49,9 @@ function BoardView({ pgn }: { pgn: string }) {
             fen={fen}
           />
         </AspectRatio>
-        <p>{globalPGN}</p>
+        <ScrollArea my={20} h={150} offsetScrollbars>
+          {globalPGN}
+        </ScrollArea>
         <MoveControls
           goToStart={() => curMoveHandler.set(0)}
           goToEnd={() => curMoveHandler.set(totalMoves)}
