@@ -1,4 +1,4 @@
-import { Card, createStyles, Group, Switch, Text } from "@mantine/core";
+import { Card, createStyles, Group, Stack, Switch, Text } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 
 const useStyles = createStyles((theme) => ({
@@ -39,10 +39,14 @@ function SettingsController() {
     key: "show-arrows",
     defaultValue: true,
   });
+  const [autoPromote, setAutoPromote] = useLocalStorage<boolean>({
+    key: "auto-promote",
+    defaultValue: true,
+  });
   const { classes } = useStyles();
 
   return (
-    <>
+    <Stack>
       <Card withBorder radius="md" p="xl" className={classes.card}>
         <Text size="lg" weight={500} className={classes.title}>
           Board
@@ -83,7 +87,31 @@ function SettingsController() {
           />
         </Group>
       </Card>
-    </>
+      <Card withBorder radius="md" p="xl" className={classes.card}>
+        <Text size="lg" weight={500} className={classes.title}>
+          Game
+        </Text>
+        <Text size="xs" color="dimmed" mt={3} mb="xl">
+          Customize the game controls
+        </Text>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Auto Promotion</Text>
+            <Text size="xs" color="dimmed">
+              Automatically promote to a queen when a pawn reaches the last rank
+            </Text>
+          </div>
+          <Switch
+            onLabel="ON"
+            offLabel="OFF"
+            size="lg"
+            checked={autoPromote}
+            onChange={(event) => setAutoPromote(event.currentTarget.checked)}
+            className={classes.switch}
+          />
+        </Group>
+      </Card>
+    </Stack>
   );
 }
 
