@@ -9,7 +9,7 @@ import {
   Stack,
   Tooltip
 } from "@mantine/core";
-import { useLocalStorage, useToggle } from "@mantine/hooks";
+import { useHotkeys, useLocalStorage, useToggle } from "@mantine/hooks";
 import {
   IconChessBishop,
   IconChessKnight,
@@ -82,6 +82,8 @@ function Chessboard({ arrows, makeMove }: ChessboardProps) {
   } | null>(null);
   const [orientation, toggleOrientation] = useToggle<Color>(["white", "black"]);
   const [editingMode, toggleEditingMode] = useToggle();
+
+  useHotkeys([["f", () => toggleOrientation()]]);
 
   return (
     <Stack justify="center">
