@@ -5,9 +5,12 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
   Title
 } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
 import { IconDatabase } from "@tabler/icons";
+import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import { Database, formatBytes, getDatabases } from "../utils/db";
 import ConvertButton from "./ConvertButton";
@@ -122,9 +125,27 @@ export default function DatabasesTable() {
   const [databases, setDatabases] = useState<Database[]>([]);
   const database = selected !== null ? databases[selected] : null;
 
+  const [title, setTitle] = useState(database?.title ?? null);
+  const [debouncedTitle] = useDebouncedValue(title, 200);
+
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));
   }, []);
+
+  useEffect(() => {
+    if (debouncedTitle !== null && database !== null && debouncedTitle !== "") {
+      invoke("rename_db", {
+        file: database.file,
+        title: debouncedTitle,
+      }).then(() => {
+        getDatabases().then((dbs) => setDatabases(dbs));
+      });
+    }
+  }, [debouncedTitle]);
+
+  useEffect(() => {
+    setTitle(database?.title ?? null);
+  }, [database?.file]);
 
   return (
     <>
@@ -155,6 +176,16 @@ export default function DatabasesTable() {
         <ConvertButton setDatabases={setDatabases} />
       </SimpleGrid>
 
+      {database !== null && title !== null && (
+        <TextInput
+          variant="unstyled"
+          m={30}
+          size="xl"
+          value={title}
+          onChange={(e) => setTitle(e.currentTarget.value)}
+          error={title === "" && "Name is required"}
+        />
+      )}
       {database !== null && <GameTable database={database} />}
     </>
   );

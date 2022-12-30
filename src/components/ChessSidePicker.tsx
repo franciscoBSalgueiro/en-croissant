@@ -12,7 +12,7 @@ const useStyles = createStyles((theme, { opened }: { opened: boolean }) => ({
   control: {
     display: "flex",
     alignItems: "center",
-    padding: "8px 15px",
+    padding: "8px 15px 8px 15px",
     borderRadius: theme.radius.md,
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,

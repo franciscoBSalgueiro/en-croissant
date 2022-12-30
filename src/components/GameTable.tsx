@@ -5,22 +5,21 @@ import {
   Checkbox,
   Collapse,
   createStyles,
+  Divider,
   Grid,
   Group,
   LoadingOverlay,
   Pagination,
+  Paper,
   RangeSlider,
   ScrollArea,
   Select,
   Stack,
   Table,
-  Text,
-  TextInput,
-  Tooltip
+  Text, Tooltip
 } from "@mantine/core";
-import { useDebouncedValue, useHotkeys, useToggle } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons";
-import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -36,13 +35,6 @@ import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
 
 const useStyles = createStyles((theme) => ({
-  titleInput: {
-    input: {
-      fontSize: 34,
-      fontWeight: "bold",
-    },
-  },
-
   header: {
     position: "sticky",
     top: 0,
@@ -108,8 +100,6 @@ function GameTable({ database }: { database: Database }) {
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const offset = (activePage - 1) * limit;
   const [scrolled, setScrolled] = useState(false);
-  const [title, setTitle] = useState(database.title);
-  const [debouncedTitle] = useDebouncedValue(title, 100);
   const [openedSettings, toggleOpenedSettings] = useToggle();
 
   useEffect(() => {
@@ -132,7 +122,18 @@ function GameTable({ database }: { database: Database }) {
       setGames(res.data);
       setCount(res.count);
     });
-  }, [player1, player2, speed, outcome, skip, limit, file, sides, rangePlayer1, rangePlayer2]);
+  }, [
+    player1,
+    player2,
+    speed,
+    outcome,
+    skip,
+    limit,
+    file,
+    sides,
+    rangePlayer1,
+    rangePlayer2,
+  ]);
 
   useEffect(() => {
     setLoading(true);
@@ -151,17 +152,6 @@ function GameTable({ database }: { database: Database }) {
       setCount(res.count);
     });
   }, [offset]);
-
-  useEffect(() => {
-    invoke("rename_db", {
-      file: database.file,
-      title: debouncedTitle,
-    });
-  }, [debouncedTitle]);
-
-  useEffect(() => {
-    setTitle(database.title);
-  }, [database]);
 
   const rows =
     games.length === 0 ? (
@@ -258,83 +248,19 @@ function GameTable({ database }: { database: Database }) {
 
   return (
     <>
-      <TextInput
-        variant="unstyled"
-        m={30}
-        size="xl"
-        value={title}
-        onChange={(e) => setTitle(e.currentTarget.value)}
-        className={classes.titleInput}
-        error={title === "" && "Name is required"}
-      />
       <Grid grow>
         <Grid.Col span={3}>
-          <Box sx={{ position: "relative" }}>
-            <ScrollArea
-              h={600}
-              onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
-              offsetScrollbars
-            >
-              <Table>
-                <thead
-                  className={cx(classes.header, {
-                    [classes.scrolled]: scrolled,
-                  })}
-                >
-                  <tr>
-                    <th>White</th>
-                    <th>Result</th>
-                    <th>Black</th>
-                    <th>Date</th>
-                    <th>Speed</th>
-                    <th>Link</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <>{rows}</>
-                </tbody>
-              </Table>
-            </ScrollArea>
-            <LoadingOverlay visible={loading} />
-          </Box>
-          {!skip && (
-            <>
-              <Select
-                label="Results per page"
-                value={limit.toString()}
-                onChange={(v) => {
-                  v && setLimit(parseInt(v));
-                }}
-                sx={{ float: "right" }}
-                data={["10", "25", "50", "100"]}
-                defaultValue={limit.toString()}
-              />
-              <Stack align="center" spacing={0} mt={20}>
-                <Pagination
-                  page={activePage}
-                  onChange={setActivePage}
-                  total={Math.ceil(count / limit)}
-                />
-                <Text weight={500} align="center" p={20}>
-                  {Intl.NumberFormat().format(count)} games
-                </Text>
-              </Stack>
-            </>
-          )}
-        </Grid.Col>
+          <Button
+            my={15}
+            compact
+            variant="outline"
+            leftIcon={<IconSearch size={15} />}
+            onClick={() => toggleOpenedSettings()}
+          >
+            Search Settings
+          </Button>
 
-        <Grid.Col span={2}>
-          <Box my={15}>
-            <Button
-              compact
-              variant="outline"
-              leftIcon={<IconSearch size={15} />}
-              onClick={() => toggleOpenedSettings()}
-            >
-              Search Settings
-            </Button>
-          </Box>
-          <Collapse in={openedSettings}>
+          <Collapse in={openedSettings} mx={10}>
             <Stack>
               <Group grow>
                 <Stack>
@@ -418,31 +344,89 @@ function GameTable({ database }: { database: Database }) {
               </Tooltip>
             </Stack>
           </Collapse>
+          <Box sx={{ position: "relative" }}>
+            <ScrollArea
+              h={600}
+              onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
+              offsetScrollbars
+            >
+              <Table>
+                <thead
+                  className={cx(classes.header, {
+                    [classes.scrolled]: scrolled,
+                  })}
+                >
+                  <tr>
+                    <th>White</th>
+                    <th>Result</th>
+                    <th>Black</th>
+                    <th>Date</th>
+                    <th>Speed</th>
+                    <th>Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <>{rows}</>
+                </tbody>
+              </Table>
+            </ScrollArea>
+            <LoadingOverlay visible={loading} />
+          </Box>
+          {!skip && (
+            <>
+              <Select
+                label="Results per page"
+                value={limit.toString()}
+                onChange={(v) => {
+                  v && setLimit(parseInt(v));
+                }}
+                sx={{ float: "right" }}
+                data={["10", "25", "50", "100"]}
+                defaultValue={limit.toString()}
+              />
+              <Stack align="center" spacing={0} mt={20}>
+                <Pagination
+                  page={activePage}
+                  onChange={setActivePage}
+                  total={Math.ceil(count / limit)}
+                />
+                <Text weight={500} align="center" p={20}>
+                  {Intl.NumberFormat().format(count)} games
+                </Text>
+              </Stack>
+            </>
+          )}
+        </Grid.Col>
+
+        <Grid.Col span={2}>
           {selectedGame !== null && (
             <>
-              <Stack>
-                <Group align="apart" grow>
-                  <Stack align="center" spacing={0}>
-                    <Avatar src={games[selectedGame].white.image} />
-                    <Text weight={500} align="right">
-                      {games[selectedGame].white.name}
-                    </Text>
-                  </Stack>
-                  <Stack align="center" spacing={0}>
-                    <Text>
-                      {games[selectedGame].outcome.replaceAll("1/2", "½")}
-                    </Text>
-                    <Text c="dimmed">{games[selectedGame].date}</Text>
-                  </Stack>
-                  <Stack align="center" spacing={0}>
-                    <Avatar src={games[selectedGame].white.image} />
-                    <Text weight={500} align="left">
-                      {games[selectedGame].black.name}
-                    </Text>
-                  </Stack>
-                </Group>
-                <BoardView pgn={games[selectedGame].moves} />
-              </Stack>
+              <Paper shadow="sm" p="sm" withBorder>
+                <Stack>
+                  <Group align="apart" grow>
+                    <Stack align="center" spacing={0}>
+                      <Avatar src={games[selectedGame].white.image} />
+                      <Text weight={500} align="right">
+                        {games[selectedGame].white.name}
+                      </Text>
+                    </Stack>
+                    <Stack align="center" justify="end" spacing={0}>
+                      <Text>
+                        {games[selectedGame].outcome.replaceAll("1/2", "½")}
+                      </Text>
+                      <Text c="dimmed">{games[selectedGame].date}</Text>
+                    </Stack>
+                    <Stack align="center" spacing={0}>
+                      <Avatar src={games[selectedGame].white.image} />
+                      <Text weight={500} align="left">
+                        {games[selectedGame].black.name}
+                      </Text>
+                    </Stack>
+                  </Group>
+                  <Divider my="sm" />
+                  <BoardView pgn={games[selectedGame].moves} />
+                </Stack>
+              </Paper>
             </>
           )}
         </Grid.Col>
