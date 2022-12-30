@@ -49,7 +49,7 @@ function BoardView({ pgn }: { pgn: string }) {
             fen={fen}
           />
         </AspectRatio>
-        <ScrollArea my={20} h={150} offsetScrollbars>
+        <ScrollArea my={20} h={100} offsetScrollbars>
           {globalPGN}
         </ScrollArea>
         <MoveControls

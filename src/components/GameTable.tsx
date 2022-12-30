@@ -2,6 +2,7 @@ import {
   Avatar,
   Box,
   Button,
+  Center,
   Checkbox,
   Collapse,
   createStyles,
@@ -404,16 +405,23 @@ function GameTable({ database }: { database: Database }) {
         </Grid.Col>
 
         <Grid.Col span={2}>
-          {selectedGame !== null && (
+          {selectedGame !== null ? (
             <>
-              <Paper shadow="sm" p="sm" withBorder>
+              <Paper shadow="sm" p="sm" my="md" withBorder>
                 <Stack>
-                  <Group align="apart" grow>
-                    <Stack align="center" spacing={0}>
-                      <Avatar src={games[selectedGame].white.image} />
-                      <Text weight={500} align="right">
-                        {games[selectedGame].white.name}
-                      </Text>
+                  <Group align="apart" my="sm" mx="md" grow>
+                    <Stack align="start" spacing={0}>
+                      <Group noWrap>
+                        <Avatar src={games[selectedGame].white.image} />
+                        <div>
+                          <Text weight={500}>
+                            {games[selectedGame].white.name}
+                          </Text>
+                          <Text c="dimmed">
+                            {games[selectedGame].white.rating}
+                          </Text>
+                        </div>
+                      </Group>
                     </Stack>
                     <Stack align="center" justify="end" spacing={0}>
                       <Text>
@@ -421,18 +429,29 @@ function GameTable({ database }: { database: Database }) {
                       </Text>
                       <Text c="dimmed">{games[selectedGame].date}</Text>
                     </Stack>
-                    <Stack align="center" spacing={0}>
-                      <Avatar src={games[selectedGame].white.image} />
-                      <Text weight={500} align="left">
-                        {games[selectedGame].black.name}
-                      </Text>
+                    <Stack align="end" spacing={0}>
+                      <Group noWrap>
+                        <div>
+                          <Text weight={500} align="right">
+                            {games[selectedGame].black.name}
+                          </Text>
+                          <Text c="dimmed" align="right">
+                            {games[selectedGame].black.rating}
+                          </Text>
+                        </div>
+                        <Avatar src={games[selectedGame].black.image} />
+                      </Group>
                     </Stack>
                   </Group>
-                  <Divider my="sm" />
+                  <Divider mb="sm" />
                   <BoardView pgn={games[selectedGame].moves} />
                 </Stack>
               </Paper>
             </>
+          ) : (
+            <Center h="100%">
+              <Text>No game selected</Text>
+            </Center>
           )}
         </Grid.Col>
       </Grid>
