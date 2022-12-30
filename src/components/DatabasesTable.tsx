@@ -4,12 +4,13 @@ import {
   Group,
   SimpleGrid,
   Stack,
+  Tabs,
   Text,
   TextInput,
   Title
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconDatabase } from "@tabler/icons";
+import { IconChess, IconDatabase, IconUser } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import { Database, formatBytes, getDatabases } from "../utils/db";
@@ -186,7 +187,18 @@ export default function DatabasesTable() {
           error={title === "" && "Name is required"}
         />
       )}
-      {database !== null && <GameTable database={database} />}
+      {database !== null && (
+        <Tabs defaultValue="games">
+          <Tabs.List>
+            <Tabs.Tab icon={<IconChess size={16} />} value="games">Games</Tabs.Tab>
+            <Tabs.Tab icon={<IconUser size={16} />}value="players">Players</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value="games">
+            <GameTable database={database} />
+          </Tabs.Panel>
+          <Tabs.Panel value="players">Second tab content</Tabs.Panel>
+        </Tabs>
+      )}
     </>
   );
 }

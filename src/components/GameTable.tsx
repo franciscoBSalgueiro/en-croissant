@@ -16,12 +16,13 @@ import {
   Select,
   Stack,
   Table,
-  Text, Tooltip
+  Text,
+  Tooltip
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Database,
   Game,
@@ -101,6 +102,8 @@ function GameTable({ database }: { database: Database }) {
   const offset = (activePage - 1) * limit;
   const [scrolled, setScrolled] = useState(false);
   const [openedSettings, toggleOpenedSettings] = useToggle();
+  const viewport = useRef<HTMLDivElement>(null);
+  const scrollToTop = () => viewport.current?.scrollTo({ top: 0 });
 
   useEffect(() => {
     setActivePage(1);
@@ -137,6 +140,7 @@ function GameTable({ database }: { database: Database }) {
 
   useEffect(() => {
     setLoading(true);
+    scrollToTop();
     setSelectedGame(null);
     query_games(file, {
       player1: player1 === "" ? undefined : player1,
@@ -347,6 +351,7 @@ function GameTable({ database }: { database: Database }) {
           <Box sx={{ position: "relative" }}>
             <ScrollArea
               h={600}
+              viewportRef={viewport}
               onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
               offsetScrollbars
             >
