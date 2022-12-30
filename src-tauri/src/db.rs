@@ -364,7 +364,7 @@ pub struct DatabaseInfo {
 }
 
 #[tauri::command]
-pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
+pub async fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
     let db_path = PathBuf::from("db").join(file);
 
     let path = resolve_path(
@@ -410,7 +410,7 @@ pub fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo,
 }
 
 #[tauri::command]
-pub fn rename_db(file: PathBuf, title: String) -> Result<(), String> {
+pub async fn rename_db(file: PathBuf, title: String) -> Result<(), String> {
     let db = rusqlite::Connection::open(file).expect("open database");
     db.execute("UPDATE metadata SET value = ? WHERE key = 'title'", [title])
         .expect("update title");
@@ -418,7 +418,7 @@ pub fn rename_db(file: PathBuf, title: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_number_games(file: PathBuf) -> u64 {
+pub async fn get_number_games(file: PathBuf) -> u64 {
     let db = rusqlite::Connection::open(file).expect("open database");
     db.query_row("SELECT COUNT(*) FROM game", [], |row| row.get(0))
         .expect("count games")
