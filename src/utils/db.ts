@@ -1,6 +1,12 @@
 import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 
+export enum Sides {
+    WhiteBlack = "WhiteBlack",
+    BlackWhite = "BlackWhite",
+    Any = "Any",
+}
+
 export interface Database {
     title?: string;
     description?: string;
@@ -33,8 +39,9 @@ export enum Outcome {
 
 interface GameQuery {
     skip_count?: boolean;
-    white?: string;
-    black?: string;
+    player1?: string;
+    player2?: string;
+    sides?: Sides;
     white_rating?: [number, number];
     black_rating?: [number, number];
     speed?: Speed;
@@ -61,8 +68,9 @@ export async function query_games(
         file: db,
         query: {
             skip_count: query.skip_count || false,
-            white: query.white,
-            black: query.black,
+            player1: query.player1,
+            player2: query.player2,
+            sides: query.sides,
             speed: query.speed,
             outcome: query.outcome,
             limit: query.limit,

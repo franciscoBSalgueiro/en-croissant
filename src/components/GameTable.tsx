@@ -22,7 +22,14 @@ import { IconSearch } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Database, Game, Outcome, query_games, Speed } from "../utils/db";
+import {
+  Database,
+  Game,
+  Outcome,
+  query_games,
+  Sides,
+  Speed
+} from "../utils/db";
 import BoardView from "./BoardView";
 import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
@@ -86,8 +93,9 @@ function GameTable({ database }: { database: Database }) {
   const file = database.file;
   const [games, setGames] = useState<Game[]>([]);
   const [count, setCount] = useState(0);
-  const [white, setWhite] = useState("");
-  const [black, setBlack] = useState("");
+  const [player1, setPlayer1] = useState("");
+  const [player2, setplayer2] = useState("");
+  const [sides, setSides] = useState(Sides.WhiteBlack);
   const [speed, setSpeed] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,8 +114,9 @@ function GameTable({ database }: { database: Database }) {
     setSelectedGame(null);
     setLoading(true);
     query_games(file, {
-      white: white === "" ? undefined : white,
-      black: black === "" ? undefined : black,
+      player1: player1 === "" ? undefined : player1,
+      player2: player2 === "" ? undefined : player2,
+      sides: sides,
       speed: speed === null ? undefined : (speed as Speed),
       outcome: outcome === null ? undefined : (outcome as Outcome),
       limit,
@@ -118,14 +127,14 @@ function GameTable({ database }: { database: Database }) {
       setGames(res.data);
       setCount(res.count);
     });
-  }, [white, black, speed, outcome, skip, limit, file]);
+  }, [player1, player2, speed, outcome, skip, limit, file, sides]);
 
   useEffect(() => {
     setLoading(true);
     setSelectedGame(null);
     query_games(file, {
-      white: white === "" ? undefined : white,
-      black: black === "" ? undefined : black,
+      player1: player1 === "" ? undefined : player1,
+      player2: player2 === "" ? undefined : player2,
       speed: speed === null ? undefined : (speed as Speed),
       outcome: outcome === null ? undefined : (outcome as Outcome),
       limit,
@@ -324,15 +333,19 @@ function GameTable({ database }: { database: Database }) {
             <Stack>
               <Group grow>
                 <SearchInput
-                  value={white}
-                  setValue={setWhite}
-                  label="White"
+                  value={player1}
+                  setValue={setPlayer1}
+                  sides={sides}
+                  setSides={setSides}
+                  label="Player"
                   file={file}
                 />
                 <SearchInput
-                  value={black}
-                  setValue={setBlack}
-                  label="Black"
+                  value={player2}
+                  setValue={setplayer2}
+                  sides={sides}
+                  setSides={setSides}
+                  label="Opponent"
                   file={file}
                 />
               </Group>

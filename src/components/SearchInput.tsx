@@ -1,20 +1,24 @@
-import { Autocomplete, Loader } from "@mantine/core";
+import { Autocomplete } from "@mantine/core";
 import { useState } from "react";
-import { query_players } from "../utils/db";
+import { query_players, Sides } from "../utils/db";
+import { ChessSidePicker } from "./ChessSidePicker";
 
 export function SearchInput({
   label,
   file,
   value,
+  sides,
+  setSides,
   setValue,
 }: {
   label: string;
   file: string;
   value: string;
+  sides: Sides;
+  setSides: (val: Sides) => void;
   setValue: (val: string) => void;
 }) {
   const [tempValue, setTempValue] = useState(value);
-  const [loading, setLoading] = useState(false);
   const [data, setData] = useState<string[]>([]);
 
   async function handleChange(val: string) {
@@ -27,16 +31,12 @@ export function SearchInput({
     }
     setData([]);
 
-    if (val.trim().length === 0) {
-      setLoading(false);
-    } else {
-      setLoading(true);
+    if (!(val.trim().length === 0)) {
       const res = await query_players(file, {
         limit: 5,
         offset: 0,
         name: val,
       });
-      setLoading(false);
       setData(res.map((game) => game.name));
     }
   }
@@ -45,7 +45,9 @@ export function SearchInput({
       value={tempValue}
       data={data}
       onChange={handleChange}
-      rightSection={loading ? <Loader size={16} /> : null}
+      rightSection={
+        <ChessSidePicker sides={sides} setSides={setSides} label={label} />
+      }
       label={label}
       placeholder="Player name"
     />

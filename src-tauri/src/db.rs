@@ -423,12 +423,20 @@ pub fn get_number_games(file: PathBuf) -> u64 {
         .expect("count games")
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Sides {
+    BlackWhite,
+    WhiteBlack,
+    Any,
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct GameQuery {
     pub skip_count: bool,
-    pub white: Option<String>,
-    pub black: Option<String>,
+    pub player1: Option<String>,
+    pub player2: Option<String>,
+    pub sides: Option<Sides>,
     pub white_rating: Option<(u16, u16)>,
     pub black_rating: Option<(u16, u16)>,
     pub speed: Option<Speed>,
@@ -451,30 +459,38 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
 
     let db = rusqlite::Connection::open(file).expect("open database");
 
+    let player_condition = if query.sides == Some(Sides::BlackWhite) {
+        "(:player1 IS NULL OR black.name = :player1) AND (:player2 IS NULL OR white.name = :player2) AND"
+    } else if query.sides == Some(Sides::WhiteBlack) {
+        "(:player1 IS NULL OR white.name = :player1) AND (:player2 IS NULL OR black.name = :player2) AND"
+    } else {
+        "(:player1 IS NULL OR white.name = :player1 OR black.name = :player1) AND (:player2 IS NULL OR white.name = :player2 OR black.name = :player2) AND"
+    };
+
     println!("{:?}", query);
     let count = if query.skip_count {
         None
     } else {
         let mut count_stmt = db
-            .prepare(
+            .prepare(&format!(
                 "SELECT COUNT(*) FROM game INNER JOIN player AS white ON white.id = game.white
         INNER JOIN player AS black ON black.id = game.black
         WHERE
-            (:white IS NULL OR white.name = :white) AND
-            (:black IS NULL OR black.name = :black) AND
+            {}
             (:white_rating_min IS NULL OR white_rating >= :white_rating_min) AND
             (:white_rating_max IS NULL OR white_rating <= :white_rating_max) AND
             (:black_rating_min IS NULL OR black_rating >= :black_rating_min) AND
             (:black_rating_max IS NULL OR black_rating <= :black_rating_max) AND
             (:speed IS NULL OR speed = :speed) AND
             (:outcome IS NULL OR outcome = :outcome)",
-            )
+                player_condition,
+            ))
             .expect("prepare count statement");
 
         let mut count_rows = count_stmt
             .query(named_params! {
-                ":white": query.white,
-                ":black": query.black,
+                ":player1": query.player1,
+                ":player2": query.player2,
                 ":white_rating_min": query.white_rating.map(|(min, _)| min),
                 ":white_rating_max": query.white_rating.map(|(_, max)| max),
                 ":black_rating_min": query.black_rating.map(|(min, _)| min),
@@ -505,27 +521,26 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
     // FIXME: this isn't as performant as it could be
     let mut stmt = db
         .prepare(
-            "SELECT white.name, black.name, white_rating, black_rating, date, speed, site, fen, outcome, moves
+            &format!("SELECT white.name, black.name, white_rating, black_rating, date, speed, site, fen, outcome, moves
             FROM game
             INNER JOIN player AS white ON white.id = game.white
             INNER JOIN player AS black ON black.id = game.black
             WHERE
-                (:white IS NULL OR white.name = :white) AND
-                (:black IS NULL OR black.name = :black) AND
+                {}
                 (:white_rating_min IS NULL OR white_rating >= :white_rating_min) AND
                 (:white_rating_max IS NULL OR white_rating <= :white_rating_max) AND
                 (:black_rating_min IS NULL OR black_rating >= :black_rating_min) AND
                 (:black_rating_max IS NULL OR black_rating <= :black_rating_max) AND
                 (:speed IS NULL OR speed = :speed) AND
                 (:outcome IS NULL OR outcome = :outcome)
-            LIMIT :limit OFFSET :offset",
+            LIMIT :limit OFFSET :offset", player_condition)
         )
         .expect("prepare query");
 
     let mut rows = stmt
         .query(named_params! {
-            ":white": query.white,
-            ":black": query.black,
+            ":player1": query.player1,
+            ":player2": query.player2,
             ":white_rating_min": query.white_rating.map(|(min, _)| min),
             ":white_rating_max": query.white_rating.map(|(_, max)| max),
             ":black_rating_min": query.black_rating.map(|(min, _)| min),

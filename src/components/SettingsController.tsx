@@ -126,7 +126,7 @@ function SettingsController() {
           <div>
             <Text>Forced en-passant</Text>
             <Text size="xs" color="dimmed">
-              Forces you to play en-passant, it is a legal move.
+              Forces you to play en-passant, if it's a legal move.
             </Text>
           </div>
           <Switch
