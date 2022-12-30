@@ -97,6 +97,7 @@ pub struct Game {
 
 #[derive(Default, Debug, Serialize)]
 pub struct Player {
+    id: usize,
     name: Option<String>,
     rating: Option<u16>,
 }
@@ -578,10 +579,12 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
 
         games.push(Game {
             white: Player {
+                id: 0,
                 name: Some(white),
                 rating: Some(white_rating),
             },
             black: Player {
+                id: 0,
                 name: Some(black),
                 rating: Some(black_rating),
             },
@@ -655,7 +658,7 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
     let mut stmt = db
         // Use LIKE
         .prepare(
-            "SELECT name
+            "SELECT id, name
             FROM player
             WHERE
                 (:name IS NULL OR name LIKE :name)
@@ -674,9 +677,11 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
     let mut players = Vec::new();
 
     while let Some(row) = rows.next().expect("get next row") {
-        let name: String = row.get(0).expect("get name");
+        let id: usize = row.get(0).expect("get id");
+        let name: String = row.get(1).expect("get name");
 
         players.push(Player {
+            id,
             name: Some(name),
             rating: None,
         });
@@ -685,4 +690,49 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
         data: players,
         count,
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlayerGameInfo {
+    pub won: usize,
+    pub lost: usize,
+    pub draw: usize,
+}
+
+#[tauri::command]
+pub async fn get_players_game_info(file: PathBuf, id: usize) -> PlayerGameInfo {
+    let db = rusqlite::Connection::open(file).expect("open database");
+
+    let mut info = PlayerGameInfo {
+        won: 0,
+        lost: 0,
+        draw: 0,
+    };
+
+    // Get all the games by player with id
+    let mut stmt = db
+        .prepare(
+            "SELECT outcome
+            FROM game
+            WHERE
+                white = :id OR black = :id",
+        )
+        .expect("prepare query");
+
+    let mut rows = stmt
+        .query(named_params! {
+            ":id": id,
+        })
+        .expect("execute query");
+
+    while let Some(row) = rows.next().expect("get next row") {
+        let outcome: u8 = row.get(0).expect("get outcome");
+        match outcome {
+            1 => info.won += 1,
+            2 => info.lost += 1,
+            3 => info.draw += 1,
+            _ => unreachable!(),
+        }
+    }
+    info
 }

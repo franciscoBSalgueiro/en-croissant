@@ -8,9 +8,7 @@ import {
   Grid,
   Group,
   LoadingOverlay,
-  Pagination,
-  Paper,
-  ScrollArea,
+  Pagination, ScrollArea,
   Select,
   Stack,
   Table,
@@ -22,6 +20,7 @@ import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons";
 import { useEffect, useRef, useState } from "react";
 import { Database, Player, query_players } from "../utils/db";
+import PlayerCard from "./PlayerCard";
 
 const useStyles = createStyles((theme) => ({
   header: {
@@ -195,6 +194,7 @@ function PlayerTable({ database }: { database: Database }) {
             <Stack>
               <Group grow>
                 <TextInput
+                  label="Name"
                   value={name}
                   onChange={(v) => setName(v.currentTarget.value)}
                 />
@@ -261,9 +261,7 @@ function PlayerTable({ database }: { database: Database }) {
         <Grid.Col span={2}>
           {selectedPlayer !== null ? (
             <>
-              <Paper shadow="sm" p="sm" my="md" withBorder>
-                <Text weight={500}>{players[selectedPlayer].name}</Text>
-              </Paper>
+              <PlayerCard player={players[selectedPlayer]} file={database.file} />
             </>
           ) : (
             <Center h="100%">

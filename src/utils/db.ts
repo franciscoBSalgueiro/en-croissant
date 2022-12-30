@@ -89,7 +89,7 @@ interface PlayerQuery {
 }
 
 export interface Player {
-    id: string;
+    id: number;
     name: string;
     rating?: number;
     image?: string;
