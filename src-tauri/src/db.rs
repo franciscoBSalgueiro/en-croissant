@@ -436,9 +436,9 @@ pub struct GameQuery {
     pub skip_count: bool,
     pub player1: Option<String>,
     pub player2: Option<String>,
+    pub range1: Option<(u16, u16)>,
+    pub range2: Option<(u16, u16)>,
     pub sides: Option<Sides>,
-    pub white_rating: Option<(u16, u16)>,
-    pub black_rating: Option<(u16, u16)>,
     pub speed: Option<Speed>,
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub outcome: Option<Outcome>,
@@ -467,6 +467,14 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
         "(:player1 IS NULL OR white.name = :player1 OR black.name = :player1) AND (:player2 IS NULL OR white.name = :player2 OR black.name = :player2) AND"
     };
 
+    let ratings_condition = if query.sides == Some(Sides::BlackWhite) {
+        "(:player1_rating_min IS NULL OR black_rating >= :player1_rating_min) AND (:player1_rating_max IS NULL OR black_rating <= :player1_rating_max) AND (:player2_rating_min IS NULL OR white_rating >= :player2_rating_min) AND (:player2_rating_max IS NULL OR white_rating <= :player2_rating_max) AND"
+    } else if query.sides == Some(Sides::WhiteBlack) {
+        "(:player1_rating_min IS NULL OR white_rating >= :player1_rating_min) AND (:player1_rating_max IS NULL OR white_rating <= :player1_rating_max) AND (:player2_rating_min IS NULL OR black_rating >= :player2_rating_min) AND (:player2_rating_max IS NULL OR black_rating <= :player2_rating_max) AND"
+    } else {
+        "(:player1_rating_min IS NULL OR white_rating >= :player1_rating_min OR black_rating >= :player1_rating_min) AND (:player1_rating_max IS NULL OR white_rating <= :player1_rating_max OR black_rating <= :player1_rating_max) AND (:player2_rating_min IS NULL OR white_rating >= :player2_rating_min OR black_rating >= :player2_rating_min) AND (:player2_rating_max IS NULL OR white_rating <= :player2_rating_max OR black_rating <= :player2_rating_max) AND"
+    };
+
     println!("{:?}", query);
     let count = if query.skip_count {
         None
@@ -477,13 +485,10 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
         INNER JOIN player AS black ON black.id = game.black
         WHERE
             {}
-            (:white_rating_min IS NULL OR white_rating >= :white_rating_min) AND
-            (:white_rating_max IS NULL OR white_rating <= :white_rating_max) AND
-            (:black_rating_min IS NULL OR black_rating >= :black_rating_min) AND
-            (:black_rating_max IS NULL OR black_rating <= :black_rating_max) AND
+            {}
             (:speed IS NULL OR speed = :speed) AND
             (:outcome IS NULL OR outcome = :outcome)",
-                player_condition,
+                player_condition, ratings_condition
             ))
             .expect("prepare count statement");
 
@@ -491,10 +496,10 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
             .query(named_params! {
                 ":player1": query.player1,
                 ":player2": query.player2,
-                ":white_rating_min": query.white_rating.map(|(min, _)| min),
-                ":white_rating_max": query.white_rating.map(|(_, max)| max),
-                ":black_rating_min": query.black_rating.map(|(min, _)| min),
-                ":black_rating_max": query.black_rating.map(|(_, max)| max),
+                ":player1_rating_min": query.range1.map(|r| r.0),
+                ":player1_rating_max": query.range1.map(|r| r.1),
+                ":player2_rating_min": query.range2.map(|r| r.0),
+                ":player2_rating_max": query.range2.map(|r| r.1),
                 ":speed": query.speed.map(|s| s as u8),
                 ":outcome": query.outcome.map(|o| match o {
                     Outcome::Decisive { winner } => match winner {
@@ -527,13 +532,10 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
             INNER JOIN player AS black ON black.id = game.black
             WHERE
                 {}
-                (:white_rating_min IS NULL OR white_rating >= :white_rating_min) AND
-                (:white_rating_max IS NULL OR white_rating <= :white_rating_max) AND
-                (:black_rating_min IS NULL OR black_rating >= :black_rating_min) AND
-                (:black_rating_max IS NULL OR black_rating <= :black_rating_max) AND
+                {}
                 (:speed IS NULL OR speed = :speed) AND
                 (:outcome IS NULL OR outcome = :outcome)
-            LIMIT :limit OFFSET :offset", player_condition)
+            LIMIT :limit OFFSET :offset", player_condition, ratings_condition)
         )
         .expect("prepare query");
 
@@ -541,10 +543,10 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
         .query(named_params! {
             ":player1": query.player1,
             ":player2": query.player2,
-            ":white_rating_min": query.white_rating.map(|(min, _)| min),
-            ":white_rating_max": query.white_rating.map(|(_, max)| max),
-            ":black_rating_min": query.black_rating.map(|(min, _)| min),
-            ":black_rating_max": query.black_rating.map(|(_, max)| max),
+            ":player1_rating_min": query.range1.map(|r| r.0),
+            ":player1_rating_max": query.range1.map(|r| r.1),
+            ":player2_rating_min": query.range2.map(|r| r.0),
+            ":player2_rating_max": query.range2.map(|r| r.1),
             ":speed": query.speed.map(|s| s as u8),
             ":outcome": query.outcome.map(|o| match o {
                 Outcome::Decisive { winner } => match winner {

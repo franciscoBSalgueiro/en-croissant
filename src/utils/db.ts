@@ -42,8 +42,8 @@ interface GameQuery {
     player1?: string;
     player2?: string;
     sides?: Sides;
-    white_rating?: [number, number];
-    black_rating?: [number, number];
+    rangePlayer1?: [number, number];
+    rangePlayer2?: [number, number];
     speed?: Speed;
     outcome?: Outcome;
     limit?: number;
@@ -69,7 +69,9 @@ export async function query_games(
         query: {
             skip_count: query.skip_count || false,
             player1: query.player1,
+            range1: query.rangePlayer1,
             player2: query.player2,
+            range2: query.rangePlayer2,
             sides: query.sides,
             speed: query.speed,
             outcome: query.outcome,

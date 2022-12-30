@@ -9,6 +9,7 @@ import {
   Group,
   LoadingOverlay,
   Pagination,
+  RangeSlider,
   ScrollArea,
   Select,
   Stack,
@@ -94,8 +95,10 @@ function GameTable({ database }: { database: Database }) {
   const [games, setGames] = useState<Game[]>([]);
   const [count, setCount] = useState(0);
   const [player1, setPlayer1] = useState("");
+  const [rangePlayer1, setRangePlayer1] = useState<[number, number]>([0, 3000]);
   const [player2, setplayer2] = useState("");
-  const [sides, setSides] = useState(Sides.WhiteBlack);
+  const [rangePlayer2, setRangePlayer2] = useState<[number, number]>([0, 3000]);
+  const [sides, setSides] = useState(Sides.Any);
   const [speed, setSpeed] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,7 +118,9 @@ function GameTable({ database }: { database: Database }) {
     setLoading(true);
     query_games(file, {
       player1: player1 === "" ? undefined : player1,
+      rangePlayer1: rangePlayer1,
       player2: player2 === "" ? undefined : player2,
+      rangePlayer2: rangePlayer2,
       sides: sides,
       speed: speed === null ? undefined : (speed as Speed),
       outcome: outcome === null ? undefined : (outcome as Outcome),
@@ -127,7 +132,7 @@ function GameTable({ database }: { database: Database }) {
       setGames(res.data);
       setCount(res.count);
     });
-  }, [player1, player2, speed, outcome, skip, limit, file, sides]);
+  }, [player1, player2, speed, outcome, skip, limit, file, sides, rangePlayer1, rangePlayer2]);
 
   useEffect(() => {
     setLoading(true);
@@ -332,22 +337,50 @@ function GameTable({ database }: { database: Database }) {
           <Collapse in={openedSettings}>
             <Stack>
               <Group grow>
-                <SearchInput
-                  value={player1}
-                  setValue={setPlayer1}
-                  sides={sides}
-                  setSides={setSides}
-                  label="Player"
-                  file={file}
-                />
-                <SearchInput
-                  value={player2}
-                  setValue={setplayer2}
-                  sides={sides}
-                  setSides={setSides}
-                  label="Opponent"
-                  file={file}
-                />
+                <Stack>
+                  <SearchInput
+                    value={player1}
+                    setValue={setPlayer1}
+                    sides={sides}
+                    setSides={setSides}
+                    label="Player"
+                    file={file}
+                  />
+                  <RangeSlider
+                    step={10}
+                    min={0}
+                    max={3000}
+                    marks={[
+                      { value: 1000, label: "1000" },
+                      { value: 2000, label: "2000" },
+                      { value: 3000, label: "3000" },
+                    ]}
+                    value={rangePlayer1}
+                    onChange={setRangePlayer1}
+                  />
+                </Stack>
+                <Stack>
+                  <SearchInput
+                    value={player2}
+                    setValue={setplayer2}
+                    sides={sides}
+                    setSides={setSides}
+                    label="Opponent"
+                    file={file}
+                  />
+                  <RangeSlider
+                    step={10}
+                    min={0}
+                    max={3000}
+                    marks={[
+                      { value: 1000, label: "1000" },
+                      { value: 2000, label: "2000" },
+                      { value: 3000, label: "3000" },
+                    ]}
+                    value={rangePlayer2}
+                    onChange={setRangePlayer2}
+                  />
+                </Stack>
               </Group>
               <Select
                 label="Speed"
