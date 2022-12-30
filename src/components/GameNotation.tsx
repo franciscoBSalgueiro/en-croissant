@@ -117,8 +117,6 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
         <Menu opened={open} width={200}>
           <Menu.Target ref={ref}>
             <Button
-              // sx={{ width: "80px" }}
-              // sx={{ p }}
               p={4}
               variant={isCurrentVariation ? "light" : "subtle"}
               color={

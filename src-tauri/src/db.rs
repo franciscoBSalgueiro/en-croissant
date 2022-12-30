@@ -611,14 +611,45 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct PlayerQuery {
+    pub skip_count: bool,
     pub name: Option<String>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
 }
 
 #[tauri::command]
-pub async fn get_players(file: PathBuf, query: PlayerQuery) -> Vec<Player> {
+pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec<Player>> {
     let db = rusqlite::Connection::open(file).expect("open database");
+
+    println!("{:?}", query);
+
+    let count = if query.skip_count {
+        None
+    } else {
+        let mut count_stmt = db
+            .prepare(
+                "SELECT COUNT(*)
+            FROM player
+            WHERE
+                (:name IS NULL OR name LIKE :name)",
+            )
+            .expect("prepare count");
+
+        let mut count_rows = count_stmt
+            .query(named_params! {
+                ":name": query.name.as_ref().map(|n| format!("%{}%", n)),
+            })
+            .expect("execute query");
+
+        Some(
+            count_rows
+                .next()
+                .expect("get count")
+                .expect("get count")
+                .get(0)
+                .expect("get count"),
+        )
+    };
 
     // get the players that match the query
     let mut stmt = db
@@ -634,7 +665,7 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> Vec<Player> {
 
     let mut rows = stmt
         .query(named_params! {
-            ":name": query.name.map(|n| format!("%{}%", n)),
+            ":name": query.name.as_ref().map(|n| format!("%{}%", n)),
             ":limit": query.limit,
             ":offset": query.offset,
         })
@@ -650,5 +681,8 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> Vec<Player> {
             rating: None,
         });
     }
-    players
+    QueryResponse {
+        data: players,
+        count,
+    }
 }

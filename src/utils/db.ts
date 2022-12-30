@@ -82,6 +82,7 @@ export async function query_games(
 }
 
 interface PlayerQuery {
+    skip_count?: boolean;
     name?: string;
     limit?: number;
     offset?: number;
@@ -97,10 +98,11 @@ export interface Player {
 export async function query_players(
     db: string,
     query: PlayerQuery
-): Promise<Player[]> {
+): Promise<QueryResponse<Player[]>> {
     return invoke("get_players", {
         file: db,
         query: {
+            skip_count: query.skip_count || false,
             name: query.name,
             limit: query.limit,
             offset: query.offset,

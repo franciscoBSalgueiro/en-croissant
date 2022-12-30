@@ -17,6 +17,7 @@ import { Database, formatBytes, getDatabases } from "../utils/db";
 import ConvertButton from "./ConvertButton";
 import GameTable from "./GameTable";
 import OpenFolderButton from "./OpenFolderButton";
+import PlayerTable from "./PlayerTable";
 
 const useStyles = createStyles(
   (theme, { selected }: { selected: boolean }) => ({
@@ -190,13 +191,19 @@ export default function DatabasesTable() {
       {database !== null && (
         <Tabs defaultValue="games">
           <Tabs.List>
-            <Tabs.Tab icon={<IconChess size={16} />} value="games">Games</Tabs.Tab>
-            <Tabs.Tab icon={<IconUser size={16} />}value="players">Players</Tabs.Tab>
+            <Tabs.Tab icon={<IconChess size={16} />} value="games">
+              Games
+            </Tabs.Tab>
+            <Tabs.Tab icon={<IconUser size={16} />} value="players">
+              Players
+            </Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="games">
             <GameTable database={database} />
           </Tabs.Panel>
-          <Tabs.Panel value="players">Second tab content</Tabs.Panel>
+          <Tabs.Panel value="players">
+            <PlayerTable database={database} />
+          </Tabs.Panel>
         </Tabs>
       )}
     </>

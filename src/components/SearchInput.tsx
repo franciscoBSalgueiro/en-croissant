@@ -36,8 +36,9 @@ export function SearchInput({
         limit: 5,
         offset: 0,
         name: val,
+        skip_count: true,
       });
-      setData(res.map((game) => game.name));
+      setData(res.data.map((game) => game.name));
     }
   }
   return (
