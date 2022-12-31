@@ -1,8 +1,40 @@
-import { CloseButton, Group, Stack, Tabs } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons";
-import { useState } from "react";
+import {
+  CloseButton,
+  createStyles,
+  Group,
+  Menu,
+  Stack,
+  Tabs
+} from "@mantine/core";
+import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
+import { IconEdit, IconPlus, IconX } from "@tabler/icons";
+import { useEffect, useState } from "react";
 import BoardAnalysis from "./BoardAnalysis";
+
+const useStyles = createStyles(
+  (
+    theme,
+    { selected, renaming }: { selected: boolean; renaming: boolean }
+  ) => ({
+    tab: {
+      transition: "all 100ms ease-in-out",
+      backgroundColor: selected ? theme.colors.dark[6] : theme.colors.dark[7],
+      ":hover": {
+        backgroundColor: theme.colors.dark[6],
+      },
+    },
+
+    input: {
+      all: "unset",
+      cursor: renaming ? "text" : "pointer",
+      textDecoration: renaming ? "underline" : "none",
+
+      "::selection": {
+        backgroundColor: renaming ? theme.colors.blue[6] : "transparent",
+      },
+    },
+  })
+);
 
 interface Tab {
   name: string;
@@ -17,6 +49,85 @@ function genID() {
   return S4() + S4();
 }
 
+function BoardTab({
+  tab,
+  closeTab,
+  renameTab,
+  selected,
+}: {
+  tab: Tab;
+  closeTab: (v: string) => void;
+  renameTab: (v: string, n: string) => void;
+  selected: boolean;
+}) {
+  const [open, toggleOpen] = useToggle();
+  const [renaming, toggleRenaming] = useToggle();
+  const ref = useClickOutside(() => {
+    toggleOpen(false), toggleRenaming(false);
+  });
+  const { classes } = useStyles({ selected, renaming });
+
+  useHotkeys([
+    [
+      "F2",
+      () => {
+        if (selected) toggleRenaming();
+      },
+    ],
+  ]);
+
+  useEffect(() => {
+    if (renaming) ref.current?.focus();
+  }, [renaming]);
+
+  return (
+    <Menu opened={open} shadow="md" width={200}>
+      <Menu.Target>
+        <Tabs.Tab
+          className={classes.tab}
+          key={tab.value}
+          value={tab.value}
+          rightSection={
+            <CloseButton size={14} onClick={() => closeTab(tab.value)} />
+          }
+          onContextMenu={(e: any) => {
+            toggleOpen();
+            e.preventDefault();
+          }}
+        >
+          <input
+            ref={ref}
+            value={tab.name}
+            onChange={(event) =>
+              renameTab(tab.value, event.currentTarget.value)
+            }
+            readOnly={!renaming}
+            className={classes.input}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") toggleRenaming(false);
+            }}
+          />
+        </Tabs.Tab>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item
+          icon={<IconEdit size={14} />}
+          onClick={() => toggleRenaming(true)}
+        >
+          Rename Tab
+        </Menu.Item>
+        <Menu.Item
+          color="red"
+          icon={<IconX size={14} />}
+          onClick={() => closeTab(tab.value)}
+        >
+          Close Tab
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 export default function BoardTabs() {
   const firstId = genID();
   const [activeTab, setActiveTab] = useState<string | null>(firstId);
@@ -27,7 +138,6 @@ export default function BoardTabs() {
       component: <BoardAnalysis />,
     },
   ]);
-  console.log(tabs);
 
   function createTab() {
     const id = genID();
@@ -87,6 +197,17 @@ export default function BoardTabs() {
     }
   }
 
+  function renameTab(value: string, name: string) {
+    setTabs((prev) =>
+      prev.map((tab) => {
+        if (tab.value === value) {
+          return { ...tab, name };
+        }
+        return tab;
+      })
+    );
+  }
+
   useHotkeys([
     ["ctrl+T", () => createTab()],
     ["ctrl+W", () => closeTab(activeTab)],
@@ -116,21 +237,15 @@ export default function BoardTabs() {
     <>
       <Stack>
         <Group grow>
-          <Tabs value={activeTab} onTabChange={onTabChange}>
+          <Tabs value={activeTab} onTabChange={onTabChange} variant="outline">
             <Tabs.List>
               {tabs.map((tab) => (
-                <Tabs.Tab
-                  key={tab.value}
-                  value={tab.value}
-                  rightSection={
-                    <CloseButton
-                      size={14}
-                      onClick={() => closeTab(tab.value)}
-                    />
-                  }
-                >
-                  {tab.name}
-                </Tabs.Tab>
+                <BoardTab
+                  tab={tab}
+                  closeTab={closeTab}
+                  renameTab={renameTab}
+                  selected={activeTab === tab.value}
+                />
               ))}
               <Tabs.Tab icon={<IconPlus size={14} />} value="add" />
             </Tabs.List>
