@@ -19,45 +19,49 @@ function EngineSettingsBoard({
   setSelectedEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
 }) {
   const [engines, setEngines] = useState<Engine[]>(getDefaultEngines());
+  const [installedEngines, setInstalledEngines] = useState<Engine[]>([]);
   const [showSettings, toggleShowSettings] = useToggle();
   const router = useRouter();
 
   useEffect(() => {
     getEngines().then((engines) => {
       setEngines(engines);
+      const foundEngines = engines.filter(
+        (engine) => engine.status === EngineStatus.Installed
+      );
+
+      if (foundEngines.length === 0) {
+        router.push("/engines");
+      }
+
+      const selectedEnginesNotInstalled = selectedEngines.filter(
+        (selectedEngine) =>
+          !foundEngines.some(
+            (installedEngine) => installedEngine.name === selectedEngine.name
+          )
+      );
+
+      if (selectedEnginesNotInstalled.length > 0) {
+        setSelectedEngines((prev) =>
+          prev.filter(
+            (selectedEngine) =>
+              !selectedEnginesNotInstalled.some(
+                (selectedEngineNotInstalled) =>
+                  selectedEngineNotInstalled.name === selectedEngine.name
+              )
+          )
+        );
+      }
+      setInstalledEngines(foundEngines);
     });
   }, []);
-  const installedEngines = engines.filter(
-    (engine) => engine.status === EngineStatus.Installed
-  );
-  useEffect(() => {
-    // check if there's any selected engines that are not installed
-    const selectedEnginesNotInstalled = selectedEngines.filter(
-      (selectedEngine) =>
-        !installedEngines.some(
-          (installedEngine) => installedEngine.name === selectedEngine.name
-        )
-    );
-    if (selectedEnginesNotInstalled.length > 0) {
-      setSelectedEngines((engines) =>
-        engines.filter(
-          (engine) =>
-            !selectedEnginesNotInstalled.some(
-              (selectedEngine) => selectedEngine.name === engine.name
-            )
-        )
-      );
-    }
-  }, [engines, selectedEngines, setSelectedEngines]);
+
   return (
     <>
       <Button
         variant="default"
         onClick={() => {
           toggleShowSettings();
-          if (installedEngines.length === 0) {
-            router.push("/engines");
-          }
         }}
         leftIcon={<IconSettings size={14} />}
       >
