@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Avatar,
   Box,
   Button,
@@ -21,8 +22,9 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconSearch } from "@tabler/icons";
+import { IconEye, IconSearch } from "@tabler/icons";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import {
   Database,
@@ -33,6 +35,7 @@ import {
   Speed
 } from "../utils/db";
 import BoardView from "./BoardView";
+import GameInfo from "./GameInfo";
 import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
 
@@ -85,6 +88,7 @@ const useStyles = createStyles((theme) => ({
 
 function GameTable({ database }: { database: Database }) {
   const { classes, cx } = useStyles();
+  const router = useRouter();
   const file = database.file;
   const [games, setGames] = useState<Game[]>([]);
   const [count, setCount] = useState(0);
@@ -178,6 +182,18 @@ function GameTable({ database }: { database: Database }) {
             [classes.rowSelected]: i == selectedGame,
           })}
         >
+          <td>
+            <ActionIcon
+              variant="filled"
+              color="blue"
+              onClick={() => {
+                sessionStorage.setItem("game", JSON.stringify(game));
+                router.push(`/view/game`);
+              }}
+            >
+              <IconEye size={16} stroke={1.5} />
+            </ActionIcon>
+          </td>
           <td>
             <Group spacing="sm" noWrap>
               <Avatar size={40} src={game.white.image} radius={40} />
@@ -363,6 +379,7 @@ function GameTable({ database }: { database: Database }) {
                   })}
                 >
                   <tr>
+                    <th />
                     <th>White</th>
                     <th>Result</th>
                     <th>Black</th>
@@ -409,40 +426,12 @@ function GameTable({ database }: { database: Database }) {
             <>
               <Paper shadow="sm" p="sm" my="md" withBorder>
                 <Stack>
-                  <Group align="apart" my="sm" mx="md" grow>
-                    <Stack align="start" spacing={0}>
-                      <Group noWrap>
-                        <Avatar src={games[selectedGame].white.image} />
-                        <div>
-                          <Text weight={500}>
-                            {games[selectedGame].white.name}
-                          </Text>
-                          <Text c="dimmed">
-                            {games[selectedGame].white.rating}
-                          </Text>
-                        </div>
-                      </Group>
-                    </Stack>
-                    <Stack align="center" justify="end" spacing={0}>
-                      <Text>
-                        {games[selectedGame].outcome.replaceAll("1/2", "½")}
-                      </Text>
-                      <Text c="dimmed">{games[selectedGame].date}</Text>
-                    </Stack>
-                    <Stack align="end" spacing={0}>
-                      <Group noWrap>
-                        <div>
-                          <Text weight={500} align="right">
-                            {games[selectedGame].black.name}
-                          </Text>
-                          <Text c="dimmed" align="right">
-                            {games[selectedGame].black.rating}
-                          </Text>
-                        </div>
-                        <Avatar src={games[selectedGame].black.image} />
-                      </Group>
-                    </Stack>
-                  </Group>
+                  <GameInfo
+                    player1={games[selectedGame].white}
+                    player2={games[selectedGame].black}
+                    date={games[selectedGame].date}
+                    outcome={games[selectedGame].outcome}
+                  />
                   <Divider mb="sm" />
                   <BoardView pgn={games[selectedGame].moves} />
                 </Stack>

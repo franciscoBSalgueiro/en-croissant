@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api";
-import { Chess, Move, Square, SQUARES } from "chess.js";
+import { Chess, DEFAULT_POSITION, Move, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
 
 export type Score = {
@@ -220,4 +220,23 @@ export function swapMove(fen: string) {
     fenGroups[3] = "-";
 
     return fenGroups.join(" ");
+}
+
+
+export function movesToVariationTree(moves: string, fen: string = DEFAULT_POSITION) {
+    let movesList = moves.split(" ");
+    let tree = new VariationTree(null, fen, null);
+    if (moves === "") {
+        return tree;
+    }
+    let currentTree = tree;
+    for (let i = 0; i < movesList.length; i++) {
+        const move = movesList[i];
+        const chess = new Chess(currentTree.fen);
+        const m = chess.move(move);
+        const newTree = new VariationTree(currentTree, chess.fen(), m);
+        currentTree.children.push(newTree);
+        currentTree = newTree;
+    }
+    return tree;
 }

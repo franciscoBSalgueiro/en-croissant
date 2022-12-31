@@ -28,6 +28,7 @@ export const enum Speed {
     Rapid = "Rapid",
     Classical = "Classical",
     Correspondence = "Correspondence",
+    Unknown = "Unknown",
 }
 
 export enum Outcome {
