@@ -80,7 +80,7 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 
 const linksdata = [
   { icon: IconHome2, label: "Home", url: "/" },
-  { icon: IconChess, label: "Play", url: "/play" },
+  { icon: IconChess, label: "Play", url: "/home" },
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },
   { icon: IconUser, label: "Account", url: "/account" },

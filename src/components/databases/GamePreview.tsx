@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import Chessground from "react-chessground";
 import MoveControls from "../common/MoveControls";
 
-function GamePreview({ pgn }: { pgn: string }) {
+function GamePreview({
+  pgn,
+  hideControls,
+}: {
+  pgn: string;
+  hideControls?: boolean;
+}) {
   const globalChess = new Chess();
   let totalMoves = 0;
   pgn.split(" ").forEach((move) => {
@@ -29,16 +35,20 @@ function GamePreview({ pgn }: { pgn: string }) {
     setFen(chess.fen());
   }, [curMove, pgn]);
 
-  useHotkeys([
-    ["ArrowLeft", curMoveHandler.decrement],
-    ["ArrowRight", curMoveHandler.increment],
-  ]);
+  {
+    !hideControls &&
+      useHotkeys([
+        ["ArrowLeft", curMoveHandler.decrement],
+        ["ArrowRight", curMoveHandler.increment],
+      ]);
+  }
 
   return (
     <>
       <Container sx={{ width: "100%" }}>
-        <AspectRatio ratio={1} mx={100}>
+        <AspectRatio ratio={1} mx="15%">
           <Chessground
+            coordinates={false}
             animation={{
               enabled: false,
             }}
@@ -49,15 +59,19 @@ function GamePreview({ pgn }: { pgn: string }) {
             fen={fen}
           />
         </AspectRatio>
-        <ScrollArea my={20} h={100} offsetScrollbars>
-          {globalPGN}
-        </ScrollArea>
-        <MoveControls
-          goToStart={() => curMoveHandler.set(0)}
-          goToEnd={() => curMoveHandler.set(totalMoves)}
-          redoMove={curMoveHandler.increment}
-          undoMove={curMoveHandler.decrement}
-        />
+        {!hideControls && (
+          <>
+            <ScrollArea my={20} h={100} offsetScrollbars>
+              {globalPGN}
+            </ScrollArea>
+            <MoveControls
+              goToStart={() => curMoveHandler.set(0)}
+              goToEnd={() => curMoveHandler.set(totalMoves)}
+              redoMove={curMoveHandler.increment}
+              undoMove={curMoveHandler.decrement}
+            />
+          </>
+        )}
       </Container>
     </>
   );
