@@ -1,4 +1,11 @@
-import { ActionIcon, createStyles, Group, Stack, Tabs } from "@mantine/core";
+import {
+  ActionIcon,
+  createStyles,
+  Group,
+  ScrollArea,
+  Stack,
+  Tabs
+} from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons";
 import BoardAnalysis from "./BoardAnalysis";
@@ -11,7 +18,6 @@ export interface Tab {
 
 const useStyles = createStyles((theme) => ({
   newTab: {
-    marginRight: theme.spacing.xs,
     backgroundColor: theme.colors.dark[7],
     ":hover": {
       backgroundColor: theme.colors.dark[6],
@@ -155,26 +161,31 @@ export default function BoardTabs() {
             onTabChange={(v) => setActiveTab(v)}
             variant="outline"
           >
-            <Group spacing={0}>
-              <Tabs.List>
-                {tabs.map((tab) => (
-                  <BoardTab
-                    key={tab.value}
-                    tab={tab}
-                    closeTab={closeTab}
-                    renameTab={renameTab}
-                    duplicateTab={duplicateTab}
-                    selected={activeTab === tab.value}
-                  />
-                ))}
-              </Tabs.List>
-              <ActionIcon
-                onClick={() => createTab()}
-                className={classes.newTab}
+            <ScrollArea offsetScrollbars>
+              <Group
+                spacing={0}
+                sx={{ flexWrap: "nowrap", overflow: "hidden" }}
               >
-                <IconPlus size={16} />
-              </ActionIcon>
-            </Group>
+                <Tabs.List sx={{ flexWrap: "nowrap", overflow: "hidden" }}>
+                  {tabs.map((tab) => (
+                    <BoardTab
+                      key={tab.value}
+                      tab={tab}
+                      closeTab={closeTab}
+                      renameTab={renameTab}
+                      duplicateTab={duplicateTab}
+                      selected={activeTab === tab.value}
+                    />
+                  ))}
+                </Tabs.List>
+                <ActionIcon
+                  onClick={() => createTab()}
+                  className={classes.newTab}
+                >
+                  <IconPlus size={16} />
+                </ActionIcon>
+              </Group>
+            </ScrollArea>
 
             {tabs.map((tab) => (
               <Tabs.Panel key={tab.value} value={tab.value}>

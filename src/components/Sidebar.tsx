@@ -4,9 +4,10 @@ import {
   Navbar,
   Stack,
   Tooltip,
-  UnstyledButton,
+  UnstyledButton
 } from "@mantine/core";
 import {
+  IconChess,
   IconDatabase,
   IconHome2,
   IconLogout,
@@ -14,7 +15,7 @@ import {
   IconSettings,
   IconSwitchHorizontal,
   IconUser,
-  TablerIcon,
+  TablerIcon
 } from "@tabler/icons";
 import { useRouter } from "next/router";
 
@@ -79,6 +80,7 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 
 const linksdata = [
   { icon: IconHome2, label: "Home", url: "/" },
+  { icon: IconChess, label: "Play", url: "/play" },
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },
   { icon: IconUser, label: "Account", url: "/account" },
