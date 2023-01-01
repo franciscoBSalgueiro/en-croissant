@@ -1,50 +1,23 @@
-import {
-  CloseButton,
-  createStyles,
-  Group,
-  Menu,
-  Stack,
-  Tabs
-} from "@mantine/core";
-import {
-  useClickOutside,
-  useHotkeys,
-  useSessionStorage,
-  useToggle
-} from "@mantine/hooks";
-import { IconCopy, IconEdit, IconPlus, IconX } from "@tabler/icons";
-import { useEffect } from "react";
+import { ActionIcon, createStyles, Group, Stack, Tabs } from "@mantine/core";
+import { useHotkeys, useSessionStorage } from "@mantine/hooks";
+import { IconPlus } from "@tabler/icons";
 import BoardAnalysis from "./BoardAnalysis";
-
-const useStyles = createStyles(
-  (
-    theme,
-    { selected, renaming }: { selected: boolean; renaming: boolean }
-  ) => ({
-    tab: {
-      marginRight: theme.spacing.xs,
-      backgroundColor: selected ? theme.colors.dark[6] : theme.colors.dark[7],
-      ":hover": {
-        backgroundColor: theme.colors.dark[6],
-      },
-    },
-
-    input: {
-      all: "unset",
-      cursor: renaming ? "text" : "pointer",
-      textDecoration: renaming ? "underline" : "none",
-
-      "::selection": {
-        backgroundColor: renaming ? theme.colors.blue[6] : "transparent",
-      },
-    },
-  })
-);
+import { BoardTab } from "./BoardTab";
 
 export interface Tab {
   name: string;
   value: string;
 }
+
+const useStyles = createStyles((theme) => ({
+  newTab: {
+    marginRight: theme.spacing.xs,
+    backgroundColor: theme.colors.dark[7],
+    ":hover": {
+      backgroundColor: theme.colors.dark[6],
+    },
+  },
+}));
 
 export function genID() {
   var S4 = function () {
@@ -53,98 +26,8 @@ export function genID() {
   return S4() + S4();
 }
 
-function BoardTab({
-  tab,
-  closeTab,
-  renameTab,
-  duplicateTab,
-  selected,
-}: {
-  tab: Tab;
-  closeTab: (v: string) => void;
-  renameTab: (v: string, n: string) => void;
-  duplicateTab: (v: string) => void;
-  selected: boolean;
-}) {
-  const [open, toggleOpen] = useToggle();
-  const [renaming, toggleRenaming] = useToggle();
-  const ref = useClickOutside(() => {
-    toggleOpen(false), toggleRenaming(false);
-  });
-  const { classes } = useStyles({ selected, renaming });
-
-  useHotkeys([
-    [
-      "F2",
-      () => {
-        if (selected) toggleRenaming();
-      },
-    ],
-  ]);
-
-  useEffect(() => {
-    if (renaming) ref.current?.focus();
-  }, [renaming]);
-
-  return (
-    <Menu opened={open} shadow="md" width={200}>
-      <Menu.Target>
-        <Tabs.Tab
-          className={classes.tab}
-          key={tab.value}
-          value={tab.value}
-          rightSection={
-            <CloseButton
-              component="div"
-              size={14}
-              onClick={() => closeTab(tab.value)}
-            />
-          }
-          onContextMenu={(e: any) => {
-            toggleOpen();
-            e.preventDefault();
-          }}
-        >
-          <input
-            ref={ref}
-            value={tab.name}
-            onChange={(event) =>
-              renameTab(tab.value, event.currentTarget.value)
-            }
-            readOnly={!renaming}
-            className={classes.input}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") toggleRenaming(false);
-            }}
-          />
-        </Tabs.Tab>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Item
-          icon={<IconCopy size={14} />}
-          onClick={() => duplicateTab(tab.value)}
-        >
-          Duplicate Tab
-        </Menu.Item>
-        <Menu.Item
-          icon={<IconEdit size={14} />}
-          onClick={() => toggleRenaming(true)}
-        >
-          Rename Tab
-        </Menu.Item>
-        <Menu.Item
-          color="red"
-          icon={<IconX size={14} />}
-          onClick={() => closeTab(tab.value)}
-        >
-          Close Tab
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
-  );
-}
-
 export default function BoardTabs() {
+  const { classes } = useStyles();
   const firstId = genID();
   const [tabs, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
@@ -167,14 +50,6 @@ export default function BoardTabs() {
     ]);
     setActiveTab(id);
     return id;
-  }
-
-  function onTabChange(value: string) {
-    if (value === "add") {
-      createTab();
-      return;
-    }
-    setActiveTab(value);
   }
 
   function closeTab(value: string | null) {
@@ -275,20 +150,31 @@ export default function BoardTabs() {
     <>
       <Stack>
         <Group grow>
-          <Tabs value={activeTab} onTabChange={onTabChange} variant="outline">
-            <Tabs.List>
-              {tabs.map((tab) => (
-                <BoardTab
-                  key={tab.value}
-                  tab={tab}
-                  closeTab={closeTab}
-                  renameTab={renameTab}
-                  duplicateTab={duplicateTab}
-                  selected={activeTab === tab.value}
-                />
-              ))}
-              <Tabs.Tab icon={<IconPlus size={14} />} value="add" />
-            </Tabs.List>
+          <Tabs
+            value={activeTab}
+            onTabChange={(v) => setActiveTab(v)}
+            variant="outline"
+          >
+            <Group spacing={0}>
+              <Tabs.List>
+                {tabs.map((tab) => (
+                  <BoardTab
+                    key={tab.value}
+                    tab={tab}
+                    closeTab={closeTab}
+                    renameTab={renameTab}
+                    duplicateTab={duplicateTab}
+                    selected={activeTab === tab.value}
+                  />
+                ))}
+              </Tabs.List>
+              <ActionIcon
+                onClick={() => createTab()}
+                className={classes.newTab}
+              >
+                <IconPlus size={16} />
+              </ActionIcon>
+            </Group>
 
             {tabs.map((tab) => (
               <Tabs.Panel key={tab.value} value={tab.value}>
