@@ -4,7 +4,7 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useContext } from "react";
-import { TreeContext } from "./BoardAnalysis";
+import { TreeContext } from "../../boards/BoardAnalysis";
 
 interface AnnotationEditorProps {
   forceUpdate: () => void;

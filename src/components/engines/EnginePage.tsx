@@ -32,11 +32,11 @@ import {
   EngineStatus,
   getDefaultEngines,
   getEngineSettings
-} from "../utils/engines";
-import OpenFolderButton from "./OpenFolderButton";
+} from "../../utils/engines";
+import OpenFolderButton from "../common/OpenFolderButton";
 import { ProgressButton } from "./ProgressButton";
 
-export default function EngineTable() {
+export default function EnginePage() {
   const defaultEngines = getDefaultEngines();
   const [engines, setEngines] = useState<Engine[]>(defaultEngines);
   const [opened, setOpened] = useState(false);

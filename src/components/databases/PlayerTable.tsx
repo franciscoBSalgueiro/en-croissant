@@ -19,7 +19,7 @@ import {
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons";
 import { useEffect, useRef, useState } from "react";
-import { Database, Player, query_players } from "../utils/db";
+import { Database, Player, query_players } from "../../utils/db";
 import PlayerCard from "./PlayerCard";
 
 const useStyles = createStyles((theme) => ({

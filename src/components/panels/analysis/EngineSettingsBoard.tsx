@@ -8,7 +8,7 @@ import {
   EngineStatus,
   getDefaultEngines,
   getEngines
-} from "../utils/engines";
+} from "../../../utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 
 function EngineSettingsBoard({

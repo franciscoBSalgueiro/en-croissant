@@ -8,7 +8,7 @@ import {
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons";
-import BoardAnalysis from "./BoardAnalysis";
+import BoardAnalysis from "../boards/BoardAnalysis";
 import { BoardTab } from "./BoardTab";
 
 export interface Tab {
@@ -32,7 +32,7 @@ export function genID() {
   return S4() + S4();
 }
 
-export default function BoardTabs() {
+export default function BoardsPage() {
   const { classes } = useStyles();
   const firstId = genID();
   const [tabs, setTabs] = useSessionStorage<Tab[]>({

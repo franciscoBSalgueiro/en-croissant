@@ -13,18 +13,18 @@ import {
   chessToVariatonTree,
   movesToVariationTree,
   VariationTree
-} from "../utils/chess";
-import { Game, Outcome, Speed } from "../utils/db";
-import { Engine } from "../utils/engines";
-import AnnotationPanel from "./AnnotationPanel";
-import BestMoves from "./BestMoves";
-import Chessboard from "./Chessboard";
-import EngineSettingsBoard from "./EngineSettingsBoard";
-import FenInput from "./FenInput";
-import GameInfo from "./GameInfo";
+} from "../../utils/chess";
+import { Game, Outcome, Speed } from "../../utils/db";
+import { Engine } from "../../utils/engines";
+import GameInfo from "../common/GameInfo";
+import MoveControls from "../common/MoveControls";
+import BestMoves from "../panels/analysis/BestMoves";
+import EngineSettingsBoard from "../panels/analysis/EngineSettingsBoard";
+import AnnotationPanel from "../panels/annotation/AnnotationPanel";
+import FenInput from "../panels/info/FenInput";
+import PgnInput from "../panels/info/PgnInput";
+import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-import MoveControls from "./MoveControls";
-import PgnInput from "./PgnInput";
 
 export const TreeContext = createContext(
   new VariationTree(null, DEFAULT_POSITION, null)
@@ -183,7 +183,7 @@ function BoardAnalysis({ id }: { id: string }) {
   return (
     <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-        <Chessboard makeMove={makeMove} arrows={arrows} />
+        <BoardPlay makeMove={makeMove} arrows={arrows} />
         <Stack>
           <Tabs defaultValue="analysis">
             <Tabs.List grow>

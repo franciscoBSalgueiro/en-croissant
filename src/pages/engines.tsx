@@ -1,13 +1,13 @@
 import dynamic from "next/dynamic";
 
-const EngineTable = dynamic(() => import("../components/EngineTable"), {
+const EnginePage = dynamic(() => import("../components/engines/EnginePage"), {
   ssr: false,
 });
 
 export default function Page() {
   return (
     <>
-      <EngineTable />
+      <EnginePage />
     </>
   );
 }

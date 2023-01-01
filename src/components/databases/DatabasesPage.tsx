@@ -13,10 +13,10 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconChess, IconDatabase, IconUser } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
-import { Database, formatBytes, getDatabases } from "../utils/db";
+import { Database, formatBytes, getDatabases } from "../../utils/db";
+import OpenFolderButton from "../common/OpenFolderButton";
 import ConvertButton from "./ConvertButton";
 import GameTable from "./GameTable";
-import OpenFolderButton from "./OpenFolderButton";
 import PlayerTable from "./PlayerTable";
 
 const useStyles = createStyles(
@@ -122,7 +122,7 @@ function CollectionCard({
   );
 }
 
-export default function DatabasesTable() {
+export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [databases, setDatabases] = useState<Database[]>([]);
   const database = selected !== null ? databases[selected] : null;

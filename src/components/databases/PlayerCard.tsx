@@ -1,7 +1,7 @@
 import { createStyles, Paper, Progress, Stack, Text } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
-import { Player } from "../utils/db";
+import { Player } from "../../utils/db";
 
 const data = [
   {

@@ -1,6 +1,6 @@
 import { Text } from "@mantine/core";
 import { useContext, useState } from "react";
-import { getOpening } from "../utils/chess";
+import { getOpening } from "../../utils/chess";
 import { TreeContext } from "./BoardAnalysis";
 
 function OpeningName() {

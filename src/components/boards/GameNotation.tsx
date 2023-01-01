@@ -16,7 +16,7 @@ import {
   IconTrash
 } from "@tabler/icons";
 import { useContext } from "react";
-import { Annotation, annotationColor, VariationTree } from "../utils/chess";
+import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
 import { TreeContext } from "./BoardAnalysis";
 
 function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {

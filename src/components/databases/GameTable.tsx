@@ -33,11 +33,11 @@ import {
   query_games,
   Sides,
   Speed
-} from "../utils/db";
-import { CompleteGame } from "./BoardAnalysis";
-import { genID, Tab } from "./BoardTabs";
-import BoardView from "./BoardView";
-import GameInfo from "./GameInfo";
+} from "../../utils/db";
+import { CompleteGame } from "../boards/BoardAnalysis";
+import GameInfo from "../common/GameInfo";
+import { genID, Tab } from "../tabs/BoardsPage";
+import GamePreview from "./GamePreview";
 import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
 
@@ -463,7 +463,7 @@ function GameTable({ database }: { database: Database }) {
                     outcome={games[selectedGame].outcome}
                   />
                   <Divider mb="sm" />
-                  <BoardView pgn={games[selectedGame].moves} />
+                  <GamePreview pgn={games[selectedGame].moves} />
                 </Stack>
               </Paper>
             </>

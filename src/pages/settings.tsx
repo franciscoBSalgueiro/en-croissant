@@ -1,10 +1,10 @@
 import dynamic from "next/dynamic";
 
-const SettingsController = dynamic(
-  () => import("../components/SettingsController"),
+const SettingsPage = dynamic(
+  () => import("../components/settings/SettingsPage"),
   { ssr: false }
 );
 
 export default function Page() {
-  return <SettingsController />;
+  return <SettingsPage />;
 }

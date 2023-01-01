@@ -1,5 +1,5 @@
 import { Avatar, Group, Stack, Text } from "@mantine/core";
-import { Player } from "../utils/db";
+import { Player } from "../../utils/db";
 
 interface GameInfoProps {
   player1: Player;

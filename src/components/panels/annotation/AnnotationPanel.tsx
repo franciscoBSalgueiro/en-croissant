@@ -1,8 +1,11 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { useContext } from "react";
-import { Annotation, annotationColor, VariationTree } from "../utils/chess";
+import {
+  Annotation,
+  annotationColor, VariationTree
+} from "../../../utils/chess";
+import { TreeContext } from "../../boards/BoardAnalysis";
 import { AnnotationEditor } from "./AnnotationEditor";
-import { TreeContext } from "./BoardAnalysis";
 
 interface AnnotationPanelProps {
   forceUpdate: () => void;

@@ -1,9 +1,9 @@
 import dynamic from "next/dynamic";
 
-const DatabasesTable = dynamic(() => import("../components/DatabasesTable"), {
+const DatabasesPage = dynamic(() => import("../components/databases/DatabasesPage"), {
   ssr: false,
 });
 
 export default function Page() {
-  return <DatabasesTable />;
+  return <DatabasesPage />;
 }

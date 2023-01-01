@@ -3,9 +3,9 @@ import { useCounter, useHotkeys } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import Chessground from "react-chessground";
-import MoveControls from "./MoveControls";
+import MoveControls from "../common/MoveControls";
 
-function BoardView({ pgn }: { pgn: string }) {
+function GamePreview({ pgn }: { pgn: string }) {
   const globalChess = new Chess();
   let totalMoves = 0;
   pgn.split(" ").forEach((move) => {
@@ -63,4 +63,4 @@ function BoardView({ pgn }: { pgn: string }) {
   );
 }
 
-export default BoardView;
+export default GamePreview;

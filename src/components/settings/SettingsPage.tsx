@@ -30,7 +30,7 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function SettingsController() {
+function SettingsPage() {
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -143,4 +143,4 @@ function SettingsController() {
   );
 }
 
-export default SettingsController;
+export default SettingsPage;

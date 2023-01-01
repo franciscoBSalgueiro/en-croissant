@@ -22,7 +22,7 @@ import { BISHOP, Chess, KING, KNIGHT, QUEEN, ROOK, Square } from "chess.js";
 import { Color } from "chessground/types";
 import { useContext, useState } from "react";
 import Chessground from "react-chessground";
-import { formatMove, moveToKey, parseUci, toDests } from "../utils/chess";
+import { formatMove, moveToKey, parseUci, toDests } from "../../utils/chess";
 import { TreeContext } from "./BoardAnalysis";
 import OpeningName from "./OpeningName";
 
@@ -53,7 +53,7 @@ const promotionPieces = [
   },
 ];
 
-function Chessboard({ arrows, makeMove }: ChessboardProps) {
+function BoardPlay({ arrows, makeMove }: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
   const lastMove = tree.move;
@@ -225,4 +225,4 @@ function Chessboard({ arrows, makeMove }: ChessboardProps) {
   );
 }
 
-export default Chessboard;
+export default BoardPlay;

@@ -1,7 +1,7 @@
 import { Autocomplete } from "@mantine/core";
 import { useState } from "react";
-import { query_players, Sides } from "../utils/db";
-import { ChessSidePicker } from "./ChessSidePicker";
+import { query_players, Sides } from "../../utils/db";
+import { SideInput } from "./SideInput";
 
 export function SearchInput({
   label,
@@ -47,7 +47,7 @@ export function SearchInput({
       data={data}
       onChange={handleChange}
       rightSection={
-        <ChessSidePicker sides={sides} setSides={setSides} label={label} />
+        <SideInput sides={sides} setSides={setSides} label={label} />
       }
       label={label}
       placeholder="Player name"

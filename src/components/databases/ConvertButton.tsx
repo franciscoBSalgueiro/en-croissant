@@ -3,7 +3,7 @@ import { IconPlus } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { useEffect, useState } from "react";
-import { Database, getDatabases } from "../utils/db";
+import { Database, getDatabases } from "../../utils/db";
 
 const useStyles = createStyles((theme) => ({
   card: {
