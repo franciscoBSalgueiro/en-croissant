@@ -21,7 +21,7 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
 import { IconEye, IconSearch } from "@tabler/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -34,6 +34,8 @@ import {
   Sides,
   Speed
 } from "../utils/db";
+import { CompleteGame } from "./BoardAnalysis";
+import { genID, Tab } from "./BoardTabs";
 import BoardView from "./BoardView";
 import GameInfo from "./GameInfo";
 import { SearchInput } from "./SearchInput";
@@ -109,6 +111,29 @@ function GameTable({ database }: { database: Database }) {
   const [openedSettings, toggleOpenedSettings] = useToggle();
   const viewport = useRef<HTMLDivElement>(null);
   const scrollToTop = () => viewport.current?.scrollTo({ top: 0 });
+  const firstId = genID();
+  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+    key: "tabs",
+    defaultValue: [],
+  });
+  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
+    key: "activeTab",
+    defaultValue: firstId,
+  });
+
+  function createTab(name: string) {
+    const id = genID();
+
+    setTabs((prev) => [
+      ...prev,
+      {
+        name,
+        value: id,
+      },
+    ]);
+    setActiveTab(id);
+    return id;
+  }
 
   useEffect(() => {
     setActivePage(1);
@@ -187,8 +212,13 @@ function GameTable({ database }: { database: Database }) {
               variant="filled"
               color="blue"
               onClick={() => {
-                sessionStorage.setItem("game", JSON.stringify(game));
-                router.push(`/view/game`);
+                const id = createTab(`${game.white.name} - ${game.black.name}`);
+                const completeGame: CompleteGame = {
+                  game,
+                  currentMove: 0,
+                };
+                sessionStorage.setItem(id, JSON.stringify(completeGame));
+                router.push("/");
               }}
             >
               <IconEye size={16} stroke={1.5} />

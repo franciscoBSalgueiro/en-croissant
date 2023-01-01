@@ -222,8 +222,23 @@ export function swapMove(fen: string) {
     return fenGroups.join(" ");
 }
 
+export function chessToVariatonTree(chess: Chess) {
+    let tree = new VariationTree(null, DEFAULT_POSITION, null);
+    let currentTree = tree;
+    const newChess = new Chess(DEFAULT_POSITION);
+    chess.history().forEach((move) => {
+        const m = newChess.move(move);
+        const newTree = new VariationTree(currentTree, newChess.fen(), m);
+        currentTree.children.push(newTree);
+        currentTree = newTree;
+    });
+    return tree;
+}
 
-export function movesToVariationTree(moves: string, fen: string = DEFAULT_POSITION) {
+export function movesToVariationTree(
+    moves: string,
+    fen: string = DEFAULT_POSITION
+) {
     let movesList = moves.split(" ");
     let tree = new VariationTree(null, fen, null);
     if (moves === "") {

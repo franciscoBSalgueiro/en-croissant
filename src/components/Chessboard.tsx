@@ -107,7 +107,7 @@ function Chessboard({ arrows, makeMove }: ChessboardProps) {
         >
           <SimpleGrid cols={2}>
             {promotionPieces.map((p) => (
-              <Box sx={{ width: "100%", height: "100%" }}>
+              <Box key={p.piece} sx={{ width: "100%", height: "100%" }}>
                 <AspectRatio ratio={1}>
                   <ActionIcon
                     onClick={() => {

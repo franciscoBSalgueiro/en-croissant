@@ -6,9 +6,14 @@ import {
   Stack,
   Tabs
 } from "@mantine/core";
-import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
-import { IconEdit, IconPlus, IconX } from "@tabler/icons";
-import { useEffect, useState } from "react";
+import {
+  useClickOutside,
+  useHotkeys,
+  useSessionStorage,
+  useToggle
+} from "@mantine/hooks";
+import { IconCopy, IconEdit, IconPlus, IconX } from "@tabler/icons";
+import { useEffect } from "react";
 import BoardAnalysis from "./BoardAnalysis";
 
 const useStyles = createStyles(
@@ -17,7 +22,7 @@ const useStyles = createStyles(
     { selected, renaming }: { selected: boolean; renaming: boolean }
   ) => ({
     tab: {
-      transition: "all 100ms ease-in-out",
+      marginRight: theme.spacing.xs,
       backgroundColor: selected ? theme.colors.dark[6] : theme.colors.dark[7],
       ":hover": {
         backgroundColor: theme.colors.dark[6],
@@ -36,13 +41,12 @@ const useStyles = createStyles(
   })
 );
 
-interface Tab {
+export interface Tab {
   name: string;
   value: string;
-  component: React.ReactNode;
 }
 
-function genID() {
+export function genID() {
   var S4 = function () {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
   };
@@ -53,11 +57,13 @@ function BoardTab({
   tab,
   closeTab,
   renameTab,
+  duplicateTab,
   selected,
 }: {
   tab: Tab;
   closeTab: (v: string) => void;
   renameTab: (v: string, n: string) => void;
+  duplicateTab: (v: string) => void;
   selected: boolean;
 }) {
   const [open, toggleOpen] = useToggle();
@@ -88,7 +94,11 @@ function BoardTab({
           key={tab.value}
           value={tab.value}
           rightSection={
-            <CloseButton size={14} onClick={() => closeTab(tab.value)} />
+            <CloseButton
+              component="div"
+              size={14}
+              onClick={() => closeTab(tab.value)}
+            />
           }
           onContextMenu={(e: any) => {
             toggleOpen();
@@ -111,6 +121,12 @@ function BoardTab({
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item
+          icon={<IconCopy size={14} />}
+          onClick={() => duplicateTab(tab.value)}
+        >
+          Duplicate Tab
+        </Menu.Item>
+        <Menu.Item
           icon={<IconEdit size={14} />}
           onClick={() => toggleRenaming(true)}
         >
@@ -130,26 +146,27 @@ function BoardTab({
 
 export default function BoardTabs() {
   const firstId = genID();
-  const [activeTab, setActiveTab] = useState<string | null>(firstId);
-  const [tabs, setTabs] = useState<Tab[]>([
-    {
-      name: "First tab",
-      value: firstId,
-      component: <BoardAnalysis />,
-    },
-  ]);
+  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+    key: "tabs",
+    defaultValue: [],
+  });
+  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
+    key: "activeTab",
+    defaultValue: firstId,
+  });
 
   function createTab() {
     const id = genID();
+
     setTabs((prev) => [
       ...prev,
       {
         name: "New tab",
         value: id,
-        component: <BoardAnalysis />,
       },
     ]);
     setActiveTab(id);
+    return id;
   }
 
   function onTabChange(value: string) {
@@ -161,19 +178,21 @@ export default function BoardTabs() {
   }
 
   function closeTab(value: string | null) {
-    if (value === activeTab) {
-      const index = tabs.findIndex((tab) => tab.value === value);
-      if (tabs.length > 1) {
-        if (index === tabs.length - 1) {
-          setActiveTab(tabs[index - 1].value);
+    if (value !== null) {
+      if (value === activeTab) {
+        const index = tabs.findIndex((tab) => tab.value === value);
+        if (tabs.length > 1) {
+          if (index === tabs.length - 1) {
+            setActiveTab(tabs[index - 1].value);
+          } else {
+            setActiveTab(tabs[index + 1].value);
+          }
         } else {
-          setActiveTab(tabs[index + 1].value);
+          setActiveTab(null);
         }
-      } else {
-        setActiveTab(null);
       }
+      setTabs((prev) => prev.filter((tab) => tab.value !== value));
     }
-    setTabs((prev) => prev.filter((tab) => tab.value !== value));
   }
 
   function selectTab(index: number) {
@@ -206,6 +225,25 @@ export default function BoardTabs() {
         return tab;
       })
     );
+  }
+
+  function duplicateTab(value: string) {
+    const id = genID();
+    const tab = tabs.find((tab) => tab.value === value);
+    if (sessionStorage.getItem(value)) {
+      sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
+    }
+
+    if (tab) {
+      setTabs((prev) => [
+        ...prev,
+        {
+          name: tab.name,
+          value: id,
+        },
+      ]);
+      setActiveTab(id);
+    }
   }
 
   useHotkeys([
@@ -241,9 +279,11 @@ export default function BoardTabs() {
             <Tabs.List>
               {tabs.map((tab) => (
                 <BoardTab
+                  key={tab.value}
                   tab={tab}
                   closeTab={closeTab}
                   renameTab={renameTab}
+                  duplicateTab={duplicateTab}
                   selected={activeTab === tab.value}
                 />
               ))}
@@ -252,7 +292,7 @@ export default function BoardTabs() {
 
             {tabs.map((tab) => (
               <Tabs.Panel key={tab.value} value={tab.value}>
-                {tab.component}
+                <BoardAnalysis id={tab.value} />
               </Tabs.Panel>
             ))}
           </Tabs>

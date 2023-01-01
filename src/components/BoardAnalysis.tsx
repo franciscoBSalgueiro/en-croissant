@@ -1,10 +1,19 @@
 import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useForceUpdate, useHotkeys, useLocalStorage } from "@mantine/hooks";
+import {
+  useForceUpdate,
+  useHotkeys,
+  useLocalStorage,
+  useSessionStorage
+} from "@mantine/hooks";
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { createContext, useEffect, useMemo, useState } from "react";
-import { movesToVariationTree, VariationTree } from "../utils/chess";
+import {
+  chessToVariatonTree,
+  movesToVariationTree,
+  VariationTree
+} from "../utils/chess";
 import { Game, Outcome, Speed } from "../utils/db";
 import { Engine } from "../utils/engines";
 import AnnotationPanel from "./AnnotationPanel";
@@ -21,12 +30,16 @@ export const TreeContext = createContext(
   new VariationTree(null, DEFAULT_POSITION, null)
 );
 
-function BoardAnalysis({ loadGame }: { loadGame?: boolean }) {
-  const game: Game = useMemo(() => {
-    if (loadGame && sessionStorage.getItem("game")) {
-      return JSON.parse(sessionStorage.getItem("game")!);
-    } else {
-      return {
+export interface CompleteGame {
+  game: Game;
+  currentMove: number;
+}
+
+function BoardAnalysis({ id }: { id: string }) {
+  const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
+    key: id,
+    defaultValue: {
+      game: {
         white: {
           id: -1,
           name: "White",
@@ -40,9 +53,11 @@ function BoardAnalysis({ loadGame }: { loadGame?: boolean }) {
         moves: "",
         date: "??.??.??",
         site: "",
-      };
-    }
-  }, [loadGame]);
+      },
+      currentMove: 0,
+    },
+  });
+  const game = completeGame.game;
 
   const forceUpdate = useForceUpdate();
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
@@ -66,12 +81,32 @@ function BoardAnalysis({ loadGame }: { loadGame?: boolean }) {
   });
 
   const initial_tree = useMemo(() => {
+    if (game.moves[0] === "1") {
+      const chess = new Chess();
+      chess.loadPgn(game.moves);
+      const tree = chessToVariatonTree(chess);
+      return tree;
+    }
     const tree = movesToVariationTree(game.moves);
     return tree;
   }, [game.moves]);
 
+  function saveGame() {
+    setCompleteGame((prev) => {
+      const pgn = tree.getTopVariation().getPGN();
+      const newTab = {
+        ...prev,
+      };
+      newTab.game.moves = pgn;
+      return newTab;
+    });
+  }
+
   // Variation tree of all the previous moves
   const [tree, setTree] = useState<VariationTree>(initial_tree);
+  useEffect(() => {
+    setTree(initial_tree);
+  }, [initial_tree]);
   const [arrows, setArrows] = useState<string[]>([]);
   const chess = new Chess(tree.fen);
 
@@ -138,6 +173,7 @@ function BoardAnalysis({ loadGame }: { loadGame?: boolean }) {
     ["ArrowRight", () => redoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
+    ["ctrl+S", () => saveGame()],
   ]);
 
   useEffect(() => {
@@ -186,10 +222,9 @@ function BoardAnalysis({ loadGame }: { loadGame?: boolean }) {
                   <Accordion variant="separated" multiple chevronSize={0}>
                     {selectedEngines.map((engine, i) => {
                       return (
-                        <Accordion.Item value={engine.path}>
+                        <Accordion.Item key={engine.name} value={engine.path}>
                           <BestMoves
                             id={i}
-                            key={engine.name}
                             engine={engine}
                             makeMoves={makeMoves}
                             setArrows={setArrows}
