@@ -1,10 +1,10 @@
 import {
-    Card,
-    createStyles,
-    Group,
-    ScrollArea,
-    Stack,
-    Text
+  Card,
+  createStyles,
+  Group,
+  ScrollArea,
+  Stack,
+  Text
 } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
 import { CompleteGame } from "../boards/BoardAnalysis";
@@ -50,7 +50,7 @@ function RecentGames() {
               <Card withBorder p="sm" w={300} h={230} className={classes.card}>
                 <Stack>
                   <div className={classes.content}>
-                    <GamePreview pgn={game.game.moves} hideControls />
+                    <GamePreview id={tab.value} pgn={game.game.moves} hideControls />
                   </div>
                   <Text
                     align="center"

@@ -1,17 +1,21 @@
 import { AspectRatio, Container, ScrollArea } from "@mantine/core";
 import { useCounter, useHotkeys } from "@mantine/hooks";
 import { Chess } from "chess.js";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Chessground from "react-chessground";
 import MoveControls from "../common/MoveControls";
 
 function GamePreview({
+  id,
   pgn,
   hideControls,
 }: {
+  id: string;
   pgn: string;
   hideControls?: boolean;
 }) {
+  const router = useRouter();
   const globalChess = new Chess();
   let totalMoves = 0;
   pgn.split(" ").forEach((move) => {
@@ -43,9 +47,14 @@ function GamePreview({
       ]);
   }
 
+  function goToGame() {
+    sessionStorage.setItem("activeTab", id);
+    router.push("/");
+  }
+
   return (
     <>
-      <Container sx={{ width: "100%" }}>
+      <Container sx={{ width: "100%" }} onClick={() => goToGame()}>
         <AspectRatio ratio={1} mx="15%">
           <Chessground
             coordinates={false}
