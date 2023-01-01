@@ -1,7 +1,5 @@
 import {
-  Center,
-  createStyles,
-  Navbar,
+  createStyles, Navbar,
   Stack,
   Tooltip,
   UnstyledButton
@@ -79,8 +77,7 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 }
 
 const linksdata = [
-  { icon: IconHome2, label: "Home", url: "/" },
-  { icon: IconChess, label: "Play", url: "/home" },
+  { icon: IconChess, label: "Play", url: "/boards" },
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },
   { icon: IconUser, label: "Account", url: "/account" },
@@ -90,7 +87,7 @@ const linksdata = [
 export function SideBar() {
   const router = useRouter();
 
-  const links = linksdata.map((link, index) => (
+  const links = linksdata.map((link) => (
     <NavbarLink
       {...link}
       url={link.url}
@@ -101,7 +98,12 @@ export function SideBar() {
 
   return (
     <Navbar width={{ base: 80 }} p="md">
-      <Center>{/* <MantineLogo type="mark" size={30} /> */}</Center>
+      <NavbarLink
+        icon={IconHome2}
+        url={"/"}
+        active={router.pathname === "/"}
+        label="Home"
+      />
       <Navbar.Section grow mt={50}>
         <Stack justify="center" spacing={0}>
           {links}

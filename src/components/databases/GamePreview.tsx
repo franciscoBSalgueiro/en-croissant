@@ -11,7 +11,7 @@ function GamePreview({
   pgn,
   hideControls,
 }: {
-  id: string;
+  id?: string;
   pgn: string;
   hideControls?: boolean;
 }) {
@@ -48,8 +48,10 @@ function GamePreview({
   }
 
   function goToGame() {
-    sessionStorage.setItem("activeTab", id);
-    router.push("/");
+    if (id) {
+      sessionStorage.setItem("activeTab", id);
+      router.push("/boards");
+    }
   }
 
   return (

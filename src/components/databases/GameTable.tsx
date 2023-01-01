@@ -218,7 +218,7 @@ function GameTable({ database }: { database: Database }) {
                   currentMove: 0,
                 };
                 sessionStorage.setItem(id, JSON.stringify(completeGame));
-                router.push("/");
+                router.push("/boards");
               }}
             >
               <IconEye size={16} stroke={1.5} />
