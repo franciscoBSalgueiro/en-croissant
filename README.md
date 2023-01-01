@@ -1,7 +1,9 @@
-# Tauri + Next.js + Typescript
+# En-Croissant
 
-This template should help get you started developing with Tauri, Next.js and Typescript.
+En-Croissant is an open-source, cross-platform chess GUI and analysis tool.
 
-## Recommended IDE Setup
+## Features
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+* View and analyze games
+* Multi-engine analysis
+* Cross-platform: Windows, Linux, macOS
