@@ -2,19 +2,14 @@ import {
   Button,
   Group,
   Image,
-  Input,
-  Modal,
   ScrollArea,
   Table,
   Text,
-  TextInput,
   Title
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
 
 import { showNotification } from "@mantine/notifications";
-import { IconCheck, IconPlus, IconReload, IconTrash } from "@tabler/icons";
-import { open } from "@tauri-apps/api/dialog";
+import { IconCheck, IconPlus, IconTrash } from "@tabler/icons";
 import { listen } from "@tauri-apps/api/event";
 import {
   BaseDirectory,
@@ -34,6 +29,7 @@ import {
   getEngineSettings
 } from "../../utils/engines";
 import OpenFolderButton from "../common/OpenFolderButton";
+import AddEngine from "./AddEngine";
 import { ProgressButton } from "./ProgressButton";
 
 export default function EnginePage() {
@@ -74,24 +70,6 @@ export default function EnginePage() {
 
     setEngines([...updatedDefaultEngines, ...engines]);
   }
-
-  const form = useForm<EngineSettings>({
-    initialValues: {
-      name: "",
-      binary: "",
-      image: "",
-    },
-
-    validate: {
-      name: (value) => {
-        if (!value) return "Name is required";
-        if (engines.find((e) => e.name === value)) return "Name already used";
-      },
-      binary: (value) => {
-        if (!value) return "Binary is required";
-      },
-    },
-  });
 
   async function downloadEngine(id: number, url: string) {
     invoke("download_file", {
@@ -186,90 +164,17 @@ export default function EnginePage() {
 
   return (
     <>
-      <Modal
+      <AddEngine
+        engines={engines}
         opened={opened}
-        onClose={() => setOpened(false)}
-        title="New Engine"
-      >
-        <form
-          onSubmit={form.onSubmit(async (values) => {
-            setEngineSettings((engineSettings) => [...engineSettings, values]);
-            setOpened(false);
-          })}
-        >
-          <TextInput
-            label="Name"
-            placeholder="Engine's Name"
-            withAsterisk
-            {...form.getInputProps("name")}
-          />
-
-          <Input.Wrapper
-            label="Binary file"
-            description="Click to select the binary file"
-            withAsterisk
-            {...form.getInputProps("binary")}
-          >
-            <Input
-              component="button"
-              type="button"
-              // accept="application/octet-stream"
-              onClick={async () => {
-                const selected = await open({
-                  multiple: false,
-                  filters: [
-                    {
-                      name: "Binary",
-                      extensions: ["exe", "bin", "sh"],
-                    },
-                  ],
-                });
-                form.setFieldValue("binary", selected as string);
-              }}
-            >
-              <Text lineClamp={1}>{form.values.binary}</Text>
-            </Input>
-          </Input.Wrapper>
-
-          <Input.Wrapper
-            label="Image file"
-            description="Click to select the image file"
-            {...form.getInputProps("image")}
-          >
-            <Input
-              component="button"
-              type="button"
-              // accept="application/octet-stream"
-              onClick={async () => {
-                const selected = await open({
-                  multiple: false,
-                  filters: [
-                    {
-                      name: "Image",
-                      extensions: ["png", "jpeg"],
-                    },
-                  ],
-                });
-                form.setFieldValue("image", selected as string);
-              }}
-            >
-              <Text lineClamp={1}>{form.values.image}</Text>
-            </Input>
-          </Input.Wrapper>
-
-          <Button fullWidth mt="xl" type="submit">
-            Add
-          </Button>
-        </form>
-      </Modal>
+        setOpened={setOpened}
+        setEngineSettings={setEngineSettings}
+      />
       <Group align="baseline" m={30}>
         <Title>Your Engines</Title>
         <OpenFolderButton folder="engines" />
       </Group>
       <ScrollArea>
-        <Button leftIcon={<IconReload />} onClick={() => readConfig()}>
-          Reload
-        </Button>
         <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
           <thead>
             <tr>
