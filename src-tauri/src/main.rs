@@ -10,17 +10,73 @@ mod opening;
 
 use std::{fs::create_dir_all, path::Path};
 
+use reqwest::Url;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
-    Manager,
+    Manager, Window,
 };
 
 use crate::{
     chess::get_best_moves,
-    db::{convert_pgn, get_db_info, get_games, get_number_games, get_players, rename_db, get_players_game_info},
+    db::{
+        convert_pgn, get_db_info, get_games, get_number_games, get_players, get_players_game_info,
+        rename_db,
+    },
     fs::{download_file, file_exists},
     opening::get_opening,
 };
+
+use tauri_plugin_oauth::start;
+
+#[tauri::command]
+async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
+    println!("Starting server");
+
+    start(None, move |url| {
+        // Because of the unprotected localhost port, you must verify the URL here.
+        // Preferebly send back only the token, or nothing at all if you can handle everything else in Rust.
+
+        // convert the string to a url
+        let url = Url::parse(&url).unwrap();
+        let url_string = url.to_string();
+        let base_url = url_string.split('?').collect::<Vec<&str>>()[0];
+
+        // get the code query parameter
+        let code = url
+            .query_pairs()
+            .find(|(k, _)| k == "code")
+            .unwrap_or_default()
+            .1;
+
+        let client = reqwest::blocking::Client::new();
+
+        let res = client
+            .post("https://lichess.org/api/token")
+            .header("Content-Type", "application/json")
+            .body(
+                serde_json::json!({
+                    "grant_type": "authorization_code",
+                    "redirect_uri": base_url,
+                    "client_id": "FrankWillow",
+                    "code": code,
+                    "code_verifier": verifier
+                })
+                .to_string(),
+            )
+            .send()
+            .unwrap();
+
+        let json = res.json::<serde_json::Value>().unwrap();
+        let token = json["access_token"].as_str().unwrap();
+
+        if window.emit("redirect_uri", token).is_ok() {
+            println!("Sent redirect_uri event");
+        } else {
+            println!("Failed to send redirect_uri event");
+        }
+    })
+    .map_err(|err| err.to_string())
+}
 
 fn main() {
     tauri::Builder::default()
@@ -63,7 +119,8 @@ fn main() {
             get_players,
             get_db_info,
             rename_db,
-            get_players_game_info
+            get_players_game_info,
+            start_server
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

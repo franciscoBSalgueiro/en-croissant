@@ -796,6 +796,7 @@ dependencies = [
  "shakmaty 0.22.0",
  "tauri",
  "tauri-build",
+ "tauri-plugin-oauth",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -967,8 +968,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "197676987abd2f9cadff84926f410af1c183608d36641465df73ae8211dc65d6"
 dependencies = [
  "futures-core",
+ "futures-io",
  "futures-macro",
  "futures-task",
+ "memchr",
  "pin-project-lite",
  "pin-utils",
  "slab",
@@ -3334,6 +3337,16 @@ dependencies = [
  "syn",
  "tauri-codegen",
  "tauri-utils",
+]
+
+[[package]]
+name = "tauri-plugin-oauth"
+version = "0.0.0"
+dependencies = [
+ "httparse",
+ "log",
+ "tauri",
+ "url",
 ]
 
 [[package]]

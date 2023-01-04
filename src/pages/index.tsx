@@ -1,7 +1,12 @@
-import { Card, Grid, SimpleGrid, Title } from "@mantine/core";
+import { Card, Grid, SimpleGrid, Stack, Title } from "@mantine/core";
 import dynamic from "next/dynamic";
+import { AccountCard } from "../components/home/AccountCard";
 
 const RecentGames = dynamic(() => import("../components/home/RecentGames"), {
+  ssr: false,
+});
+
+const AccountsList = dynamic(() => import("../components/home/AccountsList"), {
   ssr: false,
 });
 
@@ -14,7 +19,32 @@ function Page() {
       breakpoints={[{ maxWidth: "sm", cols: 1 }]}
     >
       <Card>
-        <Title>Welcome back</Title>
+        <Stack>
+          <Title>Overview</Title>
+          <AccountCard
+            title={"Lichess.org"}
+            description={"Last updated 2 days ago"}
+            completed={100}
+            total={210}
+            stats={[
+              { value: 100, label: "Wins" },
+              { value: 13, label: "Draws" },
+              { value: 70, label: "Losses" },
+            ]}
+          />
+          <AccountCard
+            title={"Chess.com"}
+            description={"Last updated 2 days ago"}
+            completed={100}
+            total={210}
+            stats={[
+              { value: 100, label: "Wins" },
+              { value: 13, label: "Draws" },
+              { value: 70, label: "Losses" },
+            ]}
+          />
+          <AccountsList />
+        </Stack>
       </Card>
       <Grid gutter="md">
         <Grid.Col>

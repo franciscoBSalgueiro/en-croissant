@@ -50,7 +50,11 @@ function RecentGames() {
               <Card withBorder p="sm" w={300} h={230} className={classes.card}>
                 <Stack>
                   <div className={classes.content}>
-                    <GamePreview id={tab.value} pgn={game.game.moves} hideControls />
+                    <GamePreview
+                      id={tab.value}
+                      pgn={game.game.moves}
+                      hideControls
+                    />
                   </div>
                   <Text
                     align="center"
@@ -65,6 +69,7 @@ function RecentGames() {
             );
           }
         })}
+        {tabs.length === 0 && <Text align="center">No recent games</Text>}
       </Group>
     </ScrollArea>
   );
