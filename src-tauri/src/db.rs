@@ -177,6 +177,22 @@ impl Importer {
                 ],
             )
             .expect("Failed to insert game");
+
+            // increment player counts
+            if let Some(name) = &game.white.name {
+                tx.execute(
+                    "UPDATE player SET game_count = game_count + 1 WHERE name = ?",
+                    rusqlite::params![name],
+                )
+                .expect("Failed to update player");
+            }
+            if let Some(name) = &game.black.name {
+                tx.execute(
+                    "UPDATE player SET game_count = game_count + 1 WHERE name = ?",
+                    rusqlite::params![name],
+                )
+                .expect("Failed to update player");
+            }
         }
 
         tx.commit().expect("Failed to commit transaction");
@@ -294,7 +310,8 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) {
     db.execute(
         "CREATE TABLE IF NOT EXISTS player (
             id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE
+            name TEXT NOT NULL UNIQUE,
+            game_count INTEGER DEFAULT 0
         )",
         [],
     )
@@ -620,8 +637,16 @@ pub struct PlayerQuery {
     pub offset: Option<u64>,
 }
 
+#[derive(Default, Debug, Serialize)]
+pub struct ResPlayer {
+    pub id: usize,
+    pub name: Option<String>,
+    pub rating: Option<u16>,
+    pub game_count: usize,
+}
+
 #[tauri::command]
-pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec<Player>> {
+pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec<ResPlayer>> {
     let db = rusqlite::Connection::open(file).expect("open database");
 
     println!("{:?}", query);
@@ -658,7 +683,7 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
     let mut stmt = db
         // Use LIKE
         .prepare(
-            "SELECT id, name
+            "SELECT id, name, game_count
             FROM player
             WHERE
                 (:name IS NULL OR name LIKE :name)
@@ -679,11 +704,13 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
     while let Some(row) = rows.next().expect("get next row") {
         let id: usize = row.get(0).expect("get id");
         let name: String = row.get(1).expect("get name");
+        let game_count: usize = row.get(2).expect("get game count");
 
-        players.push(Player {
+        players.push(ResPlayer {
             id,
             name: Some(name),
             rating: None,
+            game_count,
         });
     }
     QueryResponse {

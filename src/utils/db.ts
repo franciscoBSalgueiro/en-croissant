@@ -92,6 +92,7 @@ interface PlayerQuery {
 export interface Player {
     id: number;
     name: string;
+    game_count: number;
     rating?: number;
     image?: string;
 }

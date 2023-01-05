@@ -141,6 +141,7 @@ function PlayerTable({ database }: { database: Database }) {
           })}
         >
           <td>{player.name}</td>
+          <td>{player.game_count}</td>
         </tr>
       ))
     );
@@ -223,6 +224,7 @@ function PlayerTable({ database }: { database: Database }) {
                 >
                   <tr>
                     <th>Name</th>
+                    <th>Game Count</th>
                   </tr>
                 </thead>
                 <tbody>
