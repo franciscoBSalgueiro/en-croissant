@@ -1,5 +1,6 @@
 import {
-  createStyles, Navbar,
+  createStyles,
+  Navbar,
   Stack,
   Tooltip,
   UnstyledButton
@@ -7,11 +8,10 @@ import {
 import {
   IconChess,
   IconDatabase,
+  IconHelp,
   IconHome2,
-  IconLogout,
   IconRobot,
   IconSettings,
-  IconSwitchHorizontal,
   IconUser,
   TablerIcon
 } from "@tabler/icons";
@@ -81,7 +81,6 @@ const linksdata = [
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },
   { icon: IconUser, label: "Account", url: "/account" },
-  { icon: IconSettings, label: "Settings", url: "/settings" },
 ];
 
 export function SideBar() {
@@ -111,12 +110,8 @@ export function SideBar() {
       </Navbar.Section>
       <Navbar.Section>
         <Stack justify="center" spacing={0}>
-          <NavbarLink
-            icon={IconSwitchHorizontal}
-            label="Change account"
-            url="/switch"
-          />
-          <NavbarLink icon={IconLogout} label="Logout" url="/logout" />
+          <NavbarLink icon={IconHelp} label="Help" url="/help" />
+          <NavbarLink icon={IconSettings} label="Settings" url="/settings" />
         </Stack>
       </Navbar.Section>
     </Navbar>
