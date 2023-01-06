@@ -25,7 +25,7 @@ pub fn create_game(conn: &mut SqliteConnection, game: NewGame) -> Game {
     use crate::db::schema::games;
 
     diesel::insert_or_ignore_into(games::table)
-        .values(&game)
+        .values(game)
         .execute(conn)
         .expect("Error saving new game");
 

@@ -2,7 +2,14 @@ mod models;
 mod ops;
 mod schema;
 use crate::db::models::*;
-use diesel::{connection::SimpleConnection, prelude::*};
+use diesel::{
+    backend::Backend,
+    connection::SimpleConnection,
+    deserialize::FromSql,
+    prelude::*,
+    serialize::{self, IsNull, Output, ToSql},
+    sql_types::{self, Integer},
+};
 use pgn_reader::{BufferedReader, Color, Outcome, RawHeader, SanPlus, Skip, Visitor};
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, DisplayFromStr, StringWithSeparator};
@@ -22,14 +29,53 @@ use self::{
     schema::{games, players},
 };
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    diesel::AsExpression,
+    diesel::FromSqlRow,
+)]
+#[sql_type = "sql_types::Integer"]
 pub enum Speed {
-    UltraBullet = 0,
+    UltraBullet,
     Bullet,
     Blitz,
     Rapid,
     Classical,
     Correspondence,
+}
+
+impl<DB> FromSql<sql_types::Integer, DB> for Speed
+where
+    DB: Backend,
+    i32: FromSql<sql_types::Integer, DB>,
+{
+    fn from_nullable_sql(
+        bytes: Option<diesel::backend::RawValue<'_, DB>>,
+    ) -> diesel::deserialize::Result<Self> {
+        let u = i32::from_nullable_sql(bytes)?;
+        Ok(Speed::from(u as u8))
+    }
+
+    fn from_sql(bytes: diesel::backend::RawValue<'_, DB>) -> diesel::deserialize::Result<Self> {
+        let u = i32::from_sql(bytes)?;
+        Ok(Speed::from(u as u8))
+    }
+}
+
+impl ToSql<Integer, diesel::sqlite::Sqlite> for Speed
+where
+    i32: ToSql<Integer, diesel::sqlite::Sqlite>,
+{
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, diesel::sqlite::Sqlite>) -> serialize::Result {
+        out.set_value(*self as i32);
+        Ok(IsNull::No)
+    }
 }
 
 impl Speed {
@@ -149,7 +195,7 @@ impl Importer {
                 white_rating: game.white.rating,
                 black_rating: game.black.rating,
                 date: game.date.as_deref(),
-                speed: game.speed.map(|s| s as i32),
+                speed: game.speed,
                 site: game.site.as_deref(),
                 fen: game.fen.as_deref(),
                 outcome: game.outcome.map(|r| match r {

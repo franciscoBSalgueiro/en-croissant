@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::schema::*;
 
-#[derive(Default, Queryable, Serialize, Deserialize, Identifiable)]
+use super::Speed;
+
+#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[table_name = "players"]
 pub struct Player {
     pub id: i32,
@@ -27,7 +29,7 @@ struct Black(pub Player);
 #[table_name = "games"]
 pub struct Game {
     pub id: i32,
-    pub speed: Option<i32>,
+    pub speed: Option<Speed>,
     pub fen: Option<String>,
     pub site: Option<String>,
     pub date: Option<String>,
@@ -44,7 +46,7 @@ pub struct Game {
 #[belongs_to(Black, foreign_key = "black")]
 #[table_name = "games"]
 pub struct NewGame<'a> {
-    pub speed: Option<i32>,
+    pub speed: Option<Speed>,
     pub fen: Option<&'a str>,
     pub site: Option<&'a str>,
     pub date: Option<&'a str>,
