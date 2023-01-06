@@ -13,7 +13,7 @@ pub struct Player {
     pub game_count: i32,
 }
 
-#[derive(Insertable, Serialize, Deserialize)]
+#[derive(Debug, Insertable, Serialize, Deserialize)]
 #[table_name = "players"]
 pub struct NewPlayer<'a> {
     pub name: Option<&'a str>,

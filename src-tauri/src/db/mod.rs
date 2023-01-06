@@ -25,7 +25,7 @@ use tauri::{
 };
 
 use self::{
-    ops::{create_game, create_player},
+    ops::{create_game, create_player, increment_game_count},
     schema::{games, players},
 };
 
@@ -171,8 +171,6 @@ impl Importer {
             games: mem::replace(&mut self.batch, Vec::with_capacity(self.batch_size)),
         };
 
-        // let tx = self.db.transaction().expect("Failed to start transaction");
-
         for game in batch.games {
             let white;
             let black;
@@ -209,65 +207,9 @@ impl Importer {
             };
 
             create_game(&mut self.db, new_game);
-            // tx.execute(
-            //     "INSERT INTO game (
-            //         white,
-            //         black,
-            //         white_rating,
-            //         black_rating,
-            //         date,
-            //         speed,
-            //         site,
-            //         fen,
-            //         outcome,
-            //         moves
-            //     ) VALUES (
-            //         (SELECT id FROM player WHERE name = ?1),
-            //         (SELECT id FROM player WHERE name = ?2),
-            //         ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            //     rusqlite::params![
-            //         game.white.name,
-            //         game.black.name,
-            //         game.white.rating,
-            //         game.black.rating,
-            //         game.date,
-            //         game.speed.map(|s| s as u8),
-            //         game.site,
-            //         game.fen,
-            //         game.outcome.map(|r| match r {
-            //             Outcome::Decisive { winner } => match winner {
-            //                 Color::White => 1,
-            //                 Color::Black => 2,
-            //             },
-            //             Outcome::Draw => 3,
-            //         }),
-            //         game.moves
-            //             .iter()
-            //             .map(|m| m.san.to_string())
-            //             .collect::<Vec<_>>()
-            //             .join(" ")
-            //     ],
-            // )
-            // .expect("Failed to insert game");
-
-            // // increment player counts
-            // if let Some(name) = &game.white.name {
-            //     tx.execute(
-            //         "UPDATE player SET game_count = game_count + 1 WHERE name = ?",
-            //         rusqlite::params![name],
-            //     )
-            //     .expect("Failed to update player");
-            // }
-            // if let Some(name) = &game.black.name {
-            //     tx.execute(
-            //         "UPDATE player SET game_count = game_count + 1 WHERE name = ?",
-            //         rusqlite::params![name],
-            //     )
-            //     .expect("Failed to update player");
-            // }
+            increment_game_count(&mut self.db, white.id);
+            increment_game_count(&mut self.db, black.id);
         }
-
-        // tx.commit().expect("Failed to commit transaction");
     }
 }
 
@@ -541,7 +483,10 @@ pub struct QueryResponse<T> {
 }
 
 #[tauri::command]
-pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<(Game, Player, Player)>> {
+pub async fn get_games(
+    file: PathBuf,
+    query: GameQuery,
+) -> QueryResponse<Vec<(Game, Player, Player)>> {
     let mut db =
         diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
 
@@ -553,6 +498,11 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<(Ga
         .inner_join(black_players.on(games::black.eq(black_players.field(players::id))))
         .into_boxed();
     let mut count_query = games::table.into_boxed();
+
+    if let Some(player1) = query.player1 {
+        sql_query = sql_query.filter(white_players.field(players::name).eq(player1));
+        // count_query = count_query.filter(white_players.field(players::name).eq(player1));
+    }
 
     if let Some(speed) = query.speed {
         sql_query = sql_query.filter(games::speed.eq(speed as i32));
@@ -592,9 +542,7 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<(Ga
     if let Some(offset) = query.offset {
         sql_query = sql_query.offset(offset);
     }
-    let games = sql_query
-        .load(&mut db)
-        .expect("load games");
+    let games = sql_query.load(&mut db).expect("load games");
 
     QueryResponse { data: games, count }
 }
