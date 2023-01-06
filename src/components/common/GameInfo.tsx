@@ -21,7 +21,8 @@ function GameInfo({ player1, player2, date, outcome }: GameInfoProps) {
         </Group>
       </Stack>
       <Stack align="center" justify="end" spacing={0}>
-        <Text>{outcome.replaceAll("1/2", "½")}</Text>
+        <Text>{outcome}</Text>
+        {/* <Text>{outcome.replaceAll("1/2", "½")}</Text> */}
         <Text c="dimmed">{date}</Text>
       </Stack>
       <Stack align="end" spacing={0}>

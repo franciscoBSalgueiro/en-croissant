@@ -237,7 +237,8 @@ function GameTable({ database }: { database: Database }) {
               </div>
             </Group>
           </td>
-          <td>{game.outcome.replaceAll("1/2", "½")}</td>
+          <td>{game.outcome}</td>
+          {/* <td>{game.outcome.replaceAll("1/2", "½")}</td> */}
           <td>
             <Group spacing="sm" noWrap>
               <Avatar size={40} src={game.black.image} radius={40} />
