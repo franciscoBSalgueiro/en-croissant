@@ -52,8 +52,8 @@ interface GameQuery {
 }
 
 export interface Game {
-    white: Player;
-    black: Player;
+    white: number;
+    black: number;
     speed: Speed;
     outcome: Outcome;
     moves: string;
@@ -64,7 +64,7 @@ export interface Game {
 export async function query_games(
     db: string,
     query: GameQuery
-): Promise<QueryResponse<Game[]>> {
+): Promise<QueryResponse<[Game, Player, Player][]>> {
     return invoke("get_games", {
         file: db,
         query: {

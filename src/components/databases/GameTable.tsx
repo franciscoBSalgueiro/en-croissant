@@ -30,6 +30,7 @@ import {
   Database,
   Game,
   Outcome,
+  Player,
   query_games,
   Sides,
   Speed
@@ -92,7 +93,8 @@ function GameTable({ database }: { database: Database }) {
   const { classes, cx } = useStyles();
   const router = useRouter();
   const file = database.file;
-  const [games, setGames] = useState<Game[]>([]);
+  const [games, setGames] = useState<[Game, Player, Player][]>([]);
+
   const [count, setCount] = useState(0);
   const [player1, setPlayer1] = useState("");
   const [rangePlayer1, setRangePlayer1] = useState<[number, number]>([0, 3000]);
@@ -151,6 +153,7 @@ function GameTable({ database }: { database: Database }) {
       offset: 0,
       skip_count: skip,
     }).then((res) => {
+      console.log(res);
       setLoading(false);
       setGames(res.data);
       setCount(res.count);
@@ -197,7 +200,7 @@ function GameTable({ database }: { database: Database }) {
         </td>
       </tr>
     ) : (
-      games.map((game, i) => (
+      games.map(([game, white, black], i) => (
         <tr
           key={i}
           onClick={() => {
@@ -212,7 +215,7 @@ function GameTable({ database }: { database: Database }) {
               variant="filled"
               color="blue"
               onClick={() => {
-                const id = createTab(`${game.white.name} - ${game.black.name}`);
+                const id = createTab(`${white.name} - ${black.name}`);
                 const completeGame: CompleteGame = {
                   game,
                   currentMove: 0,
@@ -226,13 +229,13 @@ function GameTable({ database }: { database: Database }) {
           </td>
           <td>
             <Group spacing="sm" noWrap>
-              <Avatar size={40} src={game.white.image} radius={40} />
+              <Avatar size={40} src={white.image} radius={40} />
               <div>
                 <Text size="sm" weight={500}>
-                  {game.white.name}
+                  {white.name}
                 </Text>
                 <Text size="xs" color="dimmed">
-                  {game.white.rating}
+                  {white.rating}
                 </Text>
               </div>
             </Group>
@@ -241,13 +244,13 @@ function GameTable({ database }: { database: Database }) {
           {/* <td>{game.outcome.replaceAll("1/2", "½")}</td> */}
           <td>
             <Group spacing="sm" noWrap>
-              <Avatar size={40} src={game.black.image} radius={40} />
+              <Avatar size={40} src={black.image} radius={40} />
               <div>
                 <Text size="sm" weight={500}>
-                  {game.black.name}
+                  {black.name}
                 </Text>
                 <Text size="xs" color="dimmed">
-                  {game.black.rating}
+                  {black.rating}
                 </Text>
               </div>
             </Group>
@@ -458,13 +461,13 @@ function GameTable({ database }: { database: Database }) {
               <Paper shadow="sm" p="sm" my="md" withBorder>
                 <Stack>
                   <GameInfo
-                    player1={games[selectedGame].white}
-                    player2={games[selectedGame].black}
-                    date={games[selectedGame].date}
-                    outcome={games[selectedGame].outcome}
+                    player1={games[selectedGame][1]}
+                    player2={games[selectedGame][2]}
+                    date={games[selectedGame][0].date}
+                    outcome={games[selectedGame][0].outcome}
                   />
                   <Divider mb="sm" />
-                  <GamePreview pgn={games[selectedGame].moves} />
+                  <GamePreview pgn={games[selectedGame][0].moves} />
                 </Stack>
               </Paper>
             </>

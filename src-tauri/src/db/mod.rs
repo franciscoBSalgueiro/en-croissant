@@ -541,14 +541,17 @@ pub struct QueryResponse<T> {
 }
 
 #[tauri::command]
-pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Game>> {
+pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<(Game, Player, Player)>> {
     let mut db =
         diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
 
-    let mut games = Vec::new();
     let mut count: Option<i64> = None;
 
-    let mut sql_query = games::table.into_boxed();
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let mut sql_query = games::table
+        .inner_join(white_players.on(games::white.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black.eq(black_players.field(players::id))))
+        .into_boxed();
     let mut count_query = games::table.into_boxed();
 
     if let Some(speed) = query.speed {
@@ -589,15 +592,9 @@ pub async fn get_games(file: PathBuf, query: GameQuery) -> QueryResponse<Vec<Gam
     if let Some(offset) = query.offset {
         sql_query = sql_query.offset(offset);
     }
-
-    sql_query
-        .order(games::id.desc())
+    let games = sql_query
         .load(&mut db)
-        .expect("load games")
-        .into_iter()
-        .for_each(|game: Game| {
-            games.push(game);
-        });
+        .expect("load games");
 
     QueryResponse { data: games, count }
 }
