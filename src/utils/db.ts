@@ -49,6 +49,7 @@ interface GameQuery {
     outcome?: Outcome;
     limit?: number;
     offset?: number;
+    sort?: string;
 }
 
 export interface Game {
@@ -70,7 +71,7 @@ export async function query_games(
     return invoke("get_games", {
         file: db,
         query: {
-            skip_count: query.skip_count || false,
+            skip_count: query.skip_count ?? false,
             player1: query.player1,
             range1: query.rangePlayer1,
             player2: query.player2,
@@ -80,7 +81,7 @@ export async function query_games(
             outcome: query.outcome,
             limit: query.limit,
             offset: query.offset,
-            sort: "rating"
+            sort: query.sort,
         },
     });
 }
@@ -90,6 +91,7 @@ interface PlayerQuery {
     name?: string;
     limit?: number;
     offset?: number;
+    sort?: string;
 }
 
 export interface Player {
@@ -110,6 +112,7 @@ export async function query_players(
             name: query.name,
             limit: query.limit,
             offset: query.offset,
+            sort: query.sort,
         },
     });
 }

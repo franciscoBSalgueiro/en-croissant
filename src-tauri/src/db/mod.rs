@@ -2,7 +2,6 @@ mod models;
 mod ops;
 mod schema;
 use crate::db::models::*;
-use core::fmt;
 use diesel::{
     backend::Backend,
     connection::SimpleConnection,
@@ -19,7 +18,6 @@ use std::{
     fs::File,
     io, mem,
     path::{Path, PathBuf},
-    str::FromStr,
 };
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -28,10 +26,7 @@ use tauri::{
 
 use self::{
     ops::{create_game, create_player, increment_game_count},
-    schema::{
-        games::{self, BoxedQuery},
-        players,
-    },
+    schema::{games, players},
 };
 
 #[derive(
@@ -460,25 +455,15 @@ pub enum Sides {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Sort {
+pub enum GameSort {
+    #[serde(rename = "date")]
     Date,
+    #[serde(rename = "rating")]
     Rating,
+    #[serde(rename = "speed")]
     Speed,
+    #[serde(rename = "outcome")]
     Outcome,
-}
-
-impl FromStr for Sort {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "date" => Ok(Sort::Date),
-            "rating" => Ok(Sort::Rating),
-            "speed" => Ok(Sort::Speed),
-            "outcome" => Ok(Sort::Outcome),
-            _ => Err(format!("invalid sort: {}", s)),
-        }
-    }
 }
 
 #[serde_as]
@@ -495,8 +480,7 @@ pub struct GameQuery {
     pub outcome: Option<Outcome>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
-    #[serde_as(as = "Option<DisplayFromStr>")]
-    pub sort: Option<Sort>,
+    pub sort: Option<GameSort>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -512,6 +496,8 @@ pub async fn get_games(
 ) -> QueryResponse<Vec<(Game, Player, Player)>> {
     let mut db =
         diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
+
+    dbg!(&query);
 
     let mut count: Option<i64> = None;
 
@@ -571,15 +557,15 @@ pub async fn get_games(
 
     if let Some(sort) = query.sort {
         sql_query = match sort {
-            Sort::Date => sql_query.order(games::date.desc()),
-            Sort::Rating => {
+            GameSort::Date => sql_query.order(games::date.desc()),
+            GameSort::Rating => {
                 // sort by the greatest rating between game::white_rating and game::black_rating
                 sql_query.order(diesel::dsl::sql::<diesel::sql_types::Integer>(
                     "MAX(games.white_rating, games.black_rating) DESC",
                 ))
             }
-            Sort::Speed => sql_query.order(games::speed.desc()),
-            Sort::Outcome => sql_query.order(games::outcome.desc()),
+            GameSort::Speed => sql_query.order(games::speed.desc()),
+            GameSort::Outcome => sql_query.order(games::outcome.desc()),
         };
     }
     let games = sql_query.load(&mut db).expect("load games");
@@ -593,6 +579,15 @@ pub struct PlayerQuery {
     pub name: Option<String>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
+    pub sort: Option<PlayerSort>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PlayerSort {
+    #[serde(rename = "name")]
+    Name,
+    #[serde(rename = "games")]
+    Games,
 }
 
 #[tauri::command]
@@ -600,7 +595,6 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
     let mut db =
         diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
 
-    let mut players = Vec::new();
     let mut count = None;
 
     let mut sql_query = players::table.into_boxed();
@@ -628,9 +622,14 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
         sql_query = sql_query.offset(offset as i64);
     }
 
-    for player in sql_query.load::<Player>(&mut db).expect("load players") {
-        players.push(player);
+    if let Some(sort) = query.sort {
+        sql_query = match sort {
+            PlayerSort::Name => sql_query.order(players::name.asc()),
+            PlayerSort::Games => sql_query.order(players::game_count.desc()),
+        };
     }
+
+    let players = sql_query.load::<Player>(&mut db).expect("load players");
 
     QueryResponse {
         data: players,
@@ -650,25 +649,27 @@ pub async fn get_players_game_info(file: PathBuf, id: i32) -> PlayerGameInfo {
     let mut db =
         diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
 
-    let mut info = PlayerGameInfo {
+    let sql_query = games::table
+        .group_by(games::outcome)
+        .select((games::outcome, diesel::dsl::count(games::id)))
+        .filter(games::white.eq(id).or(games::black.eq(id)));
+
+    let info: Vec<(Option<i32>, i64)> = sql_query.load(&mut db).expect("load games");
+
+    let mut game_info = PlayerGameInfo {
         won: 0,
         lost: 0,
         draw: 0,
     };
 
-    let games = games::table
-        .filter(games::white.eq(id).or(games::black.eq(id)))
-        .load::<Game>(&mut db)
-        .expect("load games");
-
-    for game in games {
-        match game.outcome {
-            Some(1) => info.won += 1,
-            Some(2) => info.lost += 1,
-            Some(3) => info.draw += 1,
-            _ => {}
+    for (outcome, count) in info {
+        match outcome {
+            Some(1) => game_info.won = count as usize,
+            Some(2) => game_info.lost = count as usize,
+            Some(3) => game_info.draw = count as usize,
+            _ => (),
         }
     }
 
-    info
+    game_info
 }

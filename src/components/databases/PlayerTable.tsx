@@ -8,7 +8,8 @@ import {
   Grid,
   Group,
   LoadingOverlay,
-  Pagination, ScrollArea,
+  Pagination,
+  ScrollArea,
   Select,
   Stack,
   Table,
@@ -17,10 +18,15 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconSearch } from "@tabler/icons";
+import { IconSearch, IconSortDescending } from "@tabler/icons";
 import { useEffect, useRef, useState } from "react";
 import { Database, Player, query_players } from "../../utils/db";
 import PlayerCard from "./PlayerCard";
+
+const sortOptions = [
+  { label: "Name", value: "name" },
+  { label: "Number of games", value: "games" },
+];
 
 const useStyles = createStyles((theme) => ({
   header: {
@@ -78,6 +84,7 @@ function PlayerTable({ database }: { database: Database }) {
   const [loading, setLoading] = useState(false);
   const [skip, toggleSkip] = useToggle();
   const [limit, setLimit] = useState(25);
+  const [sort, setSort] = useState("games");
   const [activePage, setActivePage] = useState(1);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const offset = (activePage - 1) * limit;
@@ -95,6 +102,7 @@ function PlayerTable({ database }: { database: Database }) {
       limit,
       offset: 0,
       skip_count: skip,
+      sort
     }).then((res) => {
       setLoading(false);
       setPlayers(res.data);
@@ -111,12 +119,13 @@ function PlayerTable({ database }: { database: Database }) {
       limit,
       offset: skip ? 0 : offset,
       skip_count: skip,
+      sort
     }).then((res) => {
       setLoading(false);
       setPlayers(res.data);
       setCount(res.count);
     });
-  }, [offset]);
+  }, [offset, sort]);
 
   const rows =
     players.length === 0 ? (
@@ -181,15 +190,27 @@ function PlayerTable({ database }: { database: Database }) {
     <>
       <Grid grow>
         <Grid.Col span={3}>
-          <Button
-            my={15}
-            compact
-            variant="outline"
-            leftIcon={<IconSearch size={15} />}
-            onClick={() => toggleOpenedSettings()}
-          >
-            Search Settings
-          </Button>
+          <Group position="apart">
+            <Button
+              my={15}
+              compact
+              variant="outline"
+              leftIcon={<IconSearch size={15} />}
+              onClick={() => toggleOpenedSettings()}
+            >
+              Search Settings
+            </Button>
+
+            <Select
+              icon={<IconSortDescending size={20} />}
+              value={sort}
+              onChange={(v) => {
+                v && setSort(v);
+              }}
+              data={sortOptions}
+              defaultValue={sort}
+            />
+          </Group>
 
           <Collapse in={openedSettings} mx={10}>
             <Stack>
@@ -263,7 +284,10 @@ function PlayerTable({ database }: { database: Database }) {
         <Grid.Col span={2}>
           {selectedPlayer !== null ? (
             <>
-              <PlayerCard player={players[selectedPlayer]} file={database.file} />
+              <PlayerCard
+                player={players[selectedPlayer]}
+                file={database.file}
+              />
             </>
           ) : (
             <Center h="100%">

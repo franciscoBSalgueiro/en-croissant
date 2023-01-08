@@ -22,8 +22,7 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
-import { IconEye, IconSearch } from "@tabler/icons";
-import Link from "next/link";
+import { IconEye, IconSearch, IconSortDescending } from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -89,6 +88,13 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+const sortOptions = [
+  { label: "Date", value: "date" },
+  { label: "Rating", value: "rating" },
+  { label: "Speed", value: "speed" },
+  { label: "Outcome", value: "outcome" },
+];
+
 function GameTable({ database }: { database: Database }) {
   const { classes, cx } = useStyles();
   const router = useRouter();
@@ -106,6 +112,7 @@ function GameTable({ database }: { database: Database }) {
   const [loading, setLoading] = useState(false);
   const [skip, toggleSkip] = useToggle();
   const [limit, setLimit] = useState(25);
+  const [sort, setSort] = useState("date");
   const [activePage, setActivePage] = useState(1);
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const offset = (activePage - 1) * limit;
@@ -152,6 +159,7 @@ function GameTable({ database }: { database: Database }) {
       limit,
       offset: 0,
       skip_count: skip,
+      sort,
     }).then((res) => {
       console.log(res);
       setLoading(false);
@@ -182,13 +190,13 @@ function GameTable({ database }: { database: Database }) {
       outcome: outcome === null ? undefined : (outcome as Outcome),
       limit,
       offset: skip ? 0 : offset,
-      skip_count: skip,
+      skip_count: true,
+      sort,
     }).then((res) => {
       setLoading(false);
       setGames(res.data);
-      setCount(res.count);
     });
-  }, [offset]);
+  }, [offset, sort]);
 
   const rows =
     games.length === 0 ? (
@@ -259,13 +267,7 @@ function GameTable({ database }: { database: Database }) {
           <td>
             <SpeeedBadge speed={game.speed} />
           </td>
-          <td>
-            {game.site && (
-              <Link href={"https://lichess.org/" + game.site} target="_blank">
-                {game.site}
-              </Link>
-            )}
-          </td>
+          <td>{game.site}</td>
         </tr>
       ))
     );
@@ -305,15 +307,27 @@ function GameTable({ database }: { database: Database }) {
     <>
       <Grid grow>
         <Grid.Col span={3}>
-          <Button
-            my={15}
-            compact
-            variant="outline"
-            leftIcon={<IconSearch size={15} />}
-            onClick={() => toggleOpenedSettings()}
-          >
-            Search Settings
-          </Button>
+          <Group position="apart">
+            <Button
+              my={15}
+              compact
+              variant="outline"
+              leftIcon={<IconSearch size={15} />}
+              onClick={() => toggleOpenedSettings()}
+            >
+              Search Settings
+            </Button>
+
+            <Select
+              icon={<IconSortDescending size={20} />}
+              value={sort}
+              onChange={(v) => {
+                v && setSort(v);
+              }}
+              data={sortOptions}
+              defaultValue={sort}
+            />
+          </Group>
 
           <Collapse in={openedSettings} mx={10}>
             <Stack>
@@ -419,7 +433,7 @@ function GameTable({ database }: { database: Database }) {
                     <th>Black</th>
                     <th>Date</th>
                     <th>Speed</th>
-                    <th>Link</th>
+                    <th>Site</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -441,7 +455,7 @@ function GameTable({ database }: { database: Database }) {
                 data={["10", "25", "50", "100"]}
                 defaultValue={limit.toString()}
               />
-              <Stack align="center" spacing={0} mt={20}>
+              <Stack spacing={0} mt={20}>
                 <Pagination
                   page={activePage}
                   onChange={setActivePage}
