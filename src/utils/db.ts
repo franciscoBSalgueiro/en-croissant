@@ -53,7 +53,9 @@ interface GameQuery {
 
 export interface Game {
     white: number;
+    white_rating: number;
     black: number;
+    black_rating: number;
     speed: Speed;
     outcome: Outcome;
     moves: string;
@@ -78,6 +80,7 @@ export async function query_games(
             outcome: query.outcome,
             limit: query.limit,
             offset: query.offset,
+            sort: "rating"
         },
     });
 }
@@ -93,7 +96,6 @@ export interface Player {
     id: number;
     name: string;
     game_count: number;
-    rating?: number;
     image?: string;
 }
 

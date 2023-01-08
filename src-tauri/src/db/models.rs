@@ -6,7 +6,7 @@ use crate::db::schema::*;
 use super::Speed;
 
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
-#[table_name = "players"]
+#[diesel(table_name = players)]
 pub struct Player {
     pub id: i32,
     pub name: Option<String>,
@@ -14,7 +14,7 @@ pub struct Player {
 }
 
 #[derive(Debug, Insertable, Serialize, Deserialize)]
-#[table_name = "players"]
+#[diesel(table_name = players)]
 pub struct NewPlayer<'a> {
     pub name: Option<&'a str>,
     pub game_count: i32,
@@ -24,9 +24,9 @@ struct White(pub Player);
 struct Black(pub Player);
 
 #[derive(Default, Queryable, Serialize, Deserialize, Identifiable, Associations)]
-#[belongs_to(White, foreign_key = "white")]
-#[belongs_to(Black, foreign_key = "black")]
-#[table_name = "games"]
+#[diesel(belongs_to(White, foreign_key = white))]
+#[diesel(belongs_to(Black, foreign_key = black))]
+#[diesel(table_name = games)]
 pub struct Game {
     pub id: i32,
     pub speed: Option<Speed>,
@@ -41,10 +41,10 @@ pub struct Game {
     pub moves: String,
 }
 
-#[derive(Default, Insertable, Serialize, Deserialize, Associations)]
-#[belongs_to(White, foreign_key = "white")]
-#[belongs_to(Black, foreign_key = "black")]
-#[table_name = "games"]
+#[derive(Debug, Default, Insertable, Serialize, Deserialize, Associations)]
+#[diesel(belongs_to(White, foreign_key = white))]
+#[diesel(belongs_to(Black, foreign_key = black))]
+#[diesel(table_name = games)]
 pub struct NewGame<'a> {
     pub speed: Option<Speed>,
     pub fen: Option<&'a str>,

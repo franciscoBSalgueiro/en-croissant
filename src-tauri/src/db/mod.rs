@@ -2,6 +2,7 @@ mod models;
 mod ops;
 mod schema;
 use crate::db::models::*;
+use core::fmt;
 use diesel::{
     backend::Backend,
     connection::SimpleConnection,
@@ -18,6 +19,7 @@ use std::{
     fs::File,
     io, mem,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -26,7 +28,10 @@ use tauri::{
 
 use self::{
     ops::{create_game, create_player, increment_game_count},
-    schema::{games, players},
+    schema::{
+        games::{self, BoxedQuery},
+        players,
+    },
 };
 
 #[derive(
@@ -40,7 +45,7 @@ use self::{
     diesel::AsExpression,
     diesel::FromSqlRow,
 )]
-#[sql_type = "sql_types::Integer"]
+#[diesel(sql_type = sql_types::Integer)]
 pub enum Speed {
     UltraBullet,
     Bullet,
@@ -166,7 +171,7 @@ impl Importer {
         }
     }
 
-    pub fn send(&mut self) {
+    pub fn send(&mut self) -> Result<(), diesel::result::Error> {
         let batch = Batch {
             games: mem::replace(&mut self.batch, Vec::with_capacity(self.batch_size)),
         };
@@ -175,12 +180,12 @@ impl Importer {
             let white;
             let black;
             if let Some(name) = game.white.name {
-                white = create_player(&mut self.db, &name);
+                white = create_player(&mut self.db, &name)?;
             } else {
                 white = Player::default();
             }
             if let Some(name) = game.black.name {
-                black = create_player(&mut self.db, &name);
+                black = create_player(&mut self.db, &name)?;
             } else {
                 black = Player::default();
             }
@@ -206,10 +211,14 @@ impl Importer {
                 moves: &moves.join(" "),
             };
 
-            create_game(&mut self.db, new_game);
+            create_game(&mut self.db, new_game).map_err(|e| {
+                println!("Error: {:?}", e);
+                e
+            })?;
             increment_game_count(&mut self.db, white.id);
             increment_game_count(&mut self.db, black.id);
         }
+        Ok(())
     }
 }
 
@@ -243,17 +252,7 @@ impl Visitor for Importer {
                 self.skip = true;
             }
         } else if key == b"Site" {
-            self.current.site = Some(
-                String::from_utf8(
-                    value
-                        .as_bytes()
-                        .rsplitn(2, |ch| *ch == b'/')
-                        .next()
-                        .expect("Site")
-                        .to_owned(),
-                )
-                .expect("Site"),
-            );
+            self.current.site = Some(String::from_utf8(value.as_bytes().to_owned()).expect("Site"));
         } else if key == b"Result" {
             match Outcome::from_ascii(value.as_bytes()) {
                 Ok(outcome) => self.current.outcome = Some(outcome),
@@ -342,7 +341,7 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), Str
                     white_rating INTEGER,
                     black_rating INTEGER,
                     date TEXT NOT NULL,
-                    speed INTEGER NOT NULL,
+                    speed INTEGER,
                     site TEXT,
                     fen TEXT,
                     outcome INTEGER NOT NULL,
@@ -379,7 +378,7 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), Str
     let mut reader = BufferedReader::new(uncompressed);
     let mut importer = Importer::new(50, db);
     reader.read_all(&mut importer).expect("read pgn file");
-    importer.send();
+    importer.send().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -460,6 +459,28 @@ pub enum Sides {
     Any,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Sort {
+    Date,
+    Rating,
+    Speed,
+    Outcome,
+}
+
+impl FromStr for Sort {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "date" => Ok(Sort::Date),
+            "rating" => Ok(Sort::Rating),
+            "speed" => Ok(Sort::Speed),
+            "outcome" => Ok(Sort::Outcome),
+            _ => Err(format!("invalid sort: {}", s)),
+        }
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct GameQuery {
@@ -474,6 +495,8 @@ pub struct GameQuery {
     pub outcome: Option<Outcome>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+    #[serde_as(as = "Option<DisplayFromStr>")]
+    pub sort: Option<Sort>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -497,11 +520,14 @@ pub async fn get_games(
         .inner_join(white_players.on(games::white.eq(white_players.field(players::id))))
         .inner_join(black_players.on(games::black.eq(black_players.field(players::id))))
         .into_boxed();
-    let mut count_query = games::table.into_boxed();
+    let mut count_query = games::table
+        .inner_join(white_players.on(games::white.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black.eq(black_players.field(players::id))))
+        .into_boxed();
 
     if let Some(player1) = query.player1 {
-        sql_query = sql_query.filter(white_players.field(players::name).eq(player1));
-        // count_query = count_query.filter(white_players.field(players::name).eq(player1));
+        sql_query = sql_query.filter(white_players.field(players::name).eq(player1.clone()));
+        count_query = count_query.filter(white_players.field(players::name).eq(player1));
     }
 
     if let Some(speed) = query.speed {
@@ -541,6 +567,20 @@ pub async fn get_games(
 
     if let Some(offset) = query.offset {
         sql_query = sql_query.offset(offset);
+    }
+
+    if let Some(sort) = query.sort {
+        sql_query = match sort {
+            Sort::Date => sql_query.order(games::date.desc()),
+            Sort::Rating => {
+                // sort by the greatest rating between game::white_rating and game::black_rating
+                sql_query.order(diesel::dsl::sql::<diesel::sql_types::Integer>(
+                    "MAX(games.white_rating, games.black_rating) DESC",
+                ))
+            }
+            Sort::Speed => sql_query.order(games::speed.desc()),
+            Sort::Outcome => sql_query.order(games::outcome.desc()),
+        };
     }
     let games = sql_query.load(&mut db).expect("load games");
 

@@ -76,7 +76,8 @@ export function BoardTab({
               onClick={() => closeTab(tab.value)}
             />
           }
-          onContextMenu={(e: any) => {
+          onDoubleClick={() => toggleRenaming(true)}
+          onContextMenu={(e) => {
             toggleOpen();
             e.preventDefault();
           }}
@@ -92,7 +93,6 @@ export function BoardTab({
             onKeyDown={(e) => {
               if (e.key === "Enter") toggleRenaming(false);
             }}
-            onDoubleClick={() => toggleRenaming(true)}
           />
         </Tabs.Tab>
       </Menu.Target>

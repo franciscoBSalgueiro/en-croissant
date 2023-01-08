@@ -164,9 +164,9 @@ export default function BoardsPage() {
             <ScrollArea offsetScrollbars>
               <Group
                 spacing={0}
-                sx={{ flexWrap: "nowrap", overflow: "hidden" }}
+                sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}
               >
-                <Tabs.List sx={{ flexWrap: "nowrap", overflow: "hidden" }}>
+                <Tabs.List sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}>
                   {tabs.map((tab) => (
                     <BoardTab
                       key={tab.value}
@@ -188,7 +188,11 @@ export default function BoardsPage() {
             </ScrollArea>
 
             {tabs.map((tab) => (
-              <Tabs.Panel key={tab.value} value={tab.value}>
+              <Tabs.Panel
+                key={tab.value}
+                value={tab.value}
+                sx={{ zIndex: -100 }}
+              >
                 <BoardAnalysis id={tab.value} />
               </Tabs.Panel>
             ))}

@@ -2,7 +2,12 @@ use crate::db::models::{Game, NewGame, NewPlayer, Player};
 use diesel::prelude::*;
 use diesel::SqliteConnection;
 
-pub fn create_player(conn: &mut SqliteConnection, name: &str) -> Player {
+/// Creates a new player in the database, and returns the player's ID.
+/// If the player already exists, returns the ID of the existing player.
+pub fn create_player(
+    conn: &mut SqliteConnection,
+    name: &str,
+) -> Result<Player, diesel::result::Error> {
     use crate::db::schema::players;
 
     let new_player = NewPlayer {
@@ -10,23 +15,30 @@ pub fn create_player(conn: &mut SqliteConnection, name: &str) -> Player {
         game_count: 0,
     };
 
-    diesel::insert_or_ignore_into(players::table)
+    let player = diesel::insert_into(players::table)
         .values(&new_player)
-        .execute(conn)
-        .expect("Error saving new player");
+        .on_conflict(players::name)
+        .do_nothing()
+        .execute(conn);
 
-    get_player(conn, name.to_string())
+    match player {
+        Ok(_) => players::table
+            .filter(players::name.eq(name))
+            .first::<Player>(conn),
+        Err(e) => Err(e),
+    }
 }
 
-pub fn create_game(conn: &mut SqliteConnection, game: NewGame) -> Game {
+/// Creates a new game in the database, and returns the game's ID.
+pub fn create_game(
+    conn: &mut SqliteConnection,
+    game: NewGame,
+) -> Result<Game, diesel::result::Error> {
     use crate::db::schema::games;
 
-    diesel::insert_or_ignore_into(games::table)
-        .values(game)
-        .execute(conn)
-        .expect("Error saving new game");
-
-    games::table.order(games::id.desc()).first(conn).unwrap()
+    diesel::insert_into(games::table)
+        .values(&game)
+        .get_result(conn)
 }
 
 pub fn increment_game_count(conn: &mut SqliteConnection, player_id: i32) {
@@ -36,22 +48,4 @@ pub fn increment_game_count(conn: &mut SqliteConnection, player_id: i32) {
         .set(game_count.eq(game_count + 1))
         .execute(conn)
         .expect("Error incrementing game count");
-}
-
-pub fn get_player(conn: &mut SqliteConnection, player_name: String) -> Player {
-    use crate::db::schema::players::dsl::*;
-
-    players
-        .filter(name.eq(player_name))
-        .first(conn)
-        .expect("Error loading player")
-}
-
-pub fn get_game(conn: &mut SqliteConnection, id: i32) -> Game {
-    use crate::db::schema::games::dsl::*;
-
-    games
-        .filter(id.eq(id))
-        .first(conn)
-        .expect("Error loading game")
 }
