@@ -19,6 +19,7 @@ table! {
         white_rating -> Nullable<Integer>,
         black -> Integer,
         black_rating -> Nullable<Integer>,
+        max_rating -> Nullable<Integer>,
         outcome -> Nullable<Integer>,
         moves -> Text,
     }

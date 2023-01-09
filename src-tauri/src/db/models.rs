@@ -37,6 +37,7 @@ pub struct Game {
     pub white_rating: Option<i32>,
     pub black: i32,
     pub black_rating: Option<i32>,
+    pub max_rating: Option<i32>,
     pub outcome: Option<i32>,
     pub moves: String,
 }
@@ -54,6 +55,7 @@ pub struct NewGame<'a> {
     pub white_rating: Option<i32>,
     pub black: i32,
     pub black_rating: Option<i32>,
+    pub max_rating: Option<i32>,
     pub outcome: Option<i32>,
     pub moves: &'a str,
 }

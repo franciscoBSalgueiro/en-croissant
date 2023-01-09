@@ -8,7 +8,8 @@ mod db;
 mod fs;
 mod opening;
 
-use std::{fs::create_dir_all, path::Path};
+use std::sync::Mutex;
+use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
 use reqwest::Url;
 use tauri::{
@@ -78,6 +79,16 @@ async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
     .map_err(|err| err.to_string())
 }
 
+#[derive(Default)]
+pub struct AppState(
+    Mutex<
+        HashMap<
+            String,
+            diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
+        >,
+    >,
+);
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -108,6 +119,7 @@ fn main() {
             }
             Ok(())
         })
+        .manage(AppState(Default::default()))
         .invoke_handler(tauri::generate_handler![
             download_file,
             file_exists,

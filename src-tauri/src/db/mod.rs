@@ -1,12 +1,13 @@
 mod models;
 mod ops;
 mod schema;
-use crate::db::models::*;
+use crate::{db::models::*, AppState};
 use diesel::{
     backend::Backend,
     connection::SimpleConnection,
     deserialize::FromSql,
     prelude::*,
+    r2d2::{ConnectionManager, Pool},
     serialize::{self, IsNull, Output, ToSql},
     sql_types::{self, Integer},
 };
@@ -18,7 +19,9 @@ use std::{
     fs::File,
     io, mem,
     path::{Path, PathBuf},
+    time::Duration,
 };
+use tauri::State;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
@@ -28,6 +31,56 @@ use self::{
     ops::{create_game, create_player, increment_game_count},
     schema::{games, players},
 };
+
+#[derive(Debug)]
+pub struct ConnectionOptions {
+    pub enable_wal: bool,
+    pub enable_foreign_keys: bool,
+    pub busy_timeout: Option<Duration>,
+}
+
+impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
+    for ConnectionOptions
+{
+    fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
+        (|| {
+            if self.enable_wal {
+                conn.batch_execute("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;")?;
+            }
+            if self.enable_foreign_keys {
+                conn.batch_execute("PRAGMA foreign_keys = ON;")?;
+            }
+            if let Some(d) = self.busy_timeout {
+                conn.batch_execute(&format!("PRAGMA busy_timeout = {};", d.as_millis()))?;
+            }
+            Ok(())
+        })()
+        .map_err(diesel::r2d2::Error::QueryError)
+    }
+}
+
+fn get_db_or_create(
+    app_state: &State<AppState>,
+    db_path: &str,
+) -> Result<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>, String> {
+    let mut state = app_state.0.lock().unwrap();
+    dbg!(&state);
+    if state.contains_key(db_path) {
+        Ok(state.get(db_path).unwrap().clone())
+    } else {
+        let pool = Pool::builder()
+            .max_size(16)
+            .connection_customizer(Box::new(ConnectionOptions {
+                enable_wal: true,
+                enable_foreign_keys: true,
+                busy_timeout: Some(Duration::from_secs(30)),
+            }))
+            .build(ConnectionManager::<SqliteConnection>::new(db_path))
+            .map_err(|err| err.to_string())?;
+        state.insert(db_path.to_string(), pool.clone());
+        Ok(pool)
+    }
+}
 
 #[derive(
     Debug,
@@ -147,16 +200,16 @@ struct TempGame {
     moves: Vec<SanPlus>,
 }
 
-struct Importer {
-    db: diesel::SqliteConnection,
+struct Importer<'a> {
+    db: &'a mut diesel::SqliteConnection,
     batch_size: usize,
     current: TempGame,
     skip: bool,
     batch: Vec<TempGame>,
 }
 
-impl Importer {
-    fn new(batch_size: usize, db: diesel::SqliteConnection) -> Importer {
+impl Importer<'_> {
+    fn new(batch_size: usize, db: &mut diesel::SqliteConnection) -> Importer {
         Importer {
             db,
             batch_size,
@@ -192,6 +245,7 @@ impl Importer {
                 black: black.id,
                 white_rating: game.white.rating,
                 black_rating: game.black.rating,
+                max_rating: game.white.rating.max(game.black.rating),
                 date: game.date.as_deref(),
                 speed: game.speed,
                 site: game.site.as_deref(),
@@ -217,7 +271,7 @@ impl Importer {
     }
 }
 
-impl Visitor for Importer {
+impl Visitor for Importer<'_> {
     type Result = ();
 
     fn begin_game(&mut self) {
@@ -335,6 +389,7 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), Str
                     black INTEGER NOT NULL,
                     white_rating INTEGER,
                     black_rating INTEGER,
+                    max_rating INTEGER,
                     date TEXT NOT NULL,
                     speed INTEGER,
                     site TEXT,
@@ -371,9 +426,20 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), Str
     };
 
     let mut reader = BufferedReader::new(uncompressed);
-    let mut importer = Importer::new(50, db);
+    let mut importer = Importer::new(50, &mut db);
     reader.read_all(&mut importer).expect("read pgn file");
     importer.send().map_err(|e| e.to_string())?;
+
+    // Create all the necessary indexes
+    db.batch_execute(
+        "CREATE INDEX games_date_idx ON games(date);
+        CREATE INDEX games_white_idx ON games(white);
+        CREATE INDEX games_black_idx ON games(black);
+        CREATE INDEX games_max_rating_idx ON games(max_rating);
+        CREATE INDEX games_outcome_idx ON games(outcome);
+        CREATE INDEX games_speed_idx ON games(speed);",
+    )
+    .expect("create indexes");
     Ok(())
 }
 
@@ -493,9 +559,10 @@ pub struct QueryResponse<T> {
 pub async fn get_games(
     file: PathBuf,
     query: GameQuery,
-) -> QueryResponse<Vec<(Game, Player, Player)>> {
-    let mut db =
-        diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
+    state: tauri::State<'_, AppState>,
+) -> Result<QueryResponse<Vec<(Game, Player, Player)>>, String> {
+    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
 
     dbg!(&query);
 
@@ -542,7 +609,7 @@ pub async fn get_games(
         count = Some(
             count_query
                 .select(diesel::dsl::count(games::id))
-                .first(&mut db)
+                .first(db)
                 .expect("count games"),
         );
     }
@@ -558,19 +625,14 @@ pub async fn get_games(
     if let Some(sort) = query.sort {
         sql_query = match sort {
             GameSort::Date => sql_query.order(games::date.desc()),
-            GameSort::Rating => {
-                // sort by the greatest rating between game::white_rating and game::black_rating
-                sql_query.order(diesel::dsl::sql::<diesel::sql_types::Integer>(
-                    "MAX(games.white_rating, games.black_rating) DESC",
-                ))
-            }
+            GameSort::Rating => sql_query.order(games::max_rating.desc()),
             GameSort::Speed => sql_query.order(games::speed.desc()),
             GameSort::Outcome => sql_query.order(games::outcome.desc()),
         };
     }
-    let games = sql_query.load(&mut db).expect("load games");
+    let games = sql_query.load(db).expect("load games");
 
-    QueryResponse { data: games, count }
+    Ok(QueryResponse { data: games, count })
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -591,10 +653,13 @@ pub enum PlayerSort {
 }
 
 #[tauri::command]
-pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec<Player>> {
-    let mut db =
-        diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
-
+pub async fn get_players(
+    file: PathBuf,
+    query: PlayerQuery,
+    state: tauri::State<'_, AppState>,
+) -> Result<QueryResponse<Vec<Player>>, String> {
+    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
     let mut count = None;
 
     let mut sql_query = players::table.into_boxed();
@@ -606,12 +671,7 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
     }
 
     if !query.skip_count {
-        count = Some(
-            count_query
-                .count()
-                .get_result(&mut db)
-                .expect("count players"),
-        );
+        count = Some(count_query.count().get_result(db).expect("count players"));
     }
 
     if let Some(limit) = query.limit {
@@ -629,12 +689,12 @@ pub async fn get_players(file: PathBuf, query: PlayerQuery) -> QueryResponse<Vec
         };
     }
 
-    let players = sql_query.load::<Player>(&mut db).expect("load players");
+    let players = sql_query.load::<Player>(db).expect("load players");
 
-    QueryResponse {
+    Ok(QueryResponse {
         data: players,
         count,
-    }
+    })
 }
 
 #[derive(Debug, Clone, Serialize)]
