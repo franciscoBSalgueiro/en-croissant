@@ -20,7 +20,7 @@ use tauri::{
 use crate::{
     chess::get_best_moves,
     db::{
-        convert_pgn, get_db_info, get_games, get_number_games, get_players, get_players_game_info,
+        convert_pgn, get_db_info, get_games, get_players, get_players_game_info,
         rename_db,
     },
     fs::{download_file, file_exists},
@@ -126,7 +126,6 @@ fn main() {
             get_best_moves,
             get_opening,
             convert_pgn,
-            get_number_games,
             get_games,
             get_players,
             get_db_info,

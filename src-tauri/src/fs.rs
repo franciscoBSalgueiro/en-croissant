@@ -60,7 +60,7 @@ pub async fn download_file(
     if zip {
         unzip_file(path, file).await;
     } else {
-        std::fs::write(path.join("downloaded_file"), file).unwrap();
+        std::fs::write(path, file).unwrap();
     }
     app.emit_all(
         "download_progress",

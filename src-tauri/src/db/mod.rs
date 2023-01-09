@@ -341,7 +341,11 @@ impl Visitor for Importer<'_> {
 }
 
 #[tauri::command]
-pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), String> {
+pub async fn convert_pgn(
+    file: PathBuf,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     // get the name of the file without the extension
     let filename = file.file_stem().expect("file name");
     let extension = file.extension().expect("file extension");
@@ -358,17 +362,17 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), Str
     .expect("resolve path");
 
     // create the database file
-    let mut db = SqliteConnection::establish(destination.to_str().unwrap())
-        .or(Err("Failed to create database file"))?;
+    let pool = get_db_or_create(&state, &destination.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
 
     // add pragmas to be more performant
-    db.batch_execute(
-        "PRAGMA journal_mode = OFF;
-        PRAGMA synchronous = 0;
-        PRAGMA locking_mode = EXCLUSIVE;
-        PRAGMA temp_store = MEMORY;",
-    )
-    .or(Err("Failed to add pragmas"))?;
+    // db.batch_execute(
+    //     "PRAGMA journal_mode = OFF;
+    //     PRAGMA synchronous = 0;
+    //     PRAGMA locking_mode = EXCLUSIVE;
+    //     PRAGMA temp_store = MEMORY;",
+    // )
+    // .or(Err("Failed to add pragmas"))?;
 
     // create the players table if it doesn't exist
 
@@ -426,18 +430,18 @@ pub async fn convert_pgn(file: PathBuf, app: tauri::AppHandle) -> Result<(), Str
     };
 
     let mut reader = BufferedReader::new(uncompressed);
-    let mut importer = Importer::new(50, &mut db);
+    let mut importer = Importer::new(50, db);
     reader.read_all(&mut importer).expect("read pgn file");
     importer.send().map_err(|e| e.to_string())?;
 
     // Create all the necessary indexes
     db.batch_execute(
-        "CREATE INDEX games_date_idx ON games(date);
-        CREATE INDEX games_white_idx ON games(white);
-        CREATE INDEX games_black_idx ON games(black);
-        CREATE INDEX games_max_rating_idx ON games(max_rating);
-        CREATE INDEX games_outcome_idx ON games(outcome);
-        CREATE INDEX games_speed_idx ON games(speed);",
+        "CREATE INDEX IF NOT EXISTS games_date_idx ON games(date);
+        CREATE INDEX IF NOT EXISTS games_white_idx ON games(white);
+        CREATE INDEX IF NOT EXISTS games_black_idx ON games(black);
+        CREATE INDEX IF NOT EXISTS games_max_rating_idx ON games(max_rating);
+        CREATE INDEX IF NOT EXISTS games_outcome_idx ON games(outcome);
+        CREATE INDEX IF NOT EXISTS games_speed_idx ON games(speed);",
     )
     .expect("create indexes");
     Ok(())
@@ -504,13 +508,6 @@ pub async fn rename_db(file: PathBuf, title: String) -> Result<(), String> {
     db.execute("UPDATE metadata SET value = ? WHERE key = 'title'", [title])
         .expect("update title");
     Ok(())
-}
-
-#[tauri::command]
-pub async fn get_number_games(file: PathBuf) -> u64 {
-    let db = rusqlite::Connection::open(file).expect("open database");
-    db.query_row("SELECT COUNT(*) FROM game", [], |row| row.get(0))
-        .expect("count games")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -705,16 +702,20 @@ pub struct PlayerGameInfo {
 }
 
 #[tauri::command]
-pub async fn get_players_game_info(file: PathBuf, id: i32) -> PlayerGameInfo {
-    let mut db =
-        diesel::SqliteConnection::establish(&file.to_str().unwrap()).expect("open database");
+pub async fn get_players_game_info(
+    file: PathBuf,
+    id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<PlayerGameInfo, String> {
+    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
 
     let sql_query = games::table
         .group_by(games::outcome)
         .select((games::outcome, diesel::dsl::count(games::id)))
         .filter(games::white.eq(id).or(games::black.eq(id)));
 
-    let info: Vec<(Option<i32>, i64)> = sql_query.load(&mut db).expect("load games");
+    let info: Vec<(Option<i32>, i64)> = sql_query.load(db).expect("load games");
 
     let mut game_info = PlayerGameInfo {
         won: 0,
@@ -731,5 +732,5 @@ pub async fn get_players_game_info(file: PathBuf, id: i32) -> PlayerGameInfo {
         }
     }
 
-    game_info
+    Ok(game_info)
 }

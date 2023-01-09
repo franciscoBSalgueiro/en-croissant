@@ -3,6 +3,7 @@ import {
   Card,
   createStyles,
   Group,
+  Loader,
   Stack,
   Text,
   Tooltip
@@ -15,7 +16,12 @@ import {
   IconRefresh,
   IconX
 } from "@tabler/icons";
+import { invoke } from "@tauri-apps/api";
+import { appDataDir } from "@tauri-apps/api/path";
 import Image from "next/image";
+import { join } from "path";
+import { useEffect, useState } from "react";
+import { Database, getDatabases, query_games } from "../../utils/db";
 import { downloadPlayerGames } from "../../utils/lichess";
 
 const useStyles = createStyles((theme) => ({
@@ -65,6 +71,7 @@ const useStyles = createStyles((theme) => ({
 }));
 
 interface AccountCardProps {
+  database: Database | null;
   title: string;
   description: string;
   total: number;
@@ -75,15 +82,18 @@ interface AccountCardProps {
   }[];
   logout: () => void;
   reload: () => void;
+  setDatabases: (databases: Database[]) => void;
 }
 
 export function AccountCard({
+  database,
   title,
   description,
   total,
   stats,
   logout,
   reload,
+  setDatabases,
 }: AccountCardProps) {
   const { classes, theme } = useStyles();
   const items = stats.map((stat) => {
@@ -120,6 +130,32 @@ export function AccountCard({
       </div>
     );
   });
+  const [loading, setLoading] = useState(false);
+  const [lastGameDate, setLastGameDate] = useState<Date | null>(null);
+  const timestamp = lastGameDate?.getTime() ?? null;
+
+  async function convert(filepath: string) {
+    setLoading(true);
+    await invoke("convert_pgn", { file: filepath });
+    setLoading(false);
+    setDatabases(await getDatabases());
+  }
+
+  const downloadedGames = database?.game_count ?? 0;
+  const percentage = ((downloadedGames / total) * 100).toFixed(2);
+
+  useEffect(() => {
+    if (database) {
+      query_games(database.file, {
+        limit: 1,
+        sort: "date",
+      }).then((games) => {
+        if (games.count > 0) {
+          setLastGameDate(new Date(games.data[0][0].date));
+        }
+      });
+    }
+  }, [database]);
 
   return (
     <Card withBorder p="xl" radius="md" className={classes.card}>
@@ -152,9 +188,11 @@ export function AccountCard({
             </div>
 
             <div>
-              <Text className={classes.lead} mt={30}>
-                65%
-              </Text>
+              <Tooltip label={`${downloadedGames} games`}>
+                <Text className={classes.lead} mt={30}>
+                  {percentage}%
+                </Text>
+              </Tooltip>
               <Text size="xs" color="dimmed">
                 Downloaded Games
               </Text>
@@ -168,8 +206,20 @@ export function AccountCard({
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Download games">
-            <ActionIcon onClick={() => downloadPlayerGames(title)}>
-              <IconDownload size={16} />
+            <ActionIcon
+              disabled={loading || !timestamp}
+              onClick={() =>
+                downloadPlayerGames(title, timestamp!).then(async () => {
+                  const filepath = await join(
+                    await appDataDir(),
+                    "db",
+                    `${title}.pgn`
+                  );
+                  convert(filepath);
+                })
+              }
+            >
+              {loading ? <Loader size={16} /> : <IconDownload size={16} />}
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Remove account">

@@ -2,7 +2,8 @@ import { Button } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Database, getDatabases } from "../../utils/db";
 import { createCodes, getMyAccount, LichessAccount } from "../../utils/lichess";
 import { AccountCard } from "./AccountCard";
 
@@ -19,6 +20,10 @@ function Accounts() {
   });
   const authWindow = useRef<Window | null>(null);
   const isListesning = useRef(false);
+  const [databases, setDatabases] = useState<Database[]>([]);
+  useEffect(() => {
+    getDatabases().then((dbs) => setDatabases(dbs));
+  }, []);
 
   async function listen_for_code() {
     if (isListesning.current) return;
@@ -63,9 +68,13 @@ function Accounts() {
         return (
           <AccountCard
             key={account.id}
+            database={
+              databases.find((db) => db.description === account.username + ".sqlite") ?? null
+            }
             title={account.username}
             description={
-              "Last Updated: " + new Date(session.updatedAt).toLocaleDateString()
+              "Last Updated: " +
+              new Date(session.updatedAt).toLocaleDateString()
             }
             total={account.count.all}
             logout={() => {
@@ -73,6 +82,7 @@ function Accounts() {
                 sessions.filter((s) => s.account.id !== account.id)
               );
             }}
+            setDatabases={setDatabases}
             reload={() => {
               getMyAccount(session.accessToken).then((account) => {
                 setSessions((sessions) =>
