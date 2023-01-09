@@ -136,7 +136,7 @@ export function AccountCard({
 
   async function convert(filepath: string) {
     setLoading(true);
-    await invoke("convert_pgn", { file: filepath });
+    await invoke("convert_pgn", { file: filepath, fromLichess: true });
     setLoading(false);
     setDatabases(await getDatabases());
   }
@@ -207,15 +207,18 @@ export function AccountCard({
           </Tooltip>
           <Tooltip label="Download games">
             <ActionIcon
-              disabled={loading || !timestamp}
+              disabled={loading}
               onClick={() =>
-                downloadPlayerGames(title, timestamp!).then(async () => {
+                downloadPlayerGames(title, timestamp).then(async () => {
                   const filepath = await join(
                     await appDataDir(),
                     "db",
                     `${title}.pgn`
                   );
-                  convert(filepath);
+                  convert(filepath).catch((err) => {
+                    setLoading(false);
+                    console.error(err);
+                  });
                 })
               }
             >

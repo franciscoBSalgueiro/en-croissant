@@ -15,10 +15,8 @@ pub fn create_player(
         game_count: 0,
     };
 
-    let player = diesel::insert_into(players::table)
+    let player = diesel::insert_or_ignore_into(players::table)
         .values(&new_player)
-        .on_conflict(players::name)
-        .do_nothing()
         .execute(conn);
 
     match player {
@@ -36,7 +34,7 @@ pub fn create_game(
 ) -> Result<Game, diesel::result::Error> {
     use crate::db::schema::games;
 
-    diesel::insert_into(games::table)
+    diesel::insert_or_ignore_into(games::table)
         .values(&game)
         .get_result(conn)
 }

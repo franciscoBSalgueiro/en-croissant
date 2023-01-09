@@ -260,10 +260,7 @@ impl Importer<'_> {
                 moves: &moves.join(" "),
             };
 
-            create_game(&mut self.db, new_game).map_err(|e| {
-                println!("Error: {:?}", e);
-                e
-            })?;
+            create_game(&mut self.db, new_game)?;
             increment_game_count(&mut self.db, white.id);
             increment_game_count(&mut self.db, black.id);
         }
@@ -343,6 +340,7 @@ impl Visitor for Importer<'_> {
 #[tauri::command]
 pub async fn convert_pgn(
     file: PathBuf,
+    from_lichess: bool,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
@@ -386,7 +384,7 @@ pub async fn convert_pgn(
     .expect("create players table");
 
     // create the games table if it doesn't exist
-    db.batch_execute(
+    db.batch_execute(format!(
         "CREATE TABLE IF NOT EXISTS games (
                     id INTEGER PRIMARY KEY,
                     white INTEGER NOT NULL,
@@ -396,14 +394,15 @@ pub async fn convert_pgn(
                     max_rating INTEGER,
                     date TEXT NOT NULL,
                     speed INTEGER,
-                    site TEXT,
+                    site TEXT {},
                     fen TEXT,
                     outcome INTEGER NOT NULL,
                     moves TEXT NOT NULL,
                     FOREIGN KEY(white) REFERENCES players(id),
                     FOREIGN KEY(black) REFERENCES players(id)
         )",
-    )
+        if from_lichess { "UNIQUE" } else { "" }
+    ).as_str())
     .expect("create games table");
 
     // create the metadata table

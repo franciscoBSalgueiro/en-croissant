@@ -32,7 +32,7 @@ function ConvertButton({
 
   async function convert(filepath: string) {
     setLoading(true);
-    await invoke("convert_pgn", { file: filepath });
+    await invoke("convert_pgn", { file: filepath, fromLichess: false });
     setLoading(false);
     setDatabases(await getDatabases());
   }

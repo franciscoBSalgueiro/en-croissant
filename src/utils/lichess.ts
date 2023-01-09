@@ -142,11 +142,11 @@ export async function getPlayerGames(
     return getJson(url);
 }
 
-export async function downloadPlayerGames(
-    player: string,
-    timestamp: number
-) {
-    let url = `${base_url}/games/user/${player}?since=${timestamp}`;
+export async function downloadPlayerGames(player: string, timestamp: number | null) {
+    let url = `${base_url}/games/user/${player}`;
+    if (timestamp) {
+        url += `?since=${timestamp}`;
+    }
     await invoke("download_file", {
         id: 1,
         url,
