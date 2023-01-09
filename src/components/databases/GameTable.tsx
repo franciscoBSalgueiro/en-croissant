@@ -226,6 +226,8 @@ function GameTable({ database }: { database: Database }) {
                 const id = createTab(`${white.name} - ${black.name}`);
                 const completeGame: CompleteGame = {
                   game,
+                  white,
+                  black,
                   currentMove: 0,
                 };
                 sessionStorage.setItem(id, JSON.stringify(completeGame));
@@ -475,8 +477,10 @@ function GameTable({ database }: { database: Database }) {
               <Paper shadow="sm" p="sm" my="md" withBorder>
                 <Stack>
                   <GameInfo
-                    player1={games[selectedGame][1]}
-                    player2={games[selectedGame][2]}
+                    white={games[selectedGame][1]}
+                    white_rating={games[selectedGame][0].white_rating}
+                    black={games[selectedGame][2]}
+                    black_rating={games[selectedGame][0].black_rating}
                     date={games[selectedGame][0].date}
                     outcome={games[selectedGame][0].outcome}
                   />

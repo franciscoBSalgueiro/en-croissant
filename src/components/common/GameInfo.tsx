@@ -2,21 +2,30 @@ import { Avatar, Group, Stack, Text } from "@mantine/core";
 import { Player } from "../../utils/db";
 
 interface GameInfoProps {
-  player1: Player;
-  player2: Player;
+  white: Player;
+  white_rating: number;
+  black: Player;
+  black_rating: number;
   date: string;
   outcome: string;
 }
 
-function GameInfo({ player1, player2, date, outcome }: GameInfoProps) {
+function GameInfo({
+  white,
+  white_rating,
+  black,
+  black_rating,
+  date,
+  outcome,
+}: GameInfoProps) {
   return (
     <Group align="apart" my="sm" mx="md" grow>
       <Stack align="start" spacing={0}>
         <Group noWrap>
-          <Avatar src={player1.image} />
+          <Avatar src={white.image} />
           <div>
-            <Text weight={500}>{player1.name}</Text>
-            <Text c="dimmed">{player1.rating}</Text>
+            <Text weight={500}>{white.name}</Text>
+            <Text c="dimmed">{white_rating}</Text>
           </div>
         </Group>
       </Stack>
@@ -29,13 +38,13 @@ function GameInfo({ player1, player2, date, outcome }: GameInfoProps) {
         <Group noWrap>
           <div>
             <Text weight={500} align="right">
-              {player2.name}
+              {black.name}
             </Text>
             <Text c="dimmed" align="right">
-              {player2.rating}
+              {black_rating}
             </Text>
           </div>
-          <Avatar src={player2.image} />
+          <Avatar src={black.image} />
         </Group>
       </Stack>
     </Group>

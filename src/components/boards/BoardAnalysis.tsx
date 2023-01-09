@@ -14,7 +14,7 @@ import {
   movesToVariationTree,
   VariationTree
 } from "../../utils/chess";
-import { Game, Outcome, Speed } from "../../utils/db";
+import { Game, Outcome, Player, Speed } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
@@ -32,6 +32,8 @@ export const TreeContext = createContext(
 
 export interface CompleteGame {
   game: Game;
+  white: Player;
+  black: Player;
   currentMove: number;
 }
 
@@ -40,19 +42,25 @@ function BoardAnalysis({ id }: { id: string }) {
     key: id,
     defaultValue: {
       game: {
-        white: {
-          id: -1,
-          name: "White",
-        },
-        black: {
-          id: -1,
-          name: "Black",
-        },
+        white: -1,
+        black: -1,
+        white_rating: 0,
+        black_rating: 0,
         speed: Speed.Unknown,
         outcome: Outcome.Unknown,
         moves: "",
         date: "??.??.??",
         site: "",
+      },
+      white: {
+        id: -1,
+        name: "White",
+        game_count: 0,
+      },
+      black: {
+        id: -1,
+        name: "Black",
+        game_count: 0,
       },
       currentMove: 0,
     },
@@ -200,8 +208,10 @@ function BoardAnalysis({ id }: { id: string }) {
             <Tabs.Panel value="info" pt="xs">
               <Stack>
                 <GameInfo
-                  player1={game.white}
-                  player2={game.black}
+                  white={completeGame.white}
+                  white_rating={game.white_rating}
+                  black={completeGame.black}
+                  black_rating={game.black_rating}
                   date={game.date}
                   outcome={game.outcome}
                 />
