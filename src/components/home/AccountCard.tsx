@@ -16,6 +16,7 @@ import {
   IconX
 } from "@tabler/icons";
 import Image from "next/image";
+import { downloadPlayerGames } from "../../utils/lichess";
 
 const useStyles = createStyles((theme) => ({
   diff: {
@@ -167,7 +168,7 @@ export function AccountCard({
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Download games">
-            <ActionIcon>
+            <ActionIcon onClick={() => downloadPlayerGames(title)}>
               <IconDownload size={16} />
             </ActionIcon>
           </Tooltip>

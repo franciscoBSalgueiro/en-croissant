@@ -17,6 +17,7 @@ pub async fn download_file(
     id: u64,
     url: String,
     path: String,
+    zip: bool,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     println!("Downloading file from {}", url);
@@ -26,9 +27,7 @@ pub async fn download_file(
         .send()
         .await
         .map_err(|_| format!("Failed to GET from '{}'", &url))?;
-    let total_size = res
-        .content_length()
-        .ok_or(format!("Failed to get content length from '{}'", &url))?;
+    let total_size = res.content_length();
 
     let mut file: Vec<u8> = Vec::new();
     let mut downloaded: u64 = 0;
@@ -38,29 +37,31 @@ pub async fn download_file(
         let chunk = item.map_err(|_| format!("Failed to get chunk from '{}'", &url))?;
         file.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
-        let progress = (downloaded as f64 / total_size as f64) * 100.0;
-        println!("Downloaded {}%", progress);
-        // emit object with progress and id
-        app.emit_all(
-            "download_progress",
-            DownloadFilePayload {
-                progress,
-                id,
-                finished: false,
-            },
-        )
-        .unwrap();
+        if let Some(total_size) = total_size {
+            let progress = (downloaded as f64 / total_size as f64) * 100.0;
+            println!("Downloaded {}%", progress);
+            // emit object with progress and id
+            app.emit_all(
+                "download_progress",
+                DownloadFilePayload {
+                    progress,
+                    id,
+                    finished: false,
+                },
+            )
+            .unwrap();
+        }
     }
 
     let path = Path::new(&path);
 
-    // let client = http::ClientBuilder::new().build().unwrap();
-    // let request = http::HttpRequestBuilder::new("GET", &url).unwrap();
-    // let response = client.send(request).await.unwrap();
-    // let file = response.bytes().await.unwrap().data;
-    // let path = Path::new(&path);
-    // write(&path, &file).unwrap();
-    unzip_file(path, file).await;
+    println!("Downloaded file to {}", path.display());
+
+    if zip {
+        unzip_file(path, file).await;
+    } else {
+        std::fs::write(path.join("downloaded_file"), file).unwrap();
+    }
     app.emit_all(
         "download_progress",
         DownloadFilePayload {

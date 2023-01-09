@@ -75,6 +75,7 @@ export default function EnginePage() {
     invoke("download_file", {
       id,
       url,
+      zip: true,
       path: (await appDataDir()) + "engines",
     });
   }

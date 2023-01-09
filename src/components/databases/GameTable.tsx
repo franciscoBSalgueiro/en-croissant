@@ -257,7 +257,7 @@ function GameTable({ database }: { database: Database }) {
               <Avatar size={40} src={black.image} radius={40} />
               <div>
                 <Text size="sm" weight={500}>
-                  {game.white_rating}
+                  {black.name}
                 </Text>
                 <Text size="xs" color="dimmed">
                   {game.black_rating}

@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api";
+import { appDataDir } from "@tauri-apps/api/path";
 import { Color } from "chessground/types";
 const base_url = "https://lichess.org/api";
 const explorer_url = "https://explorer.lichess.ovh";
@@ -137,4 +139,14 @@ export async function getPlayerGames(
 ) {
     const url = `${explorer_url}/player?fen=${fen}&player=${player}&color=${color}`;
     return getJson(url);
+}
+
+export async function downloadPlayerGames(player: string) {
+    const url = `${base_url}/games/user/${player}?since=1672594013000`;
+    invoke("download_file", {
+        id: 1,
+        url,
+        zip: false,
+        path: (await appDataDir()) + "db",
+    });
 }
