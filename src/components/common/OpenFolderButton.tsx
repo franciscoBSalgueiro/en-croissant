@@ -1,4 +1,4 @@
-import { ActionIcon } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconFolder } from "@tabler/icons";
 import { appDataDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/api/shell";
@@ -10,9 +10,11 @@ function OpenFolderButton({ folder }: { folder: string }) {
     open(path.join(base_path, folder));
   }
   return (
-    <ActionIcon onClick={() => openAppDirData()}>
-      <IconFolder size={24} />
-    </ActionIcon>
+    <Tooltip label="Open folder in file explorer">
+      <ActionIcon onClick={() => openAppDirData()}>
+        <IconFolder size={24} />
+      </ActionIcon>
+    </Tooltip>
   );
 }
 

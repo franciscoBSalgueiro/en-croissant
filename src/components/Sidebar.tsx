@@ -110,8 +110,18 @@ export function SideBar() {
       </Navbar.Section>
       <Navbar.Section>
         <Stack justify="center" spacing={0}>
-          <NavbarLink icon={IconHelp} label="Help" url="/help" />
-          <NavbarLink icon={IconSettings} label="Settings" url="/settings" />
+          <NavbarLink
+            icon={IconHelp}
+            label="Help"
+            url="/help"
+            active={router.pathname === "/help"}
+          />
+          <NavbarLink
+            icon={IconSettings}
+            label="Settings"
+            url="/settings"
+            active={router.pathname === "/settings"}
+          />
         </Stack>
       </Navbar.Section>
     </Navbar>

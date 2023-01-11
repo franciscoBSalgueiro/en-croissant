@@ -29,7 +29,7 @@ export default function NewTabHome({
   const cards = [
     {
       icon: faChess,
-      title: "Play Online",
+      title: "Play Chess",
       description: "Play against an engine or a friend",
       label: "Play",
       onClick: () => {
