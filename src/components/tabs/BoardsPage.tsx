@@ -9,11 +9,14 @@ import {
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons";
 import BoardAnalysis from "../boards/BoardAnalysis";
+import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
+import NewTabHome from "./NewTabHome";
 
 export interface Tab {
   name: string;
   value: string;
+  type: "new" | "play" | "analysis" | "puzzles";
 }
 
 const useStyles = createStyles((theme) => ({
@@ -37,7 +40,13 @@ export default function BoardsPage() {
   const firstId = genID();
   const [tabs, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
-    defaultValue: [],
+    defaultValue: [
+      {
+        name: "New tab",
+        value: firstId,
+        type: "new",
+      },
+    ],
   });
   const [activeTab, setActiveTab] = useSessionStorage<string | null>({
     key: "activeTab",
@@ -52,6 +61,7 @@ export default function BoardsPage() {
       {
         name: "New tab",
         value: id,
+        type: "new",
       },
     ]);
     setActiveTab(id);
@@ -121,6 +131,7 @@ export default function BoardsPage() {
         {
           name: tab.name,
           value: id,
+          type: tab.type,
         },
       ]);
       setActiveTab(id);
@@ -166,7 +177,9 @@ export default function BoardsPage() {
                 spacing={0}
                 sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}
               >
-                <Tabs.List sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}>
+                <Tabs.List
+                  sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}
+                >
                   {tabs.map((tab) => (
                     <BoardTab
                       key={tab.value}
@@ -193,7 +206,7 @@ export default function BoardsPage() {
                 value={tab.value}
                 sx={{ zIndex: -100 }}
               >
-                <BoardAnalysis id={tab.value} />
+                <TabSwitch tab={tab} />
               </Tabs.Panel>
             ))}
           </Tabs>
@@ -201,4 +214,20 @@ export default function BoardsPage() {
       </Stack>
     </>
   );
+
+  function TabSwitch({ tab }: { tab: Tab }) {
+    switch (tab.type) {
+      case "new":
+        return <NewTabHome setTabs={setTabs} id={tab.value} />;
+
+      case "play":
+        return <BoardAnalysis id={tab.value} />;
+
+      case "analysis":
+        return <BoardAnalysis id={tab.value} />;
+
+      case "puzzles":
+        return <Puzzles id={tab.value} />;
+    }
+  }
 }
