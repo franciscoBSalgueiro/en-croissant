@@ -1,4 +1,4 @@
-import { CloseButton, createStyles, Menu, Tabs } from "@mantine/core";
+import { CloseButton, createStyles, Menu, Tabs, Tooltip } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons";
 import { useEffect } from "react";
@@ -65,36 +65,37 @@ export function BoardTab({
   return (
     <Menu opened={open} shadow="md" width={200}>
       <Menu.Target>
-        <Tabs.Tab
-          className={classes.tab}
-          key={tab.value}
-          value={tab.value}
-          rightSection={
-            <CloseButton
-              component="div"
-              size={14}
-              onClick={() => closeTab(tab.value)}
-            />
-          }
-          onDoubleClick={() => toggleRenaming(true)}
-          onContextMenu={(e) => {
-            toggleOpen();
-            e.preventDefault();
-          }}
-        >
-          <input
-            ref={ref}
-            value={tab.name}
-            onChange={(event) =>
-              renameTab(tab.value, event.currentTarget.value)
+        <Tooltip label={tab.name} key={tab.value}>
+          <Tabs.Tab
+            className={classes.tab}
+            value={tab.value}
+            rightSection={
+              <CloseButton
+                component="div"
+                size={14}
+                onClick={() => closeTab(tab.value)}
+              />
             }
-            readOnly={!renaming}
-            className={classes.input}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") toggleRenaming(false);
+            onDoubleClick={() => toggleRenaming(true)}
+            onContextMenu={(e) => {
+              toggleOpen();
+              e.preventDefault();
             }}
-          />
-        </Tabs.Tab>
+          >
+            <input
+              ref={ref}
+              value={tab.name}
+              onChange={(event) =>
+                renameTab(tab.value, event.currentTarget.value)
+              }
+              readOnly={!renaming}
+              className={classes.input}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") toggleRenaming(false);
+              }}
+            />
+          </Tabs.Tab>
+        </Tooltip>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item

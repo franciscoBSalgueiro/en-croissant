@@ -164,55 +164,39 @@ export default function BoardsPage() {
   ]);
 
   return (
-    <>
-      <Stack>
-        <Group grow>
-          <Tabs
-            value={activeTab}
-            onTabChange={(v) => setActiveTab(v)}
-            variant="outline"
-          >
-            <ScrollArea offsetScrollbars>
-              <Group
-                spacing={0}
-                sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}
-              >
-                <Tabs.List
-                  sx={{ flexWrap: "nowrap", overflowY: "hidden", zIndex: 100 }}
-                >
-                  {tabs.map((tab) => (
-                    <BoardTab
-                      key={tab.value}
-                      tab={tab}
-                      closeTab={closeTab}
-                      renameTab={renameTab}
-                      duplicateTab={duplicateTab}
-                      selected={activeTab === tab.value}
-                    />
-                  ))}
-                </Tabs.List>
-                <ActionIcon
-                  onClick={() => createTab()}
-                  className={classes.newTab}
-                >
-                  <IconPlus size={16} />
-                </ActionIcon>
-              </Group>
-            </ScrollArea>
+    <Tabs
+      value={activeTab}
+      onTabChange={(v) => setActiveTab(v)}
+      variant="outline"
+    >
+      <Stack pos="relative">
+        <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
+          <Group spacing={0} sx={{ flexWrap: "nowrap" }}>
+            <Tabs.List sx={{ flexWrap: "nowrap" }}>
+              {tabs.map((tab) => (
+                <BoardTab
+                  key={tab.value}
+                  tab={tab}
+                  closeTab={closeTab}
+                  renameTab={renameTab}
+                  duplicateTab={duplicateTab}
+                  selected={activeTab === tab.value}
+                />
+              ))}
+            </Tabs.List>
+            <ActionIcon onClick={() => createTab()} className={classes.newTab}>
+              <IconPlus size={16} />
+            </ActionIcon>
+          </Group>
+        </ScrollArea>
 
-            {tabs.map((tab) => (
-              <Tabs.Panel
-                key={tab.value}
-                value={tab.value}
-                sx={{ zIndex: -100 }}
-              >
-                <TabSwitch tab={tab} />
-              </Tabs.Panel>
-            ))}
-          </Tabs>
-        </Group>
+        {tabs.map((tab) => (
+          <Tabs.Panel key={tab.value} value={tab.value}>
+            <TabSwitch tab={tab} />
+          </Tabs.Panel>
+        ))}
       </Stack>
-    </>
+    </Tabs>
   );
 
   function TabSwitch({ tab }: { tab: Tab }) {

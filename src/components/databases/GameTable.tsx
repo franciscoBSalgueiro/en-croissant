@@ -138,6 +138,7 @@ function GameTable({ database }: { database: Database }) {
       {
         name,
         value: id,
+        type: "analysis",
       },
     ]);
     setActiveTab(id);

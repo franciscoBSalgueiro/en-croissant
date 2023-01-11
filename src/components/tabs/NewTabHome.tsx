@@ -8,13 +8,14 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   Box,
   Button,
-  Card,
-  Modal,
+  Card, Modal,
   SimpleGrid,
   Stack,
-  Text
+  Text,
+  Textarea
 } from "@mantine/core";
 import { useState } from "react";
+import { getCompleteGame } from "../../utils/chess";
 
 export default function NewTabHome({
   setTabs,
@@ -29,7 +30,7 @@ export default function NewTabHome({
     {
       icon: faChess,
       title: "Play Online",
-      description: "Play against other an engine or a friend",
+      description: "Play against an engine or a friend",
       label: "Play",
       onClick: () => {
         setTabs((prev: any) => {
@@ -57,7 +58,7 @@ export default function NewTabHome({
     {
       icon: faFileImport,
       title: "Import Game",
-      description: "Import a game from a PGN file",
+      description: "Import a game from a PGN",
       label: "Import",
       onClick: () => {
         setOpenModal(true);
@@ -81,13 +82,7 @@ export default function NewTabHome({
 
   return (
     <>
-      <Modal
-        opened={openModal}
-        onClose={() => setOpenModal(false)}
-        title="Import game"
-      >
-        {/* Modal content */}
-      </Modal>
+      <ImportModal />
       <SimpleGrid
         cols={4}
         breakpoints={[
@@ -123,4 +118,46 @@ export default function NewTabHome({
       </SimpleGrid>
     </>
   );
+
+  function ImportModal() {
+    const [pgn, setPgn] = useState("");
+
+    return (
+      <Modal
+        opened={openModal}
+        onClose={() => setOpenModal(false)}
+        title="Import game"
+      >
+        <Textarea
+          value={pgn}
+          onChange={(event) => setPgn(event.currentTarget.value)}
+          label="PGN game"
+          withAsterisk
+          data-autofocus
+          minRows={10}
+        />
+
+        <Button
+          fullWidth
+          mt="md"
+          radius="md"
+          onClick={() => {
+            if (!pgn) return;
+            setTabs((prev: any) => {
+              const tab = prev.find((t: any) => t.value === id);
+              const completeGame = getCompleteGame(pgn);
+
+              sessionStorage.setItem(id, JSON.stringify(completeGame));
+
+              tab.name = `${completeGame.white.name} - ${completeGame.black.name} (Imported)`;
+              tab.type = "analysis";
+              return [...prev];
+            });
+          }}
+        >
+          Load
+        </Button>
+      </Modal>
+    );
+  }
 }

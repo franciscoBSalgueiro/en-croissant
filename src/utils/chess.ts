@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, Move, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
+import { CompleteGame } from "./../components/boards/BoardAnalysis";
+import { Outcome, Speed } from "./db";
 
 export type Score = {
     [key in "cp" | "mate"]: number;
@@ -254,4 +256,43 @@ export function movesToVariationTree(
         currentTree = newTree;
     }
     return tree;
+}
+
+export function getCompleteGame(pgn: string): CompleteGame {
+    const chess = new Chess();
+    chess.loadPgn(pgn);
+    const { Result, Site, Date, White, Black, BlackElo, WhiteElo } =
+        chess.header();
+
+    console.log(chess.header());
+
+    console.log(chess.header("Result"));
+    console.log(chess.pgn());
+
+    // const outcome = chess.header("Result");
+    const game: CompleteGame = {
+        black: {
+            game_count: 0,
+            id: 0,
+            name: Black ?? "?",
+        },
+        white: {
+            game_count: 0,
+            id: 0,
+            name: White ?? "?",
+        },
+        currentMove: 0,
+        game: {
+            black: 0,
+            white: 0,
+            speed: Speed.Unknown,
+            outcome: (Result as Outcome) ?? Outcome.Unknown,
+            black_rating: BlackElo ? parseInt(BlackElo) : 0,
+            white_rating: WhiteElo ? parseInt(WhiteElo) : 0,
+            date: Date ?? "",
+            moves: chess.pgn(),
+            site: Site ?? "",
+        },
+    };
+    return game;
 }

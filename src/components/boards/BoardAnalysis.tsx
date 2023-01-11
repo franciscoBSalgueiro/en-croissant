@@ -89,7 +89,7 @@ function BoardAnalysis({ id }: { id: string }) {
   });
 
   const initial_tree = useMemo(() => {
-    if (game.moves[0] === "1") {
+    if (game.moves[0] === "1" || game.moves[0] === "[") {
       const chess = new Chess();
       chess.loadPgn(game.moves);
       const tree = chessToVariatonTree(chess);
