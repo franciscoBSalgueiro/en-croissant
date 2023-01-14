@@ -7,7 +7,6 @@ import {
   Checkbox,
   Collapse,
   createStyles,
-  Divider,
   Grid,
   Group,
   LoadingOverlay,
@@ -22,7 +21,12 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
-import { IconEye, IconSearch, IconSortDescending } from "@tabler/icons";
+import {
+  IconEye,
+  IconSearch,
+  IconSortAscending,
+  IconSortDescending
+} from "@tabler/icons";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -35,9 +39,8 @@ import {
   Speed
 } from "../../utils/db";
 import { CompleteGame } from "../boards/BoardAnalysis";
-import GameInfo from "../common/GameInfo";
 import { genID, Tab } from "../tabs/BoardsPage";
-import GamePreview from "./GamePreview";
+import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import SpeeedBadge from "./SpeedBadge";
 
@@ -113,6 +116,7 @@ function GameTable({ database }: { database: Database }) {
   const [skip, toggleSkip] = useToggle();
   const [limit, setLimit] = useState(25);
   const [sort, setSort] = useState("date");
+  const [direction, toggleDirection] = useToggle(["asc", "desc"] as const);
   const [activePage, setActivePage] = useState(1);
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const offset = (activePage - 1) * limit;
@@ -161,6 +165,7 @@ function GameTable({ database }: { database: Database }) {
       offset: 0,
       skip_count: skip,
       sort,
+      direction,
     }).then((res) => {
       console.log(res);
       setLoading(false);
@@ -193,11 +198,12 @@ function GameTable({ database }: { database: Database }) {
       offset: skip ? 0 : offset,
       skip_count: true,
       sort,
+      direction,
     }).then((res) => {
       setLoading(false);
       setGames(res.data);
     });
-  }, [offset, sort]);
+  }, [offset, sort, direction]);
 
   const rows =
     games.length === 0 ? (
@@ -321,15 +327,26 @@ function GameTable({ database }: { database: Database }) {
               Search Settings
             </Button>
 
-            <Select
-              icon={<IconSortDescending size={20} />}
-              value={sort}
-              onChange={(v) => {
-                v && setSort(v);
-              }}
-              data={sortOptions}
-              defaultValue={sort}
-            />
+            <Paper withBorder>
+              <Group spacing={0}>
+                <ActionIcon mx="xs" onClick={() => toggleDirection()}>
+                  {direction === "asc" ? (
+                    <IconSortDescending size={20} />
+                  ) : (
+                    <IconSortAscending size={20} />
+                  )}
+                </ActionIcon>
+                <Select
+                  variant="unstyled"
+                  value={sort}
+                  onChange={(v) => {
+                    v && setSort(v);
+                  }}
+                  data={sortOptions}
+                  defaultValue={sort}
+                />
+              </Group>
+            </Paper>
           </Group>
 
           <Collapse in={openedSettings} mx={10}>
@@ -474,22 +491,7 @@ function GameTable({ database }: { database: Database }) {
 
         <Grid.Col span={2}>
           {selectedGame !== null ? (
-            <>
-              <Paper shadow="sm" p="sm" my="md" withBorder>
-                <Stack>
-                  <GameInfo
-                    white={games[selectedGame][1]}
-                    white_rating={games[selectedGame][0].white_rating}
-                    black={games[selectedGame][2]}
-                    black_rating={games[selectedGame][0].black_rating}
-                    date={games[selectedGame][0].date}
-                    outcome={games[selectedGame][0].outcome}
-                  />
-                  <Divider mb="sm" />
-                  <GamePreview pgn={games[selectedGame][0].moves} />
-                </Stack>
-              </Paper>
-            </>
+            <GameCard game={games[selectedGame]} />
           ) : (
             <Center h="100%">
               <Text>No game selected</Text>

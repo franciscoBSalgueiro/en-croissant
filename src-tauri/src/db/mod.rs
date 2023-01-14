@@ -384,8 +384,9 @@ pub async fn convert_pgn(
     .expect("create players table");
 
     // create the games table if it doesn't exist
-    db.batch_execute(format!(
-        "CREATE TABLE IF NOT EXISTS games (
+    db.batch_execute(
+        format!(
+            "CREATE TABLE IF NOT EXISTS games (
                     id INTEGER PRIMARY KEY,
                     white INTEGER NOT NULL,
                     black INTEGER NOT NULL,
@@ -401,8 +402,10 @@ pub async fn convert_pgn(
                     FOREIGN KEY(white) REFERENCES players(id),
                     FOREIGN KEY(black) REFERENCES players(id)
         )",
-        if from_lichess { "UNIQUE" } else { "" }
-    ).as_str())
+            if from_lichess { "UNIQUE" } else { "" }
+        )
+        .as_str(),
+    )
     .expect("create games table");
 
     // create the metadata table
@@ -528,10 +531,27 @@ pub enum GameSort {
     Outcome,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SortDirection {
+    #[serde(rename = "asc")]
+    Asc,
+    #[serde(rename = "desc")]
+    Desc,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct QueryOptions<SortT> {
+    pub skip_count: bool,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub sort: SortT,
+    pub direction: SortDirection,
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct GameQuery {
-    pub skip_count: bool,
+    pub options: QueryOptions<GameSort>,
     pub player1: Option<String>,
     pub player2: Option<String>,
     pub range1: Option<(u16, u16)>,
@@ -540,9 +560,6 @@ pub struct GameQuery {
     pub speed: Option<Speed>,
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub outcome: Option<Outcome>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-    pub sort: Option<GameSort>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -601,7 +618,7 @@ pub async fn get_games(
         }));
     }
 
-    if !query.skip_count {
+    if !query.options.skip_count {
         count = Some(
             count_query
                 .select(diesel::dsl::count(games::id))
@@ -610,22 +627,32 @@ pub async fn get_games(
         );
     }
 
-    if let Some(limit) = query.limit {
+    if let Some(limit) = query.options.limit {
         sql_query = sql_query.limit(limit);
     }
 
-    if let Some(offset) = query.offset {
+    if let Some(offset) = query.options.offset {
         sql_query = sql_query.offset(offset);
     }
 
-    if let Some(sort) = query.sort {
-        sql_query = match sort {
-            GameSort::Date => sql_query.order(games::date.desc()),
-            GameSort::Rating => sql_query.order(games::max_rating.desc()),
-            GameSort::Speed => sql_query.order(games::speed.desc()),
-            GameSort::Outcome => sql_query.order(games::outcome.desc()),
-        };
-    }
+    sql_query = match query.options.sort {
+        GameSort::Date => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::date.asc()),
+            SortDirection::Desc => sql_query.order(games::date.desc()),
+        },
+        GameSort::Rating => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::max_rating.asc()),
+            SortDirection::Desc => sql_query.order(games::max_rating.desc()),
+        },
+        GameSort::Speed => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::speed.asc()),
+            SortDirection::Desc => sql_query.order(games::speed.desc()),
+        },
+        GameSort::Outcome => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::outcome.asc()),
+            SortDirection::Desc => sql_query.order(games::outcome.desc()),
+        },
+    };
     let games = sql_query.load(db).expect("load games");
 
     Ok(QueryResponse { data: games, count })
@@ -633,11 +660,8 @@ pub async fn get_games(
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct PlayerQuery {
-    pub skip_count: bool,
+    pub options: QueryOptions<PlayerSort>,
     pub name: Option<String>,
-    pub limit: Option<u64>,
-    pub offset: Option<u64>,
-    pub sort: Option<PlayerSort>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -666,24 +690,28 @@ pub async fn get_players(
         count_query = count_query.filter(players::name.like(format!("%{}%", name)));
     }
 
-    if !query.skip_count {
+    if !query.options.skip_count {
         count = Some(count_query.count().get_result(db).expect("count players"));
     }
 
-    if let Some(limit) = query.limit {
+    if let Some(limit) = query.options.limit {
         sql_query = sql_query.limit(limit as i64);
     }
 
-    if let Some(offset) = query.offset {
+    if let Some(offset) = query.options.offset {
         sql_query = sql_query.offset(offset as i64);
     }
 
-    if let Some(sort) = query.sort {
-        sql_query = match sort {
-            PlayerSort::Name => sql_query.order(players::name.asc()),
-            PlayerSort::Games => sql_query.order(players::game_count.desc()),
-        };
-    }
+    sql_query = match query.options.sort {
+        PlayerSort::Name => match query.options.direction {
+            SortDirection::Asc => sql_query.order(players::name.asc()),
+            SortDirection::Desc => sql_query.order(players::name.desc()),
+        },
+        PlayerSort::Games => match query.options.direction {
+            SortDirection::Asc => sql_query.order(players::game_count.asc()),
+            SortDirection::Desc => sql_query.order(players::game_count.desc()),
+        },
+    };
 
     let players = sql_query.load::<Player>(db).expect("load players");
 

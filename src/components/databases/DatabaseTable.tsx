@@ -10,7 +10,6 @@ import {
   Group,
   LoadingOverlay,
   Pagination,
-  Paper,
   ScrollArea,
   Select,
   Stack,
@@ -22,17 +21,11 @@ import {
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconSearch,
-  IconSortAscending,
-  IconSortDescending
+  IconSortDescending,
+  IconSwitchVertical
 } from "@tabler/icons";
-import { useEffect, useRef, useState } from "react";
-import { Database, Player, query_players } from "../../utils/db";
-import PlayerCard from "./PlayerCard";
-
-const sortOptions = [
-  { label: "Name", value: "name" },
-  { label: "Number of games", value: "games" },
-];
+import React, { useEffect, useRef, useState } from "react";
+import { Database, query_players } from "../../utils/db";
 
 const useStyles = createStyles((theme) => ({
   header: {
@@ -81,19 +74,32 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function PlayerTable({ database }: { database: Database }) {
+interface DatabaseTableProps<Type> {
+  database: Database;
+  sortOptions: { label: string; value: string }[];
+  PreviewCard: React.FC<{ data: Type; file: string }>;
+  rowNames: string[];
+  RowInfo: React.FC<{ data: Type }>;
+}
+
+function DatabaseTable<Type>({
+  database,
+  sortOptions,
+  PreviewCard,
+  rowNames,
+  RowInfo,
+}: DatabaseTableProps<Type>) {
   const { classes, cx } = useStyles();
   const file = database.file;
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [data, setData] = useState<Type[]>([]);
   const [count, setCount] = useState(0);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [skip, toggleSkip] = useToggle();
   const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState("games");
+  const [sort, setSort] = useState(sortOptions[0].value);
   const [activePage, setActivePage] = useState(1);
-  const [direction, toggleDirection] = useToggle(["asc", "desc"] as const);
-  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
+  const [selectedData, setSelectedData] = useState<number | null>(null);
   const offset = (activePage - 1) * limit;
   const [scrolled, setScrolled] = useState(false);
   const [openedSettings, toggleOpenedSettings] = useToggle();
@@ -102,7 +108,7 @@ function PlayerTable({ database }: { database: Database }) {
 
   useEffect(() => {
     setActivePage(1);
-    setSelectedPlayer(null);
+    setSelectedData(null);
     setLoading(true);
     query_players(file, {
       name: name,
@@ -110,10 +116,9 @@ function PlayerTable({ database }: { database: Database }) {
       offset: 0,
       skip_count: skip,
       sort,
-      direction,
     }).then((res) => {
       setLoading(false);
-      setPlayers(res.data);
+      setData(res.data);
       setCount(res.count);
     });
   }, [name, skip, limit, file]);
@@ -121,23 +126,22 @@ function PlayerTable({ database }: { database: Database }) {
   useEffect(() => {
     setLoading(true);
     scrollToTop();
-    setSelectedPlayer(null);
+    setSelectedData(null);
     query_players(file, {
       name: name === "" ? undefined : name,
       limit,
       offset: skip ? 0 : offset,
       skip_count: skip,
       sort,
-      direction,
     }).then((res) => {
       setLoading(false);
-      setPlayers(res.data);
+      setData(res.data);
       setCount(res.count);
     });
-  }, [offset, sort, direction]);
+  }, [offset, sort]);
 
   const rows =
-    players.length === 0 ? (
+    data.length === 0 ? (
       <tr>
         <td colSpan={6}>
           <Text weight={500} align="center" p={20}>
@@ -146,20 +150,17 @@ function PlayerTable({ database }: { database: Database }) {
         </td>
       </tr>
     ) : (
-      players.map((player, i) => (
+      data.map((row, i) => (
         <tr
           key={i}
           onClick={() => {
-            i == selectedPlayer
-              ? setSelectedPlayer(null)
-              : setSelectedPlayer(i);
+            i == selectedData ? setSelectedData(null) : setSelectedData(i);
           }}
           className={cx(classes.row, {
-            [classes.rowSelected]: i == selectedPlayer,
+            [classes.rowSelected]: i == selectedData,
           })}
         >
-          <td>{player.name}</td>
-          <td>{player.game_count}</td>
+          <RowInfo data={row} />
         </tr>
       ))
     );
@@ -168,7 +169,7 @@ function PlayerTable({ database }: { database: Database }) {
     [
       "ArrowUp",
       () => {
-        setSelectedPlayer((prev) => {
+        setSelectedData((prev) => {
           if (prev === null) {
             return null;
           }
@@ -182,12 +183,12 @@ function PlayerTable({ database }: { database: Database }) {
     [
       "ArrowDown",
       () => {
-        setSelectedPlayer((prev) => {
+        setSelectedData((prev) => {
           if (prev === null) {
             return 0;
           }
-          if (prev === players.length - 1) {
-            return players.length - 1;
+          if (prev === data.length - 1) {
+            return data.length - 1;
           }
           return prev + 1;
         });
@@ -210,27 +211,18 @@ function PlayerTable({ database }: { database: Database }) {
               Search Settings
             </Button>
 
-            <Paper withBorder>
-              <Group spacing={0}>
-                <ActionIcon mx="xs" onClick={() => toggleDirection()}>
-                  {direction === "asc" ? (
-                    <IconSortDescending size={20} />
-                  ) : (
-                    <IconSortAscending size={20} />
-                  )}
-                </ActionIcon>
-
-                <Select
-                  variant="unstyled"
-                  value={sort}
-                  onChange={(v) => {
-                    v && setSort(v);
-                  }}
-                  data={sortOptions}
-                  defaultValue={sort}
-                />
-              </Group>
-            </Paper>
+            <Select
+              icon={<IconSortDescending size={20} />}
+              value={sort}
+              onChange={(v) => {
+                v && setSort(v);
+              }}
+              data={sortOptions}
+              defaultValue={sort}
+            />
+            <ActionIcon>
+              <IconSwitchVertical size={20} />
+            </ActionIcon>
           </Group>
 
           <Collapse in={openedSettings} mx={10}>
@@ -265,8 +257,9 @@ function PlayerTable({ database }: { database: Database }) {
                   })}
                 >
                   <tr>
-                    <th>Name</th>
-                    <th>Game Count</th>
+                    {rowNames.map((name, i) => (
+                      <th key={i}>{name}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -303,8 +296,10 @@ function PlayerTable({ database }: { database: Database }) {
         </Grid.Col>
 
         <Grid.Col span={2}>
-          {selectedPlayer !== null ? (
-            <PlayerCard player={players[selectedPlayer]} file={database.file} />
+          {selectedData !== null ? (
+            <>
+              <PreviewCard data={data[selectedData]} file={database.file} />
+            </>
           ) : (
             <Center h="100%">
               <Text>No player selected</Text>
@@ -316,4 +311,4 @@ function PlayerTable({ database }: { database: Database }) {
   );
 }
 
-export default PlayerTable;
+export default DatabaseTable;

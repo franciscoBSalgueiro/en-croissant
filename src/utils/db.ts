@@ -16,6 +16,14 @@ export interface Database {
     file: string;
 }
 
+interface Query {
+    skip_count?: boolean;
+    limit?: number;
+    offset?: number;
+    sort: string;
+    direction: "asc" | "desc";
+}
+
 interface QueryResponse<T> {
     data: T;
     count: number;
@@ -38,8 +46,7 @@ export enum Outcome {
     Unknown = "*",
 }
 
-interface GameQuery {
-    skip_count?: boolean;
+interface GameQuery extends Query {
     player1?: string;
     player2?: string;
     sides?: Sides;
@@ -47,9 +54,6 @@ interface GameQuery {
     rangePlayer2?: [number, number];
     speed?: Speed;
     outcome?: Outcome;
-    limit?: number;
-    offset?: number;
-    sort?: string;
 }
 
 export interface Game {
@@ -71,7 +75,13 @@ export async function query_games(
     return invoke("get_games", {
         file: db,
         query: {
-            skip_count: query.skip_count ?? false,
+            options: {
+                skip_count: query.skip_count ?? false,
+                limit: query.limit,
+                offset: query.offset,
+                sort: query.sort,
+                direction: query.direction,
+            },
             player1: query.player1,
             range1: query.rangePlayer1,
             player2: query.player2,
@@ -79,19 +89,12 @@ export async function query_games(
             sides: query.sides,
             speed: query.speed,
             outcome: query.outcome,
-            limit: query.limit,
-            offset: query.offset,
-            sort: query.sort,
         },
     });
 }
 
-interface PlayerQuery {
-    skip_count?: boolean;
+interface PlayerQuery extends Query {
     name?: string;
-    limit?: number;
-    offset?: number;
-    sort?: string;
 }
 
 export interface Player {
@@ -108,11 +111,14 @@ export async function query_players(
     return invoke("get_players", {
         file: db,
         query: {
-            skip_count: query.skip_count || false,
+            options: {
+                skip_count: query.skip_count || false,
+                limit: query.limit,
+                offset: query.offset,
+                sort: query.sort,
+                direction: query.direction,
+            },
             name: query.name,
-            limit: query.limit,
-            offset: query.offset,
-            sort: query.sort,
         },
     });
 }
