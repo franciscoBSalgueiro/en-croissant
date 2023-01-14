@@ -77,7 +77,12 @@ export function BoardTab({
               />
             }
             onDoubleClick={() => toggleRenaming(true)}
-            onAuxClick={() => closeTab(tab.value)}
+            onAuxClick={(e) => {
+              // middle button click
+              if (e.button == 1) {
+                closeTab(tab.value);
+              }
+            }}
             onContextMenu={(e) => {
               toggleOpen();
               e.preventDefault();
