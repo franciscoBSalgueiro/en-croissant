@@ -174,6 +174,88 @@ impl Speed {
     }
 }
 
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    diesel::AsExpression,
+    diesel::FromSqlRow,
+)]
+#[diesel(sql_type = sql_types::Integer)]
+pub enum CustomOutcome {
+    #[serde(rename = "*")]
+    Unknown = 0,
+    #[serde(rename = "1-0")]
+    WhiteWin = 1,
+    #[serde(rename = "0-1")]
+    BlackWin = 2,
+    #[serde(rename = "½-½")]
+    Draw = 3,
+}
+
+impl Default for CustomOutcome {
+    fn default() -> Self {
+        CustomOutcome::Unknown
+    }
+}
+
+impl From<Option<Outcome>> for CustomOutcome {
+    fn from(o: Option<Outcome>) -> Self {
+        match o {
+            Some(Outcome::Decisive { winner }) => match winner {
+                Color::White => CustomOutcome::WhiteWin,
+                Color::Black => CustomOutcome::BlackWin,
+            },
+            Some(Outcome::Draw) => CustomOutcome::Draw,
+            None => CustomOutcome::Unknown,
+        }
+    }
+}
+
+impl From<u8> for CustomOutcome {
+    fn from(u: u8) -> Self {
+        match u {
+            0 => CustomOutcome::Unknown,
+            1 => CustomOutcome::WhiteWin,
+            2 => CustomOutcome::BlackWin,
+            3 => CustomOutcome::Draw,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl<DB> FromSql<sql_types::Integer, DB> for CustomOutcome
+where
+    DB: Backend,
+    i32: FromSql<sql_types::Integer, DB>,
+{
+    fn from_nullable_sql(
+        bytes: Option<diesel::backend::RawValue<'_, DB>>,
+    ) -> diesel::deserialize::Result<Self> {
+        let u = i32::from_nullable_sql(bytes)?;
+        Ok(CustomOutcome::from(u as u8))
+    }
+
+    fn from_sql(bytes: diesel::backend::RawValue<'_, DB>) -> diesel::deserialize::Result<Self> {
+        let u = i32::from_sql(bytes)?;
+        Ok(CustomOutcome::from(u as u8))
+    }
+}
+
+impl ToSql<Integer, diesel::sqlite::Sqlite> for CustomOutcome
+where
+    i32: ToSql<Integer, diesel::sqlite::Sqlite>,
+{
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, diesel::sqlite::Sqlite>) -> serialize::Result {
+        out.set_value(*self as i32);
+        Ok(IsNull::No)
+    }
+}
+
 struct Batch {
     games: Vec<TempGame>,
 }
@@ -194,8 +276,7 @@ struct TempGame {
     date: Option<String>,
     white: TempPlayer,
     black: TempPlayer,
-    #[serde_as(as = "Option<DisplayFromStr>")]
-    outcome: Option<Outcome>,
+    outcome: Option<CustomOutcome>,
     #[serde_as(as = "StringWithSeparator<SpaceSeparator, SanPlus>")]
     moves: Vec<SanPlus>,
 }
@@ -250,13 +331,7 @@ impl Importer<'_> {
                 speed: game.speed,
                 site: game.site.as_deref(),
                 fen: game.fen.as_deref(),
-                outcome: game.outcome.map(|r| match r {
-                    Outcome::Decisive { winner } => match winner {
-                        Color::White => 1,
-                        Color::Black => 2,
-                    },
-                    Outcome::Draw => 3,
-                }),
+                outcome: game.outcome,
                 moves: &moves.join(" "),
             };
 
@@ -301,7 +376,7 @@ impl Visitor for Importer<'_> {
             self.current.site = Some(String::from_utf8(value.as_bytes().to_owned()).expect("Site"));
         } else if key == b"Result" {
             match Outcome::from_ascii(value.as_bytes()) {
-                Ok(outcome) => self.current.outcome = Some(outcome),
+                Ok(outcome) => self.current.outcome = Some(CustomOutcome::from(Some(outcome))),
                 Err(_) => self.skip = true,
             }
         } else if key == b"FEN" {
@@ -742,7 +817,7 @@ pub async fn get_players_game_info(
         .select((games::outcome, diesel::dsl::count(games::id)))
         .filter(games::white.eq(id).or(games::black.eq(id)));
 
-    let info: Vec<(Option<i32>, i64)> = sql_query.load(db).expect("load games");
+    let info: Vec<(Option<CustomOutcome>, i64)> = sql_query.load(db).expect("load games");
 
     let mut game_info = PlayerGameInfo {
         won: 0,
@@ -752,9 +827,9 @@ pub async fn get_players_game_info(
 
     for (outcome, count) in info {
         match outcome {
-            Some(1) => game_info.won = count as usize,
-            Some(2) => game_info.lost = count as usize,
-            Some(3) => game_info.draw = count as usize,
+            Some(CustomOutcome::WhiteWin) => game_info.won = count as usize,
+            Some(CustomOutcome::BlackWin) => game_info.lost = count as usize,
+            Some(CustomOutcome::Unknown) => game_info.draw = count as usize,
             _ => (),
         }
     }

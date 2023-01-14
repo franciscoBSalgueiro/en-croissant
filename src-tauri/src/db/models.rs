@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::schema::*;
 
-use super::Speed;
+use super::{Speed, CustomOutcome};
 
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = players)]
@@ -38,7 +38,7 @@ pub struct Game {
     pub black: i32,
     pub black_rating: Option<i32>,
     pub max_rating: Option<i32>,
-    pub outcome: Option<i32>,
+    pub outcome: Option<CustomOutcome>,
     pub moves: String,
 }
 
@@ -56,6 +56,6 @@ pub struct NewGame<'a> {
     pub black: i32,
     pub black_rating: Option<i32>,
     pub max_rating: Option<i32>,
-    pub outcome: Option<i32>,
+    pub outcome: Option<CustomOutcome>,
     pub moves: &'a str,
 }
