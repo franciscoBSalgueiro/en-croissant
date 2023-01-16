@@ -7,6 +7,7 @@ mod chess;
 mod db;
 mod fs;
 mod opening;
+mod puzzle;
 
 use std::sync::Mutex;
 use std::{collections::HashMap, fs::create_dir_all, path::Path};
@@ -17,12 +18,10 @@ use tauri::{
     Manager, Window,
 };
 
+use crate::puzzle::get_puzzle;
 use crate::{
     chess::get_best_moves,
-    db::{
-        convert_pgn, get_db_info, get_games, get_players, get_players_game_info,
-        rename_db,
-    },
+    db::{convert_pgn, get_db_info, get_games, get_players, get_players_game_info, rename_db},
     fs::{download_file, file_exists},
     opening::get_opening,
 };
@@ -125,6 +124,7 @@ fn main() {
             file_exists,
             get_best_moves,
             get_opening,
+            get_puzzle,
             convert_pgn,
             get_games,
             get_players,
