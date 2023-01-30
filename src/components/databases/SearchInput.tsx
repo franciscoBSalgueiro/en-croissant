@@ -37,6 +37,8 @@ export function SearchInput({
         offset: 0,
         name: val,
         skip_count: true,
+        sort: "games",
+        direction: "asc",
       });
       setData(res.data.map((game) => game.name));
     }

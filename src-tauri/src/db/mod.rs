@@ -829,7 +829,7 @@ pub async fn get_players_game_info(
         match outcome {
             Some(CustomOutcome::WhiteWin) => game_info.won = count as usize,
             Some(CustomOutcome::BlackWin) => game_info.lost = count as usize,
-            Some(CustomOutcome::Unknown) => game_info.draw = count as usize,
+            Some(CustomOutcome::Draw) => game_info.draw = count as usize,
             _ => (),
         }
     }

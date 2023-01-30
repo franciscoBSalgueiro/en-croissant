@@ -149,6 +149,7 @@ export function AccountCard({
       query_games(database.file, {
         limit: 1,
         sort: "date",
+        direction: "desc",
       }).then((games) => {
         if (games.count > 0) {
           setLastGameDate(new Date(games.data[0][0].date));

@@ -18,11 +18,17 @@ import {
   IconEdit,
   IconSwitchVertical
 } from "@tabler/icons";
-import { BISHOP, Chess, KING, KNIGHT, QUEEN, ROOK, Square } from "chess.js";
+import { BISHOP, Chess, KNIGHT, QUEEN, ROOK, Square } from "chess.js";
 import { Color } from "chessground/types";
 import { useContext, useState } from "react";
 import Chessground from "react-chessground";
-import { formatMove, moveToKey, parseUci, toDests } from "../../utils/chess";
+import {
+  formatMove,
+  handleMove,
+  moveToKey,
+  parseUci,
+  toDests
+} from "../../utils/chess";
 import { TreeContext } from "./BoardAnalysis";
 import OpeningName from "./OpeningName";
 
@@ -140,45 +146,26 @@ function BoardPlay({ arrows, makeMove }: ChessboardProps) {
             showDests,
             events: {
               after: (orig, dest, metadata) => {
-                if (orig === "a0" || dest === "a0") {
-                  // NOTE: Idk if this can happen
-                  return;
-                }
-                // allow castling to the rooks
-                if (chess.get(orig)?.type === KING) {
-                  switch (dest) {
-                    case "h1":
-                      dest = "g1";
-                      break;
-                    case "a1":
-                      dest = "c1";
-                      break;
-                    case "h8":
-                      dest = "g8";
-                      break;
-                    case "a8":
-                      dest = "c8";
-                      break;
-                  }
-                }
+                let newDest = handleMove(chess, orig, dest)!;
                 // handle promotions
                 if (
-                  (dest[1] === "8" && turn === "white") ||
-                  (dest[1] === "1" && turn === "black")
+                  chess.get(orig as Square).type === "p" &&
+                  ((newDest[1] === "8" && turn === "white") ||
+                    (newDest[1] === "1" && turn === "black"))
                 ) {
                   if (autoPromote && !metadata.ctrlKey) {
                     makeMove({
-                      from: orig,
-                      to: dest,
+                      from: orig as Square,
+                      to: newDest,
                       promotion: QUEEN,
                     });
                   } else {
-                    setPendingMove({ from: orig, to: dest });
+                    setPendingMove({ from: orig as Square, to: newDest });
                   }
                 } else {
                   makeMove({
-                    from: orig,
-                    to: dest,
+                    from: orig as Square,
+                    to: newDest,
                   });
                 }
               },
