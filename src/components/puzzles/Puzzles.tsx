@@ -6,9 +6,10 @@ import {
   Stack,
   Text
 } from "@mantine/core";
-import { IconCheck, IconDots, IconX } from "@tabler/icons";
+import { useSessionStorage } from "@mantine/hooks";
+import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import PuzzleBoard from "./PuzzleBoard";
 
 export enum Completion {
@@ -28,8 +29,11 @@ export interface Puzzle {
 }
 
 function Puzzles({ id }: { id: string }) {
-  const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
-  const [currentPuzzle, setCurrentPuzzle] = useState(-1); // FIXME: not very pretty
+  const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
+    key: id,
+    defaultValue: [],
+  });
+  const [currentPuzzle, setCurrentPuzzle] = useState(puzzles.length);
 
   function generatePuzzle() {
     invoke("get_puzzle", {
@@ -43,10 +47,6 @@ function Puzzles({ id }: { id: string }) {
       setCurrentPuzzle((currentPuzzle) => currentPuzzle + 1);
     });
   }
-
-  useEffect(() => {
-    generatePuzzle();
-  }, []);
 
   function changeCompletion(completion: Completion) {
     setPuzzles((puzzles) => {
@@ -74,6 +74,9 @@ function Puzzles({ id }: { id: string }) {
           <Text weight={500} size="xl">
             {puzzles[currentPuzzle]?.rating}
           </Text>
+          <ActionIcon onClick={() => generatePuzzle()}>
+            <IconPlus />
+          </ActionIcon>
         </Card>
         <Card>
           <Text>Results</Text>
