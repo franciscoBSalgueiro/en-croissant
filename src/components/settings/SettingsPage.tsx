@@ -1,5 +1,16 @@
-import { Card, createStyles, Group, Stack, Switch, Text } from "@mantine/core";
+import {
+  Card,
+  createStyles,
+  Group,
+  MantineColor,
+  Stack,
+  Switch,
+  Text,
+  useMantineTheme
+} from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
+import { ColorControl } from "./ColorControl";
+import { ThemeButton } from "./ThemeButton";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -47,7 +58,12 @@ function SettingsPage() {
     key: "forced-en-passant",
     defaultValue: false,
   });
+  const [primaryColor, setPrimaryColr] = useLocalStorage<MantineColor>({
+    key: "mantine-primary-color",
+    defaultValue: "blue",
+  });
   const { classes } = useStyles();
+  const theme = useMantineTheme();
 
   return (
     <Stack>
@@ -137,6 +153,39 @@ function SettingsPage() {
             onChange={(event) => setForcedEP(event.currentTarget.checked)}
             className={classes.switch}
           />
+        </Group>
+      </Card>
+
+      <Card withBorder radius="md" p="xl" className={classes.card}>
+        <Text size="lg" weight={500} className={classes.title}>
+          Personalization
+        </Text>
+        <Text size="xs" color="dimmed" mt={3} mb="xl">
+          Customize the look of the app
+        </Text>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Theme</Text>
+            <Text size="xs" color="dimmed">
+              Overall color scheme
+            </Text>
+          </div>
+          <ThemeButton />
+        </Group>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Accent Color</Text>
+            <Text size="xs" color="dimmed">
+              Main color of the app
+            </Text>
+          </div>
+          <div style={{ width: 200 }}>
+            <ColorControl
+              value={primaryColor}
+              label={""}
+              onChange={(color) => setPrimaryColr(color)}
+            />
+          </div>
         </Group>
       </Card>
     </Stack>

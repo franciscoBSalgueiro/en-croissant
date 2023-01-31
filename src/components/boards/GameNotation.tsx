@@ -5,7 +5,8 @@ import {
   Menu,
   Overlay,
   Paper,
-  TypographyStylesProvider
+  TypographyStylesProvider,
+  useMantineTheme
 } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
 import {
@@ -21,6 +22,7 @@ import { TreeContext } from "./BoardAnalysis";
 
 function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
   const tree = useContext(TreeContext);
+  const theme = useMantineTheme();
   const topVariation = tree.getTopVariation();
   const [visible, toggleVisible] = useToggle();
 
@@ -40,7 +42,14 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
           {visible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
         </ActionIcon>
       </Box>
-      {visible && <Overlay opacity={0.6} color="#222" blur={3} zIndex={2} />}
+      {visible && (
+        <Overlay
+          opacity={0.6}
+          color={theme.colorScheme === "dark" ? "#222" : undefined}
+          blur={3}
+          zIndex={2}
+        />
+      )}
 
       <RenderVariationTree
         tree={topVariation}
@@ -140,6 +149,7 @@ function MoveCell({
   setTree: (tree: VariationTree) => void;
 }) {
   const tree = useContext(TreeContext);
+  const theme = useMantineTheme();
   const isCurrentVariation = variation.equals(tree);
   const [open, toggleOpen] = useToggle();
   const ref = useClickOutside(() => toggleOpen(false));
@@ -205,7 +215,7 @@ function MoveCell({
             variant={isCurrentVariation ? "light" : "subtle"}
             color={
               isCurrentVariation && tree.annotation === Annotation.None
-                ? "blue.0"
+                ? theme.colors[theme.primaryColor][0]
                 : color
             }
             onContextMenu={(e: any) => {

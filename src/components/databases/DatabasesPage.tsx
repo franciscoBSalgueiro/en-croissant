@@ -31,7 +31,7 @@ const useStyles = createStyles(
         ? theme.colors.dark[7]
         : theme.white,
 
-      borderColor: selected ? theme.colors.blue[6] : "transparent",
+      borderColor: selected ? theme.colors[theme.primaryColor][6] : "transparent",
       borderWidth: 2,
 
       "&:hover": {
@@ -39,6 +39,7 @@ const useStyles = createStyles(
           theme.colorScheme === "dark"
             ? theme.colors.dark[6]
             : theme.colors.gray[0],
+        borderColor: selected ? theme.colors[theme.primaryColor][6] : theme.colors.gray[6],
       },
     },
 

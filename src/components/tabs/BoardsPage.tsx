@@ -9,6 +9,7 @@ import {
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons";
 import BoardAnalysis from "../boards/BoardAnalysis";
+import BoardGame from "../boards/BoardGame";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
@@ -21,9 +22,15 @@ export interface Tab {
 
 const useStyles = createStyles((theme) => ({
   newTab: {
-    backgroundColor: theme.colors.dark[7],
+    backgroundColor:
+      theme.colorScheme === "dark"
+        ? theme.colors.dark[7]
+        : theme.colors.gray[0],
     ":hover": {
-      backgroundColor: theme.colors.dark[6],
+      backgroundColor:
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[6]
+          : theme.colors.gray[2],
     },
   },
 }));
@@ -205,7 +212,7 @@ export default function BoardsPage() {
         return <NewTabHome setTabs={setTabs} id={tab.value} />;
 
       case "play":
-        return <BoardAnalysis id={tab.value} />;
+        return <BoardGame id={tab.value} />;
 
       case "analysis":
         return <BoardAnalysis id={tab.value} />;

@@ -1,10 +1,17 @@
-import { AppShell, MantineProvider } from "@mantine/core";
+import {
+  AppShell,
+  ColorScheme,
+  ColorSchemeProvider,
+  MantineColor,
+  MantineProvider
+} from "@mantine/core";
 import { NotificationsProvider } from "@mantine/notifications";
 import type { AppProps } from "next/app";
 import { SideBar } from "../components/Sidebar";
 
 // Chessground styles
 // import "chessground/assets/chessground.brown.css";
+import { useLocalStorage } from "@mantine/hooks";
 import "chessground/assets/chessground.cburnett.css";
 import Head from "next/head";
 import "../styles/chessgroundBaseOverride.css";
@@ -13,8 +20,22 @@ import "../styles/chessgroundPiecesOverride.css";
 
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
+  const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
+    key: "mantine-color-scheme",
+    defaultValue: "dark",
+  });
+  const [primaryColor, _] = useLocalStorage<MantineColor>({
+    key: "mantine-primary-color",
+    defaultValue: "blue",
+  });
+  const toggleColorScheme = (value?: ColorScheme) =>
+    setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
+
   return (
-    <>
+    <ColorSchemeProvider
+      colorScheme={colorScheme}
+      toggleColorScheme={toggleColorScheme}
+    >
       <Head>
         <title>Page title</title>
         <meta
@@ -26,7 +47,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         withGlobalStyles
         withNormalizeCSS
         theme={{
-          colorScheme: "dark",
+          colorScheme,
+          primaryColor,
         }}
       >
         <NotificationsProvider>
@@ -48,6 +70,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           </AppShell>
         </NotificationsProvider>
       </MantineProvider>
-    </>
+    </ColorSchemeProvider>
   );
 }

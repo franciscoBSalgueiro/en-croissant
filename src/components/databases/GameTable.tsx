@@ -18,7 +18,8 @@ import {
   Stack,
   Table,
   Text,
-  Tooltip
+  Tooltip,
+  useMantineTheme
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
 import {
@@ -133,6 +134,7 @@ function GameTable({ database }: { database: Database }) {
     key: "activeTab",
     defaultValue: firstId,
   });
+  const theme = useMantineTheme();
 
   function createTab(name: string) {
     const id = genID();
@@ -228,7 +230,7 @@ function GameTable({ database }: { database: Database }) {
           <td>
             <ActionIcon
               variant="filled"
-              color="blue"
+              color={theme.primaryColor}
               onClick={() => {
                 const id = createTab(`${white.name} - ${black.name}`);
                 const completeGame: CompleteGame = {

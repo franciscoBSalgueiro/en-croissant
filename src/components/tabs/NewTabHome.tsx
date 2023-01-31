@@ -8,7 +8,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   Box,
   Button,
-  Card, Modal,
+  Card,
+  Modal,
   SimpleGrid,
   Stack,
   Text,
@@ -104,7 +105,6 @@ export default function NewTabHome({
 
               <Button
                 variant="light"
-                color="blue"
                 fullWidth
                 mt="md"
                 radius="md"

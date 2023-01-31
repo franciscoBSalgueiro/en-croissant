@@ -11,9 +11,18 @@ const useStyles = createStyles(
   ) => ({
     tab: {
       marginRight: theme.spacing.xs,
-      backgroundColor: selected ? theme.colors.dark[6] : theme.colors.dark[7],
+      backgroundColor: selected
+        ? theme.colorScheme === "dark"
+          ? theme.colors.dark[6]
+          : theme.colors.gray[0]
+        : theme.colorScheme === "dark"
+        ? theme.colors.dark[7]
+        : "transparent",
       ":hover": {
-        backgroundColor: theme.colors.dark[6],
+        backgroundColor:
+          theme.colorScheme === "dark"
+            ? theme.colors.dark[6]
+            : theme.colors.gray[2],
       },
     },
 
@@ -23,7 +32,11 @@ const useStyles = createStyles(
       textDecoration: renaming ? "underline" : "none",
 
       "::selection": {
-        backgroundColor: renaming ? theme.colors.blue[6] : "transparent",
+        backgroundColor: renaming
+          ? theme.colorScheme === "dark"
+            ? theme.colors.blue[6]
+            : theme.colors.blue[4]
+          : "transparent",
       },
     },
   })

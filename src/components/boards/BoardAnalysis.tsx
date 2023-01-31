@@ -1,10 +1,16 @@
-import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
+import {
+  Accordion, ScrollArea,
+  SimpleGrid,
+  Stack,
+  Tabs
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   useForceUpdate,
   useHotkeys,
   useLocalStorage,
-  useSessionStorage
+  useSessionStorage,
+  useToggle
 } from "@mantine/hooks";
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
@@ -68,6 +74,7 @@ function BoardAnalysis({ id }: { id: string }) {
   const game = completeGame.game;
 
   const forceUpdate = useForceUpdate();
+  const [editingMode, toggleEditingMode] = useToggle();
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
     key: "selected-engines",
     defaultValue: [],
@@ -119,14 +126,23 @@ function BoardAnalysis({ id }: { id: string }) {
   const chess = new Chess(tree.fen);
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
-    const newMove = chess.move(move);
-    const newTree = new VariationTree(tree, chess.fen(), newMove);
-    if (tree.children.length === 0) {
-      tree.children = [newTree];
-    } else if (tree.children.every((child) => child.fen !== chess.fen())) {
-      tree.children.push(newTree);
+    if (editingMode) {
+      const piece = chess.get(move.from);
+      chess.remove(move.to);
+      chess.remove(move.from);
+      chess.put(piece, move.to);
+      const newTree = new VariationTree(null, chess.fen(), null);
+      setTree(newTree);
+    } else {
+      const newMove = chess.move(move);
+      const newTree = new VariationTree(tree, chess.fen(), newMove);
+      if (tree.children.length === 0) {
+        tree.children = [newTree];
+      } else if (tree.children.every((child) => child.fen !== chess.fen())) {
+        tree.children.push(newTree);
+      }
+      setTree(newTree);
     }
-    setTree(newTree);
   }
 
   function makeMoves(moves: string[]) {
@@ -191,7 +207,12 @@ function BoardAnalysis({ id }: { id: string }) {
   return (
     <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-        <BoardPlay makeMove={makeMove} arrows={arrows} />
+        <BoardPlay
+          makeMove={makeMove}
+          arrows={arrows}
+          editingMode={editingMode}
+          toggleEditingMode={toggleEditingMode}
+        />
         <Stack>
           <Tabs defaultValue="analysis">
             <Tabs.List grow>

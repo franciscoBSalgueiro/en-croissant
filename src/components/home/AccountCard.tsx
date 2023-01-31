@@ -18,11 +18,11 @@ import {
 } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { appDataDir } from "@tauri-apps/api/path";
-import Image from "next/image";
 import { join } from "path";
 import { useEffect, useState } from "react";
 import { Database, getDatabases, query_games } from "../../utils/db";
 import { downloadPlayerGames } from "../../utils/lichess";
+import LichessLogo from "./LichessLogo";
 
 const useStyles = createStyles((theme) => ({
   diff: {
@@ -163,12 +163,7 @@ export function AccountCard({
       <Group grow>
         <div>
           <Group>
-            <Image
-              src="/lichess.svg"
-              alt="Lichess logo"
-              width={35}
-              height={35}
-            />
+            <LichessLogo />
             <div>
               <Text size="xl" className={classes.label}>
                 {title}

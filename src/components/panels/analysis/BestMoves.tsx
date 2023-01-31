@@ -13,7 +13,8 @@ import {
   Stack,
   Table,
   Text,
-  Tooltip
+  Tooltip,
+  useMantineTheme
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
@@ -35,7 +36,10 @@ import LinesSlider from "./LinesSlider";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
-    color: theme.fn.rgba(theme.white, 0.65),
+    color:
+      theme.colorScheme === "dark"
+        ? theme.fn.rgba(theme.white, 0.65)
+        : theme.black,
   },
 }));
 
@@ -63,6 +67,7 @@ function ScoreBubble({ score }: { score: Score }) {
         padding: 5,
         borderRadius: theme.radius.md,
         width: 70,
+        boxShadow: theme.shadows.md,
       })}
     >
       <Text
@@ -84,7 +89,7 @@ interface BestMovesProps {
   id: number;
   engine: Engine;
   makeMoves: (moves: string[]) => void;
-  setArrows: ((arrows: string[]) => void);
+  setArrows: (arrows: string[]) => void;
 }
 
 function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
@@ -104,6 +109,7 @@ function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const progress = (depth / maxDepth) * 100;
+  const theme = useMantineTheme();
 
   async function startEngine() {
     emit("stop_engine", engine.path);
@@ -290,7 +296,7 @@ function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
         </Accordion.Control>
         <Tooltip label="Check the opponent's threat">
           <ActionIcon size="lg" onClick={() => toggleThreat()}>
-            <IconTargetArrow color={threat ? "red" : "white"} size={16} />
+            <IconTargetArrow color={threat ? "red" : undefined} size={16} />
           </ActionIcon>
         </Tooltip>
         <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
@@ -323,7 +329,8 @@ function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
         animate={progress < 100 && enabled}
         size="xs"
         striped={progress < 100 && !enabled}
-        color={threat ? "red" : "blue"}
+        // color={threat ? "red" : "blue"}
+        color={threat ? "red" : theme.primaryColor}
       />
       <Accordion.Panel>
         <Table>

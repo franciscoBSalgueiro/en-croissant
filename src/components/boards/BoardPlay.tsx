@@ -35,6 +35,8 @@ import OpeningName from "./OpeningName";
 interface ChessboardProps {
   arrows: string[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
+  editingMode: boolean;
+  toggleEditingMode: () => void;
 }
 
 const promotionPieces = [
@@ -59,7 +61,12 @@ const promotionPieces = [
   },
 ];
 
-function BoardPlay({ arrows, makeMove }: ChessboardProps) {
+function BoardPlay({
+  arrows,
+  makeMove,
+  editingMode,
+  toggleEditingMode,
+}: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
   const lastMove = tree.move;
@@ -87,7 +94,6 @@ function BoardPlay({ arrows, makeMove }: ChessboardProps) {
     to: Square;
   } | null>(null);
   const [orientation, toggleOrientation] = useToggle<Color>(["white", "black"]);
-  const [editingMode, toggleEditingMode] = useToggle();
 
   useHotkeys([["f", () => toggleOrientation()]]);
 
@@ -140,33 +146,40 @@ function BoardPlay({ arrows, makeMove }: ChessboardProps) {
           orientation={orientation}
           fen={fen}
           movable={{
-            free: false,
-            color: turn,
-            dests: dests,
+            free: editingMode,
+            color: editingMode ? "both" : turn,
+            dests: editingMode ? undefined : dests,
             showDests,
             events: {
               after: (orig, dest, metadata) => {
-                let newDest = handleMove(chess, orig, dest)!;
-                // handle promotions
-                if (
-                  chess.get(orig as Square).type === "p" &&
-                  ((newDest[1] === "8" && turn === "white") ||
-                    (newDest[1] === "1" && turn === "black"))
-                ) {
-                  if (autoPromote && !metadata.ctrlKey) {
+                if (editingMode) {
+                  makeMove({
+                    from: orig as Square,
+                    to: dest as Square,
+                  });
+                } else {
+                  let newDest = handleMove(chess, orig, dest)!;
+                  // handle promotions
+                  if (
+                    chess.get(orig as Square).type === "p" &&
+                    ((newDest[1] === "8" && turn === "white") ||
+                      (newDest[1] === "1" && turn === "black"))
+                  ) {
+                    if (autoPromote && !metadata.ctrlKey) {
+                      makeMove({
+                        from: orig as Square,
+                        to: newDest,
+                        promotion: QUEEN,
+                      });
+                    } else {
+                      setPendingMove({ from: orig as Square, to: newDest });
+                    }
+                  } else {
                     makeMove({
                       from: orig as Square,
                       to: newDest,
-                      promotion: QUEEN,
                     });
-                  } else {
-                    setPendingMove({ from: orig as Square, to: newDest });
                   }
-                } else {
-                  makeMove({
-                    from: orig as Square,
-                    to: newDest,
-                  });
                 }
               },
             },
