@@ -29,7 +29,7 @@ import {
   parseUci,
   toDests
 } from "../../utils/chess";
-import { TreeContext } from "./BoardAnalysis";
+import TreeContext from "../common/TreeContext";
 import OpeningName from "./OpeningName";
 
 interface ChessboardProps {

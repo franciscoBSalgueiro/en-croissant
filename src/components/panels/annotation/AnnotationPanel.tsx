@@ -4,7 +4,7 @@ import {
   Annotation,
   annotationColor, VariationTree
 } from "../../../utils/chess";
-import { TreeContext } from "../../boards/BoardAnalysis";
+import TreeContext from "../../common/TreeContext";
 import { AnnotationEditor } from "./AnnotationEditor";
 
 interface AnnotationPanelProps {

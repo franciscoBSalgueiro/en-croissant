@@ -1,9 +1,4 @@
-import {
-  Accordion, ScrollArea,
-  SimpleGrid,
-  Stack,
-  Tabs
-} from "@mantine/core";
+import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   useForceUpdate,
@@ -14,7 +9,7 @@ import {
 } from "@mantine/hooks";
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
-import { createContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   chessToVariatonTree,
   movesToVariationTree,
@@ -24,6 +19,7 @@ import { Game, Outcome, Player, Speed } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
+import TreeContext from "../common/TreeContext";
 import BestMoves from "../panels/analysis/BestMoves";
 import EngineSettingsBoard from "../panels/analysis/EngineSettingsBoard";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
@@ -31,10 +27,6 @@ import FenInput from "../panels/info/FenInput";
 import PgnInput from "../panels/info/PgnInput";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-
-export const TreeContext = createContext(
-  new VariationTree(null, DEFAULT_POSITION, null)
-);
 
 export interface CompleteGame {
   game: Game;

@@ -264,11 +264,6 @@ export function getCompleteGame(pgn: string): CompleteGame {
     const { Result, Site, Date, White, Black, BlackElo, WhiteElo } =
         chess.header();
 
-    console.log(chess.header());
-
-    console.log(chess.header("Result"));
-    console.log(chess.pgn());
-
     // const outcome = chess.header("Result");
     const game: CompleteGame = {
         black: {

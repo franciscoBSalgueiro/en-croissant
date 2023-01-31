@@ -114,7 +114,6 @@ export async function getMyAccount(token: string) {
             Authorization: `Bearer ${token}`,
         },
     });
-    console.log(response);
     return (await response.json()) as LichessAccount;
 }
 

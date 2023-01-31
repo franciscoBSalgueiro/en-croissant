@@ -9,7 +9,6 @@ import { IconMoon, IconSun } from "@tabler/icons";
 
 export function ThemeButton() {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
-  console.log(colorScheme);
 
   return (
     <Group position="center" my="xl">

@@ -29,7 +29,7 @@ import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
 import { EngineVariation, Score, swapMove } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
-import { TreeContext } from "../../boards/BoardAnalysis";
+import TreeContext from "../../common/TreeContext";
 import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";

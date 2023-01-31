@@ -1,6 +1,6 @@
 import { Textarea } from "@mantine/core";
 import { useContext } from "react";
-import { TreeContext } from "../../boards/BoardAnalysis";
+import TreeContext from "../../common/TreeContext";
 
 function PgnInput() {
   const tree = useContext(TreeContext);

@@ -169,7 +169,6 @@ function GameTable({ database }: { database: Database }) {
       sort,
       direction,
     }).then((res) => {
-      console.log(res);
       setLoading(false);
       setGames(res.data);
       setCount(res.count);

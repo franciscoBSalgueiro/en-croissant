@@ -1,7 +1,7 @@
 import { SimpleGrid, Stack } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
-import { Chess, DEFAULT_POSITION, Square } from "chess.js";
-import { createContext, useEffect, useMemo, useState } from "react";
+import { Chess, Square } from "chess.js";
+import { useEffect, useMemo, useState } from "react";
 import {
   chessToVariatonTree,
   movesToVariationTree,
@@ -10,12 +10,9 @@ import {
 import { Game, Outcome, Player, Speed } from "../../utils/db";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
+import TreeContext from "../common/TreeContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-
-export const TreeContext = createContext(
-  new VariationTree(null, DEFAULT_POSITION, null)
-);
 
 export interface CompleteGame {
   game: Game;
@@ -81,7 +78,6 @@ function BoardGame({ id }: { id: string }) {
   useEffect(() => {
     setTree(initial_tree);
   }, [initial_tree]);
-  const [arrows, setArrows] = useState<string[]>([]);
   const chess = new Chess(tree.fen);
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
@@ -92,7 +88,6 @@ function BoardGame({ id }: { id: string }) {
     } else if (tree.children.every((child) => child.fen !== chess.fen())) {
       tree.children.push(newTree);
     }
-    console.log(newTree);
     setTree(newTree);
   }
 
@@ -124,16 +119,12 @@ function BoardGame({ id }: { id: string }) {
     ["ctrl+S", () => saveGame()],
   ]);
 
-  useEffect(() => {
-    setArrows([]);
-  }, [tree.fen]);
-
   return (
     <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
         <BoardPlay
           makeMove={makeMove}
-          arrows={arrows}
+          arrows={[]}
           editingMode={false}
           toggleEditingMode={() => {}}
         />
