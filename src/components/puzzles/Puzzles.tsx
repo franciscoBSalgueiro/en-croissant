@@ -64,6 +64,7 @@ function Puzzles({ id }: { id: string }) {
           currentPuzzle={currentPuzzle}
           changeCompletion={changeCompletion}
           generatePuzzle={generatePuzzle}
+          setCurrentPuzzle={setCurrentPuzzle}
         />
       )}
       <Stack>

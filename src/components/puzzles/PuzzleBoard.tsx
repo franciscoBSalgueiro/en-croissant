@@ -15,11 +15,13 @@ function PuzzleBoard({
   currentPuzzle,
   changeCompletion,
   generatePuzzle,
+  setCurrentPuzzle,
 }: {
   puzzles: Puzzle[];
   currentPuzzle: number;
   changeCompletion: (completion: Completion) => void;
   generatePuzzle: () => void;
+  setCurrentPuzzle: (currentPuzzle: number) => void;
 }) {
   const puzzle = puzzles[currentPuzzle];
   const [chess, setChess] = useState(new Chess(puzzle.fen));
@@ -61,9 +63,18 @@ function PuzzleBoard({
                     if (!ended) {
                       changeCompletion(Completion.CORRECT);
                     }
-                    generatePuzzle();
                     setCurrentMove(0);
                     setEnded(false);
+
+                    const nextPuzzle = puzzles.findIndex(
+                      (p) => p.completion === Completion.INCOMPLETE
+                    );
+
+                    if (nextPuzzle !== -1) {
+                      setCurrentPuzzle(nextPuzzle);
+                    } else {
+                      generatePuzzle();
+                    }
                   } else {
                     chess.move(parseUci(puzzle.moves[currentMove * 2 + 2]));
                   }
