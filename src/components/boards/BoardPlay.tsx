@@ -37,6 +37,8 @@ interface ChessboardProps {
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
   editingMode: boolean;
   toggleEditingMode: () => void;
+  viewOnly?: boolean;
+  disableVariations?: boolean;
 }
 
 const promotionPieces = [
@@ -66,6 +68,8 @@ function BoardPlay({
   makeMove,
   editingMode,
   toggleEditingMode,
+  viewOnly,
+  disableVariations,
 }: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
@@ -148,7 +152,12 @@ function BoardPlay({
           movable={{
             free: editingMode,
             color: editingMode ? "both" : turn,
-            dests: editingMode ? undefined : dests,
+            dests:
+              editingMode || viewOnly
+                ? undefined
+                : disableVariations && tree.children.length > 0
+                ? undefined
+                : dests,
             showDests,
             events: {
               after: (orig, dest, metadata) => {
@@ -211,9 +220,13 @@ function BoardPlay({
         <OpeningName />
 
         <Group>
-          <ActionIcon onClick={() => toggleEditingMode()}>
-            <IconEdit />
-          </ActionIcon>
+          {!disableVariations && (
+            <Tooltip label={"Edit Position"}>
+              <ActionIcon onClick={() => toggleEditingMode()}>
+                <IconEdit />
+              </ActionIcon>
+            </Tooltip>
+          )}
           <Tooltip label={"Flip Board"}>
             <ActionIcon onClick={() => toggleOrientation()}>
               <IconSwitchVertical />
