@@ -2,16 +2,20 @@ import {
   ActionIcon,
   Box,
   Button,
+  CopyButton,
   Menu,
   Overlay,
   Paper,
+  Tooltip,
   TypographyStylesProvider,
   useMantineTheme
 } from "@mantine/core";
 import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
 import {
+  IconCheck,
   IconChevronDown,
   IconChevronUp,
+  IconCopy,
   IconEye,
   IconEyeOff,
   IconTrash
@@ -24,7 +28,7 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
   const tree = useContext(TreeContext);
   const theme = useMantineTheme();
   const topVariation = tree.getTopVariation();
-  const [visible, toggleVisible] = useToggle();
+  const [invisible, toggleVisible] = useToggle();
 
   return (
     <Paper withBorder p="md" sx={{ minHeight: "250px", position: "relative" }}>
@@ -38,11 +42,22 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
           zIndex: 10,
         }}
       >
-        <ActionIcon onClick={() => toggleVisible()}>
-          {visible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-        </ActionIcon>
+        <Tooltip label={invisible ? "Hide moves" : "Show moves"}>
+          <ActionIcon onClick={() => toggleVisible()}>
+            {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+          </ActionIcon>
+        </Tooltip>
+        <CopyButton value={topVariation.getPGN()} timeout={2000}>
+          {({ copied, copy }) => (
+            <Tooltip label={copied ? "Copied" : "Copy"} withArrow>
+              <ActionIcon color={copied ? "teal" : "gray"} onClick={copy}>
+                {copied ? <IconCheck size={15} /> : <IconCopy size={15} />}
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </CopyButton>
       </Box>
-      {visible && (
+      {invisible && (
         <Overlay
           opacity={0.6}
           color={theme.colorScheme === "dark" ? "#222" : undefined}
