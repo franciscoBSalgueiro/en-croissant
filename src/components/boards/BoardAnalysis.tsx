@@ -81,6 +81,16 @@ function BoardAnalysis({ id }: { id: string }) {
   });
 
   const initial_tree = useMemo(() => {
+    const storedTree = sessionStorage.getItem(id + "-tree");
+    if (storedTree) {
+      const { pgn, currentMove } = JSON.parse(storedTree);
+      if (pgn !== "") {
+        const chess = new Chess();
+        chess.loadPgn(pgn);
+        const tree = chessToVariatonTree(chess, currentMove);
+        return tree;
+      }
+    }
     if (game.moves[0] === "1" || game.moves[0] === "[") {
       const chess = new Chess();
       chess.loadPgn(game.moves);
@@ -122,6 +132,9 @@ function BoardAnalysis({ id }: { id: string }) {
       return tree;
     },
   });
+  useEffect(() => {
+    setTree(initial_tree);
+  }, [initial_tree]);
   const [arrows, setArrows] = useState<string[]>([]);
   const chess = new Chess(tree.fen);
 
