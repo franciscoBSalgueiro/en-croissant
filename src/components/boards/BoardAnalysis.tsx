@@ -15,7 +15,7 @@ import {
   movesToVariationTree,
   VariationTree
 } from "../../utils/chess";
-import { Game, Outcome, Player, Speed } from "../../utils/db";
+import { CompleteGame, Outcome, Speed } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
@@ -27,13 +27,6 @@ import FenInput from "../panels/info/FenInput";
 import PgnInput from "../panels/info/PgnInput";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-
-export interface CompleteGame {
-  game: Game;
-  white: Player;
-  black: Player;
-  currentMove: number;
-}
 
 function BoardAnalysis({ id }: { id: string }) {
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
@@ -105,15 +98,30 @@ function BoardAnalysis({ id }: { id: string }) {
         ...prev,
       };
       newTab.game.moves = pgn;
+      newTab.currentMove = tree.half_moves;
       return newTab;
     });
   }
 
   // Variation tree of all the previous moves
-  const [tree, setTree] = useState<VariationTree>(initial_tree);
-  useEffect(() => {
-    setTree(initial_tree);
-  }, [initial_tree]);
+  const [tree, setTree] = useSessionStorage<VariationTree>({
+    key: id + "-tree",
+    defaultValue: initial_tree,
+    serialize: (value) => {
+      const storedTree = JSON.stringify({
+        pgn: value.getTopVariation().getPGN(),
+        currentMove: value.half_moves,
+      });
+      return storedTree;
+    },
+    deserialize: (value) => {
+      const { pgn, currentMove } = JSON.parse(value);
+      const chess = new Chess();
+      chess.loadPgn(pgn);
+      const tree = chessToVariatonTree(chess, currentMove);
+      return tree;
+    },
+  });
   const [arrows, setArrows] = useState<string[]>([]);
   const chess = new Chess(tree.fen);
 
@@ -132,6 +140,10 @@ function BoardAnalysis({ id }: { id: string }) {
         tree.children = [newTree];
       } else if (tree.children.every((child) => child.fen !== chess.fen())) {
         tree.children.push(newTree);
+      } else {
+        const child = tree.children.find((child) => child.fen === chess.fen());
+        setTree(child!);
+        return;
       }
       setTree(newTree);
     }
@@ -204,6 +216,8 @@ function BoardAnalysis({ id }: { id: string }) {
           arrows={arrows}
           editingMode={editingMode}
           toggleEditingMode={toggleEditingMode}
+          setCompleteGame={setCompleteGame}
+          completeGame={completeGame}
         />
         <Stack>
           <Tabs defaultValue="analysis">

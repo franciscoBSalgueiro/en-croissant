@@ -1,8 +1,7 @@
 import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, KING, Move, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
-import { CompleteGame } from "./../components/boards/BoardAnalysis";
-import { Outcome, Speed } from "./db";
+import { CompleteGame, Outcome, Speed } from "./db";
 
 export type Score = {
     [key in "cp" | "mate"]: number;
@@ -224,7 +223,7 @@ export function swapMove(fen: string) {
     return fenGroups.join(" ");
 }
 
-export function chessToVariatonTree(chess: Chess) {
+export function chessToVariatonTree(chess: Chess, currentMove?: number) {
     let tree = new VariationTree(null, DEFAULT_POSITION, null);
     let currentTree = tree;
     const newChess = new Chess(DEFAULT_POSITION);
@@ -234,6 +233,16 @@ export function chessToVariatonTree(chess: Chess) {
         currentTree.children.push(newTree);
         currentTree = newTree;
     });
+    if (currentMove !== undefined) {
+        let root = tree.getTopVariation();
+        for (let i = 0; i < currentMove; i++) {
+            if (root.children.length === 0) {
+                break;
+            }
+            root = root.children[0];
+        }
+        return root;
+    }
     return tree;
 }
 

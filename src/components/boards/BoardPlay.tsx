@@ -29,6 +29,7 @@ import {
   parseUci,
   toDests
 } from "../../utils/chess";
+import { CompleteGame, Outcome } from "../../utils/db";
 import TreeContext from "../common/TreeContext";
 import OpeningName from "./OpeningName";
 
@@ -39,6 +40,8 @@ interface ChessboardProps {
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
+  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
+  completeGame: CompleteGame;
 }
 
 const promotionPieces = [
@@ -70,9 +73,21 @@ function BoardPlay({
   toggleEditingMode,
   viewOnly,
   disableVariations,
+  setCompleteGame,
+  completeGame,
 }: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
+  if (chess.isCheckmate() && completeGame.game.outcome === Outcome.Unknown) {
+    setCompleteGame((prev) => ({
+      ...prev,
+      game: {
+        ...prev.game,
+        outcome: chess.turn() === "w" ? Outcome.BlackWin : Outcome.WhiteWin,
+      },
+    }));
+  }
+
   const lastMove = tree.move;
   const [showDests] = useLocalStorage<boolean>({
     key: "show-dests",

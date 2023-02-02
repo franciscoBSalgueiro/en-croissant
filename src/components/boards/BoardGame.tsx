@@ -9,27 +9,20 @@ import {
   Text
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
-import { Icon123, IconUsers } from "@tabler/icons";
+import { IconPlus, IconRobot, IconUsers, IconZoomCheck } from "@tabler/icons";
 import { Chess, Square } from "chess.js";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   chessToVariatonTree,
   movesToVariationTree,
   VariationTree
 } from "../../utils/chess";
-import { Game, Outcome, Player, Speed } from "../../utils/db";
+import { CompleteGame, Outcome, Speed } from "../../utils/db";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-
-export interface CompleteGame {
-  game: Game;
-  white: Player;
-  black: Player;
-  currentMove: number;
-}
 
 enum Opponent {
   Easy,
@@ -126,7 +119,10 @@ function OpponentCard({
 }
 
 function BoardGame({ id }: { id: string }) {
-  const [opponent, setOpponent] = useState<Opponent | null>(null);
+  const [opponent, setOpponent] = useSessionStorage<Opponent | null>({
+    key: id + "-opponent",
+    defaultValue: null,
+  });
   const [selected, setSelected] = useState<Opponent | null>(null);
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
     key: id,
@@ -175,15 +171,30 @@ function BoardGame({ id }: { id: string }) {
         ...prev,
       };
       newTab.game.moves = pgn;
+      newTab.currentMove = tree.half_moves;
       return newTab;
     });
   }
 
   // Variation tree of all the previous moves
-  const [tree, setTree] = useState<VariationTree>(initial_tree);
-  useEffect(() => {
-    setTree(initial_tree);
-  }, [initial_tree]);
+  const [tree, setTree] = useSessionStorage<VariationTree>({
+    key: id + "-tree",
+    defaultValue: initial_tree,
+    serialize: (value) => {
+      const storedTree = JSON.stringify({
+        pgn: value.getTopVariation().getPGN(),
+        currentMove: value.half_moves,
+      });
+      return storedTree;
+    },
+    deserialize: (value) => {
+      const { pgn, currentMove } = JSON.parse(value);
+      const chess = new Chess();
+      chess.loadPgn(pgn);
+      const tree = chessToVariatonTree(chess, currentMove);
+      return tree;
+    },
+  });
   const chess = new Chess(tree.fen);
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
@@ -193,6 +204,10 @@ function BoardGame({ id }: { id: string }) {
       tree.children = [newTree];
     } else if (tree.children.every((child) => child.fen !== chess.fen())) {
       tree.children.push(newTree);
+    } else {
+      const child = tree.children.find((child) => child.fen === chess.fen());
+      setTree(child!);
+      return;
     }
     setTree(newTree);
   }
@@ -235,6 +250,8 @@ function BoardGame({ id }: { id: string }) {
           toggleEditingMode={() => {}}
           viewOnly={opponent === null}
           disableVariations
+          setCompleteGame={setCompleteGame}
+          completeGame={completeGame}
         />
         <Stack>
           {opponent === null ? (
@@ -249,7 +266,7 @@ function BoardGame({ id }: { id: string }) {
                   opponent={Opponent.Easy}
                   selected={selected === Opponent.Easy}
                   setSelected={setSelected}
-                  Icon={Icon123}
+                  Icon={IconRobot}
                 />
                 <OpponentCard
                   name={"Medium"}
@@ -257,7 +274,7 @@ function BoardGame({ id }: { id: string }) {
                   opponent={Opponent.Medium}
                   selected={selected === Opponent.Medium}
                   setSelected={setSelected}
-                  Icon={Icon123}
+                  Icon={IconRobot}
                 />
                 <OpponentCard
                   name={"Hard"}
@@ -265,7 +282,7 @@ function BoardGame({ id }: { id: string }) {
                   opponent={Opponent.Hard}
                   selected={selected === Opponent.Hard}
                   setSelected={setSelected}
-                  Icon={Icon123}
+                  Icon={IconRobot}
                 />
 
                 <OpponentCard
@@ -297,6 +314,21 @@ function BoardGame({ id }: { id: string }) {
                 date={game.date}
                 outcome={game.outcome}
               />
+              <Group grow>
+                <Button
+                  onClick={() => setOpponent(null)}
+                  leftIcon={<IconPlus />}
+                >
+                  New Game
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => saveGame()}
+                  leftIcon={<IconZoomCheck />}
+                >
+                  Analyze
+                </Button>
+              </Group>
               <GameNotation setTree={setTree} />
               <MoveControls
                 goToStart={goToStart}

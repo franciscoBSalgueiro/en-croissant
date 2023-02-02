@@ -31,6 +31,7 @@ import {
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import {
+  CompleteGame,
   Database,
   Game,
   Outcome,
@@ -39,7 +40,6 @@ import {
   Sides,
   Speed
 } from "../../utils/db";
-import { CompleteGame } from "../boards/BoardAnalysis";
 import { genID, Tab } from "../tabs/BoardsPage";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";

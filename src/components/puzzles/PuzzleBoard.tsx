@@ -60,7 +60,7 @@ function PuzzleBoard({
                 if (puzzle.moves[currentMove * 2 + 1] === `${orig}${newDest}`) {
                   chess.move({ from: orig as Square, to: newDest });
                   if (currentMove === puzzle.moves.length / 2 - 1) {
-                    if (!ended) {
+                    if (puzzle.completion !== Completion.INCORRECT) {
                       changeCompletion(Completion.CORRECT);
                     }
                     setCurrentMove(0);

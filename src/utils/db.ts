@@ -7,6 +7,13 @@ export enum Sides {
     Any = "Any",
 }
 
+export interface CompleteGame {
+    game: Game;
+    white: Player;
+    black: Player;
+    currentMove: number;
+  }
+
 export interface Database {
     title?: string;
     description?: string;

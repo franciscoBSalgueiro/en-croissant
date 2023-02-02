@@ -7,7 +7,7 @@ import {
   Text
 } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
-import { CompleteGame } from "../boards/BoardAnalysis";
+import { CompleteGame } from "../../utils/db";
 import GamePreview from "../databases/GamePreview";
 import { Tab } from "../tabs/BoardsPage";
 
