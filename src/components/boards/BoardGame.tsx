@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconRobot, IconUsers, IconZoomCheck } from "@tabler/icons";
-import { Chess, Square } from "chess.js";
+import { Chess, DEFAULT_POSITION, Square } from "chess.js";
 import { useMemo, useState } from "react";
 import {
   chessToVariatonTree,
@@ -21,6 +21,7 @@ import { CompleteGame, Outcome, Speed } from "../../utils/db";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
+import { Tab } from "../tabs/BoardsPage";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
 
@@ -118,7 +119,15 @@ function OpponentCard({
   );
 }
 
-function BoardGame({ id }: { id: string }) {
+function BoardGame({
+  id,
+  tabs,
+  setTabs,
+}: {
+  id: string;
+  tabs: Tab[];
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+}) {
   const [opponent, setOpponent] = useSessionStorage<Opponent | null>({
     key: id + "-opponent",
     defaultValue: null,
@@ -163,18 +172,6 @@ function BoardGame({ id }: { id: string }) {
     const tree = movesToVariationTree(game.moves);
     return tree;
   }, [game.moves]);
-
-  function saveGame() {
-    setCompleteGame((prev) => {
-      const pgn = tree.getTopVariation().getPGN();
-      const newTab = {
-        ...prev,
-      };
-      newTab.game.moves = pgn;
-      newTab.currentMove = tree.half_moves;
-      return newTab;
-    });
-  }
 
   // Variation tree of all the previous moves
   const [tree, setTree] = useSessionStorage<VariationTree>({
@@ -232,12 +229,17 @@ function BoardGame({ id }: { id: string }) {
     setTree(tree.getBottomVariation());
   }
 
+  function changeToAnalysisMode() {
+    setTabs(
+      tabs.map((tab) => (tab.value === id ? { ...tab, type: "analysis" } : tab))
+    );
+  }
+
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
     ["ArrowRight", () => redoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
-    ["ctrl+S", () => saveGame()],
   ]);
 
   return (
@@ -316,14 +318,17 @@ function BoardGame({ id }: { id: string }) {
               />
               <Group grow>
                 <Button
-                  onClick={() => setOpponent(null)}
+                  onClick={() => {
+                    setOpponent(null);
+                    setTree(new VariationTree(null, DEFAULT_POSITION, null));
+                  }}
                   leftIcon={<IconPlus />}
                 >
                   New Game
                 </Button>
                 <Button
                   variant="default"
-                  onClick={() => saveGame()}
+                  onClick={() => changeToAnalysisMode()}
                   leftIcon={<IconZoomCheck />}
                 >
                   Analyze

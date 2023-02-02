@@ -212,7 +212,7 @@ export default function BoardsPage() {
         return <NewTabHome setTabs={setTabs} id={tab.value} />;
 
       case "play":
-        return <BoardGame id={tab.value} />;
+        return <BoardGame id={tab.value} tabs={tabs} setTabs={setTabs} />;
 
       case "analysis":
         return <BoardAnalysis id={tab.value} />;

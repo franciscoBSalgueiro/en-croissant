@@ -101,18 +101,6 @@ function BoardAnalysis({ id }: { id: string }) {
     return tree;
   }, [game.moves]);
 
-  function saveGame() {
-    setCompleteGame((prev) => {
-      const pgn = tree.getTopVariation().getPGN();
-      const newTab = {
-        ...prev,
-      };
-      newTab.game.moves = pgn;
-      newTab.currentMove = tree.half_moves;
-      return newTab;
-    });
-  }
-
   // Variation tree of all the previous moves
   const [tree, setTree] = useSessionStorage<VariationTree>({
     key: id + "-tree",
@@ -214,7 +202,6 @@ function BoardAnalysis({ id }: { id: string }) {
     ["ArrowRight", () => redoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
-    ["ctrl+S", () => saveGame()],
   ]);
 
   useEffect(() => {
