@@ -25,6 +25,7 @@ import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
 import TreeContext from "../common/TreeContext";
 
 function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
+  const forceUpdate = useForceUpdate();
   const tree = useContext(TreeContext);
   const theme = useMantineTheme();
   const topVariation = tree.getTopVariation();
@@ -71,6 +72,7 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
         depth={0}
         first
         setTree={setTree}
+        forceUpdate={forceUpdate}
       />
     </Paper>
   );
@@ -81,11 +83,13 @@ function RenderVariationTree({
   depth,
   first,
   setTree,
+  forceUpdate
 }: {
   tree: VariationTree;
   depth: number;
   first?: boolean;
   setTree: (tree: VariationTree) => void;
+  forceUpdate: () => void;
 }) {
   const lastMove = tree.move;
   const variations = tree.children;
@@ -108,6 +112,7 @@ function RenderVariationTree({
             setTree={setTree}
             annotation={tree.annotation}
             comment={tree.commentHTML}
+            forceUpdate={forceUpdate}
           />
         )}
         {tree.children.length > 0 && (
@@ -115,6 +120,7 @@ function RenderVariationTree({
             tree={tree.children[0]}
             depth={depth + 1}
             setTree={setTree}
+            forceUpdate={forceUpdate}
           />
         )}
       </span>
@@ -129,6 +135,7 @@ function RenderVariationTree({
                 depth={depth + 2}
                 setTree={setTree}
                 first
+                forceUpdate={forceUpdate}
               />
               {")"}
             </div>
@@ -140,6 +147,7 @@ function RenderVariationTree({
                 depth={depth + 2}
                 setTree={setTree}
                 first
+                forceUpdate={forceUpdate}
               />
               {")"}
             </>
@@ -156,12 +164,14 @@ function MoveCell({
   annotation,
   comment,
   setTree,
+  forceUpdate
 }: {
   move: string;
   variation: VariationTree;
   annotation: Annotation;
   comment: string;
   setTree: (tree: VariationTree) => void;
+  forceUpdate: () => void;
 }) {
   const tree = useContext(TreeContext);
   const theme = useMantineTheme();
@@ -174,7 +184,6 @@ function MoveCell({
     comment.includes("<blockquote>") ||
     comment.includes("<ul>") ||
     comment.includes("<h");
-  const forceUpdate = useForceUpdate();
 
   function promoteVariation(variation: VariationTree) {
     const isCurrent = variation === tree;
