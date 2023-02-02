@@ -73,7 +73,7 @@ piece.fading {
 }
 
 .cg-wrap piece.ghost {
-  opacity: 0.3;
+  opacity: 0;
 }
 
 .cg-wrap piece svg {

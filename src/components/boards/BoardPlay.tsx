@@ -164,6 +164,7 @@ function BoardPlay({
           height={"100%"}
           orientation={orientation}
           fen={fen}
+          coordinates={false}
           movable={{
             free: editingMode,
             color: editingMode ? "both" : turn,

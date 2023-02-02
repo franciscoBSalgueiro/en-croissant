@@ -4,9 +4,9 @@
   <g id="b">
     <g id="c">
       <g id="d">
-        <rect width="1" height="1" fill="#FFFFFF" id="e"/>
+        <rect width="1" height="1" fill="#e9ecef" id="e"/>
         <use x="1" y="1" href="#e" x:href="#e"/>
-        <rect y="1" width="1" height="1" fill="#98A1A6" id="f"/>
+        <rect y="1" width="1" height="1" fill="#868e96" id="f"/>
         <use x="1" y="-1" href="#f" x:href="#f"/>
       </g>
       <use x="2" href="#d" x:href="#d"/>

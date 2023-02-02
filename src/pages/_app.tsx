@@ -10,13 +10,12 @@ import type { AppProps } from "next/app";
 import { SideBar } from "../components/Sidebar";
 
 // Chessground styles
-// import "chessground/assets/chessground.brown.css";
 import { useLocalStorage } from "@mantine/hooks";
 import "chessground/assets/chessground.cburnett.css";
 import Head from "next/head";
 import "../styles/chessgroundBaseOverride.css";
 import "../styles/chessgroundColorsOverride.css";
-import "../styles/chessgroundPiecesOverride.css";
+import "../styles/staunty.css";
 
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -49,6 +48,57 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         theme={{
           colorScheme,
           primaryColor,
+          globalStyles: (theme) => ({
+            "cg-board": {
+              "square.last-move": {
+                background: theme.fn.rgba(
+                  theme.colors[theme.primaryColor][
+                    theme.colorScheme === "dark" ? 5 : 3
+                  ],
+                  0.4
+                ),
+              },
+              "square.selected": {
+                backgroundColor: theme.fn.rgba(
+                  theme.colors[theme.primaryColor][
+                    theme.colorScheme === "dark" ? 5 : 3
+                  ],
+                  0.5
+                ),
+              },
+              "square.move-dest": {
+                backgroundColor: theme.fn.rgba(theme.black, 0.3),
+                borderRadius: "50%",
+                padding: "4%",
+                backgroundClip: "content-box",
+                boxSizing: "border-box",
+                ":hover": {
+                  backgroundColor: theme.fn.rgba(
+                    theme.colors[theme.primaryColor][
+                      theme.colorScheme === "dark" ? 5 : 3
+                    ],
+                    0.6
+                  ),
+                  borderRadius: 0,
+                  padding: 0
+                },
+              },
+              "square.oc.move-dest": {
+                background: "none",
+                border: `5px solid ${theme.fn.rgba(theme.black, 0.3)}`,
+                borderRadius: 0,
+                ":hover": {
+                  background: theme.fn.rgba(
+                    theme.colors[theme.primaryColor][
+                      theme.colorScheme === "dark" ? 5 : 3
+                    ],
+                    0.6
+                  ),
+                  borderRadius: 0,
+                },
+              },
+            },
+          }),
         }}
       >
         <NotificationsProvider>

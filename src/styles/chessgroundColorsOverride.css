@@ -1,33 +1,19 @@
 /** Colored board squares as an embedded SVG */
+
 cg-board {
-  /* background-color: #f0d9b5; */
-  /* background-color: #ffedcc; */
-  background-image: url("/board.svg");}
+  background-image: url("/board.svg");
+  border-radius: 10px;
+}
 
 /** Interactive board square colors */
-cg-board square.move-dest {
-  background: radial-gradient(rgba(20, 85, 30, 0.5) 22%, #208530 0, rgba(0, 0, 0, 0.3) 0, rgba(0, 0, 0, 0) 0);
-}
 cg-board square.premove-dest {
   background: radial-gradient(rgba(20, 30, 85, 0.5) 22%, #203085 0, rgba(0, 0, 0, 0.3) 0, rgba(0, 0, 0, 0) 0);
-}
-cg-board square.oc.move-dest {
-  background: radial-gradient(transparent 0%, transparent 80%, rgba(20, 85, 0, 0.3) 80%);
 }
 cg-board square.oc.premove-dest {
   background: radial-gradient(transparent 0%, transparent 80%, rgba(20, 30, 85, 0.2) 80%);
 }
-cg-board square.move-dest:hover {
-  background: rgba(20, 85, 30, 0.3);
-}
 cg-board square.premove-dest:hover {
   background: rgba(20, 30, 85, 0.2);
-}
-cg-board square.last-move {
-  background-color: rgba(155, 199, 0, 0.41);
-}
-cg-board square.selected {
-  background-color: rgba(20, 85, 30, 0.5);
 }
 cg-board square.check {
   background: radial-gradient(
