@@ -1,11 +1,15 @@
 import {
   ActionIcon,
-  Box,
   Button,
   CopyButton,
+  createStyles,
+  Divider,
+  Group,
   Menu,
   Overlay,
   Paper,
+  ScrollArea,
+  Stack,
   Tooltip,
   TypographyStylesProvider,
   useMantineTheme
@@ -23,6 +27,17 @@ import {
 import { useContext } from "react";
 import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
 import TreeContext from "../common/TreeContext";
+import OpeningName from "./OpeningName";
+
+const useStyles = createStyles((theme) => ({
+  scroller: {
+    position: "sticky",
+    top: 0,
+    backgroundColor:
+      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
+    zIndex: 10,
+  },
+}));
 
 function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
   const forceUpdate = useForceUpdate();
@@ -30,34 +45,10 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
   const theme = useMantineTheme();
   const topVariation = tree.getTopVariation();
   const [invisible, toggleVisible] = useToggle();
+  const { classes } = useStyles();
 
   return (
-    <Paper withBorder p="md" sx={{ minHeight: "250px", position: "relative" }}>
-      <Box
-        sx={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          display: "flex",
-          alignItems: "center",
-          zIndex: 10,
-        }}
-      >
-        <Tooltip label={invisible ? "Hide moves" : "Show moves"}>
-          <ActionIcon onClick={() => toggleVisible()}>
-            {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-          </ActionIcon>
-        </Tooltip>
-        <CopyButton value={topVariation.getPGN()} timeout={2000}>
-          {({ copied, copy }) => (
-            <Tooltip label={copied ? "Copied" : "Copy"} withArrow>
-              <ActionIcon color={copied ? "teal" : "gray"} onClick={copy}>
-                {copied ? <IconCheck size={15} /> : <IconCopy size={15} />}
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </CopyButton>
-      </Box>
+    <Paper withBorder p="md" sx={{ position: "relative" }}>
       {invisible && (
         <Overlay
           opacity={0.6}
@@ -66,14 +57,50 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
           zIndex={2}
         />
       )}
-
-      <RenderVariationTree
-        tree={topVariation}
-        depth={0}
-        first
-        setTree={setTree}
-        forceUpdate={forceUpdate}
-      />
+      <ScrollArea style={{ maxHeight: "200px" }} offsetScrollbars>
+        <Stack>
+          <Stack className={classes.scroller}>
+            <Group style={{ justifyContent: "space-between" }}>
+              <OpeningName />
+              <Group spacing="sm">
+                <Tooltip label={invisible ? "Hide moves" : "Show moves"}>
+                  <ActionIcon onClick={() => toggleVisible()}>
+                    {invisible ? (
+                      <IconEyeOff size={15} />
+                    ) : (
+                      <IconEye size={15} />
+                    )}
+                  </ActionIcon>
+                </Tooltip>
+                <CopyButton value={topVariation.getPGN()} timeout={2000}>
+                  {({ copied, copy }) => (
+                    <Tooltip label={copied ? "Copied" : "Copy"} withArrow>
+                      <ActionIcon
+                        color={copied ? "teal" : "gray"}
+                        onClick={copy}
+                      >
+                        {copied ? (
+                          <IconCheck size={15} />
+                        ) : (
+                          <IconCopy size={15} />
+                        )}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </CopyButton>
+              </Group>
+            </Group>
+            <Divider />
+          </Stack>
+          <RenderVariationTree
+            tree={topVariation}
+            depth={0}
+            first
+            setTree={setTree}
+            forceUpdate={forceUpdate}
+          />
+        </Stack>
+      </ScrollArea>
     </Paper>
   );
 }
@@ -83,7 +110,7 @@ function RenderVariationTree({
   depth,
   first,
   setTree,
-  forceUpdate
+  forceUpdate,
 }: {
   tree: VariationTree;
   depth: number;
@@ -98,23 +125,32 @@ function RenderVariationTree({
   return (
     <>
       <span>
-        {tree.half_moves > 0 && (first || is_white) && (
-          <span style={{ paddingLeft: tree.half_moves == 1 || first ? 0 : 12 }}>
-            {move_number}
-            {is_white ? "." : "..."}
+        <span style={{ display: "inline-block" }}>
+          {tree.half_moves > 0 && (first || is_white) && (
+            <span>
+              {move_number}
+              {is_white ? "." : "..."}
+            </span>
+          )}
+          <span
+            style={{
+              paddingRight:
+                tree.half_moves !== 0 && tree.half_moves % 2 == 0 ? 12 : 0,
+            }}
+          >
+            {lastMove && (
+              <MoveCell
+                move={lastMove.san}
+                variation={tree}
+                setTree={setTree}
+                annotation={tree.annotation}
+                comment={tree.commentHTML}
+                forceUpdate={forceUpdate}
+              />
+            )}
           </span>
-        )}
+        </span>
 
-        {lastMove && (
-          <MoveCell
-            move={lastMove.san}
-            variation={tree}
-            setTree={setTree}
-            annotation={tree.annotation}
-            comment={tree.commentHTML}
-            forceUpdate={forceUpdate}
-          />
-        )}
         {tree.children.length > 0 && (
           <RenderVariationTree
             tree={tree.children[0]}
@@ -164,7 +200,7 @@ function MoveCell({
   annotation,
   comment,
   setTree,
-  forceUpdate
+  forceUpdate,
 }: {
   move: string;
   variation: VariationTree;

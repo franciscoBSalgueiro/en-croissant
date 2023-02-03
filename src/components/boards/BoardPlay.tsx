@@ -3,6 +3,7 @@ import {
   AspectRatio,
   Box,
   Card,
+  createStyles,
   Group,
   Modal,
   SimpleGrid,
@@ -32,6 +33,14 @@ import {
 import { CompleteGame, Outcome } from "../../utils/db";
 import TreeContext from "../common/TreeContext";
 import OpeningName from "./OpeningName";
+
+const useStyles = createStyles((theme) => ({
+  chessboard: {
+    aspectRatio: "1 / 1",
+    position: "relative",
+    zIndex: 1,
+  },
+}));
 
 interface ChessboardProps {
   arrows: string[];
@@ -113,6 +122,7 @@ function BoardPlay({
     to: Square;
   } | null>(null);
   const [orientation, toggleOrientation] = useToggle<Color>(["white", "black"]);
+  const { classes } = useStyles();
 
   useHotkeys([["f", () => toggleOrientation()]]);
 
@@ -129,7 +139,7 @@ function BoardPlay({
         </Card>
       )}
 
-      <div style={{ aspectRatio: 1, position: "relative", zIndex: 1 }}>
+      <div className={classes.chessboard}>
         <Modal
           opened={pendingMove !== null}
           onClose={() => setPendingMove(null)}

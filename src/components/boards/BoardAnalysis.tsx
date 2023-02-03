@@ -1,4 +1,7 @@
-import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
+import {
+  Accordion, ScrollArea, SimpleGrid, Stack,
+  Tabs
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   useForceUpdate,

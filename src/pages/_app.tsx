@@ -80,7 +80,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                     0.6
                   ),
                   borderRadius: 0,
-                  padding: 0
+                  padding: 0,
                 },
               },
               "square.oc.move-dest": {
@@ -103,7 +103,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       >
         <NotificationsProvider>
           <AppShell
-            // padding="md"
             navbar={<SideBar />}
             styles={(theme) => ({
               main: {
