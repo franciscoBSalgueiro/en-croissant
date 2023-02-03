@@ -9,7 +9,7 @@ import {
 import { useSessionStorage } from "@mantine/hooks";
 import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PuzzleBoard from "./PuzzleBoard";
 
 export enum Completion {
@@ -33,7 +33,7 @@ function Puzzles({ id }: { id: string }) {
     key: id,
     defaultValue: [],
   });
-  const [currentPuzzle, setCurrentPuzzle] = useState(puzzles.length);
+  const [currentPuzzle, setCurrentPuzzle] = useState(0);
 
   function generatePuzzle() {
     invoke("get_puzzle", {
@@ -44,7 +44,7 @@ function Puzzles({ id }: { id: string }) {
       setPuzzles((puzzles) => {
         return [...puzzles, res];
       });
-      setCurrentPuzzle((currentPuzzle) => currentPuzzle + 1);
+      setCurrentPuzzle(puzzles.length);
     });
   }
 
@@ -54,6 +54,12 @@ function Puzzles({ id }: { id: string }) {
       return [...puzzles];
     });
   }
+
+  useEffect(() => {
+    if (sessionStorage.getItem(id) === null) {
+      generatePuzzle();
+    }
+  }, []);
 
   return (
     <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
