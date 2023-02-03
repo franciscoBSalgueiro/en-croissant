@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Box,
   Button,
   CopyButton,
   createStyles,
@@ -46,6 +47,7 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
   const topVariation = tree.getTopVariation();
   const [invisible, toggleVisible] = useToggle();
   const { classes } = useStyles();
+  const pgn = topVariation.getPGN();
 
   return (
     <Paper withBorder p="md" sx={{ position: "relative" }}>
@@ -57,7 +59,7 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
           zIndex={2}
         />
       )}
-      <ScrollArea style={{ maxHeight: "200px" }} offsetScrollbars>
+      <ScrollArea style={{ height: "200px" }} offsetScrollbars>
         <Stack>
           <Stack className={classes.scroller}>
             <Group style={{ justifyContent: "space-between" }}>
@@ -72,7 +74,7 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
                     )}
                   </ActionIcon>
                 </Tooltip>
-                <CopyButton value={topVariation.getPGN()} timeout={2000}>
+                <CopyButton value={pgn} timeout={2000}>
                   {({ copied, copy }) => (
                     <Tooltip label={copied ? "Copied" : "Copy"} withArrow>
                       <ActionIcon
@@ -92,13 +94,15 @@ function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
             </Group>
             <Divider />
           </Stack>
-          <RenderVariationTree
-            tree={topVariation}
-            depth={0}
-            first
-            setTree={setTree}
-            forceUpdate={forceUpdate}
-          />
+          <Box>
+            <RenderVariationTree
+              tree={topVariation}
+              depth={0}
+              first
+              setTree={setTree}
+              forceUpdate={forceUpdate}
+            />
+          </Box>
         </Stack>
       </ScrollArea>
     </Paper>
@@ -122,74 +126,51 @@ function RenderVariationTree({
   const variations = tree.children;
   const move_number = Math.ceil(tree.half_moves / 2);
   const is_white = tree.half_moves % 2 === 1;
+  const hasNumber = tree.half_moves > 0 && (first || is_white);
+
   return (
     <>
-      <span>
-        <span style={{ display: "inline-block" }}>
-          {tree.half_moves > 0 && (first || is_white) && (
-            <span>
-              {move_number}
-              {is_white ? "." : "..."}
-            </span>
-          )}
-          <span
-            style={{
-              paddingRight:
-                tree.half_moves !== 0 && tree.half_moves % 2 == 0 ? 12 : 0,
-            }}
-          >
-            {lastMove && (
-              <MoveCell
-                move={lastMove.san}
-                variation={tree}
-                setTree={setTree}
-                annotation={tree.annotation}
-                comment={tree.commentHTML}
-                forceUpdate={forceUpdate}
-              />
-            )}
-          </span>
-        </span>
-
-        {tree.children.length > 0 && (
-          <RenderVariationTree
-            tree={tree.children[0]}
-            depth={depth + 1}
+      <Box
+        component="span"
+        sx={{ display: "inline-block", marginLeft: hasNumber ? 6 : 0 }}
+      >
+        {hasNumber && (
+          <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
+        )}
+        {lastMove && (
+          <MoveCell
+            move={lastMove.san}
+            variation={tree}
             setTree={setTree}
+            annotation={tree.annotation}
+            comment={tree.commentHTML}
             forceUpdate={forceUpdate}
           />
         )}
-      </span>
+      </Box>
 
       {variations.slice(1).map((variation) => (
         <>
-          {depth == 1 ? (
-            <div>
-              {"("}
-              <RenderVariationTree
-                tree={variation}
-                depth={depth + 2}
-                setTree={setTree}
-                first
-                forceUpdate={forceUpdate}
-              />
-              {")"}
-            </div>
-          ) : (
-            <>
-              {"("}
-              <RenderVariationTree
-                tree={variation}
-                depth={depth + 2}
-                setTree={setTree}
-                first
-                forceUpdate={forceUpdate}
-              />
-              {")"}
-            </>
-          )}
+          {"("}
+          <RenderVariationTree
+            tree={variation}
+            depth={depth + 2}
+            setTree={setTree}
+            first
+            forceUpdate={forceUpdate}
+          />
+          {")"}
         </>
       ))}
+
+      {tree.children.length > 0 && (
+        <RenderVariationTree
+          tree={tree.children[0]}
+          depth={depth + 1}
+          setTree={setTree}
+          forceUpdate={forceUpdate}
+        />
+      )}
     </>
   );
 }

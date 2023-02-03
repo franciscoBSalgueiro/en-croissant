@@ -1,7 +1,4 @@
-import {
-  Accordion, ScrollArea, SimpleGrid, Stack,
-  Tabs
-} from "@mantine/core";
+import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   useForceUpdate,
@@ -142,14 +139,14 @@ function BoardAnalysis({ id }: { id: string }) {
       const newTree = new VariationTree(tree, chess.fen(), newMove);
       if (tree.children.length === 0) {
         tree.children = [newTree];
+        setTree(newTree);
       } else if (tree.children.every((child) => child.fen !== chess.fen())) {
         tree.children.push(newTree);
+        setTree(newTree);
       } else {
         const child = tree.children.find((child) => child.fen === chess.fen());
         setTree(child!);
-        return;
       }
-      setTree(newTree);
     }
   }
 
