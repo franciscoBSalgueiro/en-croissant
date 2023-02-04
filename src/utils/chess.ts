@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api";
-import { Chess, DEFAULT_POSITION, KING, Move, Square, SQUARES } from "chess.js";
+import { Chess, DEFAULT_POSITION, KING, Move, ROOK, Square, SQUARES } from "chess.js";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome, Speed } from "./db";
 
@@ -307,7 +307,7 @@ export function handleMove(chess: Chess, orig: Key, dest: Key): Square | null {
         return null;
     }
     // allow castling to the rooks
-    if (chess.get(orig)?.type === KING) {
+    if (chess.get(orig).type === KING && chess.get(dest).type === ROOK) {
         switch (dest) {
             case "h1":
                 dest = "g1";
