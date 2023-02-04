@@ -9,7 +9,7 @@ function OpeningName() {
 
   getOpening(tree).then((v) => setOpeningName(v));
 
-  return <Text h="1rem" fz="sm">{openingName}</Text>;
+  return <Text fz="sm">{openingName}</Text>;
 }
 
 export default OpeningName;

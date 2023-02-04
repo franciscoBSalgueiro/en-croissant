@@ -23,19 +23,19 @@ export function annotationColor(annotation: Annotation) {
         case Annotation.Brilliant:
             color = "cyan";
             break;
-        case "!":
+        case Annotation.Good:
             color = "teal";
             break;
-        case "!?":
+        case Annotation.Interesting:
             color = "lime";
             break;
-        case "?!":
+        case Annotation.Dubious:
             color = "yellow";
             break;
-        case "?":
+        case Annotation.Mistake:
             color = "orange";
             break;
-        case "??":
+        case Annotation.Blunder:
             color = "red";
             break;
         default:

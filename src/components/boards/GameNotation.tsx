@@ -1,12 +1,10 @@
 import {
   ActionIcon,
   Box,
-  Button,
   CopyButton,
   createStyles,
   Divider,
   Group,
-  Menu,
   Overlay,
   Paper,
   ScrollArea,
@@ -15,16 +13,8 @@ import {
   TypographyStylesProvider,
   useMantineTheme
 } from "@mantine/core";
-import { useClickOutside, useForceUpdate, useToggle } from "@mantine/hooks";
-import {
-  IconCheck,
-  IconChevronDown,
-  IconChevronUp,
-  IconCopy,
-  IconEye,
-  IconEyeOff,
-  IconTrash
-} from "@tabler/icons";
+import { useForceUpdate, useToggle } from "@mantine/hooks";
+import { IconCheck, IconCopy, IconEye, IconEyeOff } from "@tabler/icons";
 import { useContext } from "react";
 import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
 import TreeContext from "../common/TreeContext";
@@ -40,11 +30,15 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function GameNotation({ setTree }: { setTree: (tree: VariationTree) => void }) {
+function GameNotation({
+  setTree,
+  topVariation,
+}: {
+  setTree: (tree: VariationTree) => void;
+  topVariation: VariationTree;
+}) {
   const forceUpdate = useForceUpdate();
-  const tree = useContext(TreeContext);
   const theme = useMantineTheme();
-  const topVariation = tree.getTopVariation();
   const [invisible, toggleVisible] = useToggle();
   const { classes } = useStyles();
   const pgn = topVariation.getPGN();
@@ -132,7 +126,11 @@ function RenderVariationTree({
     <>
       <Box
         component="span"
-        sx={{ display: "inline-block", marginLeft: hasNumber ? 6 : 0 }}
+        sx={{
+          display: "inline-block",
+          marginLeft: hasNumber ? 6 : 0,
+          fontSize: 14,
+        }}
       >
         {hasNumber && (
           <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
@@ -175,6 +173,41 @@ function RenderVariationTree({
   );
 }
 
+const useMoveStyles = createStyles(
+  (
+    theme,
+    {
+      isCurrentVariation,
+      color,
+    }: { isCurrentVariation: boolean; color: string }
+  ) => ({
+    cell: {
+      all: "unset",
+      fontSize: 14,
+      fontWeight: 600,
+      display: "inline-block",
+      padding: 6,
+      borderRadius: 4,
+      cursor: "pointer",
+      color:
+        color === "gray"
+          ? theme.colorScheme === "dark"
+            ? theme.white
+            : theme.colors.gray[8]
+          : theme.colors[color][6],
+      backgroundColor: isCurrentVariation
+        ? theme.fn.rgba(theme.colors[color][6], 0.2)
+        : "transparent",
+      "&:hover": {
+        backgroundColor: theme.fn.rgba(
+          theme.colors[color][6],
+          isCurrentVariation ? 0.25 : 0.1
+        ),
+      },
+    },
+  })
+);
+
 function MoveCell({
   move,
   variation,
@@ -191,10 +224,7 @@ function MoveCell({
   forceUpdate: () => void;
 }) {
   const tree = useContext(TreeContext);
-  const theme = useMantineTheme();
   const isCurrentVariation = variation.equals(tree);
-  const [open, toggleOpen] = useToggle();
-  const ref = useClickOutside(() => toggleOpen(false));
   const color = annotationColor(annotation);
   const multipleLine =
     comment.split("</p>").length - 1 > 1 ||
@@ -247,64 +277,19 @@ function MoveCell({
     }
   }
 
+  const { classes } = useMoveStyles({ isCurrentVariation, color });
+
   return (
     <>
-      <Menu opened={open} width={200}>
-        <Menu.Target ref={ref}>
-          <Button
-            p={4}
-            variant={isCurrentVariation ? "light" : "subtle"}
-            color={
-              isCurrentVariation && tree.annotation === Annotation.None
-                ? theme.colors[theme.primaryColor][0]
-                : color
-            }
-            onContextMenu={(e: any) => {
-              toggleOpen();
-              e.preventDefault();
-            }}
-            onClick={() => {
-              setTree(variation);
-              toggleOpen(false);
-            }}
-          >
-            {move + annotation}
-          </Button>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Label>Actions</Menu.Label>
-          <Menu.Item
-            icon={<IconChevronUp size={14} />}
-            onClick={() => promoteVariation(variation)}
-            disabled={
-              tree.parent === null ||
-              tree.parent.children.length === 1 ||
-              variation === tree.parent.children[0]
-            }
-          >
-            Promote Variation
-          </Menu.Item>
-          <Menu.Item
-            icon={<IconChevronDown size={14} />}
-            onClick={() => demoteVariation(variation)}
-            disabled={
-              tree.parent === null ||
-              tree.parent.children.length === 1 ||
-              variation ===
-                tree.parent.children[tree.parent.children.length - 1]
-            }
-          >
-            Demote Variation
-          </Menu.Item>
-          <Menu.Item
-            color="red"
-            icon={<IconTrash size={14} />}
-            onClick={() => deleteVariation(variation)}
-          >
-            Delete Move
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+      <Box
+        component="button"
+        className={classes.cell}
+        onClick={() => {
+          setTree(variation);
+        }}
+      >
+        {move + annotation}
+      </Box>
       {comment && (
         <TypographyStylesProvider
           style={{
