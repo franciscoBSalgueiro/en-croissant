@@ -1,13 +1,16 @@
 import {
   ActionIcon,
   Card,
+  Divider,
   Group,
+  RangeSlider,
   SimpleGrid,
   Stack,
-  Text
+  Text,
+  Tooltip
 } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
-import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons";
+import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
+import { IconCheck, IconDots, IconPlus, IconTrash, IconX } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import PuzzleBoard from "./PuzzleBoard";
@@ -35,9 +38,29 @@ function Puzzles({ id }: { id: string }) {
   });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
 
+  const [ratingRange, setRatingRange] = useLocalStorage<[number, number]>({
+    key: "puzzle-ratings",
+    defaultValue: [1000, 1500],
+  });
+
+  const wonPuzzles = puzzles.filter(
+    (puzzle) => puzzle.completion === Completion.CORRECT
+  );
+  const lostPuzzles = puzzles.filter(
+    (puzzle) => puzzle.completion === Completion.INCORRECT
+  );
+  const averageWonRating =
+    wonPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
+    wonPuzzles.length;
+  const averageLostRating =
+    lostPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
+    lostPuzzles.length;
+
   function generatePuzzle() {
     invoke("get_puzzle", {
       file: "C:\\Users\\Francisco\\Desktop\\puzzles.sql",
+      minRating: ratingRange[0],
+      maxRating: ratingRange[1],
     }).then((res: any) => {
       res.moves = res.moves.split(" ");
       res.completion = Completion.INCOMPLETE;
@@ -75,15 +98,57 @@ function Puzzles({ id }: { id: string }) {
       )}
       <Stack>
         <Card>
-          <Text size="sm" color="dimmed">
-            Rating
-          </Text>
-          <Text weight={500} size="xl">
-            {puzzles[currentPuzzle]?.rating}
-          </Text>
-          <ActionIcon onClick={() => generatePuzzle()}>
-            <IconPlus />
-          </ActionIcon>
+          <Group>
+            <div>
+              <Text size="sm" color="dimmed">
+                Rating
+              </Text>
+              <Text weight={500} size="xl">
+                {puzzles[currentPuzzle]?.rating}
+              </Text>
+            </div>
+            {averageWonRating && (
+              <div>
+                <Text size="sm" color="dimmed">
+                  Average Won Rating
+                </Text>
+                <Text weight={500} size="xl">
+                  {averageWonRating.toFixed(0)}
+                </Text>
+              </div>
+            )}
+            {averageLostRating && (
+              <div>
+                <Text size="sm" color="dimmed">
+                  Average Lost Rating
+                </Text>
+                <Text weight={500} size="xl">
+                  {averageLostRating.toFixed(0)}
+                </Text>
+              </div>
+            )}
+          </Group>
+          <Divider my="sm" />
+          <Text>Rating Range</Text>
+          <RangeSlider
+            min={600}
+            max={2800}
+            value={ratingRange}
+            onChange={setRatingRange}
+          />
+          <Divider my="sm" />
+          <Group>
+            <Tooltip label="New Puzzle">
+              <ActionIcon onClick={() => generatePuzzle()}>
+                <IconPlus />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Clear Session">
+              <ActionIcon onClick={() => setPuzzles([])}>
+                <IconTrash />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </Card>
         <Card>
           <Text>Results</Text>

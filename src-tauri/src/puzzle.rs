@@ -12,9 +12,7 @@ pub struct Puzzle {
     pub nb_plays: u32,
 }
 
-#[tauri::command]
-pub fn get_puzzle(file: PathBuf) -> Result<Puzzle, String> {
-    let db = rusqlite::Connection::open(&file).expect("open database");
+fn get_puzzle_from_db(db: &rusqlite::Connection) -> Result<Puzzle, String> {
     let mut stmt = db
         .prepare("select * from puzzles where rowid = (abs(random()) % (select (select max(rowid) from puzzles)+1));")
         .expect("prepare");
@@ -35,4 +33,18 @@ pub fn get_puzzle(file: PathBuf) -> Result<Puzzle, String> {
         popularity,
         nb_plays,
     })
+}
+
+#[tauri::command]
+pub fn get_puzzle(file: PathBuf, min_rating: usize, max_rating: usize) -> Result<Puzzle, String> {
+    let db = rusqlite::Connection::open(&file).expect("open database");
+    for _ in 0..5000 as usize {
+        let Ok(puzzle) = get_puzzle_from_db(&db) else { 
+            continue; 
+        };
+        if puzzle.rating >= min_rating as u32 && puzzle.rating <= max_rating as u32 {
+            return Ok(puzzle);
+        }
+    }
+    Err("No puzzle found".to_string())
 }
