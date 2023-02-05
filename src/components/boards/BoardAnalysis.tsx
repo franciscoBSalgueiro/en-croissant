@@ -1,4 +1,10 @@
-import { Accordion, ScrollArea, SimpleGrid, Stack, Tabs } from "@mantine/core";
+import {
+  Accordion,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
+  Tabs
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   useForceUpdate,
@@ -281,6 +287,7 @@ function BoardAnalysis({ id }: { id: string }) {
           <GameNotation
             setTree={setTree}
             topVariation={tree.getTopVariation()}
+            outcome={game.outcome}
           />
           <MoveControls
             goToStart={goToStart}

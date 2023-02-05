@@ -9,6 +9,7 @@ import {
   Paper,
   ScrollArea,
   Stack,
+  Text,
   Tooltip,
   TypographyStylesProvider,
   useMantineTheme
@@ -17,6 +18,7 @@ import { useForceUpdate, useToggle } from "@mantine/hooks";
 import { IconCheck, IconCopy, IconEye, IconEyeOff } from "@tabler/icons";
 import { useContext } from "react";
 import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
+import { Outcome } from "../../utils/db";
 import TreeContext from "../common/TreeContext";
 import OpeningName from "./OpeningName";
 
@@ -33,9 +35,11 @@ const useStyles = createStyles((theme) => ({
 function GameNotation({
   setTree,
   topVariation,
+  outcome,
 }: {
   setTree: (tree: VariationTree) => void;
   topVariation: VariationTree;
+  outcome: Outcome;
 }) {
   const forceUpdate = useForceUpdate();
   const theme = useMantineTheme();
@@ -97,6 +101,19 @@ function GameNotation({
               forceUpdate={forceUpdate}
             />
           </Box>
+          {outcome !== Outcome.Unknown && (
+            <Text align="center">
+              {outcome}
+              <br />
+              <Text span fs="italic">
+                {outcome === Outcome.Draw
+                  ? "Draw"
+                  : outcome === Outcome.WhiteWin
+                  ? "White wins"
+                  : "Black wins"}
+              </Text>
+            </Text>
+          )}
         </Stack>
       </ScrollArea>
     </Paper>
