@@ -95,7 +95,11 @@ export class VariationTree {
         return this.fen === other.fen;
     }
 
-    getMoveText(isFirst?: boolean): string {
+    getMoveText(
+        symbols: boolean,
+        comments: boolean,
+        isFirst?: boolean
+    ): string {
         if (this.move === null) {
             return "";
         }
@@ -109,27 +113,38 @@ export class VariationTree {
         } else {
             moveText += `${moveNumber}. `;
         }
-        moveText += this.move.san + this.annotation + " ";
-        if (this.commentText !== "") {
+        moveText += this.move.san;
+        if (symbols) {
+            moveText += this.annotation;
+        }
+        moveText += " ";
+        if (comments && this.commentText !== "") {
             moveText += `{${this.commentText}} `;
         }
         return moveText;
     }
 
-    getPGN(): string {
+    getPGN(
+        symbols: boolean = true,
+        comments: boolean = true,
+        variations: boolean = true
+    ): string {
         let pgn = "";
-        const variationsPGN = this.children
-            .slice(1)
-            .map(
-                (variation) =>
-                    `${variation.getMoveText(true)} ${variation.getPGN()}`
-            );
-        if (this.children.length > 0) {
-            console.log(this.children[0].move?.san);
-        }
+        const variationsPGN = variations
+            ? this.children
+                  .slice(1)
+                  .map(
+                      (variation) =>
+                          `${variation.getMoveText(
+                              symbols,
+                              comments,
+                              true
+                          )} ${variation.getPGN(symbols, comments, variations)}`
+                  )
+            : [];
         if (this.children.length > 0) {
             const child = this.children[0];
-            pgn += child.getMoveText();
+            pgn += child.getMoveText(symbols, comments);
         }
         if (variationsPGN.length >= 1) {
             variationsPGN.forEach((variation) => {
@@ -138,7 +153,7 @@ export class VariationTree {
         }
 
         if (this.children.length > 0) {
-            pgn += this.children[0].getPGN();
+            pgn += this.children[0].getPGN(symbols, comments, variations);
         }
         return pgn;
     }
