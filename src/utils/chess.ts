@@ -155,7 +155,7 @@ export class VariationTree {
         if (this.children.length > 0) {
             pgn += this.children[0].getPGN(symbols, comments, variations);
         }
-        return pgn;
+        return pgn.trim();
     }
 
     getTopVariation(): VariationTree {
@@ -264,27 +264,68 @@ export function swapMove(fen: string) {
     return fenGroups.join(" ");
 }
 
-export function chessToVariatonTree(chess: Chess, currentMove?: number) {
-    let tree = new VariationTree(null, DEFAULT_POSITION, null);
-    let currentTree = tree;
-    const newChess = new Chess(DEFAULT_POSITION);
-    chess.history().forEach((move) => {
-        const m = newChess.move(move);
-        const newTree = new VariationTree(currentTree, newChess.fen(), m);
-        currentTree.children.push(newTree);
-        currentTree = newTree;
-    });
-    if (currentMove !== undefined) {
-        let root = tree.getTopVariation();
-        for (let i = 0; i < currentMove; i++) {
-            if (root.children.length === 0) {
-                break;
-            }
-            root = root.children[0];
+export function pgnParser(
+    pgn: string,
+    fen: string = DEFAULT_POSITION
+): VariationTree {
+    let tree = new VariationTree(null, fen, null);
+    pgn = pgn.replaceAll("(", " ( ");
+    pgn = pgn.replaceAll(")", " ) ");
+    pgn = pgn.replaceAll("{", " { ");
+    pgn = pgn.replaceAll("}", " } ");
+    pgn = pgn.replaceAll(/\s+/g, " ");
+    pgn = pgn.trim();
+    const tokens = pgn.split(" ");
+
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        if (token === "" || token.includes(".")) {
+            continue;
         }
-        return root;
+        if (token === "{") {
+            let comment = "";
+            while (tokens[i] !== "}") {
+                comment += tokens[i] + " ";
+                i++;
+            }
+            tree.commentText = comment;
+        } else if (token === "(") {
+            let variation = "";
+            let subvariations = 0;
+            i++;
+            while (subvariations > 0 || tokens[i] !== ")") {
+                if (tokens[i] === "(") {
+                    subvariations++;
+                } else if (tokens[i] === ")") {
+                    subvariations--;
+                }
+                variation += tokens[i] + " ";
+
+                i++;
+            }
+            tree = tree.parent!;
+            const variationTree = pgnParser(variation, tree.fen).children[0];
+            variationTree.parent = tree;
+            tree.children.push(variationTree);
+            tree = tree.children[0];
+        } else if (token === ")") {
+            continue;
+        } else if (token === "1-0" || token === "0-1" || token === "1/2-1/2") {
+            break;
+        } else {
+            const chess = new Chess(tree.fen);
+            const m = chess.move(token);
+
+            if (m === null) {
+                throw new Error("Invalid move");
+            }
+            const newTree = new VariationTree(tree, chess.fen(), m);
+            tree.children.push(newTree);
+            tree = newTree;
+        }
     }
-    return tree;
+    return tree.getTopVariation();
 }
 
 export function movesToVariationTree(

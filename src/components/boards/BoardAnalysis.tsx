@@ -1,9 +1,10 @@
 import {
   Accordion,
+  Button,
   ScrollArea,
   SimpleGrid,
   Stack,
-  Tabs
+  Tabs,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
@@ -11,15 +12,15 @@ import {
   useHotkeys,
   useLocalStorage,
   useSessionStorage,
-  useToggle
+  useToggle,
 } from "@mantine/hooks";
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import {
-  chessToVariatonTree,
   movesToVariationTree,
-  VariationTree
+  pgnParser,
+  VariationTree,
 } from "../../utils/chess";
 import { CompleteGame, Outcome, Speed } from "../../utils/db";
 import { Engine } from "../../utils/engines";
@@ -91,16 +92,12 @@ function BoardAnalysis({ id }: { id: string }) {
     if (storedTree) {
       const { pgn, currentMove } = JSON.parse(storedTree);
       if (pgn !== "") {
-        const chess = new Chess();
-        chess.loadPgn(pgn);
-        const tree = chessToVariatonTree(chess, currentMove);
+        const tree = pgnParser(pgn);
         return tree;
       }
     }
     if (game.moves[0] === "1" || game.moves[0] === "[") {
-      const chess = new Chess();
-      chess.loadPgn(game.moves);
-      const tree = chessToVariatonTree(chess);
+      const tree = pgnParser(game.moves);
       return tree;
     }
     const tree = movesToVariationTree(game.moves);
@@ -120,9 +117,7 @@ function BoardAnalysis({ id }: { id: string }) {
     },
     deserialize: (value) => {
       const { pgn, currentMove } = JSON.parse(value);
-      const chess = new Chess();
-      chess.loadPgn(pgn);
-      const tree = chessToVariatonTree(chess, currentMove);
+      const tree = pgnParser(pgn);
       return tree;
     },
   });
@@ -280,6 +275,9 @@ function BoardAnalysis({ id }: { id: string }) {
                     selectedEngines={selectedEngines}
                     setSelectedEngines={setSelectedEngines}
                   />
+                  <Button leftIcon={<IconZoomCheck size={14} />}>
+                    Generate Report
+                  </Button>
                 </Stack>
               </ScrollArea>
             </Tabs.Panel>
