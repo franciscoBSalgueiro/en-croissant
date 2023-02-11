@@ -95,6 +95,18 @@ export class VariationTree {
         return this.fen === other.fen;
     }
 
+    getPosition(): number[] {
+        let currentTree: VariationTree = this;
+        let positions: number[] = [];
+        while (currentTree.parent !== null) {
+            const parent = currentTree.parent;
+            const index = parent.children.indexOf(currentTree);
+            positions.unshift(index);
+            currentTree = parent;
+        }
+        return positions;
+    }
+
     getMoveText(
         symbols: boolean,
         comments: boolean,
@@ -200,6 +212,17 @@ export class VariationTree {
         }
         return count;
     }
+}
+
+export function goToPosition(
+    tree: VariationTree,
+    position: number[]
+): VariationTree {
+    let currentTree = tree;
+    for (const index of position) {
+        currentTree = currentTree.children[index];
+    }
+    return currentTree;
 }
 
 export function moveToKey(move: Move | null) {
@@ -367,7 +390,7 @@ export function getCompleteGame(pgn: string): CompleteGame {
             id: 0,
             name: White ?? "?",
         },
-        currentMove: 0,
+        currentMove: [],
         game: {
             black: 0,
             white: 0,

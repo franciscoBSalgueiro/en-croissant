@@ -18,6 +18,7 @@ import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import {
+  goToPosition,
   movesToVariationTree,
   pgnParser,
   VariationTree,
@@ -60,7 +61,7 @@ function BoardAnalysis({ id }: { id: string }) {
         name: "Black",
         game_count: 0,
       },
-      currentMove: 0,
+      currentMove: [],
     },
   });
   const game = completeGame.game;
@@ -93,7 +94,8 @@ function BoardAnalysis({ id }: { id: string }) {
       const { pgn, currentMove } = JSON.parse(storedTree);
       if (pgn !== "") {
         const tree = pgnParser(pgn);
-        return tree;
+        const treeAtPosition = goToPosition(tree, currentMove);
+        return treeAtPosition;
       }
     }
     if (game.moves[0] === "1" || game.moves[0] === "[") {
@@ -111,14 +113,15 @@ function BoardAnalysis({ id }: { id: string }) {
     serialize: (value) => {
       const storedTree = JSON.stringify({
         pgn: value.getTopVariation().getPGN(),
-        currentMove: value.half_moves,
+        currentMove: value.getPosition(),
       });
       return storedTree;
     },
     deserialize: (value) => {
       const { pgn, currentMove } = JSON.parse(value);
       const tree = pgnParser(pgn);
-      return tree;
+      const treeAtPosition = goToPosition(tree, currentMove);
+      return treeAtPosition;
     },
   });
   useEffect(() => {

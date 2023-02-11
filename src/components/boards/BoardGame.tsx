@@ -157,7 +157,7 @@ function BoardGame({
         name: "Black",
         game_count: 0,
       },
-      currentMove: 0,
+      currentMove: [],
     },
   });
   const game = completeGame.game;

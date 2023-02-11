@@ -11,7 +11,7 @@ export interface CompleteGame {
     game: Game;
     white: Player;
     black: Player;
-    currentMove: number;
+    currentMove: number[];
   }
 
 export interface Database {
