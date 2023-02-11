@@ -334,7 +334,7 @@ function BoardGame({
                   Analyze
                 </Button>
               </Group>
-              <GameNotation setTree={setTree} topVariation={tree.getTopVariation()} />
+              <GameNotation setTree={setTree} topVariation={tree.getTopVariation()} outcome={Outcome.Unknown} />
               <MoveControls
                 goToStart={goToStart}
                 goToEnd={goToEnd}

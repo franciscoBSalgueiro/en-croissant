@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Box,
+  Button,
   CopyButton,
   createStyles,
   Divider,
@@ -12,10 +13,18 @@ import {
   Text,
   Tooltip,
   TypographyStylesProvider,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
-import { IconCheck, IconCopy, IconEye, IconEyeOff } from "@tabler/icons";
+import {
+  IconCheck,
+  IconCopy,
+  IconEye,
+  IconEyeOff,
+  IconMinus,
+  IconPlug,
+  IconPlus,
+} from "@tabler/icons";
 import { useContext } from "react";
 import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
@@ -63,7 +72,7 @@ function GameNotation({
             <Group style={{ justifyContent: "space-between" }}>
               <OpeningName />
               <Group spacing="sm">
-                <Tooltip label={invisible ? "Hide moves" : "Show moves"}>
+                <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
                   <ActionIcon onClick={() => toggleVisible()}>
                     {invisible ? (
                       <IconEyeOff size={15} />
@@ -74,7 +83,7 @@ function GameNotation({
                 </Tooltip>
                 <CopyButton value={pgn} timeout={2000}>
                   {({ copied, copy }) => (
-                    <Tooltip label={copied ? "Copied" : "Copy"} withArrow>
+                    <Tooltip label={copied ? "Copied" : "Copy PGN"} withArrow>
                       <ActionIcon
                         color={copied ? "teal" : "gray"}
                         onClick={copy}
@@ -133,50 +142,37 @@ function RenderVariationTree({
   setTree: (tree: VariationTree) => void;
   forceUpdate: () => void;
 }) {
-  const lastMove = tree.move;
   const variations = tree.children;
-  const move_number = Math.ceil(tree.half_moves / 2);
-  const is_white = tree.half_moves % 2 === 1;
-  const hasNumber = tree.half_moves > 0 && (first || is_white);
+  const moveNodes = variations.slice(1).map((variation) => (
+    <>
+      <CompleteMoveCell
+        tree={variation}
+        setTree={setTree}
+        forceUpdate={forceUpdate}
+        first
+      />
+      <RenderVariationTree
+        tree={variation}
+        depth={depth + 2}
+        setTree={setTree}
+        first
+        forceUpdate={forceUpdate}
+      />
+    </>
+  ));
 
   return (
     <>
-      <Box
-        component="span"
-        sx={{
-          display: "inline-block",
-          marginLeft: hasNumber ? 6 : 0,
-          fontSize: 14,
-        }}
-      >
-        {hasNumber && (
-          <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
-        )}
-        {lastMove && (
-          <MoveCell
-            move={lastMove.san}
-            variation={tree}
-            setTree={setTree}
-            annotation={tree.annotation}
-            comment={tree.commentHTML}
-            forceUpdate={forceUpdate}
-          />
-        )}
-      </Box>
+      {variations.length > 0 && (
+        <CompleteMoveCell
+          tree={variations[0]}
+          setTree={setTree}
+          forceUpdate={forceUpdate}
+          first={first}
+        />
+      )}
 
-      {variations.slice(1).map((variation) => (
-        <>
-          {"("}
-          <RenderVariationTree
-            tree={variation}
-            depth={depth + 2}
-            setTree={setTree}
-            first
-            forceUpdate={forceUpdate}
-          />
-          {")"}
-        </>
-      ))}
+      <VariationCell moveNodes={moveNodes} />
 
       {tree.children.length > 0 && (
         <RenderVariationTree
@@ -188,6 +184,54 @@ function RenderVariationTree({
       )}
     </>
   );
+}
+
+function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
+  const [invisible, toggleVisible] = useToggle();
+  if (moveNodes.length > 1)
+    return (
+      <>
+        <Box
+          sx={{
+            borderLeft: "2px solid #404040",
+            paddingLeft: 5,
+            marginLeft: 12,
+          }}
+        >
+          <ActionIcon size="xs" onClick={() => toggleVisible()}>
+            {invisible ? <IconPlus size={8} /> : <IconMinus size={8} />}
+          </ActionIcon>
+          {!invisible &&
+            moveNodes.map((node, i) => (
+              <Box
+                key={i}
+                sx={{
+                  "::before": {
+                    display: "inline-block",
+                    content: '" "',
+                    borderTop: "2px solid #404040",
+                    width: 8,
+                    height: 5,
+                    marginLeft: -5,
+                    marginTop: 16,
+                  },
+                }}
+              >
+                {node}
+              </Box>
+            ))}
+        </Box>
+      </>
+    );
+  else if (moveNodes.length === 1)
+    return (
+      <>
+        {"("}
+        {moveNodes}
+        {")"}
+      </>
+    );
+  else return <></>;
 }
 
 const useMoveStyles = createStyles(
@@ -224,6 +268,46 @@ const useMoveStyles = createStyles(
     },
   })
 );
+
+function CompleteMoveCell({
+  tree,
+  setTree,
+  forceUpdate,
+  first,
+}: {
+  tree: VariationTree;
+  setTree: (tree: VariationTree) => void;
+  forceUpdate: () => void;
+  first?: boolean;
+}) {
+  const move_number = Math.ceil(tree.half_moves / 2);
+  const is_white = tree.half_moves % 2 === 1;
+  const hasNumber = tree.half_moves > 0 && (first || is_white);
+  const lastMove = tree.move;
+
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-block",
+        marginLeft: hasNumber ? 6 : 0,
+        fontSize: 14,
+      }}
+    >
+      {hasNumber && <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>}
+      {lastMove && (
+        <MoveCell
+          move={lastMove.san}
+          variation={tree}
+          setTree={setTree}
+          annotation={tree.annotation}
+          comment={tree.commentHTML}
+          forceUpdate={forceUpdate}
+        />
+      )}
+    </Box>
+  );
+}
 
 function MoveCell({
   move,
