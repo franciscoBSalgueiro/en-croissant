@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api";
-import { Chess, DEFAULT_POSITION, KING, Move, ROOK, Square, SQUARES } from "chess.js";
+import {
+    Chess,
+    DEFAULT_POSITION,
+    KING,
+    Move,
+    ROOK,
+    Square,
+    SQUARES,
+} from "chess.js";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome, Speed } from "./db";
 
@@ -87,32 +95,50 @@ export class VariationTree {
         return this.fen === other.fen;
     }
 
-    getPGN(isFirst: boolean = false): string {
+    getMoveText(isFirst?: boolean): string {
+        if (this.move === null) {
+            return "";
+        }
+        const isBlack = this.half_moves % 2 === 0;
+        const moveNumber = Math.ceil(this.half_moves / 2);
+        let moveText = "";
+        if (isBlack) {
+            if (isFirst) {
+                moveText += `${moveNumber}... `;
+            }
+        } else {
+            moveText += `${moveNumber}. `;
+        }
+        moveText += this.move.san + this.annotation + " ";
+        if (this.commentText !== "") {
+            moveText += `{${this.commentText}} `;
+        }
+        return moveText;
+    }
+
+    getPGN(): string {
         let pgn = "";
-        if (this.move !== null) {
-            const isBlack = this.half_moves % 2 === 0;
-            const moveNumber = Math.ceil(this.half_moves / 2);
-            if (isBlack) {
-                if (isFirst) {
-                    pgn += `${moveNumber}... `;
-                }
-            } else {
-                pgn += `${moveNumber}. `;
-            }
-            pgn += this.move.san + this.annotation + " ";
-            if (this.commentText !== "") {
-                pgn += `{${this.commentText}} `;
-            }
+        const variationsPGN = this.children
+            .slice(1)
+            .map(
+                (variation) =>
+                    `${variation.getMoveText(true)} ${variation.getPGN()}`
+            );
+        if (this.children.length > 0) {
+            console.log(this.children[0].move?.san);
         }
         if (this.children.length > 0) {
+            const child = this.children[0];
+            pgn += child.getMoveText();
+        }
+        if (variationsPGN.length >= 1) {
+            variationsPGN.forEach((variation) => {
+                pgn += ` (${variation}) `;
+            });
+        }
+
+        if (this.children.length > 0) {
             pgn += this.children[0].getPGN();
-            if (this.children.length > 1) {
-                this.children.forEach((t, i) => {
-                    if (i >= 1) {
-                        pgn += ` (${t.getPGN(true)}) `;
-                    }
-                });
-            }
         }
         return pgn;
     }
