@@ -236,7 +236,7 @@ function GameTable({ database }: { database: Database }) {
                   game,
                   white,
                   black,
-                  currentMove: 0,
+                  currentMove: [],
                 };
                 sessionStorage.setItem(id, JSON.stringify(completeGame));
                 router.push("/boards");

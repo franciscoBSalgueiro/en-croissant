@@ -1,6 +1,5 @@
 import { Slider } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function DepthSlider({
   value,
@@ -10,11 +9,6 @@ export default function DepthSlider({
   setValue: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [tempValue, setTempValue] = useState(value);
-  const [debounced] = useDebouncedValue(tempValue, 200)
-  useEffect(
-    () => setValue(debounced),
-    [debounced, setValue]
-  )
   const MARKS = [
     { value: 1 },
     { value: 2 },
@@ -23,7 +17,6 @@ export default function DepthSlider({
     { value: 5 },
   ];
 
-
   return (
     <>
       <Slider
@@ -31,6 +24,7 @@ export default function DepthSlider({
         max={5}
         value={tempValue}
         onChange={setTempValue}
+        onChangeEnd={setValue}
         marks={MARKS}
       />
     </>

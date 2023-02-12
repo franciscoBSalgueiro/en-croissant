@@ -1,6 +1,5 @@
 import { Slider } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function CoresSlide({
   value,
@@ -10,7 +9,6 @@ export default function CoresSlide({
   setValue: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const [tempValue, setTempValue] = useState(value);
-  const [debounced] = useDebouncedValue(tempValue, 200);
   const MARKS = [
     { value: 0 },
     { value: 1 },
@@ -21,8 +19,6 @@ export default function CoresSlide({
     { value: 6 },
   ];
 
-  useEffect(() => setValue(debounced), [debounced, setValue]);
-
   return (
     <>
       <Slider
@@ -30,6 +26,7 @@ export default function CoresSlide({
         max={6}
         value={tempValue}
         onChange={setTempValue}
+        onChangeEnd={setValue}
         marks={MARKS}
         label={(value) => 2 ** value}
       />
