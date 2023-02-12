@@ -1,10 +1,11 @@
 use std::{
     path::PathBuf,
     process::Stdio,
+    sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Color, Position};
+use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Position};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
@@ -36,6 +37,20 @@ pub struct BestMovePayload {
     uci_moves: Vec<String>,
     multipv: usize,
     nps: usize,
+}
+
+impl Default for BestMovePayload {
+    fn default() -> Self {
+        BestMovePayload {
+            engine: String::new(),
+            depth: 0,
+            score: Score::Cp(0),
+            san_moves: Vec::new(),
+            uci_moves: Vec::new(),
+            multipv: 0,
+            nps: 0,
+        }
+    }
 }
 
 pub fn parse_uci(
@@ -257,4 +272,136 @@ pub async fn get_best_moves(
         }
     });
     Ok(())
+}
+
+#[tauri::command]
+pub async fn analyze_game(
+    moves: String,
+    engine: String,
+    move_time: usize,
+    app: tauri::AppHandle,
+) -> Result<Vec<BestMovePayload>, String> {
+    println!("ANALYZING GAME");
+    println!("{}", &moves);
+    let moves_list: Vec<String> = moves.split(" ").map(|x| x.to_string()).collect();
+    let mut path = PathBuf::from(&engine);
+    let number_lines = 1;
+    let number_threads = 4;
+    let evals: Arc<Mutex<Vec<BestMovePayload>>> = Arc::new(Mutex::new(Vec::new()));
+    let evals_clone = evals.clone();
+
+    path = resolve_path(
+        &app.config(),
+        app.package_info(),
+        &app.env(),
+        path,
+        Some(BaseDirectory::AppData),
+    )
+    .or(Err("Engine file doesn't exists"))?;
+    // start engine command
+    println!("RUNNING ENGINE");
+    println!("{}", &path.display());
+
+    let mut command = Command::new(&path);
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    #[cfg(target_os = "windows")]
+    command.creation_flags(CREATE_NO_WINDOW);
+
+    let mut child = command
+        // .kill_on_drop(true)
+        .spawn()
+        .expect("Failed to start engine");
+
+    let stdin = child
+        .stdin
+        .take()
+        .expect("child did not have a handle to stdin");
+    let stdout = child
+        .stdout
+        .take()
+        .expect("child did not have a handle to stdout");
+    let mut stdout_reader = BufReader::new(stdout).lines();
+
+    tokio::spawn(async move {
+        // run engine process and wait for exit code
+        let status = child
+            .wait()
+            .await
+            .expect("engine process encountered an error");
+        println!("engine process exit status : {}", status);
+    });
+
+    tokio::spawn(async move {
+        let mut stdin = stdin;
+        let mut chess = Chess::default();
+
+        // stdin
+        //     .write_all(format!("position fen {}\n", &fen).as_bytes())
+        //     .await
+        //     .expect("Failed to write position");
+        stdin
+            .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
+            .await
+            .expect("Failed to write setoption");
+        stdin
+            .write_all(format!("setoption name multipv value {}\n", &number_lines).as_bytes())
+            .await
+            .expect("Failed to write setoption");
+        // stdin
+        //     .write_all(format!("go movetime {}\n", &move_time * 1000).as_bytes())
+        //     .await
+        //     .expect("Failed to write go");
+
+        for m in moves_list {
+            let san = San::from_ascii(m.as_bytes()).unwrap();
+            let m = san.to_move(&chess).unwrap();
+            chess.play_unchecked(&m);
+            let fen = Fen::from_position(chess.clone(), EnPassantMode::Always);
+
+            stdin
+                .write_all(format!("position fen {}\n", &fen).as_bytes())
+                .await
+                .expect("Failed to write position");
+            stdin
+                .write_all(format!("go movetime {}\n", &move_time * 1000).as_bytes())
+                .await
+                .expect("Failed to write go");
+            let mut current_payload = BestMovePayload::default();
+            loop {
+                tokio::select! {
+                    result = stdout_reader.next_line() => {
+                        match result {
+                            Ok(line_opt) => {
+                                if let Some(line) = line_opt {
+                                    if line == "readyok" {
+                                        println!("Engine ready");
+                                    }
+                                    if line.starts_with("bestmove") {
+                                        println!("bestmove");
+                                        break;
+                                    }
+                                    if line.starts_with("info") && line.contains("pv") {
+                                        if let Ok(best_moves) = parse_uci(&line, &fen.to_string(), &engine) {
+                                            current_payload = best_moves;
+                                        }
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                println!("engine read error {:?}", err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            evals_clone.lock().unwrap().push(current_payload);
+        }
+    }).await.unwrap();
+    let final_evals = evals.lock().unwrap().clone();
+    Ok(final_evals)
 }

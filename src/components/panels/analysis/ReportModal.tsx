@@ -8,15 +8,19 @@ import {
   Stack
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
+import { pgnToUCI } from "../../../utils/chess";
 import { Database, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatNumber } from "../../../utils/format";
 
 function ReportModal({
+  moves,
   reportingMode,
   toggleReportingMode,
 }: {
+  moves: string;
   reportingMode: boolean;
   toggleReportingMode: () => void;
 }) {
@@ -50,13 +54,24 @@ function ReportModal({
     });
   }, []);
 
+  function analyze() {
+    toggleReportingMode();
+    invoke("analyze_game", {
+      moves: pgnToUCI(moves),
+      engine: form.values.engine,
+      moveTime: form.values.secondsPerMove,
+    }).then((result) => {
+      console.log(result);
+    });
+  }
+
   return (
     <Modal
       opened={reportingMode}
       onClose={() => toggleReportingMode()}
       title="Generate report"
     >
-      <form onSubmit={form.onSubmit((values) => console.log(values))}>
+      <form onSubmit={form.onSubmit((values) => analyze())}>
         <Stack>
           <Select
             label="Engine"

@@ -208,6 +208,7 @@ function BoardAnalysis({ id }: { id: string }) {
   return (
     <TreeContext.Provider value={tree}>
       <ReportModal
+        moves={tree.getTopVariation().getPGN()}
         reportingMode={reportingMode}
         toggleReportingMode={toggleReportingMode}
       />

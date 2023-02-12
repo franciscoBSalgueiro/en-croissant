@@ -407,7 +407,7 @@ impl Visitor for Importer<'_> {
         }
 
         if self.batch.len() >= self.batch_size {
-            self.send();
+            self.send().unwrap();
         }
     }
 }

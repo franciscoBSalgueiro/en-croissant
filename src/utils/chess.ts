@@ -453,3 +453,10 @@ export function handleMove(chess: Chess, orig: Key, dest: Key): Square | null {
     }
     return dest;
 }
+
+export function pgnToUCI(pgn: string): string {
+    const chess = new Chess();
+    chess.loadPgn(pgn);
+    const moves = chess.history();
+    return moves.join(" ");
+}

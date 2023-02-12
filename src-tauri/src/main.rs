@@ -18,6 +18,7 @@ use tauri::{
     Manager, Window,
 };
 
+use crate::chess::analyze_game;
 use crate::puzzle::get_puzzle;
 use crate::{
     chess::get_best_moves,
@@ -131,7 +132,8 @@ fn main() {
             get_db_info,
             rename_db,
             get_players_game_info,
-            start_server
+            start_server,
+            analyze_game
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
