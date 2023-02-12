@@ -4,7 +4,7 @@ import {
   ScrollArea,
   SimpleGrid,
   Stack,
-  Tabs,
+  Tabs
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
@@ -12,7 +12,7 @@ import {
   useHotkeys,
   useLocalStorage,
   useSessionStorage,
-  useToggle,
+  useToggle
 } from "@mantine/hooks";
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
@@ -21,7 +21,7 @@ import {
   goToPosition,
   movesToVariationTree,
   pgnParser,
-  VariationTree,
+  VariationTree
 } from "../../utils/chess";
 import { CompleteGame, Outcome, Speed } from "../../utils/db";
 import { Engine } from "../../utils/engines";
@@ -30,6 +30,7 @@ import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
 import BestMoves from "../panels/analysis/BestMoves";
 import EngineSettingsBoard from "../panels/analysis/EngineSettingsBoard";
+import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import FenInput from "../panels/info/FenInput";
 import PgnInput from "../panels/info/PgnInput";
@@ -68,6 +69,7 @@ function BoardAnalysis({ id }: { id: string }) {
 
   const forceUpdate = useForceUpdate();
   const [editingMode, toggleEditingMode] = useToggle();
+  const [reportingMode, toggleReportingMode] = useToggle();
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
     key: "selected-engines",
     defaultValue: [],
@@ -214,6 +216,10 @@ function BoardAnalysis({ id }: { id: string }) {
 
   return (
     <TreeContext.Provider value={tree}>
+      <ReportModal
+        reportingMode={reportingMode}
+        toggleReportingMode={toggleReportingMode}
+      />
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
         <BoardPlay
           makeMove={makeMove}
@@ -278,7 +284,10 @@ function BoardAnalysis({ id }: { id: string }) {
                     selectedEngines={selectedEngines}
                     setSelectedEngines={setSelectedEngines}
                   />
-                  <Button leftIcon={<IconZoomCheck size={14} />}>
+                  <Button
+                    leftIcon={<IconZoomCheck size={14} />}
+                    onClick={() => toggleReportingMode()}
+                  >
                     Generate Report
                   </Button>
                 </Stack>

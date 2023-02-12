@@ -27,6 +27,7 @@ import {
 } from "@tabler/icons";
 import { useEffect, useRef, useState } from "react";
 import { Database, Player, query_players } from "../../utils/db";
+import { formatNumber } from "../../utils/format";
 import PlayerCard from "./PlayerCard";
 
 const sortOptions = [
@@ -295,7 +296,7 @@ function PlayerTable({ database }: { database: Database }) {
                   total={Math.ceil(count / limit)}
                 />
                 <Text weight={500} align="center" p={20}>
-                  {Intl.NumberFormat().format(count)} players
+                  {formatNumber(count)} players
                 </Text>
               </Stack>
             </>

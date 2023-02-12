@@ -40,6 +40,7 @@ import {
   Sides,
   Speed
 } from "../../utils/db";
+import { formatNumber } from "../../utils/format";
 import { genID, Tab } from "../tabs/BoardsPage";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
@@ -483,7 +484,7 @@ function GameTable({ database }: { database: Database }) {
                   total={Math.ceil(count / limit)}
                 />
                 <Text weight={500} align="center" p={20}>
-                  {Intl.NumberFormat().format(count)} games
+                  {formatNumber(count)} games
                 </Text>
               </Stack>
             </>

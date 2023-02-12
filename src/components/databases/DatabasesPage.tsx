@@ -13,7 +13,8 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconChess, IconDatabase, IconUser } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
-import { Database, formatBytes, getDatabases } from "../../utils/db";
+import { Database, getDatabases } from "../../utils/db";
+import { formatBytes, formatNumber } from "../../utils/format";
 import OpenFolderButton from "../common/OpenFolderButton";
 import ConvertButton from "./ConvertButton";
 import GameTable from "./GameTable";
@@ -31,7 +32,9 @@ const useStyles = createStyles(
         ? theme.colors.dark[7]
         : theme.white,
 
-      borderColor: selected ? theme.colors[theme.primaryColor][6] : "transparent",
+      borderColor: selected
+        ? theme.colors[theme.primaryColor][6]
+        : "transparent",
       borderWidth: 2,
 
       "&:hover": {
@@ -39,7 +42,9 @@ const useStyles = createStyles(
           theme.colorScheme === "dark"
             ? theme.colors.dark[6]
             : theme.colors.gray[0],
-        borderColor: selected ? theme.colors[theme.primaryColor][6] : theme.colors.gray[6],
+        borderColor: selected
+          ? theme.colors[theme.primaryColor][6]
+          : theme.colors.gray[6],
       },
     },
 
@@ -105,7 +110,7 @@ function CollectionCard({
                 Games
               </Text>
               <Text weight={700} size="xl" sx={{ lineHeight: 1 }}>
-                {Intl.NumberFormat().format(games)}
+                {formatNumber(games)}
               </Text>
             </div>
             <div>
