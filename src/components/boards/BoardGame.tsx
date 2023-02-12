@@ -14,7 +14,7 @@ import { Chess, DEFAULT_POSITION, Square } from "chess.js";
 import { useMemo, useState } from "react";
 import {
   movesToVariationTree,
-  pgnParser,
+  parsePGN,
   VariationTree
 } from "../../utils/chess";
 import { CompleteGame, Outcome, Speed } from "../../utils/db";
@@ -164,7 +164,7 @@ function BoardGame({
 
   const initial_tree = useMemo(() => {
     if (game.moves[0] === "1" || game.moves[0] === "[") {
-      const tree = pgnParser(game.moves);
+      const tree = parsePGN(game.moves);
       return tree;
     }
     const tree = movesToVariationTree(game.moves);
@@ -184,7 +184,7 @@ function BoardGame({
     },
     deserialize: (value) => {
       const { pgn, currentMove } = JSON.parse(value);
-      const tree = pgnParser(pgn);
+      const tree = parsePGN(pgn);
       return tree;
     },
   });

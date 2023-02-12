@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   Box,
-  Button,
   CopyButton,
   createStyles,
   Divider,
@@ -13,17 +12,18 @@ import {
   Text,
   Tooltip,
   TypographyStylesProvider,
-  useMantineTheme,
+  useMantineTheme
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
 import {
+  IconArrowRight,
+  IconArrowsSplit,
   IconCheck,
   IconCopy,
   IconEye,
   IconEyeOff,
   IconMinus,
-  IconPlug,
-  IconPlus,
+  IconPlus
 } from "@tabler/icons";
 import { useContext } from "react";
 import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
@@ -53,19 +53,12 @@ function GameNotation({
   const forceUpdate = useForceUpdate();
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
+  const [showVariations, toggleVariations] = useToggle([true, false]);
   const { classes } = useStyles();
   const pgn = topVariation.getPGN();
 
   return (
     <Paper withBorder p="md" sx={{ position: "relative" }}>
-      {invisible && (
-        <Overlay
-          opacity={0.6}
-          color={theme.colorScheme === "dark" ? "#222" : undefined}
-          blur={3}
-          zIndex={2}
-        />
-      )}
       <ScrollArea style={{ height: "200px" }} offsetScrollbars>
         <Stack>
           <Stack className={classes.scroller}>
@@ -78,6 +71,15 @@ function GameNotation({
                       <IconEyeOff size={15} />
                     ) : (
                       <IconEye size={15} />
+                    )}
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
+                  <ActionIcon onClick={() => toggleVariations()}>
+                    {showVariations ? (
+                      <IconArrowsSplit size={15} />
+                    ) : (
+                      <IconArrowRight size={15} />
                     )}
                   </ActionIcon>
                 </Tooltip>
@@ -102,12 +104,21 @@ function GameNotation({
             <Divider />
           </Stack>
           <Box>
+            {invisible && (
+              <Overlay
+                opacity={0.6}
+                color={theme.colorScheme === "dark" ? "#222" : undefined}
+                blur={3}
+                zIndex={2}
+              />
+            )}
             <RenderVariationTree
               tree={topVariation}
               depth={0}
               first
               setTree={setTree}
               forceUpdate={forceUpdate}
+              showVariations={showVariations}
             />
           </Box>
           {outcome !== Outcome.Unknown && (
@@ -135,15 +146,17 @@ function RenderVariationTree({
   first,
   setTree,
   forceUpdate,
+  showVariations
 }: {
   tree: VariationTree;
   depth: number;
   first?: boolean;
   setTree: (tree: VariationTree) => void;
   forceUpdate: () => void;
+  showVariations: boolean;
 }) {
   const variations = tree.children;
-  const moveNodes = variations.slice(1).map((variation) => (
+  const moveNodes = showVariations ? variations.slice(1).map((variation) => (
     <>
       <CompleteMoveCell
         tree={variation}
@@ -157,9 +170,10 @@ function RenderVariationTree({
         setTree={setTree}
         first
         forceUpdate={forceUpdate}
+        showVariations={showVariations}
       />
     </>
-  ));
+  )) : [];
 
   return (
     <>
@@ -180,6 +194,7 @@ function RenderVariationTree({
           depth={depth + 1}
           setTree={setTree}
           forceUpdate={forceUpdate}
+          showVariations={showVariations}
         />
       )}
     </>

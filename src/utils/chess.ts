@@ -287,7 +287,7 @@ export function swapMove(fen: string) {
     return fenGroups.join(" ");
 }
 
-export function pgnParser(
+export function parsePGN(
     pgn: string,
     fen: string = DEFAULT_POSITION
 ): VariationTree {
@@ -330,7 +330,7 @@ export function pgnParser(
                 i++;
             }
             tree = tree.parent!;
-            const variationTree = pgnParser(variation, tree.fen).children[0];
+            const variationTree = parsePGN(variation, tree.fen).children[0];
             variationTree.parent = tree;
             tree.children.push(variationTree);
             tree = tree.children[0];
@@ -388,12 +388,20 @@ export function movesToVariationTree(
 }
 
 export function getCompleteGame(pgn: string): CompleteGame {
+    function stripPGNheader(pgn: string) {
+        const lines = pgn.split("\n");
+        let i = 0;
+        while (i < lines.length && lines[i].startsWith("[")) {
+            i++;
+        }
+        return lines.slice(i).join("\n");
+    }
+
     const chess = new Chess();
     chess.loadPgn(pgn);
     const { Result, Site, Date, White, Black, BlackElo, WhiteElo } =
         chess.header();
 
-    // const outcome = chess.header("Result");
     const game: CompleteGame = {
         black: {
             game_count: 0,
@@ -414,7 +422,7 @@ export function getCompleteGame(pgn: string): CompleteGame {
             black_rating: BlackElo ? parseInt(BlackElo) : 0,
             white_rating: WhiteElo ? parseInt(WhiteElo) : 0,
             date: Date ?? "",
-            moves: chess.pgn(),
+            moves: stripPGNheader(pgn),
             site: Site ?? "",
         },
     };

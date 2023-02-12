@@ -17,12 +17,7 @@ import {
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
-import {
-  goToPosition,
-  movesToVariationTree,
-  pgnParser,
-  VariationTree
-} from "../../utils/chess";
+import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
 import { CompleteGame, Outcome, Speed } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import GameInfo from "../common/GameInfo";
@@ -95,16 +90,12 @@ function BoardAnalysis({ id }: { id: string }) {
     if (storedTree) {
       const { pgn, currentMove } = JSON.parse(storedTree);
       if (pgn !== "") {
-        const tree = pgnParser(pgn);
+        const tree = parsePGN(pgn);
         const treeAtPosition = goToPosition(tree, currentMove);
         return treeAtPosition;
       }
     }
-    if (game.moves[0] === "1" || game.moves[0] === "[") {
-      const tree = pgnParser(game.moves);
-      return tree;
-    }
-    const tree = movesToVariationTree(game.moves);
+    const tree = parsePGN(game.moves);
     return tree;
   }, [game.moves]);
 
@@ -121,7 +112,7 @@ function BoardAnalysis({ id }: { id: string }) {
     },
     deserialize: (value) => {
       const { pgn, currentMove } = JSON.parse(value);
-      const tree = pgnParser(pgn);
+      const tree = parsePGN(pgn);
       const treeAtPosition = goToPosition(tree, currentMove);
       return treeAtPosition;
     },
