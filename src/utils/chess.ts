@@ -6,7 +6,7 @@ import {
     Move,
     ROOK,
     Square,
-    SQUARES,
+    SQUARES
 } from "chess.js";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome, Speed } from "./db";
@@ -308,11 +308,13 @@ export function pgnParser(
         }
         if (token === "{") {
             let comment = "";
+            i++;
             while (tokens[i] !== "}") {
                 comment += tokens[i] + " ";
                 i++;
             }
             tree.commentText = comment;
+            tree.commentHTML = `<p>${comment}</p>`;
         } else if (token === "(") {
             let variation = "";
             let subvariations = 0;
@@ -345,6 +347,19 @@ export function pgnParser(
             }
             const newTree = new VariationTree(tree, chess.fen(), m);
             tree.children.push(newTree);
+            if (token.endsWith("!!")) {
+                newTree.annotation = Annotation.Brilliant;
+            } else if (token.endsWith("!?")) {
+                newTree.annotation = Annotation.Interesting;
+            } else if (token.endsWith("?!")) {
+                newTree.annotation = Annotation.Dubious;
+            } else if (token.endsWith("??")) {
+                newTree.annotation = Annotation.Blunder;
+            } else if (token.endsWith("!")) {
+                newTree.annotation = Annotation.Good;
+            } else if (token.endsWith("?")) {
+                newTree.annotation = Annotation.Mistake;
+            }
             tree = newTree;
         }
     }
