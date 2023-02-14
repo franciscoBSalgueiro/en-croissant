@@ -230,7 +230,7 @@ function BoardAnalysis({ id }: { id: string }) {
         setTree={setTree}
       />
       <Flex gap="md" wrap="wrap" align="start">
-        {tree.score && <EvalBar score={tree.score} />}
+        {width > 800 && <EvalBar score={tree.score} boardSize={boardSize} />}
         <Box mx="auto">
           <BoardPlay
             makeMove={makeMove}
@@ -294,6 +294,7 @@ function BoardAnalysis({ id }: { id: string }) {
                             engine={engine}
                             makeMoves={makeMoves}
                             setArrows={setArrows}
+                            setTree={setTree}
                           />
                         </Accordion.Item>
                       );

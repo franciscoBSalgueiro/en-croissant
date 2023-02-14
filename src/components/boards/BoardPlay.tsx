@@ -8,6 +8,7 @@ import {
   Modal,
   SimpleGrid,
   Stack,
+  Text,
   Tooltip
 } from "@mantine/core";
 import {
@@ -36,8 +37,8 @@ import {
   toDests
 } from "../../utils/chess";
 import { CompleteGame, Outcome } from "../../utils/db";
+import { formatScore } from "../../utils/format";
 import TreeContext from "../common/TreeContext";
-import OpeningName from "./OpeningName";
 
 const useStyles = createStyles((theme) => ({
   chessboard: {
@@ -257,7 +258,13 @@ function BoardPlay({
       </Box>
 
       <Group position={"apart"} h={20}>
-        <OpeningName />
+        {tree.score ? (
+          <Tooltip label={"Score"}>
+            <Text>{formatScore(tree.score).text}</Text>
+          </Tooltip>
+        ) : (
+          <div />
+        )}
 
         <Group>
           {!disableVariations && (

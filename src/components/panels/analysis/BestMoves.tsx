@@ -27,7 +27,12 @@ import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
-import { EngineVariation, Score, swapMove } from "../../../utils/chess";
+import {
+  EngineVariation,
+  Score,
+  swapMove,
+  VariationTree
+} from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import TreeContext from "../../common/TreeContext";
 import CoresSlide from "./CoresSlider";
@@ -90,9 +95,16 @@ interface BestMovesProps {
   engine: Engine;
   makeMoves: (moves: string[]) => void;
   setArrows: (arrows: string[]) => void;
+  setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
 }
 
-function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
+function BestMoves({
+  id,
+  makeMoves,
+  engine,
+  setArrows,
+  setTree,
+}: BestMovesProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
   const half_moves = tree.half_moves;
@@ -129,6 +141,10 @@ function BestMoves({ id, makeMoves, engine, setArrows }: BestMovesProps) {
         const ev = event.payload as EngineVariation[];
         if (ev[0].engine === engine.path) {
           setEngineVariation(ev);
+          setTree((tree) => {
+            tree.score = ev[0].score;
+            return tree;
+          });
           if (id === 0) {
             setArrows(
               ev.map((ev) => {
