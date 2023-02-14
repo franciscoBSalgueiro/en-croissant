@@ -1,24 +1,26 @@
 import {
+  Box,
+  Button,
   Card,
   createStyles,
+  Divider,
   Group,
   SimpleGrid,
   Stack,
-  Tabs,
   Text,
+  Textarea,
   TextInput,
   Title
 } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { IconChess, IconDatabase, IconUser } from "@tabler/icons";
+import { useDebouncedValue, useSessionStorage } from "@mantine/hooks";
+import { IconDatabase } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Database, getDatabases } from "../../utils/db";
 import { formatBytes, formatNumber } from "../../utils/format";
 import OpenFolderButton from "../common/OpenFolderButton";
 import ConvertButton from "./ConvertButton";
-import GameTable from "./GameTable";
-import PlayerTable from "./PlayerTable";
 
 const useStyles = createStyles(
   (theme, { selected }: { selected: boolean }) => ({
@@ -131,6 +133,12 @@ function CollectionCard({
 export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [databases, setDatabases] = useState<Database[]>([]);
+  const [selectedDatabse, setSelectedDatabase] =
+    useSessionStorage<Database | null>({
+      key: "database-view",
+      defaultValue: null,
+    });
+
   const database = selected !== null ? databases[selected] : null;
 
   const [title, setTitle] = useState(database?.title ?? null);
@@ -153,6 +161,10 @@ export default function DatabasesPage() {
 
   useEffect(() => {
     setTitle(database?.title ?? null);
+  }, [database?.file]);
+
+  useEffect(() => {
+    setSelectedDatabase(database);
   }, [database?.file]);
 
   return (
@@ -185,32 +197,19 @@ export default function DatabasesPage() {
       </SimpleGrid>
 
       {database !== null && title !== null && (
-        <TextInput
-          variant="unstyled"
-          m={30}
-          size="xl"
-          value={title}
-          onChange={(e) => setTitle(e.currentTarget.value)}
-          error={title === "" && "Name is required"}
-        />
-      )}
-      {database !== null && (
-        <Tabs defaultValue="games">
-          <Tabs.List>
-            <Tabs.Tab icon={<IconChess size={16} />} value="games">
-              Games
-            </Tabs.Tab>
-            <Tabs.Tab icon={<IconUser size={16} />} value="players">
-              Players
-            </Tabs.Tab>
-          </Tabs.List>
-          <Tabs.Panel value="games">
-            <GameTable database={database} />
-          </Tabs.Panel>
-          <Tabs.Panel value="players">
-            <PlayerTable database={database} />
-          </Tabs.Panel>
-        </Tabs>
+        <Box mx={30}>
+          <Divider my="md" />
+          <TextInput
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.currentTarget.value)}
+            error={title === "" && "Name is required"}
+          />
+          <Textarea label="Description" value={database.description} />
+          <Link href={`/db/view`} passHref>
+            <Button mt={30}>Explore</Button>
+          </Link>
+        </Box>
       )}
     </>
   );
