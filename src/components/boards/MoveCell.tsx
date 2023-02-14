@@ -1,9 +1,5 @@
 import { Box, createStyles } from "@mantine/core";
-import { useContext } from "react";
-import {
-  Annotation, annotationColor, VariationTree
-} from "../../utils/chess";
-import TreeContext from "../common/TreeContext";
+import { Annotation, annotationColor } from "../../utils/chess";
 
 const useStyles = createStyles(
   (
@@ -42,67 +38,18 @@ const useStyles = createStyles(
 
 function MoveCell({
   move,
-  variation,
+  isCurrentVariation,
   annotation,
   comment,
-  setTree,
-  forceUpdate,
+  onClick,
 }: {
   move: string;
-  variation: VariationTree;
+  isCurrentVariation: boolean;
   annotation: Annotation;
   comment: string;
-  setTree: (tree: VariationTree) => void;
-  forceUpdate: () => void;
+  onClick: () => void;
 }) {
-  const tree = useContext(TreeContext);
-  const isCurrentVariation = variation.equals(tree);
   const color = annotationColor(annotation);
-  function promoteVariation(variation: VariationTree) {
-    const isCurrent = variation === tree;
-    const parent = variation.parent;
-    if (parent) {
-      parent.children = [
-        variation,
-        ...parent.children.filter((child) => child !== variation),
-      ];
-      if (isCurrent) {
-        forceUpdate();
-      } else {
-        setTree(variation);
-      }
-    }
-  }
-
-  function demoteVariation(variation: VariationTree) {
-    const isCurrent = variation === tree;
-    const parent = variation.parent;
-    if (parent) {
-      parent.children = [
-        ...parent.children.filter((child) => child !== variation),
-        variation,
-      ];
-      if (isCurrent) {
-        forceUpdate();
-      } else {
-        setTree(variation);
-      }
-    }
-  }
-
-  function deleteVariation(variation: VariationTree) {
-    const isInCurrentBranch = tree.isInBranch(variation);
-    const parent = variation.parent;
-    if (parent) {
-      parent.children = parent.children.filter((child) => child !== variation);
-      if (isInCurrentBranch) {
-        setTree(parent);
-      } else {
-        forceUpdate();
-      }
-    }
-  }
-
   const { classes } = useStyles({ isCurrentVariation, color });
 
   return (
@@ -110,9 +57,7 @@ function MoveCell({
       <Box
         component="button"
         className={classes.cell}
-        onClick={() => {
-          setTree(variation);
-        }}
+        onClick={onClick}
       >
         {move + annotation}
       </Box>

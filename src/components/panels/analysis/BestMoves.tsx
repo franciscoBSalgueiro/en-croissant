@@ -2,7 +2,6 @@ import {
   Accordion,
   ActionIcon,
   Box,
-  Button,
   ChevronIcon,
   Collapse,
   createStyles,
@@ -28,12 +27,14 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
 import {
+  Annotation,
   EngineVariation,
   Score,
   swapMove,
   VariationTree
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
+import MoveCell from "../../boards/MoveCell";
 import TreeContext from "../../common/TreeContext";
 import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
@@ -191,22 +192,30 @@ function BestMoves({
             sx={{
               height: currentOpen ? "100%" : 35,
               overflow: "hidden",
+              alignItems: "center",
             }}
           >
             {moves.map((move, index) => {
               const total_moves = half_moves + index + 1 + (threat ? 1 : 0);
-              const is_black = total_moves % 2 === 1;
+              const is_white = total_moves % 2 === 1;
               const move_number = Math.ceil(total_moves / 2);
 
               return (
-                <MoveCell
-                  moveNumber={move_number}
-                  isBlack={is_black}
-                  moves={uciMoves}
-                  move={move}
-                  index={index}
-                  key={total_moves + move}
-                />
+                <>
+                  {(index === 0 || is_white) && (
+                    <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
+                  )}
+                  <MoveCell
+                    key={total_moves + move}
+                    move={move}
+                    isCurrentVariation={false}
+                    annotation={Annotation.None}
+                    comment={""}
+                    onClick={() => {
+                      if (!threat) makeMoves(moves.slice(0, index + 1));
+                    }}
+                  />
+                </>
               );
             })}
           </Flex>
@@ -232,35 +241,6 @@ function BestMoves({
       </tr>
     );
   }
-
-  function MoveCell({
-    moves,
-    move,
-    index,
-    isBlack,
-    moveNumber,
-  }: {
-    moves: string[];
-    move: string;
-    index: number;
-    isBlack: boolean;
-    moveNumber: number;
-  }) {
-    const first = index === 0;
-    return (
-      <Button
-        variant="subtle"
-        onClick={() => {
-          if (!threat) makeMoves(moves.slice(0, index + 1));
-        }}
-      >
-        {(isBlack || first) && <span>{moveNumber.toFixed(0) + "."}</span>}
-        {first && !isBlack && ".."}
-        {move}
-      </Button>
-    );
-  }
-
   const [open, setOpen] = useState<boolean[]>([]);
 
   return (

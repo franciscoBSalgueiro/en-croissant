@@ -1,4 +1,4 @@
-import { Checkbox, Group, Stack, Textarea, Text } from "@mantine/core";
+import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { useContext } from "react";
 import TreeContext from "../../common/TreeContext";
@@ -8,6 +8,7 @@ function PgnInput() {
   const [comments, toggleComments] = useToggle([true, false]);
   const [symbols, toggleSymbols] = useToggle([true, false]);
   const [variations, toggleVariations] = useToggle([true, false]);
+  const [specialSymbols, toggleSpecialSymbols] = useToggle();
   const root = tree.getTopVariation();
   return (
     <>
@@ -32,8 +33,17 @@ function PgnInput() {
             checked={variations}
             onChange={() => toggleVariations()}
           />
+          <Checkbox
+            label="Special Symbols"
+            size="xs"
+            checked={specialSymbols}
+            onChange={() => toggleSpecialSymbols()}
+          />
         </Group>
-        <Textarea readOnly value={root.getPGN(symbols, comments, variations)} />
+        <Textarea
+          readOnly
+          value={root.getPGN(symbols, comments, variations, specialSymbols)}
+        />
       </Stack>
     </>
   );
