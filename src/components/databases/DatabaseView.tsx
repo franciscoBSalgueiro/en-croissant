@@ -1,4 +1,4 @@
-import { Button, Group, Tabs, Title } from "@mantine/core";
+import { Button, Tabs, Title } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
 import { IconArrowBackUp, IconChess, IconUser } from "@tabler/icons";
 import Link from "next/link";
@@ -15,14 +15,16 @@ function DatabaseView() {
     <>
       {database && (
         <>
-          <Group align="baseline">
-            <Link href={`/databases`} passHref>
-              <Button leftIcon={<IconArrowBackUp />} variant="outline">
-                Back
-              </Button>
-            </Link>
-            <Title>{database.title}</Title>
-          </Group>
+          <Link href={`/databases`} passHref>
+            <Button
+              compact
+              leftIcon={<IconArrowBackUp size={16} />}
+              variant="outline"
+            >
+              Back
+            </Button>
+          </Link>
+          <Title mt="sm">{database.title}</Title>
           <Tabs defaultValue="games" mt="md">
             <Tabs.List>
               <Tabs.Tab icon={<IconChess size={16} />} value="games">

@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Card,
+  Checkbox,
   createStyles,
   Divider,
   Group,
@@ -13,7 +14,7 @@ import {
   Title
 } from "@mantine/core";
 import { useDebouncedValue, useSessionStorage } from "@mantine/hooks";
-import { IconDatabase } from "@tabler/icons";
+import { IconDatabase, IconStar } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -74,6 +75,7 @@ interface CollectionCardProps {
   description?: string;
   games: number;
   storage: number;
+  isReference: boolean;
 }
 
 function CollectionCard({
@@ -84,6 +86,7 @@ function CollectionCard({
   description,
   games,
   storage,
+  isReference,
 }: CollectionCardProps) {
   const { classes } = useStyles({ selected });
 
@@ -96,14 +99,17 @@ function CollectionCard({
         onClick={() => setSelected(id)}
       >
         <Stack>
-          <Group noWrap>
-            <IconDatabase size={24} />
-            <div>
-              <Text weight={500}>{title}</Text>
-              <Text size="xs" color="dimmed">
-                {description}
-              </Text>
-            </div>
+          <Group noWrap position="apart">
+            <Group noWrap>
+              <IconDatabase size={24} />
+              <div>
+                <Text weight={500}>{title}</Text>
+                <Text size="xs" color="dimmed">
+                  {description}
+                </Text>
+              </div>
+            </Group>
+            {isReference && <IconStar size={16} />}
           </Group>
 
           <div className={classes.info}>
@@ -138,6 +144,13 @@ export default function DatabasesPage() {
       key: "database-view",
       defaultValue: null,
     });
+  const [referenceDatabase, setReferenceDatabase] = useSessionStorage<
+    string | null
+  >({
+    key: "reference-database",
+    defaultValue: null,
+  });
+  const isReference = referenceDatabase === selectedDatabse?.file;
 
   const database = selected !== null ? databases[selected] : null;
 
@@ -191,6 +204,7 @@ export default function DatabasesPage() {
             description={item.description}
             games={item.game_count ?? -1}
             storage={item.storage_size ?? 0}
+            isReference={referenceDatabase === item.file}
           />
         ))}
         <ConvertButton setDatabases={setDatabases} />
@@ -199,16 +213,29 @@ export default function DatabasesPage() {
       {database !== null && title !== null && (
         <Box mx={30}>
           <Divider my="md" />
-          <TextInput
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.currentTarget.value)}
-            error={title === "" && "Name is required"}
-          />
-          <Textarea label="Description" value={database.description} />
-          <Link href={`/db/view`} passHref>
-            <Button mt={30}>Explore</Button>
-          </Link>
+          <Stack>
+            <TextInput
+              label="Title"
+              value={title}
+              onChange={(e) => setTitle(e.currentTarget.value)}
+              error={title === "" && "Name is required"}
+            />
+            <Textarea label="Description" value={database.description} />
+            <Checkbox
+              label="Reference Database"
+              checked={isReference}
+              onChange={() => {
+                if (isReference) {
+                  setReferenceDatabase(null);
+                } else {
+                  setReferenceDatabase(database.file);
+                }
+              }}
+            />
+            <Link href={`/db/view`}>
+              <Button>Explore</Button>
+            </Link>
+          </Stack>
         </Box>
       )}
     </>

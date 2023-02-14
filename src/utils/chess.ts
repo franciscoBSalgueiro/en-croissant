@@ -10,10 +10,19 @@ import {
 } from "chess.js";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome, Speed } from "./db";
+import { formatScore } from "./format";
 
 export type Score = {
     [key in "cp" | "mate"]: number;
 };
+
+function parseScore(score: string): Score {
+    if (score.startsWith("#")) {
+        return { mate: parseInt(score.slice(1)) } as Score;
+    } else {
+        return { cp: parseFloat(score) * 100 } as Score;
+    }
+}
 
 export enum Annotation {
     None = "",
@@ -130,8 +139,10 @@ export class VariationTree {
             moveText += this.annotation;
         }
         moveText += " ";
-        if (comments && this.commentText !== "") {
-            moveText += `{${this.commentText}} `;
+        if (comments && (this.commentText !== "" || this.score !== null)) {
+            moveText += `{${
+                this.score ? ` [%eval ${formatScore(this.score).text}]` : ""
+            } ${this.commentText} } `;
         }
         return moveText;
     }
@@ -308,8 +319,16 @@ export function parsePGN(
         }
         if (token === "{") {
             let comment = "";
+            let score: Score | null = null;
             i++;
             while (tokens[i] !== "}") {
+                if (tokens[i] === "[%eval") {
+                    i++;
+                    score = parseScore(tokens[i]);
+                    tree.score = score;
+                    i++;
+                    continue;
+                }
                 comment += tokens[i] + " ";
                 i++;
             }

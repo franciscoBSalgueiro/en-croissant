@@ -12,17 +12,16 @@ import { useForm } from "@mantine/form";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import {
+  Annotation,
   EngineVariation,
   goToPosition,
   pgnToUCI,
+  Score,
   VariationTree
 } from "../../../utils/chess";
 import { Database, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
-import {
-  formatDuration,
-  formatNumber
-} from "../../../utils/format";
+import { formatDuration } from "../../../utils/format";
 
 function ReportModal({
   moves,
@@ -46,7 +45,6 @@ function ReportModal({
     initialValues: {
       engine: "",
       secondsPerMove: 1,
-      referenceDatabase: "",
       skipAnalyzingTheory: true,
     },
 
@@ -56,9 +54,6 @@ function ReportModal({
       },
       secondsPerMove: (value) => {
         if (!value) return "Seconds per move is required";
-      },
-      referenceDatabase: (value) => {
-        if (!value) return "Reference database is required";
       },
     },
   });
@@ -73,6 +68,22 @@ function ReportModal({
   }, []);
 
   function analyze() {
+    function getAnnotation(prevScore: Score, curScore: Score): Annotation {
+      if (prevScore.cp && curScore.mate) {
+        return Annotation.Blunder;
+      }
+      if (curScore.cp - prevScore.cp > 2) {
+        return Annotation.Blunder;
+      }
+      if (curScore.cp - prevScore.cp > 1) {
+        return Annotation.Mistake;
+      }
+      if (curScore.cp - prevScore.cp > 0.5) {
+        return Annotation.Dubious;
+      }
+      return Annotation.None;
+    }
+
     toggleReportingMode();
     setLoading(true);
     invoke("analyze_game", {
@@ -124,19 +135,6 @@ function ReportModal({
             label="Seconds per Move"
             {...form.getInputProps("secondsPerMove")}
             min={1}
-          />
-
-          <Select
-            withAsterisk
-            label="Reference Database"
-            placeholder="Pick one"
-            data={databases.map((db) => {
-              return {
-                value: db.file,
-                label: `${db.title} (${formatNumber(db.game_count!)} games)`,
-              };
-            })}
-            {...form.getInputProps("referenceDatabase")}
           />
 
           <Checkbox

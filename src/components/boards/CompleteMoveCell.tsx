@@ -6,11 +6,13 @@ function CompleteMoveCell({
   tree,
   setTree,
   forceUpdate,
+  showComments,
   first,
 }: {
   tree: VariationTree;
   setTree: (tree: VariationTree) => void;
   forceUpdate: () => void;
+  showComments: boolean;
   first?: boolean;
 }) {
   const move_number = Math.ceil(tree.half_moves / 2);
@@ -48,7 +50,7 @@ function CompleteMoveCell({
           />
         )}
       </Box>
-      {tree.commentHTML && (
+      {showComments && tree.commentHTML && (
         <TypographyStylesProvider
           style={{
             display: multipleLine ? "block" : "inline-block",

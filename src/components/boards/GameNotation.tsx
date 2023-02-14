@@ -18,6 +18,8 @@ import { useForceUpdate, useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
+  IconArticle,
+  IconArticleOff,
   IconCheck,
   IconCopy,
   IconEye,
@@ -55,9 +57,10 @@ function GameNotation({
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
   const [showVariations, toggleVariations] = useToggle([true, false]);
+  const [showComments, toggleComments] = useToggle([true, false]);
   const { classes } = useStyles();
   const pgn = topVariation.getPGN();
-  
+
   const multipleLine =
     topVariation.commentHTML.split("</p>").length - 1 > 1 ||
     topVariation.commentHTML.includes("<blockquote>") ||
@@ -78,6 +81,17 @@ function GameNotation({
                       <IconEyeOff size={15} />
                     ) : (
                       <IconEye size={15} />
+                    )}
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip
+                  label={showComments ? "Hide comments" : "Show comments"}
+                >
+                  <ActionIcon onClick={() => toggleComments()}>
+                    {showComments ? (
+                      <IconArticle size={15} />
+                    ) : (
+                      <IconArticleOff size={15} />
                     )}
                   </ActionIcon>
                 </Tooltip>
@@ -121,7 +135,7 @@ function GameNotation({
                 zIndex={2}
               />
             )}
-            {topVariation.commentHTML && (
+            {showComments && topVariation.commentHTML && (
               <TypographyStylesProvider
                 style={{
                   display: multipleLine ? "block" : "inline-block",
@@ -143,6 +157,7 @@ function GameNotation({
               setTree={setTree}
               forceUpdate={forceUpdate}
               showVariations={showVariations}
+              showComments={showComments}
             />
           </Box>
           {outcome !== Outcome.Unknown && (
@@ -171,6 +186,7 @@ function RenderVariationTree({
   setTree,
   forceUpdate,
   showVariations,
+  showComments,
 }: {
   tree: VariationTree;
   depth: number;
@@ -178,6 +194,7 @@ function RenderVariationTree({
   setTree: (tree: VariationTree) => void;
   forceUpdate: () => void;
   showVariations: boolean;
+  showComments: boolean;
 }) {
   const variations = tree.children;
   const moveNodes = showVariations
@@ -187,6 +204,7 @@ function RenderVariationTree({
             tree={variation}
             setTree={setTree}
             forceUpdate={forceUpdate}
+            showComments={showComments}
             first
           />
           <RenderVariationTree
@@ -196,6 +214,7 @@ function RenderVariationTree({
             first
             forceUpdate={forceUpdate}
             showVariations={showVariations}
+            showComments={showComments}
           />
         </>
       ))
@@ -208,6 +227,7 @@ function RenderVariationTree({
           tree={variations[0]}
           setTree={setTree}
           forceUpdate={forceUpdate}
+          showComments={showComments}
           first={first}
         />
       )}
@@ -221,6 +241,7 @@ function RenderVariationTree({
           setTree={setTree}
           forceUpdate={forceUpdate}
           showVariations={showVariations}
+          showComments={showComments}
         />
       )}
     </>
@@ -266,11 +287,11 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
     );
   else if (moveNodes.length === 1)
     return (
-      <>
+      <Box sx={{ fontStyle: "italic"}}>
         {"("}
         {moveNodes}
         {")"}
-      </>
+      </Box>
     );
   else return <></>;
 }

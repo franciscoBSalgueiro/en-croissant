@@ -9,8 +9,11 @@ function EvalBar({
   score: Score | null;
   boardSize: number;
 }) {
-  const { text, value } = formatScore(score ?? { cp: 0, mate: 0 });
-  const progress = value / 30 + 50;
+  const { text, value } = formatScore(score ?? { cp: 0 } as Score);
+  let progress = value / 30 + 50;
+  if (score?.mate) {
+    progress = score.mate > 0 ? 100 : 0;
+  } 
 
   return (
     <Box sx={{ width: 25, height: boardSize }}>
