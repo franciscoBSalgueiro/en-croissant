@@ -330,7 +330,7 @@ function BoardGame({
                   Analyze
                 </Button>
               </Group>
-              <GameNotation setTree={setTree} topVariation={tree.getTopVariation()} outcome={Outcome.Unknown} />
+              <GameNotation setTree={setTree} topVariation={tree.getTopVariation()} outcome={Outcome.Unknown} boardSize={600} />
               <MoveControls
                 goToStart={goToStart}
                 goToEnd={goToEnd}

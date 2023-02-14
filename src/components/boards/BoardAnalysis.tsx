@@ -1,8 +1,9 @@
 import {
   Accordion,
+  Box,
   Button,
+  Flex,
   ScrollArea,
-  SimpleGrid,
   Stack,
   Tabs
 } from "@mantine/core";
@@ -12,7 +13,8 @@ import {
   useHotkeys,
   useLocalStorage,
   useSessionStorage,
-  useToggle
+  useToggle,
+  useViewportSize
 } from "@mantine/hooks";
 import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
@@ -30,6 +32,7 @@ import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import FenInput from "../panels/info/FenInput";
 import PgnInput from "../panels/info/PgnInput";
 import BoardPlay from "./BoardPlay";
+import EvalBar from "./EvalBar";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ id }: { id: string }) {
@@ -65,6 +68,7 @@ function BoardAnalysis({ id }: { id: string }) {
   const forceUpdate = useForceUpdate();
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
+  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
     key: "selected-engines",
     defaultValue: [],
@@ -205,23 +209,46 @@ function BoardAnalysis({ id }: { id: string }) {
     setArrows([]);
   }, [tree.fen]);
 
+  const { height, width } = useViewportSize();
+
+  function getBoardSize(height: number, width: number) {
+    const initial = Math.min((height - 140) * 0.95, width * 0.4);
+    if (width < 680) {
+      return width - 120;
+    }
+    return initial;
+  }
+  const boardSize = getBoardSize(height, width);
+
   return (
     <TreeContext.Provider value={tree}>
       <ReportModal
-        moves={tree.getTopVariation().getPGN()}
+        moves={tree.getTopVariation().getPGN(false, false, false)}
         reportingMode={reportingMode}
         toggleReportingMode={toggleReportingMode}
+        setLoading={setAnalysisLoading}
+        setTree={setTree}
       />
-      <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-        <BoardPlay
-          makeMove={makeMove}
-          arrows={arrows}
-          editingMode={editingMode}
-          toggleEditingMode={toggleEditingMode}
-          setCompleteGame={setCompleteGame}
-          completeGame={completeGame}
-        />
-        <Stack>
+      <Flex gap="md" wrap="wrap" align="start">
+        {tree.score && <EvalBar score={tree.score} />}
+        <Box mx="auto">
+          <BoardPlay
+            makeMove={makeMove}
+            arrows={arrows}
+            editingMode={editingMode}
+            toggleEditingMode={toggleEditingMode}
+            setCompleteGame={setCompleteGame}
+            completeGame={completeGame}
+          />
+        </Box>
+        <Stack
+          sx={{
+            flex: 1,
+            flexGrow: 1,
+            justifyContent: "space-between",
+            height: width > 1000 ? "80vh" : "100%",
+          }}
+        >
           <Tabs defaultValue="analysis">
             <Tabs.List grow>
               <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
@@ -253,7 +280,7 @@ function BoardAnalysis({ id }: { id: string }) {
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <ScrollArea
-                style={{ height: "40vh" }}
+                style={{ height: boardSize / 2 }}
                 offsetScrollbars
                 type="always"
               >
@@ -279,6 +306,7 @@ function BoardAnalysis({ id }: { id: string }) {
                   <Button
                     leftIcon={<IconZoomCheck size={14} />}
                     onClick={() => toggleReportingMode()}
+                    loading={analysisLoading}
                   >
                     Generate Report
                   </Button>
@@ -286,19 +314,22 @@ function BoardAnalysis({ id }: { id: string }) {
               </ScrollArea>
             </Tabs.Panel>
           </Tabs>
-          <GameNotation
-            setTree={setTree}
-            topVariation={tree.getTopVariation()}
-            outcome={game.outcome}
-          />
-          <MoveControls
-            goToStart={goToStart}
-            goToEnd={goToEnd}
-            redoMove={redoMove}
-            undoMove={undoMove}
-          />
+          <Stack>
+            <GameNotation
+              setTree={setTree}
+              topVariation={tree.getTopVariation()}
+              outcome={game.outcome}
+              boardSize={width > 1000 ? boardSize : 600}
+            />
+            <MoveControls
+              goToStart={goToStart}
+              goToEnd={goToEnd}
+              redoMove={redoMove}
+              undoMove={undoMove}
+            />
+          </Stack>
         </Stack>
-      </SimpleGrid>
+      </Flex>
     </TreeContext.Provider>
   );
 }

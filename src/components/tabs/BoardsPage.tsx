@@ -176,7 +176,7 @@ export default function BoardsPage() {
       onTabChange={(v) => setActiveTab(v)}
       variant="outline"
     >
-      <Stack pos="relative">
+      <Stack pos="relative" h="100%">
         <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
           <Group spacing={0} sx={{ flexWrap: "nowrap" }}>
             <Tabs.List sx={{ flexWrap: "nowrap" }}>

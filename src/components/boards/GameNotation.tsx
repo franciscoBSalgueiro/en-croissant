@@ -11,7 +11,6 @@ import {
   Stack,
   Text,
   Tooltip,
-  TypographyStylesProvider,
   useMantineTheme
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
@@ -25,10 +24,9 @@ import {
   IconMinus,
   IconPlus
 } from "@tabler/icons";
-import { useContext } from "react";
-import { Annotation, annotationColor, VariationTree } from "../../utils/chess";
+import { VariationTree } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
-import TreeContext from "../common/TreeContext";
+import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 
 const useStyles = createStyles((theme) => ({
@@ -45,10 +43,12 @@ function GameNotation({
   setTree,
   topVariation,
   outcome,
+  boardSize,
 }: {
   setTree: (tree: VariationTree) => void;
   topVariation: VariationTree;
   outcome: Outcome;
+  boardSize: number;
 }) {
   const forceUpdate = useForceUpdate();
   const theme = useMantineTheme();
@@ -59,7 +59,7 @@ function GameNotation({
 
   return (
     <Paper withBorder p="md" sx={{ position: "relative" }}>
-      <ScrollArea style={{ height: "200px" }} offsetScrollbars>
+      <ScrollArea sx={{ height: boardSize / 3 }} offsetScrollbars>
         <Stack>
           <Stack className={classes.scroller}>
             <Group style={{ justifyContent: "space-between" }}>
@@ -74,7 +74,9 @@ function GameNotation({
                     )}
                   </ActionIcon>
                 </Tooltip>
-                <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
+                <Tooltip
+                  label={showVariations ? "Show Variations" : "Main line"}
+                >
                   <ActionIcon onClick={() => toggleVariations()}>
                     {showVariations ? (
                       <IconArrowsSplit size={15} />
@@ -146,7 +148,7 @@ function RenderVariationTree({
   first,
   setTree,
   forceUpdate,
-  showVariations
+  showVariations,
 }: {
   tree: VariationTree;
   depth: number;
@@ -156,24 +158,26 @@ function RenderVariationTree({
   showVariations: boolean;
 }) {
   const variations = tree.children;
-  const moveNodes = showVariations ? variations.slice(1).map((variation) => (
-    <>
-      <CompleteMoveCell
-        tree={variation}
-        setTree={setTree}
-        forceUpdate={forceUpdate}
-        first
-      />
-      <RenderVariationTree
-        tree={variation}
-        depth={depth + 2}
-        setTree={setTree}
-        first
-        forceUpdate={forceUpdate}
-        showVariations={showVariations}
-      />
-    </>
-  )) : [];
+  const moveNodes = showVariations
+    ? variations.slice(1).map((variation) => (
+        <>
+          <CompleteMoveCell
+            tree={variation}
+            setTree={setTree}
+            forceUpdate={forceUpdate}
+            first
+          />
+          <RenderVariationTree
+            tree={variation}
+            depth={depth + 2}
+            setTree={setTree}
+            first
+            forceUpdate={forceUpdate}
+            showVariations={showVariations}
+          />
+        </>
+      ))
+    : [];
 
   return (
     <>
@@ -247,182 +251,6 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
       </>
     );
   else return <></>;
-}
-
-const useMoveStyles = createStyles(
-  (
-    theme,
-    {
-      isCurrentVariation,
-      color,
-    }: { isCurrentVariation: boolean; color: string }
-  ) => ({
-    cell: {
-      all: "unset",
-      fontSize: 14,
-      fontWeight: 600,
-      display: "inline-block",
-      padding: 6,
-      borderRadius: 4,
-      cursor: "pointer",
-      color:
-        color === "gray"
-          ? theme.colorScheme === "dark"
-            ? theme.white
-            : theme.colors.gray[8]
-          : theme.colors[color][6],
-      backgroundColor: isCurrentVariation
-        ? theme.fn.rgba(theme.colors[color][6], 0.2)
-        : "transparent",
-      "&:hover": {
-        backgroundColor: theme.fn.rgba(
-          theme.colors[color][6],
-          isCurrentVariation ? 0.25 : 0.1
-        ),
-      },
-    },
-  })
-);
-
-function CompleteMoveCell({
-  tree,
-  setTree,
-  forceUpdate,
-  first,
-}: {
-  tree: VariationTree;
-  setTree: (tree: VariationTree) => void;
-  forceUpdate: () => void;
-  first?: boolean;
-}) {
-  const move_number = Math.ceil(tree.half_moves / 2);
-  const is_white = tree.half_moves % 2 === 1;
-  const hasNumber = tree.half_moves > 0 && (first || is_white);
-  const lastMove = tree.move;
-
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-block",
-        marginLeft: hasNumber ? 6 : 0,
-        fontSize: 14,
-      }}
-    >
-      {hasNumber && <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>}
-      {lastMove && (
-        <MoveCell
-          move={lastMove.san}
-          variation={tree}
-          setTree={setTree}
-          annotation={tree.annotation}
-          comment={tree.commentHTML}
-          forceUpdate={forceUpdate}
-        />
-      )}
-    </Box>
-  );
-}
-
-function MoveCell({
-  move,
-  variation,
-  annotation,
-  comment,
-  setTree,
-  forceUpdate,
-}: {
-  move: string;
-  variation: VariationTree;
-  annotation: Annotation;
-  comment: string;
-  setTree: (tree: VariationTree) => void;
-  forceUpdate: () => void;
-}) {
-  const tree = useContext(TreeContext);
-  const isCurrentVariation = variation.equals(tree);
-  const color = annotationColor(annotation);
-  const multipleLine =
-    comment.split("</p>").length - 1 > 1 ||
-    comment.includes("<blockquote>") ||
-    comment.includes("<ul>") ||
-    comment.includes("<h");
-
-  function promoteVariation(variation: VariationTree) {
-    const isCurrent = variation === tree;
-    const parent = variation.parent;
-    if (parent) {
-      parent.children = [
-        variation,
-        ...parent.children.filter((child) => child !== variation),
-      ];
-      if (isCurrent) {
-        forceUpdate();
-      } else {
-        setTree(variation);
-      }
-    }
-  }
-
-  function demoteVariation(variation: VariationTree) {
-    const isCurrent = variation === tree;
-    const parent = variation.parent;
-    if (parent) {
-      parent.children = [
-        ...parent.children.filter((child) => child !== variation),
-        variation,
-      ];
-      if (isCurrent) {
-        forceUpdate();
-      } else {
-        setTree(variation);
-      }
-    }
-  }
-
-  function deleteVariation(variation: VariationTree) {
-    const isInCurrentBranch = tree.isInBranch(variation);
-    const parent = variation.parent;
-    if (parent) {
-      parent.children = parent.children.filter((child) => child !== variation);
-      if (isInCurrentBranch) {
-        setTree(parent);
-      } else {
-        forceUpdate();
-      }
-    }
-  }
-
-  const { classes } = useMoveStyles({ isCurrentVariation, color });
-
-  return (
-    <>
-      <Box
-        component="button"
-        className={classes.cell}
-        onClick={() => {
-          setTree(variation);
-        }}
-      >
-        {move + annotation}
-      </Box>
-      {comment && (
-        <TypographyStylesProvider
-          style={{
-            display: multipleLine ? "block" : "inline-block",
-            marginLeft: 4,
-            marginRight: 4,
-          }}
-        >
-          <span
-            dangerouslySetInnerHTML={{
-              __html: comment,
-            }}
-          />
-        </TypographyStylesProvider>
-      )}
-    </>
-  );
 }
 
 export default GameNotation;

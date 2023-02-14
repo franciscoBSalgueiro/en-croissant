@@ -67,7 +67,7 @@ export class VariationTree {
     fen: string;
     move: Move | null;
     children: VariationTree[];
-    score: number;
+    score: Score | null;
     depth: number;
     half_moves: number;
     annotation: Annotation = Annotation.None;
@@ -79,14 +79,14 @@ export class VariationTree {
         fen: string,
         move: Move | null,
         children?: VariationTree[],
-        score?: number,
+        score?: Score,
         depth?: number
     ) {
         this.parent = parent;
         this.fen = fen;
         this.move = move;
         this.children = children ?? [];
-        this.score = score ?? 0;
+        this.score = score ?? null;
         this.depth = depth ?? 0;
         this.half_moves = parent ? parent.half_moves + 1 : 0;
     }

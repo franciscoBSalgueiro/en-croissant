@@ -10,7 +10,12 @@ import {
   Stack,
   Tooltip
 } from "@mantine/core";
-import { useHotkeys, useLocalStorage, useToggle } from "@mantine/hooks";
+import {
+  useHotkeys,
+  useLocalStorage,
+  useToggle,
+  useViewportSize
+} from "@mantine/hooks";
 import {
   IconChessBishop,
   IconChessKnight,
@@ -36,8 +41,9 @@ import OpeningName from "./OpeningName";
 
 const useStyles = createStyles((theme) => ({
   chessboard: {
-    aspectRatio: "1 / 1",
     position: "relative",
+    marginRight: "auto",
+    marginLeft: "auto",
     zIndex: 1,
   },
 }));
@@ -123,6 +129,16 @@ function BoardPlay({
   } | null>(null);
   const [orientation, toggleOrientation] = useToggle<Color>(["white", "black"]);
   const { classes } = useStyles();
+  const { height, width } = useViewportSize();
+
+  function getBoardSize(height: number, width: number) {
+    const initial = Math.min((height - 140) * 0.95, width * 0.4);
+    if (width < 680) {
+      return width - 120;
+    }
+    return initial;
+  }
+  const boardSize = getBoardSize(height, width);
 
   useHotkeys([["f", () => toggleOrientation()]]);
 
@@ -138,40 +154,38 @@ function BoardPlay({
           </Group>
         </Card>
       )}
+      <Modal
+        opened={pendingMove !== null}
+        onClose={() => setPendingMove(null)}
+        withCloseButton={false}
+        size={375}
+      >
+        <SimpleGrid cols={2}>
+          {promotionPieces.map((p) => (
+            <Box key={p.piece} sx={{ width: "100%", height: "100%" }}>
+              <AspectRatio ratio={1}>
+                <ActionIcon
+                  onClick={() => {
+                    makeMove({
+                      from: pendingMove!.from,
+                      to: pendingMove!.to,
+                      promotion: p.piece,
+                    });
+                    setPendingMove(null);
+                  }}
+                >
+                  {p.icon}
+                </ActionIcon>
+              </AspectRatio>
+            </Box>
+          ))}
+        </SimpleGrid>
+      </Modal>
 
-      <div className={classes.chessboard}>
-        <Modal
-          opened={pendingMove !== null}
-          onClose={() => setPendingMove(null)}
-          withCloseButton={false}
-          size={375}
-        >
-          <SimpleGrid cols={2}>
-            {promotionPieces.map((p) => (
-              <Box key={p.piece} sx={{ width: "100%", height: "100%" }}>
-                <AspectRatio ratio={1}>
-                  <ActionIcon
-                    onClick={() => {
-                      makeMove({
-                        from: pendingMove!.from,
-                        to: pendingMove!.to,
-                        promotion: p.piece,
-                      });
-                      setPendingMove(null);
-                    }}
-                  >
-                    {p.icon}
-                  </ActionIcon>
-                </AspectRatio>
-              </Box>
-            ))}
-          </SimpleGrid>
-        </Modal>
-
+      <Box className={classes.chessboard}>
         <Chessground
-          style={{ justifyContent: "start" }}
-          width={"100%"}
-          height={"100%"}
+          width={boardSize}
+          height={boardSize}
           orientation={orientation}
           fen={fen}
           coordinates={false}
@@ -240,9 +254,9 @@ function BoardPlay({
                 : [],
           }}
         />
-      </div>
+      </Box>
 
-      <Group position={"apart"}>
+      <Group position={"apart"} h={20}>
         <OpeningName />
 
         <Group>

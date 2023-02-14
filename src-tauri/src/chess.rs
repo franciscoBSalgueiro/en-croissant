@@ -339,10 +339,6 @@ pub async fn analyze_game(
         let mut stdin = stdin;
         let mut chess = Chess::default();
 
-        // stdin
-        //     .write_all(format!("position fen {}\n", &fen).as_bytes())
-        //     .await
-        //     .expect("Failed to write position");
         stdin
             .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
             .await
@@ -351,10 +347,6 @@ pub async fn analyze_game(
             .write_all(format!("setoption name multipv value {}\n", &number_lines).as_bytes())
             .await
             .expect("Failed to write setoption");
-        // stdin
-        //     .write_all(format!("go movetime {}\n", &move_time * 1000).as_bytes())
-        //     .await
-        //     .expect("Failed to write go");
 
         for m in moves_list {
             let san = San::from_ascii(m.as_bytes()).unwrap();

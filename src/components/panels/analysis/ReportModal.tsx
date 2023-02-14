@@ -5,27 +5,42 @@ import {
   Modal,
   NumberInput,
   Select,
-  Stack
+  Stack,
+  Text
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
-import { pgnToUCI } from "../../../utils/chess";
+import {
+  EngineVariation,
+  goToPosition,
+  pgnToUCI,
+  VariationTree
+} from "../../../utils/chess";
 import { Database, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
-import { formatNumber } from "../../../utils/format";
+import {
+  formatDuration,
+  formatNumber
+} from "../../../utils/format";
 
 function ReportModal({
   moves,
+  setLoading,
   reportingMode,
   toggleReportingMode,
+  setTree,
 }: {
   moves: string;
+  setLoading: (loading: boolean) => void;
   reportingMode: boolean;
   toggleReportingMode: () => void;
+  setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
 }) {
   const [databases, setDatabases] = useState<Database[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
+
+  const uciMoves = pgnToUCI(moves);
 
   const form = useForm({
     initialValues: {
@@ -38,6 +53,9 @@ function ReportModal({
     validate: {
       engine: (value) => {
         if (!value) return "Engine is required";
+      },
+      secondsPerMove: (value) => {
+        if (!value) return "Seconds per move is required";
       },
       referenceDatabase: (value) => {
         if (!value) return "Reference database is required";
@@ -56,12 +74,28 @@ function ReportModal({
 
   function analyze() {
     toggleReportingMode();
+    setLoading(true);
     invoke("analyze_game", {
-      moves: pgnToUCI(moves),
+      moves: uciMoves,
       engine: form.values.engine,
       moveTime: form.values.secondsPerMove,
     }).then((result) => {
-      console.log(result);
+      setLoading(false);
+      const evals = result as EngineVariation[];
+      console.log(evals);
+      setTree((prev) => {
+        let position = prev.getPosition();
+        let root = prev.getTopVariation().children[0];
+        let i = 0;
+        while (root.children.length > 0) {
+          root.score = evals[i].score;
+
+          root = root.children[0];
+          i++;
+        }
+        root.score = evals[i].score;
+        return goToPosition(root.getTopVariation(), position);
+      });
     });
   }
 
@@ -74,6 +108,7 @@ function ReportModal({
       <form onSubmit={form.onSubmit((values) => analyze())}>
         <Stack>
           <Select
+            withAsterisk
             label="Engine"
             placeholder="Pick one"
             data={engines.map((engine) => {
@@ -85,12 +120,14 @@ function ReportModal({
             {...form.getInputProps("engine")}
           />
           <NumberInput
+            withAsterisk
             label="Seconds per Move"
             {...form.getInputProps("secondsPerMove")}
             min={1}
           />
 
           <Select
+            withAsterisk
             label="Reference Database"
             placeholder="Pick one"
             data={databases.map((db) => {
@@ -106,6 +143,13 @@ function ReportModal({
             label="Skip Analyzing Theory"
             {...form.getInputProps("skipAnalyzingTheory", { type: "checkbox" })}
           />
+
+          <Text size="sm">
+            Estimated time:{" "}
+            {formatDuration(
+              uciMoves.split(" ").length * form.values.secondsPerMove
+            )}
+          </Text>
 
           <Group position="right">
             <Button type="submit">Analyze</Button>
