@@ -131,6 +131,9 @@ export default function BoardsPage() {
     if (sessionStorage.getItem(value)) {
       sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
     }
+    if (sessionStorage.getItem(value + "-tree")) {
+      sessionStorage.setItem(id + "-tree", sessionStorage.getItem(value + "-tree") || "");
+    }
 
     if (tab) {
       setTabs((prev) => [

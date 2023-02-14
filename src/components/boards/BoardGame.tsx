@@ -13,6 +13,7 @@ import { IconPlus, IconRobot, IconUsers, IconZoomCheck } from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
 import { useMemo, useState } from "react";
 import {
+  goToPosition,
   movesToVariationTree,
   parsePGN,
   VariationTree
@@ -178,14 +179,15 @@ function BoardGame({
     serialize: (value) => {
       const storedTree = JSON.stringify({
         pgn: value.getTopVariation().getPGN(),
-        currentMove: value.half_moves,
+        currentMove: value.getPosition(),
       });
       return storedTree;
     },
     deserialize: (value) => {
       const { pgn, currentMove } = JSON.parse(value);
       const tree = parsePGN(pgn);
-      return tree;
+      const treeAtPosition = goToPosition(tree, currentMove);
+      return treeAtPosition;
     },
   });
   const chess = new Chess(tree.fen);

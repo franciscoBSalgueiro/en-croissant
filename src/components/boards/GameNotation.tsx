@@ -11,6 +11,7 @@ import {
   Stack,
   Text,
   Tooltip,
+  TypographyStylesProvider,
   useMantineTheme
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
@@ -56,6 +57,12 @@ function GameNotation({
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const { classes } = useStyles();
   const pgn = topVariation.getPGN();
+  
+  const multipleLine =
+    topVariation.commentHTML.split("</p>").length - 1 > 1 ||
+    topVariation.commentHTML.includes("<blockquote>") ||
+    topVariation.commentHTML.includes("<ul>") ||
+    topVariation.commentHTML.includes("<h");
 
   return (
     <Paper withBorder p="md" sx={{ position: "relative" }}>
@@ -113,6 +120,21 @@ function GameNotation({
                 blur={3}
                 zIndex={2}
               />
+            )}
+            {topVariation.commentHTML && (
+              <TypographyStylesProvider
+                style={{
+                  display: multipleLine ? "block" : "inline-block",
+                  marginLeft: 4,
+                  marginRight: 4,
+                }}
+              >
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: topVariation.commentHTML,
+                  }}
+                />
+              </TypographyStylesProvider>
             )}
             <RenderVariationTree
               tree={topVariation}

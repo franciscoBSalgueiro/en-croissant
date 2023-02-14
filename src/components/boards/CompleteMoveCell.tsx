@@ -1,4 +1,4 @@
-import { Box } from "@mantine/core";
+import { Box, TypographyStylesProvider } from "@mantine/core";
 import { VariationTree } from "../../utils/chess";
 import MoveCell from "./MoveCell";
 
@@ -18,27 +18,52 @@ function CompleteMoveCell({
   const hasNumber = tree.half_moves > 0 && (first || is_white);
   const lastMove = tree.move;
 
+  const multipleLine =
+    tree.commentHTML.split("</p>").length - 1 > 1 ||
+    tree.commentHTML.includes("<blockquote>") ||
+    tree.commentHTML.includes("<ul>") ||
+    tree.commentHTML.includes("<h");
+
   return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-block",
-        marginLeft: hasNumber ? 6 : 0,
-        fontSize: 14,
-      }}
-    >
-      {hasNumber && <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>}
-      {lastMove && (
-        <MoveCell
-          move={lastMove.san}
-          variation={tree}
-          setTree={setTree}
-          annotation={tree.annotation}
-          comment={tree.commentHTML}
-          forceUpdate={forceUpdate}
-        />
+    <>
+      <Box
+        component="span"
+        sx={{
+          display: "inline-block",
+          marginLeft: hasNumber ? 6 : 0,
+          fontSize: 14,
+        }}
+      >
+        {hasNumber && (
+          <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
+        )}
+        {lastMove && (
+          <MoveCell
+            move={lastMove.san}
+            variation={tree}
+            setTree={setTree}
+            annotation={tree.annotation}
+            comment={tree.commentHTML}
+            forceUpdate={forceUpdate}
+          />
+        )}
+      </Box>
+      {tree.commentHTML && (
+        <TypographyStylesProvider
+          style={{
+            display: multipleLine ? "block" : "inline-block",
+            marginLeft: 4,
+            marginRight: 4,
+          }}
+        >
+          <span
+            dangerouslySetInnerHTML={{
+              __html: tree.commentHTML,
+            }}
+          />
+        </TypographyStylesProvider>
       )}
-    </Box>
+    </>
   );
 }
 

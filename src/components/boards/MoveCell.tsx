@@ -1,7 +1,7 @@
-import { Box, createStyles, TypographyStylesProvider } from "@mantine/core";
+import { Box, createStyles } from "@mantine/core";
 import { useContext } from "react";
 import {
-    Annotation, annotationColor, VariationTree
+  Annotation, annotationColor, VariationTree
 } from "../../utils/chess";
 import TreeContext from "../common/TreeContext";
 
@@ -58,12 +58,6 @@ function MoveCell({
   const tree = useContext(TreeContext);
   const isCurrentVariation = variation.equals(tree);
   const color = annotationColor(annotation);
-  const multipleLine =
-    comment.split("</p>").length - 1 > 1 ||
-    comment.includes("<blockquote>") ||
-    comment.includes("<ul>") ||
-    comment.includes("<h");
-
   function promoteVariation(variation: VariationTree) {
     const isCurrent = variation === tree;
     const parent = variation.parent;
@@ -122,21 +116,6 @@ function MoveCell({
       >
         {move + annotation}
       </Box>
-      {comment && (
-        <TypographyStylesProvider
-          style={{
-            display: multipleLine ? "block" : "inline-block",
-            marginLeft: 4,
-            marginRight: 4,
-          }}
-        >
-          <span
-            dangerouslySetInnerHTML={{
-              __html: comment,
-            }}
-          />
-        </TypographyStylesProvider>
-      )}
     </>
   );
 }
