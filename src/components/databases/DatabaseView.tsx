@@ -11,6 +11,7 @@ function DatabaseView() {
     key: "database-view",
     defaultValue: null,
   });
+
   return (
     <>
       {database && (

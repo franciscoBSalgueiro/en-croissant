@@ -9,7 +9,7 @@ import {
     SQUARES
 } from "chess.js";
 import { Key } from "chessground/types";
-import { CompleteGame, Outcome, Speed } from "./db";
+import { CompleteGame } from "./db";
 import { formatScore } from "./format";
 
 export type Score = {
@@ -435,31 +435,35 @@ export function getCompleteGame(pgn: string): CompleteGame {
 
     const chess = new Chess();
     chess.loadPgn(pgn);
-    const { Result, Site, Date, White, Black, BlackElo, WhiteElo } =
+    const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event } =
         chess.header();
 
     const game: CompleteGame = {
-        black: {
-            game_count: 0,
-            id: 0,
-            name: Black ?? "?",
-        },
-        white: {
-            game_count: 0,
-            id: 0,
-            name: White ?? "?",
-        },
         currentMove: [],
         game: {
-            black: 0,
-            white: 0,
-            speed: Speed.Unknown,
-            outcome: (Result as Outcome) ?? Outcome.Unknown,
-            black_rating: BlackElo ? parseInt(BlackElo) : 0,
-            white_rating: WhiteElo ? parseInt(WhiteElo) : 0,
+            id: 0,
+            result: Result ?? "*",
+            black: {
+                id: 0,
+                name: Black ?? "?",
+            },
+            white: {
+                id: 0,
+                name: White ?? "?",
+            },
+            black_elo: BlackElo ? parseInt(BlackElo) : 0,
+            white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
             date: Date ?? "",
             moves: stripPGNheader(pgn),
-            site: Site ?? "",
+            ply_count: chess.history().length,
+            site: {
+                id: 0,
+                name: Site ?? "",
+            },
+            event: {
+                id: 0,
+                name: Event ?? "",
+            },
         },
     };
     return game;

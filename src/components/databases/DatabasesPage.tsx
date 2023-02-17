@@ -13,7 +13,7 @@ import {
   TextInput,
   Title
 } from "@mantine/core";
-import { useDebouncedValue, useSessionStorage } from "@mantine/hooks";
+import { useDebouncedValue, useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
@@ -144,7 +144,7 @@ export default function DatabasesPage() {
       key: "database-view",
       defaultValue: null,
     });
-  const [referenceDatabase, setReferenceDatabase] = useSessionStorage<
+  const [referenceDatabase, setReferenceDatabase] = useLocalStorage<
     string | null
   >({
     key: "reference-database",

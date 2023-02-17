@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::San, zobrist::ZobristHash, CastlingMode, Chess, Position};
+use shakmaty::{fen::Fen, san::San, zobrist::{ZobristHash, Zobrist64}, CastlingMode, Chess, Position, EnPassantMode};
 
 use lazy_static::lazy_static;
 
@@ -32,7 +32,7 @@ pub fn get_opening(fen: &str) -> Result<&str, &str> {
     let pos: Chess = fen
         .into_position(CastlingMode::Standard)
         .or(Err("Invalid Position"))?;
-    let hash = pos.zobrist_hash();
+    let hash: Zobrist64 = pos.zobrist_hash(EnPassantMode::Always);
     OPENINGS
         .get(&hash)
         .map(|o| o.name.as_str())
@@ -40,7 +40,7 @@ pub fn get_opening(fen: &str) -> Result<&str, &str> {
 }
 
 lazy_static! {
-    static ref OPENINGS: HashMap<u64, Opening> = {
+    static ref OPENINGS: HashMap<Zobrist64, Opening> = {
         println!("Initializing openings table...");
         let mut map = HashMap::new();
         for tsv in TSV_DATA {
@@ -54,7 +54,7 @@ lazy_static! {
                     }
                 }
                 map.insert(
-                    pos.zobrist_hash(),
+                    pos.zobrist_hash(EnPassantMode::Always),
                     Opening {
                         eco: record.eco,
                         name: record.name,

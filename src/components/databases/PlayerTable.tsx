@@ -11,6 +11,7 @@ import {
   LoadingOverlay,
   Pagination,
   Paper,
+  RangeSlider,
   ScrollArea,
   Select,
   Stack,
@@ -32,7 +33,7 @@ import PlayerCard from "./PlayerCard";
 
 const sortOptions = [
   { label: "Name", value: "name" },
-  { label: "Number of games", value: "games" },
+  { label: "ELO", value: "elo" },
 ];
 
 const useStyles = createStyles((theme) => ({
@@ -85,17 +86,18 @@ const useStyles = createStyles((theme) => ({
 function PlayerTable({ database }: { database: Database }) {
   const { classes, cx } = useStyles();
   const file = database.file;
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [players, setplayers] = useState<Player[]>([]);
   const [count, setCount] = useState(0);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [skip, toggleSkip] = useToggle();
+  const [range, setRange] = useState<[number, number]>([0, 3000]);
+  const [tempRange, setTempRange] = useState<[number, number]>([0, 3000]);
   const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState("games");
+  const [sort, setSort] = useState("elo");
   const [activePage, setActivePage] = useState(1);
-  const [direction, toggleDirection] = useToggle(["asc", "desc"] as const);
+  const [direction, toggleDirection] = useToggle(["desc", "asc"] as const);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
-  const offset = (activePage - 1) * limit;
   const [scrolled, setScrolled] = useState(false);
   const [openedSettings, toggleOpenedSettings] = useToggle();
   const viewport = useRef<HTMLDivElement>(null);
@@ -107,17 +109,18 @@ function PlayerTable({ database }: { database: Database }) {
     setLoading(true);
     query_players(file, {
       name: name,
-      limit,
-      offset: 0,
+      range: range,
+      page: 1,
+      pageSize: limit,
       skip_count: skip,
       sort,
       direction,
     }).then((res) => {
       setLoading(false);
-      setPlayers(res.data);
+      setplayers(res.data);
       setCount(res.count);
     });
-  }, [name, skip, limit, file]);
+  }, [name, range, skip, limit, file]);
 
   useEffect(() => {
     setLoading(true);
@@ -125,17 +128,18 @@ function PlayerTable({ database }: { database: Database }) {
     setSelectedPlayer(null);
     query_players(file, {
       name: name === "" ? undefined : name,
-      limit,
-      offset: skip ? 0 : offset,
+      range: range,
+      page: activePage,
+      pageSize: limit,
       skip_count: skip,
       sort,
       direction,
     }).then((res) => {
       setLoading(false);
-      setPlayers(res.data);
+      setplayers(res.data);
       setCount(res.count);
     });
-  }, [offset, sort, direction]);
+  }, [activePage, sort, direction]);
 
   const rows =
     players.length === 0 ? (
@@ -160,7 +164,7 @@ function PlayerTable({ database }: { database: Database }) {
           })}
         >
           <td>{player.name}</td>
-          <td>{player.game_count}</td>
+          <td>{player.elo}</td>
         </tr>
       ))
     );
@@ -243,6 +247,22 @@ function PlayerTable({ database }: { database: Database }) {
                   onChange={(v) => setName(v.currentTarget.value)}
                 />
               </Group>
+              <Text size="sm">
+                Elo Range
+              </Text>
+              <RangeSlider
+                step={10}
+                min={0}
+                max={3000}
+                marks={[
+                  { value: 1000, label: "1000" },
+                  { value: 2000, label: "2000" },
+                  { value: 3000, label: "3000" },
+                ]}
+                value={tempRange}
+                onChange={setTempRange}
+                onChangeEnd={setRange}
+              />
               <Tooltip label="Disabling this may significantly improve performance">
                 <Checkbox
                   label="Include pagination"
@@ -267,7 +287,7 @@ function PlayerTable({ database }: { database: Database }) {
                 >
                   <tr>
                     <th>Name</th>
-                    <th>Game Count</th>
+                    <th>ELO</th>
                   </tr>
                 </thead>
                 <tbody>

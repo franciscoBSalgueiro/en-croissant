@@ -147,12 +147,13 @@ export function AccountCard({
   useEffect(() => {
     if (database) {
       query_games(database.file, {
-        limit: 1,
+        page: 1,
+        pageSize: 1,
         sort: "date",
         direction: "desc",
       }).then((games) => {
         if (games.count > 0) {
-          setLastGameDate(new Date(games.data[0][0].date));
+          setLastGameDate(new Date(games.data[0].date!));
         }
       });
     }

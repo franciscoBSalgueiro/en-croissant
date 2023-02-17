@@ -1,7 +1,8 @@
-import { Card, createStyles, Loader, Text } from "@mantine/core";
+import { Box, Card, createStyles, Loader, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons";
-import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { Command } from "@tauri-apps/api/shell";
 import { useEffect, useState } from "react";
 import { Database, getDatabases } from "../../utils/db";
 
@@ -21,6 +22,11 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+type Progress = {
+  total: number;
+  speed: number;
+};
+
 function ConvertButton({
   setDatabases,
 }: {
@@ -29,13 +35,47 @@ function ConvertButton({
   const [filepath, setFilepath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { classes } = useStyles();
+  const [progress, setProgress] = useState<Progress | null>(null);
+
+  async function convertDB(path: string) {
+    let fileName = path.split(/(\\|\/)/g).pop();
+    fileName = fileName?.replace(".pgn", ".ocgdb.db3");
+    const output_path = await resolve(await appDataDir(), "db", fileName!);
+    const command = Command.sidecar("binaries/ocgdb", [
+      "-create",
+      "-pgn",
+      path,
+      "-db",
+      output_path,
+      "-o",
+      "moves2",
+    ]);
+    command.stdout.on("data", (data) => {
+      const match = data
+        .toString()
+        .match(
+          /#games: (\d+), elapsed: (\d+)ms (\d+:\d+), speed: (\d+) games\/s/
+        );
+      if (match) {
+        const total = parseInt(match[1]);
+        const speed = parseInt(match[4]);
+        setProgress({ total, speed });
+      } else if (data.toString().includes("Completed")) {
+        setProgress(null);
+        setLoading(false);
+      }
+    });
+    command.on("close", () => {
+      getDatabases().then((dbs) => setDatabases(dbs));
+    });
+    await command.spawn();
+  }
 
   async function convert(filepath: string) {
     setLoading(true);
-    await invoke("convert_pgn", { file: filepath, fromLichess: false });
-    setLoading(false);
-    setDatabases(await getDatabases());
+    await convertDB(filepath);
   }
+
   useEffect(() => {
     if (filepath) {
       convert(filepath);
@@ -62,8 +102,19 @@ function ConvertButton({
         setFilepath(selected as string);
       }}
     >
-      <Text weight={500}>Add New</Text>
-      {loading ? <Loader size={30} /> : <IconPlus size={30} />}
+      <Text weight={500} mb={10}>
+        Add New
+      </Text>
+      {loading ? <Loader variant="dots" size={30} /> : <IconPlus size={30} />}
+
+      {progress && (
+        <Box sx={{ display: "flex", justifyContent: "space-around" }}>
+          <Text fz="xs">{progress.total} games</Text>
+          <Text fz="xs" mb={10}>
+            {progress.speed} games/s
+          </Text>
+        </Box>
+      )}
     </Card>
   );
 }

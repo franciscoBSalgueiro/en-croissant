@@ -1,156 +1,72 @@
 import {
   ActionIcon,
-  Avatar,
-  Box,
   Button,
   Center,
   Checkbox,
   Collapse,
-  createStyles,
   Grid,
   Group,
-  LoadingOverlay,
   Pagination,
   Paper,
   RangeSlider,
-  ScrollArea,
   Select,
   Stack,
-  Table,
   Text,
-  Tooltip,
-  useMantineTheme
+  Tooltip
 } from "@mantine/core";
-import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
-  IconEye,
   IconSearch,
   IconSortAscending,
   IconSortDescending
 } from "@tabler/icons";
-import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import {
-  CompleteGame,
   Database,
-  Game,
+  NormalizedGame,
   Outcome,
-  Player,
   query_games,
-  Sides,
-  Speed
+  Sides
 } from "../../utils/db";
 import { formatNumber } from "../../utils/format";
-import { genID, Tab } from "../tabs/BoardsPage";
 import GameCard from "./GameCard";
+import GameSubTable from "./GameSubTable";
 import { SearchInput } from "./SearchInput";
-import SpeeedBadge from "./SpeedBadge";
-
-const useStyles = createStyles((theme) => ({
-  header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 10,
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-    transition: "box-shadow 150ms ease",
-
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderBottom: `1px solid ${
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[3]
-          : theme.colors.gray[2]
-      }`,
-    },
-  },
-  scrolled: {
-    boxShadow: theme.shadows.sm,
-  },
-  row: {
-    cursor: "pointer",
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.white,
-    },
-  },
-  rowSelected: {
-    backgroundColor:
-      theme.colorScheme === "dark"
-        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
-        : theme.colors[theme.primaryColor][0],
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
-          : theme.colors[theme.primaryColor][0],
-    },
-  },
-}));
 
 const sortOptions = [
+  { label: "ID", value: "id" },
   { label: "Date", value: "date" },
-  { label: "Rating", value: "rating" },
-  { label: "Speed", value: "speed" },
-  { label: "Outcome", value: "outcome" },
+  { label: "White ELO", value: "whiteElo" },
+  { label: "Black ELO", value: "blackElo" },
 ];
 
 function GameTable({ database }: { database: Database }) {
-  const { classes, cx } = useStyles();
-  const router = useRouter();
   const file = database.file;
-  const [games, setGames] = useState<[Game, Player, Player][]>([]);
+  const [games, setGames] = useState<NormalizedGame[]>([]);
 
   const [count, setCount] = useState(0);
   const [player1, setPlayer1] = useState("");
   const [rangePlayer1, setRangePlayer1] = useState<[number, number]>([0, 3000]);
+  const [tempRangePlayer1, setTempRangePlayer1] = useState<[number, number]>([
+    0, 3000,
+  ]);
   const [player2, setplayer2] = useState("");
   const [rangePlayer2, setRangePlayer2] = useState<[number, number]>([0, 3000]);
-  const [sides, setSides] = useState(Sides.Any);
-  const [speed, setSpeed] = useState<string | null>(null);
+  const [tempRangePlayer2, setTempRangePlayer2] = useState<[number, number]>([
+    0, 3000,
+  ]);
+  const [sides, setSides] = useState(Sides.WhiteBlack);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [skip, toggleSkip] = useToggle();
+  const [skip, toggleSkip] = useToggle([true, false]);
   const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState("date");
-  const [direction, toggleDirection] = useToggle(["asc", "desc"] as const);
+  const [sort, setSort] = useState("id");
+  const [direction, toggleDirection] = useToggle(["desc", "asc"] as const);
   const [activePage, setActivePage] = useState(1);
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
-  const offset = (activePage - 1) * limit;
-  const [scrolled, setScrolled] = useState(false);
   const [openedSettings, toggleOpenedSettings] = useToggle();
   const viewport = useRef<HTMLDivElement>(null);
   const scrollToTop = () => viewport.current?.scrollTo({ top: 0 });
-  const firstId = genID();
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
-  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
-    key: "activeTab",
-    defaultValue: firstId,
-  });
-  const theme = useMantineTheme();
-
-  function createTab(name: string) {
-    const id = genID();
-
-    setTabs((prev) => [
-      ...prev,
-      {
-        name,
-        value: id,
-        type: "analysis",
-      },
-    ]);
-    setActiveTab(id);
-    return id;
-  }
 
   useEffect(() => {
     setActivePage(1);
@@ -162,10 +78,9 @@ function GameTable({ database }: { database: Database }) {
       player2: player2 === "" ? undefined : player2,
       rangePlayer2: rangePlayer2,
       sides: sides,
-      speed: speed === null ? undefined : (speed as Speed),
       outcome: outcome === null ? undefined : (outcome as Outcome),
-      limit,
-      offset: 0,
+      page: activePage,
+      pageSize: limit,
       skip_count: skip,
       sort,
       direction,
@@ -177,7 +92,6 @@ function GameTable({ database }: { database: Database }) {
   }, [
     player1,
     player2,
-    speed,
     outcome,
     skip,
     limit,
@@ -194,10 +108,11 @@ function GameTable({ database }: { database: Database }) {
     query_games(file, {
       player1: player1 === "" ? undefined : player1,
       player2: player2 === "" ? undefined : player2,
-      speed: speed === null ? undefined : (speed as Speed),
+      rangePlayer1: rangePlayer1,
+      rangePlayer2: rangePlayer2,
       outcome: outcome === null ? undefined : (outcome as Outcome),
-      limit,
-      offset: skip ? 0 : offset,
+      page: activePage,
+      pageSize: limit,
       skip_count: true,
       sort,
       direction,
@@ -205,83 +120,7 @@ function GameTable({ database }: { database: Database }) {
       setLoading(false);
       setGames(res.data);
     });
-  }, [offset, sort, direction]);
-
-  const rows =
-    games.length === 0 ? (
-      <tr>
-        <td colSpan={6}>
-          <Text weight={500} align="center" p={20}>
-            No games found
-          </Text>
-        </td>
-      </tr>
-    ) : (
-      games.map(([game, white, black], i) => (
-        <tr
-          key={i}
-          onClick={() => {
-            i == selectedGame ? setSelectedGame(null) : setSelectedGame(i);
-          }}
-          className={cx(classes.row, {
-            [classes.rowSelected]: i == selectedGame,
-          })}
-        >
-          <td>
-            <ActionIcon
-              variant="filled"
-              color={theme.primaryColor}
-              onClick={() => {
-                const id = createTab(`${white.name} - ${black.name}`);
-                const completeGame: CompleteGame = {
-                  game,
-                  white,
-                  black,
-                  currentMove: [],
-                };
-                sessionStorage.setItem(id, JSON.stringify(completeGame));
-                router.push("/boards");
-              }}
-            >
-              <IconEye size={16} stroke={1.5} />
-            </ActionIcon>
-          </td>
-          <td>
-            <Group spacing="sm" noWrap>
-              <Avatar size={40} src={white.image} radius={40} />
-              <div>
-                <Text size="sm" weight={500}>
-                  {white.name}
-                </Text>
-                <Text size="xs" color="dimmed">
-                  {game.white_rating}
-                </Text>
-              </div>
-            </Group>
-          </td>
-          <td>{game.outcome}</td>
-          {/* <td>{game.outcome.replaceAll("1/2", "½")}</td> */}
-          <td>
-            <Group spacing="sm" noWrap>
-              <Avatar size={40} src={black.image} radius={40} />
-              <div>
-                <Text size="sm" weight={500}>
-                  {black.name}
-                </Text>
-                <Text size="xs" color="dimmed">
-                  {game.black_rating}
-                </Text>
-              </div>
-            </Group>
-          </td>
-          <td>{game.date}</td>
-          <td>
-            <SpeeedBadge speed={game.speed} />
-          </td>
-          <td>{game.site}</td>
-        </tr>
-      ))
-    );
+  }, [activePage, sort, direction]);
 
   useHotkeys([
     [
@@ -372,8 +211,9 @@ function GameTable({ database }: { database: Database }) {
                       { value: 2000, label: "2000" },
                       { value: 3000, label: "3000" },
                     ]}
-                    value={rangePlayer1}
-                    onChange={setRangePlayer1}
+                    value={tempRangePlayer1}
+                    onChange={setTempRangePlayer1}
+                    onChangeEnd={setRangePlayer1}
                   />
                 </Stack>
                 <Stack>
@@ -394,26 +234,12 @@ function GameTable({ database }: { database: Database }) {
                       { value: 2000, label: "2000" },
                       { value: 3000, label: "3000" },
                     ]}
-                    value={rangePlayer2}
-                    onChange={setRangePlayer2}
+                    value={tempRangePlayer2}
+                    onChange={setTempRangePlayer2}
+                    onChangeEnd={setRangePlayer2}
                   />
                 </Stack>
               </Group>
-              <Select
-                label="Speed"
-                value={speed}
-                onChange={setSpeed}
-                clearable
-                placeholder="Select speed"
-                data={[
-                  { label: Speed.UltraBullet, value: Speed.UltraBullet },
-                  { label: Speed.Bullet, value: Speed.Bullet },
-                  { label: Speed.Blitz, value: Speed.Blitz },
-                  { label: Speed.Rapid, value: Speed.Rapid },
-                  { label: Speed.Classical, value: Speed.Classical },
-                  { label: Speed.Correspondence, value: Speed.Correspondence },
-                ]}
-              />
               <Select
                 label="Result"
                 value={outcome}
@@ -435,36 +261,13 @@ function GameTable({ database }: { database: Database }) {
               </Tooltip>
             </Stack>
           </Collapse>
-          <Box sx={{ position: "relative" }}>
-            <ScrollArea
-              h={600}
-              viewportRef={viewport}
-              onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
-              offsetScrollbars
-            >
-              <Table>
-                <thead
-                  className={cx(classes.header, {
-                    [classes.scrolled]: scrolled,
-                  })}
-                >
-                  <tr>
-                    <th />
-                    <th>White</th>
-                    <th>Result</th>
-                    <th>Black</th>
-                    <th>Date</th>
-                    <th>Speed</th>
-                    <th>Site</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <>{rows}</>
-                </tbody>
-              </Table>
-            </ScrollArea>
-            <LoadingOverlay visible={loading} />
-          </Box>
+          <GameSubTable
+            height={600}
+            games={games}
+            loading={loading}
+            selectedGame={selectedGame}
+            setSelectedGame={setSelectedGame}
+          />
           {!skip && (
             <>
               <Select

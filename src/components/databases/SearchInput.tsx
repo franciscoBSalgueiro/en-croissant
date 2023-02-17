@@ -33,11 +33,11 @@ export function SearchInput({
 
     if (!(val.trim().length === 0)) {
       const res = await query_players(file, {
-        limit: 5,
-        offset: 0,
+        page: 1,
+        pageSize: 5,
         name: val,
         skip_count: true,
-        sort: "games",
+        sort: "elo",
         direction: "asc",
       });
       setData(res.data.map((game) => game.name));

@@ -1,50 +1,34 @@
-import { Avatar, Group, Stack, Text } from "@mantine/core";
-import { Player } from "../../utils/db";
+import { Group, Stack, Text } from "@mantine/core";
+import { NormalizedGame } from "../../utils/db";
 
-interface GameInfoProps {
-  white: Player;
-  white_rating: number;
-  black: Player;
-  black_rating: number;
-  date: string;
-  outcome: string;
-}
-
-function GameInfo({
-  white,
-  white_rating,
-  black,
-  black_rating,
-  date,
-  outcome,
-}: GameInfoProps) {
+function GameInfo({ game }: { game: NormalizedGame }) {
   return (
     <Group align="apart" my="sm" mx="md" grow>
       <Stack align="start" spacing={0}>
         <Group noWrap>
-          <Avatar src={white.image} />
+          {/* <Avatar src={game.white.image} /> */}
           <div>
-            <Text weight={500}>{white.name}</Text>
-            <Text c="dimmed">{white_rating}</Text>
+            <Text weight={500}>{game.white.name}</Text>
+            <Text c="dimmed">{game.white_elo}</Text>
           </div>
         </Group>
       </Stack>
       <Stack align="center" justify="end" spacing={0}>
-        <Text>{outcome}</Text>
+        <Text>{game.result}</Text>
         {/* <Text>{outcome.replaceAll("1/2", "½")}</Text> */}
-        <Text c="dimmed">{date}</Text>
+        <Text c="dimmed">{game.date}</Text>
       </Stack>
       <Stack align="end" spacing={0}>
         <Group noWrap>
           <div>
             <Text weight={500} align="right">
-              {black.name}
+              {game.black.name}
             </Text>
             <Text c="dimmed" align="right">
-              {black_rating}
+              {game.black_elo}
             </Text>
           </div>
-          <Avatar src={black.image} />
+          {/* <Avatar src={black.image} /> */}
         </Group>
       </Stack>
     </Group>

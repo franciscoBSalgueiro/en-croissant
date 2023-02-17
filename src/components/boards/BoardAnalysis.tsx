@@ -16,11 +16,16 @@ import {
   useToggle,
   useViewportSize
 } from "@mantine/hooks";
-import { IconInfoCircle, IconNotes, IconZoomCheck } from "@tabler/icons";
+import {
+  IconDatabase,
+  IconInfoCircle,
+  IconNotes,
+  IconZoomCheck
+} from "@tabler/icons";
 import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
-import { CompleteGame, Outcome, Speed } from "../../utils/db";
+import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
@@ -31,6 +36,7 @@ import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import FenInput from "../panels/info/FenInput";
 import PgnInput from "../panels/info/PgnInput";
+import DatabasePanel from "../tabs/DatabasePanel";
 import BoardPlay from "./BoardPlay";
 import EvalBar from "./EvalBar";
 import GameNotation from "./GameNotation";
@@ -38,30 +44,7 @@ import GameNotation from "./GameNotation";
 function BoardAnalysis({ id }: { id: string }) {
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
     key: id,
-    defaultValue: {
-      game: {
-        white: -1,
-        black: -1,
-        white_rating: 0,
-        black_rating: 0,
-        speed: Speed.Unknown,
-        outcome: Outcome.Unknown,
-        moves: "",
-        date: "??.??.??",
-        site: "",
-      },
-      white: {
-        id: -1,
-        name: "White",
-        game_count: 0,
-      },
-      black: {
-        id: -1,
-        name: "Black",
-        game_count: 0,
-      },
-      currentMove: [],
-    },
+    defaultValue: { game: defaultGame(), currentMove: [] },
   });
   const game = completeGame.game;
 
@@ -254,6 +237,9 @@ function BoardAnalysis({ id }: { id: string }) {
               <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
                 Analysis
               </Tabs.Tab>
+              <Tabs.Tab value="database" icon={<IconDatabase size={16} />}>
+                Database
+              </Tabs.Tab>
               <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
                 Annotate
               </Tabs.Tab>
@@ -263,17 +249,13 @@ function BoardAnalysis({ id }: { id: string }) {
             </Tabs.List>
             <Tabs.Panel value="info" pt="xs">
               <Stack>
-                <GameInfo
-                  white={completeGame.white}
-                  white_rating={game.white_rating}
-                  black={completeGame.black}
-                  black_rating={game.black_rating}
-                  date={game.date}
-                  outcome={game.outcome}
-                />
+                <GameInfo game={game} />
                 <FenInput form={form} onSubmit={resetToFen} />
                 <PgnInput />
               </Stack>
+            </Tabs.Panel>
+            <Tabs.Panel value="database" pt="xs">
+              <DatabasePanel />
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
               <AnnotationPanel forceUpdate={forceUpdate} setTree={setTree} />
@@ -319,7 +301,7 @@ function BoardAnalysis({ id }: { id: string }) {
             <GameNotation
               setTree={setTree}
               topVariation={tree.getTopVariation()}
-              outcome={game.outcome}
+              result={game.result}
               boardSize={width > 1000 ? boardSize : 600}
             />
             <MoveControls

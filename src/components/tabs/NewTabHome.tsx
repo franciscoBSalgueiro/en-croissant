@@ -149,7 +149,7 @@ export default function NewTabHome({
 
               sessionStorage.setItem(id, JSON.stringify(completeGame));
 
-              tab.name = `${completeGame.white.name} - ${completeGame.black.name} (Imported)`;
+              tab.name = `${completeGame.game.white.name} - ${completeGame.game.black.name} (Imported)`;
               tab.type = "analysis";
               return [...prev];
             });

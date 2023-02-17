@@ -8,11 +8,9 @@ export enum Sides {
 }
 
 export interface CompleteGame {
-    game: Game;
-    white: Player;
-    black: Player;
+    game: NormalizedGame;
     currentMove: number[];
-  }
+}
 
 export interface Database {
     title?: string;
@@ -25,8 +23,8 @@ export interface Database {
 
 interface Query {
     skip_count?: boolean;
-    limit?: number;
-    offset?: number;
+    page?: number;
+    pageSize?: number;
     sort: string;
     direction: "asc" | "desc";
 }
@@ -50,7 +48,7 @@ export enum Outcome {
     Unknown = "*",
     WhiteWin = "1-0",
     BlackWin = "0-1",
-    Draw = "½-½",
+    Draw = "1/2-1/2",
 }
 
 interface GameQuery extends Query {
@@ -64,10 +62,10 @@ interface GameQuery extends Query {
 }
 
 export interface Game {
-    white: number;
-    white_rating: number;
-    black: number;
-    black_rating: number;
+    white_id: number;
+    white_elo: number;
+    black_id: number;
+    black_elo: number;
     speed: Speed;
     outcome: Outcome;
     moves: string;
@@ -75,24 +73,37 @@ export interface Game {
     site: string;
 }
 
+export interface Site {
+    id: number;
+    name: string;
+}
+
 export async function query_games(
     db: string,
     query: GameQuery
-): Promise<QueryResponse<[Game, Player, Player][]>> {
+): Promise<QueryResponse<NormalizedGame[]>> {
     return invoke("get_games", {
         file: db,
         query: {
             options: {
                 skip_count: query.skip_count ?? false,
-                limit: query.limit,
-                offset: query.offset,
+                page: query.page,
+                page_size: query.pageSize,
                 sort: query.sort,
                 direction: query.direction,
             },
             player1: query.player1,
-            range1: query.rangePlayer1,
+            range1:
+                query.rangePlayer1 === undefined ||
+                query.rangePlayer1[1] - query.rangePlayer1[0] === 3000
+                    ? undefined
+                    : query.rangePlayer1,
             player2: query.player2,
-            range2: query.rangePlayer2,
+            range2:
+                query.rangePlayer2 === undefined ||
+                query.rangePlayer2[1] - query.rangePlayer2[0] === 3000
+                    ? undefined
+                    : query.rangePlayer2,
             sides: query.sides,
             speed: query.speed,
             outcome: query.outcome,
@@ -102,12 +113,13 @@ export async function query_games(
 
 interface PlayerQuery extends Query {
     name?: string;
+    range?: [number, number];
 }
 
 export interface Player {
     id: number;
     name: string;
-    game_count: number;
+    elo?: number;
     image?: string;
 }
 
@@ -120,26 +132,105 @@ export async function query_players(
         query: {
             options: {
                 skip_count: query.skip_count || false,
-                limit: query.limit,
-                offset: query.offset,
+                page: query.page,
+                page_size: query.pageSize,
                 sort: query.sort,
                 direction: query.direction,
             },
             name: query.name,
+            range: query.range,
         },
     });
 }
 
-export async function getDatabases() {
+export async function getDatabases(): Promise<Database[]> {
     let files = await readDir("db", { dir: BaseDirectory.AppData });
-    let dbs = files.filter((file) => file.name?.endsWith(".sqlite"));
-    return await Promise.all(dbs.map((db) => getDatabase(db.path)));
+    let dbs = files.filter((file) => file.name?.endsWith(".ocgdb.db3"));
+    return (
+        await Promise.all(
+            dbs.map((db) => getDatabase(db.path).catch(() => null))
+        )
+    ).filter((db) => db !== null) as Database[];
 }
 
-export async function getDatabase(path: string) {
+export async function getDatabase(path: string): Promise<Database> {
     let db = (await invoke("get_db_info", {
         file: path,
     })) as Database;
     db.file = path;
     return db;
+}
+
+export async function searchOpening(
+    db: string,
+    moves: string
+): Promise<[Game, Player, Player][]> {
+    // trim moves from the move number notation
+    moves = moves.replace(/\d+\./g, "");
+    // remove double spaces
+    moves = moves.replace(/\s\s+/g, " ");
+    moves = moves.trim();
+
+    return invoke("search_opening", {
+        file: db,
+        opening: moves,
+    });
+}
+
+export interface NormalizedGame {
+    id: number;
+    event: {
+        id: number;
+        name: string;
+    };
+    site: {
+        id: number;
+        name: string;
+    };
+    date?: string;
+    round?: string;
+    white: {
+        id: number;
+        name: string;
+        elo?: number;
+    };
+    white_elo: number;
+    black: {
+        id: number;
+        name: string;
+        elo?: number;
+    };
+    black_elo?: number;
+    result?: string;
+    time_control?: string;
+    eco?: string;
+    ply_count: number;
+    fen?: string;
+    moves: string;
+}
+
+export function defaultGame(): NormalizedGame {
+    return {
+        id: 0,
+        event: {
+            id: 0,
+            name: "",
+        },
+        site: {
+            id: 0,
+            name: "",
+        },
+        white: {
+            id: 0,
+            name: "",
+        },
+        white_elo: 0,
+        black: {
+            id: 0,
+            name: "",
+        },
+        black_elo: 0,
+        ply_count: 0,
+        moves: "",
+    };
 }

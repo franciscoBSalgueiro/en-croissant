@@ -18,7 +18,7 @@ import {
   parsePGN,
   VariationTree
 } from "../../utils/chess";
-import { CompleteGame, Outcome, Speed } from "../../utils/db";
+import { CompleteGame, defaultGame, Outcome } from "../../utils/db";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
@@ -136,30 +136,7 @@ function BoardGame({
   const [selected, setSelected] = useState<Opponent | null>(null);
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
     key: id,
-    defaultValue: {
-      game: {
-        white: -1,
-        black: -1,
-        white_rating: 0,
-        black_rating: 0,
-        speed: Speed.Unknown,
-        outcome: Outcome.Unknown,
-        moves: "",
-        date: new Date().toLocaleDateString().replace(/\//g, "."),
-        site: "",
-      },
-      white: {
-        id: -1,
-        name: "White",
-        game_count: 0,
-      },
-      black: {
-        id: -1,
-        name: "Black",
-        game_count: 0,
-      },
-      currentMove: [],
-    },
+    defaultValue: { game: defaultGame(), currentMove: [] },
   });
   const game = completeGame.game;
 
@@ -306,14 +283,7 @@ function BoardGame({
             </Card>
           ) : (
             <>
-              <GameInfo
-                white={completeGame.white}
-                white_rating={game.white_rating}
-                black={completeGame.black}
-                black_rating={game.black_rating}
-                date={game.date}
-                outcome={game.outcome}
-              />
+              <GameInfo game={game} />
               <Group grow>
                 <Button
                   onClick={() => {
@@ -332,7 +302,12 @@ function BoardGame({
                   Analyze
                 </Button>
               </Group>
-              <GameNotation setTree={setTree} topVariation={tree.getTopVariation()} outcome={Outcome.Unknown} boardSize={600} />
+              <GameNotation
+                setTree={setTree}
+                topVariation={tree.getTopVariation()}
+                result={Outcome.Unknown}
+                boardSize={600}
+              />
               <MoveControls
                 goToStart={goToStart}
                 goToEnd={goToEnd}

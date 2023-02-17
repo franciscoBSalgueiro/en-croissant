@@ -36,7 +36,7 @@ import {
   parseUci,
   toDests
 } from "../../utils/chess";
-import { CompleteGame, Outcome } from "../../utils/db";
+import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
 import TreeContext from "../common/TreeContext";
 
@@ -94,12 +94,12 @@ function BoardPlay({
 }: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
-  if (chess.isCheckmate() && completeGame.game.outcome === Outcome.Unknown) {
+  if (chess.isCheckmate() && completeGame.game.result === Result.Unknown) {
     setCompleteGame((prev) => ({
       ...prev,
       game: {
         ...prev.game,
-        outcome: chess.turn() === "w" ? Outcome.BlackWin : Outcome.WhiteWin,
+        outcome: chess.turn() === "w" ? Result.BlackWin : Result.WhiteWin,
       },
     }));
   }

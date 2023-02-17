@@ -45,12 +45,12 @@ const useStyles = createStyles((theme) => ({
 function GameNotation({
   setTree,
   topVariation,
-  outcome,
+  result,
   boardSize,
 }: {
   setTree: (tree: VariationTree) => void;
   topVariation: VariationTree;
-  outcome: Outcome;
+  result?: string;
   boardSize: number;
 }) {
   const forceUpdate = useForceUpdate();
@@ -160,14 +160,14 @@ function GameNotation({
               showComments={showComments}
             />
           </Box>
-          {outcome !== Outcome.Unknown && (
+          {result !== Outcome.Unknown && (
             <Text align="center">
-              {outcome}
+              {result}
               <br />
               <Text span fs="italic">
-                {outcome === Outcome.Draw
+                {result === Outcome.Draw
                   ? "Draw"
-                  : outcome === Outcome.WhiteWin
+                  : result === Outcome.WhiteWin
                   ? "White wins"
                   : "Black wins"}
               </Text>
@@ -287,7 +287,7 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
     );
   else if (moveNodes.length === 1)
     return (
-      <Box sx={{ fontStyle: "italic"}}>
+      <Box sx={{ fontStyle: "italic" }}>
         {"("}
         {moveNodes}
         {")"}

@@ -22,7 +22,7 @@ use crate::chess::analyze_game;
 use crate::puzzle::get_puzzle;
 use crate::{
     chess::get_best_moves,
-    db::{convert_pgn, get_db_info, get_games, get_players, get_players_game_info, rename_db},
+    db::{get_db_info, get_games, get_players, rename_db},
     fs::{download_file, file_exists},
     opening::get_opening,
 };
@@ -126,14 +126,14 @@ fn main() {
             get_best_moves,
             get_opening,
             get_puzzle,
-            convert_pgn,
             get_games,
             get_players,
             get_db_info,
             rename_db,
-            get_players_game_info,
+            // get_players_game_info,
             start_server,
-            analyze_game
+            analyze_game,
+            // search_opening
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -66,9 +66,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.68"
+version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cb2f989d18dd141ab8ae82f64d1a8cdd37e0840f73a406896cf5e99502fab61"
+checksum = "224afbd727c3d6e4b90103ece64b8d1b67fbb1973b1046c2281eed3f3803f800"
 
 [[package]]
 name = "arrayvec"
@@ -817,7 +817,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with 2.1.0",
- "shakmaty 0.22.0",
+ "shakmaty",
  "tauri",
  "tauri-build",
  "tauri-plugin-oauth",
@@ -2230,7 +2230,7 @@ dependencies = [
  "btoi",
  "circular",
  "memchr",
- "shakmaty 0.23.0",
+ "shakmaty",
 ]
 
 [[package]]
@@ -2995,17 +2995,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
-]
-
-[[package]]
-name = "shakmaty"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c21d64aa05e370f386703bd46acdfd13d04f202fb4ce365cc67bbf744a72003"
-dependencies = [
- "arrayvec",
- "bitflags",
- "btoi",
 ]
 
 [[package]]
