@@ -6,6 +6,7 @@ import {
   createStyles,
   Divider,
   Group,
+  Modal,
   SimpleGrid,
   Stack,
   Text,
@@ -13,7 +14,12 @@ import {
   TextInput,
   Title
 } from "@mantine/core";
-import { useDebouncedValue, useLocalStorage, useSessionStorage } from "@mantine/hooks";
+import {
+  useDebouncedValue,
+  useLocalStorage,
+  useSessionStorage,
+  useToggle
+} from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
@@ -156,6 +162,7 @@ export default function DatabasesPage() {
 
   const [title, setTitle] = useState(database?.title ?? null);
   const [debouncedTitle] = useDebouncedValue(title, 200);
+  const [deleteModal, toggleDeleteModal] = useToggle();
 
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));
@@ -182,6 +189,41 @@ export default function DatabasesPage() {
 
   return (
     <>
+      <Modal
+        withCloseButton={false}
+        opened={deleteModal}
+        onClose={toggleDeleteModal}
+      >
+        <Stack>
+          <div>
+            <Text fz="lg" fw="bold" mb={10}>
+              Delete Database
+            </Text>
+            <Text>Are you sure you want to delete this database?</Text>
+            <Text>This action cannot be undone.</Text>
+          </div>
+
+          <Group position="right">
+            <Button variant="default" onClick={() => toggleDeleteModal()}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              onClick={() => {
+                invoke("delete_database", { file: database!.file }).then(() => {
+                  getDatabases().then((dbs) => {
+                    setDatabases(dbs);
+                    setSelected(null);
+                  });
+                });
+                toggleDeleteModal();
+              }}
+            >
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
       <Group align="baseline" m={30}>
         <Title>Your Databases</Title>
         <OpenFolderButton folder="db" />
@@ -232,9 +274,14 @@ export default function DatabasesPage() {
                 }
               }}
             />
-            <Link href={`/db/view`}>
-              <Button>Explore</Button>
-            </Link>
+            <Group>
+              <Link href={`/db/view`}>
+                <Button>Explore</Button>
+              </Link>
+              <Button onClick={() => toggleDeleteModal()} color="red">
+                Delete
+              </Button>
+            </Group>
           </Stack>
         </Box>
       )}

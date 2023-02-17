@@ -11,7 +11,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
 };
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, time::Duration};
+use std::{fs::remove_file, path::PathBuf, time::Duration};
 use tauri::State;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -547,3 +547,19 @@ pub struct PlayerGameInfo {
 
 //     Ok(games)
 // }
+
+#[tauri::command]
+pub async fn delete_database(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let mut state = state.0.lock().unwrap();
+    let path_str = file.to_str().unwrap();
+    if state.contains_key(path_str) {
+        state.remove(path_str);
+    }
+
+    // delete file
+    remove_file(path_str).or(Err(format!("Could not delete file {}", path_str)))?;
+    Ok(())
+}

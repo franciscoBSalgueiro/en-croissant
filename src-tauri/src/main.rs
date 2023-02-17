@@ -19,6 +19,7 @@ use tauri::{
 };
 
 use crate::chess::analyze_game;
+use crate::db::delete_database;
 use crate::puzzle::get_puzzle;
 use crate::{
     chess::get_best_moves,
@@ -133,6 +134,7 @@ fn main() {
             // get_players_game_info,
             start_server,
             analyze_game,
+            delete_database,
             // search_opening
         ])
         .run(tauri::generate_context!())
