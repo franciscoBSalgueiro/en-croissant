@@ -115,7 +115,7 @@ export function AccountCard({
     }
     return (
       <div key={stat.label} className={classes.rating}>
-        <Group>
+        <Group align="baseline" position="apart">
           <div>
             <Text className={classes.label}>{stat.value}</Text>
             <Text size="xs" color="dimmed">
@@ -123,7 +123,7 @@ export function AccountCard({
             </Text>
           </div>
           <Text color={color} size="sm" weight={500} className={classes.diff}>
-            <span>{stat.diff}%</span>
+            <span>{stat.diff}</span>
             <DiffIcon size={16} stroke={1.5} />
           </Text>
         </Group>
