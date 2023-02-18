@@ -2,7 +2,11 @@ mod models;
 mod ocgdb;
 mod schema;
 use crate::{
-    db::{models::*, ocgdb::decode_moves, schema::*},
+    db::{
+        models::*,
+        ocgdb::{position_search, decode_moves},
+        schema::*,
+    },
     AppState,
 };
 use diesel::{
@@ -10,8 +14,18 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{fs::remove_file, path::PathBuf, time::Duration};
+use shakmaty::{fen::Fen, Chess};
+use std::{
+    fs::remove_file,
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    time::{Duration, Instant},
+};
 use tauri::State;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -562,4 +576,47 @@ pub async fn delete_database(
     // delete file
     remove_file(path_str).or(Err(format!("Could not delete file {}", path_str)))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn play_all_games(
+    file: PathBuf,
+    fen: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(u64, u64, u64), String> {
+    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
+
+    // start counting the time
+    let start = Instant::now();
+    println!("start: {:?}", start.elapsed());
+
+    let games = games::table
+        .select(games::moves2)
+        .load(db)
+        .expect("load games");
+
+    println!("got games: {:?}", start.elapsed());
+    let first_seconds: u64 = start.elapsed().as_millis().try_into().unwrap();
+
+    let global_games = Arc::new(games);
+    let counter = AtomicUsize::new(0);
+    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen".to_string()))?;
+    let processed_position: Chess = processed_fen.into_position(shakmaty::CastlingMode::Standard).or(Err("Invalid fen".to_string()))?; 
+
+    global_games.par_iter().for_each(|game| {
+        position_search(&game, &processed_position).map(|r| {
+            if r {
+                counter.fetch_add(1, Ordering::Relaxed);
+            }
+        });
+    });
+    println!("done: {:?}", start.elapsed());
+    let second_seconds: u64 = start.elapsed().as_millis().try_into().unwrap();
+
+    Ok((
+        first_seconds,
+        second_seconds - first_seconds,
+        counter.load(Ordering::SeqCst) as u64,
+    ))
 }

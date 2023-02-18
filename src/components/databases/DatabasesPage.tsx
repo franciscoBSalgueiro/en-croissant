@@ -6,8 +6,7 @@ import {
   createStyles,
   Divider,
   Group,
-  Modal,
-  SimpleGrid,
+  Modal, SimpleGrid,
   Stack,
   Text,
   Textarea,
@@ -187,6 +186,9 @@ export default function DatabasesPage() {
     setSelectedDatabase(database);
   }, [database?.file]);
 
+  const [seconds, setSeconds] = useState([0, 0, 0]);
+  const [fen, setFen] = useState("");
+
   return (
     <>
       <Modal
@@ -278,10 +280,30 @@ export default function DatabasesPage() {
               <Link href={`/db/view`}>
                 <Button>Explore</Button>
               </Link>
+              <TextInput
+                label="FEN"
+                value={fen}
+                onChange={(e) => setFen(e.currentTarget.value)}
+              />
+              <Button
+                onClick={() =>
+                  invoke("play_all_games", {
+                    file: database.file,
+                    fen,
+                  }).then((res) => {
+                    setSeconds(res as number[]);
+                  })
+                }
+              >
+                Debug
+              </Button>
               <Button onClick={() => toggleDeleteModal()} color="red">
                 Delete
               </Button>
             </Group>
+            <p>{seconds[0]}</p>
+            <p>{seconds[1]}</p>
+            <p>{seconds[2]}</p>
           </Stack>
         </Box>
       )}

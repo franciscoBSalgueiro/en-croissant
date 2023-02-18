@@ -32,7 +32,7 @@ pub fn get_opening(fen: &str) -> Result<&str, &str> {
     let pos: Chess = fen
         .into_position(CastlingMode::Standard)
         .or(Err("Invalid Position"))?;
-    let hash: Zobrist64 = pos.zobrist_hash(EnPassantMode::Always);
+    let hash: Zobrist64 = pos.zobrist_hash(EnPassantMode::Legal);
     OPENINGS
         .get(&hash)
         .map(|o| o.name.as_str())
@@ -54,7 +54,7 @@ lazy_static! {
                     }
                 }
                 map.insert(
-                    pos.zobrist_hash(EnPassantMode::Always),
+                    pos.zobrist_hash(EnPassantMode::Legal),
                     Opening {
                         eco: record.eco,
                         name: record.name,
