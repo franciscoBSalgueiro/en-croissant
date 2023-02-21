@@ -287,7 +287,7 @@ export default function DatabasesPage() {
               />
               <Button
                 onClick={() =>
-                  invoke("play_all_games", {
+                  invoke("search_position", {
                     file: database.file,
                     fen,
                   }).then((res) => {

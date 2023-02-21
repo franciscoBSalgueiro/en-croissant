@@ -24,7 +24,6 @@ use shakmaty::{fen::Fen, Chess, Position};
 use std::{
     ffi::OsStr,
     fs::{remove_file, File},
-    mem,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -89,10 +88,6 @@ fn get_db_or_create(
     }
 }
 
-struct Batch {
-    games: Vec<TempGame>,
-}
-
 #[derive(Default, Debug, Serialize)]
 pub struct TempPlayer {
     id: usize,
@@ -119,84 +114,74 @@ pub struct TempGame {
 
 struct Importer<'a> {
     db: &'a mut diesel::SqliteConnection,
-    batch_size: usize,
-    current: TempGame,
+    game: TempGame,
     position: Chess,
     skip: bool,
-    batch: Vec<TempGame>,
 }
 
 impl Importer<'_> {
-    fn new(batch_size: usize, db: &mut diesel::SqliteConnection) -> Importer {
+    fn new(db: &mut diesel::SqliteConnection) -> Importer {
         Importer {
             db,
-            batch_size,
-            current: TempGame::default(),
+            game: TempGame::default(),
             position: Chess::default(),
             skip: false,
-            batch: Vec::with_capacity(batch_size),
         }
     }
 
     pub fn send(&mut self) -> Result<(), String> {
-        let batch = Batch {
-            games: mem::replace(&mut self.batch, Vec::with_capacity(self.batch_size)),
+        let white;
+        let black;
+        let site_id;
+        let event_id;
+
+        if let Some(name) = &self.game.white_name {
+            white = create_player(self.db, name).map_err(|e| e.to_string())?;
+        } else {
+            white = Player::default();
+        }
+        if let Some(name) = &self.game.black_name {
+            black = create_player(self.db, name).map_err(|e| e.to_string())?;
+        } else {
+            black = Player::default();
+        }
+
+        if let Some(name) = &self.game.event_name {
+            let event = create_event(self.db, name).map_err(|e| e.to_string())?;
+            event_id = event.id;
+        } else {
+            event_id = 1;
+        }
+
+        if let Some(name) = &self.game.site_name {
+            let site = create_site(self.db, name).map_err(|e| e.to_string())?;
+            site_id = site.id;
+        } else {
+            site_id = 1;
+        }
+
+        let ply_count = self.game.moves.len() as i32;
+        let moves2 = encode_moves(&self.game.moves)?;
+
+        let new_game = NewGame {
+            white_id: Some(white.id),
+            black_id: Some(black.id),
+            ply_count,
+            eco: self.game.eco.as_deref(),
+            round: self.game.round.as_deref(),
+            white_elo: self.game.white_elo,
+            black_elo: self.game.black_elo,
+            // max_rating: self.game.white.rating.max(self.game.black.rating),
+            date: self.game.date.as_deref(),
+            time_control: self.game.time_control.as_deref(),
+            site_id,
+            event_id,
+            fen: self.game.fen.as_deref(),
+            result: self.game.result.as_deref(),
+            moves2: &moves2,
         };
 
-        for game in batch.games {
-            let white;
-            let black;
-            let site_id;
-            let event_id;
-
-            if let Some(name) = game.white_name {
-                white = create_player(self.db, &name).map_err(|e| e.to_string())?;
-            } else {
-                white = Player::default();
-            }
-            if let Some(name) = game.black_name {
-                black = create_player(self.db, &name).map_err(|e| e.to_string())?;
-            } else {
-                black = Player::default();
-            }
-
-            if let Some(name) = game.event_name {
-                let event = create_event(self.db, &name).map_err(|e| e.to_string())?;
-                event_id = event.id;
-            } else {
-                event_id = 1;
-            }
-
-            if let Some(name) = game.site_name {
-                let site = create_site(self.db, &name).map_err(|e| e.to_string())?;
-                site_id = site.id;
-            } else {
-                site_id = 1;
-            }
-
-            let ply_count = game.moves.len() as i32;
-            let moves2 = encode_moves(game.moves)?;
-
-            let new_game = NewGame {
-                white_id: Some(white.id),
-                black_id: Some(black.id),
-                ply_count,
-                eco: game.eco.as_deref(),
-                round: game.round.as_deref(),
-                white_elo: game.white_elo,
-                black_elo: game.black_elo,
-                // max_rating: game.white.rating.max(game.black.rating),
-                date: game.date.as_deref(),
-                time_control: game.time_control.as_deref(),
-                site_id,
-                event_id,
-                fen: game.fen.as_deref(),
-                result: game.result.as_deref(),
-                moves2: &moves2,
-            };
-
-            create_game(self.db, new_game).map_err(|e| e.to_string())?;
-        }
+        create_game(self.db, new_game).map_err(|e| e.to_string())?;
         Ok(())
     }
 }
@@ -206,49 +191,48 @@ impl Visitor for Importer<'_> {
 
     fn begin_game(&mut self) {
         self.skip = false;
-        self.current = TempGame::default();
+        self.game = TempGame::default();
         self.position = Chess::default();
     }
 
     fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
         if key == b"White" {
-            self.current.white_name = Some(value.decode_utf8().expect("White").into_owned());
+            self.game.white_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Black" {
-            self.current.black_name = Some(value.decode_utf8().expect("Black").into_owned());
+            self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"WhiteElo" {
             if value.as_bytes() != b"?" {
-                self.current.white_elo = Some(btoi::btoi(value.as_bytes()).expect("WhiteElo"));
+                self.game.white_elo = Some(btoi::btoi(value.as_bytes()).expect("WhiteElo"));
             }
         } else if key == b"BlackElo" {
             if value.as_bytes() != b"?" {
-                self.current.black_elo = Some(btoi::btoi(value.as_bytes()).expect("BlackElo"));
+                self.game.black_elo = Some(btoi::btoi(value.as_bytes()).expect("BlackElo"));
             }
         } else if key == b"TimeControl" {
-            self.current.time_control =
-                Some(value.decode_utf8().expect("TimeControl").into_owned());
+            self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"ECO" {
-            self.current.eco = Some(value.decode_utf8().expect("ECO").into_owned());
+            self.game.eco = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Round" {
-            self.current.round = Some(value.decode_utf8().expect("Round").into_owned());
+            self.game.round = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Date" || key == b"UTCDate" {
-            self.current.date = Some(String::from_utf8(value.as_bytes().to_owned()).expect("Date"));
+            self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"WhiteTitle" || key == b"BlackTitle" {
             if value.as_bytes() == b"BOT" {
                 self.skip = true;
             }
         } else if key == b"Site" {
-            self.current.site_name =
-                Some(String::from_utf8(value.as_bytes().to_owned()).expect("Site"));
+            self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+        } else if key == b"Event" {
+            self.game.event_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Result" {
-            self.current.result =
-                Some(String::from_utf8(value.as_bytes().to_owned()).expect("Result"));
+            self.game.result = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"FEN" {
             if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
-                self.current.fen = None;
+                self.game.fen = None;
             } else {
                 // Don't process games that don't start in standard position
                 self.skip = true;
-                // self.current.fen = Some(value.decode_utf8().expect("FEN").into_owned());
+                // self.current.fen = Some(value.decode_utf8_lossy().into_owned());
             }
         }
     }
@@ -261,7 +245,7 @@ impl Visitor for Importer<'_> {
     fn san(&mut self, san: SanPlus) {
         let m = san.san.to_move(&self.position).ok();
         if let Some(m) = m {
-            self.current.moves.push(san);
+            self.game.moves.push(san);
             self.position.play_unchecked(&m);
         } else {
             self.skip = true;
@@ -274,10 +258,6 @@ impl Visitor for Importer<'_> {
 
     fn end_game(&mut self) {
         if !self.skip {
-            self.batch.push(mem::take(&mut self.current));
-        }
-
-        if self.batch.len() >= self.batch_size {
             self.send().unwrap();
         }
     }
@@ -358,7 +338,7 @@ pub async fn convert_pgn(
     };
 
     let mut reader = BufferedReader::new(uncompressed);
-    let mut importer = Importer::new(50, db);
+    let mut importer = Importer::new(db);
     reader.read_all(&mut importer).expect("read pgn file");
     importer.send()?;
 
@@ -443,34 +423,22 @@ pub async fn get_db_info(
         .filter(info::name.eq("PlayerCount"))
         .first(db)
         .or(Err("get player count"))?;
-    let player_count = player_count_info.value.unwrap().parse::<usize>().unwrap();
+    let player_count = player_count_info
+        .value
+        .unwrap()
+        .parse::<usize>()
+        .or(Err("parse player count"))?;
 
     let game_count_info: Info = info::table
         .filter(info::name.eq("GameCount"))
         .first(db)
         .or(Err("get game count"))?;
-    let game_count = game_count_info.value.unwrap().parse::<usize>().unwrap();
+    let game_count = game_count_info
+        .value
+        .unwrap()
+        .parse::<usize>()
+        .or(Err("parse game count"))?;
 
-    // let db = rusqlite::Connection::open(&path).expect("open database");
-    // let mut stmt = db
-    //     .prepare("SELECT Value FROM Info WHERE Name = 'PlayerCount'")
-    //     .expect("prepare player count");
-    // let player_count: String = stmt
-    //     .query_row([], |row| row.get(0))
-    //     .expect("get player count");
-
-    // let mut stmt = db
-    //     .prepare("SELECT Value FROM Info WHERE Name = 'GameCount'")
-    //     .expect("prepare game count");
-    // let game_count: String = stmt
-    //     .query_row([], |row| row.get(0))
-    //     .expect("get game count");
-
-    // get the title from the metadata table
-    // let mut stmt = db
-    //     .prepare("SELECT value FROM metadata WHERE key = 'title'")
-    //     .expect("prepare title");
-    // let title = stmt.query_row([], |row| row.get(0)).expect("get title");
     let title = "Untitled".to_string();
 
     let storage_size = path.metadata().expect("get metadata").len() as usize;
@@ -486,10 +454,20 @@ pub async fn get_db_info(
 }
 
 #[tauri::command]
-pub async fn rename_db(file: PathBuf, title: String) -> Result<(), String> {
-    let db = rusqlite::Connection::open(file).expect("open database");
-    db.execute("UPDATE metadata SET value = ? WHERE key = 'title'", [title])
-        .expect("update title");
+pub async fn rename_db(
+    file: PathBuf,
+    title: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
+
+    diesel::update(info::table)
+        .filter(info::name.eq("Title"))
+        .set(info::value.eq(title))
+        .execute(db)
+        .or(Err("update title"))?;
+
     Ok(())
 }
 
@@ -798,6 +776,8 @@ pub async fn get_players(
     let pool = get_db_or_create(&state, file.to_str().unwrap())?;
     let db = &mut pool.get().unwrap();
     let mut count = None;
+
+    dbg!(&query);
 
     let mut sql_query = players::table.into_boxed();
     let mut count_query = players::table.into_boxed();

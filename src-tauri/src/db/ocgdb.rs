@@ -60,7 +60,7 @@ pub fn decode_moves(moves_bytes: Option<Vec<u8>>) -> Result<String, String> {
     }
 }
 
-pub fn encode_moves(moves: Vec<SanPlus>) -> Result<Vec<u8>, String> {
+pub fn encode_moves(moves: &Vec<SanPlus>) -> Result<Vec<u8>, String> {
     let mut chess = Chess::default();
     let mut move_blob = Vec::new();
     for m in moves {

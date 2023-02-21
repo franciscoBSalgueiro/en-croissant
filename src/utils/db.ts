@@ -78,6 +78,15 @@ export interface Site {
     name: string;
 }
 
+function normalizeRange(
+    range?: [number, number]
+): [number, number] | undefined {
+    if (range === undefined || range[1] - range[0] === 3000) {
+        return undefined;
+    }
+    return range;
+}
+
 export async function query_games(
     db: string,
     query: GameQuery
@@ -93,17 +102,9 @@ export async function query_games(
                 direction: query.direction,
             },
             player1: query.player1,
-            range1:
-                query.rangePlayer1 === undefined ||
-                query.rangePlayer1[1] - query.rangePlayer1[0] === 3000
-                    ? undefined
-                    : query.rangePlayer1,
+            range1: normalizeRange(query.rangePlayer1),
             player2: query.player2,
-            range2:
-                query.rangePlayer2 === undefined ||
-                query.rangePlayer2[1] - query.rangePlayer2[0] === 3000
-                    ? undefined
-                    : query.rangePlayer2,
+            range2: normalizeRange(query.rangePlayer2),
             sides: query.sides,
             speed: query.speed,
             outcome: query.outcome,
@@ -138,7 +139,7 @@ export async function query_players(
                 direction: query.direction,
             },
             name: query.name,
-            range: query.range,
+            range: normalizeRange(query.range),
         },
     });
 }
