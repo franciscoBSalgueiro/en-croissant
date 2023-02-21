@@ -283,7 +283,7 @@ pub async fn analyze_game(
 ) -> Result<Vec<BestMovePayload>, String> {
     println!("ANALYZING GAME");
     println!("{}", &moves);
-    let moves_list: Vec<String> = moves.split(" ").map(|x| x.to_string()).collect();
+    let moves_list: Vec<String> = moves.split(' ').map(|x| x.to_string()).collect();
     let mut path = PathBuf::from(&engine);
     let number_lines = 1;
     let number_threads = 4;

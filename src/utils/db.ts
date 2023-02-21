@@ -145,7 +145,7 @@ export async function query_players(
 
 export async function getDatabases(): Promise<Database[]> {
     let files = await readDir("db", { dir: BaseDirectory.AppData });
-    let dbs = files.filter((file) => file.name?.endsWith(".ocgdb.db3"));
+    let dbs = files.filter((file) => file.name?.endsWith(".db3"));
     return (
         await Promise.all(
             dbs.map((db) => getDatabase(db.path).catch(() => null))

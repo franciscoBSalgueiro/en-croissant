@@ -19,7 +19,7 @@ use tauri::{
 };
 
 use crate::chess::analyze_game;
-use crate::db::{delete_database, play_all_games};
+use crate::db::{delete_database, search_position, convert_pgn, get_players_game_info};
 use crate::puzzle::get_puzzle;
 use crate::{
     chess::get_best_moves,
@@ -131,12 +131,12 @@ fn main() {
             get_players,
             get_db_info,
             rename_db,
-            // get_players_game_info,
+            get_players_game_info,
             start_server,
             analyze_game,
             delete_database,
-            // search_opening
-            play_all_games
+            convert_pgn,
+            search_position
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

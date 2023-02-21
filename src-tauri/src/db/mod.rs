@@ -1,25 +1,31 @@
 mod models;
 mod ocgdb;
+mod ops;
 mod schema;
 use crate::{
     db::{
         models::*,
-        ocgdb::{position_search, decode_moves},
+        ocgdb::{decode_moves, position_search},
+        ops::*,
         schema::*,
     },
     AppState,
 };
 use diesel::{
     connection::SimpleConnection,
+    insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, Chess};
+use shakmaty::{fen::Fen, Chess, Position};
 use std::{
-    fs::remove_file,
-    path::PathBuf,
+    ffi::OsStr,
+    fs::{remove_file, File},
+    mem,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -31,6 +37,8 @@ use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
 };
+
+use self::ocgdb::encode_moves;
 
 #[derive(Debug)]
 pub struct ConnectionOptions {
@@ -81,6 +89,327 @@ fn get_db_or_create(
     }
 }
 
+struct Batch {
+    games: Vec<TempGame>,
+}
+
+#[derive(Default, Debug, Serialize)]
+pub struct TempPlayer {
+    id: usize,
+    name: Option<String>,
+    rating: Option<i32>,
+}
+
+#[derive(Default, Debug)]
+pub struct TempGame {
+    pub event_name: Option<String>,
+    pub site_name: Option<String>,
+    pub date: Option<String>,
+    pub round: Option<String>,
+    pub white_name: Option<String>,
+    pub white_elo: Option<i32>,
+    pub black_name: Option<String>,
+    pub black_elo: Option<i32>,
+    pub result: Option<String>,
+    pub time_control: Option<String>,
+    pub eco: Option<String>,
+    pub fen: Option<String>,
+    pub moves: Vec<SanPlus>,
+}
+
+struct Importer<'a> {
+    db: &'a mut diesel::SqliteConnection,
+    batch_size: usize,
+    current: TempGame,
+    position: Chess,
+    skip: bool,
+    batch: Vec<TempGame>,
+}
+
+impl Importer<'_> {
+    fn new(batch_size: usize, db: &mut diesel::SqliteConnection) -> Importer {
+        Importer {
+            db,
+            batch_size,
+            current: TempGame::default(),
+            position: Chess::default(),
+            skip: false,
+            batch: Vec::with_capacity(batch_size),
+        }
+    }
+
+    pub fn send(&mut self) -> Result<(), String> {
+        let batch = Batch {
+            games: mem::replace(&mut self.batch, Vec::with_capacity(self.batch_size)),
+        };
+
+        for game in batch.games {
+            let white;
+            let black;
+            let site_id;
+            let event_id;
+
+            if let Some(name) = game.white_name {
+                white = create_player(self.db, &name).map_err(|e| e.to_string())?;
+            } else {
+                white = Player::default();
+            }
+            if let Some(name) = game.black_name {
+                black = create_player(self.db, &name).map_err(|e| e.to_string())?;
+            } else {
+                black = Player::default();
+            }
+
+            if let Some(name) = game.event_name {
+                let event = create_event(self.db, &name).map_err(|e| e.to_string())?;
+                event_id = event.id;
+            } else {
+                event_id = 1;
+            }
+
+            if let Some(name) = game.site_name {
+                let site = create_site(self.db, &name).map_err(|e| e.to_string())?;
+                site_id = site.id;
+            } else {
+                site_id = 1;
+            }
+
+            let ply_count = game.moves.len() as i32;
+            let moves2 = encode_moves(game.moves)?;
+
+            let new_game = NewGame {
+                white_id: Some(white.id),
+                black_id: Some(black.id),
+                ply_count,
+                eco: game.eco.as_deref(),
+                round: game.round.as_deref(),
+                white_elo: game.white_elo,
+                black_elo: game.black_elo,
+                // max_rating: game.white.rating.max(game.black.rating),
+                date: game.date.as_deref(),
+                time_control: game.time_control.as_deref(),
+                site_id,
+                event_id,
+                fen: game.fen.as_deref(),
+                result: game.result.as_deref(),
+                moves2: &moves2,
+            };
+
+            create_game(self.db, new_game).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+impl Visitor for Importer<'_> {
+    type Result = ();
+
+    fn begin_game(&mut self) {
+        self.skip = false;
+        self.current = TempGame::default();
+        self.position = Chess::default();
+    }
+
+    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
+        if key == b"White" {
+            self.current.white_name = Some(value.decode_utf8().expect("White").into_owned());
+        } else if key == b"Black" {
+            self.current.black_name = Some(value.decode_utf8().expect("Black").into_owned());
+        } else if key == b"WhiteElo" {
+            if value.as_bytes() != b"?" {
+                self.current.white_elo = Some(btoi::btoi(value.as_bytes()).expect("WhiteElo"));
+            }
+        } else if key == b"BlackElo" {
+            if value.as_bytes() != b"?" {
+                self.current.black_elo = Some(btoi::btoi(value.as_bytes()).expect("BlackElo"));
+            }
+        } else if key == b"TimeControl" {
+            self.current.time_control =
+                Some(value.decode_utf8().expect("TimeControl").into_owned());
+        } else if key == b"ECO" {
+            self.current.eco = Some(value.decode_utf8().expect("ECO").into_owned());
+        } else if key == b"Round" {
+            self.current.round = Some(value.decode_utf8().expect("Round").into_owned());
+        } else if key == b"Date" || key == b"UTCDate" {
+            self.current.date = Some(String::from_utf8(value.as_bytes().to_owned()).expect("Date"));
+        } else if key == b"WhiteTitle" || key == b"BlackTitle" {
+            if value.as_bytes() == b"BOT" {
+                self.skip = true;
+            }
+        } else if key == b"Site" {
+            self.current.site_name =
+                Some(String::from_utf8(value.as_bytes().to_owned()).expect("Site"));
+        } else if key == b"Result" {
+            self.current.result =
+                Some(String::from_utf8(value.as_bytes().to_owned()).expect("Result"));
+        } else if key == b"FEN" {
+            if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
+                self.current.fen = None;
+            } else {
+                // Don't process games that don't start in standard position
+                self.skip = true;
+                // self.current.fen = Some(value.decode_utf8().expect("FEN").into_owned());
+            }
+        }
+    }
+
+    fn end_headers(&mut self) -> Skip {
+        // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
+        Skip(self.skip)
+    }
+
+    fn san(&mut self, san: SanPlus) {
+        let m = san.san.to_move(&self.position).ok();
+        if let Some(m) = m {
+            self.current.moves.push(san);
+            self.position.play_unchecked(&m);
+        } else {
+            self.skip = true;
+        }
+    }
+
+    fn begin_variation(&mut self) -> Skip {
+        Skip(true) // stay in the mainline
+    }
+
+    fn end_game(&mut self) {
+        if !self.skip {
+            self.batch.push(mem::take(&mut self.current));
+        }
+
+        if self.batch.len() >= self.batch_size {
+            self.send().unwrap();
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn convert_pgn(
+    file: PathBuf,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    // get the name of the file without the extension
+    let filename = file.file_stem().expect("file name");
+    let extension = file.extension().expect("file extension");
+    let db_filename = Path::new("db").join(filename).with_extension("db3");
+
+    // export the database to the AppData folder
+    let destination = resolve_path(
+        &app.config(),
+        app.package_info(),
+        &app.env(),
+        &db_filename,
+        Some(BaseDirectory::AppData),
+    )
+    .expect("resolve path");
+
+    // create the database file
+    let pool = get_db_or_create(&state, destination.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
+
+    // add pragmas to be more performant
+    // db.batch_execute(
+    //     "PRAGMA journal_mode = OFF;
+    //     PRAGMA synchronous = 0;
+    //     PRAGMA locking_mode = EXCLUSIVE;
+    //     PRAGMA temp_store = MEMORY;",
+    // )
+    // .or(Err("Failed to add pragmas"))?;
+
+    db.batch_execute(
+        "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
+        CREATE TABLE Events (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
+        INSERT INTO Events (Name) VALUES (\"\");
+        CREATE TABLE Sites (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
+        INSERT INTO Sites (Name) VALUES (\"\");
+        CREATE TABLE Players (ID INTEGER PRIMARY KEY, Name TEXT UNIQUE, Elo INTEGER);
+        CREATE TABLE Games (
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            EventID INTEGER,
+            SiteID INTEGER,
+            Date TEXT,
+            Round INTEGER,
+            WhiteID INTEGER,
+            WhiteElo INTEGER,
+            BlackID INTEGER,
+            BlackElo INTEGER,
+            Result INTEGER,
+            TimeControl TEXT,
+            ECO TEXT,
+            PlyCount INTEGER,
+            FEN TEXT,
+            Moves2 TEXT,
+            FOREIGN KEY(EventID) REFERENCES Events,
+            FOREIGN KEY(SiteID) REFERENCES Sites,
+            FOREIGN KEY(WhiteID) REFERENCES Players,
+            FOREIGN KEY(BlackID) REFERENCES Players);",
+    )
+    .or(Err("Failed to create tables"))?;
+
+    let file = File::open(&file).expect("open pgn file");
+
+    let uncompressed: Box<dyn std::io::Read> = if extension == OsStr::new("bz2") {
+        Box::new(bzip2::read::MultiBzDecoder::new(file))
+    } else if extension == OsStr::new("zst") {
+        Box::new(zstd::Decoder::new(file).expect("zstd decoder"))
+    } else {
+        Box::new(file)
+    };
+
+    let mut reader = BufferedReader::new(uncompressed);
+    let mut importer = Importer::new(50, db);
+    reader.read_all(&mut importer).expect("read pgn file");
+    importer.send()?;
+
+    // Create all the necessary indexes
+    db.batch_execute(
+        "CREATE INDEX games_date_idx ON Games(Date);
+        CREATE INDEX games_white_idx ON Games(WhiteID);
+        CREATE INDEX games_black_idx ON Games(BlackID);
+        CREATE INDEX games_result_idx ON Games(Result);
+        CREATE INDEX games_white_elo_idx ON Games(WhiteElo);
+        CREATE INDEX games_black_elo_idx ON Games(BlackElo);",
+    )
+    .expect("create indexes");
+
+    // get game, player, event and site counts and to the info table
+    let game_count: i64 = games::table.count().get_result(db).expect("get game count");
+    let player_count: i64 = players::table
+        .count()
+        .get_result(db)
+        .expect("get player count");
+    let event_count: i64 = events::table
+        .count()
+        .get_result(db)
+        .expect("get event count");
+    let site_count: i64 = sites::table.count().get_result(db).expect("get site count");
+
+    insert_into(info::table)
+        .values(vec![
+            (
+                info::name.eq("GameCount"),
+                info::value.eq(game_count.to_string()),
+            ),
+            (
+                info::name.eq("PlayerCount"),
+                info::value.eq(player_count.to_string()),
+            ),
+            (
+                info::name.eq("EventCount"),
+                info::value.eq(event_count.to_string()),
+            ),
+            (
+                info::name.eq("SiteCount"),
+                info::value.eq(site_count.to_string()),
+            ),
+        ])
+        .execute(db)
+        .expect("insert game count");
+
+    Ok(())
+}
+
 #[derive(Serialize)]
 pub struct DatabaseInfo {
     title: String,
@@ -91,7 +420,11 @@ pub struct DatabaseInfo {
 }
 
 #[tauri::command]
-pub async fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<DatabaseInfo, String> {
+pub async fn get_db_info(
+    file: PathBuf,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<DatabaseInfo, String> {
     let db_path = PathBuf::from("db").join(file);
 
     let path = resolve_path(
@@ -103,20 +436,35 @@ pub async fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<Databas
     )
     .or(Err("resolve path"))?;
 
-    let db = rusqlite::Connection::open(&path).expect("open database");
-    let mut stmt = db
-        .prepare("SELECT Value FROM Info WHERE Name = 'PlayerCount'")
-        .expect("prepare player count");
-    let player_count: String = stmt
-        .query_row([], |row| row.get(0))
-        .expect("get player count");
+    let pool = get_db_or_create(&state, path.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
 
-    let mut stmt = db
-        .prepare("SELECT Value FROM Info WHERE Name = 'GameCount'")
-        .expect("prepare game count");
-    let game_count: String = stmt
-        .query_row([], |row| row.get(0))
-        .expect("get game count");
+    let player_count_info: Info = info::table
+        .filter(info::name.eq("PlayerCount"))
+        .first(db)
+        .or(Err("get player count"))?;
+    let player_count = player_count_info.value.unwrap().parse::<usize>().unwrap();
+
+    let game_count_info: Info = info::table
+        .filter(info::name.eq("GameCount"))
+        .first(db)
+        .or(Err("get game count"))?;
+    let game_count = game_count_info.value.unwrap().parse::<usize>().unwrap();
+
+    // let db = rusqlite::Connection::open(&path).expect("open database");
+    // let mut stmt = db
+    //     .prepare("SELECT Value FROM Info WHERE Name = 'PlayerCount'")
+    //     .expect("prepare player count");
+    // let player_count: String = stmt
+    //     .query_row([], |row| row.get(0))
+    //     .expect("get player count");
+
+    // let mut stmt = db
+    //     .prepare("SELECT Value FROM Info WHERE Name = 'GameCount'")
+    //     .expect("prepare game count");
+    // let game_count: String = stmt
+    //     .query_row([], |row| row.get(0))
+    //     .expect("get game count");
 
     // get the title from the metadata table
     // let mut stmt = db
@@ -131,8 +479,8 @@ pub async fn get_db_info(file: PathBuf, app: tauri::AppHandle) -> Result<Databas
     Ok(DatabaseInfo {
         title,
         description: filename.to_string(),
-        player_count: player_count.parse().expect("parse player count"),
-        game_count: game_count.parse().expect("parse game count"),
+        player_count,
+        game_count,
         storage_size,
     })
 }
@@ -204,7 +552,7 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, String> {
-    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
     let db = &mut pool.get().unwrap();
 
     dbg!(&query);
@@ -408,20 +756,20 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
         .into_iter()
         .map(|(game, white, black, event, site)| NormalizedGame {
             id: game.id,
-            event: event,
-            site: site,
+            event,
+            site,
             date: game.date,
             round: game.round,
-            white: white,
+            white,
             white_elo: game.white_elo,
-            black: black,
+            black,
             black_elo: game.black_elo,
             result: game.result,
             time_control: game.time_control,
             eco: game.eco,
             ply_count: game.ply_count,
             fen: game.fen,
-            moves: decode_moves(game.moves2).unwrap_or(String::new()),
+            moves: decode_moves(game.moves2).unwrap_or_default(),
         })
         .collect()
 }
@@ -447,7 +795,7 @@ pub async fn get_players(
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, String> {
-    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
     let db = &mut pool.get().unwrap();
     let mut count = None;
 
@@ -502,65 +850,39 @@ pub struct PlayerGameInfo {
     pub draw: usize,
 }
 
-// #[tauri::command]
-// pub async fn get_players_game_info(
-//     file: PathBuf,
-//     id: i32,
-//     state: tauri::State<'_, AppState>,
-// ) -> Result<PlayerGameInfo, String> {
-//     let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
-//     let db = &mut pool.get().unwrap();
+#[tauri::command]
+pub async fn get_players_game_info(
+    file: PathBuf,
+    id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<PlayerGameInfo, String> {
+    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let db = &mut pool.get().unwrap();
 
-//     let sql_query = games::table
-//         .group_by(games::Result)
-//         .select((games::Result, diesel::dsl::count(games::ID)))
-//         .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
+    let sql_query = games::table
+        .group_by(games::result)
+        .select((games::result, diesel::dsl::count(games::id)))
+        .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
 
-//     let info: Vec<(Option<CustomOutcome>, i64)> = sql_query.load(db).expect("load games");
+    let info: Vec<(Option<String>, i64)> = sql_query.load(db).expect("load games");
 
-//     let mut game_info = PlayerGameInfo {
-//         won: 0,
-//         lost: 0,
-//         draw: 0,
-//     };
+    let mut game_info = PlayerGameInfo {
+        won: 0,
+        lost: 0,
+        draw: 0,
+    };
 
-//     for (outcome, count) in info {
-//         match outcome {
-//             Some(CustomOutcome::WhiteWin) => game_info.won = count as usize,
-//             Some(CustomOutcome::BlackWin) => game_info.lost = count as usize,
-//             Some(CustomOutcome::Draw) => game_info.draw = count as usize,
-//             _ => (),
-//         }
-//     }
+    for (outcome, count) in info {
+        match outcome.unwrap_or_default().as_str() {
+            "1-0" => game_info.won = count as usize,
+            "0-1" => game_info.lost = count as usize,
+            "1/2-1/2" => game_info.draw = count as usize,
+            _ => (),
+        }
+    }
 
-//     Ok(game_info)
-// }
-
-// #[tauri::command]
-// pub async fn search_opening(
-//     file: PathBuf,
-//     opening: String,
-//     state: tauri::State<'_, AppState>,
-// ) -> Result<Vec<(Game, Player, Player)>, String> {
-//     let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
-//     let db = &mut pool.get().unwrap();
-
-//     println!("searching for opening: {}", opening);
-
-//     let (white_players, black_players) = diesel::alias!(players as white, players as black);
-
-//     let games = games::table
-//         .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-//         .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-//         .into_boxed()
-//         .filter(games::moves.like(format!("{}%", opening)))
-//         .order(games::max_rating.desc())
-//         .limit(10)
-//         .load(db)
-//         .expect("load games");
-
-//     Ok(games)
-// }
+    Ok(game_info)
+}
 
 #[tauri::command]
 pub async fn delete_database(
@@ -574,17 +896,17 @@ pub async fn delete_database(
     }
 
     // delete file
-    remove_file(path_str).or(Err(format!("Could not delete file {}", path_str)))?;
+    remove_file(path_str).map_err(|_| format!("Could not delete file {}", path_str))?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn play_all_games(
+pub async fn search_position(
     file: PathBuf,
     fen: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(u64, u64, u64), String> {
-    let pool = get_db_or_create(&state, &file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
     let db = &mut pool.get().unwrap();
 
     // start counting the time
@@ -601,15 +923,15 @@ pub async fn play_all_games(
 
     let global_games = Arc::new(games);
     let counter = AtomicUsize::new(0);
-    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen".to_string()))?;
-    let processed_position: Chess = processed_fen.into_position(shakmaty::CastlingMode::Standard).or(Err("Invalid fen".to_string()))?; 
+    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
+    let processed_position: Chess = processed_fen
+        .into_position(shakmaty::CastlingMode::Standard)
+        .or(Err("Invalid fen"))?;
 
     global_games.par_iter().for_each(|game| {
-        position_search(&game, &processed_position).map(|r| {
-            if r {
-                counter.fetch_add(1, Ordering::Relaxed);
-            }
-        });
+        if let Ok(true) = position_search(game, &processed_position) {
+            counter.fetch_add(1, Ordering::Relaxed);
+        }
     });
     println!("done: {:?}", start.elapsed());
     let second_seconds: u64 = start.elapsed().as_millis().try_into().unwrap();

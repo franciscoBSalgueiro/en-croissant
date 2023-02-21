@@ -38,7 +38,7 @@ fn get_puzzle_from_db(db: &rusqlite::Connection) -> Result<Puzzle, String> {
 #[tauri::command]
 pub fn get_puzzle(file: PathBuf, min_rating: usize, max_rating: usize) -> Result<Puzzle, String> {
     let db = rusqlite::Connection::open(&file).expect("open database");
-    for _ in 0..5000 as usize {
+    for _ in 0..5000 {
         let Ok(puzzle) = get_puzzle_from_db(&db) else { 
             continue; 
         };

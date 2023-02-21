@@ -11,6 +11,13 @@ pub struct Player {
     pub elo: Option<i32>,
 }
 
+#[derive(Insertable, Debug)]
+#[diesel(table_name = players)]
+pub struct NewPlayer<'a> {
+    pub name: &'a str,
+    pub elo: Option<i32>,
+}
+
 struct White(pub Player);
 struct Black(pub Player);
 
@@ -36,16 +43,47 @@ pub struct Game {
     pub moves2: Option<Vec<u8>>,
 }
 
+#[derive(Insertable, Debug)]
+#[diesel(table_name = games)]
+pub struct NewGame<'a> {
+    pub event_id: i32,
+    pub site_id: i32,
+    pub date: Option<&'a str>,
+    pub round: Option<&'a str>,
+    pub white_id: Option<i32>,
+    pub white_elo: Option<i32>,
+    pub black_id: Option<i32>,
+    pub black_elo: Option<i32>,
+    pub result: Option<&'a str>,
+    pub time_control: Option<&'a str>,
+    pub eco: Option<&'a str>,
+    pub ply_count: i32,
+    pub fen: Option<&'a str>,
+    pub moves2: &'a [u8],
+}
+
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
 pub struct Site {
     pub id: i32,
     pub name: Option<String>,
 }
 
+#[derive(Insertable, Debug)]
+#[diesel(table_name = sites)]
+pub struct NewSite<'a> {
+    pub name: &'a str,
+}
+
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
 pub struct Event {
     pub id: i32,
     pub name: Option<String>,
+}
+
+#[derive(Insertable, Debug)]
+#[diesel(table_name = events)]
+pub struct NewEvent<'a> {
+    pub name: &'a str,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -65,4 +103,10 @@ pub struct NormalizedGame {
     pub ply_count: Option<i32>,
     pub fen: Option<String>,
     pub moves: String,
+}
+
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct Info {
+    pub name: String,
+    pub value: Option<String>,
 }

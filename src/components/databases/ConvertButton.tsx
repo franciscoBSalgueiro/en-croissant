@@ -1,8 +1,7 @@
 import { Box, Card, createStyles, Loader, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons";
+import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Command } from "@tauri-apps/api/shell";
 import { useEffect, useState } from "react";
 import { Database, getDatabases } from "../../utils/db";
 
@@ -40,35 +39,9 @@ function ConvertButton({
   async function convertDB(path: string) {
     let fileName = path.split(/(\\|\/)/g).pop();
     fileName = fileName?.replace(".pgn", ".ocgdb.db3");
-    const output_path = await resolve(await appDataDir(), "db", fileName!);
-    const command = Command.sidecar("binaries/ocgdb", [
-      "-create",
-      "-pgn",
-      path,
-      "-db",
-      output_path,
-      "-o",
-      "moves2",
-    ]);
-    command.stdout.on("data", (data) => {
-      const match = data
-        .toString()
-        .match(
-          /#games: (\d+), elapsed: (\d+)ms (\d+:\d+), speed: (\d+) games\/s/
-        );
-      if (match) {
-        const total = parseInt(match[1]);
-        const speed = parseInt(match[4]);
-        setProgress({ total, speed });
-      } else if (data.toString().includes("Completed")) {
-        setProgress(null);
-        setLoading(false);
-      }
-    });
-    command.on("close", () => {
-      getDatabases().then((dbs) => setDatabases(dbs));
-    });
-    await command.spawn();
+    await invoke("convert_pgn", { file: filepath });
+    setLoading(false);
+    setDatabases(await getDatabases());
   }
 
   async function convert(filepath: string) {
