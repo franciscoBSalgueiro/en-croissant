@@ -112,86 +112,85 @@ pub struct TempGame {
     pub moves: Vec<SanPlus>,
 }
 
-struct Importer<'a> {
-    db: &'a mut diesel::SqliteConnection,
-    game: TempGame,
-    position: Chess,
-    skip: bool,
-}
-
-impl Importer<'_> {
-    fn new(db: &mut diesel::SqliteConnection) -> Importer {
-        Importer {
-            db,
-            game: TempGame::default(),
-            position: Chess::default(),
-            skip: false,
-        }
-    }
-
-    pub fn send(&mut self) -> Result<(), String> {
+impl TempGame {
+    pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), String> {
         let white;
         let black;
         let site_id;
         let event_id;
 
-        if let Some(name) = &self.game.white_name {
-            white = create_player(self.db, name).map_err(|e| e.to_string())?;
+        if let Some(name) = &self.white_name {
+            white = create_player(db, name).map_err(|e| e.to_string())?;
         } else {
             white = Player::default();
         }
-        if let Some(name) = &self.game.black_name {
-            black = create_player(self.db, name).map_err(|e| e.to_string())?;
+        if let Some(name) = &self.black_name {
+            black = create_player(db, name).map_err(|e| e.to_string())?;
         } else {
             black = Player::default();
         }
 
-        if let Some(name) = &self.game.event_name {
-            let event = create_event(self.db, name).map_err(|e| e.to_string())?;
+        if let Some(name) = &self.event_name {
+            let event = create_event(db, name).map_err(|e| e.to_string())?;
             event_id = event.id;
         } else {
             event_id = 1;
         }
 
-        if let Some(name) = &self.game.site_name {
-            let site = create_site(self.db, name).map_err(|e| e.to_string())?;
+        if let Some(name) = &self.site_name {
+            let site = create_site(db, name).map_err(|e| e.to_string())?;
             site_id = site.id;
         } else {
             site_id = 1;
         }
 
-        let ply_count = self.game.moves.len() as i32;
-        let moves2 = encode_moves(&self.game.moves)?;
+        let ply_count = self.moves.len() as i32;
+        let moves2 = encode_moves(&self.moves)?;
 
         let new_game = NewGame {
             white_id: Some(white.id),
             black_id: Some(black.id),
             ply_count,
-            eco: self.game.eco.as_deref(),
-            round: self.game.round.as_deref(),
-            white_elo: self.game.white_elo,
-            black_elo: self.game.black_elo,
+            eco: self.eco.as_deref(),
+            round: self.round.as_deref(),
+            white_elo: self.white_elo,
+            black_elo: self.black_elo,
             // max_rating: self.game.white.rating.max(self.game.black.rating),
-            date: self.game.date.as_deref(),
-            time_control: self.game.time_control.as_deref(),
+            date: self.date.as_deref(),
+            time_control: self.time_control.as_deref(),
             site_id,
             event_id,
-            fen: self.game.fen.as_deref(),
-            result: self.game.result.as_deref(),
+            fen: self.fen.as_deref(),
+            result: self.result.as_deref(),
             moves2: &moves2,
         };
 
-        create_game(self.db, new_game).map_err(|e| e.to_string())?;
+        create_game(db, new_game).map_err(|e| e.to_string())?;
         Ok(())
     }
 }
 
-impl Visitor for Importer<'_> {
-    type Result = ();
+struct Importer {
+    game: TempGame,
+    position: Chess,
+    skip: bool,
+}
+
+impl Importer {
+    fn new() -> Importer {
+        Importer {
+            game: TempGame::default(),
+            position: Chess::default(),
+            skip: false,
+        }
+    }
+}
+
+impl Visitor for Importer {
+    type Result = TempGame;
 
     fn begin_game(&mut self) {
         self.skip = false;
-        self.game = TempGame::default();
         self.position = Chess::default();
     }
 
@@ -256,10 +255,8 @@ impl Visitor for Importer<'_> {
         Skip(true) // stay in the mainline
     }
 
-    fn end_game(&mut self) {
-        if !self.skip {
-            self.send().unwrap();
-        }
+    fn end_game(&mut self) -> TempGame {
+        std::mem::take(&mut self.game)
     }
 }
 
@@ -329,7 +326,7 @@ pub async fn convert_pgn(
 
     let file = File::open(&file).expect("open pgn file");
 
-    let uncompressed: Box<dyn std::io::Read> = if extension == OsStr::new("bz2") {
+    let uncompressed: Box<dyn std::io::Read + Send> = if extension == OsStr::new("bz2") {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
     } else if extension == OsStr::new("zst") {
         Box::new(zstd::Decoder::new(file).expect("zstd decoder"))
@@ -337,10 +334,27 @@ pub async fn convert_pgn(
         Box::new(file)
     };
 
-    let mut reader = BufferedReader::new(uncompressed);
-    let mut importer = Importer::new(db);
-    reader.read_all(&mut importer).expect("read pgn file");
-    importer.send()?;
+    let mut importer = Importer::new();
+    let (send, recv) = crossbeam::channel::bounded(1024);
+
+    crossbeam::scope(|scope| {
+        scope.spawn(move |_| {
+            for game in BufferedReader::new(uncompressed).into_iter(&mut importer) {
+                send.send(game.expect("io")).unwrap();
+            }
+        });
+
+        for _ in 0..6 {
+            let recv = recv.clone();
+            let mut thread_db = pool.get().unwrap();
+            scope.spawn(move |_| {
+                for game in recv {
+                    game.insert_to_db(&mut thread_db).unwrap();
+                }
+            });
+        }
+    })
+    .unwrap();
 
     // Create all the necessary indexes
     db.batch_execute(

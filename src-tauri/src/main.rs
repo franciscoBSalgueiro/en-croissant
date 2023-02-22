@@ -19,7 +19,7 @@ use tauri::{
 };
 
 use crate::chess::analyze_game;
-use crate::db::{delete_database, search_position, convert_pgn, get_players_game_info};
+use crate::db::{convert_pgn, delete_database, get_players_game_info, search_position};
 use crate::puzzle::get_puzzle;
 use crate::{
     chess::get_best_moves,
