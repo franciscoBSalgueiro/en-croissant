@@ -20,7 +20,7 @@ use diesel::{
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, Chess, Position};
+use shakmaty::{fen::Fen, Board, ByColor, Chess, Position};
 use std::{
     ffi::OsStr,
     fs::{remove_file, File},
@@ -37,13 +37,39 @@ use tauri::{
     Manager,
 };
 
-use self::ocgdb::encode_moves;
+use self::ocgdb::encode_2byte_move;
+
+fn get_material_count(board: &Board) -> ByColor<u8> {
+    board.material().map(|material| {
+        material.pawn
+            + material.knight * 3
+            + material.bishop * 3
+            + material.rook * 5
+            + material.queen * 9
+    })
+}
+
+#[derive(Debug)]
+pub enum JournalMode {
+    Wal,
+    Off,
+}
 
 #[derive(Debug)]
 pub struct ConnectionOptions {
-    pub enable_wal: bool,
+    pub journal_mode: JournalMode,
     pub enable_foreign_keys: bool,
     pub busy_timeout: Option<Duration>,
+}
+
+impl Default for ConnectionOptions {
+    fn default() -> Self {
+        Self {
+            journal_mode: JournalMode::Wal,
+            enable_foreign_keys: true,
+            busy_timeout: Some(Duration::from_secs(30)),
+        }
+    }
 }
 
 impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
@@ -51,8 +77,9 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
 {
     fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
         (|| {
-            if self.enable_wal {
-                conn.batch_execute("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;")?;
+            match self.journal_mode {
+                JournalMode::Wal => conn.batch_execute("PRAGMA journal_mode = WAL;")?,
+                JournalMode::Off => conn.batch_execute("PRAGMA journal_mode = OFF;")?,
             }
             if self.enable_foreign_keys {
                 conn.batch_execute("PRAGMA foreign_keys = ON;")?;
@@ -69,6 +96,7 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
 fn get_db_or_create(
     app_state: &State<AppState>,
     db_path: &str,
+    options: ConnectionOptions,
 ) -> Result<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>, String> {
     let mut state = app_state.0.lock().unwrap();
     if state.contains_key(db_path) {
@@ -76,15 +104,26 @@ fn get_db_or_create(
     } else {
         let pool = Pool::builder()
             .max_size(16)
-            .connection_customizer(Box::new(ConnectionOptions {
-                enable_wal: true,
-                enable_foreign_keys: true,
-                busy_timeout: Some(Duration::from_secs(30)),
-            }))
+            .connection_customizer(Box::new(options))
             .build(ConnectionManager::<SqliteConnection>::new(db_path))
             .map_err(|err| err.to_string())?;
         state.insert(db_path.to_string(), pool.clone());
         Ok(pool)
+    }
+}
+
+#[derive(Debug)]
+pub struct MaterialColor {
+    white: u8,
+    black: u8,
+}
+
+impl Default for MaterialColor {
+    fn default() -> Self {
+        Self {
+            white: 39,
+            black: 39,
+        }
     }
 }
 
@@ -109,7 +148,9 @@ pub struct TempGame {
     pub time_control: Option<String>,
     pub eco: Option<String>,
     pub fen: Option<String>,
-    pub moves: Vec<SanPlus>,
+    pub moves: Vec<u8>,
+    pub position: Chess,
+    pub material_count: MaterialColor,
 }
 
 impl TempGame {
@@ -144,8 +185,10 @@ impl TempGame {
             site_id = 1;
         }
 
-        let ply_count = self.moves.len() as i32;
-        let moves2 = encode_moves(&self.moves)?;
+        let ply_count = (self.moves.len() / 2) as i32;
+        let final_material = get_material_count(self.position.board());
+        let minimal_white_material = self.material_count.white.min(final_material.white) as i32;
+        let minimal_black_material = self.material_count.black.min(final_material.black) as i32;
 
         let new_game = NewGame {
             white_id: Some(white.id),
@@ -155,6 +198,8 @@ impl TempGame {
             round: self.round.as_deref(),
             white_elo: self.white_elo,
             black_elo: self.black_elo,
+            white_material: minimal_white_material,
+            black_material: minimal_black_material,
             // max_rating: self.game.white.rating.max(self.game.black.rating),
             date: self.date.as_deref(),
             time_control: self.time_control.as_deref(),
@@ -162,7 +207,7 @@ impl TempGame {
             event_id,
             fen: self.fen.as_deref(),
             result: self.result.as_deref(),
-            moves2: &moves2,
+            moves2: self.moves.as_slice(),
         };
 
         create_game(db, new_game).map_err(|e| e.to_string())?;
@@ -172,7 +217,6 @@ impl TempGame {
 
 struct Importer {
     game: TempGame,
-    position: Chess,
     skip: bool,
 }
 
@@ -180,7 +224,6 @@ impl Importer {
     fn new() -> Importer {
         Importer {
             game: TempGame::default(),
-            position: Chess::default(),
             skip: false,
         }
     }
@@ -191,7 +234,6 @@ impl Visitor for Importer {
 
     fn begin_game(&mut self) {
         self.skip = false;
-        self.position = Chess::default();
     }
 
     fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
@@ -242,10 +284,21 @@ impl Visitor for Importer {
     }
 
     fn san(&mut self, san: SanPlus) {
-        let m = san.san.to_move(&self.position).ok();
+        let m = san.san.to_move(&self.game.position).ok();
         if let Some(m) = m {
-            self.game.moves.push(san);
-            self.position.play_unchecked(&m);
+            if m.is_promotion() {
+                let cur_material = get_material_count(self.game.position.board());
+                if cur_material.white < self.game.material_count.white {
+                    self.game.material_count.white = cur_material.white;
+                }
+                if cur_material.black < self.game.material_count.black {
+                    self.game.material_count.black = cur_material.black;
+                }
+            }
+            self.game.position.play_unchecked(&m);
+            self.game
+                .moves
+                .extend_from_slice(&encode_2byte_move(&m).unwrap());
         } else {
             self.skip = true;
         }
@@ -255,7 +308,7 @@ impl Visitor for Importer {
         Skip(true) // stay in the mainline
     }
 
-    fn end_game(&mut self) -> TempGame {
+    fn end_game(&mut self) -> Self::Result {
         std::mem::take(&mut self.game)
     }
 }
@@ -282,7 +335,15 @@ pub async fn convert_pgn(
     .expect("resolve path");
 
     // create the database file
-    let pool = get_db_or_create(&state, destination.to_str().unwrap())?;
+    let pool = get_db_or_create(
+        &state,
+        destination.to_str().unwrap(),
+        ConnectionOptions {
+            enable_foreign_keys: false,
+            busy_timeout: None,
+            journal_mode: JournalMode::Off,
+        },
+    )?;
     let db = &mut pool.get().unwrap();
 
     // add pragmas to be more performant
@@ -311,6 +372,8 @@ pub async fn convert_pgn(
             WhiteElo INTEGER,
             BlackID INTEGER,
             BlackElo INTEGER,
+            WhiteMaterial INTEGER,
+            BlackMaterial INTEGER,
             Result INTEGER,
             TimeControl TEXT,
             ECO TEXT,
@@ -335,24 +398,14 @@ pub async fn convert_pgn(
     };
 
     let mut importer = Importer::new();
-    let (send, recv) = crossbeam::channel::bounded(1024);
-
-    crossbeam::scope(|scope| {
-        scope.spawn(move |_| {
-            for game in BufferedReader::new(uncompressed).into_iter(&mut importer) {
-                send.send(game.expect("io")).unwrap();
-            }
-        });
-
-        for _ in 0..6 {
-            let recv = recv.clone();
-            let mut thread_db = pool.get().unwrap();
-            scope.spawn(move |_| {
-                for game in recv {
-                    game.insert_to_db(&mut thread_db).unwrap();
-                }
-            });
+    db.transaction::<_, diesel::result::Error, _>(|db| {
+        for game in BufferedReader::new(uncompressed)
+            .into_iter(&mut importer)
+            .flatten()
+        {
+            game.insert_to_db(db).unwrap();
         }
+        Ok(())
     })
     .unwrap();
 
@@ -430,7 +483,7 @@ pub async fn get_db_info(
     )
     .or(Err("resolve path"))?;
 
-    let pool = get_db_or_create(&state, path.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
     let player_count_info: Info = info::table
@@ -473,7 +526,7 @@ pub async fn rename_db(
     title: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
     diesel::update(info::table)
@@ -544,7 +597,7 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
     dbg!(&query);
@@ -787,7 +840,7 @@ pub async fn get_players(
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
     let mut count = None;
 
@@ -850,7 +903,7 @@ pub async fn get_players_game_info(
     id: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<PlayerGameInfo, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
     let sql_query = games::table
@@ -900,30 +953,35 @@ pub async fn search_position(
     fen: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(u64, u64, u64), String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap())?;
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
+
+    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
+    let processed_position: Chess = processed_fen
+        .into_position(shakmaty::CastlingMode::Standard)
+        .or(Err("Invalid fen"))?;
+
+    let material = get_material_count(processed_position.board());
 
     // start counting the time
     let start = Instant::now();
     println!("start: {:?}", start.elapsed());
 
     let games = games::table
+        .filter(games::white_material.le(material.white as i32))
+        .filter(games::black_material.le(material.black as i32))
         .select(games::moves2)
         .load(db)
         .expect("load games");
 
-    println!("got games: {:?}", start.elapsed());
+    println!("got {} games: {:?}", games.len(), start.elapsed());
     let first_seconds: u64 = start.elapsed().as_millis().try_into().unwrap();
 
     let global_games = Arc::new(games);
     let counter = AtomicUsize::new(0);
-    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
-    let processed_position: Chess = processed_fen
-        .into_position(shakmaty::CastlingMode::Standard)
-        .or(Err("Invalid fen"))?;
 
     global_games.par_iter().for_each(|game| {
-        if let Ok(true) = position_search(game, &processed_position) {
+        if let Ok(true) = position_search(game, &processed_position, &material) {
             counter.fetch_add(1, Ordering::Relaxed);
         }
     });

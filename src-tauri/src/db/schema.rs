@@ -31,6 +31,10 @@ diesel::table! {
         black_id -> Integer,
         #[sql_name = "BlackElo"]
         black_elo -> Nullable<Integer>,
+        #[sql_name = "WhiteMaterial"]
+        white_material -> Integer,
+        #[sql_name = "BlackMaterial"]
+        black_material -> Integer,
         #[sql_name = "Result"]
         result -> Nullable<Text>,
         #[sql_name = "TimeControl"]
