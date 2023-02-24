@@ -255,7 +255,7 @@ function BoardAnalysis({ id }: { id: string }) {
               </Stack>
             </Tabs.Panel>
             <Tabs.Panel value="database" pt="xs">
-              <DatabasePanel />
+              <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
               <AnnotationPanel forceUpdate={forceUpdate} setTree={setTree} />

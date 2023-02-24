@@ -1,12 +1,16 @@
 import { createStyles, Progress, ScrollArea, Table, Text } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
+import { Square } from "chess.js";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { uciToSan } from "../../../utils/chess";
+import { uciToMove } from "../../../utils/chess";
 import { Opening, search_opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import TreeContext from "../../common/TreeContext";
 
 const useStyles = createStyles((theme) => ({
+  clickable: {
+    cursor: "pointer",
+  },
   whiteLabel: {
     "& .mantine-Progress-label": {
       color: "black",
@@ -14,7 +18,13 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function DatabasePanel() {
+function DatabasePanel({
+  makeMove,
+  height,
+}: {
+  makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
+  height: number;
+}) {
   const tree = useContext(TreeContext);
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,12 +62,23 @@ function DatabasePanel() {
     const whitePercent = (white / total) * 100;
     const drawPercent = (draw / total) * 100;
     const blackPercent = (black / total) * 100;
-    const moveSan = uciToSan(move, tree.fen);
+    const chessMove = uciToMove(move, tree.fen);
+    console.log(chessMove);
+    if (!chessMove) return null;
 
     return (
-      <tr>
+      <tr
+        className={classes.clickable}
+        onClick={() =>
+          makeMove({
+            from: chessMove.from as Square,
+            to: chessMove.to as Square,
+            promotion: chessMove.promotion,
+          })
+        }
+      >
         <td width={50}>
-          <Text>{moveSan}</Text>
+          <Text>{chessMove.san}</Text>
         </td>
         <td width={150}>
           <Text align="right">{formatNumber(total)}</Text>
@@ -96,7 +117,7 @@ function DatabasePanel() {
       {loading || openings === null ? (
         <p>Loading...</p>
       ) : (
-        <ScrollArea h={400}>
+        <ScrollArea h={height}>
           <Table striped highlightOnHover>
             <thead>
               <tr>

@@ -501,11 +501,7 @@ export function pgnToUCI(pgn: string): string {
     return moves.join(" ");
 }
 
-export function uciToSan(uci: string, fen: string): string {
+export function uciToMove(uci: string, fen: string): Move | null {
     const chess = new Chess(fen);
-    const move = chess.move(uci, { sloppy: true });
-    if (move === null) {
-        throw new Error("Invalid move");
-    }
-    return move.san;
+    return chess.move(uci, { sloppy: true });
 }
