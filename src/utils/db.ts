@@ -162,20 +162,31 @@ export async function getDatabase(path: string): Promise<Database> {
     return db;
 }
 
-export async function searchOpening(
+export async function search_position(
     db: string,
-    moves: string
-): Promise<[Game, Player, Player][]> {
-    // trim moves from the move number notation
-    moves = moves.replace(/\d+\./g, "");
-    // remove double spaces
-    moves = moves.replace(/\s\s+/g, " ");
-    moves = moves.trim();
+    fen: string
+): Promise<[number, number, number]> {
+    return invoke("search_position", {
+        file: db,
+        fen,
+    });
+}
 
+export async function search_opening(
+    db: string,
+    fen: string
+): Promise<Opening[]> {
     return invoke("search_opening", {
         file: db,
-        opening: moves,
+        fen,
     });
+}
+
+export interface Opening {
+    move: string;
+    white: number;
+    black: number;
+    draw: number;
 }
 
 export interface NormalizedGame {

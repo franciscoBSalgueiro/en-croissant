@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::schema::*;
 
+use super::ocgdb::decode_2byte_move;
+
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = players)]
 pub struct Player {
@@ -90,6 +92,59 @@ pub struct NewEvent<'a> {
     pub name: &'a str,
 }
 
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct Info {
+    pub name: String,
+    pub value: Option<String>,
+}
+
+#[derive(Debug, Queryable, Serialize, Deserialize)]
+#[diesel(table_name = openings)]
+pub struct Opening {
+    pub id: i32,
+    pub hash: i32,
+    pub move_: Vec<u8>,
+    pub white: i32,
+    pub draw: i32,
+    pub black: i32,
+}
+
+#[derive(Insertable, Debug)]
+#[diesel(table_name = openings)]
+pub struct NewOpening<'a> {
+    pub hash: i32,
+    pub move_: &'a [u8],
+    pub white: i32,
+    pub draw: i32,
+    pub black: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NormalizedOpening {
+    pub id: i32,
+    pub hash: i32,
+    #[serde(rename = "move")]
+    pub move_: String,
+    pub white: i32,
+    pub draw: i32,
+    pub black: i32,
+}
+
+// implement into trait for NormalizedOpening
+impl From<Opening> for NormalizedOpening {
+    fn from(opening: Opening) -> Self {
+        let move_ = decode_2byte_move(&opening.move_).unwrap();
+        NormalizedOpening {
+            id: opening.id,
+            hash: opening.hash,
+            move_: move_.to_string(),
+            white: opening.white,
+            draw: opening.draw,
+            black: opening.black,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct NormalizedGame {
     pub id: i32,
@@ -107,10 +162,4 @@ pub struct NormalizedGame {
     pub ply_count: Option<i32>,
     pub fen: Option<String>,
     pub moves: String,
-}
-
-#[derive(Queryable, Serialize, Deserialize)]
-pub struct Info {
-    pub name: String,
-    pub value: Option<String>,
 }

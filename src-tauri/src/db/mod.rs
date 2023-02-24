@@ -20,7 +20,11 @@ use diesel::{
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, Board, ByColor, Chess, Position};
+use shakmaty::{
+    fen::Fen,
+    zobrist::{Zobrist32, ZobristHash},
+    Board, ByColor, Chess, EnPassantMode, Position,
+};
 use std::{
     ffi::OsStr,
     fs::{remove_file, File},
@@ -149,12 +153,22 @@ pub struct TempGame {
     pub eco: Option<String>,
     pub fen: Option<String>,
     pub moves: Vec<u8>,
+    pub opening: Vec<Zobrist32>,
     pub position: Chess,
     pub material_count: MaterialColor,
 }
 
 impl TempGame {
     pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), String> {
+        if let Some(result) = &self.result {
+            if let Ok(outcome) = shakmaty::Outcome::from_ascii(result.as_bytes()) {
+                for (i, hash) in self.opening.iter().enumerate() {
+                    let m = &self.moves[(i * 2)..(i * 2) + 2];
+                    add_opening(db, hash, m, outcome).map_err(|e| e.to_string())?;
+                }
+            }
+        }
+
         let white;
         let black;
         let site_id;
@@ -295,6 +309,11 @@ impl Visitor for Importer {
                     self.game.material_count.black = cur_material.black;
                 }
             }
+            if self.game.moves.len() < 20 {
+                self.game
+                    .opening
+                    .push(self.game.position.zobrist_hash(EnPassantMode::Legal));
+            }
             self.game.position.play_unchecked(&m);
             self.game
                 .moves
@@ -346,15 +365,6 @@ pub async fn convert_pgn(
     )?;
     let db = &mut pool.get().unwrap();
 
-    // add pragmas to be more performant
-    // db.batch_execute(
-    //     "PRAGMA journal_mode = OFF;
-    //     PRAGMA synchronous = 0;
-    //     PRAGMA locking_mode = EXCLUSIVE;
-    //     PRAGMA temp_store = MEMORY;",
-    // )
-    // .or(Err("Failed to add pragmas"))?;
-
     db.batch_execute(
         "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
         CREATE TABLE Events (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
@@ -362,6 +372,14 @@ pub async fn convert_pgn(
         CREATE TABLE Sites (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
         INSERT INTO Sites (Name) VALUES (\"\");
         CREATE TABLE Players (ID INTEGER PRIMARY KEY, Name TEXT UNIQUE, Elo INTEGER);
+        CREATE TABLE Opening (
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Hash BLOB,
+            Move BLOB,
+            White INTEGER,
+            Draw INTEGER,
+            Black INTEGER);
+        CREATE INDEX OpeningHash ON Opening (Hash);
         CREATE TABLE Games (
             ID INTEGER PRIMARY KEY AUTOINCREMENT,
             EventID INTEGER,
@@ -991,6 +1009,37 @@ pub async fn search_position(
     Ok((
         first_seconds,
         second_seconds - first_seconds,
-        counter.load(Ordering::SeqCst) as u64,
+        counter.load(Ordering::Relaxed) as u64,
     ))
+}
+
+#[tauri::command]
+pub async fn search_opening(
+    file: PathBuf,
+    fen: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<NormalizedOpening>, String> {
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db = &mut pool.get().unwrap();
+
+    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
+    let processed_position: Chess = processed_fen
+        .into_position(shakmaty::CastlingMode::Standard)
+        .or(Err("Invalid fen"))?;
+    let hash: Zobrist32 = processed_position.zobrist_hash(EnPassantMode::Legal);
+
+    let openings: Option<Vec<Opening>> = openings::table
+        .filter(openings::hash.eq(hash.0 as i32))
+        .get_results(db)
+        .optional()
+        .expect("load opening");
+
+    dbg!(&openings);
+
+    let normalized_openings = match openings {
+        Some(openings) => openings.into_iter().map(NormalizedOpening::from).collect(),
+        None => vec![],
+    };
+
+    Ok(normalized_openings)
 }

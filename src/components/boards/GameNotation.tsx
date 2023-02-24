@@ -160,7 +160,7 @@ function GameNotation({
               showComments={showComments}
             />
           </Box>
-          {result !== Outcome.Unknown && (
+          {result && result !== Outcome.Unknown && (
             <Text align="center">
               {result}
               <br />

@@ -16,10 +16,6 @@
       "fs": {
         "all": true,
         "scope": ["$APPDATA/**"]
-      },
-      "shell": {
-        "scope": [{ "name": "binaries/ocgdb", "sidecar": true, "args": true }],
-        "sidecar": true
       }
     },
     "bundle": {
@@ -29,7 +25,6 @@
       "deb": {
         "depends": []
       },
-      "externalBin": ["binaries/ocgdb"],
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

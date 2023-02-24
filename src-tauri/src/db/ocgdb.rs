@@ -2,7 +2,7 @@ use shakmaty::{san::San, uci::Uci, Chess, Move, Position, Square, ByColor};
 
 use super::get_material_count;
 
-fn decode_2byte_move(move_bytes: &[u8]) -> Result<Uci, String> {
+pub fn decode_2byte_move(move_bytes: &[u8]) -> Result<Uci, String> {
     let from = move_bytes[0] & 0b00111111;
     let dest = (move_bytes[0] & 0b11000000) >> 6 | (move_bytes[1] & 0b00001111) << 2;
     let promotion = (move_bytes[1] & 0b11110000) >> 4;

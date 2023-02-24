@@ -63,6 +63,9 @@ function ConvertButton({
       component="button"
       type="button"
       onClick={async () => {
+        if (loading) {
+          return;
+        }
         const selected = await open({
           multiple: false,
           filters: [

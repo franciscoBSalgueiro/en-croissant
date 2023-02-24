@@ -1,12 +1,11 @@
 import { useLocalStorage } from "@mantine/hooks";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { NormalizedGame } from "../../utils/db";
+import { Opening, search_opening } from "../../utils/db";
 import TreeContext from "../common/TreeContext";
-import GameSubTable from "../databases/GameSubTable";
 
 function DatabasePanel() {
   const tree = useContext(TreeContext);
-  const [games, setGames] = useState<NormalizedGame[]>([]);
+  const [openings, setOpenings] = useState<Opening[]>([]);
   const [loading, setLoading] = useState(false);
   const [referenceDatabase, setReferenceDatabase] = useLocalStorage<
     string | null
@@ -16,32 +15,37 @@ function DatabasePanel() {
   });
 
   const useOpening = useCallback(
-    (referenceDatabase: string | null, pgn: string) => {
-      console.log("useOpening", referenceDatabase, pgn);
+    (referenceDatabase: string | null, fen: string) => {
+      console.log("useOpening", referenceDatabase, fen);
       if (!referenceDatabase) return;
       setLoading(true);
-      // searchOpening(referenceDatabase, pgn).then((res) => {
-      //   console.log("settings Games", res);
-      //   setLoading(false);
-      //   setGames(res);
-      // });
+      search_opening(referenceDatabase, fen).then((res) => {
+        console.log(res);
+        setLoading(false);
+        setOpenings(res);
+      });
     },
     [tree, referenceDatabase]
   );
 
   useEffect(() => {
-    useOpening(referenceDatabase, tree.getTopVariation().getPGN());
+    useOpening(referenceDatabase, tree.fen);
   }, [tree, referenceDatabase]);
 
   return (
     <>
-      <GameSubTable
-        height={300}
-        games={games}
-        loading={loading}
-        selectedGame={null}
-        setSelectedGame={() => {}}
-      />
+      {loading || openings === null ? (
+        <p>Loading...</p>
+      ) : (
+        openings.map((opening) => (
+          <div key={opening.move}>
+            <h3>{opening.move}</h3>
+            <p>{opening.white}</p>
+            <p>{opening.draw}</p>
+            <p>{opening.black}</p>
+          </div>
+        ))
+      )}
     </>
   );
 }
