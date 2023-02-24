@@ -500,3 +500,12 @@ export function pgnToUCI(pgn: string): string {
     const moves = chess.history();
     return moves.join(" ");
 }
+
+export function uciToSan(uci: string, fen: string): string {
+    const chess = new Chess(fen);
+    const move = chess.move(uci, { sloppy: true });
+    if (move === null) {
+        throw new Error("Invalid move");
+    }
+    return move.san;
+}
