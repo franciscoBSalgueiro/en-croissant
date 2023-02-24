@@ -309,7 +309,7 @@ impl Visitor for Importer {
                     self.game.material_count.black = cur_material.black;
                 }
             }
-            if self.game.moves.len() < 20 {
+            if self.game.moves.len() < 80 {
                 self.game
                     .opening
                     .push(self.game.position.zobrist_hash(EnPassantMode::Legal));
@@ -415,12 +415,20 @@ pub async fn convert_pgn(
         Box::new(file)
     };
 
+    // start counting time
+    let start = Instant::now();
+
     let mut importer = Importer::new();
     db.transaction::<_, diesel::result::Error, _>(|db| {
-        for game in BufferedReader::new(uncompressed)
+        for (i, game) in BufferedReader::new(uncompressed)
             .into_iter(&mut importer)
             .flatten()
+            .enumerate()
         {
+            if i % 1000 == 0 {
+                let elapsed = start.elapsed().as_millis() as u32;
+                app.emit_all("convert_progress", (i, elapsed)).unwrap();
+            }
             game.insert_to_db(db).unwrap();
         }
         Ok(())

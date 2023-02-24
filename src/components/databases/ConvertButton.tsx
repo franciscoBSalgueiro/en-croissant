@@ -2,6 +2,7 @@ import { Box, Card, createStyles, Loader, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { Database, getDatabases } from "../../utils/db";
 
@@ -23,7 +24,7 @@ const useStyles = createStyles((theme) => ({
 
 type Progress = {
   total: number;
-  speed: number;
+  elapsed: number;
 };
 
 function ConvertButton({
@@ -41,6 +42,7 @@ function ConvertButton({
     fileName = fileName?.replace(".pgn", ".ocgdb.db3");
     await invoke("convert_pgn", { file: filepath });
     setLoading(false);
+    setProgress(null);
     setDatabases(await getDatabases());
   }
 
@@ -54,6 +56,16 @@ function ConvertButton({
       convert(filepath);
     }
   }, [filepath]);
+
+  useEffect(() => {
+    async function getProgress() {
+      await listen("convert_progress", (event) => {
+        const progress = event.payload as number[];
+        setProgress({ total: progress[0], elapsed: progress[1] / 1000 });
+      });
+    }
+    getProgress();
+  }, []);
 
   return (
     <Card
@@ -87,7 +99,7 @@ function ConvertButton({
         <Box sx={{ display: "flex", justifyContent: "space-around" }}>
           <Text fz="xs">{progress.total} games</Text>
           <Text fz="xs" mb={10}>
-            {progress.speed} games/s
+            {(progress.total / progress.elapsed).toFixed(1)} games/s
           </Text>
         </Box>
       )}
