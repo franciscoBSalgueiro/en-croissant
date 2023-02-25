@@ -63,7 +63,6 @@ function DatabasePanel({
     const drawPercent = (draw / total) * 100;
     const blackPercent = (black / total) * 100;
     const chessMove = uciToMove(move, tree.fen);
-    console.log(chessMove);
     if (!chessMove) return null;
 
     return (

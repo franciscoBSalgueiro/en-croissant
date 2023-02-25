@@ -10,15 +10,18 @@ import {
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconRobot, IconUsers, IconZoomCheck } from "@tabler/icons";
+import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   goToPosition,
   movesToVariationTree,
   parsePGN,
+  parseUci,
   VariationTree
 } from "../../utils/chess";
 import { CompleteGame, defaultGame, Outcome } from "../../utils/db";
+import { Engine, getEngines } from "../../utils/engines";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
@@ -27,10 +30,10 @@ import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
 
 enum Opponent {
-  Easy,
-  Medium,
-  Hard,
-  Human,
+  Easy = "Easy Bot",
+  Medium = "Medium Bot",
+  Hard = "Hard Bot",
+  Human = "Human",
 }
 
 const useStyles = createStyles(
@@ -78,7 +81,6 @@ const useStyles = createStyles(
 );
 
 interface OpponentCardProps {
-  name: string;
   description: string;
   Icon: React.FC;
   opponent: Opponent;
@@ -87,7 +89,6 @@ interface OpponentCardProps {
 }
 
 function OpponentCard({
-  name,
   description,
   opponent,
   selected,
@@ -108,7 +109,7 @@ function OpponentCard({
           <Group noWrap>
             <Icon />
             <div>
-              <Text weight={500}>{name}</Text>
+              <Text weight={500}>{opponent}</Text>
               <Text size="xs" color="dimmed">
                 {description}
               </Text>
@@ -138,6 +139,7 @@ function BoardGame({
     key: id,
     defaultValue: { game: defaultGame(), currentMove: [] },
   });
+  const [engines, setEngines] = useState<Engine[]>([]);
   const game = completeGame.game;
 
   const initial_tree = useMemo(() => {
@@ -217,6 +219,25 @@ function BoardGame({
     ["ArrowDown", () => goToEnd()],
   ]);
 
+  useEffect(() => {
+    getEngines().then((engines) => {
+      setEngines(engines);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (engines.length > 0 && tree.half_moves % 2 === 1) {
+      invoke("get_single_best_move", {
+        difficulty: 0,
+        engine: engines[0].path,
+        fen: tree.fen,
+      }).then((move) => {
+        console.log(move);
+        makeMove(parseUci(move as string));
+      });
+    }
+  }, [tree, engines]);
+
   return (
     <TreeContext.Provider value={tree}>
       <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
@@ -238,7 +259,6 @@ function BoardGame({
               </Text>
               <SimpleGrid cols={3} spacing="md">
                 <OpponentCard
-                  name={"Easy"}
                   description={"800 ELO"}
                   opponent={Opponent.Easy}
                   selected={selected === Opponent.Easy}
@@ -246,7 +266,6 @@ function BoardGame({
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  name={"Medium"}
                   description={"1500 ELO"}
                   opponent={Opponent.Medium}
                   selected={selected === Opponent.Medium}
@@ -254,7 +273,6 @@ function BoardGame({
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  name={"Hard"}
                   description={"2500 ELO"}
                   opponent={Opponent.Hard}
                   selected={selected === Opponent.Hard}
@@ -263,7 +281,6 @@ function BoardGame({
                 />
 
                 <OpponentCard
-                  name={"Human"}
                   description={""}
                   opponent={Opponent.Human}
                   selected={selected === Opponent.Human}
@@ -276,7 +293,23 @@ function BoardGame({
 
               <Button
                 disabled={selected === null}
-                onClick={() => setOpponent(selected)}
+                onClick={() => {
+                  setOpponent(selected);
+                  setCompleteGame((prev) => ({
+                    game: {
+                      ...prev.game,
+                      white: {
+                        id: -1,
+                        name: "You",
+                      },
+                      black: {
+                        id: -1,
+                        name: selected ?? "",
+                      },
+                    },
+                    currentMove: [],
+                  }));
+                }}
               >
                 Play
               </Button>

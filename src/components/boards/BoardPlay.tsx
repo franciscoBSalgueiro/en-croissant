@@ -99,7 +99,7 @@ function BoardPlay({
       ...prev,
       game: {
         ...prev.game,
-        outcome: chess.turn() === "w" ? Result.BlackWin : Result.WhiteWin,
+        result: chess.turn() === "w" ? Result.BlackWin : Result.WhiteWin,
       },
     }));
   }

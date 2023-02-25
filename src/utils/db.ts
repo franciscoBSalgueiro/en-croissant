@@ -206,14 +206,14 @@ export interface NormalizedGame {
         name: string;
         elo?: number;
     };
-    white_elo: number;
+    white_elo?: number;
     black: {
         id: number;
         name: string;
         elo?: number;
     };
     black_elo?: number;
-    result?: string;
+    result: Outcome;
     time_control?: string;
     eco?: string;
     ply_count: number;
@@ -236,13 +236,12 @@ export function defaultGame(): NormalizedGame {
             id: 0,
             name: "",
         },
-        white_elo: 0,
         black: {
             id: 0,
             name: "",
         },
-        black_elo: 0,
         ply_count: 0,
         moves: "",
+        result: Outcome.Unknown,
     };
 }

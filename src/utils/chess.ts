@@ -9,7 +9,7 @@ import {
     SQUARES
 } from "chess.js";
 import { Key } from "chessground/types";
-import { CompleteGame } from "./db";
+import { CompleteGame, Outcome } from "./db";
 import { formatScore } from "./format";
 
 export type Score = {
@@ -442,7 +442,7 @@ export function getCompleteGame(pgn: string): CompleteGame {
         currentMove: [],
         game: {
             id: 0,
-            result: Result ?? "*",
+            result: Result as Outcome ?? Outcome.Unknown,
             black: {
                 id: 0,
                 name: Black ?? "?",

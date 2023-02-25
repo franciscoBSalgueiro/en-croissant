@@ -18,7 +18,7 @@ use tauri::{
     Manager, Window,
 };
 
-use crate::chess::analyze_game;
+use crate::chess::{analyze_game, get_single_best_move};
 use crate::db::{convert_pgn, delete_database, get_players_game_info, search_position, search_opening};
 use crate::puzzle::get_puzzle;
 use crate::{
@@ -137,7 +137,8 @@ fn main() {
             delete_database,
             convert_pgn,
             search_position,
-            search_opening
+            search_opening,
+            get_single_best_move
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
