@@ -239,7 +239,7 @@ function BoardGame({
     } else if (playingColor === "white") {
       isBotTurn = chess.turn() === "b";
     }
-    if (engine && opponent && opponent !== Opponent.Human && isBotTurn) {
+    if (tree.children.length === 0 && engine && opponent && opponent !== Opponent.Human && isBotTurn) {
       let engineLevel;
       if (opponent === Opponent.Easy) {
         engineLevel = 2;

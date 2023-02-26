@@ -413,12 +413,8 @@ pub async fn get_single_best_move(
         Some(BaseDirectory::AppData),
     )
     .or(Err("Engine file doesn't exists"))?;
-    let number_lines = 1;
     let number_threads = 4;
     let depth = 8 + difficulty;
-
-    let bestmove: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
-    let bestmove_clone = bestmove.clone();
 
     // start engine command
     println!("RUNNING ENGINE");
@@ -448,59 +444,39 @@ pub async fn get_single_best_move(
         .expect("child did not have a handle to stdout");
     let mut stdout_reader = BufReader::new(stdout).lines();
 
-    tokio::spawn(async move {
-        let mut stdin = stdin;
-        stdin
-            .write_all(format!("position fen {}\n", &fen).as_bytes())
-            .await
-            .expect("Failed to write position");
-        stdin
-            .write_all(format!("setoption name Skill Level value {}\n", &difficulty).as_bytes())
-            .await
-            .expect("Failed to write setoption");
-        stdin
-            .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
-            .await
-            .expect("Failed to write setoption");
-        stdin
-            .write_all(format!("setoption name multipv value {}\n", &number_lines).as_bytes())
-            .await
-            .expect("Failed to write setoption");
-        stdin
-            .write_all(format!("go depth {}\n", &depth).as_bytes())
-            .await
-            .expect("Failed to write go");
+    let mut stdin = stdin;
+    stdin
+        .write_all(format!("position fen {}\n", &fen).as_bytes())
+        .await
+        .expect("Failed to write position");
+    stdin
+        .write_all(format!("setoption name Skill Level value {}\n", &difficulty).as_bytes())
+        .await
+        .expect("Failed to write setoption");
+    stdin
+        .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
+        .await
+        .expect("Failed to write setoption");
+    stdin
+        .write_all(format!("go depth {}\n", &depth).as_bytes())
+        .await
+        .expect("Failed to write go");
 
-        loop {
-            tokio::select! {
-                result = stdout_reader.next_line() => {
-                    match result {
-                        Ok(line_opt) => {
-                            if let Some(line) = line_opt {
-                                if line == "readyok" {
-                                    println!("Engine ready");
-                                }
-                                if line.starts_with("bestmove") {
-                                    // example line:
-                                    // bestmove g1f3 ponder g8f6
-                                    // emit event with "g1f3"
-                                    let m = line.split_whitespace().nth(1).unwrap();
-                                    println!("bestmove {}", m);
-                                    bestmove_clone.lock().unwrap().push_str(m);
-                                    break;
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            println!("engine read error {:?}", err);
-                            break;
-                        }
+    loop {
+        let result = stdout_reader.next_line().await;
+        match result {
+            Ok(line_opt) => {
+                if let Some(line) = line_opt {
+                    if line.starts_with("bestmove") {
+                        let m = line.split_whitespace().nth(1).unwrap();
+                        println!("bestmove {}", m);
+                        return Ok(m.to_string());
                     }
                 }
             }
+            Err(err) => {
+                return Err(format!("engine read error {:?}", err));
+            }
         }
-    }).await.unwrap();
-    let finalmove = bestmove.lock().unwrap().clone();
-    println!("finalmove: {}", &finalmove);
-    Ok(finalmove)
+    }
 }
