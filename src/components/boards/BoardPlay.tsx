@@ -58,6 +58,7 @@ interface ChessboardProps {
   disableVariations?: boolean;
   setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
   completeGame: CompleteGame;
+  side?: Color;
 }
 
 const promotionPieces = [
@@ -91,6 +92,7 @@ function BoardPlay({
   disableVariations,
   setCompleteGame,
   completeGame,
+  side,
 }: ChessboardProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
@@ -187,7 +189,7 @@ function BoardPlay({
         <Chessground
           width={boardSize}
           height={boardSize}
-          orientation={orientation}
+          orientation={side ?? orientation}
           fen={fen}
           coordinates={false}
           movable={{

@@ -4,6 +4,7 @@ import {
   createStyles,
   Divider,
   Group,
+  Select,
   SimpleGrid,
   Stack,
   Text
@@ -33,6 +34,7 @@ enum Opponent {
   Easy = "Easy Bot",
   Medium = "Medium Bot",
   Hard = "Hard Bot",
+  Impossible = "Impossible Bot",
   Human = "Human",
 }
 
@@ -140,6 +142,11 @@ function BoardGame({
     defaultValue: { game: defaultGame(), currentMove: [] },
   });
   const [engines, setEngines] = useState<Engine[]>([]);
+  const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
+    "white"
+  );
+  const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
+  const [engine, setEngine] = useState<string | null>(null);
   const game = completeGame.game;
 
   const initial_tree = useMemo(() => {
@@ -226,17 +233,33 @@ function BoardGame({
   }, []);
 
   useEffect(() => {
-    if (engines.length > 0 && tree.half_moves % 2 === 1) {
+    let isBotTurn = false;
+    if (playingColor === "black") {
+      isBotTurn = chess.turn() === "w";
+    } else if (playingColor === "white") {
+      isBotTurn = chess.turn() === "b";
+    }
+    if (engine && opponent && opponent !== Opponent.Human && isBotTurn) {
+      let engineLevel;
+      if (opponent === Opponent.Easy) {
+        engineLevel = 2;
+      } else if (opponent === Opponent.Medium) {
+        engineLevel = 4;
+      } else if (opponent === Opponent.Hard) {
+        engineLevel = 6;
+      } else if (opponent === Opponent.Impossible) {
+        engineLevel = 8;
+      }
       invoke("get_single_best_move", {
-        difficulty: 0,
-        engine: engines[0].path,
+        difficulty: engineLevel,
+        engine,
         fen: tree.fen,
       }).then((move) => {
         console.log(move);
         makeMove(parseUci(move as string));
       });
     }
-  }, [tree, engines]);
+  }, [tree, engine, playingColor]);
 
   return (
     <TreeContext.Provider value={tree}>
@@ -250,6 +273,7 @@ function BoardGame({
           disableVariations
           setCompleteGame={setCompleteGame}
           completeGame={completeGame}
+          side={playingColor}
         />
         <Stack>
           {opponent === null ? (
@@ -259,27 +283,33 @@ function BoardGame({
               </Text>
               <SimpleGrid cols={3} spacing="md">
                 <OpponentCard
-                  description={"800 ELO"}
+                  description={""}
                   opponent={Opponent.Easy}
                   selected={selected === Opponent.Easy}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  description={"1500 ELO"}
+                  description={""}
                   opponent={Opponent.Medium}
                   selected={selected === Opponent.Medium}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  description={"2500 ELO"}
+                  description={""}
                   opponent={Opponent.Hard}
                   selected={selected === Opponent.Hard}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
-
+                <OpponentCard
+                  description={""}
+                  opponent={Opponent.Impossible}
+                  selected={selected === Opponent.Impossible}
+                  setSelected={setSelected}
+                  Icon={IconRobot}
+                />
                 <OpponentCard
                   description={""}
                   opponent={Opponent.Human}
@@ -288,12 +318,46 @@ function BoardGame({
                   Icon={IconUsers}
                 />
               </SimpleGrid>
+              <Select
+                mt="md"
+                w={200}
+                label="Engine"
+                data={engines.map((engine) => ({
+                  label: engine.name,
+                  value: engine.path,
+                }))}
+                value={engine}
+                onChange={(e) => {
+                  setEngine(e as string);
+                }}
+              />
+
+              <Select
+                mt="md"
+                w={200}
+                label="Color"
+                data={[
+                  { value: "white", label: "White" },
+                  { value: "random", label: "Random" },
+                  { value: "black", label: "Black" },
+                ]}
+                value={inputColor}
+                onChange={(e) => {
+                  setInputColor(e as "white" | "black" | "random");
+                }}
+              />
 
               <Divider my="md" />
-
               <Button
-                disabled={selected === null}
+                disabled={selected === null || engine === null}
                 onClick={() => {
+                  setPlayingColor(
+                    inputColor === "random"
+                      ? Math.random() > 0.5
+                        ? "white"
+                        : "black"
+                      : inputColor
+                  );
                   setOpponent(selected);
                   setCompleteGame((prev) => ({
                     game: {

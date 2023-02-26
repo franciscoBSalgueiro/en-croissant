@@ -415,7 +415,7 @@ pub async fn get_single_best_move(
     .or(Err("Engine file doesn't exists"))?;
     let number_lines = 1;
     let number_threads = 4;
-    let depth = 10;
+    let depth = 8 + difficulty;
 
     let bestmove: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
     let bestmove_clone = bestmove.clone();
@@ -454,6 +454,10 @@ pub async fn get_single_best_move(
             .write_all(format!("position fen {}\n", &fen).as_bytes())
             .await
             .expect("Failed to write position");
+        stdin
+            .write_all(format!("setoption name Skill Level value {}\n", &difficulty).as_bytes())
+            .await
+            .expect("Failed to write setoption");
         stdin
             .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
             .await
