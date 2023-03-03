@@ -3465,6 +3465,7 @@ version = "0.0.0"
 dependencies = [
  "httparse",
  "log",
+ "serde",
  "tauri",
  "url",
 ]

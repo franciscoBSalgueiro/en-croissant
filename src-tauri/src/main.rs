@@ -34,7 +34,7 @@ use tauri_plugin_oauth::start;
 async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
     println!("Starting server");
 
-    start(None, move |url| {
+    start(move |url| {
         // Because of the unprotected localhost port, you must verify the URL here.
         // Preferebly send back only the token, or nothing at all if you can handle everything else in Rust.
 
