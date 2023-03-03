@@ -25,9 +25,9 @@ import {
   IconEdit,
   IconSwitchVertical
 } from "@tabler/icons";
-import { BISHOP, Chess, KNIGHT, QUEEN, ROOK, Square } from "chess.js";
+import { BISHOP, Chess, KNIGHT, PieceSymbol, QUEEN, ROOK, Square } from "chess.js";
 import { Color } from "chessground/types";
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import Chessground from "react-chessground";
 import {
   formatMove,
@@ -38,6 +38,7 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
+import Piece from "../common/Piece";
 import TreeContext from "../common/TreeContext";
 
 const useStyles = createStyles((theme) => ({
@@ -52,6 +53,7 @@ const useStyles = createStyles((theme) => ({
 interface ChessboardProps {
   arrows: string[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
+  addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
   editingMode: boolean;
   toggleEditingMode: () => void;
   viewOnly?: boolean;
@@ -86,6 +88,7 @@ const promotionPieces = [
 function BoardPlay({
   arrows,
   makeMove,
+  addPiece,
   editingMode,
   toggleEditingMode,
   viewOnly,
@@ -123,6 +126,7 @@ function BoardPlay({
     key: "forced-en-passant",
     defaultValue: false,
   });
+  const boardRef = useRef(null);
   const fen = chess.fen();
   const dests = toDests(chess, forcedEP);
   const turn = formatMove(chess.turn());
@@ -148,12 +152,22 @@ function BoardPlay({
   return (
     <Stack justify="center">
       {editingMode && (
-        <Card shadow="sm">
+        <Card shadow="md" style={{ overflow: "visible" }}>
           <Group position="center">
-            <p>HORSE</p>
-            <p>HORSE</p>
-            <p>HORSE</p>
-            <p>HORSE</p>
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"p"} color={"w"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"n"} color={"w"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"b"} color={"w"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"r"} color={"w"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"q"} color={"w"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"k"} color={"w"} />
+          </Group>
+          <Group position="center">
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"p"} color={"b"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"n"} color={"b"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"b"} color={"b"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"r"} color={"b"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"q"} color={"b"} />
+            <Piece addPiece={addPiece} boardRef={boardRef} piece={"k"} color={"b"} />
           </Group>
         </Card>
       )}
@@ -185,7 +199,7 @@ function BoardPlay({
         </SimpleGrid>
       </Modal>
 
-      <Box className={classes.chessboard}>
+      <Box className={classes.chessboard} ref={boardRef}>
         <Chessground
           width={boardSize}
           height={boardSize}
@@ -204,6 +218,7 @@ function BoardPlay({
             showDests,
             events: {
               after: (orig, dest, metadata) => {
+                console.log("after", orig, dest, metadata);
                 if (editingMode) {
                   makeMove({
                     from: orig as Square,

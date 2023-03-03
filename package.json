@@ -42,7 +42,8 @@
     "prosemirror-view": "^1.29.1",
     "react": "^18.2.0",
     "react-chessground": "^1.5.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-draggable": "^4.4.5"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.2.2",

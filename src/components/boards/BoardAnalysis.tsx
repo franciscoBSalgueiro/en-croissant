@@ -22,7 +22,14 @@ import {
   IconNotes,
   IconZoomCheck
 } from "@tabler/icons";
-import { Chess, DEFAULT_POSITION, Square, validateFen } from "chess.js";
+import {
+  Chess,
+  Color,
+  DEFAULT_POSITION,
+  PieceSymbol,
+  Square,
+  validateFen
+} from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
@@ -157,6 +164,12 @@ function BoardAnalysis({ id }: { id: string }) {
     setTree(newTree);
   }
 
+  function addPiece(square: Square, piece: PieceSymbol, color: Color) {
+    chess.put({ type: piece, color }, square);
+    const newTree = new VariationTree(null, chess.fen(), null);
+    setTree(newTree);
+  }
+
   function undoMove() {
     if (tree.parent) {
       setTree(tree.parent);
@@ -222,6 +235,7 @@ function BoardAnalysis({ id }: { id: string }) {
             toggleEditingMode={toggleEditingMode}
             setCompleteGame={setCompleteGame}
             completeGame={completeGame}
+            addPiece={addPiece}
           />
         </Box>
         <Stack

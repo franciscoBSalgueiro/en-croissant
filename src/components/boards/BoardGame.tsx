@@ -274,6 +274,7 @@ function BoardGame({
           setCompleteGame={setCompleteGame}
           completeGame={completeGame}
           side={playingColor}
+          addPiece={() => {}}
         />
         <Stack>
           {opponent === null ? (

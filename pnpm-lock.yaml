@@ -40,6 +40,7 @@ specifiers:
   react: ^18.2.0
   react-chessground: ^1.5.0
   react-dom: ^18.2.0
+  react-draggable: ^4.4.5
   typescript: ^4.9.4
 
 dependencies:
@@ -77,6 +78,7 @@ dependencies:
   react: 18.2.0
   react-chessground: 1.5.0_o77wnou4wwnegu5woljtklrzru
   react-dom: 18.2.0_react@18.2.0
+  react-draggable: 4.4.5_biqbaboplfbrettd7655fr4n2y
 
 devDependencies:
   '@tauri-apps/cli': 1.2.2
@@ -10667,6 +10669,18 @@ packages:
       loose-envify: 1.4.0
       react: 18.2.0
       scheduler: 0.23.0
+    dev: false
+
+  /react-draggable/4.4.5_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-OMHzJdyJbYTZo4uQE393fHcqqPYsEtkjfMgvCHr6rejT+Ezn4OZbNyGH50vv+SunC1RMvwOTSWkEODQLzw1M9g==}
+    peerDependencies:
+      react: '>= 16.3.0'
+      react-dom: '>= 16.3.0'
+    dependencies:
+      clsx: 1.1.1
+      prop-types: 15.8.1
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
     dev: false
 
   /react-error-overlay/6.0.11:
