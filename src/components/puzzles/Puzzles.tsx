@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Card,
+  Center,
   Divider,
   Group,
   RangeSlider,
@@ -13,23 +14,14 @@ import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconCheck, IconDots, IconPlus, IconTrash, IconX } from "@tabler/icons";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
+import {
+  Completion,
+  getPuzzleDatabases,
+  Puzzle,
+  PuzzleDatabase
+} from "../../utils/puzzles";
 import PuzzleBoard from "./PuzzleBoard";
-
-export enum Completion {
-  CORRECT,
-  INCORRECT,
-  INCOMPLETE,
-}
-
-export interface Puzzle {
-  fen: string;
-  moves: string[];
-  rating: number;
-  rating_deviation: number;
-  popularity: number;
-  nb_plays: number;
-  completion: Completion;
-}
+import { PuzzleDbCard } from "./PuzzleDbCard";
 
 function Puzzles({ id }: { id: string }) {
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
@@ -37,6 +29,14 @@ function Puzzles({ id }: { id: string }) {
     defaultValue: [],
   });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
+  const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
+  const [selectedDb, setSelectedDb] = useState<number>(0);
+  useEffect(() => {
+    getPuzzleDatabases().then((databases) => {
+      console.log(databases);
+      setPuzzleDbs(databases);
+    });
+  }, []);
 
   const [ratingRange, setRatingRange] = useLocalStorage<[number, number]>({
     key: "puzzle-ratings",
@@ -57,8 +57,11 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.length;
 
   function generatePuzzle() {
+    if (puzzleDbs.length === 0) {
+      return;
+    }
     invoke("get_puzzle", {
-      file: "C:\\Users\\Francisco\\Desktop\\puzzles.sql",
+      file: puzzleDbs[selectedDb].path,
       minRating: ratingRange[0],
       maxRating: ratingRange[1],
     }).then((res: any) => {
@@ -86,7 +89,7 @@ function Puzzles({ id }: { id: string }) {
 
   return (
     <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-      {puzzles[currentPuzzle] && (
+      {puzzles[currentPuzzle] ? (
         <PuzzleBoard
           key={currentPuzzle}
           puzzles={puzzles}
@@ -95,8 +98,24 @@ function Puzzles({ id }: { id: string }) {
           generatePuzzle={generatePuzzle}
           setCurrentPuzzle={setCurrentPuzzle}
         />
+      ) : (
+        <Center>
+          <Text>No puzzle database selected</Text>
+        </Center>
       )}
       <Stack>
+        <SimpleGrid cols={2}>
+          {puzzleDbs.map((db, i) => (
+            <PuzzleDbCard
+              id={i}
+              selected={selectedDb === i}
+              setSelected={setSelectedDb}
+              title={db.title}
+              puzzles={db.puzzle_count}
+              storage={db.storage_size}
+            />
+          ))}
+        </SimpleGrid>
         <Card>
           <Group>
             <div>

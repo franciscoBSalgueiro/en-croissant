@@ -15,7 +15,7 @@ import {
   parseUci,
   toDests
 } from "../../utils/chess";
-import { Completion, Puzzle } from "./Puzzles";
+import { Completion, Puzzle } from "../../utils/puzzles";
 
 const promotionPieces = [
   {

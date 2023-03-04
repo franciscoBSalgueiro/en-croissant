@@ -25,7 +25,15 @@ import {
   IconEdit,
   IconSwitchVertical
 } from "@tabler/icons";
-import { BISHOP, Chess, KNIGHT, PieceSymbol, QUEEN, ROOK, Square } from "chess.js";
+import {
+  BISHOP,
+  Chess,
+  KNIGHT,
+  PieceSymbol,
+  QUEEN,
+  ROOK,
+  Square
+} from "chess.js";
 import { Color } from "chessground/types";
 import { useContext, useRef, useState } from "react";
 import Chessground from "react-chessground";
@@ -149,26 +157,26 @@ function BoardPlay({
 
   useHotkeys([["f", () => toggleOrientation()]]);
 
+  const pieces = ["p", "n", "b", "r", "q", "k"] as const;
+  const colors = ["w", "b"] as const;
   return (
     <Stack justify="center">
       {editingMode && (
         <Card shadow="md" style={{ overflow: "visible" }}>
-          <Group position="center">
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"p"} color={"w"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"n"} color={"w"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"b"} color={"w"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"r"} color={"w"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"q"} color={"w"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"k"} color={"w"} />
-          </Group>
-          <Group position="center">
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"p"} color={"b"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"n"} color={"b"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"b"} color={"b"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"r"} color={"b"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"q"} color={"b"} />
-            <Piece addPiece={addPiece} boardRef={boardRef} piece={"k"} color={"b"} />
-          </Group>
+          <SimpleGrid cols={6}>
+            {colors.map((color) => {
+              return pieces.map((piece) => {
+                return (
+                  <Piece
+                    addPiece={addPiece}
+                    boardRef={boardRef}
+                    piece={piece}
+                    color={color}
+                  />
+                );
+              });
+            })}
+          </SimpleGrid>
         </Card>
       )}
       <Modal

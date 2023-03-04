@@ -20,7 +20,7 @@ use tauri::{
 
 use crate::chess::{analyze_game, get_single_best_move};
 use crate::db::{convert_pgn, delete_database, get_players_game_info, search_position, search_opening};
-use crate::puzzle::get_puzzle;
+use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
     db::{get_db_info, get_games, get_players, rename_db},
@@ -118,6 +118,18 @@ fn main() {
             if !Path::new(&db_path).exists() {
                 create_dir_all(&db_path).unwrap();
             }
+
+            let db_path = resolve_path(
+                &app.config(),
+                app.package_info(),
+                &app.env(),
+                "puzzles",
+                Some(BaseDirectory::AppData),
+            )
+            .unwrap();
+            if !Path::new(&db_path).exists() {
+                create_dir_all(&db_path).unwrap();
+            }
             Ok(())
         })
         .manage(AppState(Default::default()))
@@ -130,6 +142,7 @@ fn main() {
             get_games,
             get_players,
             get_db_info,
+            get_puzzle_db_info,
             rename_db,
             get_players_game_info,
             start_server,

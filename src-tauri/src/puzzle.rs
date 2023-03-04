@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use tauri::{api::path::{resolve_path, BaseDirectory}, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Puzzle {
@@ -47,4 +48,46 @@ pub fn get_puzzle(file: PathBuf, min_rating: usize, max_rating: usize) -> Result
         }
     }
     Err("No puzzle found".to_string())
+}
+
+
+#[derive(Serialize)]
+pub struct PuzzleDatabaseInfo {
+    title: String,
+    puzzle_count: usize,
+    storage_size: usize,
+    path: String,
+}
+
+#[tauri::command]
+pub async fn get_puzzle_db_info(
+    file: PathBuf,
+    app: tauri::AppHandle,
+) -> Result<PuzzleDatabaseInfo, String> {
+    let db_path = PathBuf::from("puzzles").join(file);
+
+    let path = resolve_path(
+        &app.config(),
+        app.package_info(),
+        &app.env(),
+        &db_path,
+        Some(BaseDirectory::AppData),
+    )
+    .or(Err("resolve path"))?;
+
+    let db = rusqlite::Connection::open(&path).expect("open database");
+
+    let puzzle_count: usize = db
+        .query_row("SELECT COUNT(*) FROM puzzles", [], |row| row.get(0))
+        .expect("get puzzle count");
+
+    let storage_size = path.metadata().expect("get metadata").len() as usize;
+    let filename = path.file_name().expect("get filename").to_string_lossy();
+
+    Ok(PuzzleDatabaseInfo {
+        title: filename.to_string(),
+        puzzle_count,
+        storage_size,
+        path: path.to_string_lossy().to_string(),
+    })
 }

@@ -29,16 +29,12 @@ function Piece({
       const squareHeight = boardHeight / 8;
       const x = Math.floor((position.x - boardRect.left) / squareWidth);
       const y = Math.floor((position.y - boardRect.top) / squareHeight);
-      console.log(x, y);
-      console.log("dropped");
 
       addPiece(
         `${String.fromCharCode(97 + x)}${8 - y}` as Square,
         piece,
-        color,
+        color
       );
-    } else {
-      console.log("not dropped");
     }
   };
 
