@@ -11,7 +11,13 @@ import {
   Tooltip
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
-import { IconCheck, IconDots, IconPlus, IconTrash, IconX } from "@tabler/icons";
+import {
+  IconCheck,
+  IconDots,
+  IconPlus,
+  IconTrash,
+  IconX
+} from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import {
@@ -33,7 +39,6 @@ function Puzzles({ id }: { id: string }) {
   const [selectedDb, setSelectedDb] = useState<number>(0);
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
-      console.log(databases);
       setPuzzleDbs(databases);
     });
   }, []);
@@ -108,6 +113,7 @@ function Puzzles({ id }: { id: string }) {
           {puzzleDbs.map((db, i) => (
             <PuzzleDbCard
               id={i}
+              key={db.path}
               selected={selectedDb === i}
               setSelected={setSelectedDb}
               title={db.title}

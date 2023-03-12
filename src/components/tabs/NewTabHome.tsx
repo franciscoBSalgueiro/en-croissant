@@ -2,7 +2,7 @@ import {
   faChess,
   faChessBoard,
   faFileImport,
-  faPuzzlePiece
+  faPuzzlePiece,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -13,7 +13,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Textarea
+  Textarea,
 } from "@mantine/core";
 import { useState } from "react";
 import { getCompleteGame } from "../../utils/chess";

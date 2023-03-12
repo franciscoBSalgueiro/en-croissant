@@ -12,7 +12,7 @@ import {
   Text,
   Tooltip,
   TypographyStylesProvider,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
 import {
@@ -25,8 +25,8 @@ import {
   IconEye,
   IconEyeOff,
   IconMinus,
-  IconPlus
-} from "@tabler/icons";
+  IconPlus,
+} from "@tabler/icons-react";
 import { VariationTree } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
 import CompleteMoveCell from "./CompleteMoveCell";

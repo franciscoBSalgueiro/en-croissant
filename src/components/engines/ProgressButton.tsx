@@ -1,9 +1,13 @@
 import { Button, createStyles, Progress } from "@mantine/core";
 
-const useStyles = createStyles(() => ({
+const useStyles = createStyles((theme) => ({
   button: {
     position: "relative",
     transition: "background-color 150ms ease",
+    ":disabled": {
+      backgroundColor: theme.colors.green[7],
+      color: theme.colors.gray[2],
+    },
   },
 
   progress: {
@@ -31,21 +35,28 @@ export function ProgressButton({
 }: {
   loaded: boolean;
   progress: number;
-  onClick: (loaded: boolean, id: number) => void;
+  onClick: (id: number) => void;
   id: number;
 }) {
   const { classes, theme } = useStyles();
+  let label: string;
+  if (loaded) {
+    label = "Installed";
+  } else {
+    if (progress === 0) label = "Install";
+    else if (progress === 100) label = "Extracting";
+    else label = "Downloading";
+  }
 
   return (
     <Button
       fullWidth
       className={classes.button}
-      onClick={() => onClick(loaded, id)}
-      color={loaded ? "red" : theme.primaryColor}
+      onClick={() => onClick(id)}
+      disabled={loaded}
+      color={loaded ? "green" : theme.primaryColor}
     >
-      <div className={classes.label}>
-        {progress !== 0 ? "Installing" : loaded ? "Remove" : "Install"}
-      </div>
+      <div className={classes.label}>{label}</div>
       {progress !== 0 && (
         <Progress
           value={progress}

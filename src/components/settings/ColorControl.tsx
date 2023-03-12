@@ -1,5 +1,9 @@
 import {
-  CheckIcon, ColorSwatch, Group, Input, useMantineTheme
+  CheckIcon,
+  ColorSwatch,
+  Group,
+  Input,
+  useMantineTheme,
 } from "@mantine/core";
 import { upperFirst } from "@mantine/hooks";
 

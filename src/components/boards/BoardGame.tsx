@@ -10,7 +10,12 @@ import {
   Text
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
-import { IconPlus, IconRobot, IconUsers, IconZoomCheck } from "@tabler/icons";
+import {
+  IconPlus,
+  IconRobot,
+  IconUsers,
+  IconZoomCheck
+} from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
@@ -239,7 +244,13 @@ function BoardGame({
     } else if (playingColor === "white") {
       isBotTurn = chess.turn() === "b";
     }
-    if (tree.children.length === 0 && engine && opponent && opponent !== Opponent.Human && isBotTurn) {
+    if (
+      tree.children.length === 0 &&
+      engine &&
+      opponent &&
+      opponent !== Opponent.Human &&
+      isBotTurn
+    ) {
       let engineLevel;
       if (opponent === Opponent.Easy) {
         engineLevel = 2;
@@ -255,7 +266,6 @@ function BoardGame({
         engine,
         fen: tree.fen,
       }).then((move) => {
-        console.log(move);
         makeMove(parseUci(move as string));
       });
     }

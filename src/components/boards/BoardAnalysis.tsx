@@ -5,7 +5,7 @@ import {
   Flex,
   ScrollArea,
   Stack,
-  Tabs
+  Tabs,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
@@ -14,21 +14,21 @@ import {
   useLocalStorage,
   useSessionStorage,
   useToggle,
-  useViewportSize
+  useViewportSize,
 } from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
   IconNotes,
-  IconZoomCheck
-} from "@tabler/icons";
+  IconZoomCheck,
+} from "@tabler/icons-react";
 import {
   Chess,
   Color,
   DEFAULT_POSITION,
   PieceSymbol,
   Square,
-  validateFen
+  validateFen,
 } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
@@ -70,7 +70,7 @@ function BoardAnalysis({ id }: { id: string }) {
     validate: {
       fen: (value) => {
         const v = validateFen(value);
-        if (v.valid) {
+        if (v.ok) {
           return null;
         } else {
           return v.error;
@@ -145,7 +145,7 @@ function BoardAnalysis({ id }: { id: string }) {
     let parentTree = tree;
     let newTree = tree;
     moves.forEach((move) => {
-      const newMove = chess.move(move, { sloppy: true });
+      const newMove = chess.move(move);
       newTree = new VariationTree(parentTree, chess.fen(), newMove);
       if (parentTree.children.length === 0) {
         parentTree.children = [newTree];

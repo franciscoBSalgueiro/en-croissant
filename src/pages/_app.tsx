@@ -5,12 +5,12 @@ import {
   MantineColor,
   MantineProvider
 } from "@mantine/core";
-import { NotificationsProvider } from "@mantine/notifications";
 import type { AppProps } from "next/app";
 import { SideBar } from "../components/Sidebar";
 
 // Chessground styles
 import { useLocalStorage } from "@mantine/hooks";
+import { Notifications } from "@mantine/notifications";
 import "chessground/assets/chessground.cburnett.css";
 import Head from "next/head";
 import "../styles/chessgroundBaseOverride.css";
@@ -101,23 +101,22 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           }),
         }}
       >
-        <NotificationsProvider>
-          <AppShell
-            navbar={<SideBar />}
-            styles={(theme) => ({
-              main: {
-                overflow: "hidden",
-                userSelect: "none",
-                backgroundColor:
-                  theme.colorScheme === "dark"
-                    ? theme.colors.dark[8]
-                    : theme.colors.gray[0],
-              },
-            })}
-          >
-            <Component {...pageProps} />
-          </AppShell>
-        </NotificationsProvider>
+        <Notifications />
+        <AppShell
+          navbar={<SideBar />}
+          styles={(theme) => ({
+            main: {
+              overflow: "hidden",
+              userSelect: "none",
+              backgroundColor:
+                theme.colorScheme === "dark"
+                  ? theme.colors.dark[8]
+                  : theme.colors.gray[0],
+            },
+          })}
+        >
+          <Component {...pageProps} />
+        </AppShell>
       </MantineProvider>
     </ColorSchemeProvider>
   );

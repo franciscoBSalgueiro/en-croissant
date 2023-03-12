@@ -93,7 +93,6 @@ function ReportModal({
     }).then((result) => {
       setLoading(false);
       const evals = result as EngineVariation[];
-      console.log(evals);
       setTree((prev) => {
         let position = prev.getPosition();
         let root = prev.getTopVariation().children[0];

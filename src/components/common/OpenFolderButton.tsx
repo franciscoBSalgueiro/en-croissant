@@ -1,5 +1,5 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
-import { IconFolder } from "@tabler/icons";
+import { IconFolder } from "@tabler/icons-react";
 import { appDataDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/api/shell";
 import path from "path";

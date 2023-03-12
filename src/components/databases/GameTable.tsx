@@ -12,21 +12,21 @@ import {
   Select,
   Stack,
   Text,
-  Tooltip
+  Tooltip,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconSearch,
   IconSortAscending,
-  IconSortDescending
-} from "@tabler/icons";
+  IconSortDescending,
+} from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Database,
   NormalizedGame,
   Outcome,
   query_games,
-  Sides
+  Sides,
 } from "../../utils/db";
 import { formatNumber } from "../../utils/format";
 import GameCard from "./GameCard";
@@ -282,7 +282,7 @@ function GameTable({ database }: { database: Database }) {
               />
               <Stack spacing={0} mt={20}>
                 <Pagination
-                  page={activePage}
+                  value={activePage}
                   onChange={setActivePage}
                   total={Math.ceil(count / limit)}
                 />

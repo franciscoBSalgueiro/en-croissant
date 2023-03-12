@@ -6,7 +6,7 @@ import {
   Loader,
   Stack,
   Text,
-  Tooltip
+  Tooltip,
 } from "@mantine/core";
 import {
   IconArrowDownRight,
@@ -14,8 +14,8 @@ import {
   IconArrowUpRight,
   IconDownload,
   IconRefresh,
-  IconX
-} from "@tabler/icons";
+  IconX,
+} from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { appDataDir } from "@tauri-apps/api/path";
 import { join } from "path";

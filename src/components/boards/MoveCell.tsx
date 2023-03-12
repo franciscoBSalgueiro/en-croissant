@@ -54,11 +54,7 @@ function MoveCell({
 
   return (
     <>
-      <Box
-        component="button"
-        className={classes.cell}
-        onClick={onClick}
-      >
+      <Box component="button" className={classes.cell} onClick={onClick}>
         {move + annotation}
       </Box>
     </>

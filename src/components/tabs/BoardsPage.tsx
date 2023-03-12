@@ -7,7 +7,7 @@ import {
   Tabs
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons";
+import { IconPlus } from "@tabler/icons-react";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
 import Puzzles from "../puzzles/Puzzles";
@@ -132,7 +132,10 @@ export default function BoardsPage() {
       sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
     }
     if (sessionStorage.getItem(value + "-tree")) {
-      sessionStorage.setItem(id + "-tree", sessionStorage.getItem(value + "-tree") || "");
+      sessionStorage.setItem(
+        id + "-tree",
+        sessionStorage.getItem(value + "-tree") || ""
+      );
     }
 
     if (tab) {
@@ -178,8 +181,9 @@ export default function BoardsPage() {
       value={activeTab}
       onTabChange={(v) => setActiveTab(v)}
       variant="outline"
+      my="md"
     >
-      <Stack pos="relative" h="100%">
+      <Stack pos="relative">
         <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
           <Group spacing={0} sx={{ flexWrap: "nowrap" }}>
             <Tabs.List sx={{ flexWrap: "nowrap" }}>

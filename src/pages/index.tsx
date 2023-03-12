@@ -1,10 +1,6 @@
 import { Card, Grid, SimpleGrid, Stack, Title } from "@mantine/core";
 import dynamic from "next/dynamic";
 
-const RecentGames = dynamic(() => import("../components/home/RecentGames"), {
-  ssr: false,
-});
-
 const Accounts = dynamic(() => import("../components/home/Accounts"), {
   ssr: false,
 });
@@ -13,7 +9,7 @@ function Page() {
   return (
     <SimpleGrid
       cols={2}
-      h="95vh"
+      my="md"
       spacing="md"
       breakpoints={[{ maxWidth: "sm", cols: 1 }]}
     >
@@ -26,8 +22,7 @@ function Page() {
       <Grid gutter="md">
         <Grid.Col>
           <Card h="100%">
-            <Title>Recent Games</Title>
-            <RecentGames />
+            <Title>???</Title>
           </Card>
         </Grid.Col>
         <Grid.Col span={6}>

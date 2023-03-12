@@ -3,9 +3,10 @@ import {
   Navbar,
   Stack,
   Tooltip,
-  UnstyledButton
+  UnstyledButton,
 } from "@mantine/core";
 import {
+  Icon,
   IconChess,
   IconDatabase,
   IconHelp,
@@ -13,8 +14,7 @@ import {
   IconRobot,
   IconSettings,
   IconUser,
-  TablerIcon
-} from "@tabler/icons";
+} from "@tabler/icons-react";
 import { useRouter } from "next/router";
 
 const useStyles = createStyles((theme) => ({
@@ -53,7 +53,7 @@ const useStyles = createStyles((theme) => ({
 }));
 
 interface NavbarLinkProps {
-  icon: TablerIcon;
+  icon: Icon;
   label: string;
   url: string;
   active?: boolean;
@@ -62,7 +62,7 @@ interface NavbarLinkProps {
 function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
   const { classes, cx } = useStyles();
   return (
-    <Tooltip label={label} position="right" transitionDuration={0}>
+    <Tooltip label={label} position="right">
       <a href={url}>
         <UnstyledButton
           className={cx(classes.link, {

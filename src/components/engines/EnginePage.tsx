@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Button,
   Group,
   Image,
@@ -8,39 +9,33 @@ import {
   Title
 } from "@mantine/core";
 
-import { showNotification } from "@mantine/notifications";
-import { IconCheck, IconPlus, IconTrash } from "@tabler/icons";
-import { listen } from "@tauri-apps/api/event";
-import {
-  BaseDirectory,
-  exists,
-  readTextFile,
-  removeDir,
-  writeTextFile
-} from "@tauri-apps/api/fs";
-import { appDataDir } from "@tauri-apps/api/path";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 import {
   Engine,
   EngineSettings,
   EngineStatus,
-  getDefaultEngines,
   getEngineSettings
 } from "../../utils/engines";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
-import { ProgressButton } from "./ProgressButton";
 
 export default function EnginePage() {
-  const defaultEngines = getDefaultEngines();
-  const [engines, setEngines] = useState<Engine[]>(defaultEngines);
+  const [engines, setEngines] = useState<Engine[]>([]);
   const [opened, setOpened] = useState(false);
   const [engineSettings, setEngineSettings] = useState<EngineSettings[]>([]);
+  const [loadedEngines, setLoadedEngines] = useState(false);
 
   async function readConfig() {
     setEngineSettings(await getEngineSettings());
+    setLoadedEngines(true);
   }
+
+  useEffect(() => {
+    readConfig();
+  }, []);
 
   async function reloadEngines() {
     const engines = await Promise.all(
@@ -53,91 +48,23 @@ export default function EnginePage() {
           name: engine.name,
           status: exists ? EngineStatus.Installed : EngineStatus.NotInstalled,
           path: engine.binary,
+          elo: engine.elo,
         };
       })
     );
-    const updatedDefaultEngines = await Promise.all(
-      defaultEngines.map(async (engine) => {
-        const installed = await exists(engine.path, {
-          dir: BaseDirectory.AppData,
-        });
-        engine.status = installed
-          ? EngineStatus.Installed
-          : EngineStatus.NotInstalled;
-        return engine;
-      })
-    );
 
-    setEngines([...updatedDefaultEngines, ...engines]);
-  }
-
-  async function downloadEngine(id: number, url: string) {
-    invoke("download_file", {
-      id,
-      url,
-      zip: true,
-      path: (await appDataDir()) + "engines",
-    });
+    setEngines(engines);
   }
 
   async function removeEngine(id: number) {
-    if (engines[id].downloadLink) {
-      await removeDir(
-        engines[id].path.substring(0, engines[id].path.lastIndexOf("/")),
-        { dir: BaseDirectory.AppData, recursive: true }
-      );
-      readConfig();
-    } else {
-      // Remove from config
-      const newEngineSettings = engineSettings.filter(
-        (e) => e.name !== engines[id].name
-      );
-      setEngineSettings(newEngineSettings);
-    }
-    showNotification({
-      icon: <IconTrash />,
-      color: "red",
-      title: "Engine removed",
-      message: "The engine has been installed successfully",
-    });
+    const newEngineSettings = engineSettings.filter(
+      (e) => e.name !== engines[id].name
+    );
+    setEngineSettings(newEngineSettings);
   }
 
   useEffect(() => {
-    async function getEngineProgress() {
-      await listen("download_progress", (event) => {
-        const { progress, id, finished } = event.payload as any;
-        if (finished) {
-          // FIXME - avoid duplicate notifications
-          showNotification({
-            icon: <IconCheck />,
-            color: "green",
-            title: "Engine installed",
-            message: "The engine has been installed successfully",
-          });
-          reloadEngines();
-        } else {
-          setEngines((engines) =>
-            engines.map((engine, index) => {
-              if (index === id) {
-                return {
-                  ...engine,
-                  progress,
-                };
-              }
-              return engine;
-            })
-          );
-        }
-      });
-    }
-
-    readConfig();
-    getEngineProgress();
-    // refreshEngines();
-  }, []);
-
-  useEffect(() => {
-    // update file if the contents of the file change
+    if (!loadedEngines) return;
     readTextFile("engines/engines.json", { dir: BaseDirectory.AppData }).then(
       (text) => {
         const data = JSON.parse(text);
@@ -153,15 +80,7 @@ export default function EnginePage() {
       }
     );
     reloadEngines();
-  }, [engineSettings]);
-
-  function handleInstallClick(loaded: boolean, id: number) {
-    if (loaded) {
-      removeEngine(id);
-    } else {
-      downloadEngine(id, engines[id].downloadLink!);
-    }
-  }
+  }, [engineSettings, loadedEngines]);
 
   return (
     <>
@@ -180,8 +99,8 @@ export default function EnginePage() {
           <thead>
             <tr>
               <th>Engine</th>
-              <th>Path</th>
-              <th>Status</th>
+              <th>Elo</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -201,23 +120,14 @@ export default function EnginePage() {
                         </Text>
                       </Group>
                     </td>
+                    <td>{item.elo}</td>
                     <td>
-                      {item.path}
-                      {item.status === EngineStatus.NotInstalled &&
-                        !item.downloadLink && (
-                          <Text c="red">ERROR: Missing File</Text>
-                        )}
-                    </td>
-                    <td>
-                      <ProgressButton
-                        loaded={
-                          !item.downloadLink ||
-                          item.status === EngineStatus.Installed
-                        }
-                        onClick={handleInstallClick}
-                        progress={item.progress ?? 0}
-                        id={index}
-                      />
+                      <ActionIcon>
+                        <IconTrash
+                          size={20}
+                          onClick={() => removeEngine(index)}
+                        />
+                      </ActionIcon>
                     </td>
                   </tr>
                 );

@@ -69,7 +69,9 @@ function Accounts() {
           <AccountCard
             key={account.id}
             database={
-              databases.find((db) => db.description === account.username + ".sqlite") ?? null
+              databases.find(
+                (db) => db.description === account.username + ".sqlite"
+              ) ?? null
             }
             title={account.username}
             description={

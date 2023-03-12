@@ -67,6 +67,7 @@ function DatabasePanel({
 
     return (
       <tr
+        key={move}
         className={classes.clickable}
         onClick={() =>
           makeMove({

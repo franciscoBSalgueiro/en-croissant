@@ -1,6 +1,7 @@
-import { useOs } from "@mantine/hooks";
+import { OS } from "@mantine/hooks";
 import { invoke } from "@tauri-apps/api";
-import { BaseDirectory, exists, readTextFile } from "@tauri-apps/api/fs";
+import { BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
+import { fetch } from "@tauri-apps/api/http";
 
 export enum EngineStatus {
     Installed,
@@ -13,6 +14,8 @@ export interface Engine {
     name: string;
     status: EngineStatus;
     downloadLink?: string;
+    downloadSize?: number;
+    elo: number | null;
     path: string;
     progress?: number;
     active?: boolean;
@@ -22,35 +25,31 @@ export interface EngineSettings {
     name: string;
     binary: string;
     image: string;
+    elo: number | null;
 }
 
-export function getDefaultEngines(): Engine[] {
-    const os = useOs();
-    return [
+export async function getDefaultEngines(os: OS): Promise<Engine[]> {
+    let data: any = await fetch(
+        "https://www.encroissant.org/engines?os=" + os,
         {
-            image: "/stockfish.png",
-            name: "Stockfish 15",
+            method: "GET",
+        }
+    );
+    if (!data.ok) {
+        throw new Error("Failed to fetch engines");
+    }
+    let engines: Engine[] = data.data.map((engine: any) => {
+        return {
+            name: engine.name + " " + engine.version,
+            image: engine.image,
             status: EngineStatus.NotInstalled,
-            downloadLink:
-                os === "windows"
-                    ? "https://stockfishchess.org/files/stockfish_15_win_x64_avx2.zip"
-                    : "https://stockfishchess.org/files/stockfish_15_linux_x64_bmi2.zip",
-            path:
-                os === "windows"
-                    ? "engines/stockfish_15_win_x64_avx2/stockfish_15_x64_avx2.exe"
-                    : "engines/stockfish_15_linux_x64_bmi2/stockfish_15_x64_bmi2",
-        },
-        {
-            image: "/komodo.png",
-            name: "Komodo 13",
-            status: EngineStatus.NotInstalled,
-            downloadLink: "https://komodochess.com/pub/komodo-13.zip",
-            path:
-                os === "windows"
-                    ? "engines/komodo-13_201fd6/Windows/komodo-13.02-64bit-bmi2.exe"
-                    : "engines/komodo-13_201fd6/Linux/komodo-13.02-linux-bmi2",
-        },
-    ];
+            downloadLink: engine.downloadLink,
+            path: engine.path,
+            downloadSize: engine.downloadSize,
+            elo: engine.elo,
+        };
+    });
+    return engines;
 }
 
 export async function getEngineSettings() {
@@ -61,9 +60,8 @@ export async function getEngineSettings() {
     return data as EngineSettings[];
 }
 
-export async function getEngines() {
+export async function getEngines(): Promise<Engine[]> {
     const engineSettings = await getEngineSettings();
-    const defaultEngines = getDefaultEngines();
     const engines = await Promise.all(
         engineSettings.map(async (engine) => {
             const exists = await invoke("file_exists", {
@@ -76,20 +74,10 @@ export async function getEngines() {
                     ? EngineStatus.Installed
                     : EngineStatus.NotInstalled,
                 path: engine.binary,
+                elo: engine.elo,
             };
         })
     );
-    const updatedDefaultEngines = await Promise.all(
-        defaultEngines.map(async (engine) => {
-            const installed = await exists(engine.path, {
-                dir: BaseDirectory.AppData,
-            });
-            engine.status = installed
-                ? EngineStatus.Installed
-                : EngineStatus.NotInstalled;
-            return engine;
-        })
-    );
 
-    return [...engines, ...updatedDefaultEngines];
+    return [...engines];
 }

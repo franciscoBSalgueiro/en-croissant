@@ -13,15 +13,15 @@ import {
   Table,
   Text,
   Tooltip,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
   IconPlayerPause,
   IconPlayerPlay,
   IconSettings,
-  IconTargetArrow
-} from "@tabler/icons";
+  IconTargetArrow,
+} from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
@@ -31,7 +31,7 @@ import {
   EngineVariation,
   Score,
   swapMove,
-  VariationTree
+  VariationTree,
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import MoveCell from "../../boards/MoveCell";

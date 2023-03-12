@@ -1,4 +1,4 @@
-import { TextInput } from "@mantine/core";
+import { Stack, Text, TextInput } from "@mantine/core";
 import { UseFormReturnType } from "@mantine/form";
 
 function FenInput({
@@ -9,13 +9,12 @@ function FenInput({
   onSubmit: (fen: string) => void;
 }) {
   return (
-    <form onSubmit={form.onSubmit(() => onSubmit(form.values.fen))}>
-      <TextInput
-        label="FEN"
-        placeholder="Enter FEN"
-        {...form.getInputProps("fen")}
-      />
-    </form>
+    <Stack spacing="sm">
+      <Text fw="bold">FEN</Text>
+      <form onSubmit={form.onSubmit(() => onSubmit(form.values.fen))}>
+        <TextInput placeholder="Enter FEN" {...form.getInputProps("fen")} />
+      </form>
+    </Stack>
   );
 }
 

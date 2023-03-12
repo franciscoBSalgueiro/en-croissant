@@ -6,7 +6,7 @@ import {
     Move,
     ROOK,
     Square,
-    SQUARES
+    SQUARES,
 } from "chess.js";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome } from "./db";
@@ -443,7 +443,7 @@ export function getCompleteGame(pgn: string): CompleteGame {
         currentMove: [],
         game: {
             id: 0,
-            result: Result as Outcome ?? Outcome.Unknown,
+            result: (Result as Outcome) ?? Outcome.Unknown,
             black: {
                 id: 0,
                 name: Black ?? "?",
@@ -504,5 +504,9 @@ export function pgnToUCI(pgn: string): string {
 
 export function uciToMove(uci: string, fen: string): Move | null {
     const chess = new Chess(fen);
-    return chess.move(uci, { sloppy: true });
+    try {
+        return chess.move(uci);
+    } catch (e) {
+        return null;
+    }
 }

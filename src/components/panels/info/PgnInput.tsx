@@ -14,7 +14,7 @@ function PgnInput() {
     <>
       <Stack spacing={0}>
         <Text fw="bold">PGN</Text>
-        <Group>
+        <Group my="sm">
           <Checkbox
             label="Comments"
             size="xs"

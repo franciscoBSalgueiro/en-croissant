@@ -1,10 +1,10 @@
 import { ActionIcon, Group } from "@mantine/core";
 import {
-    IconChevronLeft,
-    IconChevronRight,
-    IconChevronsLeft,
-    IconChevronsRight
-} from "@tabler/icons";
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronsLeft,
+  IconChevronsRight,
+} from "@tabler/icons-react";
 
 interface MoveControlsProps {
   goToStart: () => void;

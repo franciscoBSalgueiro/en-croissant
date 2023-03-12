@@ -9,13 +9,13 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Tooltip
+  Tooltip,
 } from "@mantine/core";
 import {
   useHotkeys,
   useLocalStorage,
   useToggle,
-  useViewportSize
+  useViewportSize,
 } from "@mantine/hooks";
 import {
   IconChessBishop,
@@ -23,8 +23,8 @@ import {
   IconChessQueen,
   IconChessRook,
   IconEdit,
-  IconSwitchVertical
-} from "@tabler/icons";
+  IconSwitchVertical,
+} from "@tabler/icons-react";
 import {
   BISHOP,
   Chess,
@@ -32,7 +32,7 @@ import {
   PieceSymbol,
   QUEEN,
   ROOK,
-  Square
+  Square,
 } from "chess.js";
 import { Color } from "chessground/types";
 import { useContext, useRef, useState } from "react";
@@ -42,7 +42,7 @@ import {
   handleMove,
   moveToKey,
   parseUci,
-  toDests
+  toDests,
 } from "../../utils/chess";
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
@@ -226,7 +226,6 @@ function BoardPlay({
             showDests,
             events: {
               after: (orig, dest, metadata) => {
-                console.log("after", orig, dest, metadata);
                 if (editingMode) {
                   makeMove({
                     from: orig as Square,

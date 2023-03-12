@@ -1,6 +1,6 @@
 import { Button, Tabs, Title } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
-import { IconArrowBackUp, IconChess, IconUser } from "@tabler/icons";
+import { IconArrowBackUp, IconChess, IconUser } from "@tabler/icons-react";
 import Link from "next/link";
 import GameTable from "../../components/databases/GameTable";
 import PlayerTable from "../../components/databases/PlayerTable";

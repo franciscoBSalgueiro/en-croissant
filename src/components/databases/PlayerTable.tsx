@@ -18,14 +18,14 @@ import {
   Table,
   Text,
   TextInput,
-  Tooltip
+  Tooltip,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconSearch,
   IconSortAscending,
-  IconSortDescending
-} from "@tabler/icons";
+  IconSortDescending,
+} from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { Database, Player, query_players } from "../../utils/db";
 import { formatNumber } from "../../utils/format";
@@ -247,9 +247,7 @@ function PlayerTable({ database }: { database: Database }) {
                   onChange={(v) => setName(v.currentTarget.value)}
                 />
               </Group>
-              <Text size="sm">
-                Elo Range
-              </Text>
+              <Text size="sm">Elo Range</Text>
               <RangeSlider
                 step={10}
                 min={0}
@@ -311,7 +309,7 @@ function PlayerTable({ database }: { database: Database }) {
               />
               <Stack align="center" spacing={0} mt={20}>
                 <Pagination
-                  page={activePage}
+                  value={activePage}
                   onChange={setActivePage}
                   total={Math.ceil(count / limit)}
                 />

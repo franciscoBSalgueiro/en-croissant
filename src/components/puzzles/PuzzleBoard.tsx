@@ -4,7 +4,7 @@ import {
   IconChessKnight,
   IconChessQueen,
   IconChessRook
-} from "@tabler/icons";
+} from "@tabler/icons-react";
 import { BISHOP, Chess, KNIGHT, QUEEN, ROOK, Square } from "chess.js";
 import { useState } from "react";
 import Chessground from "react-chessground";
@@ -56,7 +56,14 @@ function PuzzleBoard({
   const [chess, setChess] = useState(new Chess(puzzle.fen));
   const [currentMove, setCurrentMove] = useState(0);
   const [ended, setEnded] = useState(false);
-  const lastMove = chess.move(parseUci(puzzle.moves[0]));
+  console.log(chess.fen());
+  console.log(puzzle.moves[0]);
+  let lastMove;
+  try {
+    lastMove = chess.move(puzzle.moves[0]);
+  } catch (e) {
+    lastMove = null;
+  }
   const [pendingMove, setPendingMove] = useState<{
     from: Square;
     to: Square;

@@ -66,7 +66,7 @@ function SettingsPage() {
   const theme = useMantineTheme();
 
   return (
-    <Stack>
+    <Stack my="md" mx="md">
       <Card withBorder radius="md" p="xl" className={classes.card}>
         <Text size="lg" weight={500} className={classes.title}>
           Board

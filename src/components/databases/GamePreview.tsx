@@ -19,7 +19,7 @@ function GamePreview({
   const globalChess = new Chess();
   let totalMoves = 0;
   pgn.split(" ").forEach((move) => {
-    globalChess.move(move, { sloppy: true });
+    globalChess.move(move);
     totalMoves += 1;
   });
   const globalPGN = globalChess.pgn();
@@ -34,7 +34,7 @@ function GamePreview({
     const moves = pgn.split(" ");
     const movesToLoad = moves.slice(0, curMove);
     movesToLoad.forEach((move) => {
-      chess.move(move, { sloppy: true });
+      chess.move(move);
     });
     setFen(chess.fen());
   }, [curMove, pgn]);

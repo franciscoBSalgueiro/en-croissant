@@ -16,6 +16,9 @@
       "fs": {
         "all": true,
         "scope": ["$APPDATA/**"]
+      },
+      "http": {
+        "scope": ["https://www.encroissant.org/**"]
       }
     },
     "bundle": {

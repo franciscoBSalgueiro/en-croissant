@@ -6,7 +6,8 @@ import {
   createStyles,
   Divider,
   Group,
-  Modal, SimpleGrid,
+  Modal,
+  SimpleGrid,
   Stack,
   Text,
   Textarea,
@@ -19,7 +20,7 @@ import {
   useSessionStorage,
   useToggle
 } from "@mantine/hooks";
-import { IconDatabase, IconStar } from "@tabler/icons";
+import { IconDatabase, IconStar } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -40,6 +41,7 @@ const useStyles = createStyles(
         ? theme.colors.dark[7]
         : theme.white,
 
+      borderStyle: "solid",
       borderColor: selected
         ? theme.colors[theme.primaryColor][6]
         : "transparent",
@@ -72,7 +74,7 @@ const useStyles = createStyles(
   })
 );
 
-interface CollectionCardProps {
+interface DatabaseCardProps {
   id: number;
   selected: boolean;
   setSelected: (selected: number) => void;
@@ -83,7 +85,7 @@ interface CollectionCardProps {
   isReference: boolean;
 }
 
-function CollectionCard({
+function DatabaseCard({
   id,
   selected,
   setSelected,
@@ -92,13 +94,12 @@ function CollectionCard({
   games,
   storage,
   isReference,
-}: CollectionCardProps) {
+}: DatabaseCardProps) {
   const { classes } = useStyles({ selected });
 
   return (
     <>
       <Card
-        withBorder
         radius="md"
         className={classes.card}
         onClick={() => setSelected(id)}
@@ -239,7 +240,7 @@ export default function DatabasesPage() {
         ]}
       >
         {databases.map((item, i) => (
-          <CollectionCard
+          <DatabaseCard
             id={i}
             selected={selected === i}
             key={item.file}

@@ -2,7 +2,8 @@ import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { useContext } from "react";
 import {
   Annotation,
-  annotationColor, VariationTree
+  annotationColor,
+  VariationTree,
 } from "../../../utils/chess";
 import TreeContext from "../../common/TreeContext";
 import { AnnotationEditor } from "./AnnotationEditor";

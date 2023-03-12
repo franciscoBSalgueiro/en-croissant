@@ -1,14 +1,10 @@
-import { Button, Collapse, Grid, Stack } from "@mantine/core";
+import { Button, Center, Collapse, Grid, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { IconSettings } from "@tabler/icons";
+import { IconSettings } from "@tabler/icons-react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import {
-  Engine,
-  EngineStatus,
-  getDefaultEngines,
-  getEngines
-} from "../../../utils/engines";
+import { Engine, EngineStatus, getEngines } from "../../../utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 
 function EngineSettingsBoard({
@@ -18,7 +14,7 @@ function EngineSettingsBoard({
   selectedEngines: Engine[];
   setSelectedEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
 }) {
-  const [engines, setEngines] = useState<Engine[]>(getDefaultEngines());
+  const [engines, setEngines] = useState<Engine[]>([]);
   const [installedEngines, setInstalledEngines] = useState<Engine[]>([]);
   const [showSettings, toggleShowSettings] = useToggle();
   const router = useRouter();
@@ -30,9 +26,9 @@ function EngineSettingsBoard({
         (engine) => engine.status === EngineStatus.Installed
       );
 
-      if (foundEngines.length === 0) {
-        router.push("/engines");
-      }
+      // if (foundEngines.length === 0) {
+      //   router.push("/engines");
+      // }
 
       const selectedEnginesNotInstalled = selectedEngines.filter(
         (selectedEngine) =>
@@ -69,6 +65,14 @@ function EngineSettingsBoard({
       </Button>
       <Collapse in={showSettings}>
         <Stack spacing="xl">
+          {installedEngines.length === 0 && (
+            <Center>
+              <Text>
+                No engines installed. Please{" "}
+                <Link href="/engines">Add an engine</Link> first.
+              </Text>
+            </Center>
+          )}
           <Grid grow>
             {installedEngines.map((engine) => (
               <Grid.Col span={4} key={engine.name}>

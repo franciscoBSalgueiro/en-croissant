@@ -4,10 +4,10 @@ import {
   createStyles,
   Image,
   Text,
-  UnstyledButton
+  UnstyledButton,
 } from "@mantine/core";
 import { useUncontrolled } from "@mantine/hooks";
-import { IconPhotoOff } from "@tabler/icons";
+import { IconPhotoOff } from "@tabler/icons-react";
 
 const useStyles = createStyles((theme, { checked }: { checked: boolean }) => ({
   button: {

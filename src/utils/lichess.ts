@@ -141,7 +141,10 @@ export async function getPlayerGames(
     return getJson(url);
 }
 
-export async function downloadPlayerGames(player: string, timestamp: number | null) {
+export async function downloadPlayerGames(
+    player: string,
+    timestamp: number | null
+) {
     let url = `${base_url}/games/user/${player}`;
     if (timestamp) {
         url += `?since=${timestamp}`;

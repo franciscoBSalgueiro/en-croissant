@@ -1,5 +1,5 @@
 import { Card, createStyles, Group, Stack, Text } from "@mantine/core";
-import { IconDatabase } from "@tabler/icons";
+import { IconDatabase } from "@tabler/icons-react";
 import { formatBytes, formatNumber } from "../../utils/format";
 
 const useStyles = createStyles(
@@ -14,6 +14,7 @@ const useStyles = createStyles(
         ? theme.colors.dark[7]
         : theme.white,
 
+      borderStyle: "solid",
       borderColor: selected
         ? theme.colors[theme.primaryColor][6]
         : "transparent",
@@ -68,7 +69,6 @@ export function PuzzleDbCard({
   return (
     <>
       <Card
-        withBorder
         radius="md"
         className={classes.card}
         onClick={() => setSelected(id)}
