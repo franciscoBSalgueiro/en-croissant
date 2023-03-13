@@ -32,11 +32,13 @@ export function ProgressButton({
   progress,
   onClick,
   id,
+  disabled
 }: {
   loaded: boolean;
   progress: number;
   onClick: (id: number) => void;
   id: number;
+  disabled?: boolean;
 }) {
   const { classes, theme } = useStyles();
   let label: string;
@@ -53,7 +55,7 @@ export function ProgressButton({
       fullWidth
       className={classes.button}
       onClick={() => onClick(id)}
-      disabled={loaded}
+      disabled={disabled}
       color={loaded ? "green" : theme.primaryColor}
     >
       <div className={classes.label}>{label}</div>

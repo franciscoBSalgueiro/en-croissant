@@ -192,15 +192,18 @@ function EngineCard({
   initInstalled: boolean;
 }) {
   const [progress, setProgress] = useState(0);
+  const [inProgress, setInProgress] = useState(false);
   const [installed, setInstalled] = useState(initInstalled);
 
   async function downloadEngine(id: number, url: string) {
-    invoke("download_file", {
+    setInProgress(true);
+    await invoke("download_file", {
       id,
       url,
       zip: true,
       path: (await appDataDir()) + "engines",
     });
+    setInProgress(false);
   }
 
   useEffect(() => {
@@ -265,17 +268,8 @@ function EngineCard({
             onClick={() => downloadEngine(engineId, engine.downloadLink!)}
             progress={progress}
             id={engineId}
+            disabled={installed || inProgress}
           />
-          {/* <Button
-                      variant="light"
-                      fullWidth
-                      onClick={() => {
-                        // setEngineSettings((prev) => [...prev, engine]);
-                        setOpened(false);
-                      }}
-                    >
-                      Download
-                    </Button> */}
         </div>
       </Group>
     </Card>
