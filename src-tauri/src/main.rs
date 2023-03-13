@@ -19,7 +19,9 @@ use tauri::{
 };
 
 use crate::chess::{analyze_game, get_single_best_move};
-use crate::db::{convert_pgn, delete_database, get_players_game_info, search_position, search_opening};
+use crate::db::{
+    convert_pgn, delete_database, get_players_game_info, search_opening, search_position,
+};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
@@ -94,42 +96,37 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             // Check if all the necessary directories exist, and create them if they don't
+            let directories = vec!["engines", "db", "puzzles"];
+            let files = vec![("engines", "engines.json")];
 
-            let engines_path = resolve_path(
-                &app.config(),
-                app.package_info(),
-                &app.env(),
-                "engines",
-                Some(BaseDirectory::AppData),
-            )
-            .unwrap();
-            if !Path::new(&engines_path).exists() {
-                create_dir_all(&engines_path).unwrap();
+            for dir in directories.iter() {
+                let path = resolve_path(
+                    &app.config(),
+                    app.package_info(),
+                    &app.env(),
+                    dir,
+                    Some(BaseDirectory::AppData),
+                )
+                .unwrap();
+                if !Path::new(&path).exists() {
+                    create_dir_all(&path).unwrap();
+                }
             }
 
-            let db_path = resolve_path(
-                &app.config(),
-                app.package_info(),
-                &app.env(),
-                "db",
-                Some(BaseDirectory::AppData),
-            )
-            .unwrap();
-            if !Path::new(&db_path).exists() {
-                create_dir_all(&db_path).unwrap();
+            for (dir, file) in files.iter() {
+                let path = resolve_path(
+                    &app.config(),
+                    app.package_info(),
+                    &app.env(),
+                    &format!("{}/{}", dir, file),
+                    Some(BaseDirectory::AppData),
+                )
+                .unwrap();
+                if !Path::new(&path).exists() {
+                    std::fs::write(&path, "").unwrap();
+                }
             }
 
-            let db_path = resolve_path(
-                &app.config(),
-                app.package_info(),
-                &app.env(),
-                "puzzles",
-                Some(BaseDirectory::AppData),
-            )
-            .unwrap();
-            if !Path::new(&db_path).exists() {
-                create_dir_all(&db_path).unwrap();
-            }
             Ok(())
         })
         .manage(AppState(Default::default()))

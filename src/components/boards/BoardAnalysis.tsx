@@ -5,22 +5,21 @@ import {
   Flex,
   ScrollArea,
   Stack,
-  Tabs,
+  Tabs
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   useForceUpdate,
   useHotkeys,
-  useLocalStorage,
   useSessionStorage,
   useToggle,
-  useViewportSize,
+  useViewportSize
 } from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
   IconNotes,
-  IconZoomCheck,
+  IconZoomCheck
 } from "@tabler/icons-react";
 import {
   Chess,
@@ -28,12 +27,13 @@ import {
   DEFAULT_POSITION,
   PieceSymbol,
   Square,
-  validateFen,
+  validateFen
 } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
+import { useLocalFile } from "../../utils/hooks";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
@@ -59,10 +59,10 @@ function BoardAnalysis({ id }: { id: string }) {
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [selectedEngines, setSelectedEngines] = useLocalStorage<Engine[]>({
-    key: "selected-engines",
-    defaultValue: [],
-  });
+  const [engines, setEngines] = useLocalFile<Engine[]>(
+    "engines/engines.json",
+    []
+  );
   const form = useForm({
     initialValues: {
       fen: DEFAULT_POSITION,
@@ -282,23 +282,25 @@ function BoardAnalysis({ id }: { id: string }) {
               >
                 <Stack>
                   <Accordion variant="separated" multiple chevronSize={0}>
-                    {selectedEngines.map((engine, i) => {
-                      return (
-                        <Accordion.Item key={engine.name} value={engine.path}>
-                          <BestMoves
-                            id={i}
-                            engine={engine}
-                            makeMoves={makeMoves}
-                            setArrows={setArrows}
-                            setTree={setTree}
-                          />
-                        </Accordion.Item>
-                      );
-                    })}
+                    {engines
+                      .filter((e) => e.loaded)
+                      .map((engine, i) => {
+                        return (
+                          <Accordion.Item key={engine.path} value={engine.path}>
+                            <BestMoves
+                              id={i}
+                              engine={engine}
+                              makeMoves={makeMoves}
+                              setArrows={setArrows}
+                              setTree={setTree}
+                            />
+                          </Accordion.Item>
+                        );
+                      })}
                   </Accordion>
                   <EngineSettingsBoard
-                    selectedEngines={selectedEngines}
-                    setSelectedEngines={setSelectedEngines}
+                    engines={engines}
+                    setEngines={setEngines}
                   />
                   <Button
                     leftIcon={<IconZoomCheck size={14} />}

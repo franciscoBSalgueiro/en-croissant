@@ -17,9 +17,9 @@ import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { appDataDir } from "@tauri-apps/api/path";
-import { resolve } from "path";
+import { join } from "path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Engine, EngineSettings, getDefaultEngines } from "../../utils/engines";
+import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
 import { ProgressButton } from "./ProgressButton";
 
@@ -44,19 +44,20 @@ function AddEngine({
   engines,
   opened,
   setOpened,
-  setEngineSettings,
+  setEngines,
 }: {
   engines: Engine[];
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setEngineSettings: Dispatch<SetStateAction<EngineSettings[]>>;
+  setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
   const os = useOs();
   const [defaultEngines, setDefaultEngines] = useState<Engine[]>([]);
-  const form = useForm<EngineSettings>({
+  const form = useForm<Engine>({
     initialValues: {
+      version: "",
       name: "",
-      binary: "",
+      path: "",
       image: "",
       elo: null,
     },
@@ -66,7 +67,7 @@ function AddEngine({
         if (!value) return "Name is required";
         if (engines.find((e) => e.name === value)) return "Name already used";
       },
-      binary: (value) => {
+      path: (value) => {
         if (!value) return "Binary is required";
       },
     },
@@ -97,7 +98,7 @@ function AddEngine({
                 engine={engine}
                 engineId={i}
                 key={i}
-                setEngineSettings={setEngineSettings}
+                setEngines={setEngines}
                 initInstalled={engines.some((e) => e.name === engine.name)}
               />
             ))}
@@ -106,7 +107,7 @@ function AddEngine({
         <Tabs.Panel value="local" pt="xs">
           <form
             onSubmit={form.onSubmit(async (values) => {
-              setEngineSettings((prev) => [...prev, values]);
+              setEngines((prev) => [...prev, values]);
               setOpened(false);
             })}
           >
@@ -140,7 +141,7 @@ function AddEngine({
                   form.setFieldValue("binary", selected as string);
                 }}
               >
-                <Text lineClamp={1}>{form.values.binary}</Text>
+                <Text lineClamp={1}>{form.values.path}</Text>
               </Input>
             </Input.Wrapper>
 
@@ -181,12 +182,12 @@ function AddEngine({
 }
 
 function EngineCard({
-  setEngineSettings,
+  setEngines,
   engine,
   engineId,
   initInstalled,
 }: {
-  setEngineSettings: Dispatch<SetStateAction<EngineSettings[]>>;
+  setEngines: Dispatch<SetStateAction<Engine[]>>;
   engine: Engine;
   engineId: number;
   initInstalled: boolean;
@@ -203,6 +204,22 @@ function EngineCard({
       zip: true,
       path: (await appDataDir()) + "engines",
     });
+    let appDataDirPath = await appDataDir();
+    if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
+      appDataDirPath = appDataDirPath.slice(0, -1);
+    }
+    const enginePath = await join(
+      appDataDirPath,
+      "engines",
+      ...engine.path.split("/")
+    );
+    setEngines((prev) => [
+      ...prev,
+      {
+        ...engine,
+        path: enginePath,
+      },
+    ]);
     setInProgress(false);
   }
 
@@ -213,20 +230,6 @@ function EngineCard({
         if (id !== engineId) return;
         if (finished) {
           setInstalled(true);
-          const appDataDirPath = await appDataDir();
-          const enginePath = await resolve(appDataDirPath, engine.path);
-          setEngineSettings((prev) => {
-            if (prev.find((e) => e.name === engine.name)) return prev;
-            return [
-              ...prev,
-              {
-                binary: enginePath,
-                name: engine.name,
-                image: engine.image,
-                elo: engine.elo || null,
-              },
-            ];
-          });
           unlisten();
         } else {
           setProgress(progress);
@@ -253,7 +256,7 @@ function EngineCard({
             ENGINE
           </Text>
           <Text className={classes.title} mb="xs">
-            {engine.name}
+            {engine.name} {engine.version}
           </Text>
           <Group noWrap spacing="xs">
             <IconTrophy size={16} />

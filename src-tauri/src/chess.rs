@@ -121,24 +121,14 @@ pub fn parse_uci(
 #[tauri::command]
 pub async fn get_best_moves(
     engine: String,
-    relative: bool,
     fen: String,
     depth: usize,
     number_lines: usize,
     number_threads: usize,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let mut path = PathBuf::from(&engine);
-    if relative {
-        path = resolve_path(
-            &app.config(),
-            app.package_info(),
-            &app.env(),
-            path,
-            Some(BaseDirectory::AppData),
-        )
-        .or(Err("Engine file doesn't exists"))?;
-    }
+    let path = PathBuf::from(&engine);
+
     // start engine command
     println!("RUNNING ENGINE");
     println!("{}", &path.display());

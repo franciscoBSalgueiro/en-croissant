@@ -10,77 +10,18 @@ import {
 } from "@mantine/core";
 
 import { IconPlus, IconTrash } from "@tabler/icons-react";
-import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import { invoke } from "@tauri-apps/api/tauri";
-import { useEffect, useState } from "react";
-import {
-  Engine,
-  EngineSettings,
-  EngineStatus,
-  getEngineSettings
-} from "../../utils/engines";
+import { useState } from "react";
+import { Engine } from "../../utils/engines";
+import { useLocalFile } from "../../utils/hooks";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 
 export default function EnginePage() {
-  const [engines, setEngines] = useState<Engine[]>([]);
+  const [engines, setEngines] = useLocalFile<Engine[]>(
+    "engines/engines.json",
+    []
+  );
   const [opened, setOpened] = useState(false);
-  const [engineSettings, setEngineSettings] = useState<EngineSettings[]>([]);
-  const [loadedEngines, setLoadedEngines] = useState(false);
-
-  async function readConfig() {
-    setEngineSettings(await getEngineSettings());
-    setLoadedEngines(true);
-  }
-
-  useEffect(() => {
-    readConfig();
-  }, []);
-
-  async function reloadEngines() {
-    const engines = await Promise.all(
-      engineSettings.map(async (engine) => {
-        const exists = await invoke("file_exists", {
-          path: engine.binary,
-        });
-        return {
-          image: engine.image,
-          name: engine.name,
-          status: exists ? EngineStatus.Installed : EngineStatus.NotInstalled,
-          path: engine.binary,
-          elo: engine.elo,
-        };
-      })
-    );
-
-    setEngines(engines);
-  }
-
-  async function removeEngine(id: number) {
-    const newEngineSettings = engineSettings.filter(
-      (e) => e.name !== engines[id].name
-    );
-    setEngineSettings(newEngineSettings);
-  }
-
-  useEffect(() => {
-    if (!loadedEngines) return;
-    readTextFile("engines/engines.json", { dir: BaseDirectory.AppData }).then(
-      (text) => {
-        const data = JSON.parse(text);
-        if (data !== engineSettings) {
-          writeTextFile(
-            "engines/engines.json",
-            JSON.stringify(engineSettings),
-            {
-              dir: BaseDirectory.AppData,
-            }
-          );
-        }
-      }
-    );
-    reloadEngines();
-  }, [engineSettings, loadedEngines]);
 
   return (
     <>
@@ -88,7 +29,7 @@ export default function EnginePage() {
         engines={engines}
         opened={opened}
         setOpened={setOpened}
-        setEngineSettings={setEngineSettings}
+        setEngines={setEngines}
       />
       <Group align="baseline" m={30}>
         <Title>Your Engines</Title>
@@ -125,7 +66,11 @@ export default function EnginePage() {
                       <ActionIcon>
                         <IconTrash
                           size={20}
-                          onClick={() => removeEngine(index)}
+                          onClick={() =>
+                            setEngines(
+                              engines.filter((e) => e.name !== item.name)
+                            )
+                          }
                         />
                       </ActionIcon>
                     </td>

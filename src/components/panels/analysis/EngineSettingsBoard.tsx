@@ -2,55 +2,17 @@ import { Button, Center, Collapse, Grid, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { Engine, EngineStatus, getEngines } from "../../../utils/engines";
+import { Engine } from "../../../utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 
 function EngineSettingsBoard({
-  selectedEngines,
-  setSelectedEngines,
+  engines,
+  setEngines,
 }: {
-  selectedEngines: Engine[];
-  setSelectedEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
+  engines: Engine[];
+  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
 }) {
-  const [engines, setEngines] = useState<Engine[]>([]);
-  const [installedEngines, setInstalledEngines] = useState<Engine[]>([]);
   const [showSettings, toggleShowSettings] = useToggle();
-  const router = useRouter();
-
-  useEffect(() => {
-    getEngines().then((engines) => {
-      setEngines(engines);
-      const foundEngines = engines.filter(
-        (engine) => engine.status === EngineStatus.Installed
-      );
-
-      // if (foundEngines.length === 0) {
-      //   router.push("/engines");
-      // }
-
-      const selectedEnginesNotInstalled = selectedEngines.filter(
-        (selectedEngine) =>
-          !foundEngines.some(
-            (installedEngine) => installedEngine.name === selectedEngine.name
-          )
-      );
-
-      if (selectedEnginesNotInstalled.length > 0) {
-        setSelectedEngines((prev) =>
-          prev.filter(
-            (selectedEngine) =>
-              !selectedEnginesNotInstalled.some(
-                (selectedEngineNotInstalled) =>
-                  selectedEngineNotInstalled.name === selectedEngine.name
-              )
-          )
-        );
-      }
-      setInstalledEngines(foundEngines);
-    });
-  }, []);
 
   return (
     <>
@@ -65,7 +27,7 @@ function EngineSettingsBoard({
       </Button>
       <Collapse in={showSettings}>
         <Stack spacing="xl">
-          {installedEngines.length === 0 && (
+          {engines.length === 0 && (
             <Center>
               <Text>
                 No engines installed. Please{" "}
@@ -74,26 +36,19 @@ function EngineSettingsBoard({
             </Center>
           )}
           <Grid grow>
-            {installedEngines.map((engine) => (
+            {engines.map((engine) => (
               <Grid.Col span={4} key={engine.name}>
                 <ImageCheckbox
                   title={engine.name}
                   image={engine.image}
-                  checked={selectedEngines.some(
-                    (selectedEngine) => selectedEngine.name === engine.name
-                  )}
-                  onChange={(checked) => {
-                    if (checked) {
-                      setSelectedEngines((engines: Engine[]) => [
-                        ...engines,
-                        engine,
-                      ]);
-                    } else {
-                      setSelectedEngines((engines) =>
-                        engines.filter((e) => e.name !== engine.name)
-                      );
-                    }
-                  }}
+                  checked={engine.loaded}
+                  onChange={(checked) =>
+                    setEngines((engines) =>
+                      engines.map((e) =>
+                        e.name === engine.name ? { ...e, loaded: checked } : e
+                      )
+                    )
+                  }
                 />
               </Grid.Col>
             ))}

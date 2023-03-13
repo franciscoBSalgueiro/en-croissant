@@ -13,14 +13,14 @@ import {
   Table,
   Text,
   Tooltip,
-  useMantineTheme,
+  useMantineTheme
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
   IconPlayerPause,
   IconPlayerPlay,
   IconSettings,
-  IconTargetArrow,
+  IconTargetArrow
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -31,7 +31,7 @@ import {
   EngineVariation,
   Score,
   swapMove,
-  VariationTree,
+  VariationTree
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import MoveCell from "../../boards/MoveCell";
@@ -114,7 +114,7 @@ function BestMoves({
   );
   const [numberLines, setNumberLines] = useState<number>(3);
   const [maxDepth, setMaxDepth] = useState<number>(24);
-  const [cores, setCores] = useState<number>(3);
+  const [cores, setCores] = useState<number>(2);
   const [enabled, toggleEnabled] = useToggle();
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
@@ -132,7 +132,6 @@ function BestMoves({
       depth: maxDepth,
       numberLines: Math.min(numberLines, chess.moves().length),
       numberThreads: 2 ** cores,
-      relative: !!engine.downloadLink,
     });
   }
 
@@ -206,7 +205,7 @@ function BestMoves({
                     <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
                   )}
                   <MoveCell
-                    key={total_moves + move}
+                    key={index}
                     move={move}
                     isCurrentVariation={false}
                     annotation={Annotation.None}
@@ -342,7 +341,7 @@ function BestMoves({
             {engineVariations.map((engineVariation, index) => {
               return (
                 <AnalysisRow
-                  key={engineVariation.sanMoves.join("")}
+                  key={index}
                   score={engineVariation.score}
                   moves={engineVariation.sanMoves}
                   uciMoves={engineVariation.uciMoves}
