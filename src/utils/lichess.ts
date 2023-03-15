@@ -107,7 +107,7 @@ async function getJson(url: string) {
     return await response.json();
 }
 
-export async function getMyAccount(token: string) {
+export async function getLichessAccount(token: string) {
     const url = `${base_url}/account`;
     const response = await fetch(url, {
         headers: {
@@ -141,7 +141,7 @@ export async function getPlayerGames(
     return getJson(url);
 }
 
-export async function downloadPlayerGames(
+export async function downloadLichess(
     player: string,
     timestamp: number | null
 ) {
@@ -153,6 +153,6 @@ export async function downloadPlayerGames(
         id: 1,
         url,
         zip: false,
-        path: resolve(await appDataDir(), "db", player + ".pgn"),
+        path: resolve(await appDataDir(), "db", player + "_lichess.pgn"),
     });
 }

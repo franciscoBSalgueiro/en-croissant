@@ -6,7 +6,7 @@ import {
   Loader,
   Stack,
   Text,
-  Tooltip,
+  Tooltip
 } from "@mantine/core";
 import {
   IconArrowDownRight,
@@ -14,14 +14,15 @@ import {
   IconArrowUpRight,
   IconDownload,
   IconRefresh,
-  IconX,
+  IconX
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
-import { appDataDir } from "@tauri-apps/api/path";
-import { join } from "path";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";
+import { downloadChessCom } from "../../utils/chesscom";
 import { Database, getDatabases, query_games } from "../../utils/db";
-import { downloadPlayerGames } from "../../utils/lichess";
+import { downloadLichess } from "../../utils/lichess";
+import ChessComLogo from "./ChessComLogo";
 import LichessLogo from "./LichessLogo";
 
 const useStyles = createStyles((theme) => ({
@@ -71,14 +72,15 @@ const useStyles = createStyles((theme) => ({
 }));
 
 interface AccountCardProps {
+  type: "lichess" | "chesscom";
   database: Database | null;
   title: string;
-  description: string;
+  updatedAt: number;
   total: number;
   stats: {
     value: number;
     label: string;
-    diff: number;
+    diff?: number;
   }[];
   logout: () => void;
   reload: () => void;
@@ -86,9 +88,10 @@ interface AccountCardProps {
 }
 
 export function AccountCard({
+  type,
   database,
   title,
-  description,
+  updatedAt,
   total,
   stats,
   logout,
@@ -99,19 +102,21 @@ export function AccountCard({
   const items = stats.map((stat) => {
     let color: string;
     let DiffIcon: any;
-    switch (Math.sign(stat.diff)) {
-      case 1:
-        DiffIcon = IconArrowUpRight;
-        color = "green";
-        break;
-      case -1:
-        DiffIcon = IconArrowDownRight;
-        color = "red";
-        break;
-      default:
-        DiffIcon = IconArrowRight;
-        color = "gray.5";
-        break;
+    if (stat.diff) {
+      switch (Math.sign(stat.diff)) {
+        case 1:
+          DiffIcon = IconArrowUpRight;
+          color = "green";
+          break;
+        case -1:
+          DiffIcon = IconArrowDownRight;
+          color = "red";
+          break;
+        default:
+          DiffIcon = IconArrowRight;
+          color = "gray.5";
+          break;
+      }
     }
     return (
       <div key={stat.label} className={classes.rating}>
@@ -122,10 +127,17 @@ export function AccountCard({
               {stat.label}
             </Text>
           </div>
-          <Text color={color} size="sm" weight={500} className={classes.diff}>
-            <span>{stat.diff}</span>
-            <DiffIcon size={16} stroke={1.5} />
-          </Text>
+          {stat.diff && (
+            <Text
+              color={color!}
+              size="sm"
+              weight={500}
+              className={classes.diff}
+            >
+              <span>{stat.diff}</span>
+              <DiffIcon size={16} stroke={1.5} />
+            </Text>
+          )}
         </Group>
       </div>
     );
@@ -136,7 +148,7 @@ export function AccountCard({
 
   async function convert(filepath: string) {
     setLoading(true);
-    await invoke("convert_pgn", { file: filepath, fromLichess: true });
+    await invoke("convert_pgn", { file: filepath });
     setLoading(false);
     setDatabases(await getDatabases());
   }
@@ -164,13 +176,13 @@ export function AccountCard({
       <Group grow>
         <div>
           <Group>
-            <LichessLogo />
+            {type === "lichess" ? <LichessLogo /> : <ChessComLogo />}
             <div>
               <Text size="xl" className={classes.label}>
                 {title}
               </Text>
               <Text mt={5} size="sm" color="dimmed">
-                {description}
+                {"Last Updated: " + new Date(updatedAt).toLocaleDateString()}
               </Text>
             </div>
           </Group>
@@ -205,19 +217,23 @@ export function AccountCard({
           <Tooltip label="Download games">
             <ActionIcon
               disabled={loading}
-              onClick={() =>
-                downloadPlayerGames(title, timestamp).then(async () => {
-                  const filepath = await join(
-                    await appDataDir(),
-                    "db",
-                    `${title}.pgn`
-                  );
-                  convert(filepath).catch((err) => {
-                    setLoading(false);
-                    console.error(err);
-                  });
-                })
-              }
+              onClick={async () => {
+                setLoading(true);
+                if (type === "lichess") {
+                  await downloadLichess(title, timestamp);
+                } else {
+                  await downloadChessCom(title, timestamp);
+                }
+                const p = await resolve(
+                  await appDataDir(),
+                  "db",
+                  `${title}_${type}.pgn`
+                );
+                convert(p).catch((err) => {
+                  setLoading(false);
+                  console.error(err);
+                });
+              }}
             >
               {loading ? <Loader size={16} /> : <IconDownload size={16} />}
             </ActionIcon>
@@ -229,7 +245,6 @@ export function AccountCard({
           </Tooltip>
         </Stack>
       </Group>
-
       <Group grow mt="lg">
         {items}
       </Group>

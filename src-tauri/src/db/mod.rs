@@ -405,7 +405,8 @@ pub async fn convert_pgn(
     )
     .or(Err("Failed to create tables"))?;
 
-    let file = File::open(&file).expect("open pgn file");
+    let file =
+        File::open(&file).unwrap_or_else(|_| panic!("open pgn file: {}", file.to_str().unwrap()));
 
     let uncompressed: Box<dyn std::io::Read + Send> = if extension == OsStr::new("bz2") {
         Box::new(bzip2::read::MultiBzDecoder::new(file))

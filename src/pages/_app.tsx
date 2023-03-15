@@ -11,7 +11,6 @@ import { SideBar } from "../components/Sidebar";
 // Chessground styles
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
-import "chessground/assets/chessground.cburnett.css";
 import Head from "next/head";
 import "../styles/chessgroundBaseOverride.css";
 import "../styles/chessgroundColorsOverride.css";
