@@ -164,7 +164,8 @@ function Accounts() {
               database={
                 databases.find(
                   (db) =>
-                    db.description === session.chessCom?.username + "_chesscom.db3"
+                    db.description ===
+                    session.chessCom?.username + "_chesscom.db3"
                 ) ?? null
               }
               updatedAt={session.updatedAt}
@@ -263,7 +264,12 @@ function AccountModal({
 
   return (
     <Modal opened={open} onClose={() => setOpen(false)} title="Add Account">
-      <form onSubmit={() => addAccount()}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          addAccount();
+        }}
+      >
         <Select
           label="Website"
           placeholder="Select website"

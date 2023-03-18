@@ -21,6 +21,8 @@ diesel::table! {
         site_id -> Integer,
         #[sql_name = "Date"]
         date -> Nullable<Text>,
+        #[sql_name = "UTCTime"]
+        time -> Nullable<Text>,
         #[sql_name = "Round"]
         round -> Nullable<Text>,
         #[sql_name = "WhiteID"]

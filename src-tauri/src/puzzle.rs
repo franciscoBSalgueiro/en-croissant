@@ -70,7 +70,7 @@ pub async fn get_puzzle_db_info(
         &app.config(),
         app.package_info(),
         &app.env(),
-        &db_path,
+        db_path,
         Some(BaseDirectory::AppData),
     )
     .or(Err("resolve path"))?;

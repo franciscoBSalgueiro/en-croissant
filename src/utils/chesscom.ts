@@ -65,19 +65,22 @@ export async function downloadChessCom(
 ) {
     let totalPGN = "";
     const timestampDate = new Date(timestamp ?? 0);
+    const approximateDate = new Date(
+        timestampDate.getFullYear(),
+        timestampDate.getMonth(),
+        1
+    );
     const archives = await getGameArchives(player);
     for (const archive of archives.archives) {
         const [year, month] = archive.split("/").slice(-2);
         const archiveDate = new Date(parseInt(year), parseInt(month) - 1);
-        if (archiveDate < timestampDate) {
+        if (archiveDate < approximateDate) {
             continue;
         }
         const response = await fetch(archive);
         const games: ChessComGames = await response.json();
         for (const game of games.games) {
-            if (!timestamp || game.end_time > timestamp) {
-                totalPGN += "\n" + game.pgn;
-            }
+            totalPGN += "\n" + game.pgn;
         }
     }
     writeTextFile(

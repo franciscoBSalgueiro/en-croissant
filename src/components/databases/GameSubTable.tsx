@@ -7,7 +7,7 @@ import {
   ScrollArea,
   Table,
   Text,
-  useMantineTheme,
+  useMantineTheme
 } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";

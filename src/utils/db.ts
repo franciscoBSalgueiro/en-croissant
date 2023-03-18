@@ -149,7 +149,10 @@ export async function getDatabases(): Promise<Database[]> {
     let dbs = files.filter((file) => file.name?.endsWith(".db3"));
     return (
         await Promise.all(
-            dbs.map((db) => getDatabase(db.path).catch(() => null))
+            dbs.map((db) => getDatabase(db.path).catch((e) => {
+                console.log(e);
+                return null;
+            }))
         )
     ).filter((db) => db !== null) as Database[];
 }
@@ -200,6 +203,7 @@ export interface NormalizedGame {
         name: string;
     };
     date?: string;
+    time?: string;
     round?: string;
     white: {
         id: number;

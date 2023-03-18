@@ -146,9 +146,9 @@ export function AccountCard({
   const [lastGameDate, setLastGameDate] = useState<Date | null>(null);
   const timestamp = lastGameDate?.getTime() ?? null;
 
-  async function convert(filepath: string) {
-    setLoading(true);
-    await invoke("convert_pgn", { file: filepath });
+  async function convert(filepath: string, timestamp: number | null) {
+    console.log("converting", filepath);
+    await invoke("convert_pgn", { file: filepath, timestamp });
     setLoading(false);
     setDatabases(await getDatabases());
   }
@@ -165,7 +165,9 @@ export function AccountCard({
         direction: "desc",
       }).then((games) => {
         if (games.count > 0) {
-          setLastGameDate(new Date(games.data[0].date!));
+          setLastGameDate(
+            new Date(games.data[0].date + " " + games.data[0].time)
+          );
         }
       });
     }
@@ -229,7 +231,7 @@ export function AccountCard({
                   "db",
                   `${title}_${type}.pgn`
                 );
-                convert(p).catch((err) => {
+                convert(p, timestamp).catch((err) => {
                   setLoading(false);
                   console.error(err);
                 });

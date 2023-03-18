@@ -11,6 +11,7 @@ use crate::{
     },
     AppState,
 };
+use chrono::{NaiveDate, NaiveTime};
 use diesel::{
     connection::SimpleConnection,
     insert_into,
@@ -143,6 +144,7 @@ pub struct TempGame {
     pub event_name: Option<String>,
     pub site_name: Option<String>,
     pub date: Option<String>,
+    pub time: Option<String>,
     pub round: Option<String>,
     pub white_name: Option<String>,
     pub white_elo: Option<i32>,
@@ -216,6 +218,7 @@ impl TempGame {
             black_material: minimal_black_material,
             // max_rating: self.game.white.rating.max(self.game.black.rating),
             date: self.date.as_deref(),
+            time: self.time.as_deref(),
             time_control: self.time_control.as_deref(),
             site_id,
             event_id,
@@ -231,13 +234,15 @@ impl TempGame {
 
 struct Importer {
     game: TempGame,
+    timestamp: Option<i64>,
     skip: bool,
 }
 
 impl Importer {
-    fn new() -> Importer {
+    fn new(timestamp: Option<usize>) -> Importer {
         Importer {
             game: TempGame::default(),
+            timestamp: timestamp.map(|t| (t / 1000) as i64),
             skip: false,
         }
     }
@@ -271,6 +276,8 @@ impl Visitor for Importer {
             self.game.round = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Date" || key == b"UTCDate" {
             self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+        } else if key == b"UTCTime" {
+            self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"WhiteTitle" || key == b"BlackTitle" {
             if value.as_bytes() == b"BOT" {
                 self.skip = true;
@@ -293,6 +300,24 @@ impl Visitor for Importer {
     }
 
     fn end_headers(&mut self) -> Skip {
+        // Skip games with timestamp before
+        let cur_timestamp = self.game.date.as_ref().and_then(|date| {
+            let date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
+            let time = self
+                .game
+                .time
+                .as_ref()
+                .and_then(|time| NaiveTime::parse_from_str(time, "%H:%M:%S").ok())?;
+            Some(date.and_time(time).timestamp())
+        });
+
+        if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
+            if cur_timestamp <= timestamp {
+                self.skip = true;
+            }
+        }
+
+        // Skip games without ELO
         // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
         Skip(self.skip)
     }
@@ -335,6 +360,7 @@ impl Visitor for Importer {
 #[tauri::command]
 pub async fn convert_pgn(
     file: PathBuf,
+    timestamp: Option<usize>,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
@@ -353,6 +379,8 @@ pub async fn convert_pgn(
     )
     .expect("resolve path");
 
+    let db_exists = destination.exists();
+
     // create the database file
     let pool = get_db_or_create(
         &state,
@@ -365,8 +393,9 @@ pub async fn convert_pgn(
     )?;
     let db = &mut pool.get().unwrap();
 
-    db.batch_execute(
-        "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
+    if !db_exists {
+        db.batch_execute(
+            "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
         CREATE TABLE Events (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
         INSERT INTO Events (Name) VALUES (\"\");
         CREATE TABLE Sites (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
@@ -385,6 +414,7 @@ pub async fn convert_pgn(
             EventID INTEGER,
             SiteID INTEGER,
             Date TEXT,
+            UTCTime TEXT,
             Round INTEGER,
             WhiteID INTEGER,
             WhiteElo INTEGER,
@@ -402,8 +432,9 @@ pub async fn convert_pgn(
             FOREIGN KEY(SiteID) REFERENCES Sites,
             FOREIGN KEY(WhiteID) REFERENCES Players,
             FOREIGN KEY(BlackID) REFERENCES Players);",
-    )
-    .or(Err("Failed to create tables"))?;
+        )
+        .or(Err("Failed to create tables"))?;
+    }
 
     let file =
         File::open(&file).unwrap_or_else(|_| panic!("open pgn file: {}", file.to_str().unwrap()));
@@ -419,7 +450,7 @@ pub async fn convert_pgn(
     // start counting time
     let start = Instant::now();
 
-    let mut importer = Importer::new();
+    let mut importer = Importer::new(timestamp);
     db.transaction::<_, diesel::result::Error, _>(|db| {
         for (i, game) in BufferedReader::new(uncompressed)
             .into_iter(&mut importer)
@@ -430,22 +461,26 @@ pub async fn convert_pgn(
                 let elapsed = start.elapsed().as_millis() as u32;
                 app.emit_all("convert_progress", (i, elapsed)).unwrap();
             }
-            game.insert_to_db(db).unwrap();
+            if !game.moves.is_empty() {
+                game.insert_to_db(db).unwrap();
+            }
         }
         Ok(())
     })
     .unwrap();
 
-    // Create all the necessary indexes
-    db.batch_execute(
-        "CREATE INDEX games_date_idx ON Games(Date);
-        CREATE INDEX games_white_idx ON Games(WhiteID);
-        CREATE INDEX games_black_idx ON Games(BlackID);
-        CREATE INDEX games_result_idx ON Games(Result);
-        CREATE INDEX games_white_elo_idx ON Games(WhiteElo);
-        CREATE INDEX games_black_elo_idx ON Games(BlackElo);",
-    )
-    .expect("create indexes");
+    if !db_exists {
+        // Create all the necessary indexes
+        db.batch_execute(
+            "CREATE INDEX games_date_idx ON Games(Date);
+            CREATE INDEX games_white_idx ON Games(WhiteID);
+            CREATE INDEX games_black_idx ON Games(BlackID);
+            CREATE INDEX games_result_idx ON Games(Result);
+            CREATE INDEX games_white_elo_idx ON Games(WhiteElo);
+            CREATE INDEX games_black_elo_idx ON Games(BlackElo);",
+        )
+        .expect("create indexes");
+    }
 
     // get game, player, event and site counts and to the info table
     let game_count: i64 = games::table.count().get_result(db).expect("get game count");
@@ -459,27 +494,22 @@ pub async fn convert_pgn(
         .expect("get event count");
     let site_count: i64 = sites::table.count().get_result(db).expect("get site count");
 
-    insert_into(info::table)
-        .values(vec![
-            (
-                info::name.eq("GameCount"),
-                info::value.eq(game_count.to_string()),
-            ),
-            (
-                info::name.eq("PlayerCount"),
-                info::value.eq(player_count.to_string()),
-            ),
-            (
-                info::name.eq("EventCount"),
-                info::value.eq(event_count.to_string()),
-            ),
-            (
-                info::name.eq("SiteCount"),
-                info::value.eq(site_count.to_string()),
-            ),
-        ])
-        .execute(db)
-        .expect("insert game count");
+    let counts = vec![
+        ("GameCount", game_count),
+        ("PlayerCount", player_count),
+        ("EventCount", event_count),
+        ("SiteCount", site_count),
+    ];
+
+    for c in counts.iter() {
+        insert_into(info::table)
+            .values((info::name.eq(c.0), info::value.eq(c.1.to_string())))
+            .on_conflict(info::name)
+            .do_update()
+            .set(info::value.eq(c.1.to_string()))
+            .execute(db)
+            .expect("insert game count");
+    }
 
     Ok(())
 }
@@ -505,7 +535,7 @@ pub async fn get_db_info(
         &app.config(),
         app.package_info(),
         &app.env(),
-        &db_path,
+        db_path,
         Some(BaseDirectory::AppData),
     )
     .or(Err("resolve path"))?;
@@ -533,7 +563,14 @@ pub async fn get_db_info(
         .parse::<usize>()
         .or(Err("parse game count"))?;
 
-    let title = "Untitled".to_string();
+    let title = match info::table
+        .filter(info::name.eq("Title"))
+        .first(db)
+        .map(|title_info: Info| title_info.value)
+    {
+        Ok(Some(title)) => title,
+        _ => "Untitled".to_string(),
+    };
 
     let storage_size = path.metadata().expect("get metadata").len() as usize;
     let filename = path.file_name().expect("get filename").to_string_lossy();
@@ -556,11 +593,13 @@ pub async fn rename_db(
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
-    diesel::update(info::table)
-        .filter(info::name.eq("Title"))
+    diesel::insert_into(info::table)
+        .values((info::name.eq("Title"), info::value.eq(title.clone())))
+        .on_conflict(info::name)
+        .do_update()
         .set(info::value.eq(title))
         .execute(db)
-        .or(Err("update title"))?;
+        .or(Err("upsert title"))?;
 
     Ok(())
 }
@@ -667,8 +706,8 @@ pub async fn get_games(
             SortDirection::Desc => sql_query.order(games::id.desc()),
         },
         GameSort::Date => match query.options.direction {
-            SortDirection::Asc => sql_query.order(games::date.asc()),
-            SortDirection::Desc => sql_query.order(games::date.desc()),
+            SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
+            SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
         },
         GameSort::WhiteElo => match query.options.direction {
             SortDirection::Asc => sql_query.order(games::white_elo.asc()),
@@ -831,6 +870,7 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
             event,
             site,
             date: game.date,
+            time: game.time,
             round: game.round,
             white,
             white_elo: game.white_elo,
