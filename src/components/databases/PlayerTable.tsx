@@ -1,107 +1,52 @@
 import {
   ActionIcon,
   Box,
-  Button,
+  Card,
   Center,
-  Checkbox,
   Collapse,
   createStyles,
+  Flex,
   Grid,
   Group,
-  LoadingOverlay,
-  Pagination,
-  Paper,
-  RangeSlider,
-  ScrollArea,
-  Select,
-  Stack,
-  Table,
+  NumberInput,
   Text,
-  TextInput,
-  Tooltip,
+  TextInput
 } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
-import {
-  IconSearch,
-  IconSortAscending,
-  IconSortDescending,
-} from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
+import { useHotkeys } from "@mantine/hooks";
+import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
+import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { useEffect, useState } from "react";
 import { Database, Player, query_players } from "../../utils/db";
-import { formatNumber } from "../../utils/format";
 import PlayerCard from "./PlayerCard";
 
-const sortOptions = [
-  { label: "Name", value: "name" },
-  { label: "ELO", value: "elo" },
-];
-
 const useStyles = createStyles((theme) => ({
-  header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 10,
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-    transition: "box-shadow 150ms ease",
-
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderBottom: `1px solid ${
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[3]
-          : theme.colors.gray[2]
-      }`,
-    },
-  },
-  scrolled: {
-    boxShadow: theme.shadows.sm,
-  },
-  row: {
-    cursor: "pointer",
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.white,
-    },
-  },
-  rowSelected: {
-    backgroundColor:
+  selected: {
+    backgroundColor: `${
       theme.colorScheme === "dark"
-        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
-        : theme.colors[theme.primaryColor][0],
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.2)
-          : theme.colors[theme.primaryColor][0],
-    },
+        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.3)
+        : theme.colors[theme.primaryColor][0]
+    } !important`,
   },
 }));
 
 function PlayerTable({ database }: { database: Database }) {
-  const { classes, cx } = useStyles();
   const file = database.file;
   const [players, setplayers] = useState<Player[]>([]);
   const [count, setCount] = useState(0);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [skip, toggleSkip] = useToggle();
   const [range, setRange] = useState<[number, number]>([0, 3000]);
   const [tempRange, setTempRange] = useState<[number, number]>([0, 3000]);
   const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState("elo");
   const [activePage, setActivePage] = useState(1);
-  const [direction, toggleDirection] = useToggle(["desc", "asc"] as const);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  const [openedSettings, toggleOpenedSettings] = useToggle();
-  const viewport = useRef<HTMLDivElement>(null);
-  const scrollToTop = () => viewport.current?.scrollTo({ top: 0 });
+  const [open, setOpen] = useState(false);
+  const [newSort, setNewSort] = useState<DataTableSortStatus>({
+    columnAccessor: "id",
+    direction: "asc",
+  });
+
+  const { classes } = useStyles();
 
   useEffect(() => {
     setActivePage(1);
@@ -112,62 +57,33 @@ function PlayerTable({ database }: { database: Database }) {
       range: range,
       page: 1,
       pageSize: limit,
-      skip_count: skip,
-      sort,
-      direction,
+      sort: newSort.columnAccessor,
+      direction: newSort.direction,
     }).then((res) => {
       setLoading(false);
       setplayers(res.data);
       setCount(res.count);
     });
-  }, [name, range, skip, limit, file]);
+  }, [name, range, limit, file]);
 
   useEffect(() => {
     setLoading(true);
-    scrollToTop();
     setSelectedPlayer(null);
     query_players(file, {
       name: name === "" ? undefined : name,
       range: range,
       page: activePage,
       pageSize: limit,
-      skip_count: skip,
-      sort,
-      direction,
+      sort: newSort.columnAccessor,
+      direction: newSort.direction,
     }).then((res) => {
       setLoading(false);
       setplayers(res.data);
       setCount(res.count);
     });
-  }, [activePage, sort, direction]);
+  }, [activePage, newSort]);
 
-  const rows =
-    players.length === 0 ? (
-      <tr>
-        <td colSpan={6}>
-          <Text weight={500} align="center" p={20}>
-            No players found
-          </Text>
-        </td>
-      </tr>
-    ) : (
-      players.map((player, i) => (
-        <tr
-          key={i}
-          onClick={() => {
-            i == selectedPlayer
-              ? setSelectedPlayer(null)
-              : setSelectedPlayer(i);
-          }}
-          className={cx(classes.row, {
-            [classes.rowSelected]: i == selectedPlayer,
-          })}
-        >
-          <td>{player.name}</td>
-          <td>{player.elo}</td>
-        </tr>
-      ))
-    );
+  console.log(tempRange);
 
   useHotkeys([
     [
@@ -201,137 +117,84 @@ function PlayerTable({ database }: { database: Database }) {
   ]);
 
   return (
-    <>
-      <Grid grow>
-        <Grid.Col span={3}>
-          <Group position="apart">
-            <Button
-              my={15}
-              compact
-              variant="outline"
-              leftIcon={<IconSearch size={15} />}
-              onClick={() => toggleOpenedSettings()}
+    <Grid my="md" grow>
+      <Grid.Col span={3}>
+        <Card mb="xl" withBorder>
+          <Flex sx={{ alignItems: "center", gap: 10 }}>
+            <TextInput
+              sx={{ flexGrow: 1 }}
+              placeholder="Search player..."
+              icon={<IconSearch size={16} />}
+              value={name}
+              onChange={(v) => setName(v.currentTarget.value)}
+            />
+            <ActionIcon
+              sx={{ flexGrow: 0 }}
+              onClick={() => setOpen((prev) => !prev)}
             >
-              Search Settings
-            </Button>
-
-            <Paper withBorder>
-              <Group spacing={0}>
-                <ActionIcon mx="xs" onClick={() => toggleDirection()}>
-                  {direction === "asc" ? (
-                    <IconSortDescending size={20} />
-                  ) : (
-                    <IconSortAscending size={20} />
-                  )}
-                </ActionIcon>
-
-                <Select
-                  variant="unstyled"
-                  value={sort}
-                  onChange={(v) => {
-                    v && setSort(v);
-                  }}
-                  data={sortOptions}
-                  defaultValue={sort}
-                />
-              </Group>
-            </Paper>
-          </Group>
-
-          <Collapse in={openedSettings} mx={10}>
-            <Stack>
-              <Group grow>
-                <TextInput
-                  label="Name"
-                  value={name}
-                  onChange={(v) => setName(v.currentTarget.value)}
-                />
-              </Group>
-              <Text size="sm">Elo Range</Text>
-              <RangeSlider
-                step={10}
+              <IconDotsVertical size={16} />
+            </ActionIcon>
+          </Flex>
+          <Collapse in={open}>
+            <Group mt="md">
+              <NumberInput
+                label="Min ELO"
+                value={range[0]}
                 min={0}
                 max={3000}
-                marks={[
-                  { value: 1000, label: "1000" },
-                  { value: 2000, label: "2000" },
-                  { value: 3000, label: "3000" },
-                ]}
-                value={tempRange}
-                onChange={setTempRange}
-                onChangeEnd={setRange}
+                step={100}
+                onChange={(v) => setRange([v || 0, range[1]])}
               />
-              <Tooltip label="Disabling this may significantly improve performance">
-                <Checkbox
-                  label="Include pagination"
-                  checked={!skip}
-                  onChange={() => toggleSkip()}
-                />
-              </Tooltip>
-            </Stack>
+              <NumberInput
+                label="Max ELO"
+                value={range[1]}
+                min={0}
+                max={3000}
+                step={100}
+                onChange={(v) => setRange([range[0], v || 0])}
+              />
+            </Group>
           </Collapse>
-          <Box sx={{ position: "relative" }}>
-            <ScrollArea
-              h={600}
-              viewportRef={viewport}
-              onScrollPositionChange={({ y }) => setScrolled(y !== 0)}
-              offsetScrollbars
-            >
-              <Table>
-                <thead
-                  className={cx(classes.header, {
-                    [classes.scrolled]: scrolled,
-                  })}
-                >
-                  <tr>
-                    <th>Name</th>
-                    <th>ELO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <>{rows}</>
-                </tbody>
-              </Table>
-            </ScrollArea>
-            <LoadingOverlay visible={loading} />
-          </Box>
-          {!skip && (
-            <>
-              <Select
-                label="Results per page"
-                value={limit.toString()}
-                onChange={(v) => {
-                  v && setLimit(parseInt(v));
-                }}
-                sx={{ float: "right" }}
-                data={["10", "25", "50", "100"]}
-                defaultValue={limit.toString()}
-              />
-              <Stack align="center" spacing={0} mt={20}>
-                <Pagination
-                  value={activePage}
-                  onChange={setActivePage}
-                  total={Math.ceil(count / limit)}
-                />
-                <Text weight={500} align="center" p={20}>
-                  {formatNumber(count)} players
-                </Text>
-              </Stack>
-            </>
-          )}
-        </Grid.Col>
+        </Card>
+        <Box sx={{ height: 500 }}>
+          <DataTable
+            withBorder
+            highlightOnHover
+            records={players}
+            columns={[
+              { accessor: "id", sortable: true },
+              { accessor: "name", sortable: true },
+              { accessor: "elo", sortable: true },
+            ]}
+            rowClassName={(_, i) =>
+              i === selectedPlayer ? classes.selected : ""
+            }
+            noRecordsText="No players found"
+            totalRecords={count}
+            recordsPerPage={limit}
+            page={activePage}
+            onPageChange={setActivePage}
+            onRecordsPerPageChange={setLimit}
+            sortStatus={newSort}
+            onSortStatusChange={setNewSort}
+            recordsPerPageOptions={[10, 25, 50]}
+            onRowClick={(_, i) => {
+              setSelectedPlayer(i);
+            }}
+          />
+        </Box>
+      </Grid.Col>
 
-        <Grid.Col span={2}>
-          {selectedPlayer !== null ? (
-            <PlayerCard player={players[selectedPlayer]} file={database.file} />
-          ) : (
-            <Center h="100%">
-              <Text>No player selected</Text>
-            </Center>
-          )}
-        </Grid.Col>
-      </Grid>
-    </>
+      <Grid.Col span={2}>
+        {selectedPlayer !== null ? (
+          <PlayerCard player={players[selectedPlayer]} file={database.file} />
+        ) : (
+          <Center h="100%">
+            <Text>No player selected</Text>
+          </Center>
+        )}
+      </Grid.Col>
+    </Grid>
   );
 }
 

@@ -55,6 +55,7 @@ const useStyles = createStyles(
         ? theme.colors.dark[7]
         : theme.white,
 
+      borderStyle: "solid",
       borderColor: selected
         ? theme.colors[theme.primaryColor][6]
         : "transparent",
@@ -107,7 +108,6 @@ function OpponentCard({
   return (
     <>
       <Card
-        withBorder
         radius="md"
         className={classes.card}
         onClick={() => setSelected(opponent)}

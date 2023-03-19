@@ -26,6 +26,7 @@ specifiers:
   '@types/react-dom': ^18.0.11
   chess.js: 1.0.0-beta.3
   chessground: ^8.3.7
+  mantine-datatable: ^2.2.3
   next: ^13.2.3
   prettier: ^2.8.4
   prosemirror-commands: ^1.5.1
@@ -66,6 +67,7 @@ dependencies:
   '@tiptap/starter-kit': 2.0.0-beta.220_@tiptap+pm@2.0.0-beta.220
   chess.js: 1.0.0-beta.3
   chessground: 8.3.7
+  mantine-datatable: 2.2.3_ozkgi6fw4fio2q572m2hpudknm
   next: 13.2.3_biqbaboplfbrettd7655fr4n2y
   prosemirror-commands: 1.5.1
   prosemirror-dropcursor: 1.7.1
@@ -8596,6 +8598,18 @@ packages:
 
   /mamacro/0.0.3:
     resolution: {integrity: sha512-qMEwh+UujcQ+kbz3T6V+wAmO2U8veoq2w+3wY8MquqwVA3jChfwY+Tk52GZKDfACEPjuZ7r2oJLejwpt8jtwTA==}
+    dev: false
+
+  /mantine-datatable/2.2.3_ozkgi6fw4fio2q572m2hpudknm:
+    resolution: {integrity: sha512-D+I43houi6/0fuMW5alpb3aTlAIVAkTxfzi5NcNnBZAVMrjU9N21Yhw8vaO6tRI3iFVPF/yJLK5EWw3eVn72fA==}
+    peerDependencies:
+      '@mantine/core': ^6.0.2
+      '@mantine/hooks': ^6.0.2
+      react: ^18.2.0
+    dependencies:
+      '@mantine/core': 6.0.0_2anhyhi6fovdpc2mtkpggnnsdu
+      '@mantine/hooks': 6.0.0_react@18.2.0
+      react: 18.2.0
     dev: false
 
   /map-cache/0.2.2:

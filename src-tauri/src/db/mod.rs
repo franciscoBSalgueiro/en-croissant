@@ -666,8 +666,6 @@ pub async fn get_games(
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
-    dbg!(&query);
-
     let mut count: Option<i64> = None;
 
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
@@ -895,6 +893,8 @@ pub struct PlayerQuery {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PlayerSort {
+    #[serde(rename = "id")]
+    Id,
     #[serde(rename = "name")]
     Name,
     #[serde(rename = "elo")]
@@ -910,8 +910,6 @@ pub async fn get_players(
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
     let mut count = None;
-
-    dbg!(&query);
 
     let mut sql_query = players::table.into_boxed();
     let mut count_query = players::table.into_boxed();
@@ -939,6 +937,10 @@ pub async fn get_players(
     }
 
     sql_query = match query.options.sort {
+        PlayerSort::Id => match query.options.direction {
+            SortDirection::Asc => sql_query.order(players::id.asc()),
+            SortDirection::Desc => sql_query.order(players::id.desc()),
+        },
         PlayerSort::Name => match query.options.direction {
             SortDirection::Asc => sql_query.order(players::name.asc()),
             SortDirection::Desc => sql_query.order(players::name.desc()),
@@ -1082,8 +1084,6 @@ pub async fn search_opening(
         .get_results(db)
         .optional()
         .expect("load opening");
-
-    dbg!(&openings);
 
     let normalized_openings = match openings {
         Some(openings) => openings.into_iter().map(NormalizedOpening::from).collect(),
