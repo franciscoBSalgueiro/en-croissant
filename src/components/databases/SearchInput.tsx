@@ -1,4 +1,5 @@
 import { Autocomplete } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
 import { useState } from "react";
 import { query_players, Sides } from "../../utils/db";
 import { SideInput } from "./SideInput";
@@ -51,8 +52,8 @@ export function SearchInput({
       rightSection={
         <SideInput sides={sides} setSides={setSides} label={label} />
       }
-      label={label}
-      placeholder="Player name"
+      icon={<IconSearch size={16} />}
+      placeholder={label}
     />
   );
 }

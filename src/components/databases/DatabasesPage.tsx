@@ -226,7 +226,7 @@ export default function DatabasesPage() {
           </Group>
         </Stack>
       </Modal>
-      <Group align="baseline" m={30}>
+      <Group align="baseline" m="lg" mt="xl">
         <Title>Your Databases</Title>
         <OpenFolderButton folder="db" />
       </Group>

@@ -60,7 +60,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
   }, [player.id]);
 
   return (
-    <Paper shadow="sm" p="sm" my="md" withBorder>
+    <Paper shadow="sm" p="sm" withBorder>
       <Stack align="center">
         <Text fz="lg" weight={500}>
           {player.name}

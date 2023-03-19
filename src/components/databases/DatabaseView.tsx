@@ -18,6 +18,7 @@ function DatabaseView() {
         <>
           <Link href={`/databases`} passHref>
             <Button
+              mt="md"
               compact
               leftIcon={<IconArrowBackUp size={16} />}
               variant="outline"

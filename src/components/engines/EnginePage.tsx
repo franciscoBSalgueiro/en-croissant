@@ -31,7 +31,7 @@ export default function EnginePage() {
         setOpened={setOpened}
         setEngines={setEngines}
       />
-      <Group align="baseline" m={30}>
+      <Group align="baseline" ml="lg" mt="xl">
         <Title>Your Engines</Title>
         <OpenFolderButton folder="engines" />
       </Group>

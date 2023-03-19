@@ -1,37 +1,34 @@
 import {
   ActionIcon,
-  Button,
+  Box,
   Center,
-  Checkbox,
   Collapse,
+  Flex,
   Grid,
   Group,
-  Pagination,
-  Paper,
   RangeSlider,
   Select,
   Stack,
   Text,
-  Tooltip,
+  useMantineTheme
 } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
+import { IconDotsVertical, IconEye } from "@tabler/icons-react";
+import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import {
-  IconSearch,
-  IconSortAscending,
-  IconSortDescending,
-} from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
-import {
+  CompleteGame,
   Database,
   NormalizedGame,
   Outcome,
   query_games,
-  Sides,
+  Sides
 } from "../../utils/db";
-import { formatNumber } from "../../utils/format";
+import { genID, Tab } from "../tabs/BoardsPage";
 import GameCard from "./GameCard";
-import GameSubTable from "./GameSubTable";
 import { SearchInput } from "./SearchInput";
+import useStyles from "./styles";
 
 const sortOptions = [
   { label: "ID", value: "id" },
@@ -58,15 +55,45 @@ function GameTable({ database }: { database: Database }) {
   const [sides, setSides] = useState(Sides.WhiteBlack);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [skip, toggleSkip] = useToggle([true, false]);
+  // const [skip, toggleSkip] = useToggle([true, false]);
   const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState("id");
-  const [direction, toggleDirection] = useToggle(["desc", "asc"] as const);
+  const [sort, setSort] = useState<DataTableSortStatus>({
+    columnAccessor: "date",
+    direction: "desc",
+  });
   const [activePage, setActivePage] = useState(1);
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const [openedSettings, toggleOpenedSettings] = useToggle();
-  const viewport = useRef<HTMLDivElement>(null);
-  const scrollToTop = () => viewport.current?.scrollTo({ top: 0 });
+
+  const theme = useMantineTheme();
+  const { classes } = useStyles();
+
+  const router = useRouter();
+  const firstId = genID();
+
+  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+    key: "tabs",
+    defaultValue: [],
+  });
+  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
+    key: "activeTab",
+    defaultValue: firstId,
+  });
+
+  function createTab(name: string) {
+    const id = genID();
+
+    setTabs((prev) => [
+      ...prev,
+      {
+        name,
+        value: id,
+        type: "analysis",
+      },
+    ]);
+    setActiveTab(id);
+    return id;
+  }
 
   useEffect(() => {
     setActivePage(1);
@@ -81,9 +108,9 @@ function GameTable({ database }: { database: Database }) {
       outcome: outcome === null ? undefined : (outcome as Outcome),
       page: activePage,
       pageSize: limit,
-      skip_count: skip,
-      sort,
-      direction,
+      // skip_count: skip,
+      sort: sort.columnAccessor,
+      direction: sort.direction,
     }).then((res) => {
       setLoading(false);
       setGames(res.data);
@@ -93,7 +120,7 @@ function GameTable({ database }: { database: Database }) {
     player1,
     player2,
     outcome,
-    skip,
+    // skip,
     limit,
     file,
     sides,
@@ -103,7 +130,6 @@ function GameTable({ database }: { database: Database }) {
 
   useEffect(() => {
     setLoading(true);
-    scrollToTop();
     setSelectedGame(null);
     query_games(file, {
       player1: player1 === "" ? undefined : player1,
@@ -114,13 +140,13 @@ function GameTable({ database }: { database: Database }) {
       page: activePage,
       pageSize: limit,
       skip_count: true,
-      sort,
-      direction,
+      sort: sort.columnAccessor,
+      direction: sort.direction,
     }).then((res) => {
       setLoading(false);
       setGames(res.data);
     });
-  }, [activePage, sort, direction]);
+  }, [activePage, sort]);
 
   useHotkeys([
     [
@@ -154,157 +180,170 @@ function GameTable({ database }: { database: Database }) {
   ]);
 
   return (
-    <>
-      <Grid grow>
-        <Grid.Col span={3}>
-          <Group position="apart">
-            <Button
-              my={15}
-              compact
-              variant="outline"
-              leftIcon={<IconSearch size={15} />}
+    <Grid my="md" grow>
+      <Grid.Col span={3}>
+        <Box mb="xl" className={classes.search}>
+          <Flex sx={{ gap: 20 }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Group grow>
+                <SearchInput
+                  value={player1}
+                  setValue={setPlayer1}
+                  sides={sides}
+                  setSides={setSides}
+                  label="Player"
+                  file={file}
+                />
+                <SearchInput
+                  value={player2}
+                  setValue={setplayer2}
+                  sides={sides}
+                  setSides={setSides}
+                  label="Opponent"
+                  file={file}
+                />
+              </Group>
+              <Collapse in={openedSettings} mx={10}>
+                <Stack mt="md">
+                  <Group grow>
+                    <RangeSlider
+                      step={10}
+                      min={0}
+                      max={3000}
+                      marks={[
+                        { value: 1000, label: "1000" },
+                        { value: 2000, label: "2000" },
+                        { value: 3000, label: "3000" },
+                      ]}
+                      value={tempRangePlayer1}
+                      onChange={setTempRangePlayer1}
+                      onChangeEnd={setRangePlayer1}
+                    />
+                    <RangeSlider
+                      step={10}
+                      min={0}
+                      max={3000}
+                      marks={[
+                        { value: 1000, label: "1000" },
+                        { value: 2000, label: "2000" },
+                        { value: 3000, label: "3000" },
+                      ]}
+                      value={tempRangePlayer2}
+                      onChange={setTempRangePlayer2}
+                      onChangeEnd={setRangePlayer2}
+                    />
+                  </Group>
+                  <Select
+                    label="Result"
+                    value={outcome}
+                    onChange={setOutcome}
+                    clearable
+                    placeholder="Select result"
+                    data={[
+                      { label: "White wins", value: Outcome.WhiteWin },
+                      { label: "Black wins", value: Outcome.BlackWin },
+                      { label: "Draw", value: Outcome.Draw },
+                    ]}
+                  />
+                </Stack>
+              </Collapse>
+            </Box>
+            <ActionIcon
+              sx={{ flexGrow: 0 }}
               onClick={() => toggleOpenedSettings()}
             >
-              Search Settings
-            </Button>
-
-            <Paper withBorder>
-              <Group spacing={0}>
-                <ActionIcon mx="xs" onClick={() => toggleDirection()}>
-                  {direction === "asc" ? (
-                    <IconSortDescending size={20} />
-                  ) : (
-                    <IconSortAscending size={20} />
-                  )}
-                </ActionIcon>
-                <Select
-                  variant="unstyled"
-                  value={sort}
-                  onChange={(v) => {
-                    v && setSort(v);
-                  }}
-                  data={sortOptions}
-                  defaultValue={sort}
-                />
-              </Group>
-            </Paper>
-          </Group>
-
-          <Collapse in={openedSettings} mx={10}>
-            <Stack>
-              <Group grow>
-                <Stack>
-                  <SearchInput
-                    value={player1}
-                    setValue={setPlayer1}
-                    sides={sides}
-                    setSides={setSides}
-                    label="Player"
-                    file={file}
-                  />
-                  <RangeSlider
-                    step={10}
-                    min={0}
-                    max={3000}
-                    marks={[
-                      { value: 1000, label: "1000" },
-                      { value: 2000, label: "2000" },
-                      { value: 3000, label: "3000" },
-                    ]}
-                    value={tempRangePlayer1}
-                    onChange={setTempRangePlayer1}
-                    onChangeEnd={setRangePlayer1}
-                  />
-                </Stack>
-                <Stack>
-                  <SearchInput
-                    value={player2}
-                    setValue={setplayer2}
-                    sides={sides}
-                    setSides={setSides}
-                    label="Opponent"
-                    file={file}
-                  />
-                  <RangeSlider
-                    step={10}
-                    min={0}
-                    max={3000}
-                    marks={[
-                      { value: 1000, label: "1000" },
-                      { value: 2000, label: "2000" },
-                      { value: 3000, label: "3000" },
-                    ]}
-                    value={tempRangePlayer2}
-                    onChange={setTempRangePlayer2}
-                    onChangeEnd={setRangePlayer2}
-                  />
-                </Stack>
-              </Group>
-              <Select
-                label="Result"
-                value={outcome}
-                onChange={setOutcome}
-                clearable
-                placeholder="Select result"
-                data={[
-                  { label: "White wins", value: Outcome.WhiteWin },
-                  { label: "Black wins", value: Outcome.BlackWin },
-                  { label: "Draw", value: Outcome.Draw },
-                ]}
-              />
-              <Tooltip label="Disabling this may significantly improve performance">
-                <Checkbox
-                  label="Include pagination"
-                  checked={!skip}
-                  onChange={() => toggleSkip()}
-                />
-              </Tooltip>
-            </Stack>
-          </Collapse>
-          <GameSubTable
-            height={600}
-            games={games}
-            loading={loading}
-            selectedGame={selectedGame}
-            setSelectedGame={setSelectedGame}
+              <IconDotsVertical size={16} />
+            </ActionIcon>
+          </Flex>
+        </Box>
+        <Box sx={{ height: 500 }}>
+          <DataTable
+            withBorder
+            highlightOnHover
+            records={games}
+            columns={[
+              {
+                accessor: "actions",
+                title: "",
+                render: (game) => (
+                  <ActionIcon
+                    variant="filled"
+                    color={theme.primaryColor}
+                    onClick={() => {
+                      const id = createTab(
+                        `${game.white.name} - ${game.black.name}`
+                      );
+                      const completeGame: CompleteGame = {
+                        game,
+                        currentMove: [],
+                      };
+                      sessionStorage.setItem(id, JSON.stringify(completeGame));
+                      router.push("/boards");
+                    }}
+                  >
+                    <IconEye size={16} stroke={1.5} />
+                  </ActionIcon>
+                ),
+              },
+              { accessor: "id", sortable: true },
+              {
+                accessor: "white",
+                render: ({ white, white_elo }) => (
+                  <div>
+                    <Text size="sm" weight={500}>
+                      {white.name}
+                    </Text>
+                    <Text size="xs" color="dimmed">
+                      {white_elo}
+                    </Text>
+                  </div>
+                ),
+              },
+              {
+                accessor: "black",
+                render: ({ black, black_elo }) => (
+                  <div>
+                    <Text size="sm" weight={500}>
+                      {black.name}
+                    </Text>
+                    <Text size="xs" color="dimmed">
+                      {black_elo}
+                    </Text>
+                  </div>
+                ),
+              },
+              { accessor: "date", sortable: true },
+              { accessor: "result" },
+            ]}
+            rowClassName={(_, i) =>
+              i === selectedGame ? classes.selected : ""
+            }
+            noRecordsText="No games found"
+            totalRecords={count}
+            recordsPerPage={limit}
+            page={activePage}
+            onPageChange={setActivePage}
+            onRecordsPerPageChange={setLimit}
+            sortStatus={sort}
+            onSortStatusChange={setSort}
+            recordsPerPageOptions={[10, 25, 50]}
+            onRowClick={(_, i) => {
+              setSelectedGame(i);
+            }}
           />
-          {!skip && (
-            <>
-              <Select
-                label="Results per page"
-                value={limit.toString()}
-                onChange={(v) => {
-                  v && setLimit(parseInt(v));
-                }}
-                sx={{ float: "right" }}
-                data={["10", "25", "50", "100"]}
-                defaultValue={limit.toString()}
-              />
-              <Stack spacing={0} mt={20}>
-                <Pagination
-                  value={activePage}
-                  onChange={setActivePage}
-                  total={Math.ceil(count / limit)}
-                />
-                <Text weight={500} align="center" p={20}>
-                  {formatNumber(count)} games
-                </Text>
-              </Stack>
-            </>
-          )}
-        </Grid.Col>
+        </Box>
+      </Grid.Col>
 
-        <Grid.Col span={2}>
-          {selectedGame !== null ? (
-            <GameCard game={games[selectedGame]} />
-          ) : (
-            <Center h="100%">
-              <Text>No game selected</Text>
-            </Center>
-          )}
-        </Grid.Col>
-      </Grid>
-    </>
+      <Grid.Col span={2}>
+        {selectedGame !== null ? (
+          <GameCard game={games[selectedGame]} />
+        ) : (
+          <Center h="100%">
+            <Text>No game selected</Text>
+          </Center>
+        )}
+      </Grid.Col>
+    </Grid>
   );
 }
 

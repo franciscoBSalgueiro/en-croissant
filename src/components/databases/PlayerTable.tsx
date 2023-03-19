@@ -1,10 +1,8 @@
 import {
   ActionIcon,
   Box,
-  Card,
   Center,
   Collapse,
-  createStyles,
   Flex,
   Grid,
   Group,
@@ -18,16 +16,7 @@ import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
 import { Database, Player, query_players } from "../../utils/db";
 import PlayerCard from "./PlayerCard";
-
-const useStyles = createStyles((theme) => ({
-  selected: {
-    backgroundColor: `${
-      theme.colorScheme === "dark"
-        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.3)
-        : theme.colors[theme.primaryColor][0]
-    } !important`,
-  },
-}));
+import useStyles from "./styles";
 
 function PlayerTable({ database }: { database: Database }) {
   const file = database.file;
@@ -41,7 +30,7 @@ function PlayerTable({ database }: { database: Database }) {
   const [activePage, setActivePage] = useState(1);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
-  const [newSort, setNewSort] = useState<DataTableSortStatus>({
+  const [sort, setSort] = useState<DataTableSortStatus>({
     columnAccessor: "id",
     direction: "asc",
   });
@@ -57,8 +46,8 @@ function PlayerTable({ database }: { database: Database }) {
       range: range,
       page: 1,
       pageSize: limit,
-      sort: newSort.columnAccessor,
-      direction: newSort.direction,
+      sort: sort.columnAccessor,
+      direction: sort.direction,
     }).then((res) => {
       setLoading(false);
       setplayers(res.data);
@@ -74,14 +63,14 @@ function PlayerTable({ database }: { database: Database }) {
       range: range,
       page: activePage,
       pageSize: limit,
-      sort: newSort.columnAccessor,
-      direction: newSort.direction,
+      sort: sort.columnAccessor,
+      direction: sort.direction,
     }).then((res) => {
       setLoading(false);
       setplayers(res.data);
       setCount(res.count);
     });
-  }, [activePage, newSort]);
+  }, [activePage, sort]);
 
   console.log(tempRange);
 
@@ -119,7 +108,7 @@ function PlayerTable({ database }: { database: Database }) {
   return (
     <Grid my="md" grow>
       <Grid.Col span={3}>
-        <Card mb="xl" withBorder>
+        <Box mb="xl" className={classes.search}>
           <Flex sx={{ alignItems: "center", gap: 10 }}>
             <TextInput
               sx={{ flexGrow: 1 }}
@@ -155,7 +144,7 @@ function PlayerTable({ database }: { database: Database }) {
               />
             </Group>
           </Collapse>
-        </Card>
+        </Box>
         <Box sx={{ height: 500 }}>
           <DataTable
             withBorder
@@ -175,8 +164,8 @@ function PlayerTable({ database }: { database: Database }) {
             page={activePage}
             onPageChange={setActivePage}
             onRecordsPerPageChange={setLimit}
-            sortStatus={newSort}
-            onSortStatusChange={setNewSort}
+            sortStatus={sort}
+            onSortStatusChange={setSort}
             recordsPerPageOptions={[10, 25, 50]}
             onRowClick={(_, i) => {
               setSelectedPlayer(i);
