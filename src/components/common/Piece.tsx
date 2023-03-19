@@ -10,10 +10,23 @@ function Piece({
 }: {
   piece: PieceSymbol;
   color: Color;
-  boardRef: React.RefObject<HTMLDivElement>;
-  addPiece: (square: Square, piece: PieceSymbol, color: Color) => void;
+  boardRef?: React.RefObject<HTMLDivElement>;
+  addPiece?: (square: Square, piece: PieceSymbol, color: Color) => void;
 }) {
   const pieceRef = useRef<HTMLDivElement>(null);
+  if (!boardRef || !addPiece) {
+    return (
+      <div
+        ref={pieceRef}
+        className={getPieceName(piece, color)}
+        style={{
+          width: 75,
+          height: 75,
+          backgroundSize: "cover",
+        }}
+      />
+    );
+  }
   const handleDrop = (position: { x: number; y: number }) => {
     const boardRect = boardRef.current?.getBoundingClientRect();
     if (

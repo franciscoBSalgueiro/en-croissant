@@ -10,7 +10,7 @@ import {
   Select,
   Stack,
   Text,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye } from "@tabler/icons-react";
@@ -23,7 +23,7 @@ import {
   NormalizedGame,
   Outcome,
   query_games,
-  Sides
+  Sides,
 } from "../../utils/db";
 import { genID, Tab } from "../tabs/BoardsPage";
 import GameCard from "./GameCard";
@@ -261,6 +261,7 @@ function GameTable({ database }: { database: Database }) {
             withBorder
             highlightOnHover
             records={games}
+            fetching={loading}
             columns={[
               {
                 accessor: "actions",
@@ -285,7 +286,7 @@ function GameTable({ database }: { database: Database }) {
                   </ActionIcon>
                 ),
               },
-              { accessor: "id", sortable: true },
+              // { accessor: "id", sortable: true },
               {
                 accessor: "white",
                 render: ({ white, white_elo }) => (
