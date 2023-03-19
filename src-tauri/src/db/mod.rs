@@ -18,7 +18,7 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
-use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
+use pgn_reader::{BufferedReader, Outcome, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -164,10 +164,28 @@ impl TempGame {
     pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), String> {
         if let Some(result) = &self.result {
             if let Ok(outcome) = shakmaty::Outcome::from_ascii(result.as_bytes()) {
+                let mut openings = Vec::new();
                 for (i, hash) in self.opening.iter().enumerate() {
                     let m = &self.moves[(i * 2)..(i * 2) + 2];
-                    add_opening(db, hash, m, outcome).map_err(|e| e.to_string())?;
+                    let new_opening = match outcome {
+                        Outcome::Decisive { winner } => NewOpening {
+                            hash: hash.0 as i32,
+                            move_: m,
+                            black: (winner == shakmaty::Color::Black) as i32,
+                            white: (winner == shakmaty::Color::White) as i32,
+                            draw: 0,
+                        },
+                        Outcome::Draw => NewOpening {
+                            hash: hash.0 as i32,
+                            move_: m,
+                            black: 0,
+                            white: 0,
+                            draw: 1,
+                        },
+                    };
+                    openings.push(new_opening);
                 }
+                add_opening(db, openings).map_err(|e| e.to_string())?;
             }
         }
 
@@ -334,7 +352,7 @@ impl Visitor for Importer {
                     self.game.material_count.black = cur_material.black;
                 }
             }
-            if self.game.moves.len() < 80 {
+            if self.game.moves.len() < 20 {
                 self.game
                     .opening
                     .push(self.game.position.zobrist_hash(EnPassantMode::Legal));
@@ -407,7 +425,9 @@ pub async fn convert_pgn(
             Move BLOB,
             White INTEGER,
             Draw INTEGER,
-            Black INTEGER);
+            Black INTEGER,
+            UNIQUE(Hash, Move)
+        );
         CREATE INDEX OpeningHash ON Opening (Hash);
         CREATE TABLE Games (
             ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -477,7 +497,8 @@ pub async fn convert_pgn(
             CREATE INDEX games_black_idx ON Games(BlackID);
             CREATE INDEX games_result_idx ON Games(Result);
             CREATE INDEX games_white_elo_idx ON Games(WhiteElo);
-            CREATE INDEX games_black_elo_idx ON Games(BlackElo);",
+            CREATE INDEX games_black_elo_idx ON Games(BlackElo);
+        ",
         )
         .expect("create indexes");
     }

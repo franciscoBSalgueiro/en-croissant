@@ -1,10 +1,8 @@
 use crate::db::models::{
-    Event, Game, NewEvent, NewGame, NewOpening, NewPlayer, NewSite, Opening, Player, Site,
+    Event, Game, NewEvent, NewGame, NewOpening, NewPlayer, NewSite, Player, Site,
 };
-use diesel::prelude::*;
 use diesel::SqliteConnection;
-use pgn_reader::Outcome;
-use shakmaty::zobrist::Zobrist32;
+use diesel::{prelude::*, sql_query};
 
 /// Creates a new player in the database, and returns the player's ID.
 /// If the player already exists, returns the ID of the existing player.
@@ -79,64 +77,29 @@ pub fn create_game(
 
 pub fn add_opening(
     conn: &mut SqliteConnection,
-    hash: &Zobrist32,
-    m: &[u8],
-    result: Outcome,
+    openings: Vec<NewOpening>,
 ) -> Result<(), diesel::result::Error> {
-    use crate::db::schema::openings;
-
-    let new_opening = match result {
-        Outcome::Decisive { winner } => NewOpening {
-            hash: hash.0 as i32,
-            move_: m,
-            black: (winner == shakmaty::Color::Black) as i32,
-            white: (winner == shakmaty::Color::White) as i32,
-            draw: 0,
-        },
-        Outcome::Draw => NewOpening {
-            hash: hash.0 as i32,
-            move_: m,
-            black: 0,
-            white: 0,
-            draw: 1,
-        },
-    };
-
-    // get the opening if it exists and increment the appropriate result
-    // otherwise, insert the new opening
-    let opening = openings::table
-        .filter(openings::hash.eq(hash.0 as i32))
-        .filter(openings::move_.eq(&m))
-        .first::<Opening>(conn);
-
-    match opening {
-        Ok(o) => {
-            match result {
-                Outcome::Decisive { winner } => {
-                    if winner == shakmaty::Color::Black {
-                        diesel::update(openings::table)
-                            .filter(openings::id.eq(o.id))
-                            .set(openings::black.eq(o.black + 1))
-                            .execute(conn)
-                    } else {
-                        diesel::update(openings::table)
-                            .filter(openings::id.eq(o.id))
-                            .set(openings::white.eq(o.white + 1))
-                            .execute(conn)
-                    }
-                }
-                Outcome::Draw => diesel::update(openings::table)
-                    .filter(openings::id.eq(o.id))
-                    .set(openings::draw.eq(o.draw + 1))
-                    .execute(conn),
-            }?;
-        }
-        Err(_) => {
-            diesel::insert_or_ignore_into(openings::table)
-                .values(&new_opening)
-                .execute(conn)?;
-        }
-    }
+    sql_query(format!(
+        "INSERT INTO Opening (hash, move, black, white, draw)
+        VALUES {}
+        ON CONFLICT (hash, move) DO UPDATE
+        SET black = Opening.black + excluded.black,
+            white = Opening.white + excluded.white,
+            draw = Opening.draw + excluded.draw",
+        openings
+            .iter()
+            .map(|o| format!(
+                "({}, X'{}', {}, {}, {})",
+                o.hash,
+                hex::encode(o.move_),
+                o.black,
+                o.white,
+                o.draw
+            ))
+            .collect::<Vec<String>>()
+            .join(", ")
+    ))
+    .execute(conn)?;
 
     Ok(())
 }
