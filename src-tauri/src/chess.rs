@@ -165,7 +165,7 @@ pub async fn get_best_moves(
     let eng_id = engine.clone();
     let id = app.listen_global("stop_engine", move |event| {
         let payload = event.payload().unwrap();
-        let payload = payload[1..payload.len() - 1].to_string();
+        let payload = payload[1..payload.len() - 1].replace("\\\\", "\\");
         if payload == eng_id {
             let tx = tx.clone();
             tokio::spawn(async move {

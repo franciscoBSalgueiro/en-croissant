@@ -281,7 +281,12 @@ function BoardAnalysis({ id }: { id: string }) {
                 type="always"
               >
                 <Stack>
-                  <Accordion variant="separated" multiple chevronSize={0}>
+                  <Accordion
+                    variant="separated"
+                    multiple
+                    chevronSize={0}
+                    defaultValue={engines.map((e) => e.path)}
+                  >
                     {engines
                       .filter((e) => e.loaded)
                       .map((engine, i) => {

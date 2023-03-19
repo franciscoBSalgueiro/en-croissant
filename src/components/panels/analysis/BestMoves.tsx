@@ -166,6 +166,12 @@ function BestMoves({
     }
   }, [tree.fen, enabled, numberLines, maxDepth, cores, threat]);
 
+  useEffect(() => {
+    if (!enabled) {
+      setEngineVariation([]);
+    }
+  }, [tree.fen]);
+
   function AnalysisRow({
     score,
     moves,
@@ -243,26 +249,27 @@ function BestMoves({
   const [open, setOpen] = useState<boolean[]>([]);
 
   return (
-    <Accordion.Item value={engine.name}>
+    <>
       <Box sx={{ display: "flex", alignItems: "center" }}>
-        <ActionIcon
-          size="lg"
-          onClick={() => {
-            if (progress === 100) {
-              startEngine();
-            } else {
+        <Stack spacing={0}>
+          <ActionIcon
+            size="lg"
+            variant={enabled ? "filled" : "transparent"}
+            color={theme.primaryColor}
+            onClick={() => {
               toggleEnabled();
-            }
-          }}
-          ml={8}
-        >
-          {enabled && progress < 100 ? (
-            <IconPlayerPause size={16} />
-          ) : (
-            <IconPlayerPlay size={16} />
-          )}
-        </ActionIcon>
-        <Accordion.Control disabled={!enabled && engineVariations.length === 0}>
+            }}
+            ml={12}
+          >
+            {enabled ? (
+              <IconPlayerPause size={16} />
+            ) : (
+              <IconPlayerPlay size={16} />
+            )}
+          </ActionIcon>
+        </Stack>
+
+        <Accordion.Control>
           <Group position="apart">
             <Group align="baseline">
               <Text fw="bold" fz="xl">
@@ -290,7 +297,12 @@ function BestMoves({
           </Group>
         </Accordion.Control>
         <Tooltip label="Check the opponent's threat">
-          <ActionIcon size="lg" onClick={() => toggleThreat()}>
+          <ActionIcon
+            size="lg"
+            onClick={() => toggleThreat()}
+            disabled={!enabled}
+            variant="transparent"
+          >
             <IconTargetArrow color={threat ? "red" : undefined} size={16} />
           </ActionIcon>
         </Tooltip>
@@ -331,10 +343,20 @@ function BestMoves({
         <Table>
           <tbody>
             {engineVariations.length === 0 &&
-              Array.apply(null, Array(numberLines)).map((_, i) => (
-                <tr key={i}>
+              (enabled ? (
+                Array.apply(null, Array(numberLines)).map((_, i) => (
+                  <tr key={i}>
+                    <td>
+                      <Skeleton height={35} radius="xl" p={5} />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
                   <td>
-                    <Skeleton height={50} radius="xl" p={5} />
+                    <Text align="center" my="lg">
+                      Engine isn't enabled
+                    </Text>
                   </td>
                 </tr>
               ))}
@@ -352,7 +374,7 @@ function BestMoves({
           </tbody>
         </Table>
       </Accordion.Panel>
-    </Accordion.Item>
+    </>
   );
 }
 
