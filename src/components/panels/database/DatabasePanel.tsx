@@ -4,7 +4,7 @@ import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
-import { Opening, search_opening } from "../../../utils/db";
+import { Opening, search_opening, search_position } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import TreeContext from "../../common/TreeContext";
 
@@ -37,21 +37,28 @@ function DatabasePanel({
   });
   const { classes } = useStyles();
 
+  function sortOpenings(openings: Opening[]) {
+    return openings.sort(
+      (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white)
+    );
+  }
+
   const useOpening = useCallback(
     (referenceDatabase: string | null, fen: string) => {
       if (!referenceDatabase) return;
+      setLoading(true);
+
       if (tree.half_moves >= 10) {
         setOpenings([]);
+        search_position(referenceDatabase, fen).then((res) => {
+          setLoading(false);
+          setOpenings(sortOpenings(res));
+        });
         return;
       }
-      setLoading(true);
       search_opening(referenceDatabase, fen).then((res) => {
         setLoading(false);
-        setOpenings(
-          res.sort(
-            (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white)
-          )
-        );
+        setOpenings(sortOpenings(res));
       });
     },
     [tree, referenceDatabase]
@@ -73,6 +80,7 @@ function DatabasePanel({
           accessor: "move",
           width: 100,
           render: ({ move }) => {
+            if (move === "*") return <Text fs="italic">Game end</Text>;
             const chessMove = uciToMove(move, tree.fen);
             if (!chessMove) return null;
             return <Text>{chessMove.san}</Text>;

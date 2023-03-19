@@ -27,13 +27,11 @@ use shakmaty::{
     Board, ByColor, Chess, EnPassantMode, Position,
 };
 use std::{
+    collections::HashMap,
     ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -428,7 +426,7 @@ pub async fn convert_pgn(
             Black INTEGER,
             UNIQUE(Hash, Move)
         );
-        CREATE INDEX OpeningHash ON Opening (Hash);
+        CREATE INDEX OpeningHash ON Opening (Hash, Move);
         CREATE TABLE Games (
             ID INTEGER PRIMARY KEY AUTOINCREMENT,
             EventID INTEGER,
@@ -642,6 +640,8 @@ pub enum GameSort {
     WhiteElo,
     #[serde(rename = "blackElo")]
     BlackElo,
+    #[serde(rename = "ply_count")]
+    PlyCount,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -735,6 +735,10 @@ pub async fn get_games(
         GameSort::BlackElo => match query.options.direction {
             SortDirection::Asc => sql_query.order(games::black_elo.asc()),
             SortDirection::Desc => sql_query.order(games::black_elo.desc()),
+        },
+        GameSort::PlyCount => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::ply_count.asc()),
+            SortDirection::Desc => sql_query.order(games::ply_count.desc()),
         },
     };
 
@@ -1042,7 +1046,7 @@ pub async fn search_position(
     file: PathBuf,
     fen: String,
     state: tauri::State<'_, AppState>,
-) -> Result<(u64, u64, u64), String> {
+) -> Result<Vec<NormalizedOpening>, String> {
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
@@ -1057,32 +1061,46 @@ pub async fn search_position(
     let start = Instant::now();
     println!("start: {:?}", start.elapsed());
 
-    let games = games::table
+    let games: Vec<(Option<String>, Vec<u8>)> = games::table
         .filter(games::white_material.le(material.white as i32))
         .filter(games::black_material.le(material.black as i32))
-        .select(games::moves2)
+        .select((games::result, games::moves2))
         .load(db)
         .expect("load games");
 
     println!("got {} games: {:?}", games.len(), start.elapsed());
-    let first_seconds: u64 = start.elapsed().as_millis().try_into().unwrap();
 
     let global_games = Arc::new(games);
-    let counter = AtomicUsize::new(0);
+    let openings: Mutex<HashMap<String, NormalizedOpening>> = Mutex::new(HashMap::new());
 
-    global_games.par_iter().for_each(|game| {
-        if let Ok(true) = position_search(game, &processed_position, &material) {
-            counter.fetch_add(1, Ordering::Relaxed);
+    global_games.par_iter().for_each(|(result, game)| {
+        if let Ok(Some(m)) = position_search(game, &processed_position, &material) {
+            let mut openings = openings.lock().unwrap();
+            let opening = openings
+                .entry(m.clone())
+                .or_insert_with(|| NormalizedOpening {
+                    id: 0,
+                    black: 0,
+                    white: 0,
+                    draw: 0,
+                    hash: 0,
+                    move_: m,
+                });
+
+            match result.as_deref() {
+                Some("1-0") => opening.white += 1,
+                Some("0-1") => opening.black += 1,
+                Some("1/2-1/2") => opening.draw += 1,
+                _ => (),
+            }
         }
     });
     println!("done: {:?}", start.elapsed());
-    let second_seconds: u64 = start.elapsed().as_millis().try_into().unwrap();
 
-    Ok((
-        first_seconds,
-        second_seconds - first_seconds,
-        counter.load(Ordering::Relaxed) as u64,
-    ))
+    let openings: Vec<NormalizedOpening> = openings.into_inner().unwrap().into_values().collect();
+    dbg!(&openings);
+
+    Ok(openings)
 }
 
 #[tauri::command]

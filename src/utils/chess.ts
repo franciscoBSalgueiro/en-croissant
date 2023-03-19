@@ -6,7 +6,7 @@ import {
     Move,
     ROOK,
     Square,
-    SQUARES,
+    SQUARES
 } from "chess.js";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome } from "./db";
@@ -504,8 +504,13 @@ export function pgnToUCI(pgn: string): string {
 
 export function uciToMove(uci: string, fen: string): Move | null {
     const chess = new Chess(fen);
+    const orig = uci.slice(0, 2) as Key;
+    const dest = handleMove(chess, orig, uci.slice(2, 4) as Key);
     try {
-        return chess.move(uci);
+        return chess.move({
+            from: orig,
+            to: dest!,
+        });
     } catch (e) {
         return null;
     }

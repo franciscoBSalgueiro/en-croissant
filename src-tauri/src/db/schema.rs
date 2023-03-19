@@ -48,7 +48,7 @@ diesel::table! {
         #[sql_name = "FEN"]
         fen -> Nullable<Text>,
         #[sql_name = "Moves2"]
-        moves2 -> Nullable<Binary>,
+        moves2 -> Binary,
     }
 }
 

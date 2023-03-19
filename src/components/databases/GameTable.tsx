@@ -10,7 +10,7 @@ import {
   Select,
   Stack,
   Text,
-  useMantineTheme,
+  useMantineTheme
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye } from "@tabler/icons-react";
@@ -23,19 +23,12 @@ import {
   NormalizedGame,
   Outcome,
   query_games,
-  Sides,
+  Sides
 } from "../../utils/db";
 import { genID, Tab } from "../tabs/BoardsPage";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
-
-const sortOptions = [
-  { label: "ID", value: "id" },
-  { label: "Date", value: "date" },
-  { label: "White ELO", value: "whiteElo" },
-  { label: "Black ELO", value: "blackElo" },
-];
 
 function GameTable({ database }: { database: Database }) {
   const file = database.file;
@@ -96,6 +89,7 @@ function GameTable({ database }: { database: Database }) {
   }
 
   useEffect(() => {
+    let ignore = false;
     setActivePage(1);
     setSelectedGame(null);
     setLoading(true);
@@ -112,10 +106,15 @@ function GameTable({ database }: { database: Database }) {
       sort: sort.columnAccessor,
       direction: sort.direction,
     }).then((res) => {
-      setLoading(false);
-      setGames(res.data);
-      setCount(res.count);
+      if (!ignore) {
+        setLoading(false);
+        setGames(res.data);
+        setCount(res.count);
+      }
     });
+    return () => {
+      ignore = true;
+    };
   }, [
     player1,
     player2,
@@ -129,6 +128,7 @@ function GameTable({ database }: { database: Database }) {
   ]);
 
   useEffect(() => {
+    let ignore = false;
     setLoading(true);
     setSelectedGame(null);
     query_games(file, {
@@ -143,9 +143,15 @@ function GameTable({ database }: { database: Database }) {
       sort: sort.columnAccessor,
       direction: sort.direction,
     }).then((res) => {
-      setLoading(false);
-      setGames(res.data);
+      if (!ignore) {
+        setLoading(false);
+        setGames(res.data);
+      }
     });
+
+    return () => {
+      ignore = true;
+    };
   }, [activePage, sort]);
 
   useHotkeys([
@@ -286,7 +292,6 @@ function GameTable({ database }: { database: Database }) {
                   </ActionIcon>
                 ),
               },
-              // { accessor: "id", sortable: true },
               {
                 accessor: "white",
                 render: ({ white, white_elo }) => (
@@ -315,6 +320,7 @@ function GameTable({ database }: { database: Database }) {
               },
               { accessor: "date", sortable: true },
               { accessor: "result" },
+              { accessor: "ply_count", sortable: true },
             ]}
             rowClassName={(_, i) =>
               i === selectedGame ? classes.selected : ""

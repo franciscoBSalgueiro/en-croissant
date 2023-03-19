@@ -1,4 +1,4 @@
-use shakmaty::{san::San, uci::Uci, Chess, Move, Position, Square, ByColor};
+use shakmaty::{san::San, uci::Uci, ByColor, Chess, Move, Position, Square};
 
 use super::get_material_count;
 
@@ -36,26 +36,25 @@ pub fn encode_2byte_move(m: &Move) -> Result<[u8; 2], String> {
             return Err("Invalid promotion".to_string());
         }
     };
-    Ok([(from | (dest & 0b00000011) << 6), (dest & 0b11111100) >> 2 | promotion << 4])
+    Ok([
+        (from | (dest & 0b00000011) << 6),
+        (dest & 0b11111100) >> 2 | promotion << 4,
+    ])
 }
 
-pub fn decode_moves(moves_bytes: Option<Vec<u8>>) -> Result<String, String> {
-    if let Some(move_blob) = moves_bytes {
-        let mut chess = Chess::default();
-        let mut moves = Vec::new();
-        let mut i = 0;
-        while i < move_blob.len() {
-            let uci = decode_2byte_move(&move_blob[i..i + 2])?;
-            let m = uci.to_move(&chess).or(Err("Invalid move"))?;
-            let san = San::from_move(&chess, &m);
-            chess.play_unchecked(&m);
-            moves.push(san.to_string());
-            i += 2;
-        }
-        Ok(moves.join(" "))
-    } else {
-        Ok(String::new())
+pub fn decode_moves(moves_bytes: Vec<u8>) -> Result<String, String> {
+    let mut chess = Chess::default();
+    let mut moves = Vec::new();
+    let mut i = 0;
+    while i < moves_bytes.len() {
+        let uci = decode_2byte_move(&moves_bytes[i..i + 2])?;
+        let m = uci.to_move(&chess).or(Err("Invalid move"))?;
+        let san = San::from_move(&chess, &m);
+        chess.play_unchecked(&m);
+        moves.push(san.to_string());
+        i += 2;
     }
+    Ok(moves.join(" "))
 }
 
 // pub fn encode_moves(moves: &Vec<SanPlus>) -> Result<Vec<u8>, String> {
@@ -69,23 +68,29 @@ pub fn decode_moves(moves_bytes: Option<Vec<u8>>) -> Result<String, String> {
 //     Ok(move_blob)
 // }
 
-pub fn position_search(move_blob: &Option<Vec<u8>>, test_position: &Chess, material: &ByColor<u8>) -> Result<bool, String> {
-    if let Some(move_blob) = move_blob {
-        let mut chess = Chess::default();
-        let mut i = 0;
-        while i < move_blob.len() {
-            let uci = decode_2byte_move(&move_blob[i..i + 2])?;
-            let m = uci.to_move(&chess).or(Err("Invalid move"))?;
-            chess.play_unchecked(&m);
-            let cur_material = get_material_count(chess.board());
-            if cur_material.white < material.white || cur_material.black < material.black { 
-                return Ok(false);
-            }
-            if chess == *test_position {
-                return Ok(true);
-            }
-            i += 2;
+pub fn position_search(
+    move_blob: &Vec<u8>,
+    test_position: &Chess,
+    material: &ByColor<u8>,
+) -> Result<Option<String>, String> {
+    let mut chess = Chess::default();
+    let mut i = 0;
+    while i < move_blob.len() {
+        let uci = decode_2byte_move(&move_blob[i..i + 2])?;
+        let m = uci.to_move(&chess).or(Err("Invalid move"))?;
+        chess.play_unchecked(&m);
+        let cur_material = get_material_count(chess.board());
+        if cur_material.white < material.white || cur_material.black < material.black {
+            return Ok(None);
         }
+        if chess == *test_position {
+            if i + 2 >= move_blob.len() {
+                return Ok(Some("*".to_string()));
+            }
+            let next_move = decode_2byte_move(&move_blob[i + 2..i + 4])?;
+            return Ok(Some(next_move.to_string()));
+        }
+        i += 2;
     }
-    Ok(false)
+    Ok(None)
 }

@@ -168,7 +168,7 @@ export async function getDatabase(path: string): Promise<Database> {
 export async function search_position(
     db: string,
     fen: string
-): Promise<[number, number, number]> {
+): Promise<Opening[]> {
     return invoke("search_position", {
         file: db,
         fen,

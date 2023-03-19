@@ -45,7 +45,7 @@ pub struct Game {
     pub eco: Option<String>,
     pub ply_count: Option<i32>,
     pub fen: Option<String>,
-    pub moves2: Option<Vec<u8>>,
+    pub moves2: Vec<u8>,
 }
 
 #[derive(Insertable, Debug)]

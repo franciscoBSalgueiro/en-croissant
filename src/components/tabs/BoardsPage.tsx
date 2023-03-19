@@ -182,6 +182,7 @@ export default function BoardsPage() {
       onTabChange={(v) => setActiveTab(v)}
       variant="outline"
       my="md"
+      keepMounted={false}
     >
       <Stack pos="relative">
         <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
