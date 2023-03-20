@@ -5,7 +5,7 @@ import GamePreview from "./GamePreview";
 
 function GameCard({ game }: { game: NormalizedGame }) {
   return (
-    <Paper shadow="sm" p="sm" my="md" withBorder>
+    <Paper shadow="sm" p="sm" withBorder>
       <Stack>
         <GameInfo game={game} />
         <Divider mb="sm" />

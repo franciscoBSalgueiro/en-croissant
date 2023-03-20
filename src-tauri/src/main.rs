@@ -148,8 +148,14 @@ fn main() {
             convert_pgn,
             search_position,
             search_opening,
-            get_single_best_move
+            get_single_best_move,
+            is_bmi2_compatible
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+fn is_bmi2_compatible() -> bool {
+    is_x86_feature_detected!("bmi2")
 }

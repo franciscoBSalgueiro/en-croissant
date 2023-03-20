@@ -1,4 +1,5 @@
 import { OS } from "@mantine/hooks";
+import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 
@@ -14,8 +15,9 @@ export interface Engine {
 }
 
 export async function getDefaultEngines(os: OS): Promise<Engine[]> {
+    let bmi2: boolean = await invoke("is_bmi2_compatible");
     let data: any = await fetch(
-        "https://www.encroissant.org/engines?os=" + os,
+        `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
         {
             method: "GET",
         }
