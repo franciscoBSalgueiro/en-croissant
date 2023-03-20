@@ -1,5 +1,7 @@
 import { Button, Modal, Select, TextInput } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
+import { IconX } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
@@ -225,12 +227,21 @@ function Accounts() {
         setOpen={setOpen}
         addLichess={login}
         addChessCom={(u) => {
-          getChessComAccount(u).then((stats) => {
-            setSessions((sessions) => [
-              ...sessions,
-              { chessCom: { username: u, stats }, updatedAt: Date.now() },
-            ]);
-          });
+          getChessComAccount(u)
+            .then((stats) => {
+              setSessions((sessions) => [
+                ...sessions,
+                { chessCom: { username: u, stats }, updatedAt: Date.now() },
+              ]);
+            })
+            .catch(() => {
+              notifications.show({
+                title: "Failed to add account",
+                message: 'Could not find account "' + u + '" on chess.com',
+                color: "red",
+                icon: <IconX />,
+              });
+            });
         }}
       />
     </>

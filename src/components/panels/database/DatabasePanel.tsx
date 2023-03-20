@@ -2,6 +2,7 @@ import { createStyles, Progress, Text } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
+import Link from "next/link";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
 import { Opening, search_opening, search_position } from "../../../utils/db";
@@ -130,7 +131,19 @@ function DatabasePanel({
           },
         },
       ]}
-      noRecordsText="No openings found"
+      // noRecordsText={referenceDatabase ? "No openings found": "No database selected"}
+      emptyState={
+        referenceDatabase ? (
+          "No openings found"
+        ) : (
+          <Text sx={{
+            pointerEvents: "all",
+          }}>
+            No reference database selected. Please{" "}
+            <Link href="/databases">Add a database</Link> first.
+          </Text>
+        )
+      }
       onRowClick={({ move }) => {
         const chessMove = uciToMove(move, tree.fen);
         if (!chessMove) return;

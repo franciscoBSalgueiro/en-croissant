@@ -1,6 +1,6 @@
 {
   "package": {
-    "productName": "En Croissant"
+    "productName": "en-croissant"
   },
   "build": {
     "beforeDevCommand": "pnpm dev",

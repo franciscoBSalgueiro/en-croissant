@@ -50,6 +50,9 @@ type ChessComGames = {
 export async function getChessComAccount(player: string) {
     const url = `${base_url}/pub/player/${player}/stats`;
     const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error("Failed to fetch Chess.com account");
+    }
     return (await response.json()) as ChessComStats;
 }
 
