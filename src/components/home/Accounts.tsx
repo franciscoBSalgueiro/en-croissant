@@ -5,30 +5,11 @@ import { IconX } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
-import { ChessComStats, getChessComAccount } from "../../utils/chesscom";
+import { getChessComAccount } from "../../utils/chesscom";
 import { Database, getDatabases } from "../../utils/db";
-import {
-  createCodes,
-  getLichessAccount,
-  LichessAccount
-} from "../../utils/lichess";
-import { AccountCard } from "./AccountCard";
-
-type LichessSession = {
-  accessToken: string;
-  account: LichessAccount;
-};
-
-type ChessComSession = {
-  username: string;
-  stats: ChessComStats;
-};
-
-type Session = {
-  lichess?: LichessSession;
-  chessCom?: ChessComSession;
-  updatedAt: number;
-};
+import { createCodes, getLichessAccount } from "../../utils/lichess";
+import { Session } from "../../utils/session";
+import AccountCards from "../common/AccountCards";
 
 function Accounts() {
   const [sessions, setSessions] = useLocalStorage<Session[]>({
@@ -79,147 +60,14 @@ function Accounts() {
     listen_for_code();
   }, []);
 
-  function countGames(stats: ChessComStats) {
-    let total = 0;
-    Object.values(stats).forEach((stat) => {
-      if (stat.record)
-        total += stat.record.win + stat.record.loss + stat.record.draw;
-    });
-    return total;
-  }
-
   return (
     <>
-      {sessions.map((session) => {
-        if (session.lichess) {
-          const account = session.lichess.account;
-          const lichessSession = session.lichess;
-          return (
-            <AccountCard
-              key={account.id}
-              type="lichess"
-              database={
-                databases.find(
-                  (db) => db.description === account.username + "_lichess.db3"
-                ) ?? null
-              }
-              title={account.username}
-              updatedAt={session.updatedAt}
-              total={account.count.all}
-              logout={() => {
-                setSessions((sessions) =>
-                  sessions.filter((s) => s.lichess?.account.id !== account.id)
-                );
-              }}
-              setDatabases={setDatabases}
-              reload={() => {
-                getLichessAccount(lichessSession.accessToken).then(
-                  (account) => {
-                    setSessions((sessions) =>
-                      sessions.map((s) =>
-                        s.lichess?.account.id === account.id
-                          ? {
-                              ...s,
-                              lichess: {
-                                account: account,
-                                accessToken: lichessSession.accessToken,
-                              },
-                              updatedAt: Date.now(),
-                            }
-                          : s
-                      )
-                    );
-                  }
-                );
-              }}
-              stats={[
-                {
-                  value: account.perfs.bullet.rating,
-                  label: "Bullet",
-                  diff: account.perfs.bullet.prog,
-                },
-                {
-                  value: account.perfs.blitz.rating,
-                  label: "Blitz",
-                  diff: account.perfs.blitz.prog,
-                },
-                {
-                  value: account.perfs.rapid.rating,
-                  label: "Rapid",
-                  diff: account.perfs.rapid.prog,
-                },
-                {
-                  value: account.perfs.classical.rating,
-                  label: "Classical",
-                  diff: account.perfs.classical.prog,
-                },
-              ]}
-            />
-          );
-        }
-        if (session.chessCom) {
-          return (
-            <AccountCard
-              key={session.chessCom.username}
-              type="chesscom"
-              title={session.chessCom.username}
-              database={
-                databases.find(
-                  (db) =>
-                    db.description ===
-                    session.chessCom?.username + "_chesscom.db3"
-                ) ?? null
-              }
-              updatedAt={session.updatedAt}
-              total={countGames(session.chessCom.stats)}
-              stats={[
-                {
-                  value: session.chessCom.stats.chess_bullet.last.rating,
-                  label: "Bullet",
-                },
-                {
-                  value: session.chessCom.stats.chess_blitz.last.rating,
-                  label: "Blitz",
-                },
-                {
-                  value: session.chessCom.stats.chess_rapid.last.rating,
-                  label: "Rapid",
-                },
-                {
-                  value: session.chessCom.stats.chess_daily.last.rating,
-                  label: "Daily",
-                },
-              ]}
-              logout={() => {
-                setSessions((sessions) =>
-                  sessions.filter(
-                    (s) => s.chessCom?.username !== session.chessCom?.username
-                  )
-                );
-              }}
-              reload={() => {
-                getChessComAccount(session.chessCom!.username).then((stats) => {
-                  setSessions((sessions) =>
-                    sessions.map((s) =>
-                      s.chessCom?.username === session.chessCom?.username
-                        ? {
-                            ...s,
-                            chessCom: {
-                              username: session.chessCom!.username,
-                              stats,
-                            },
-                            updatedAt: Date.now(),
-                          }
-                        : s
-                    )
-                  );
-                });
-              }}
-              setDatabases={setDatabases}
-            />
-          );
-        }
-      })}
+      <AccountCards
+        sessions={sessions}
+        databases={databases}
+        setDatabases={setDatabases}
+        setSessions={setSessions}
+      />
 
       <Button onClick={() => setOpen(true)}>Add Account</Button>
       <AccountModal

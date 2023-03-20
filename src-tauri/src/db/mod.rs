@@ -989,6 +989,7 @@ pub struct PlayerGameInfo {
     pub won: usize,
     pub lost: usize,
     pub draw: usize,
+    pub games_per_month: Vec<(String, usize)>,
 }
 
 #[tauri::command]
@@ -1001,24 +1002,40 @@ pub async fn get_players_game_info(
     let db = &mut pool.get().unwrap();
 
     let sql_query = games::table
-        .group_by(games::result)
-        .select((games::result, diesel::dsl::count(games::id)))
+        .select((games::result, games::date))
         .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
 
-    let info: Vec<(Option<String>, i64)> = sql_query.load(db).expect("load games");
+    let info: Vec<(Option<String>, Option<String>)> = sql_query.load(db).expect("load games");
 
     let mut game_info = PlayerGameInfo {
         won: 0,
         lost: 0,
         draw: 0,
+        games_per_month: vec![],
     };
 
-    for (outcome, count) in info {
+    for (outcome, date) in info {
         match outcome.unwrap_or_default().as_str() {
-            "1-0" => game_info.won = count as usize,
-            "0-1" => game_info.lost = count as usize,
-            "1/2-1/2" => game_info.draw = count as usize,
+            "1-0" => game_info.won += 1,
+            "0-1" => game_info.lost += 1,
+            "1/2-1/2" => game_info.draw += 1,
             _ => (),
+        }
+
+        if let Some(date) = date {
+            let date = NaiveDate::parse_from_str(&date, "%Y.%m.%d").unwrap();
+            let month = date.format("%Y-%m").to_string();
+
+            // increment month count or add new month
+            if let Some((_, count)) = game_info
+                .games_per_month
+                .iter_mut()
+                .find(|(m, _)| m == &month)
+            {
+                *count += 1;
+            } else {
+                game_info.games_per_month.push((month, 1));
+            }
         }
     }
 

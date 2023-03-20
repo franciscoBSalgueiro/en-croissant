@@ -1,7 +1,6 @@
-import { createStyles, Paper, Progress, Stack, Text } from "@mantine/core";
-import { invoke } from "@tauri-apps/api";
+import { createStyles, Group, Paper, Progress, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { Player } from "../../utils/db";
+import { getPlayersGameInfo, Player } from "../../utils/db";
 
 const useStyles = createStyles((theme) => ({
   progressLabel: {
@@ -15,6 +14,7 @@ interface PlayerGameInfo {
   won: number;
   lost: number;
   draw: number;
+  games_per_month: [string, number][];
 }
 
 function PlayerCard({ player, file }: { player: Player; file: string }) {
@@ -50,10 +50,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
 
   useEffect(() => {
     async function fetchGames() {
-      const games = (await invoke("get_players_game_info", {
-        file,
-        id: player.id,
-      })) as PlayerGameInfo;
+      const games = (await getPlayersGameInfo(file, player)) as PlayerGameInfo;
       setInfo(games);
     }
     fetchGames();
@@ -75,6 +72,14 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
         classNames={{ label: classes.progressLabel }}
         mt={40}
       />
+
+      <Group>
+        {info?.games_per_month.map(([month, games]) => (
+          <Text key={month} align="center">
+            {month}: {games}
+          </Text>
+        ))}
+      </Group>
     </Paper>
   );
 }

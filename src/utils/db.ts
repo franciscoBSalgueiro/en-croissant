@@ -149,10 +149,12 @@ export async function getDatabases(): Promise<Database[]> {
     let dbs = files.filter((file) => file.name?.endsWith(".db3"));
     return (
         await Promise.all(
-            dbs.map((db) => getDatabase(db.path).catch((e) => {
-                console.log(e);
-                return null;
-            }))
+            dbs.map((db) =>
+                getDatabase(db.path).catch((e) => {
+                    console.log(e);
+                    return null;
+                })
+            )
         )
     ).filter((db) => db !== null) as Database[];
 }
@@ -248,4 +250,26 @@ export function defaultGame(): NormalizedGame {
         moves: "",
         result: Outcome.Unknown,
     };
+}
+
+export async function getPlayersGameInfo(
+    file: string,
+    player?: Player,
+    username?: string
+) {
+    if (username) {
+        const players = await query_players(file, {
+            name: username,
+            pageSize: 1,
+            direction: "asc",
+            sort: "id",
+        });
+        if (players.data.length > 0) {
+            player = players.data[0];
+        }
+    }
+    return invoke("get_players_game_info", {
+        file,
+        id: player?.id,
+    });
 }
