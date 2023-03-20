@@ -48,7 +48,7 @@ function DatabasePanel({
       if (!referenceDatabase) return;
       setLoading(true);
 
-      if (tree.half_moves >= 10) {
+      if (tree.halfMoves >= 10) {
         setOpenings([]);
         search_position(referenceDatabase, fen).then((res) => {
           setLoading(false);

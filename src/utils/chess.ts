@@ -78,7 +78,7 @@ export class VariationTree {
     children: VariationTree[];
     score: Score | null;
     depth: number;
-    half_moves: number;
+    halfMoves: number;
     annotation: Annotation = Annotation.None;
     commentHTML: string = "";
     commentText: string = "";
@@ -97,7 +97,7 @@ export class VariationTree {
         this.children = children ?? [];
         this.score = score ?? null;
         this.depth = depth ?? 0;
-        this.half_moves = parent ? parent.half_moves + 1 : 0;
+        this.halfMoves = parent ? parent.halfMoves + 1 : 0;
     }
 
     equals(other: VariationTree): boolean {
@@ -125,8 +125,8 @@ export class VariationTree {
         if (this.move === null) {
             return "";
         }
-        const isBlack = this.half_moves % 2 === 0;
-        const moveNumber = Math.ceil(this.half_moves / 2);
+        const isBlack = this.halfMoves % 2 === 0;
+        const moveNumber = Math.ceil(this.halfMoves / 2);
         let moveText = "";
         if (isBlack) {
             if (isFirst) {
@@ -318,9 +318,11 @@ export function swapMove(fen: string) {
 
 export function parsePGN(
     pgn: string,
-    fen: string = DEFAULT_POSITION
+    fen: string = DEFAULT_POSITION,
+    halfMoves: number = 0
 ): VariationTree {
     let tree = new VariationTree(null, fen, null);
+    tree.halfMoves = halfMoves;
     pgn = pgn.replaceAll("(", " ( ");
     pgn = pgn.replaceAll(")", " ) ");
     pgn = pgn.replaceAll("{", " { ");
@@ -367,7 +369,7 @@ export function parsePGN(
                 i++;
             }
             tree = tree.parent!;
-            const variationTree = parsePGN(variation, tree.fen).children[0];
+            const variationTree = parsePGN(variation, tree.fen, tree.halfMoves).children[0];
             variationTree.parent = tree;
             tree.children.push(variationTree);
             tree = tree.children[0];

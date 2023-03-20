@@ -164,6 +164,26 @@ function BoardAnalysis({ id }: { id: string }) {
     setTree(newTree);
   }
 
+  function deleteVariation() {
+    if (tree.parent) {
+      tree.parent.children = tree.parent.children.filter(
+        (child) => !child.equals(tree)
+      );
+      setTree(tree.parent);
+    }
+  }
+
+  function promoteVariation() {
+    if (tree.parent) {
+      const parent = tree.parent;
+      parent.children = [
+        tree,
+        ...parent.children.filter((child) => !child.equals(tree)),
+      ];
+      forceUpdate();
+    }
+  }
+
   function addPiece(square: Square, piece: PieceSymbol, color: Color) {
     chess.put({ type: piece, color }, square);
     const newTree = new VariationTree(null, chess.fen(), null);
@@ -199,6 +219,7 @@ function BoardAnalysis({ id }: { id: string }) {
     ["ArrowRight", () => redoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
+    ["Delete", () => deleteVariation()],
   ]);
 
   useEffect(() => {
@@ -321,6 +342,8 @@ function BoardAnalysis({ id }: { id: string }) {
           <Stack>
             <GameNotation
               setTree={setTree}
+              deleteVariation={deleteVariation}
+              promoteVariation={promoteVariation}
               topVariation={tree.getTopVariation()}
               result={game.result}
               boardSize={width > 1000 ? boardSize : 600}

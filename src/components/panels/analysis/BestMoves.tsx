@@ -108,7 +108,7 @@ function BestMoves({
 }: BestMovesProps) {
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
-  const half_moves = tree.half_moves;
+  const halfMoves = tree.halfMoves;
   const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
     []
   );
@@ -201,7 +201,7 @@ function BestMoves({
             }}
           >
             {moves.map((move, index) => {
-              const total_moves = half_moves + index + 1 + (threat ? 1 : 0);
+              const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
               const is_white = total_moves % 2 === 1;
               const move_number = Math.ceil(total_moves / 2);
 

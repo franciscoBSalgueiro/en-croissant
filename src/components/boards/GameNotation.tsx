@@ -12,12 +12,13 @@ import {
   Text,
   Tooltip,
   TypographyStylesProvider,
-  useMantineTheme,
+  useMantineTheme
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
+  IconArrowUp,
   IconArticle,
   IconArticleOff,
   IconCheck,
@@ -26,6 +27,7 @@ import {
   IconEyeOff,
   IconMinus,
   IconPlus,
+  IconX
 } from "@tabler/icons-react";
 import { VariationTree } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
@@ -47,9 +49,13 @@ function GameNotation({
   topVariation,
   result,
   boardSize,
+  deleteVariation,
+  promoteVariation,
 }: {
   setTree: (tree: VariationTree) => void;
   topVariation: VariationTree;
+  deleteVariation?: () => void;
+  promoteVariation?: () => void;
   result?: string;
   boardSize: number;
 }) {
@@ -75,6 +81,20 @@ function GameNotation({
             <Group style={{ justifyContent: "space-between" }}>
               <OpeningName />
               <Group spacing="sm">
+                {deleteVariation && (
+                  <Tooltip label="Delete variation">
+                    <ActionIcon onClick={() => deleteVariation()}>
+                      <IconX size={15} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+                {promoteVariation && (
+                  <Tooltip label="Promote variation">
+                    <ActionIcon onClick={() => promoteVariation()}>
+                      <IconArrowUp size={15} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
                 <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
                   <ActionIcon onClick={() => toggleVisible()}>
                     {invisible ? (

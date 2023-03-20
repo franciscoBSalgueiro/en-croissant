@@ -18,9 +18,9 @@ function CompleteMoveCell({
   first?: boolean;
 }) {
   const currentTree = useContext(TreeContext);
-  const move_number = Math.ceil(tree.half_moves / 2);
-  const is_white = tree.half_moves % 2 === 1;
-  const hasNumber = tree.half_moves > 0 && (first || is_white);
+  const move_number = Math.ceil(tree.halfMoves / 2);
+  const is_white = tree.halfMoves % 2 === 1;
+  const hasNumber = tree.halfMoves > 0 && (first || is_white);
   const lastMove = tree.move;
   const isCurrentVariation = tree === currentTree;
 
