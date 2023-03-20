@@ -25,10 +25,10 @@ En-Croissant is a free cross-platform chess GUI and analysis tool. It comes with
 * Prepare a repertoire with the opening explorer
 * Simple engine and database installation and management
 
-It also includes a database, similar to [OCGDB](https://github.com/nguyenpham/ocgdb), with support for absolute or relative position search.
+It also includes a database, similar to [OCGDB](https://github.com/nguyenpham/ocgdb), with support for absolute or partial position search.
 
 
-## Development
+## Building from source
 
 Refer to the [Tauri documentation](https://tauri.app/v1/guides/getting-started/prerequisites) for the requirements on your platform.
 
@@ -37,5 +37,7 @@ Refer to the [Tauri documentation](https://tauri.app/v1/guides/getting-started/p
 git clone https://github.com/franciscoBSalgueiro/en-croissant
 cd en-croissant
 pnpm install
-pnpm tauri dev
+pnpm tauri build
 ```
+
+The built app will be on `src-tauri/target/release`

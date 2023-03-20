@@ -1,14 +1,13 @@
 {
+  "package": {
+    "productName": "En Croissant"
+  },
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist",
     "withGlobalTauri": false
-  },
-  "package": {
-    "productName": "en-croissant",
-    "version": "0.0.1"
   },
   "tauri": {
     "allowlist": {
@@ -35,7 +34,9 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "org.en.croissant",
+      "identifier": "org.encroissant.app",
+      "publisher": "Francisco Salgueiro",
+      "shortDescription": "A Modern Chess Database",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -45,7 +46,6 @@
         "signingIdentity": null
       },
       "resources": [],
-      "shortDescription": "",
       "targets": "all",
       "windows": {
         "certificateThumbprint": null,
