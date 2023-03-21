@@ -160,6 +160,20 @@ export class VariationTree {
         specialSymbols: boolean = true
     ): string {
         let pgn = "";
+        if (this.parent === null) {
+            pgn += '[Event "?"]\n';
+            pgn += '[Site "?"]\n';
+            pgn += '[Date "?"]\n';
+            pgn += '[Round "?"]\n';
+            pgn += '[White "?"]\n';
+            pgn += '[Black "?"]\n';
+            pgn += '[Result "*"]\n';
+            if (this.fen !== DEFAULT_POSITION) {
+                pgn += '[FEN "' + this.fen + '"]\n\n';
+            } else {
+                pgn += "\n";
+            }
+        }
         const variationsPGN = variations
             ? this.children
                   .slice(1)
@@ -323,6 +337,8 @@ export function parsePGN(
 ): VariationTree {
     let tree = new VariationTree(null, fen, null);
     tree.halfMoves = halfMoves;
+    pgn = pgn.replaceAll("[", " [ ");
+    pgn = pgn.replaceAll("]", " ] ");
     pgn = pgn.replaceAll("(", " ( ");
     pgn = pgn.replaceAll(")", " ) ");
     pgn = pgn.replaceAll("{", " { ");
@@ -334,10 +350,22 @@ export function parsePGN(
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
-        if (token === "" || token.includes(".")) {
+        if (token === "[") {
+            let tag = "";
+            let value = "";
+            i++;
+            tag += tokens[i];
+            i++;
+            while (tokens[i] !== "]") {
+                value += tokens[i] + " ";
+                i++;
+            }
+            if (tag === "FEN") {
+                tree.fen = value.substring(1, value.length - 1);
+            }
+        } else if (token === "" || token.includes(".")) {
             continue;
-        }
-        if (token === "{") {
+        } else if (token === "{") {
             let comment = "";
             let score: Score | null = null;
             i++;
@@ -369,7 +397,8 @@ export function parsePGN(
                 i++;
             }
             tree = tree.parent!;
-            const variationTree = parsePGN(variation, tree.fen, tree.halfMoves).children[0];
+            const variationTree = parsePGN(variation, tree.fen, tree.halfMoves)
+                .children[0];
             variationTree.parent = tree;
             tree.children.push(variationTree);
             tree = tree.children[0];

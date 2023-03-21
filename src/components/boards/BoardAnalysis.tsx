@@ -7,7 +7,6 @@ import {
   Stack,
   Tabs
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
 import {
   useForceUpdate,
   useHotkeys,
@@ -23,11 +22,8 @@ import {
 } from "@tabler/icons-react";
 import {
   Chess,
-  Color,
-  DEFAULT_POSITION,
-  PieceSymbol,
-  Square,
-  validateFen
+  Color, PieceSymbol,
+  Square
 } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
@@ -63,21 +59,6 @@ function BoardAnalysis({ id }: { id: string }) {
     "engines/engines.json",
     []
   );
-  const form = useForm({
-    initialValues: {
-      fen: DEFAULT_POSITION,
-    },
-    validate: {
-      fen: (value) => {
-        const v = validateFen(value);
-        if (v.ok) {
-          return null;
-        } else {
-          return v.error;
-        }
-      },
-    },
-  });
 
   const initial_tree = useMemo(() => {
     const storedTree = sessionStorage.getItem(id + "-tree");
@@ -285,7 +266,7 @@ function BoardAnalysis({ id }: { id: string }) {
             <Tabs.Panel value="info" pt="xs">
               <Stack>
                 <GameInfo game={game} />
-                <FenInput form={form} onSubmit={resetToFen} />
+                <FenInput onSubmit={resetToFen} />
                 <PgnInput />
               </Stack>
             </Tabs.Panel>

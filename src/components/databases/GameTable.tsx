@@ -137,6 +137,7 @@ function GameTable({ database }: { database: Database }) {
       rangePlayer1: rangePlayer1,
       rangePlayer2: rangePlayer2,
       outcome: outcome === null ? undefined : (outcome as Outcome),
+      sides: sides,
       page: activePage,
       pageSize: limit,
       skip_count: true,
