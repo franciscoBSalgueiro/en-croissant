@@ -93,7 +93,10 @@ pub fn parse_uci(
     let uci_moves: Vec<String> = pv.split_whitespace().map(|x| x.to_string()).collect();
 
     let fen: Fen = fen.parse()?;
-    let mut pos: Chess = fen.into_position(CastlingMode::Standard)?;
+    let mut pos: Chess = match fen.into_position(CastlingMode::Standard) {
+        Ok(p) => p,
+        Err(e) => e.ignore_impossible_material().unwrap(),
+    };
     if pos.turn() == Color::Black {
         score = match score {
             Score::Cp(x) => Score::Cp(-x),
