@@ -719,29 +719,6 @@ pub async fn get_games(
         sql_query = sql_query.offset((page - 1) * query.options.page_size.unwrap_or(10));
     }
 
-    sql_query = match query.options.sort {
-        GameSort::Id => match query.options.direction {
-            SortDirection::Asc => sql_query.order(games::id.asc()),
-            SortDirection::Desc => sql_query.order(games::id.desc()),
-        },
-        GameSort::Date => match query.options.direction {
-            SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
-            SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
-        },
-        GameSort::WhiteElo => match query.options.direction {
-            SortDirection::Asc => sql_query.order(games::white_elo.asc()),
-            SortDirection::Desc => sql_query.order(games::white_elo.desc()),
-        },
-        GameSort::BlackElo => match query.options.direction {
-            SortDirection::Asc => sql_query.order(games::black_elo.asc()),
-            SortDirection::Desc => sql_query.order(games::black_elo.desc()),
-        },
-        GameSort::PlyCount => match query.options.direction {
-            SortDirection::Asc => sql_query.order(games::ply_count.asc()),
-            SortDirection::Desc => sql_query.order(games::ply_count.desc()),
-        },
-    };
-
     match query.sides {
         Some(Sides::BlackWhite) => {
             if let Some(player1) = query.player1 {
@@ -866,6 +843,29 @@ pub async fn get_games(
         }
         None => {}
     }
+
+    sql_query = match query.options.sort {
+        GameSort::Id => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::id.asc()),
+            SortDirection::Desc => sql_query.order(games::id.desc()),
+        },
+        GameSort::Date => match query.options.direction {
+            SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
+            SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
+        },
+        GameSort::WhiteElo => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::white_elo.asc()),
+            SortDirection::Desc => sql_query.order(games::white_elo.desc()),
+        },
+        GameSort::BlackElo => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::black_elo.asc()),
+            SortDirection::Desc => sql_query.order(games::black_elo.desc()),
+        },
+        GameSort::PlyCount => match query.options.direction {
+            SortDirection::Asc => sql_query.order(games::ply_count.asc()),
+            SortDirection::Desc => sql_query.order(games::ply_count.desc()),
+        },
+    };
 
     if !query.options.skip_count {
         count = Some(
