@@ -179,6 +179,7 @@ function Puzzles({ id }: { id: string }) {
           <Text>Results</Text>
           <Group>
             {puzzles.map((p, i) => {
+              const current = i === currentPuzzle;
               switch (p.completion) {
                 case Completion.CORRECT:
                   return (
@@ -187,6 +188,7 @@ function Puzzles({ id }: { id: string }) {
                       variant="light"
                       key={i}
                       color="green"
+                      sx={{ border: current ? "2px solid green" : "none" }}
                     >
                       <IconCheck color="green" />
                     </ActionIcon>
@@ -198,6 +200,7 @@ function Puzzles({ id }: { id: string }) {
                       variant="light"
                       key={i}
                       color="red"
+                      sx={{ border: current ? "2px solid red" : "none" }}
                     >
                       <IconX color="red" />
                     </ActionIcon>
@@ -209,6 +212,7 @@ function Puzzles({ id }: { id: string }) {
                       variant="light"
                       key={i}
                       color="yellow"
+                      sx={{ border: current ? "2px solid yellow" : "none" }}
                     >
                       <IconDots color="yellow" />
                     </ActionIcon>

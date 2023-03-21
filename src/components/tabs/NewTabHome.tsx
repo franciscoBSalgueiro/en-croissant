@@ -1,8 +1,7 @@
 import {
   faChess,
   faChessBoard,
-  faFileImport,
-  faPuzzlePiece,
+  faFileImport
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -13,7 +12,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Textarea,
+  Textarea
 } from "@mantine/core";
 import { useState } from "react";
 import { getCompleteGame } from "../../utils/chess";
@@ -65,20 +64,20 @@ export default function NewTabHome({
         setOpenModal(true);
       },
     },
-    {
-      icon: faPuzzlePiece,
-      title: "Puzzles",
-      description: "Train your chess skills",
-      label: "Train",
-      onClick: () => {
-        setTabs((prev: any) => {
-          const tab = prev.find((t: any) => t.value === id);
-          tab.name = "Puzzle Training";
-          tab.type = "puzzles";
-          return [...prev];
-        });
-      },
-    },
+    // {
+    //   icon: faPuzzlePiece,
+    //   title: "Puzzles",
+    //   description: "Train your chess skills",
+    //   label: "Train",
+    //   onClick: () => {
+    //     setTabs((prev: any) => {
+    //       const tab = prev.find((t: any) => t.value === id);
+    //       tab.name = "Puzzle Training";
+    //       tab.type = "puzzles";
+    //       return [...prev];
+    //     });
+    //   },
+    // },
   ];
 
   return (

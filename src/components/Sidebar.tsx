@@ -3,7 +3,7 @@ import {
   Navbar,
   Stack,
   Tooltip,
-  UnstyledButton,
+  UnstyledButton
 } from "@mantine/core";
 import {
   Icon,
@@ -11,8 +11,7 @@ import {
   IconDatabase,
   IconHome2,
   IconRobot,
-  IconSettings,
-  IconUser,
+  IconSettings
 } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 
@@ -76,10 +75,10 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 }
 
 const linksdata = [
+  { icon: IconHome2, label: "Home", url: "/" },
   { icon: IconChess, label: "Play", url: "/boards" },
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },
-  { icon: IconUser, label: "Account", url: "/account" },
 ];
 
 export function SideBar() {
@@ -96,13 +95,7 @@ export function SideBar() {
 
   return (
     <Navbar width={{ base: 80 }} p="md">
-      <NavbarLink
-        icon={IconHome2}
-        url={"/"}
-        active={router.pathname === "/"}
-        label="Home"
-      />
-      <Navbar.Section grow mt={50}>
+      <Navbar.Section grow mt={100}>
         <Stack justify="center" spacing={0}>
           {links}
         </Stack>
