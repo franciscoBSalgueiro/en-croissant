@@ -26,6 +26,7 @@ import {
   ROOK,
   Square
 } from "chess.js";
+import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { useContext, useRef, useState } from "react";
 import Chessground from "react-chessground";
@@ -34,7 +35,8 @@ import {
   handleMove,
   moveToKey,
   parseUci,
-  toDests
+  toDests,
+  VariationTree
 } from "../../utils/chess";
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
@@ -53,6 +55,8 @@ const useStyles = createStyles((theme) => ({
 interface ChessboardProps {
   arrows: string[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
+  forceUpdate: () => void;
+  setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
   addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
   editingMode: boolean;
   toggleEditingMode: () => void;
@@ -67,6 +71,8 @@ const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
 
 function BoardPlay({
   arrows,
+  forceUpdate,
+  setTree,
   makeMove,
   addPiece,
   editingMode,
@@ -128,6 +134,22 @@ function BoardPlay({
   const boardSize = getBoardSize(height, width);
 
   useHotkeys([["f", () => toggleOrientation()]]);
+
+  let shapes: DrawShape[] =
+    showArrows && arrows.length > 0
+      ? arrows.map((move, i) => {
+          const { from, to } = parseUci(move);
+          return {
+            orig: from,
+            dest: to,
+            brush: i === 0 ? "paleBlue" : "paleGrey",
+          };
+        })
+      : [];
+
+  if (tree.shapes.length > 0) {
+    shapes = shapes.concat(tree.shapes);
+  }
 
   const pieces = ["p", "n", "b", "r", "q", "k"] as const;
   const colors = ["w", "b"] as const;
@@ -236,17 +258,21 @@ function BoardPlay({
             visible: true,
             defaultSnapToValidMove: true,
             eraseOnClick: true,
-            autoShapes:
-              showArrows && arrows.length > 0
-                ? arrows.map((move, i) => {
-                    const { from, to } = parseUci(move);
-                    return {
-                      orig: from,
-                      dest: to,
-                      brush: i === 0 ? "paleBlue" : "paleGrey",
-                    };
-                  })
-                : [],
+            autoShapes: shapes,
+            onChange: (shapes) => {
+              const shape = shapes[0];
+              const index = tree.shapes.findIndex(
+                (s) => s.orig === shape.orig && s.dest === shape.dest
+              );
+
+              if (index !== -1) {
+                tree.shapes.splice(index, 1);
+              } else {
+                tree.shapes.push(shape);
+              }
+              setTree(tree);
+              forceUpdate();
+            },
           }}
         />
       </Box>

@@ -8,6 +8,7 @@ import {
     Square,
     SQUARES
 } from "chess.js";
+import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
 import { CompleteGame, Outcome } from "./db";
 import { formatScore } from "./format";
@@ -22,6 +23,48 @@ function parseScore(score: string): Score {
     } else {
         return { cp: parseFloat(score) * 100 } as Score;
     }
+}
+
+function parseCsl(csl: string): DrawShape[] {
+    let shapes = csl.split(",").map((square) => {
+        if (square.length === 2) {
+            return {
+                orig: square as Square,
+                brush: "green",
+            } as DrawShape;
+        } else if (square.length === 3) {
+            return {
+                orig: square.slice(1) as Square,
+                brush: "green",
+            } as DrawShape;
+        } else {
+            throw new Error("Invalid square: " + square);
+        }
+    });
+
+    return shapes;
+}
+
+function parseCal(csl: string): DrawShape[] {
+    let shapes = csl.split(",").map((square) => {
+        if (square.length === 4) {
+            return {
+                orig: square.slice(0, 2) as Square,
+                dest: square.slice(2) as Square,
+                brush: "green",
+            } as DrawShape;
+        } else if (square.length === 5) {
+            return {
+                orig: square.slice(1, 3) as Square,
+                dest: square.slice(3) as Square,
+                brush: "green",
+            } as DrawShape;
+        } else {
+            throw new Error("Invalid square: " + square);
+        }
+    });
+
+    return shapes;
 }
 
 export enum Annotation {
@@ -79,6 +122,7 @@ export class VariationTree {
     score: Score | null;
     depth: number;
     halfMoves: number;
+    shapes: DrawShape[] = [];
     annotation: Annotation = Annotation.None;
     commentHTML: string = "";
     commentText: string = "";
@@ -140,15 +184,41 @@ export class VariationTree {
             moveText += this.annotation;
         }
         moveText += " ";
-        if (
-            comments &&
-            (this.commentText !== "" || (specialSymbols && this.score !== null))
-        ) {
-            moveText += `{${
-                specialSymbols && this.score
-                    ? ` [%eval ${formatScore(this.score).text}]`
-                    : ""
-            } ${this.commentText} } `;
+
+        if (comments || specialSymbols) {
+            let content = "{";
+
+            if (specialSymbols && this.score !== null) {
+                content += `[%eval ${formatScore(this.score).text}] `;
+            }
+
+            if (specialSymbols && this.shapes.length > 0) {
+                const squares = this.shapes
+                    .filter((shape) => shape.dest === undefined)
+                    .map((shape) => {
+                        return shape.orig;
+                    });
+                const arrows = this.shapes
+                    .filter((shape) => shape.dest !== undefined)
+                    .map((shape) => {
+                        return shape.orig + shape.dest;
+                    });
+                if (squares.length > 0) {
+                    content += `[%csl ${squares.join(",")}] `;
+                }
+                if (arrows.length > 0) {
+                    content += `[%cal ${arrows.join(",")}] `;
+                }
+            }
+
+            if (comments && this.commentText !== "") {
+                content += this.commentText;
+            }
+            content += "} ";
+
+            if (content !== "{} ") {
+                moveText += content;
+            }
         }
         return moveText;
     }
@@ -350,7 +420,7 @@ export function parsePGN(
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
-        if (token === "[") {
+        if (token === "[" && halfMoves === 0) {
             let tag = "";
             let value = "";
             i++;
@@ -367,13 +437,26 @@ export function parsePGN(
             continue;
         } else if (token === "{") {
             let comment = "";
-            let score: Score | null = null;
             i++;
             while (tokens[i] !== "}") {
-                if (tokens[i] === "[%eval") {
+                if (tokens[i] === "[") {
                     i++;
-                    score = parseScore(tokens[i]);
-                    tree.score = score;
+                    const tag = tokens[i];
+                    i++;
+                    let value = "";
+                    while (tokens[i] !== "]") {
+                        value += tokens[i];
+                        i++;
+                    }
+                    if (tag === "%eval") {
+                        tree.score = parseScore(value);
+                    }
+                    if (tag === "%csl") {
+                        tree.shapes.push(...parseCsl(value));
+                    }
+                    if (tag === "%cal") {
+                        tree.shapes.push(...parseCal(value));
+                    }
                     i++;
                     continue;
                 }
@@ -404,7 +487,7 @@ export function parsePGN(
             tree = tree.children[0];
         } else if (token === ")") {
             continue;
-        } else if (token === "1-0" || token === "0-1" || token === "1/2-1/2") {
+        } else if (token === "1-0" || token === "0-1" || token === "1/2-1/2" || token === "*") {
             break;
         } else {
             const chess = new Chess(tree.fen);

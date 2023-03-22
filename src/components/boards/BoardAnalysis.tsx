@@ -20,11 +20,7 @@ import {
   IconNotes,
   IconZoomCheck
 } from "@tabler/icons-react";
-import {
-  Chess,
-  Color, PieceSymbol,
-  Square
-} from "chess.js";
+import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
@@ -64,8 +60,8 @@ function BoardAnalysis({ id }: { id: string }) {
     const storedTree = sessionStorage.getItem(id + "-tree");
     if (storedTree) {
       const { pgn, currentMove } = JSON.parse(storedTree);
-      if (pgn !== "") {
-        const tree = parsePGN(pgn);
+      const tree = parsePGN(pgn);
+      if (tree.children.length > 0) {
         const treeAtPosition = goToPosition(tree, currentMove);
         return treeAtPosition;
       }
@@ -233,6 +229,8 @@ function BoardAnalysis({ id }: { id: string }) {
           <BoardPlay
             makeMove={makeMove}
             arrows={arrows}
+            forceUpdate={forceUpdate}
+            setTree={setTree}
             editingMode={editingMode}
             toggleEditingMode={toggleEditingMode}
             setCompleteGame={setCompleteGame}
