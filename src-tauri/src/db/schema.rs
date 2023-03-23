@@ -49,6 +49,8 @@ diesel::table! {
         fen -> Nullable<Text>,
         #[sql_name = "Moves2"]
         moves2 -> Binary,
+        #[sql_name = "PawnHome"]
+        pawn_home -> Integer,
     }
 }
 

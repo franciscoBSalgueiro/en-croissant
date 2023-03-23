@@ -1,6 +1,6 @@
 use shakmaty::{san::San, uci::Uci, ByColor, Chess, Move, Position, Square};
 
-use super::get_material_count;
+use super::{get_material_count, get_pawn_home, is_end_reachable};
 
 pub fn decode_2byte_move(move_bytes: &[u8]) -> Result<Uci, String> {
     let from = move_bytes[0] & 0b00111111;
@@ -72,6 +72,7 @@ pub fn position_search(
     move_blob: &Vec<u8>,
     test_position: &Chess,
     material: &ByColor<u8>,
+    pawn_home: u16,
 ) -> Result<Option<String>, String> {
     let mut chess = Chess::default();
     let mut i = 0;
@@ -80,7 +81,11 @@ pub fn position_search(
         let m = uci.to_move(&chess).or(Err("Invalid move"))?;
         chess.play_unchecked(&m);
         let cur_material = get_material_count(chess.board());
-        if cur_material.white < material.white || cur_material.black < material.black {
+        let cur_pawn_home = get_pawn_home(chess.board());
+        if cur_material.white < material.white
+            || cur_material.black < material.black
+            || !is_end_reachable(pawn_home, cur_pawn_home)
+        {
             return Ok(None);
         }
         if chess == *test_position {

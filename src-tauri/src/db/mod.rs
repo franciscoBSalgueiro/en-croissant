@@ -14,9 +14,11 @@ use crate::{
 use chrono::{NaiveDate, NaiveTime};
 use diesel::{
     connection::SimpleConnection,
+    dsl::sql,
     insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
+    sql_types::Bool,
 };
 use pgn_reader::{BufferedReader, Outcome, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
@@ -26,6 +28,7 @@ use shakmaty::{
     zobrist::{Zobrist32, ZobristHash},
     Board, ByColor, Chess, EnPassantMode, Position,
 };
+
 use std::{
     collections::HashMap,
     ffi::OsStr,
@@ -50,6 +53,18 @@ fn get_material_count(board: &Board) -> ByColor<u8> {
             + material.rook * 5
             + material.queen * 9
     })
+}
+
+fn get_pawn_home(board: &Board) -> u16 {
+    let pawns = board.pawns().0;
+    let second_rank_pawns = (pawns >> 8) as u8;
+    let seventh_rank_pawns = (pawns >> 48) as u8;
+    (second_rank_pawns as u16) | ((seventh_rank_pawns as u16) << 8)
+}
+
+/// Returns true if the end pawn structure is reachable
+fn is_end_reachable(end: u16, pos: u16) -> bool {
+    end & !pos == 0
 }
 
 #[derive(Debug)]
@@ -187,6 +202,8 @@ impl TempGame {
             }
         }
 
+        let pawn_home = get_pawn_home(self.position.board());
+
         let white;
         let black;
         let site_id;
@@ -241,6 +258,7 @@ impl TempGame {
             fen: self.fen.as_deref(),
             result: self.result.as_deref(),
             moves2: self.moves.as_slice(),
+            pawn_home: pawn_home as i32,
         };
 
         create_game(db, new_game).map_err(|e| e.to_string())?;
@@ -445,7 +463,8 @@ pub async fn convert_pgn(
             ECO TEXT,
             PlyCount INTEGER,
             FEN TEXT,
-            Moves2 TEXT,
+            Moves2 BLOB,
+            PawnHome BLOB,
             FOREIGN KEY(EventID) REFERENCES Events,
             FOREIGN KEY(SiteID) REFERENCES Sites,
             FOREIGN KEY(WhiteID) REFERENCES Players,
@@ -1073,6 +1092,7 @@ pub async fn search_position(
         .or(Err("Invalid fen"))?;
 
     let material = get_material_count(processed_position.board());
+    let pawn_home = get_pawn_home(processed_position.board());
 
     // start counting the time
     let start = Instant::now();
@@ -1081,6 +1101,11 @@ pub async fn search_position(
     let games: Vec<(Option<String>, Vec<u8>)> = games::table
         .filter(games::white_material.le(material.white as i32))
         .filter(games::black_material.le(material.black as i32))
+        .filter(
+            sql::<Bool>("PawnHome & ")
+                .bind::<diesel::sql_types::Integer, _>(!pawn_home as i32)
+                .sql(" = 0"),
+        )
         .select((games::result, games::moves2))
         .load(db)
         .expect("load games");
@@ -1091,7 +1116,7 @@ pub async fn search_position(
     let openings: Mutex<HashMap<String, NormalizedOpening>> = Mutex::new(HashMap::new());
 
     global_games.par_iter().for_each(|(result, game)| {
-        if let Ok(Some(m)) = position_search(game, &processed_position, &material) {
+        if let Ok(Some(m)) = position_search(game, &processed_position, &material, pawn_home) {
             let mut openings = openings.lock().unwrap();
             let opening = openings
                 .entry(m.clone())
@@ -1115,7 +1140,6 @@ pub async fn search_position(
     println!("done: {:?}", start.elapsed());
 
     let openings: Vec<NormalizedOpening> = openings.into_inner().unwrap().into_values().collect();
-    dbg!(&openings);
 
     Ok(openings)
 }

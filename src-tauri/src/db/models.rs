@@ -46,6 +46,7 @@ pub struct Game {
     pub ply_count: Option<i32>,
     pub fen: Option<String>,
     pub moves2: Vec<u8>,
+    pub pawn_home: i32,
 }
 
 #[derive(Insertable, Debug)]
@@ -68,6 +69,7 @@ pub struct NewGame<'a> {
     pub ply_count: i32,
     pub fen: Option<&'a str>,
     pub moves2: &'a [u8],
+    pub pawn_home: i32,
 }
 
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
