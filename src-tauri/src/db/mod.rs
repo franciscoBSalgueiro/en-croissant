@@ -9,7 +9,7 @@ use crate::{
         ops::*,
         schema::*,
     },
-    AppState,
+    AppState, NormalizedOpening,
 };
 use chrono::{NaiveDate, NaiveTime};
 use diesel::{
@@ -1086,6 +1086,14 @@ pub async fn search_position(
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
+    {
+        let pos_cache = state.1.lock().unwrap();
+
+        if let Some(pos) = pos_cache.get(&(fen.clone(), file.clone())) {
+            return Ok(pos.clone());
+        }
+    }
+
     let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
     let processed_position: Chess = processed_fen
         .into_position(shakmaty::CastlingMode::Standard)
@@ -1140,6 +1148,9 @@ pub async fn search_position(
     println!("done: {:?}", start.elapsed());
 
     let openings: Vec<NormalizedOpening> = openings.into_inner().unwrap().into_values().collect();
+
+    let mut pos_cache = state.1.lock().unwrap();
+    pos_cache.insert((fen, file), openings.clone());
 
     Ok(openings)
 }

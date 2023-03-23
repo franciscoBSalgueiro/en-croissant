@@ -9,10 +9,12 @@ mod fs;
 mod opening;
 mod puzzle;
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
@@ -82,6 +84,17 @@ async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
     .map_err(|err| err.to_string())
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NormalizedOpening {
+    pub id: i32,
+    pub hash: i32,
+    #[serde(rename = "move")]
+    pub move_: String,
+    pub white: i32,
+    pub draw: i32,
+    pub black: i32,
+}
+
 #[derive(Default)]
 pub struct AppState(
     Mutex<
@@ -90,6 +103,7 @@ pub struct AppState(
             diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
         >,
     >,
+    Mutex<HashMap<(String, PathBuf), Vec<NormalizedOpening>>>,
 );
 
 fn main() {
@@ -129,7 +143,7 @@ fn main() {
 
             Ok(())
         })
-        .manage(AppState(Default::default()))
+        .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             download_file,
             file_exists,

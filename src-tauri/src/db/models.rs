@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::db::schema::*;
+use crate::{db::schema::*, NormalizedOpening};
 
 use super::ocgdb::decode_2byte_move;
 
@@ -118,17 +118,6 @@ pub struct Opening {
 pub struct NewOpening<'a> {
     pub hash: i32,
     pub move_: &'a [u8],
-    pub white: i32,
-    pub draw: i32,
-    pub black: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct NormalizedOpening {
-    pub id: i32,
-    pub hash: i32,
-    #[serde(rename = "move")]
-    pub move_: String,
     pub white: i32,
     pub draw: i32,
     pub black: i32,

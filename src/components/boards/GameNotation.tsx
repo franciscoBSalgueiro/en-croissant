@@ -309,7 +309,9 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
     return (
       <Box sx={{ fontStyle: "italic" }}>
         {"("}
-        {moveNodes}
+        {moveNodes.map((node, i) => (
+          <span key={i}>{node}</span>
+        ))}
         {")"}
       </Box>
     );

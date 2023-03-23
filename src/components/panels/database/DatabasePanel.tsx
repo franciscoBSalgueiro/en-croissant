@@ -45,22 +45,18 @@ function DatabasePanel({
   }
 
   const useOpening = useCallback(
-    (referenceDatabase: string | null, fen: string) => {
+    async (referenceDatabase: string | null, fen: string) => {
       if (!referenceDatabase) return;
       setLoading(true);
 
-      if (tree.halfMoves >= 10) {
-        setOpenings([]);
-        search_position(referenceDatabase, fen).then((res) => {
-          setLoading(false);
-          setOpenings(sortOpenings(res));
-        });
-        return;
+      let openings = await search_opening(referenceDatabase, fen);
+
+      if (openings.length === 0) {
+        openings = await search_position(referenceDatabase, fen);
       }
-      search_opening(referenceDatabase, fen).then((res) => {
-        setLoading(false);
-        setOpenings(sortOpenings(res));
-      });
+
+      setLoading(false);
+      setOpenings(sortOpenings(openings));
     },
     [tree, referenceDatabase]
   );
@@ -131,14 +127,17 @@ function DatabasePanel({
           },
         },
       ]}
+      idAccessor="move"
       // noRecordsText={referenceDatabase ? "No openings found": "No database selected"}
       emptyState={
         referenceDatabase ? (
           "No openings found"
         ) : (
-          <Text sx={{
-            pointerEvents: "all",
-          }}>
+          <Text
+            sx={{
+              pointerEvents: "all",
+            }}
+          >
             No reference database selected. Please{" "}
             <Link href="/databases">Add a database</Link> first.
           </Text>
