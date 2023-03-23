@@ -414,6 +414,7 @@ export function parsePGN(
     pgn = pgn.replaceAll("{", " { ");
     pgn = pgn.replaceAll("}", " } ");
     pgn = pgn.replaceAll(/\s+/g, " ");
+    pgn = pgn.replaceAll(/\d+\./g, "");
     pgn = pgn.trim();
     const tokens = pgn.split(" ");
 
@@ -433,7 +434,7 @@ export function parsePGN(
             if (tag === "FEN") {
                 tree.fen = value.substring(1, value.length - 1);
             }
-        } else if (token === "" || token.includes(".")) {
+        } else if (token === "") {
             continue;
         } else if (token === "{") {
             let comment = "";
@@ -487,28 +488,37 @@ export function parsePGN(
             tree = tree.children[0];
         } else if (token === ")") {
             continue;
-        } else if (token === "1-0" || token === "0-1" || token === "1/2-1/2" || token === "*") {
+        } else if (
+            token === "1-0" ||
+            token === "0-1" ||
+            token === "1/2-1/2" ||
+            token === "*"
+        ) {
             break;
         } else {
             const chess = new Chess(tree.fen);
-            const m = chess.move(token);
-
-            if (m === null) {
-                throw new Error("Invalid move");
+            let m: Move;
+            try {
+                m = chess.move(token);
+            } catch (error) {
+                console.log(error);
+                continue;
             }
+
             const newTree = new VariationTree(tree, chess.fen(), m);
             tree.children.push(newTree);
-            if (token.endsWith("!!")) {
+
+            if (token.endsWith("!!" || "$3")) {
                 newTree.annotation = Annotation.Brilliant;
-            } else if (token.endsWith("!?")) {
+            } else if (token.endsWith("!?" || "$5")) {
                 newTree.annotation = Annotation.Interesting;
-            } else if (token.endsWith("?!")) {
+            } else if (token.endsWith("?!" || "$6")) {
                 newTree.annotation = Annotation.Dubious;
-            } else if (token.endsWith("??")) {
+            } else if (token.endsWith("??" || "$4")) {
                 newTree.annotation = Annotation.Blunder;
-            } else if (token.endsWith("!")) {
+            } else if (token.endsWith("!" || "$1")) {
                 newTree.annotation = Annotation.Good;
-            } else if (token.endsWith("?")) {
+            } else if (token.endsWith("?" || "$2")) {
                 newTree.annotation = Annotation.Mistake;
             }
             tree = newTree;
@@ -547,6 +557,8 @@ export function getCompleteGame(pgn: string): CompleteGame {
         }
         return lines.slice(i).join("\n");
     }
+
+    pgn = pgn.replaceAll("0-0", "O-O");
 
     const chess = new Chess();
     chess.loadPgn(pgn);
