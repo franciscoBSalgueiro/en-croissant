@@ -76,6 +76,15 @@ pub fn position_search(
 ) -> Result<Option<String>, String> {
     let mut chess = Chess::default();
     let mut i = 0;
+
+    if chess == *test_position {
+        if move_blob.is_empty() {
+            return Ok(Some("*".to_string()));
+        }
+        let next_move = decode_2byte_move(&move_blob[0..2])?;
+        return Ok(Some(next_move.to_string()));
+    }
+
     while i < move_blob.len() {
         let uci = decode_2byte_move(&move_blob[i..i + 2])?;
         let m = uci.to_move(&chess).or(Err("Invalid move"))?;
