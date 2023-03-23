@@ -98,24 +98,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    #[sql_name = "Opening"]
-    openings (id) {
-        #[sql_name = "ID"]
-        id -> Integer,
-        #[sql_name = "Hash"]
-        hash -> Integer,
-        #[sql_name = "Move"]
-        move_ -> Binary,
-        #[sql_name = "White"]
-        white -> Integer,
-        #[sql_name = "Draw"]
-        draw -> Integer,
-        #[sql_name = "Black"]
-        black -> Integer,
-    }
-}
-
 diesel::joinable!(games -> events (event_id));
 diesel::joinable!(games -> sites (site_id));
 

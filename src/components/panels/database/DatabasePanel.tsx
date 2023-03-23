@@ -5,7 +5,7 @@ import { DataTable } from "mantine-datatable";
 import Link from "next/link";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
-import { Opening, search_opening, search_position } from "../../../utils/db";
+import { Opening, search_position } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import TreeContext from "../../common/TreeContext";
 
@@ -49,11 +49,7 @@ function DatabasePanel({
       if (!referenceDatabase) return;
       setLoading(true);
 
-      let openings = await search_opening(referenceDatabase, fen);
-
-      if (openings.length === 0) {
-        openings = await search_position(referenceDatabase, fen);
-      }
+      let openings = await search_position(referenceDatabase, fen);
 
       setLoading(false);
       setOpenings(sortOpenings(openings));

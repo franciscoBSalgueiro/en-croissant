@@ -177,16 +177,6 @@ export async function search_position(
     });
 }
 
-export async function search_opening(
-    db: string,
-    fen: string
-): Promise<Opening[]> {
-    return invoke("search_opening", {
-        file: db,
-        fen,
-    });
-}
-
 export interface Opening {
     move: string;
     white: number;

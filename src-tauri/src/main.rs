@@ -22,7 +22,7 @@ use tauri::{
 
 use crate::chess::{analyze_game, get_single_best_move};
 use crate::db::{
-    convert_pgn, delete_database, get_players_game_info, search_opening, search_position,
+    convert_pgn, delete_database, get_players_game_info, search_position, clear_games
 };
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
@@ -104,6 +104,7 @@ pub struct AppState(
         >,
     >,
     Mutex<HashMap<(String, PathBuf), Vec<NormalizedOpening>>>,
+    Mutex<Vec<(Option<String>, Vec<u8>)>>,
 );
 
 fn main() {
@@ -161,9 +162,9 @@ fn main() {
             delete_database,
             convert_pgn,
             search_position,
-            search_opening,
             get_single_best_move,
-            is_bmi2_compatible
+            is_bmi2_compatible,
+            clear_games
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

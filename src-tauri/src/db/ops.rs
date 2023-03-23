@@ -1,8 +1,8 @@
 use crate::db::models::{
-    Event, Game, NewEvent, NewGame, NewOpening, NewPlayer, NewSite, Player, Site,
+    Event, Game, NewEvent, NewGame, NewPlayer, NewSite, Player, Site,
 };
 use diesel::SqliteConnection;
-use diesel::{prelude::*, sql_query};
+use diesel::{prelude::*};
 
 /// Creates a new player in the database, and returns the player's ID.
 /// If the player already exists, returns the ID of the existing player.
@@ -73,33 +73,4 @@ pub fn create_game(
     diesel::insert_or_ignore_into(games::table)
         .values(&game)
         .get_result(conn)
-}
-
-pub fn add_opening(
-    conn: &mut SqliteConnection,
-    openings: Vec<NewOpening>,
-) -> Result<(), diesel::result::Error> {
-    sql_query(format!(
-        "INSERT INTO Opening (hash, move, black, white, draw)
-        VALUES {}
-        ON CONFLICT (hash, move) DO UPDATE
-        SET black = Opening.black + excluded.black,
-            white = Opening.white + excluded.white,
-            draw = Opening.draw + excluded.draw",
-        openings
-            .iter()
-            .map(|o| format!(
-                "({}, X'{}', {}, {}, {})",
-                o.hash,
-                hex::encode(o.move_),
-                o.black,
-                o.white,
-                o.draw
-            ))
-            .collect::<Vec<String>>()
-            .join(", ")
-    ))
-    .execute(conn)?;
-
-    Ok(())
 }

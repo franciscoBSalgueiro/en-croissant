@@ -14,13 +14,11 @@ use crate::{
 use chrono::{NaiveDate, NaiveTime};
 use diesel::{
     connection::SimpleConnection,
-    dsl::sql,
     insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
-    sql_types::Bool,
 };
-use pgn_reader::{BufferedReader, Outcome, RawHeader, SanPlus, Skip, Visitor};
+use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -175,32 +173,6 @@ pub struct TempGame {
 
 impl TempGame {
     pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), String> {
-        if let Some(result) = &self.result {
-            if let Ok(outcome) = shakmaty::Outcome::from_ascii(result.as_bytes()) {
-                let mut openings = Vec::new();
-                for (i, hash) in self.opening.iter().enumerate() {
-                    let m = &self.moves[(i * 2)..(i * 2) + 2];
-                    let new_opening = match outcome {
-                        Outcome::Decisive { winner } => NewOpening {
-                            hash: hash.0 as i32,
-                            move_: m,
-                            black: (winner == shakmaty::Color::Black) as i32,
-                            white: (winner == shakmaty::Color::White) as i32,
-                            draw: 0,
-                        },
-                        Outcome::Draw => NewOpening {
-                            hash: hash.0 as i32,
-                            move_: m,
-                            black: 0,
-                            white: 0,
-                            draw: 1,
-                        },
-                    };
-                    openings.push(new_opening);
-                }
-                add_opening(db, openings).map_err(|e| e.to_string())?;
-            }
-        }
 
         let pawn_home = get_pawn_home(self.position.board());
 
@@ -435,16 +407,6 @@ pub async fn convert_pgn(
         CREATE TABLE Sites (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
         INSERT INTO Sites (Name) VALUES (\"\");
         CREATE TABLE Players (ID INTEGER PRIMARY KEY, Name TEXT UNIQUE, Elo INTEGER);
-        CREATE TABLE Opening (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            Hash BLOB,
-            Move BLOB,
-            White INTEGER,
-            Draw INTEGER,
-            Black INTEGER,
-            UNIQUE(Hash, Move)
-        );
-        CREATE INDEX OpeningHash ON Opening (Hash, Move);
         CREATE TABLE Games (
             ID INTEGER PRIMARY KEY AUTOINCREMENT,
             EventID INTEGER,
@@ -1078,6 +1040,12 @@ pub async fn delete_database(
 }
 
 #[tauri::command]
+pub fn clear_games(state: tauri::State<'_, AppState>) {
+    let mut state = state.2.lock().unwrap();
+    state.clear();
+}
+
+#[tauri::command]
 pub async fn search_position(
     file: PathBuf,
     fen: String,
@@ -1106,19 +1074,16 @@ pub async fn search_position(
     let start = Instant::now();
     println!("start: {:?}", start.elapsed());
 
-    let games: Vec<(Option<String>, Vec<u8>)> = games::table
-        .filter(games::white_material.le(material.white as i32))
-        .filter(games::black_material.le(material.black as i32))
-        .filter(
-            sql::<Bool>("PawnHome & ")
-                .bind::<diesel::sql_types::Integer, _>(!pawn_home as i32)
-                .sql(" = 0"),
-        )
-        .select((games::result, games::moves2))
-        .load(db)
-        .expect("load games");
+    let mut games = state.2.lock().unwrap();
 
-    println!("got {} games: {:?}", games.len(), start.elapsed());
+    if games.len() == 0 {
+        *games = games::table
+            .select((games::result, games::moves2))
+            .load(db)
+            .expect("load games");
+
+        println!("got {} games: {:?}", games.len(), start.elapsed());
+    }
 
     let global_games = Arc::new(games);
     let openings: Mutex<HashMap<String, NormalizedOpening>> = Mutex::new(HashMap::new());
@@ -1153,33 +1118,4 @@ pub async fn search_position(
     pos_cache.insert((fen, file), openings.clone());
 
     Ok(openings)
-}
-
-#[tauri::command]
-pub async fn search_opening(
-    file: PathBuf,
-    fen: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<Vec<NormalizedOpening>, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
-
-    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
-    let processed_position: Chess = processed_fen
-        .into_position(shakmaty::CastlingMode::Standard)
-        .or(Err("Invalid fen"))?;
-    let hash: Zobrist32 = processed_position.zobrist_hash(EnPassantMode::Legal);
-
-    let openings: Option<Vec<Opening>> = openings::table
-        .filter(openings::hash.eq(hash.0 as i32))
-        .get_results(db)
-        .optional()
-        .expect("load opening");
-
-    let normalized_openings = match openings {
-        Some(openings) => openings.into_iter().map(NormalizedOpening::from).collect(),
-        None => vec![],
-    };
-
-    Ok(normalized_openings)
 }

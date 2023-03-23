@@ -173,11 +173,13 @@ export default function DatabasesPage() {
       invoke("rename_db", {
         file: database.file,
         title: debouncedTitle,
-      }).then(() => {
-        getDatabases().then((dbs) => setDatabases(dbs));
-      }).catch((e) => {
-        console.log(e);
-      });
+      })
+        .then(() => {
+          getDatabases().then((dbs) => setDatabases(dbs));
+        })
+        .catch((e) => {
+          console.log(e);
+        });
     }
   }, [debouncedTitle]);
 
@@ -271,7 +273,11 @@ export default function DatabasesPage() {
               onChange={() => {
                 if (isReference) {
                   setReferenceDatabase(null);
+                  invoke("clear_games");
                 } else {
+                  if (database.file !== referenceDatabase) {
+                    invoke("clear_games");
+                  }
                   setReferenceDatabase(database.file);
                 }
               }}
