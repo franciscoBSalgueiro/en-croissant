@@ -106,6 +106,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           styles={(theme) => ({
             main: {
               overflow: "hidden",
+              paddingRight: 10,
               userSelect: "none",
               backgroundColor:
                 theme.colorScheme === "dark"
