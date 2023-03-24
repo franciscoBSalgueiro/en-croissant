@@ -2,9 +2,9 @@ import {
   Button,
   Card,
   createStyles,
-  Group,
-  Input,
+  Group, Input,
   Modal,
+  NumberInput,
   Stack,
   Tabs,
   Text,
@@ -16,8 +16,7 @@ import { IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
-import { appDataDir } from "@tauri-apps/api/path";
-import { join } from "path";
+import { appDataDir, join } from '@tauri-apps/api/path';
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
@@ -68,7 +67,7 @@ function AddEngine({
         if (engines.find((e) => e.name === value)) return "Name already used";
       },
       path: (value) => {
-        if (!value) return "Binary is required";
+        if (!value) return "Path is required";
       },
     },
   });
@@ -122,30 +121,33 @@ function AddEngine({
               label="Binary file"
               description="Click to select the binary file"
               withAsterisk
-              {...form.getInputProps("binary")}
+              {...form.getInputProps("path")}
             >
               <Input
                 component="button"
                 type="button"
-                // accept="application/octet-stream"
                 onClick={async () => {
                   const selected = await open({
                     multiple: false,
                     filters: [
-                      {
-                        name: "Binary",
-                        extensions: ["exe", "bin", "sh"],
-                      },
+                      { name: "Executable Files", extensions: ["exe"] },
+                      { name: "All Files", extensions: ["*"] },
                     ],
                   });
-                  form.setFieldValue("binary", selected as string);
+                  form.setFieldValue("path", selected as string);
                 }}
               >
                 <Text lineClamp={1}>{form.values.path}</Text>
               </Input>
             </Input.Wrapper>
 
-            <Input.Wrapper
+            <NumberInput
+              label="Elo"
+              placeholder="Engine's Elo"
+              {...form.getInputProps("elo")}
+            />
+
+            {/* <Input.Wrapper
               label="Image file"
               description="Click to select the image file"
               {...form.getInputProps("image")}
@@ -169,7 +171,7 @@ function AddEngine({
               >
                 <Text lineClamp={1}>{form.values.image}</Text>
               </Input>
-            </Input.Wrapper>
+            </Input.Wrapper> */}
 
             <Button fullWidth mt="xl" type="submit">
               Add
@@ -250,7 +252,9 @@ function EngineCard({
       className={classes.card}
     >
       <Group noWrap spacing={0} grow>
-        <img src={engine.image} height={160} alt={engine.name} />
+        {engine.image && (
+          <img src={engine.image} height={160} alt={engine.name} />
+        )}
         <div className={classes.body}>
           <Text transform="uppercase" color="dimmed" weight={700} size="xs">
             ENGINE

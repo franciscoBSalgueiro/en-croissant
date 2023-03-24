@@ -8,8 +8,7 @@ import {
   Text,
   Title
 } from "@mantine/core";
-
-import { IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
 import { Engine } from "../../utils/engines";
 import { useLocalFile } from "../../utils/hooks";
@@ -51,11 +50,11 @@ export default function EnginePage() {
                   <tr key={index}>
                     <td>
                       <Group spacing="sm">
-                        <Image
-                          width={60}
-                          height={60}
-                          src={item.image !== "" ? item.image : null}
-                        />
+                        {item.image ? (
+                          <Image width={60} height={60} src={item.image} />
+                        ) : (
+                          <IconRobot size={60} />
+                        )}
                         <Text size="md" weight={500}>
                           {item.name}
                         </Text>

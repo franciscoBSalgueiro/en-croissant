@@ -17,18 +17,15 @@ function Engines() {
       <Stack>
         {engines.length === 0 && <Text>No engines installed.</Text>}
         {engines.map((eng) => (
-          <Card
-            key={eng.path}
-            withBorder
-            radius="md"
-            className={classes.card}
-          >
+          <Card key={eng.path} withBorder radius="md" className={classes.card}>
             <Group grow>
               <div>
                 <h3 className={classes.lead}>{eng.name}</h3>
                 <p>ELO: {eng.elo}</p>
               </div>
-              <Image src={eng.image} alt={eng.name} height={75} width={75} />
+              {eng.image && (
+                <Image src={eng.image} alt={eng.name} height={75} width={75} />
+              )}
             </Group>
           </Card>
         ))}

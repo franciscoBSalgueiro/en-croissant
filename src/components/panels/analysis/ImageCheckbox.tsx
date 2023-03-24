@@ -4,10 +4,10 @@ import {
   createStyles,
   Image,
   Text,
-  UnstyledButton,
+  UnstyledButton
 } from "@mantine/core";
 import { useUncontrolled } from "@mantine/hooks";
-import { IconPhotoOff } from "@tabler/icons-react";
+import { IconRobot } from "@tabler/icons-react";
 
 const useStyles = createStyles((theme, { checked }: { checked: boolean }) => ({
   button: {
@@ -78,7 +78,7 @@ export default function ImageCheckbox({
         {image ? (
           <Image src={image} alt={title} width={40} />
         ) : (
-          <IconPhotoOff size={30} />
+          <IconRobot size={30} />
         )}
       </Center>
 
