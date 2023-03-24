@@ -173,7 +173,6 @@ pub struct TempGame {
 
 impl TempGame {
     pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), String> {
-
         let pawn_home = get_pawn_home(self.position.board());
 
         let white;
@@ -1078,7 +1077,7 @@ pub async fn search_position(
 
     if games.len() == 0 {
         *games = games::table
-            .select((games::result, games::moves2))
+            .select((games::result, games::moves2, games::pawn_home))
             .load(db)
             .expect("load games");
 
@@ -1088,28 +1087,34 @@ pub async fn search_position(
     let global_games = Arc::new(games);
     let openings: Mutex<HashMap<String, NormalizedOpening>> = Mutex::new(HashMap::new());
 
-    global_games.par_iter().for_each(|(result, game)| {
-        if let Ok(Some(m)) = position_search(game, &processed_position, &material, pawn_home) {
-            let mut openings = openings.lock().unwrap();
-            let opening = openings
-                .entry(m.clone())
-                .or_insert_with(|| NormalizedOpening {
-                    id: 0,
-                    black: 0,
-                    white: 0,
-                    draw: 0,
-                    hash: 0,
-                    move_: m,
-                });
+    global_games
+        .par_iter()
+        .for_each(|(result, game, end_pawn_home)| {
+            if is_end_reachable(*end_pawn_home as u16, pawn_home) {
+                if let Ok(Some(m)) =
+                    position_search(game, &processed_position, &material, pawn_home)
+                {
+                    let mut openings = openings.lock().unwrap();
+                    let opening = openings
+                        .entry(m.clone())
+                        .or_insert_with(|| NormalizedOpening {
+                            id: 0,
+                            black: 0,
+                            white: 0,
+                            draw: 0,
+                            hash: 0,
+                            move_: m,
+                        });
 
-            match result.as_deref() {
-                Some("1-0") => opening.white += 1,
-                Some("0-1") => opening.black += 1,
-                Some("1/2-1/2") => opening.draw += 1,
-                _ => (),
+                    match result.as_deref() {
+                        Some("1-0") => opening.white += 1,
+                        Some("0-1") => opening.black += 1,
+                        Some("1/2-1/2") => opening.draw += 1,
+                        _ => (),
+                    }
+                }
             }
-        }
-    });
+        });
     println!("done: {:?}", start.elapsed());
 
     let openings: Vec<NormalizedOpening> = openings.into_inner().unwrap().into_values().collect();
