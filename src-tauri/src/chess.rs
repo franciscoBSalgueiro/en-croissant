@@ -11,8 +11,8 @@ use tauri::{
     Manager,
 };
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    process::Command,
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
+    process::{Child, ChildStdin, ChildStdout, Command},
 };
 
 #[cfg(target_os = "windows")]
@@ -121,6 +121,42 @@ pub fn parse_uci(
     })
 }
 
+fn start_engine(path: PathBuf) -> Result<Child, String> {
+    let mut command = Command::new(&path);
+    command.current_dir(path.parent().unwrap());
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    #[cfg(target_os = "windows")]
+    command.creation_flags(CREATE_NO_WINDOW);
+
+    let child = command.spawn().expect("Failed to start engine");
+
+    Ok(child)
+}
+
+fn get_handles(child: &mut Child) -> (ChildStdin, Lines<BufReader<ChildStdout>>) {
+    let stdin = child
+        .stdin
+        .take()
+        .expect("child did not have a handle to stdin");
+    let stdout = child
+        .stdout
+        .take()
+        .expect("child did not have a handle to stdout");
+    let stdout = BufReader::new(stdout).lines();
+    (stdin, stdout)
+}
+
+async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
+    stdin
+        .write_all(command.as_ref().as_bytes())
+        .await
+        .expect("Failed to write command");
+}
+
 #[tauri::command]
 pub async fn get_best_moves(
     engine: String,
@@ -131,37 +167,8 @@ pub async fn get_best_moves(
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     let path = PathBuf::from(&engine);
-
-    // start engine command
-    println!("RUNNING ENGINE");
-    println!("{}", &path.display());
-    println!("{}", &fen);
-
-    assert!(number_lines > 0 && number_lines < 6);
-
-    let mut command = Command::new(&path);
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    #[cfg(target_os = "windows")]
-    command.creation_flags(CREATE_NO_WINDOW);
-
-    let mut child = command
-        // .kill_on_drop(true)
-        .spawn()
-        .expect("Failed to start engine");
-
-    let stdin = child
-        .stdin
-        .take()
-        .expect("child did not have a handle to stdin");
-    let stdout = child
-        .stdout
-        .take()
-        .expect("child did not have a handle to stdout");
-    let mut stdout_reader = BufReader::new(stdout).lines();
+    let mut child = start_engine(path)?;
+    let (mut stdin, mut stdout) = get_handles(&mut child);
 
     let (tx, mut rx) = tokio::sync::broadcast::channel(16);
 
@@ -188,33 +195,19 @@ pub async fn get_best_moves(
 
     let mut engine_lines = Vec::new();
 
-    // tokio::spawn(async move {
-    //     println!("Starting engine");
-    //     let mut stdin = stdin;
-    //     let write_result = stdin.write_all(b"go\n").await;
-    //     if let Err(e) = write_result {
-    //         println!("Error writing to stdin: {}", e);
-    //     }
-    // });
-
     tokio::spawn(async move {
-        let mut stdin = stdin;
-        stdin
-            .write_all(format!("position fen {}\n", &fen).as_bytes())
-            .await
-            .expect("Failed to write position");
-        stdin
-            .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
-            .await
-            .expect("Failed to write setoption");
-        stdin
-            .write_all(format!("setoption name multipv value {}\n", &number_lines).as_bytes())
-            .await
-            .expect("Failed to write setoption");
-        stdin
-            .write_all(format!("go depth {}\n", &depth).as_bytes())
-            .await
-            .expect("Failed to write go");
+        send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
+        send_command(
+            &mut stdin,
+            format!("setoption name Threads value {}\n", &number_threads),
+        )
+        .await;
+        send_command(
+            &mut stdin,
+            format!("setoption name MultiPV value {}\n", &number_lines),
+        )
+        .await;
+        send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
 
         let mut last_sent_ms = 0;
         let mut now_ms;
@@ -222,11 +215,11 @@ pub async fn get_best_moves(
             tokio::select! {
                 _ = rx.recv() => {
                     println!("Killing engine");
-                    stdin.write_all(b"stop\n").await.unwrap();
+                    send_command(&mut stdin, "stop\n").await;
                     app.unlisten(id);
                     break
                 }
-                result = stdout_reader.next_line() => {
+                result = stdout.next_line() => {
                     match result {
                         Ok(line_opt) => {
                             if let Some(line) = line_opt {
@@ -290,33 +283,9 @@ pub async fn analyze_game(
         Some(BaseDirectory::AppData),
     )
     .or(Err("Engine file doesn't exists"))?;
-    // start engine command
-    println!("RUNNING ENGINE");
-    println!("{}", &path.display());
 
-    let mut command = Command::new(&path);
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    #[cfg(target_os = "windows")]
-    command.creation_flags(CREATE_NO_WINDOW);
-
-    let mut child = command
-        // .kill_on_drop(true)
-        .spawn()
-        .expect("Failed to start engine");
-
-    let stdin = child
-        .stdin
-        .take()
-        .expect("child did not have a handle to stdin");
-    let stdout = child
-        .stdout
-        .take()
-        .expect("child did not have a handle to stdout");
-    let mut stdout_reader = BufReader::new(stdout).lines();
+    let mut child = start_engine(path)?;
+    let (mut stdin, mut stdout) = get_handles(&mut child);
 
     tokio::spawn(async move {
         // run engine process and wait for exit code
@@ -328,17 +297,10 @@ pub async fn analyze_game(
     });
 
     tokio::spawn(async move {
-        let mut stdin = stdin;
         let mut chess = Chess::default();
 
-        stdin
-            .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
-            .await
-            .expect("Failed to write setoption");
-        stdin
-            .write_all(format!("setoption name multipv value {}\n", &number_lines).as_bytes())
-            .await
-            .expect("Failed to write setoption");
+        send_command(&mut stdin, format!("setoption name Threads value {}\n", &number_threads)).await;
+        send_command(&mut stdin, format!("setoption name multipv value {}\n", &number_lines)).await;
 
         for m in moves_list {
             let san = San::from_ascii(m.as_bytes()).unwrap();
@@ -346,18 +308,13 @@ pub async fn analyze_game(
             chess.play_unchecked(&m);
             let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
 
-            stdin
-                .write_all(format!("position fen {}\n", &fen).as_bytes())
-                .await
-                .expect("Failed to write position");
-            stdin
-                .write_all(format!("go movetime {}\n", &move_time * 1000).as_bytes())
-                .await
-                .expect("Failed to write go");
+            send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
+            send_command(&mut stdin, format!("go movetime {}\n", &move_time * 1000)).await;
+
             let mut current_payload = BestMovePayload::default();
             loop {
                 tokio::select! {
-                    result = stdout_reader.next_line() => {
+                    result = stdout.next_line() => {
                         match result {
                             Ok(line_opt) => {
                                 if let Some(line) = line_opt {
@@ -409,54 +366,24 @@ pub async fn get_single_best_move(
     let number_threads = 4;
     let depth = 8 + difficulty;
 
-    // start engine command
-    println!("RUNNING ENGINE");
-    println!("{}", &path.display());
+    let mut child = start_engine(path)?;
+    let (mut stdin, mut stdout) = get_handles(&mut child);
 
-    let mut command = Command::new(&path);
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    #[cfg(target_os = "windows")]
-    command.creation_flags(CREATE_NO_WINDOW);
-
-    let mut child = command
-        // .kill_on_drop(true)
-        .spawn()
-        .expect("Failed to start engine");
-
-    let stdin = child
-        .stdin
-        .take()
-        .expect("child did not have a handle to stdin");
-    let stdout = child
-        .stdout
-        .take()
-        .expect("child did not have a handle to stdout");
-    let mut stdout_reader = BufReader::new(stdout).lines();
-
-    let mut stdin = stdin;
-    stdin
-        .write_all(format!("position fen {}\n", &fen).as_bytes())
-        .await
-        .expect("Failed to write position");
-    stdin
-        .write_all(format!("setoption name Skill Level value {}\n", &difficulty).as_bytes())
-        .await
-        .expect("Failed to write setoption");
-    stdin
-        .write_all(format!("setoption name Threads value {}\n", &number_threads).as_bytes())
-        .await
-        .expect("Failed to write setoption");
-    stdin
-        .write_all(format!("go depth {}\n", &depth).as_bytes())
-        .await
-        .expect("Failed to write go");
+    send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
+    send_command(
+        &mut stdin,
+        format!("setoption name Skill Level value {}\n", &difficulty),
+    )
+    .await;
+    send_command(
+        &mut stdin,
+        format!("setoption name Threads value {}\n", &number_threads),
+    )
+    .await;
+    send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
 
     loop {
-        let result = stdout_reader.next_line().await;
+        let result = stdout.next_line().await;
         match result {
             Ok(line_opt) => {
                 if let Some(line) = line_opt {
@@ -464,6 +391,31 @@ pub async fn get_single_best_move(
                         let m = line.split_whitespace().nth(1).unwrap();
                         println!("bestmove {}", m);
                         return Ok(m.to_string());
+                    }
+                }
+            }
+            Err(err) => {
+                return Err(format!("engine read error {:?}", err));
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_engine_name(path: PathBuf) -> Result<String, String> {
+    let mut child = start_engine(path)?;
+    let (mut stdin, mut stdout) = get_handles(&mut child);
+
+    send_command(&mut stdin, "uci\n").await;
+
+    loop {
+        let result = stdout.next_line().await;
+        match result {
+            Ok(line_opt) => {
+                if let Some(line) = line_opt {
+                    if line.starts_with("id name") {
+                        let name = &line[8..];
+                        return Ok(name.to_string());
                     }
                 }
             }

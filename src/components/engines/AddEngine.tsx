@@ -110,13 +110,6 @@ function AddEngine({
               setOpened(false);
             })}
           >
-            <TextInput
-              label="Name"
-              placeholder="Engine's Name"
-              withAsterisk
-              {...form.getInputProps("name")}
-            />
-
             <Input.Wrapper
               label="Binary file"
               description="Click to select the binary file"
@@ -134,12 +127,23 @@ function AddEngine({
                       { name: "All Files", extensions: ["*"] },
                     ],
                   });
+                  const name: string = await invoke("get_engine_name", {
+                    path: selected as string,
+                  })
                   form.setFieldValue("path", selected as string);
+                  form.setFieldValue("name", name);
                 }}
               >
                 <Text lineClamp={1}>{form.values.path}</Text>
               </Input>
             </Input.Wrapper>
+
+            <TextInput
+              label="Name"
+              placeholder="Auto"
+              withAsterisk
+              {...form.getInputProps("name")}
+            />
 
             <NumberInput
               label="Elo"
