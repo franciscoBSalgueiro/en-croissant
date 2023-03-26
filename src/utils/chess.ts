@@ -104,14 +104,19 @@ export function annotationColor(annotation: Annotation) {
     return color;
 }
 
-export interface EngineVariation {
-    engine: string;
+export interface BestMoves {
+    depth: number;
+    score: Score;
     uciMoves: string[];
     sanMoves: string[];
-    score: Score;
-    depth: number;
     multipv: number;
     nps: number;
+}
+
+export interface BestMovesPayload {
+    bestLines: BestMoves[];
+    engine: string;
+    tab: string;
 }
 
 export class VariationTree {

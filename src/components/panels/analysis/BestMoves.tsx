@@ -28,7 +28,8 @@ import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
 import {
   Annotation,
-  EngineVariation,
+  BestMoves,
+  BestMovesPayload,
   Score,
   swapMove,
   VariationTree
@@ -93,6 +94,7 @@ function ScoreBubble({ score }: { score: Score }) {
 
 interface BestMovesProps {
   id: number;
+  tab: string;
   engine: Engine;
   makeMoves: (moves: string[]) => void;
   setArrows: (arrows: string[]) => void;
@@ -101,6 +103,7 @@ interface BestMovesProps {
 
 function BestMoves({
   id,
+  tab,
   makeMoves,
   engine,
   setArrows,
@@ -109,9 +112,7 @@ function BestMoves({
   const tree = useContext(TreeContext);
   const chess = new Chess(tree.fen);
   const halfMoves = tree.halfMoves;
-  const [engineVariations, setEngineVariation] = useState<EngineVariation[]>(
-    []
-  );
+  const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
   const [numberLines, setNumberLines] = useState<number>(3);
   const [maxDepth, setMaxDepth] = useState<number>(24);
   const [cores, setCores] = useState<number>(2);
@@ -128,6 +129,7 @@ function BestMoves({
     emit("stop_engine", engine.path);
     invoke("get_best_moves", {
       engine: engine.path,
+      tab,
       fen: threat ? swapMove(tree.fen) : tree.fen,
       depth: maxDepth,
       numberLines: Math.min(numberLines, chess.moves().length),
@@ -138,8 +140,9 @@ function BestMoves({
   useEffect(() => {
     async function waitForMove() {
       await listen("best_moves", (event) => {
-        const ev = event.payload as EngineVariation[];
-        if (ev[0].engine === engine.path) {
+        const payload = event.payload as BestMovesPayload;
+        const ev = payload.bestLines;
+        if (payload.engine === engine.path && payload.tab === tab) {
           setEngineVariation(ev);
           setTree((tree) => {
             tree.score = ev[0].score;
@@ -175,12 +178,10 @@ function BestMoves({
   function AnalysisRow({
     score,
     moves,
-    uciMoves,
     index,
   }: {
     score: Score;
     moves: string[];
-    uciMoves: string[];
     index: number;
   }) {
     const currentOpen = open[index];
@@ -364,9 +365,8 @@ function BestMoves({
               return (
                 <AnalysisRow
                   key={index}
-                  score={engineVariation.score}
                   moves={engineVariation.sanMoves}
-                  uciMoves={engineVariation.uciMoves}
+                  score={engineVariation.score}
                   index={index}
                 />
               );

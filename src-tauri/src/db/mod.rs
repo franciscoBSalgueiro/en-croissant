@@ -9,7 +9,7 @@ use crate::{
         ops::*,
         schema::*,
     },
-    AppState, NormalizedOpening,
+    AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
 use diesel::{
@@ -1044,12 +1044,21 @@ pub fn clear_games(state: tauri::State<'_, AppState>) {
     state.clear();
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PositionStats {
+    #[serde(rename = "move")]
+    pub move_: String,
+    pub white: i32,
+    pub draw: i32,
+    pub black: i32,
+}
+
 #[tauri::command]
 pub async fn search_position(
     file: PathBuf,
     fen: String,
     state: tauri::State<'_, AppState>,
-) -> Result<Vec<NormalizedOpening>, String> {
+) -> Result<Vec<PositionStats>, String> {
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
@@ -1075,7 +1084,7 @@ pub async fn search_position(
 
     let mut games = state.2.lock().unwrap();
 
-    if games.len() == 0 {
+    if games.is_empty() {
         *games = games::table
             .select((games::result, games::moves2, games::pawn_home))
             .load(db)
@@ -1085,7 +1094,7 @@ pub async fn search_position(
     }
 
     let global_games = Arc::new(games);
-    let openings: Mutex<HashMap<String, NormalizedOpening>> = Mutex::new(HashMap::new());
+    let openings: Mutex<HashMap<String, PositionStats>> = Mutex::new(HashMap::new());
 
     global_games
         .par_iter()
@@ -1095,16 +1104,12 @@ pub async fn search_position(
                     position_search(game, &processed_position, &material, pawn_home)
                 {
                     let mut openings = openings.lock().unwrap();
-                    let opening = openings
-                        .entry(m.clone())
-                        .or_insert_with(|| NormalizedOpening {
-                            id: 0,
-                            black: 0,
-                            white: 0,
-                            draw: 0,
-                            hash: 0,
-                            move_: m,
-                        });
+                    let opening = openings.entry(m.clone()).or_insert_with(|| PositionStats {
+                        black: 0,
+                        white: 0,
+                        draw: 0,
+                        move_: m,
+                    });
 
                     match result.as_deref() {
                         Some("1-0") => opening.white += 1,
@@ -1117,7 +1122,7 @@ pub async fn search_position(
         });
     println!("done: {:?}", start.elapsed());
 
-    let openings: Vec<NormalizedOpening> = openings.into_inner().unwrap().into_values().collect();
+    let openings: Vec<PositionStats> = openings.into_inner().unwrap().into_values().collect();
 
     let mut pos_cache = state.1.lock().unwrap();
     pos_cache.insert((fen, file), openings.clone());

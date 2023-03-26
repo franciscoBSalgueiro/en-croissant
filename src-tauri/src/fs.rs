@@ -105,8 +105,3 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) {
         }
     }
 }
-
-#[tauri::command]
-pub fn file_exists(path: String) -> bool {
-    Path::new(&path).exists()
-}

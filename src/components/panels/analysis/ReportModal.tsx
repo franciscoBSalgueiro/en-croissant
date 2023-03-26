@@ -13,7 +13,7 @@ import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import {
   Annotation,
-  EngineVariation,
+  BestMoves,
   goToPosition,
   pgnToUCI,
   Score,
@@ -92,7 +92,7 @@ function ReportModal({
       moveTime: form.values.secondsPerMove,
     }).then((result) => {
       setLoading(false);
-      const evals = result as EngineVariation[];
+      const evals = result as BestMoves[];
       setTree((prev) => {
         let position = prev.getPosition();
         let root = prev.getTopVariation().children[0];

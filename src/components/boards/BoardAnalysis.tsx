@@ -294,6 +294,7 @@ function BoardAnalysis({ id }: { id: string }) {
                           <Accordion.Item key={engine.path} value={engine.path}>
                             <BestMoves
                               id={i}
+                              tab={id}
                               engine={engine}
                               makeMoves={makeMoves}
                               setArrows={setArrows}

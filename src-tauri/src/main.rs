@@ -13,22 +13,22 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
+use db::PositionStats;
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
 };
 
-use crate::chess::{analyze_game, get_single_best_move, get_engine_name};
+use crate::chess::{analyze_game, get_engine_name, get_single_best_move};
 use crate::db::{
-    convert_pgn, delete_database, get_players_game_info, search_position, clear_games
+    clear_games, convert_pgn, delete_database, get_players_game_info, search_position,
 };
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
     db::{get_db_info, get_games, get_players, rename_db},
-    fs::{download_file, file_exists},
+    fs::download_file,
     opening::get_opening,
 };
 
@@ -84,17 +84,6 @@ async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
     .map_err(|err| err.to_string())
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NormalizedOpening {
-    pub id: i32,
-    pub hash: i32,
-    #[serde(rename = "move")]
-    pub move_: String,
-    pub white: i32,
-    pub draw: i32,
-    pub black: i32,
-}
-
 #[derive(Default)]
 pub struct AppState(
     Mutex<
@@ -103,7 +92,7 @@ pub struct AppState(
             diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
         >,
     >,
-    Mutex<HashMap<(String, PathBuf), Vec<NormalizedOpening>>>,
+    Mutex<HashMap<(String, PathBuf), Vec<PositionStats>>>,
     Mutex<Vec<(Option<String>, Vec<u8>, i32)>>,
 );
 
@@ -147,7 +136,6 @@ fn main() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             download_file,
-            file_exists,
             get_best_moves,
             get_opening,
             get_puzzle,

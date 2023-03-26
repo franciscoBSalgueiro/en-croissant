@@ -1,10 +1,11 @@
 use std::{
     path::PathBuf,
     process::Stdio,
-    sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use derivative::Derivative;
+use serde::Serialize;
 use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Position};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -26,38 +27,29 @@ pub enum Score {
     Mate(i64),
 }
 
-#[derive(Clone, serde::Serialize, Debug)]
-pub struct BestMovePayload {
-    engine: String,
+#[derive(Clone, Serialize, Debug, Derivative)]
+#[derivative(Default)]
+pub struct BestMoves {
     depth: usize,
+    #[derivative(Default(value = "Score::Cp(0)"))]
     score: Score,
-    #[serde(rename = "sanMoves")]
-    san_moves: Vec<String>,
     #[serde(rename = "uciMoves")]
     uci_moves: Vec<String>,
+    #[serde(rename = "sanMoves")]
+    san_moves: Vec<String>,
     multipv: usize,
     nps: usize,
 }
 
-impl Default for BestMovePayload {
-    fn default() -> Self {
-        BestMovePayload {
-            engine: String::new(),
-            depth: 0,
-            score: Score::Cp(0),
-            san_moves: Vec::new(),
-            uci_moves: Vec::new(),
-            multipv: 0,
-            nps: 0,
-        }
-    }
+#[derive(Serialize, Debug)]
+pub struct BestMovesPayload {
+    #[serde(rename = "bestLines")]
+    pub best_lines: Vec<BestMoves>,
+    pub engine: String,
+    pub tab: String,
 }
 
-pub fn parse_uci(
-    info: &str,
-    fen: &str,
-    engine: &str,
-) -> Result<BestMovePayload, Box<dyn std::error::Error>> {
+fn parse_uci(info: &str, fen: &Fen) -> Result<BestMoves, Box<dyn std::error::Error>> {
     let mut depth = 0;
     let mut score = Score::Cp(0);
     let mut pv = String::new();
@@ -89,11 +81,10 @@ pub fn parse_uci(
             _ => (),
         }
     }
-    let mut san_moves = Vec::new();
     let uci_moves: Vec<String> = pv.split_whitespace().map(|x| x.to_string()).collect();
+    let mut san_moves = Vec::new();
 
-    let fen: Fen = fen.parse()?;
-    let mut pos: Chess = match fen.into_position(CastlingMode::Standard) {
+    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
         Ok(p) => p,
         Err(e) => e.ignore_impossible_material().unwrap(),
     };
@@ -110,13 +101,12 @@ pub fn parse_uci(
         let san = San::from_move(&pos, &m);
         san_moves.push(san.to_string());
     }
-    Ok(BestMovePayload {
+    Ok(BestMoves {
         depth,
         score,
-        san_moves,
         uci_moves,
+        san_moves,
         multipv,
-        engine: engine.to_string(),
         nps,
     })
 }
@@ -160,6 +150,7 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
 #[tauri::command]
 pub async fn get_best_moves(
     engine: String,
+    tab: String,
     fen: String,
     depth: usize,
     number_lines: usize,
@@ -177,10 +168,7 @@ pub async fn get_best_moves(
         let payload = event.payload().unwrap();
         let payload = payload[1..payload.len() - 1].replace("\\\\", "\\");
         if payload == eng_id {
-            let tx = tx.clone();
-            tokio::spawn(async move {
-                tx.send(()).unwrap();
-            });
+            tx.send(()).unwrap();
         }
     });
 
@@ -193,69 +181,69 @@ pub async fn get_best_moves(
         println!("engine process exit status : {}", status);
     });
 
-    let mut engine_lines = Vec::new();
+    let mut best_moves_payload = BestMovesPayload {
+        best_lines: Vec::new(),
+        engine,
+        tab,
+    };
 
-    tokio::spawn(async move {
-        send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
-        send_command(
-            &mut stdin,
-            format!("setoption name Threads value {}\n", &number_threads),
-        )
-        .await;
-        send_command(
-            &mut stdin,
-            format!("setoption name MultiPV value {}\n", &number_lines),
-        )
-        .await;
-        send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
+    send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
+    send_command(
+        &mut stdin,
+        format!("setoption name Threads value {}\n", &number_threads),
+    )
+    .await;
+    send_command(
+        &mut stdin,
+        format!("setoption name MultiPV value {}\n", &number_lines),
+    )
+    .await;
+    send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
 
-        let mut last_sent_ms = 0;
-        let mut now_ms;
-        loop {
-            tokio::select! {
-                _ = rx.recv() => {
-                    println!("Killing engine");
-                    send_command(&mut stdin, "stop\n").await;
-                    app.unlisten(id);
-                    break
-                }
-                result = stdout.next_line() => {
-                    match result {
-                        Ok(line_opt) => {
-                            if let Some(line) = line_opt {
-                                if line == "readyok" {
-                                    println!("Engine ready");
-                                }
-                                if line.starts_with("info") && line.contains("pv") {
-                                    if let Ok(best_moves) = parse_uci(&line, &fen, &engine) {
-                                        let multipv = best_moves.multipv;
-                                        let depth = best_moves.depth;
-                                        engine_lines.push(best_moves);
-                                        if multipv == number_lines {
-                                            if engine_lines.iter().all(|x| x.depth == depth) {
-                                                let now = SystemTime::now();
-                                                now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let mut last_sent_ms = 0;
+    let mut now_ms;
+    let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
+    loop {
+        tokio::select! {
+            _ = rx.recv() => {
+                println!("Killing engine");
+                send_command(&mut stdin, "stop\n").await;
+                app.unlisten(id);
+                break
+            }
+            result = stdout.next_line() => {
+                match result {
+                    Ok(line_opt) => {
+                        if let Some(line) = line_opt {
+                            if line.starts_with("info") && line.contains("pv") {
+                                if let Ok(best_moves) = parse_uci(&line, &fen) {
+                                    let multipv = best_moves.multipv;
+                                    let depth = best_moves.depth;
+                                    best_moves_payload.best_lines.push(best_moves);
+                                    if multipv == number_lines {
+                                        if best_moves_payload.best_lines.iter().all(|x| x.depth == depth) {
+                                            let now = SystemTime::now();
+                                            now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
 
-                                                if now_ms - last_sent_ms > 300 {
-                                                    app.emit_all("best_moves", &engine_lines).unwrap();
-                                                    last_sent_ms = now_ms;
-                                                }
+                                            if now_ms - last_sent_ms > 300 {
+                                                app.emit_all("best_moves", &best_moves_payload).unwrap();
+                                                last_sent_ms = now_ms;
                                             }
-                                            engine_lines.clear();
                                         }
+                                        best_moves_payload.best_lines.clear();
                                     }
                                 }
                             }
                         }
-                        Err(err) => {
-                            println!("engine read error {:?}", err);
-                            break;
-                        }
+                    }
+                    Err(err) => {
+                        println!("engine read error {:?}", err);
+                        break;
                     }
                 }
             }
         }
-    });
+    }
     Ok(())
 }
 
@@ -264,87 +252,51 @@ pub async fn analyze_game(
     moves: String,
     engine: String,
     move_time: usize,
-    app: tauri::AppHandle,
-) -> Result<Vec<BestMovePayload>, String> {
-    println!("ANALYZING GAME");
-    println!("{}", &moves);
-    let moves_list: Vec<String> = moves.split(' ').map(|x| x.to_string()).collect();
-    let mut path = PathBuf::from(&engine);
+) -> Result<Vec<BestMoves>, String> {
+    let path = PathBuf::from(&engine);
     let number_lines = 1;
     let number_threads = 4;
-    let evals: Arc<Mutex<Vec<BestMovePayload>>> = Arc::new(Mutex::new(Vec::new()));
-    let evals_clone = evals.clone();
-
-    path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        path,
-        Some(BaseDirectory::AppData),
-    )
-    .or(Err("Engine file doesn't exists"))?;
+    let mut evals: Vec<BestMoves> = Vec::new();
 
     let mut child = start_engine(path)?;
     let (mut stdin, mut stdout) = get_handles(&mut child);
 
-    tokio::spawn(async move {
-        // run engine process and wait for exit code
-        let status = child
-            .wait()
-            .await
-            .expect("engine process encountered an error");
-        println!("engine process exit status : {}", status);
-    });
+    let mut chess = Chess::default();
 
-    tokio::spawn(async move {
-        let mut chess = Chess::default();
+    send_command(
+        &mut stdin,
+        format!("setoption name Threads value {}\n", &number_threads),
+    )
+    .await;
+    send_command(
+        &mut stdin,
+        format!("setoption name multipv value {}\n", &number_lines),
+    )
+    .await;
 
-        send_command(&mut stdin, format!("setoption name Threads value {}\n", &number_threads)).await;
-        send_command(&mut stdin, format!("setoption name multipv value {}\n", &number_lines)).await;
+    for m in moves.split_whitespace() {
+        let san = San::from_ascii(m.as_bytes()).unwrap();
+        let m = san.to_move(&chess).unwrap();
+        chess.play_unchecked(&m);
+        let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
 
-        for m in moves_list {
-            let san = San::from_ascii(m.as_bytes()).unwrap();
-            let m = san.to_move(&chess).unwrap();
-            chess.play_unchecked(&m);
-            let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
+        send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
+        send_command(&mut stdin, format!("go movetime {}\n", &move_time * 1000)).await;
 
-            send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
-            send_command(&mut stdin, format!("go movetime {}\n", &move_time * 1000)).await;
-
-            let mut current_payload = BestMovePayload::default();
-            loop {
-                tokio::select! {
-                    result = stdout.next_line() => {
-                        match result {
-                            Ok(line_opt) => {
-                                if let Some(line) = line_opt {
-                                    if line == "readyok" {
-                                        println!("Engine ready");
-                                    }
-                                    if line.starts_with("bestmove") {
-                                        println!("bestmove");
-                                        break;
-                                    }
-                                    if line.starts_with("info") && line.contains("pv") {
-                                        if let Ok(best_moves) = parse_uci(&line, &fen.to_string(), &engine) {
-                                            current_payload = best_moves;
-                                        }
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                println!("engine read error {:?}", err);
-                                break;
-                            }
-                        }
-                    }
+        let mut current_payload = BestMoves::default();
+        while let Ok(Some(line)) = stdout.next_line().await {
+            if line.starts_with("bestmove") {
+                break;
+            }
+            if line.starts_with("info") && line.contains("pv") {
+                if let Ok(best_moves) = parse_uci(&line, &fen) {
+                    current_payload = best_moves;
                 }
             }
-            evals_clone.lock().unwrap().push(current_payload);
         }
-    }).await.unwrap();
-    let final_evals = evals.lock().unwrap().clone();
-    Ok(final_evals)
+        evals.push(current_payload);
+    }
+    Ok(evals)
 }
 
 #[tauri::command]
@@ -383,8 +335,7 @@ pub async fn get_single_best_move(
     send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
 
     loop {
-        let result = stdout.next_line().await;
-        match result {
+        match stdout.next_line().await {
             Ok(line_opt) => {
                 if let Some(line) = line_opt {
                     if line.starts_with("bestmove") {
@@ -409,8 +360,7 @@ pub async fn get_engine_name(path: PathBuf) -> Result<String, String> {
     send_command(&mut stdin, "uci\n").await;
 
     loop {
-        let result = stdout.next_line().await;
-        match result {
+        match stdout.next_line().await {
             Ok(line_opt) => {
                 if let Some(line) = line_opt {
                     if line.starts_with("id name") {

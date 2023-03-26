@@ -37,6 +37,7 @@ diesel = { version = "2.0.2", features = ["sqlite", "returning_clauses_for_sqlit
 rayon = "1.6.1"
 chrono = "0.4.24"
 hex = "0.4.3"
+derivative = "2.2.0"
 
 [features]
 # by default Tauri runs in production mode
