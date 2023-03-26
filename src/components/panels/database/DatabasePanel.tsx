@@ -1,11 +1,12 @@
 import { createStyles, Progress, Text } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
+import { invoke } from "@tauri-apps/api";
 import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
-import { Opening, search_position } from "../../../utils/db";
+import { Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import TreeContext from "../../common/TreeContext";
 
@@ -44,21 +45,31 @@ function DatabasePanel({
     );
   }
 
-  const useOpening = useCallback(
-    async (referenceDatabase: string | null, fen: string) => {
-      if (!referenceDatabase) return;
-      setLoading(true);
-
-      let openings = await search_position(referenceDatabase, fen);
-
-      setLoading(false);
-      setOpenings(sortOpenings(openings));
-    },
-    [tree, referenceDatabase]
-  );
-
   useEffect(() => {
-    useOpening(referenceDatabase, tree.fen);
+    async function getOpening(referenceDatabase: string | null, fen: string) {
+      let openings: Opening[] = await invoke("search_position", {
+        file: referenceDatabase,
+        fen,
+      });
+
+      return sortOpenings(openings);
+    }
+    if (!referenceDatabase) return;
+
+    let ignore = false;
+
+    setLoading(true);
+
+    getOpening(referenceDatabase, tree.fen).then((openings) => {
+      if (!ignore) {
+        setOpenings(openings);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      ignore = true;
+    };
   }, [tree, referenceDatabase]);
 
   return (

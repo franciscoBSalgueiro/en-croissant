@@ -167,16 +167,6 @@ export async function getDatabase(path: string): Promise<Database> {
     return db;
 }
 
-export async function search_position(
-    db: string,
-    fen: string
-): Promise<Opening[]> {
-    return invoke("search_position", {
-        file: db,
-        fen,
-    });
-}
-
 export interface Opening {
     move: string;
     white: number;
