@@ -32,7 +32,6 @@ use std::{
     ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::Arc,
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -42,6 +41,9 @@ use tauri::{
 };
 
 use self::ocgdb::encode_2byte_move;
+
+pub use self::models::Puzzle;
+pub use self::schema::puzzles;
 
 fn get_material_count(board: &Board) -> ByColor<u8> {
     board.material().map(|material| {
@@ -1099,10 +1101,9 @@ pub async fn search_position(
         println!("got {} games: {:?}", games.len(), start.elapsed());
     }
 
-    let global_games = Arc::new(games);
     let openings: DashMap<String, PositionStats> = DashMap::new();
 
-    global_games.par_iter().for_each(
+    games.par_iter().for_each(
         |(result, game, end_pawn_home, white_material, black_material)| {
             if is_end_reachable(*end_pawn_home as u16, pawn_home)
                 && material.white >= *white_material as u8

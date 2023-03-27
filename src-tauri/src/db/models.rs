@@ -1,7 +1,19 @@
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{db::schema::*};
+use crate::db::schema::*;
+
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[diesel(table_name = puzzles)]
+pub struct Puzzle {
+    pub id: i32,
+    pub fen: String,
+    pub moves: String,
+    pub rating: i32,
+    pub rating_deviation: i32,
+    pub popularity: i32,
+    pub nb_plays: i32,
+}
 
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = players)]

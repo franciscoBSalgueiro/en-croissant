@@ -1,4 +1,16 @@
 diesel::table! {
+    puzzles (id) {
+        id -> Integer,
+        fen -> Text,
+        moves -> Text,
+        rating -> Integer,
+        rating_deviation -> Integer,
+        popularity -> Integer,
+        nb_plays -> Integer,
+    }
+}
+
+diesel::table! {
     #[sql_name = "Players"]
     players (id) {
         #[sql_name = "ID"]
