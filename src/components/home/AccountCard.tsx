@@ -1,24 +1,24 @@
 import {
-  ActionIcon,
-  Card, Group,
-  Loader,
-  Stack,
-  Text,
-  Tooltip
+    ActionIcon,
+    Card, Group,
+    Loader,
+    Stack,
+    Text,
+    Tooltip
 } from "@mantine/core";
 import {
-  IconArrowDownRight,
-  IconArrowRight,
-  IconArrowUpRight,
-  IconDownload,
-  IconRefresh,
-  IconX
+    IconArrowDownRight,
+    IconArrowRight,
+    IconArrowUpRight,
+    IconDownload,
+    IconRefresh,
+    IconX
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";
 import { downloadChessCom } from "../../utils/chesscom";
-import { Database, getDatabases, query_games } from "../../utils/db";
+import { DatabaseInfo, getDatabases, query_games } from "../../utils/db";
 import { downloadLichess } from "../../utils/lichess";
 import ChessComLogo from "./ChessComLogo";
 import LichessLogo from "./LichessLogo";
@@ -26,7 +26,7 @@ import useStyles from "./styles";
 
 interface AccountCardProps {
   type: "lichess" | "chesscom";
-  database: Database | null;
+  database: DatabaseInfo | null;
   title: string;
   updatedAt: number;
   total: number;
@@ -37,7 +37,7 @@ interface AccountCardProps {
   }[];
   logout: () => void;
   reload: () => void;
-  setDatabases: (databases: Database[]) => void;
+  setDatabases: (databases: DatabaseInfo[]) => void;
 }
 
 export function AccountCard({

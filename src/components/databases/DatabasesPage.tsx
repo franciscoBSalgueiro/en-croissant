@@ -24,7 +24,7 @@ import { IconDatabase, IconStar } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Database, getDatabases } from "../../utils/db";
+import { DatabaseInfo, getDatabases } from "../../utils/db";
 import { formatBytes, formatNumber } from "../../utils/format";
 import OpenFolderButton from "../common/OpenFolderButton";
 import ConvertButton from "./ConvertButton";
@@ -144,9 +144,9 @@ function DatabaseCard({
 
 export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
-  const [databases, setDatabases] = useState<Database[]>([]);
+  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [selectedDatabse, setSelectedDatabase] =
-    useSessionStorage<Database | null>({
+    useSessionStorage<DatabaseInfo | null>({
       key: "database-view",
       defaultValue: null,
     });
@@ -161,7 +161,9 @@ export default function DatabasesPage() {
   const database = selected !== null ? databases[selected] : null;
 
   const [title, setTitle] = useState(database?.title ?? null);
-  const [debouncedTitle] = useDebouncedValue(title, 200);
+  const [debouncedTitle] = useDebouncedValue(title, 100);
+  const [description, setDescription] = useState(database?.description ?? null);
+  const [debouncedDescription] = useDebouncedValue(description, 100);
   const [deleteModal, toggleDeleteModal] = useToggle();
 
   useEffect(() => {
@@ -169,10 +171,11 @@ export default function DatabasesPage() {
   }, []);
 
   useEffect(() => {
-    if (debouncedTitle !== null && database !== null && debouncedTitle !== "") {
-      invoke("rename_db", {
+    if ((debouncedTitle || debouncedDescription) && database !== null) {
+      invoke("edit_db_info", {
         file: database.file,
         title: debouncedTitle,
+        description: debouncedDescription,
       })
         .then(() => {
           getDatabases().then((dbs) => setDatabases(dbs));
@@ -181,10 +184,14 @@ export default function DatabasesPage() {
           console.log(e);
         });
     }
-  }, [debouncedTitle]);
+  }, [debouncedTitle, debouncedDescription]);
 
   useEffect(() => {
     setTitle(database?.title ?? null);
+  }, [database?.file]);
+
+  useEffect(() => {
+    setDescription(database?.description ?? null);
   }, [database?.file]);
 
   useEffect(() => {
@@ -256,17 +263,21 @@ export default function DatabasesPage() {
         <ConvertButton setDatabases={setDatabases} />
       </SimpleGrid>
 
-      {database !== null && title !== null && (
+      {database !== null && (
         <Box mx={30}>
           <Divider my="md" />
           <Stack>
             <TextInput
               label="Title"
-              value={title}
+              value={title ?? ""}
               onChange={(e) => setTitle(e.currentTarget.value)}
               error={title === "" && "Name is required"}
             />
-            <Textarea label="Description" value={database.description} />
+            <Textarea
+              label="Description"
+              value={description ?? ""}
+              onChange={(e) => setDescription(e.currentTarget.value)}
+            />
             <Checkbox
               label="Reference Database"
               checked={isReference}

@@ -1,24 +1,24 @@
 import {
-  ActionIcon,
-  Box,
-  Center,
-  Collapse,
-  Flex,
-  Grid,
-  Group,
-  NumberInput,
-  Text,
-  TextInput
+    ActionIcon,
+    Box,
+    Center,
+    Collapse,
+    Flex,
+    Grid,
+    Group,
+    NumberInput,
+    Text,
+    TextInput
 } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
-import { Database, Player, query_players } from "../../utils/db";
+import { DatabaseInfo, Player, query_players } from "../../utils/db";
 import PlayerCard from "./PlayerCard";
 import useStyles from "./styles";
 
-function PlayerTable({ database }: { database: Database }) {
+function PlayerTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
   const [players, setplayers] = useState<Player[]>([]);
   const [count, setCount] = useState(0);

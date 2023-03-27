@@ -19,7 +19,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
   CompleteGame,
-  Database,
+  DatabaseInfo,
   NormalizedGame,
   Outcome,
   query_games,
@@ -30,7 +30,7 @@ import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
 
-function GameTable({ database }: { database: Database }) {
+function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
   const [games, setGames] = useState<NormalizedGame[]>([]);
 

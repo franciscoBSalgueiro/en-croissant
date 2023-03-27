@@ -4,10 +4,10 @@ import { IconArrowBackUp, IconChess, IconUser } from "@tabler/icons-react";
 import Link from "next/link";
 import GameTable from "../../components/databases/GameTable";
 import PlayerTable from "../../components/databases/PlayerTable";
-import { Database } from "../../utils/db";
+import { DatabaseInfo } from "../../utils/db";
 
 function DatabaseView() {
-  const [database, setDatabase] = useSessionStorage<Database | null>({
+  const [database, setDatabase] = useSessionStorage<DatabaseInfo | null>({
     key: "database-view",
     defaultValue: null,
   });

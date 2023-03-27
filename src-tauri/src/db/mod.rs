@@ -537,6 +537,7 @@ pub struct DatabaseInfo {
     player_count: usize,
     game_count: usize,
     storage_size: usize,
+    filename: String,
 }
 
 #[tauri::command]
@@ -588,34 +589,60 @@ pub async fn get_db_info(
         _ => "Untitled".to_string(),
     };
 
+    let description = match info::table
+        .filter(info::name.eq("Description"))
+        .first(db)
+        .map(|description_info: Info| description_info.value)
+    {
+        Ok(Some(description)) => description,
+        _ => "".to_string(),
+    };
+
     let storage_size = path.metadata().expect("get metadata").len() as usize;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     Ok(DatabaseInfo {
         title,
-        description: filename.to_string(),
+        description,
         player_count,
         game_count,
         storage_size,
+        filename: filename.to_string(),
     })
 }
 
 #[tauri::command]
-pub async fn rename_db(
+pub async fn edit_db_info(
     file: PathBuf,
-    title: String,
+    title: Option<String>,
+    description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
-    diesel::insert_into(info::table)
-        .values((info::name.eq("Title"), info::value.eq(title.clone())))
-        .on_conflict(info::name)
-        .do_update()
-        .set(info::value.eq(title))
-        .execute(db)
-        .or(Err("upsert title"))?;
+    if let Some(title) = title {
+        diesel::insert_into(info::table)
+            .values((info::name.eq("Title"), info::value.eq(title.clone())))
+            .on_conflict(info::name)
+            .do_update()
+            .set(info::value.eq(title))
+            .execute(db)
+            .or(Err("upsert title"))?;
+    }
+
+    if let Some(description) = description {
+        diesel::insert_into(info::table)
+            .values((
+                info::name.eq("Description"),
+                info::value.eq(description.clone()),
+            ))
+            .on_conflict(info::name)
+            .do_update()
+            .set(info::value.eq(description))
+            .execute(db)
+            .or(Err("upsert description"))?;
+    }
 
     Ok(())
 }

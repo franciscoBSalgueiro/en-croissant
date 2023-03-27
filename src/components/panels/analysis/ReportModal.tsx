@@ -19,7 +19,7 @@ import {
   Score,
   VariationTree
 } from "../../../utils/chess";
-import { Database, getDatabases } from "../../../utils/db";
+import { DatabaseInfo, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
 
@@ -36,7 +36,7 @@ function ReportModal({
   toggleReportingMode: () => void;
   setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
 }) {
-  const [databases, setDatabases] = useState<Database[]>([]);
+  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
 
   const chess = new Chess();

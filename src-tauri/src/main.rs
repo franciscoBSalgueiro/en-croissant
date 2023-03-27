@@ -27,7 +27,7 @@ use crate::db::{
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
-    db::{get_db_info, get_games, get_players, rename_db},
+    db::{get_db_info, get_games, get_players, edit_db_info},
     fs::download_file,
     opening::get_opening,
 };
@@ -143,7 +143,7 @@ fn main() {
             get_players,
             get_db_info,
             get_puzzle_db_info,
-            rename_db,
+            edit_db_info,
             get_players_game_info,
             start_server,
             analyze_game,

@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { getChessComAccount } from "../../utils/chesscom";
-import { Database, getDatabases } from "../../utils/db";
+import { DatabaseInfo, getDatabases } from "../../utils/db";
 import { createCodes, getLichessAccount } from "../../utils/lichess";
 import { Session } from "../../utils/session";
 import AccountCards from "../common/AccountCards";
@@ -18,7 +18,7 @@ function Accounts() {
   });
   const authWindow = useRef<Window | null>(null);
   const isListesning = useRef(false);
-  const [databases, setDatabases] = useState<Database[]>([]);
+  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));
   }, []);

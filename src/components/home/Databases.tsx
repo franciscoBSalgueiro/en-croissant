@@ -1,10 +1,10 @@
 import { Card, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { Database, getDatabases } from "../../utils/db";
+import { DatabaseInfo, getDatabases } from "../../utils/db";
 import useStyles from "./styles";
 
 function Databases() {
-  const [databases, setDatabases] = useState<Database[]>([]);
+  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
 
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));

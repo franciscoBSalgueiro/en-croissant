@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import { Database, getDatabases } from "../../utils/db";
+import { DatabaseInfo, getDatabases } from "../../utils/db";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -30,7 +30,7 @@ type Progress = {
 function ConvertButton({
   setDatabases,
 }: {
-  setDatabases: (dbs: Database[]) => void;
+  setDatabases: (dbs: DatabaseInfo[]) => void;
 }) {
   const [filepath, setFilepath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

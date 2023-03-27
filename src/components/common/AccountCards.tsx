@@ -1,5 +1,5 @@
 import { ChessComStats, getChessComAccount } from "../../utils/chesscom";
-import { Database } from "../../utils/db";
+import { DatabaseInfo } from "../../utils/db";
 import { getLichessAccount } from "../../utils/lichess";
 import { Session } from "../../utils/session";
 import { AccountCard } from "../home/AccountCard";
@@ -12,8 +12,8 @@ function AccountCards({
 }: {
   sessions: Session[];
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
-  databases: Database[];
-  setDatabases: React.Dispatch<React.SetStateAction<Database[]>>;
+  databases: DatabaseInfo[];
+  setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
 }) {
   function countGames(stats: ChessComStats) {
     let total = 0;
@@ -36,7 +36,7 @@ function AccountCards({
               type="lichess"
               database={
                 databases.find(
-                  (db) => db.description === account.username + "_lichess.db3"
+                  (db) => db.filename === account.username + "_lichess.db3"
                 ) ?? null
               }
               title={account.username}
@@ -102,8 +102,7 @@ function AccountCards({
               database={
                 databases.find(
                   (db) =>
-                    db.description ===
-                    session.chessCom?.username + "_chesscom.db3"
+                    db.filename === session.chessCom?.username + "_chesscom.db3"
                 ) ?? null
               }
               updatedAt={session.updatedAt}

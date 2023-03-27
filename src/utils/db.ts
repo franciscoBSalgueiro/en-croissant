@@ -12,9 +12,10 @@ export interface CompleteGame {
     currentMove: number[];
 }
 
-export interface Database {
+export interface DatabaseInfo {
     title?: string;
     description?: string;
+    filename: string;
     game_count?: number;
     player_count?: number;
     storage_size?: number;
@@ -144,7 +145,7 @@ export async function query_players(
     });
 }
 
-export async function getDatabases(): Promise<Database[]> {
+export async function getDatabases(): Promise<DatabaseInfo[]> {
     let files = await readDir("db", { dir: BaseDirectory.AppData });
     let dbs = files.filter((file) => file.name?.endsWith(".db3"));
     return (
@@ -156,13 +157,13 @@ export async function getDatabases(): Promise<Database[]> {
                 })
             )
         )
-    ).filter((db) => db !== null) as Database[];
+    ).filter((db) => db !== null) as DatabaseInfo[];
 }
 
-export async function getDatabase(path: string): Promise<Database> {
+export async function getDatabase(path: string): Promise<DatabaseInfo> {
     let db = (await invoke("get_db_info", {
         file: path,
-    })) as Database;
+    })) as DatabaseInfo;
     db.file = path;
     return db;
 }
