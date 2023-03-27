@@ -1,4 +1,4 @@
-use shakmaty::{san::San, uci::Uci, ByColor, Chess, Move, Position, Square};
+use shakmaty::{san::SanPlus, uci::Uci, ByColor, Chess, Move, Position, Square};
 
 use super::{get_material_count, get_pawn_home, is_end_reachable};
 
@@ -49,8 +49,7 @@ pub fn decode_moves(moves_bytes: Vec<u8>) -> Result<String, String> {
     while i < moves_bytes.len() {
         let uci = decode_2byte_move(&moves_bytes[i..i + 2])?;
         let m = uci.to_move(&chess).or(Err("Invalid move"))?;
-        let san = San::from_move(&chess, &m);
-        chess.play_unchecked(&m);
+        let san = SanPlus::from_move_and_play_unchecked(&mut chess, &m);
         moves.push(san.to_string());
         i += 2;
     }

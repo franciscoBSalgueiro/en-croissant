@@ -1,12 +1,10 @@
-use std::{
-    path::PathBuf,
-    process::Stdio,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{path::PathBuf, process::Stdio};
 
 use derivative::Derivative;
 use serde::Serialize;
-use shakmaty::{fen::Fen, san::San, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Position};
+use shakmaty::{
+    fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Position,
+};
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
@@ -97,8 +95,7 @@ fn parse_uci(info: &str, fen: &Fen) -> Result<BestMoves, Box<dyn std::error::Err
     for m in &uci_moves {
         let uci: Uci = m.parse()?;
         let m = uci.to_move(&pos)?;
-        pos.play_unchecked(&m);
-        let san = San::from_move(&pos, &m);
+        let san = SanPlus::from_move_and_play_unchecked(&mut pos, &m);
         san_moves.push(san.to_string());
     }
     Ok(BestMoves {
@@ -200,8 +197,6 @@ pub async fn get_best_moves(
     .await;
     send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
 
-    let mut last_sent_ms = 0;
-    let mut now_ms;
     let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
     loop {
         tokio::select! {
@@ -218,17 +213,11 @@ pub async fn get_best_moves(
                             if line.starts_with("info") && line.contains("pv") {
                                 if let Ok(best_moves) = parse_uci(&line, &fen) {
                                     let multipv = best_moves.multipv;
-                                    let depth = best_moves.depth;
+                                    let cur_depth = best_moves.depth;
                                     best_moves_payload.best_lines.push(best_moves);
                                     if multipv == number_lines {
-                                        if best_moves_payload.best_lines.iter().all(|x| x.depth == depth) {
-                                            let now = SystemTime::now();
-                                            now_ms = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
-
-                                            if now_ms - last_sent_ms > 300 {
-                                                app.emit_all("best_moves", &best_moves_payload).unwrap();
-                                                last_sent_ms = now_ms;
-                                            }
+                                        if best_moves_payload.best_lines.iter().all(|x| x.depth == cur_depth) {
+                                            app.emit_all("best_moves", &best_moves_payload).unwrap();
                                         }
                                         best_moves_payload.best_lines.clear();
                                     }
