@@ -12,6 +12,7 @@ use crate::{
     AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
+use dashmap::DashMap;
 use diesel::{
     connection::SimpleConnection,
     insert_into,
@@ -28,11 +29,10 @@ use shakmaty::{
 };
 
 use std::{
-    collections::HashMap,
     ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -1086,7 +1086,13 @@ pub async fn search_position(
 
     if games.is_empty() {
         *games = games::table
-            .select((games::result, games::moves2, games::pawn_home))
+            .select((
+                games::result,
+                games::moves2,
+                games::pawn_home,
+                games::white_material,
+                games::black_material,
+            ))
             .load(db)
             .expect("load games");
 
@@ -1094,17 +1100,18 @@ pub async fn search_position(
     }
 
     let global_games = Arc::new(games);
-    let openings: Mutex<HashMap<String, PositionStats>> = Mutex::new(HashMap::new());
+    let openings: DashMap<String, PositionStats> = DashMap::new();
 
-    global_games
-        .par_iter()
-        .for_each(|(result, game, end_pawn_home)| {
-            if is_end_reachable(*end_pawn_home as u16, pawn_home) {
+    global_games.par_iter().for_each(
+        |(result, game, end_pawn_home, white_material, black_material)| {
+            if is_end_reachable(*end_pawn_home as u16, pawn_home)
+                && material.white >= *white_material as u8
+                && material.black >= *black_material as u8
+            {
                 if let Ok(Some(m)) =
                     position_search(game, &processed_position, &material, pawn_home)
                 {
-                    let mut openings = openings.lock().unwrap();
-                    let opening = openings.entry(m.clone()).or_insert_with(|| PositionStats {
+                    let mut opening = openings.entry(m.clone()).or_insert_with(|| PositionStats {
                         black: 0,
                         white: 0,
                         draw: 0,
@@ -1119,10 +1126,11 @@ pub async fn search_position(
                     }
                 }
             }
-        });
+        },
+    );
     println!("done: {:?}", start.elapsed());
 
-    let openings: Vec<PositionStats> = openings.into_inner().unwrap().into_values().collect();
+    let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
 
     let mut pos_cache = state.1.lock().unwrap();
     pos_cache.insert((fen, file), openings.clone());

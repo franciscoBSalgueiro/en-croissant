@@ -93,7 +93,7 @@ pub struct AppState(
         >,
     >,
     Mutex<HashMap<(String, PathBuf), Vec<PositionStats>>>,
-    Mutex<Vec<(Option<String>, Vec<u8>, i32)>>,
+    Mutex<Vec<(Option<String>, Vec<u8>, i32, i32, i32)>>,
 );
 
 fn main() {

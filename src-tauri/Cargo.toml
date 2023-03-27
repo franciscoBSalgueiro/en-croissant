@@ -38,6 +38,7 @@ rayon = "1.6.1"
 chrono = "0.4.24"
 hex = "0.4.3"
 derivative = "2.2.0"
+dashmap = "5.4.0"
 
 [features]
 # by default Tauri runs in production mode
