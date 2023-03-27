@@ -12,7 +12,7 @@ use crate::{
     AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
-use dashmap::DashMap;
+use dashmap::{mapref::entry::Entry, DashMap};
 use diesel::{
     connection::SimpleConnection,
     insert_into,
@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen,
     zobrist::{Zobrist32, ZobristHash},
-    Board, ByColor, Chess, EnPassantMode, Position,
+    Board, ByColor, Chess, EnPassantMode, Piece, Position,
 };
 
 use std::{
@@ -55,16 +55,31 @@ fn get_material_count(board: &Board) -> ByColor<u8> {
     })
 }
 
+const WHITE_PAWN: Piece = Piece {
+    color: shakmaty::Color::White,
+    role: shakmaty::Role::Pawn,
+};
+
+const BLACK_PAWN: Piece = Piece {
+    color: shakmaty::Color::Black,
+    role: shakmaty::Role::Pawn,
+};
+
 fn get_pawn_home(board: &Board) -> u16 {
-    let pawns = board.pawns().0;
-    let second_rank_pawns = (pawns >> 8) as u8;
-    let seventh_rank_pawns = (pawns >> 48) as u8;
+    let white_pawns = board.by_piece(WHITE_PAWN);
+    let black_pawns = board.by_piece(BLACK_PAWN);
+    let second_rank_pawns = (white_pawns.0 >> 8) as u8;
+    let seventh_rank_pawns = (black_pawns.0 >> 48) as u8;
     (second_rank_pawns as u16) | ((seventh_rank_pawns as u16) << 8)
 }
 
 /// Returns true if the end pawn structure is reachable
 fn is_end_reachable(end: u16, pos: u16) -> bool {
     end & !pos == 0
+}
+
+fn is_material_reachable(end: &ByColor<u8>, pos: &ByColor<u8>) -> bool {
+    end.white <= pos.white && end.black <= pos.black
 }
 
 #[derive(Debug)]
@@ -1105,25 +1120,42 @@ pub async fn search_position(
 
     games.par_iter().for_each(
         |(result, game, end_pawn_home, white_material, black_material)| {
+            let end_material: ByColor<u8> = ByColor {
+                white: *white_material as u8,
+                black: *black_material as u8,
+            };
             if is_end_reachable(*end_pawn_home as u16, pawn_home)
-                && material.white >= *white_material as u8
-                && material.black >= *black_material as u8
+                && is_material_reachable(&end_material, &material)
             {
                 if let Ok(Some(m)) =
-                    position_search(game, &processed_position, &material, pawn_home)
+                    position_search(game, &processed_position, &end_material, pawn_home)
                 {
-                    let mut opening = openings.entry(m.clone()).or_insert_with(|| PositionStats {
-                        black: 0,
-                        white: 0,
-                        draw: 0,
-                        move_: m,
-                    });
-
-                    match result.as_deref() {
-                        Some("1-0") => opening.white += 1,
-                        Some("0-1") => opening.black += 1,
-                        Some("1/2-1/2") => opening.draw += 1,
-                        _ => (),
+                    let entry = openings.entry(m);
+                    match entry {
+                        Entry::Occupied(mut e) => {
+                            let opening = e.get_mut();
+                            match result.as_deref() {
+                                Some("1-0") => opening.white += 1,
+                                Some("0-1") => opening.black += 1,
+                                Some("1/2-1/2") => opening.draw += 1,
+                                _ => (),
+                            }
+                        }
+                        Entry::Vacant(e) => {
+                            let mut opening = PositionStats {
+                                black: 0,
+                                white: 0,
+                                draw: 0,
+                                move_: e.key().to_string(),
+                            };
+                            match result.as_deref() {
+                                Some("1-0") => opening.white = 1,
+                                Some("0-1") => opening.black = 1,
+                                Some("1/2-1/2") => opening.draw = 1,
+                                _ => (),
+                            }
+                            e.insert(opening);
+                        }
                     }
                 }
             }
