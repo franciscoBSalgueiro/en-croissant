@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Box,
   Card,
   createStyles,
@@ -16,7 +17,11 @@ import {
   useToggle,
   useViewportSize
 } from "@mantine/hooks";
-import { IconEdit, IconSwitchVertical } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconEdit,
+  IconSwitchVertical
+} from "@tabler/icons-react";
 import {
   BISHOP,
   Chess,
@@ -42,8 +47,9 @@ import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
 import Piece from "../common/Piece";
 import TreeContext from "../common/TreeContext";
+import FenInput from "../panels/info/FenInput";
 
-const useStyles = createStyles((theme) => ({
+const useStyles = createStyles(() => ({
   chessboard: {
     position: "relative",
     marginRight: "auto",
@@ -84,13 +90,25 @@ function BoardPlay({
   side,
 }: ChessboardProps) {
   const tree = useContext(TreeContext);
-  const chess = new Chess(tree.fen);
-  if (chess.isCheckmate() && completeGame.game.result === Result.Unknown) {
+  let chess: Chess | null;
+  let error: string | null = null;
+  try {
+    chess = new Chess(tree.fen);
+  } catch (e: any) {
+    chess = null;
+    error = e.message;
+  }
+
+  if (
+    chess !== null &&
+    chess.isCheckmate() &&
+    completeGame.game.result === Result.Unknown
+  ) {
     setCompleteGame((prev) => ({
       ...prev,
       game: {
         ...prev.game,
-        result: chess.turn() === "w" ? Result.BlackWin : Result.WhiteWin,
+        result: chess!.turn() === "w" ? Result.BlackWin : Result.WhiteWin,
       },
     }));
   }
@@ -113,9 +131,9 @@ function BoardPlay({
     defaultValue: false,
   });
   const boardRef = useRef(null);
-  const fen = chess.fen();
+  const fen = tree.fen;
   const dests = toDests(chess, forcedEP);
-  const turn = formatMove(chess.turn());
+  const turn = chess ? formatMove(chess.turn()) : undefined;
   const [pendingMove, setPendingMove] = useState<{
     from: Square;
     to: Square;
@@ -157,6 +175,11 @@ function BoardPlay({
     <Stack justify="center">
       {editingMode && (
         <Card shadow="md" style={{ overflow: "visible" }}>
+          <FenInput
+            onSubmit={(fen) => {
+              setTree(new VariationTree(null, fen, null));
+            }}
+          />
           <SimpleGrid cols={6}>
             {colors.map((color) => {
               return pieces.map((piece) => {
@@ -199,6 +222,15 @@ function BoardPlay({
         </SimpleGrid>
       </Modal>
 
+      {error && (
+        <Alert
+          icon={<IconAlertCircle size="1rem" />}
+          title="Invalid position"
+          color="red"
+        >
+          {error}
+        </Alert>
+      )}
       <Box className={classes.chessboard} ref={boardRef}>
         <Chessground
           width={boardSize}
@@ -224,34 +256,35 @@ function BoardPlay({
                     to: dest as Square,
                   });
                 } else {
-                  let newDest = handleMove(chess, orig, dest)!;
-                  // handle promotions
-                  if (
-                    chess.get(orig as Square).type === "p" &&
-                    ((newDest[1] === "8" && turn === "white") ||
-                      (newDest[1] === "1" && turn === "black"))
-                  ) {
-                    if (autoPromote && !metadata.ctrlKey) {
+                  if (chess) {
+                    let newDest = handleMove(chess, orig, dest)!;
+                    if (
+                      chess.get(orig as Square).type === "p" &&
+                      ((newDest[1] === "8" && turn === "white") ||
+                        (newDest[1] === "1" && turn === "black"))
+                    ) {
+                      if (autoPromote && !metadata.ctrlKey) {
+                        makeMove({
+                          from: orig as Square,
+                          to: newDest,
+                          promotion: QUEEN,
+                        });
+                      } else {
+                        setPendingMove({ from: orig as Square, to: newDest });
+                      }
+                    } else {
                       makeMove({
                         from: orig as Square,
                         to: newDest,
-                        promotion: QUEEN,
                       });
-                    } else {
-                      setPendingMove({ from: orig as Square, to: newDest });
                     }
-                  } else {
-                    makeMove({
-                      from: orig as Square,
-                      to: newDest,
-                    });
                   }
                 }
               },
             },
           }}
           turnColor={turn}
-          check={chess.inCheck()}
+          check={chess?.inCheck()}
           lastMove={moveToKey(lastMove)}
           drawable={{
             enabled: true,

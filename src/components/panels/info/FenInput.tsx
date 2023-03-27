@@ -1,7 +1,10 @@
-import { Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Flex, Stack, Text, TextInput } from "@mantine/core";
+import { IconTrash } from "@tabler/icons-react";
 import { validateFen } from "chess.js";
 import { useContext, useEffect, useState } from "react";
 import TreeContext from "../../common/TreeContext";
+
+const EMPTY_POSITION = "8/8/8/8/8/8/8/8 w - - 0 1";
 
 function FenInput({ onSubmit }: { onSubmit: (fen: string) => void }) {
   const tree = useContext(TreeContext);
@@ -14,26 +17,36 @@ function FenInput({ onSubmit }: { onSubmit: (fen: string) => void }) {
   return (
     <Stack spacing="sm">
       <Text fw="bold">FEN</Text>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const v = validateFen(fen);
-          if (v.ok) {
-            onSubmit(fen);
-          } else {
-            setError(v.error);
-          }
-        }}
-      >
-        <TextInput
-          placeholder="Enter FEN"
-          value={fen}
-          error={error}
-          onChange={(e) => {
-            setFen(e.currentTarget.value);
+      <Flex align="center" gap={10}>
+        <form
+          style={{ flexGrow: 1 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = validateFen(fen);
+            if (v.ok) {
+              onSubmit(fen);
+            } else {
+              setError(v.error);
+            }
           }}
-        />
-      </form>
+        >
+          <TextInput
+            placeholder="Enter FEN"
+            value={fen}
+            error={error}
+            onChange={(e) => {
+              setFen(e.currentTarget.value);
+            }}
+          />
+        </form>
+        <ActionIcon
+          onClick={() => {
+            onSubmit(EMPTY_POSITION);
+          }}
+        >
+          <IconTrash />
+        </ActionIcon>
+      </Flex>
     </Stack>
   );
 }

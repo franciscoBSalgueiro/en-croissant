@@ -20,6 +20,7 @@ import {
   IconNotes,
   IconZoomCheck
 } from "@tabler/icons-react";
+import { invoke } from "@tauri-apps/api";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
@@ -92,10 +93,25 @@ function BoardAnalysis({ id }: { id: string }) {
     setTree(initial_tree);
   }, [initial_tree]);
   const [arrows, setArrows] = useState<string[]>([]);
-  const chess = new Chess(tree.fen);
+  let chess: Chess | null;
+  try {
+    chess = new Chess(tree.fen);
+  } catch (e) {
+    chess = null;
+  }
+  let turn = chess?.turn();
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
-    if (editingMode) {
+    if (chess === null) {
+      invoke("make_move", {
+        fen: tree.fen,
+        from: move.from,
+        to: move.to,
+      }).then((fen) => {
+        const newTree = new VariationTree(null, fen as string, null);
+        setTree(newTree);
+      });
+    } else if (editingMode) {
       const piece = chess.get(move.from);
       chess.remove(move.to);
       chess.remove(move.from);
@@ -108,11 +124,11 @@ function BoardAnalysis({ id }: { id: string }) {
       if (tree.children.length === 0) {
         tree.children = [newTree];
         setTree(newTree);
-      } else if (tree.children.every((child) => child.fen !== chess.fen())) {
+      } else if (tree.children.every((child) => child.fen !== chess!.fen())) {
         tree.children.push(newTree);
         setTree(newTree);
       } else {
-        const child = tree.children.find((child) => child.fen === chess.fen());
+        const child = tree.children.find((child) => child.fen === chess!.fen());
         setTree(child!);
       }
     }
@@ -122,8 +138,8 @@ function BoardAnalysis({ id }: { id: string }) {
     let parentTree = tree;
     let newTree = tree;
     moves.forEach((move) => {
-      const newMove = chess.move(move);
-      newTree = new VariationTree(parentTree, chess.fen(), newMove);
+      const newMove = chess!.move(move);
+      newTree = new VariationTree(parentTree, chess!.fen(), newMove);
       if (parentTree.children.length === 0) {
         parentTree.children = [newTree];
         parentTree = newTree;
@@ -162,9 +178,22 @@ function BoardAnalysis({ id }: { id: string }) {
   }
 
   function addPiece(square: Square, piece: PieceSymbol, color: Color) {
-    chess.put({ type: piece, color }, square);
-    const newTree = new VariationTree(null, chess.fen(), null);
-    setTree(newTree);
+    let newTree: VariationTree;
+    if (chess) {
+      chess.put({ type: piece, color }, square);
+      newTree = new VariationTree(null, chess.fen(), null);
+      setTree(newTree);
+    } else {
+      invoke("put_piece", {
+        fen: tree.fen,
+        square,
+        piece,
+        color,
+      }).then((fen) => {
+        newTree = new VariationTree(null, fen as string, null);
+        setTree(newTree);
+      });
+    }
   }
 
   function undoMove() {

@@ -203,6 +203,8 @@ export interface NormalizedGame {
     time_control?: string;
     eco?: string;
     ply_count: number;
+    white_material?: number;
+    black_material?: number;
     fen?: string;
     moves: string;
 }

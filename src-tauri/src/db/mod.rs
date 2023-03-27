@@ -899,6 +899,8 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
             result: game.result,
             time_control: game.time_control,
             eco: game.eco,
+            white_material: game.white_material,
+            black_material: game.black_material,
             ply_count: game.ply_count,
             fen: game.fen,
             moves: decode_moves(game.moves2).unwrap_or_default(),

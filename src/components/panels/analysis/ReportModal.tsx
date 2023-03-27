@@ -10,12 +10,12 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { invoke } from "@tauri-apps/api";
+import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import {
   Annotation,
   BestMoves,
   goToPosition,
-  pgnToUCI,
   Score,
   VariationTree
 } from "../../../utils/chess";
@@ -39,7 +39,14 @@ function ReportModal({
   const [databases, setDatabases] = useState<Database[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
 
-  const uciMoves = pgnToUCI(moves);
+  const chess = new Chess();
+  let uciMoves: string[] = [];
+  try {
+    chess.loadPgn(moves);
+    uciMoves = chess.history();
+  } catch (e) {
+    console.error(e);
+  }
 
   const form = useForm({
     initialValues: {
@@ -87,7 +94,7 @@ function ReportModal({
     toggleReportingMode();
     setLoading(true);
     invoke("analyze_game", {
-      moves: uciMoves,
+      moves: uciMoves.join(" "),
       engine: form.values.engine,
       moveTime: form.values.secondsPerMove,
     }).then((result) => {
@@ -143,9 +150,7 @@ function ReportModal({
 
           <Text size="sm">
             Estimated time:{" "}
-            {formatDuration(
-              uciMoves.split(" ").length * form.values.secondsPerMove
-            )}
+            {formatDuration(uciMoves.length * form.values.secondsPerMove)}
           </Text>
 
           <Group position="right">

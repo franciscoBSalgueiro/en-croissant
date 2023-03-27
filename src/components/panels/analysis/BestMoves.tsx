@@ -110,7 +110,12 @@ function BestMoves({
   setTree,
 }: BestMovesProps) {
   const tree = useContext(TreeContext);
-  const chess = new Chess(tree.fen);
+  let chess: Chess | null;
+  try {
+    chess = new Chess(tree.fen);
+  } catch (e) {
+    chess = null;
+  }
   const halfMoves = tree.halfMoves;
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
   const [numberLines, setNumberLines] = useState<number>(3);
@@ -127,6 +132,9 @@ function BestMoves({
 
   async function startEngine() {
     emit("stop_engine", engine.path);
+    if (!chess) {
+      return;
+    }
     invoke("get_best_moves", {
       engine: engine.path,
       tab,
@@ -174,6 +182,12 @@ function BestMoves({
       setEngineVariation([]);
     }
   }, [tree.fen]);
+
+  useEffect(() => {
+    if (enabled && chess === null) {
+      toggleEnabled();
+    }
+  }, [chess]);
 
   function AnalysisRow({
     score,
@@ -260,6 +274,7 @@ function BestMoves({
             onClick={() => {
               toggleEnabled();
             }}
+            disabled={chess === null}
             ml={12}
           >
             {enabled ? (

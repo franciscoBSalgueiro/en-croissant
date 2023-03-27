@@ -135,10 +135,9 @@ function DatabasePanel({
         },
       ]}
       idAccessor="move"
-      // noRecordsText={referenceDatabase ? "No openings found": "No database selected"}
       emptyState={
         referenceDatabase ? (
-          "No openings found"
+          "No games found"
         ) : (
           <Text
             sx={{

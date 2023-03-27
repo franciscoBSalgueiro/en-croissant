@@ -125,6 +125,8 @@ pub struct NormalizedGame {
     pub black: Player,
     pub black_elo: Option<i32>,
     pub result: Option<String>,
+    pub white_material: i32,
+    pub black_material: i32,
     pub time_control: Option<String>,
     pub eco: Option<String>,
     pub ply_count: Option<i32>,

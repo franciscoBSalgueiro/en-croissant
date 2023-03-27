@@ -4,6 +4,7 @@ import {
     DEFAULT_POSITION,
     KING,
     Move,
+    PieceSymbol,
     ROOK,
     Square,
     SQUARES
@@ -346,8 +347,14 @@ export function moveToKey(move: Move | null) {
     return move ? ([move.from, move.to] as Key[]) : [];
 }
 
-export function toDests(chess: Chess, forcedEP: boolean): Map<Key, Key[]> {
+export function toDests(
+    chess: Chess | null,
+    forcedEP: boolean
+): Map<Key, Key[]> {
     const dests = new Map();
+    if (chess === null) {
+        return dests;
+    }
     for (const s of SQUARES) {
         const ms = chess.moves({ square: s, verbose: true }) as Move[];
         for (const m of ms) {
@@ -626,21 +633,20 @@ export function handleMove(chess: Chess, orig: Key, dest: Key): Square | null {
     return dest;
 }
 
-export function pgnToUCI(pgn: string): string {
-    const chess = new Chess();
-    chess.loadPgn(pgn);
-    const moves = chess.history();
-    return moves.join(" ");
-}
-
 export function uciToMove(uci: string, fen: string): Move | null {
-    const chess = new Chess(fen);
-    const orig = uci.slice(0, 2) as Key;
-    const dest = handleMove(chess, orig, uci.slice(2, 4) as Key);
     try {
+        const chess = new Chess(fen);
+        const orig = uci.slice(0, 2) as Key;
+        const dest = handleMove(chess, orig, uci.slice(2, 4) as Key);
+        let promotion: PieceSymbol | undefined;
+        if (uci.length === 5) {
+            promotion = uci[4] as PieceSymbol;
+        }
+
         return chess.move({
             from: orig,
             to: dest!,
+            promotion,
         });
     } catch (e) {
         return null;
