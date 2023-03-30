@@ -9,7 +9,7 @@ pub fn encode_move(m: &Move, chess: &Chess) -> Result<u8, String> {
 
 fn decode_move(byte: u8, chess: &Chess) -> Option<Move> {
     let legal_moves = chess.legal_moves();
-    legal_moves.into_iter().nth(byte as usize)
+    legal_moves.get(byte as usize).cloned()
 }
 
 pub fn decode_moves(moves_bytes: Vec<u8>) -> Result<String, String> {
