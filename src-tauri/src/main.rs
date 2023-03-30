@@ -11,6 +11,7 @@ mod puzzle;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
 use db::PositionStats;
@@ -94,6 +95,7 @@ pub struct AppState(
     >,
     Mutex<HashMap<(String, PathBuf), Vec<PositionStats>>>,
     Mutex<Vec<(Option<String>, Vec<u8>, i32, i32, i32)>>,
+    AtomicBool,
 );
 
 fn main() {

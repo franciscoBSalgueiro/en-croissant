@@ -28,6 +28,7 @@ use std::{
     ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
+    sync::atomic::Ordering,
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -1118,7 +1119,9 @@ pub async fn search_position(
     let start = Instant::now();
     println!("start: {:?}", start.elapsed());
 
+    state.3.store(true, Ordering::Relaxed);
     let mut games = state.2.lock().unwrap();
+    state.3.store(false, Ordering::Relaxed);
 
     if games.is_empty() {
         *games = games::table
@@ -1139,6 +1142,9 @@ pub async fn search_position(
 
     games.par_iter().for_each(
         |(result, game, end_pawn_home, white_material, black_material)| {
+            if state.3.load(Ordering::Relaxed) {
+                return;
+            }
             let end_material: ByColor<u8> = ByColor {
                 white: *white_material as u8,
                 black: *black_material as u8,
@@ -1181,6 +1187,9 @@ pub async fn search_position(
         },
     );
     println!("done: {:?}", start.elapsed());
+    if state.3.load(Ordering::Relaxed) {
+        return Err("Search stopped".to_string());
+    }
 
     let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
 
