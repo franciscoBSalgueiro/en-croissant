@@ -1,11 +1,11 @@
+mod encoding;
 mod models;
-mod ocgdb;
 mod ops;
 mod schema;
 use crate::{
     db::{
+        encoding::{decode_moves, position_search},
         models::*,
-        ocgdb::{decode_moves, position_search},
         ops::*,
         schema::*,
     },
@@ -22,11 +22,7 @@ use diesel::{
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen,
-    zobrist::{Zobrist32, ZobristHash},
-    Board, ByColor, Chess, EnPassantMode, Piece, Position,
-};
+use shakmaty::{fen::Fen, Board, ByColor, Chess, Piece, Position};
 
 use std::{
     ffi::OsStr,
@@ -40,7 +36,7 @@ use tauri::{
     Manager,
 };
 
-use self::ocgdb::encode_2byte_move;
+use self::encoding::encode_move;
 
 pub use self::models::Puzzle;
 pub use self::schema::puzzles;
@@ -183,7 +179,6 @@ pub struct TempGame {
     pub eco: Option<String>,
     pub fen: Option<String>,
     pub moves: Vec<u8>,
-    pub opening: Vec<Zobrist32>,
     pub position: Chess,
     pub material_count: MaterialColor,
 }
@@ -222,7 +217,7 @@ impl TempGame {
             site_id = 1;
         }
 
-        let ply_count = (self.moves.len() / 2) as i32;
+        let ply_count = (self.moves.len()) as i32;
         let final_material = get_material_count(self.position.board());
         let minimal_white_material = self.material_count.white.min(final_material.white) as i32;
         let minimal_black_material = self.material_count.black.min(final_material.black) as i32;
@@ -356,15 +351,10 @@ impl Visitor for Importer {
                     self.game.material_count.black = cur_material.black;
                 }
             }
-            if self.game.moves.len() < 20 {
-                self.game
-                    .opening
-                    .push(self.game.position.zobrist_hash(EnPassantMode::Legal));
-            }
-            self.game.position.play_unchecked(&m);
             self.game
                 .moves
-                .extend_from_slice(&encode_2byte_move(&m).unwrap());
+                .push(encode_move(&m, &self.game.position).unwrap());
+            self.game.position.play_unchecked(&m);
         } else {
             self.skip = true;
         }
