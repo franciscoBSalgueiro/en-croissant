@@ -10,25 +10,25 @@ mod opening;
 mod puzzle;
 
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
-use db::PositionStats;
+use db::{NormalizedGame, PositionStats};
 use reqwest::Url;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
 };
 
-use crate::chess::{analyze_game, get_engine_name, get_single_best_move, put_piece, make_move};
+use crate::chess::{analyze_game, get_engine_name, get_single_best_move, make_move, put_piece};
 use crate::db::{
     clear_games, convert_pgn, delete_database, get_players_game_info, search_position,
 };
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
-    db::{get_db_info, get_games, get_players, edit_db_info},
+    db::{edit_db_info, get_db_info, get_games, get_players},
     fs::download_file,
     opening::get_opening,
 };
@@ -86,17 +86,17 @@ async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
 }
 
 #[derive(Default)]
-pub struct AppState(
-    Mutex<
+pub struct AppState {
+    connection_pool: Mutex<
         HashMap<
             String,
             diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
         >,
     >,
-    Mutex<HashMap<(String, PathBuf), Vec<PositionStats>>>,
-    Mutex<Vec<(Option<String>, Vec<u8>, i32, i32, i32)>>,
-    AtomicBool,
-);
+    line_cache: Mutex<HashMap<(String, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>>,
+    db_cache: Mutex<Vec<(i32, Option<String>, Vec<u8>, i32, i32, i32)>>,
+    new_request: AtomicBool,
+}
 
 fn main() {
     tauri::Builder::default()

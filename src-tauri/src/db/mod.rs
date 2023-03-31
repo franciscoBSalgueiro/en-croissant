@@ -28,7 +28,7 @@ use std::{
     ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::atomic::Ordering,
+    sync::{atomic::Ordering, Mutex},
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -39,6 +39,7 @@ use tauri::{
 
 use self::encoding::encode_move;
 
+pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
 pub use self::schema::puzzles;
 
@@ -128,7 +129,7 @@ fn get_db_or_create(
     db_path: &str,
     options: ConnectionOptions,
 ) -> Result<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>, String> {
-    let mut state = app_state.0.lock().unwrap();
+    let mut state = app_state.connection_pool.lock().unwrap();
     if state.contains_key(db_path) {
         Ok(state.get(db_path).unwrap().clone())
     } else {
@@ -1064,7 +1065,7 @@ pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut state = state.0.lock().unwrap();
+    let mut state = state.connection_pool.lock().unwrap();
     let path_str = file.to_str().unwrap();
     if state.contains_key(path_str) {
         state.remove(path_str);
@@ -1077,7 +1078,7 @@ pub async fn delete_database(
 
 #[tauri::command]
 pub fn clear_games(state: tauri::State<'_, AppState>) {
-    let mut state = state.2.lock().unwrap();
+    let mut state = state.db_cache.lock().unwrap();
     state.clear();
 }
 
@@ -1095,14 +1096,14 @@ pub async fn search_position(
     file: PathBuf,
     fen: String,
     state: tauri::State<'_, AppState>,
-) -> Result<Vec<PositionStats>, String> {
+) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), String> {
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
     {
-        let pos_cache = state.1.lock().unwrap();
+        let line_cache = state.line_cache.lock().unwrap();
 
-        if let Some(pos) = pos_cache.get(&(fen.clone(), file.clone())) {
+        if let Some(pos) = line_cache.get(&(fen.clone(), file.clone())) {
             return Ok(pos.clone());
         }
     }
@@ -1119,13 +1120,14 @@ pub async fn search_position(
     let start = Instant::now();
     println!("start: {:?}", start.elapsed());
 
-    state.3.store(true, Ordering::Relaxed);
-    let mut games = state.2.lock().unwrap();
-    state.3.store(false, Ordering::Relaxed);
+    state.new_request.store(true, Ordering::Relaxed);
+    let mut games = state.db_cache.lock().unwrap();
+    state.new_request.store(false, Ordering::Relaxed);
 
     if games.is_empty() {
         *games = games::table
             .select((
+                games::id,
                 games::result,
                 games::moves2,
                 games::pawn_home,
@@ -1139,10 +1141,11 @@ pub async fn search_position(
     }
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
+    let sample_games: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
     games.par_iter().for_each(
-        |(result, game, end_pawn_home, white_material, black_material)| {
-            if state.3.load(Ordering::Relaxed) {
+        |(id, result, game, end_pawn_home, white_material, black_material)| {
+            if state.new_request.load(Ordering::Relaxed) {
                 return;
             }
             let end_material: ByColor<u8> = ByColor {
@@ -1155,6 +1158,9 @@ pub async fn search_position(
                 if let Ok(Some(m)) =
                     position_search(game, &processed_position, &end_material, pawn_home)
                 {
+                    if sample_games.lock().unwrap().len() < 10 {
+                        sample_games.lock().unwrap().push(*id);
+                    }
                     let entry = openings.entry(m);
                     match entry {
                         Entry::Occupied(mut e) => {
@@ -1187,14 +1193,27 @@ pub async fn search_position(
         },
     );
     println!("done: {:?}", start.elapsed());
-    if state.3.load(Ordering::Relaxed) {
+    if state.new_request.load(Ordering::Relaxed) {
         return Err("Search stopped".to_string());
     }
 
+    let ids: Vec<i32> = sample_games.lock().unwrap().clone();
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .filter(games::id.eq_any(ids))
+        .load(db)
+        .expect("load games");
+    let normalized_games = normalize_games(games);
+
     let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
 
-    let mut pos_cache = state.1.lock().unwrap();
-    pos_cache.insert((fen, file), openings.clone());
+    let mut line_cache = state.line_cache.lock().unwrap();
+    line_cache.insert((fen, file), (openings.clone(), normalized_games.clone()));
 
-    Ok(openings)
+    Ok((openings, normalized_games))
 }

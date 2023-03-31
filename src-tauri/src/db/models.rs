@@ -15,7 +15,7 @@ pub struct Puzzle {
     pub nb_plays: i32,
 }
 
-#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
+#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable, Clone)]
 #[diesel(table_name = players)]
 pub struct Player {
     pub id: i32,
@@ -82,7 +82,7 @@ pub struct NewGame<'a> {
     pub pawn_home: i32,
 }
 
-#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
+#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable, Clone)]
 pub struct Site {
     pub id: i32,
     pub name: Option<String>,
@@ -94,7 +94,7 @@ pub struct NewSite<'a> {
     pub name: &'a str,
 }
 
-#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable)]
+#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable, Clone)]
 pub struct Event {
     pub id: i32,
     pub name: Option<String>,
@@ -112,7 +112,7 @@ pub struct Info {
     pub value: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct NormalizedGame {
     pub id: i32,
     pub event: Event,
