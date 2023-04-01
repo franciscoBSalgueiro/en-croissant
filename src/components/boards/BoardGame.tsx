@@ -7,14 +7,15 @@ import {
   Select,
   SimpleGrid,
   Stack,
-  Text
+  Text,
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import {
+  IconDice,
   IconPlus,
   IconRobot,
   IconUsers,
-  IconZoomCheck
+  IconZoomCheck,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
@@ -24,7 +25,7 @@ import {
   movesToVariationTree,
   parsePGN,
   parseUci,
-  VariationTree
+  VariationTree,
 } from "../../utils/chess";
 import { CompleteGame, defaultGame, Outcome } from "../../utils/db";
 import { Engine, getEngines } from "../../utils/engines";
@@ -36,6 +37,7 @@ import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
 
 enum Opponent {
+  Random = "Random Bot",
   Easy = "Easy Bot",
   Medium = "Medium Bot",
   Hard = "Hard Bot",
@@ -252,22 +254,30 @@ function BoardGame({
       isBotTurn
     ) {
       let engineLevel;
-      if (opponent === Opponent.Easy) {
-        engineLevel = 2;
-      } else if (opponent === Opponent.Medium) {
-        engineLevel = 4;
-      } else if (opponent === Opponent.Hard) {
-        engineLevel = 6;
-      } else if (opponent === Opponent.Impossible) {
-        engineLevel = 8;
+      if (opponent === Opponent.Random) {
+        invoke("make_random_move", {
+          fen: tree.fen,
+        }).then((move) => {
+          makeMove(parseUci(move as string));
+        });
+      } else {
+        if (opponent === Opponent.Easy) {
+          engineLevel = 2;
+        } else if (opponent === Opponent.Medium) {
+          engineLevel = 4;
+        } else if (opponent === Opponent.Hard) {
+          engineLevel = 6;
+        } else if (opponent === Opponent.Impossible) {
+          engineLevel = 8;
+        }
+        invoke("get_single_best_move", {
+          difficulty: engineLevel,
+          engine,
+          fen: tree.fen,
+        }).then((move) => {
+          makeMove(parseUci(move as string));
+        });
       }
-      invoke("get_single_best_move", {
-        difficulty: engineLevel,
-        engine,
-        fen: tree.fen,
-      }).then((move) => {
-        makeMove(parseUci(move as string));
-      });
     }
   }, [tree, engine, playingColor]);
 
@@ -295,6 +305,13 @@ function BoardGame({
                 Choose an opponent
               </Text>
               <SimpleGrid cols={3} spacing="md">
+              <OpponentCard
+                  description={""}
+                  opponent={Opponent.Random}
+                  selected={selected === Opponent.Random}
+                  setSelected={setSelected}
+                  Icon={IconDice}
+                />
                 <OpponentCard
                   description={""}
                   opponent={Opponent.Easy}

@@ -874,6 +874,7 @@ dependencies = [
  "lazy_static",
  "once_cell",
  "pgn-reader",
+ "rand 0.8.5",
  "rayon",
  "reqwest",
  "rusqlite",

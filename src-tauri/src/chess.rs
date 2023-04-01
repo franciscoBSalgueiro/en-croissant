@@ -1,6 +1,7 @@
 use std::{path::PathBuf, process::Stdio};
 
 use derivative::Derivative;
+use rand::seq::SliceRandom;
 use serde::Serialize;
 use shakmaty::{
     fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Piece,
@@ -391,4 +392,15 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
     pos.board.remove_piece_at(from).unwrap();
     let fen = Fen::from_setup(pos);
     Ok(fen.to_string())
+}
+
+#[tauri::command]
+pub fn make_random_move(fen: String) -> Result<String, String> {
+    let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
+    let pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
+    let legal_moves = pos.legal_moves();
+    let mut rng = rand::thread_rng();
+    let random_move = legal_moves.choose(&mut rng).unwrap();
+    let uci = Uci::from_move(random_move, CastlingMode::Standard);
+    Ok(uci.to_string())
 }
