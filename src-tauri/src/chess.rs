@@ -400,7 +400,7 @@ pub fn make_random_move(fen: String) -> Result<String, String> {
     let pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
     let legal_moves = pos.legal_moves();
     let mut rng = rand::thread_rng();
-    let random_move = legal_moves.choose(&mut rng).unwrap();
+    let random_move = legal_moves.choose(&mut rng).ok_or("No legal moves")?;
     let uci = Uci::from_move(random_move, CastlingMode::Standard);
     Ok(uci.to_string())
 }

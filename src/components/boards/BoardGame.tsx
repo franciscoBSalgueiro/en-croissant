@@ -248,7 +248,6 @@ function BoardGame({
     }
     if (
       tree.children.length === 0 &&
-      engine &&
       opponent &&
       opponent !== Opponent.Human &&
       isBotTurn
@@ -260,7 +259,7 @@ function BoardGame({
         }).then((move) => {
           makeMove(parseUci(move as string));
         });
-      } else {
+      } else if (engine) {
         if (opponent === Opponent.Easy) {
           engineLevel = 2;
         } else if (opponent === Opponent.Medium) {
@@ -305,7 +304,7 @@ function BoardGame({
                 Choose an opponent
               </Text>
               <SimpleGrid cols={3} spacing="md">
-              <OpponentCard
+                <OpponentCard
                   description={""}
                   opponent={Opponent.Random}
                   selected={selected === Opponent.Random}
@@ -348,19 +347,24 @@ function BoardGame({
                   Icon={IconUsers}
                 />
               </SimpleGrid>
-              <Select
-                mt="md"
-                w={200}
-                label="Engine"
-                data={engines.map((engine) => ({
-                  label: engine.name,
-                  value: engine.path,
-                }))}
-                value={engine}
-                onChange={(e) => {
-                  setEngine(e as string);
-                }}
-              />
+              {(selected === Opponent.Easy ||
+                selected === Opponent.Medium ||
+                selected === Opponent.Hard ||
+                selected === Opponent.Impossible) && (
+                <Select
+                  mt="md"
+                  w={200}
+                  label="Engine"
+                  data={engines.map((engine) => ({
+                    label: engine.name,
+                    value: engine.path,
+                  }))}
+                  value={engine}
+                  onChange={(e) => {
+                    setEngine(e as string);
+                  }}
+                />
+              )}
 
               <Select
                 mt="md"
@@ -379,7 +383,14 @@ function BoardGame({
 
               <Divider my="md" />
               <Button
-                disabled={selected === null || engine === null}
+                disabled={
+                  selected === null ||
+                  ((selected === Opponent.Easy ||
+                    selected === Opponent.Medium ||
+                    selected === Opponent.Hard ||
+                    selected === Opponent.Impossible) &&
+                    engine === null)
+                }
                 onClick={() => {
                   setPlayingColor(
                     inputColor === "random"
