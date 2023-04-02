@@ -3,30 +3,33 @@ import {
   Box,
   Button,
   Flex,
+  Group,
   ScrollArea,
   Stack,
-  Tabs
+  Tabs,
 } from "@mantine/core";
 import {
   useForceUpdate,
   useHotkeys,
   useSessionStorage,
   useToggle,
-  useViewportSize
+  useViewportSize,
 } from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
   IconNotes,
-  IconZoomCheck
+  IconRobot,
+  IconZoomCheck,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
-import { goToPosition, parsePGN, VariationTree } from "../../utils/chess";
+import { VariationTree, goToPosition, parsePGN } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import { useLocalFile } from "../../utils/hooks";
+import { Tab } from "../../utils/tabs";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
@@ -41,7 +44,15 @@ import BoardPlay from "./BoardPlay";
 import EvalBar from "./EvalBar";
 import GameNotation from "./GameNotation";
 
-function BoardAnalysis({ id }: { id: string }) {
+function BoardAnalysis({
+  id,
+  tabs,
+  setTabs,
+}: {
+  id: string;
+  tabs: Tab[];
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+}) {
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
     key: id,
     defaultValue: { game: defaultGame(), currentMove: [] },
@@ -220,6 +231,12 @@ function BoardAnalysis({ id }: { id: string }) {
     setTree(new VariationTree(null, fen, null));
   }
 
+  function changeToPlayMode() {
+    setTabs(
+      tabs.map((tab) => (tab.value === id ? { ...tab, type: "play" } : tab))
+    );
+  }
+
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
     ["ArrowRight", () => redoMove()],
@@ -337,13 +354,22 @@ function BoardAnalysis({ id }: { id: string }) {
                     engines={engines}
                     setEngines={setEngines}
                   />
-                  <Button
-                    leftIcon={<IconZoomCheck size={14} />}
-                    onClick={() => toggleReportingMode()}
-                    loading={analysisLoading}
-                  >
-                    Generate Report
-                  </Button>
+                  <Group grow>
+                    <Button
+                      variant="default"
+                      leftIcon={<IconRobot size={14} />}
+                      onClick={() => changeToPlayMode()}
+                    >
+                      Play against engine
+                    </Button>
+                    <Button
+                      leftIcon={<IconZoomCheck size={14} />}
+                      onClick={() => toggleReportingMode()}
+                      loading={analysisLoading}
+                    >
+                      Generate Report
+                    </Button>
+                  </Group>
                 </Stack>
               </ScrollArea>
             </Tabs.Panel>
