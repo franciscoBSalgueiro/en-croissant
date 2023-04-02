@@ -53,6 +53,8 @@ fn get_material_count(board: &Board) -> ByColor<u8> {
     })
 }
 
+const DATABASE_VERSION: &str = "1.0.0";
+
 const WHITE_PAWN: Piece = Piece {
     color: shakmaty::Color::White,
     role: shakmaty::Role::Pawn,
@@ -376,9 +378,12 @@ pub async fn convert_pgn(
     file: PathBuf,
     timestamp: Option<usize>,
     app: tauri::AppHandle,
+    title: String,
+    description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     // get the name of the file without the extension
+    let description = description.unwrap_or_default();
     let filename = file.file_stem().expect("file name");
     let extension = file.extension().expect("file extension");
     let db_filename = Path::new("db").join(filename).with_extension("db3");
@@ -409,7 +414,11 @@ pub async fn convert_pgn(
 
     if !db_exists {
         db.batch_execute(
-            "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
+            format!(
+                "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
+        INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
+        INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
+        INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");
         CREATE TABLE Events (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
         INSERT INTO Events (Name) VALUES (\"\");
         CREATE TABLE Sites (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
@@ -438,7 +447,9 @@ pub async fn convert_pgn(
             FOREIGN KEY(EventID) REFERENCES Events,
             FOREIGN KEY(SiteID) REFERENCES Sites,
             FOREIGN KEY(WhiteID) REFERENCES Players,
-            FOREIGN KEY(BlackID) REFERENCES Players);",
+            FOREIGN KEY(BlackID) REFERENCES Players);"
+            )
+            .as_str(),
         )
         .or(Err("Failed to create tables"))?;
     }

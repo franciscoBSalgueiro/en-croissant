@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
+import { fetch } from "@tauri-apps/api/http";
 
 export enum Sides {
     WhiteBlack = "WhiteBlack",
@@ -19,6 +20,7 @@ export interface DatabaseInfo {
     game_count?: number;
     player_count?: number;
     storage_size?: number;
+    downloadLink?: string;
     file: string;
 }
 
@@ -166,6 +168,16 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
     })) as DatabaseInfo;
     db.file = path;
     return db;
+}
+
+export async function getDefaultDatabases(): Promise<DatabaseInfo[]> {
+    let data: any = await fetch(`https://www.encroissant.org/databases`, {
+        method: "GET",
+    });
+    if (!data.ok) {
+        throw new Error("Failed to fetch engines");
+    }
+    return data.data;
 }
 
 export interface Opening {

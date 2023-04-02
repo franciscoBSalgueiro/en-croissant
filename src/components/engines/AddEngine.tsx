@@ -1,26 +1,28 @@
 import {
+  Alert,
   Button,
   Card,
   createStyles,
-  Group, Input,
+  Group,
+  Input,
   Modal,
   NumberInput,
   Stack,
   Tabs,
   Text,
-  TextInput
+  TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
-import { IconDatabase, IconTrophy } from "@tabler/icons-react";
+import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
-import { appDataDir, join } from '@tauri-apps/api/path';
+import { appDataDir, join } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
-import { ProgressButton } from "./ProgressButton";
+import { ProgressButton } from "../common/ProgressButton";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -52,6 +54,7 @@ function AddEngine({
 }) {
   const os = useOs();
   const [defaultEngines, setDefaultEngines] = useState<Engine[]>([]);
+  const [error, setError] = useState<boolean>(false);
   const form = useForm<Engine>({
     initialValues: {
       version: "",
@@ -74,17 +77,17 @@ function AddEngine({
 
   useEffect(() => {
     if (os === "undetermined") return;
-    getDefaultEngines(os).then((engines) => {
-      setDefaultEngines(engines);
-    });
+    getDefaultEngines(os)
+      .then((engines) => {
+        setDefaultEngines(engines);
+      })
+      .catch(() => {
+        setError(true);
+      });
   }, [os]);
 
   return (
-    <Modal
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title="Install Engine"
-    >
+    <Modal opened={opened} onClose={() => setOpened(false)} title="Add Engine">
       <Tabs defaultValue="web">
         <Tabs.List>
           <Tabs.Tab value="web">Web</Tabs.Tab>
@@ -101,6 +104,15 @@ function AddEngine({
                 initInstalled={engines.some((e) => e.name === engine.name)}
               />
             ))}
+            {error && (
+              <Alert
+                icon={<IconAlertCircle size="1rem" />}
+                title="Error"
+                color="red"
+              >
+                Failed to fetch the engine's info from the server.
+              </Alert>
+            )}
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
@@ -129,7 +141,7 @@ function AddEngine({
                   });
                   const name: string = await invoke("get_engine_name", {
                     path: selected as string,
-                  })
+                  });
                   form.setFieldValue("path", selected as string);
                   form.setFieldValue("name", name);
                 }}

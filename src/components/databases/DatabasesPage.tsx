@@ -12,13 +12,13 @@ import {
   Text,
   Textarea,
   TextInput,
-  Title
+  Title,
 } from "@mantine/core";
 import {
   useDebouncedValue,
   useLocalStorage,
   useSessionStorage,
-  useToggle
+  useToggle,
 } from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { DatabaseInfo, getDatabases } from "../../utils/db";
 import { formatBytes, formatNumber } from "../../utils/format";
 import OpenFolderButton from "../common/OpenFolderButton";
+import AddDatabase from "./AddDatabase";
 import ConvertButton from "./ConvertButton";
 
 const useStyles = createStyles(
@@ -145,6 +146,7 @@ function DatabaseCard({
 export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
+  const [open, setOpen] = useState(false);
   const [selectedDatabse, setSelectedDatabase] =
     useSessionStorage<DatabaseInfo | null>({
       key: "database-view",
@@ -165,6 +167,7 @@ export default function DatabasesPage() {
   const [description, setDescription] = useState(database?.description ?? null);
   const [debouncedDescription] = useDebouncedValue(description, 100);
   const [deleteModal, toggleDeleteModal] = useToggle();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));
@@ -235,6 +238,15 @@ export default function DatabasesPage() {
           </Group>
         </Stack>
       </Modal>
+
+      <AddDatabase
+        databases={databases}
+        opened={open}
+        setOpened={setOpen}
+        setLoading={setLoading}
+        setDatabases={setDatabases}
+      />
+
       <Group align="baseline" m="lg" mt="xl">
         <Title>Your Databases</Title>
         <OpenFolderButton folder="db" />
@@ -260,7 +272,7 @@ export default function DatabasesPage() {
             isReference={referenceDatabase === item.file}
           />
         ))}
-        <ConvertButton setDatabases={setDatabases} />
+        <ConvertButton setOpen={setOpen} loading={loading} />
       </SimpleGrid>
 
       {database !== null && (

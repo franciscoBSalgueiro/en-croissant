@@ -1,18 +1,19 @@
 import {
-    ActionIcon,
-    Card, Group,
-    Loader,
-    Stack,
-    Text,
-    Tooltip
+  ActionIcon,
+  Card,
+  Group,
+  Loader,
+  Stack,
+  Text,
+  Tooltip,
 } from "@mantine/core";
 import {
-    IconArrowDownRight,
-    IconArrowRight,
-    IconArrowUpRight,
-    IconDownload,
-    IconRefresh,
-    IconX
+  IconArrowDownRight,
+  IconArrowRight,
+  IconArrowUpRight,
+  IconDownload,
+  IconRefresh,
+  IconX,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
@@ -101,7 +102,11 @@ export function AccountCard({
 
   async function convert(filepath: string, timestamp: number | null) {
     console.log("converting", filepath);
-    await invoke("convert_pgn", { file: filepath, timestamp });
+    await invoke("convert_pgn", {
+      file: filepath,
+      timestamp,
+      title: title + (type === "lichess" ? " Lichess" : " Chess.com"),
+    });
     setLoading(false);
     setDatabases(await getDatabases());
   }
