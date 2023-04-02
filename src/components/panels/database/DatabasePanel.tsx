@@ -1,13 +1,23 @@
-import { createStyles, Progress, Tabs, Text } from "@mantine/core";
-import { useLocalStorage } from "@mantine/hooks";
+import {
+  ActionIcon,
+  createStyles,
+  Progress,
+  Tabs,
+  Text,
+  useMantineTheme,
+} from "@mantine/core";
+import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
+import { IconEye } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
-import { NormalizedGame, Opening } from "../../../utils/db";
+import { CompleteGame, NormalizedGame, Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
+import { createTab, Tab } from "../../../utils/tabs";
 import TreeContext from "../../common/TreeContext";
 
 const useStyles = createStyles((theme) => ({
@@ -38,7 +48,17 @@ function DatabasePanel({
     key: "reference-database",
     defaultValue: null,
   });
+  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+    key: "tabs",
+    defaultValue: [],
+  });
+  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
+    key: "activeTab",
+    defaultValue: null,
+  });
   const { classes } = useStyles();
+  const theme = useMantineTheme();
+  const router = useRouter();
 
   function sortOpenings(openings: Opening[]) {
     return openings.sort(
@@ -179,6 +199,32 @@ function DatabasePanel({
           records={games}
           fetching={loading}
           columns={[
+            {
+              accessor: "actions",
+              title: "",
+              render: (game) => (
+                <ActionIcon
+                  variant="filled"
+                  color={theme.primaryColor}
+                  onClick={() => {
+                    const id = createTab(
+                      `${game.white.name} - ${game.black.name}`,
+                      "analysis",
+                      setTabs,
+                      setActiveTab
+                    );
+                    const completeGame: CompleteGame = {
+                      game,
+                      currentMove: [],
+                    };
+                    sessionStorage.setItem(id, JSON.stringify(completeGame));
+                    router.push("/boards");
+                  }}
+                >
+                  <IconEye size={16} stroke={1.5} />
+                </ActionIcon>
+              ),
+            },
             {
               accessor: "white",
               render: ({ white, white_elo }) => (

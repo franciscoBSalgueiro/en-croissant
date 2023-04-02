@@ -29,10 +29,10 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, defaultGame, Outcome } from "../../utils/db";
 import { Engine, getEngines } from "../../utils/engines";
+import { Tab } from "../../utils/tabs";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
-import { Tab } from "../tabs/BoardsPage";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
 

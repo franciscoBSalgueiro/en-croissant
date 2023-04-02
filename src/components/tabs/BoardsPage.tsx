@@ -4,21 +4,16 @@ import {
   Group,
   ScrollArea,
   Stack,
-  Tabs
+  Tabs,
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
+import { createTab, genID, Tab } from "../../utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
-
-export interface Tab {
-  name: string;
-  value: string;
-  type: "new" | "play" | "analysis" | "puzzles";
-}
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -34,13 +29,6 @@ const useStyles = createStyles((theme) => ({
     },
   },
 }));
-
-export function genID() {
-  var S4 = function () {
-    return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
-  };
-  return S4() + S4();
-}
 
 export default function BoardsPage() {
   const { classes } = useStyles();
@@ -59,21 +47,6 @@ export default function BoardsPage() {
     key: "activeTab",
     defaultValue: firstId,
   });
-
-  function createTab() {
-    const id = genID();
-
-    setTabs((prev) => [
-      ...prev,
-      {
-        name: "New tab",
-        value: id,
-        type: "new",
-      },
-    ]);
-    setActiveTab(id);
-    return id;
-  }
 
   function closeTab(value: string | null) {
     if (value !== null) {
@@ -152,7 +125,7 @@ export default function BoardsPage() {
   }
 
   useHotkeys([
-    ["ctrl+T", () => createTab()],
+    ["ctrl+T", () => createTab("New Tab", "new", setTabs, setActiveTab)],
     ["ctrl+W", () => closeTab(activeTab)],
     ["ctrl+tab", () => cycleTabs()],
     ["ctrl+shift+tab", () => cycleTabs(true)],
@@ -199,7 +172,10 @@ export default function BoardsPage() {
                 />
               ))}
             </Tabs.List>
-            <ActionIcon onClick={() => createTab()} className={classes.newTab}>
+            <ActionIcon
+              onClick={() => createTab("New tab", "new", setTabs, setActiveTab)}
+              className={classes.newTab}
+            >
               <IconPlus size={16} />
             </ActionIcon>
           </Group>

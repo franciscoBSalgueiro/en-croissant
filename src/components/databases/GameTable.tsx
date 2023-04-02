@@ -10,7 +10,7 @@ import {
   Select,
   Stack,
   Text,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye } from "@tabler/icons-react";
@@ -22,10 +22,10 @@ import {
   DatabaseInfo,
   NormalizedGame,
   Outcome,
+  Sides,
   query_games,
-  Sides
 } from "../../utils/db";
-import { genID, Tab } from "../tabs/BoardsPage";
+import { Tab, createTab } from "../../utils/tabs";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
@@ -62,7 +62,6 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const { classes } = useStyles();
 
   const router = useRouter();
-  const firstId = genID();
 
   const [tabs, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
@@ -70,23 +69,8 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   });
   const [activeTab, setActiveTab] = useSessionStorage<string | null>({
     key: "activeTab",
-    defaultValue: firstId,
+    defaultValue: null,
   });
-
-  function createTab(name: string) {
-    const id = genID();
-
-    setTabs((prev) => [
-      ...prev,
-      {
-        name,
-        value: id,
-        type: "analysis",
-      },
-    ]);
-    setActiveTab(id);
-    return id;
-  }
 
   useEffect(() => {
     let ignore = false;
@@ -279,7 +263,10 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                     color={theme.primaryColor}
                     onClick={() => {
                       const id = createTab(
-                        `${game.white.name} - ${game.black.name}`
+                        `${game.white.name} - ${game.black.name}`,
+                        "analysis",
+                        setTabs,
+                        setActiveTab
                       );
                       const completeGame: CompleteGame = {
                         game,
