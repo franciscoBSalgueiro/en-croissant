@@ -16,7 +16,7 @@ import { IconAlertCircle, IconDatabase } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
-import { appDataDir, join } from "@tauri-apps/api/path";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   DatabaseInfo,
@@ -115,6 +115,7 @@ function AddDatabase({
                 databaseId={i}
                 key={i}
                 setDatabases={setDatabases}
+                setOpened={setOpened}
                 initInstalled={databases.some((e) => e.title === engine.title)}
               />
             ))}
@@ -189,11 +190,13 @@ function AddDatabase({
 
 function DatabaseCard({
   setDatabases,
+  setOpened,
   database,
   databaseId,
   initInstalled,
 }: {
   setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
+  setOpened: (opened: boolean) => void;
   database: DatabaseInfo;
   databaseId: number;
   initInstalled: boolean;
@@ -202,31 +205,18 @@ function DatabaseCard({
   const [inProgress, setInProgress] = useState(false);
   const [installed, setInstalled] = useState(initInstalled);
 
-  async function downloadDatabase(id: number, url: string) {
+  async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
+    const path = await resolve(await appDataDir(), "db", name + ".db3");
     await invoke("download_file", {
       id,
       url,
       zip: false,
-      path: (await appDataDir()) + "databases",
+      path,
     });
-    let appDataDirPath = await appDataDir();
-    if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
-      appDataDirPath = appDataDirPath.slice(0, -1);
-    }
-    const enginePath = await join(
-      appDataDirPath,
-      "databases",
-      ...database.file.split("/")
-    );
-    setDatabases((prev) => [
-      ...prev,
-      {
-        ...database,
-        path: enginePath,
-      },
-    ]);
+    setDatabases(await getDatabases());
     setInProgress(false);
+    setOpened(false);
   }
 
   useEffect(() => {
@@ -269,7 +259,13 @@ function DatabaseCard({
           </Group>
           <ProgressButton
             loaded={installed}
-            onClick={() => downloadDatabase(databaseId, database.downloadLink!)}
+            onClick={() =>
+              downloadDatabase(
+                databaseId,
+                database.downloadLink!,
+                database.title!
+              )
+            }
             progress={progress}
             id={databaseId}
             disabled={installed || inProgress}
