@@ -1,13 +1,12 @@
 import {
   Button,
   Card,
-  createStyles,
   Divider,
   Group,
   Select,
   SimpleGrid,
   Stack,
-  Text,
+  Text
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import {
@@ -21,16 +20,17 @@ import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import {
+  VariationTree,
   goToPosition,
   movesToVariationTree,
   parsePGN,
   parseUci,
-  VariationTree,
 } from "../../utils/chess";
-import { CompleteGame, defaultGame, Outcome } from "../../utils/db";
+import { CompleteGame, Outcome, defaultGame } from "../../utils/db";
 import { Engine, getEngines } from "../../utils/engines";
 import { Tab } from "../../utils/tabs";
 import GameInfo from "../common/GameInfo";
+import GenericCard from "../common/GenericCard";
 import MoveControls from "../common/MoveControls";
 import TreeContext from "../common/TreeContext";
 import BoardPlay from "./BoardPlay";
@@ -45,88 +45,31 @@ enum Opponent {
   Human = "Human",
 }
 
-const useStyles = createStyles(
-  (theme, { selected }: { selected: boolean }) => ({
-    card: {
-      cursor: "pointer",
-      backgroundColor: selected
-        ? theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0]
-        : theme.colorScheme === "dark"
-        ? theme.colors.dark[7]
-        : theme.white,
-
-      borderStyle: "solid",
-      borderColor: selected
-        ? theme.colors[theme.primaryColor][6]
-        : "transparent",
-      borderWidth: 2,
-
-      "&:hover": {
-        backgroundColor:
-          theme.colorScheme === "dark"
-            ? theme.colors.dark[6]
-            : theme.colors.gray[0],
-        borderColor: selected
-          ? theme.colors[theme.primaryColor][6]
-          : theme.colors.gray[6],
-      },
-    },
-
-    label: {
-      marginBottom: theme.spacing.xs,
-      lineHeight: 1,
-      fontWeight: 700,
-      fontSize: theme.fontSizes.xs,
-      letterSpacing: -0.25,
-      textTransform: "uppercase",
-    },
-
-    info: {
-      display: "flex",
-      justifyContent: "space-between",
-    },
-  })
-);
-
 interface OpponentCardProps {
-  description: string;
   Icon: React.FC;
   opponent: Opponent;
-  selected: boolean;
-  setSelected: (opponent: Opponent) => void;
+  isSelected: boolean;
+  setSelected: React.Dispatch<React.SetStateAction<Opponent | null>>;
 }
 
 function OpponentCard({
-  description,
   opponent,
-  selected,
+  isSelected,
   Icon,
   setSelected,
 }: OpponentCardProps) {
-  const { classes } = useStyles({ selected });
-
   return (
-    <>
-      <Card
-        radius="md"
-        className={classes.card}
-        onClick={() => setSelected(opponent)}
-      >
-        <Stack>
-          <Group noWrap>
-            <Icon />
-            <div>
-              <Text weight={500}>{opponent}</Text>
-              <Text size="xs" color="dimmed">
-                {description}
-              </Text>
-            </div>
-          </Group>
-        </Stack>
-      </Card>
-    </>
+    <GenericCard
+      id={opponent}
+      isSelected={isSelected}
+      setSelected={setSelected}
+      Header={
+        <Group noWrap>
+          <Icon />
+          <Text weight={500}>{opponent}</Text>
+        </Group>
+      }
+    />
   );
 }
 
@@ -305,44 +248,38 @@ function BoardGame({
               </Text>
               <SimpleGrid cols={3} spacing="md">
                 <OpponentCard
-                  description={""}
                   opponent={Opponent.Random}
-                  selected={selected === Opponent.Random}
+                  isSelected={selected === Opponent.Random}
                   setSelected={setSelected}
                   Icon={IconDice}
                 />
                 <OpponentCard
-                  description={""}
                   opponent={Opponent.Easy}
-                  selected={selected === Opponent.Easy}
+                  isSelected={selected === Opponent.Easy}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  description={""}
                   opponent={Opponent.Medium}
-                  selected={selected === Opponent.Medium}
+                  isSelected={selected === Opponent.Medium}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  description={""}
                   opponent={Opponent.Hard}
-                  selected={selected === Opponent.Hard}
+                  isSelected={selected === Opponent.Hard}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  description={""}
                   opponent={Opponent.Impossible}
-                  selected={selected === Opponent.Impossible}
+                  isSelected={selected === Opponent.Impossible}
                   setSelected={setSelected}
                   Icon={IconRobot}
                 />
                 <OpponentCard
-                  description={""}
                   opponent={Opponent.Human}
-                  selected={selected === Opponent.Human}
+                  isSelected={selected === Opponent.Human}
                   setSelected={setSelected}
                   Icon={IconUsers}
                 />

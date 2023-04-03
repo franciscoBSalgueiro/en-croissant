@@ -8,7 +8,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Tooltip
+  Tooltip,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import {
@@ -16,15 +16,15 @@ import {
   IconDots,
   IconPlus,
   IconTrash,
-  IconX
+  IconX,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
 import {
   Completion,
-  getPuzzleDatabases,
   Puzzle,
-  PuzzleDatabase
+  PuzzleDatabase,
+  getPuzzleDatabases,
 } from "../../utils/puzzles";
 import PuzzleBoard from "./PuzzleBoard";
 import { PuzzleDbCard } from "./PuzzleDbCard";
@@ -36,7 +36,7 @@ function Puzzles({ id }: { id: string }) {
   });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
-  const [selectedDb, setSelectedDb] = useState<number>(0);
+  const [selectedDb, setSelectedDb] = useState<number | null>(null);
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
       setPuzzleDbs(databases);
@@ -62,7 +62,7 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.length;
 
   function generatePuzzle() {
-    if (puzzleDbs.length === 0) {
+    if (selectedDb === null) {
       return;
     }
     invoke("get_puzzle", {
@@ -114,7 +114,7 @@ function Puzzles({ id }: { id: string }) {
             <PuzzleDbCard
               id={i}
               key={db.path}
-              selected={selectedDb === i}
+              isSelected={selectedDb === i}
               setSelected={setSelectedDb}
               title={db.title}
               puzzles={db.puzzle_count}
