@@ -1,6 +1,8 @@
-use std::{fs::create_dir_all, io::Cursor, path::Path, os::unix::prelude::PermissionsExt};
+use std::{fs::create_dir_all, io::Cursor, path::Path};
 
 use reqwest::Client;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 use futures_util::StreamExt;
 use tauri::Manager;
@@ -106,13 +108,14 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) {
     }
 }
 
-
 #[tauri::command]
-pub async fn set_file_as_executable(path: String) -> Result<String, String> {
-    let path = Path::new(&path);
-    let metadata = std::fs::metadata(path).unwrap();
-    let mut permissions = metadata.permissions();
-    permissions.set_mode(0o755);
-    std::fs::set_permissions(path, permissions).unwrap();
-    Ok("set_file_as_executable".to_string())
+pub async fn set_file_as_executable(_path: String) {
+    #[cfg(unix)]
+    {
+        let path = Path::new(&path);
+        let metadata = std::fs::metadata(path).unwrap();
+        let mut permissions = metadata.permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(path, permissions).unwrap();
+    }
 }
