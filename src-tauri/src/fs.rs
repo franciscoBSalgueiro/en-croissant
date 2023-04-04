@@ -112,7 +112,7 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) {
 pub async fn set_file_as_executable(_path: String) {
     #[cfg(unix)]
     {
-        let path = Path::new(&path);
+        let path = Path::new(&_path);
         let metadata = std::fs::metadata(path).unwrap();
         let mut permissions = metadata.permissions();
         permissions.set_mode(0o755);
