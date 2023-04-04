@@ -59,8 +59,8 @@ diesel::table! {
         ply_count -> Nullable<Integer>,
         #[sql_name = "FEN"]
         fen -> Nullable<Text>,
-        #[sql_name = "Moves2"]
-        moves2 -> Binary,
+        #[sql_name = "Moves"]
+        moves -> Binary,
         #[sql_name = "PawnHome"]
         pawn_home -> Integer,
     }

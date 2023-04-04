@@ -55,7 +55,7 @@ pub struct Game {
     pub eco: Option<String>,
     pub ply_count: Option<i32>,
     pub fen: Option<String>,
-    pub moves2: Vec<u8>,
+    pub moves: Vec<u8>,
     pub pawn_home: i32,
 }
 
@@ -78,7 +78,7 @@ pub struct NewGame<'a> {
     pub eco: Option<&'a str>,
     pub ply_count: i32,
     pub fen: Option<&'a str>,
-    pub moves2: &'a [u8],
+    pub moves: &'a [u8],
     pub pawn_home: i32,
 }
 

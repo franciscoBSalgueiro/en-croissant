@@ -244,7 +244,7 @@ impl TempGame {
             event_id,
             fen: self.fen.as_deref(),
             result: self.result.as_deref(),
-            moves2: self.moves.as_slice(),
+            moves: self.moves.as_slice(),
             pawn_home: pawn_home as i32,
         };
 
@@ -442,7 +442,7 @@ pub async fn convert_pgn(
             ECO TEXT,
             PlyCount INTEGER,
             FEN TEXT,
-            Moves2 BLOB,
+            Moves BLOB,
             PawnHome BLOB,
             FOREIGN KEY(EventID) REFERENCES Events,
             FOREIGN KEY(SiteID) REFERENCES Sites,
@@ -933,7 +933,7 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
             black_material: game.black_material,
             ply_count: game.ply_count,
             fen: game.fen,
-            moves: decode_moves(game.moves2).unwrap_or_default(),
+            moves: decode_moves(game.moves).unwrap_or_default(),
         })
         .collect()
 }
@@ -1140,7 +1140,7 @@ pub async fn search_position(
             .select((
                 games::id,
                 games::result,
-                games::moves2,
+                games::moves,
                 games::pawn_home,
                 games::white_material,
                 games::black_material,
