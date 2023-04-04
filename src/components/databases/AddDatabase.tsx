@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   createStyles,
+  Divider,
   Group,
   Input,
   Modal,
@@ -12,7 +13,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconAlertCircle, IconDatabase } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
@@ -23,7 +24,7 @@ import {
   getDatabases,
   getDefaultDatabases,
 } from "../../utils/db";
-import { formatBytes } from "../../utils/format";
+import { formatBytes, formatNumber } from "../../utils/format";
 import { ProgressButton } from "../common/ProgressButton";
 
 const useStyles = createStyles((theme) => ({
@@ -253,9 +254,30 @@ function DatabaseCard({
           <Text className={classes.title} mb="xs">
             {database.title}
           </Text>
-          <Group noWrap spacing="xs" mb="xs">
-            <IconDatabase size={16} />
-            <Text size="xs">{formatBytes(database.storage_size!)}</Text>
+
+          <Text size="xs" color="dimmed">
+            {database.description}
+          </Text>
+          <Divider />
+          <Group noWrap grow my="md">
+            <Stack spacing={0} align="center">
+              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+                SIZE
+              </Text>
+              <Text size="xs">{formatBytes(database.storage_size!)}</Text>
+            </Stack>
+            <Stack spacing={0} align="center">
+              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+                GAMES
+              </Text>
+              <Text size="xs">{formatNumber(database.game_count!)}</Text>
+            </Stack>
+            <Stack spacing={0} align="center">
+              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+                PLAYERS
+              </Text>
+              <Text size="xs">{formatNumber(database.player_count!)}</Text>
+            </Stack>
           </Group>
           <ProgressButton
             loaded={installed}
