@@ -231,6 +231,7 @@ function EngineCard({
       "engines",
       ...engine.path.split("/")
     );
+    await invoke("set_file_as_executable", { path: enginePath });
     setEngines((prev) => [
       ...prev,
       {
