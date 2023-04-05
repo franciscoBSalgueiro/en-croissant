@@ -3,7 +3,7 @@ import {
   ColorScheme,
   ColorSchemeProvider,
   MantineColor,
-  MantineProvider
+  MantineProvider,
 } from "@mantine/core";
 import type { AppProps } from "next/app";
 import { SideBar } from "../components/Sidebar";
@@ -14,7 +14,6 @@ import { Notifications } from "@mantine/notifications";
 import Head from "next/head";
 import "../styles/chessgroundBaseOverride.css";
 import "../styles/chessgroundColorsOverride.css";
-import "../styles/staunty.css";
 
 // This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }: AppProps) {
@@ -29,6 +28,11 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const toggleColorScheme = (value?: ColorScheme) =>
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
 
+  const [pieceSet] = useLocalStorage({
+    key: "piece-set",
+    defaultValue: "staunty",
+  });
+
   return (
     <ColorSchemeProvider
       colorScheme={colorScheme}
@@ -40,6 +44,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width"
         />
+        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
       </Head>
       <MantineProvider
         withGlobalStyles

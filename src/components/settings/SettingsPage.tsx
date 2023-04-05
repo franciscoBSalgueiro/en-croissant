@@ -3,10 +3,11 @@ import {
   createStyles,
   Group,
   MantineColor,
+  Select,
   Stack,
   Switch,
   Text,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { ColorControl } from "./ColorControl";
@@ -41,6 +42,39 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+const pieceSets = [
+  { label: "Alpha", value: "alpha" },
+  { label: "Anarcandy", value: "anarcandy" },
+  { label: "California", value: "california" },
+  { label: "Cardinal", value: "cardinal" },
+  { label: "Cburnett", value: "cburnett" },
+  { label: "Chess7", value: "chess7" },
+  { label: "Chessnut", value: "chessnut" },
+  { label: "Companion", value: "companion" },
+  { label: "Disguised", value: "disguised" },
+  { label: "Dubrovny", value: "dubrovny" },
+  { label: "Fantasy", value: "fantasy" },
+  { label: "Fresca", value: "fresca" },
+  { label: "Gioco", value: "gioco" },
+  { label: "Governor", value: "governor" },
+  { label: "Horsey", value: "horsey" },
+  { label: "ICpieces", value: "icpieces" },
+  { label: "Kosal", value: "kosal" },
+  { label: "Leipzig", value: "leipzig" },
+  { label: "Letter", value: "letter" },
+  { label: "Libra", value: "libra" },
+  { label: "Maestro", value: "maestro" },
+  { label: "Merida", value: "merida" },
+  { label: "Pirouetti", value: "pirouetti" },
+  { label: "Pixel", value: "pixel" },
+  { label: "Reillycraig", value: "reillycraig" },
+  { label: "Riohacha", value: "riohacha" },
+  { label: "Shapes", value: "shapes" },
+  { label: "Spatial", value: "spatial" },
+  { label: "Staunty", value: "staunty" },
+  { label: "Tatiana", value: "tatiana" },
+];
+
 function SettingsPage() {
   const [showDests, setShowDests] = useLocalStorage<boolean>({
     key: "show-dests",
@@ -61,6 +95,10 @@ function SettingsPage() {
   const [primaryColor, setPrimaryColr] = useLocalStorage<MantineColor>({
     key: "mantine-primary-color",
     defaultValue: "blue",
+  });
+  const [pieceSet, setPieceSet] = useLocalStorage({
+    key: "piece-set",
+    defaultValue: "staunty",
   });
   const { classes } = useStyles();
   const theme = useMantineTheme();
@@ -171,6 +209,20 @@ function SettingsPage() {
             </Text>
           </div>
           <ThemeButton />
+        </Group>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Piece Set</Text>
+            <Text size="xs" color="dimmed">
+              Overall color scheme
+            </Text>
+          </div>
+          <Select
+            data={pieceSets}
+            value={pieceSet}
+            onChange={(v) => setPieceSet(v!)}
+            placeholder="Select piece set"
+          />
         </Group>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
