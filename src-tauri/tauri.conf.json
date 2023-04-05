@@ -17,7 +17,7 @@
         "scope": ["$APPDATA/**"]
       },
       "http": {
-        "scope": ["https://www.encroissant.org/**"]
+        "scope": ["https://www.encroissant.org/**", "https://api.chess.com/**", "https://www.chess.com/**"]
       }
     },
     "bundle": {

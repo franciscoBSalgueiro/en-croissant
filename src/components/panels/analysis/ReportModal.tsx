@@ -15,9 +15,9 @@ import { useEffect, useState } from "react";
 import {
   Annotation,
   BestMoves,
-  goToPosition,
   Score,
-  VariationTree
+  VariationTree,
+  goToPosition
 } from "../../../utils/chess";
 import { DatabaseInfo, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";

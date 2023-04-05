@@ -24,6 +24,7 @@ specifiers:
   '@types/node': ^18.14.6
   '@types/react': ^18.0.28
   '@types/react-dom': ^18.0.11
+  chess-tcn: ^1.0.3
   chess.js: 1.0.0-beta.3
   chessground: ^8.3.7
   mantine-datatable: ^2.2.3
@@ -66,6 +67,7 @@ dependencies:
   '@tiptap/pm': 2.0.0-beta.220
   '@tiptap/react': 2.0.0-beta.220_3gpavhzg2mvb4vpkw66uqh52dq
   '@tiptap/starter-kit': 2.0.0-beta.220_@tiptap+pm@2.0.0-beta.220
+  chess-tcn: 1.0.3
   chess.js: 1.0.0-beta.3
   chessground: 8.3.7
   mantine-datatable: 2.2.3_ozkgi6fw4fio2q572m2hpudknm
@@ -4376,6 +4378,10 @@ packages:
 
   /chardet/0.7.0:
     resolution: {integrity: sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==}
+    dev: false
+
+  /chess-tcn/1.0.3:
+    resolution: {integrity: sha512-KvXD/+5+mf3oO5Gtnk0fF8H23CVssGzfO4riv3bohDcLEFBi0aI/aCIFcM1LoouswWX+7YFHpraiJ95VNMXUjg==}
     dev: false
 
   /chess.js/1.0.0-beta.3:

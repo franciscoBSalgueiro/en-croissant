@@ -1,5 +1,8 @@
 import { writeTextFile } from "@tauri-apps/api/fs";
+import { fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
+import tcn from "chess-tcn";
+import { Chess } from "chess.js";
 const base_url = "https://api.chess.com";
 
 type ChessComPerf = {
@@ -47,19 +50,21 @@ type ChessComGames = {
     }[];
 };
 
-export async function getChessComAccount(player: string) {
+export async function getChessComAccount(
+    player: string
+): Promise<ChessComStats> {
     const url = `${base_url}/pub/player/${player}/stats`;
-    const response = await fetch(url);
+    const response = await fetch<ChessComStats>(url);
     if (!response.ok) {
         throw new Error("Failed to fetch Chess.com account");
     }
-    return (await response.json()) as ChessComStats;
+    return await response.data;
 }
 
 async function getGameArchives(player: string) {
     const url = `${base_url}/pub/player/${player}/games/archives`;
-    const response = await fetch(url);
-    return (await response.json()) as Archive;
+    const response = await fetch<Archive>(url);
+    return response.data;
 }
 
 export async function downloadChessCom(
@@ -80,8 +85,8 @@ export async function downloadChessCom(
         if (archiveDate < approximateDate) {
             continue;
         }
-        const response = await fetch(archive);
-        const games: ChessComGames = await response.json();
+        const response = await fetch<ChessComGames>(archive);
+        const games = await response.data;
         for (const game of games.games) {
             totalPGN += "\n" + game.pgn;
         }
@@ -90,4 +95,26 @@ export async function downloadChessCom(
         await resolve(await appDataDir(), "db", player + "_chesscom.pgn"),
         totalPGN
     );
+}
+
+export async function getChesscomGame(gameId: string) {
+    const apiData = await fetch<{ game: { moveList: string, pgnHeaders: any } }>(
+        `https://www.chess.com/callback/live/game/${gameId}`
+    );
+    const apiDataJson = await apiData.data;
+    const moveList = apiDataJson.game.moveList;
+    const headers = apiDataJson.game.pgnHeaders;
+    const moves = moveList.match(/.{1,2}/g);
+    if (!moves) {
+        return "";
+    }
+    const chess = new Chess();
+    for (const header of Object.keys(headers)) {
+        chess.header(header, headers[header]);
+    }
+    moves.forEach((move) => {
+        const m = tcn.decode(move);
+        chess.move(m);
+    });
+    return chess.pgn();
 }

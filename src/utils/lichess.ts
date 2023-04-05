@@ -156,3 +156,9 @@ export async function downloadLichess(
         path: resolve(await appDataDir(), "db", player + "_lichess.pgn"),
     });
 }
+
+export async function getLichessGame(gameId: string) {
+    const apiData = await fetch(`https://lichess.org/game/export/${gameId}`);
+    const pgn = await apiData.text();
+    return pgn;
+}

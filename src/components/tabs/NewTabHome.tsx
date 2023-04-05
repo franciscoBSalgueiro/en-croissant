@@ -1,7 +1,7 @@
 import {
   faChess,
   faChessBoard,
-  faFileImport
+  faFileImport,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -9,13 +9,18 @@ import {
   Button,
   Card,
   Modal,
+  Select,
   SimpleGrid,
   Stack,
   Text,
-  Textarea
+  TextInput,
+  Textarea,
 } from "@mantine/core";
 import { useState } from "react";
 import { getCompleteGame } from "../../utils/chess";
+import { getChesscomGame } from "../../utils/chesscom";
+import { getLichessGame } from "../../utils/lichess";
+import { Tab } from "../../utils/tabs";
 
 export default function NewTabHome({
   setTabs,
@@ -82,7 +87,12 @@ export default function NewTabHome({
 
   return (
     <>
-      <ImportModal />
+      <ImportModal
+        openModal={openModal}
+        setOpenModal={setOpenModal}
+        setTabs={setTabs}
+        id={id}
+      />
       <SimpleGrid
         cols={4}
         breakpoints={[
@@ -117,33 +127,68 @@ export default function NewTabHome({
       </SimpleGrid>
     </>
   );
+}
 
-  function ImportModal() {
-    const [pgn, setPgn] = useState("");
+function ImportModal({
+  openModal,
+  setOpenModal,
+  setTabs,
+  id,
+}: {
+  openModal: boolean;
+  setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+  id: string;
+}) {
+  const [pgn, setPgn] = useState("");
+  const [link, setLink] = useState("");
+  const [importType, setImportType] = useState<string>("PGN");
 
-    return (
-      <Modal
-        opened={openModal}
-        onClose={() => setOpenModal(false)}
-        title="Import game"
-      >
+  return (
+    <Modal
+      opened={openModal}
+      onClose={() => setOpenModal(false)}
+      title="Import game"
+    >
+      <Select
+        label="Type of import"
+        placeholder="Pick one"
+        data={[
+          { value: "PGN", label: "PGN" },
+          { value: "Link", label: "Link" },
+        ]}
+        value={importType}
+        onChange={(v) => setImportType(v!)}
+      />
+
+      {importType === "PGN" && (
         <Textarea
           value={pgn}
           onChange={(event) => setPgn(event.currentTarget.value)}
           label="PGN game"
-          withAsterisk
           data-autofocus
           minRows={10}
         />
+      )}
 
-        <Button
-          fullWidth
-          mt="md"
-          radius="md"
-          onClick={() => {
+      {importType === "Link" && (
+        <TextInput
+          value={link}
+          onChange={(event) => setLink(event.currentTarget.value)}
+          label="Game URL (lichess or chess.com)"
+          data-autofocus
+        />
+      )}
+
+      <Button
+        fullWidth
+        mt="md"
+        radius="md"
+        onClick={async () => {
+          if (importType === "PGN") {
             if (!pgn) return;
-            setTabs((prev: any) => {
-              const tab = prev.find((t: any) => t.value === id);
+            setTabs((prev) => {
+              const tab = prev.find((t) => t.value === id)!;
               const completeGame = getCompleteGame(pgn);
 
               sessionStorage.setItem(id, JSON.stringify(completeGame));
@@ -152,11 +197,32 @@ export default function NewTabHome({
               tab.type = "analysis";
               return [...prev];
             });
-          }}
-        >
-          Load
-        </Button>
-      </Modal>
-    );
-  }
+          } else if (importType === "Link") {
+            if (!link) return;
+            let pgn = "";
+            if (link.includes("chess.com")) {
+              const gameId = link.split("/").pop()!;
+              pgn = await getChesscomGame(gameId);
+            } else if (link.includes("lichess")) {
+              const gameId = link.split("/")[3];
+              pgn = await getLichessGame(gameId);
+            }
+
+            setTabs((prev) => {
+              const tab = prev.find((t) => t.value === id)!;
+              const completeGame = getCompleteGame(pgn);
+
+              sessionStorage.setItem(id, JSON.stringify(completeGame));
+
+              tab.name = `${completeGame.game.white.name} - ${completeGame.game.black.name} (Imported)`;
+              tab.type = "analysis";
+              return [...prev];
+            });
+          }
+        }}
+      >
+        Load
+      </Button>
+    </Modal>
+  );
 }

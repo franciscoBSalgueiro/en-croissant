@@ -28,6 +28,7 @@
     "@tiptap/pm": "2.0.0-beta.220",
     "@tiptap/react": "2.0.0-beta.220",
     "@tiptap/starter-kit": "2.0.0-beta.220",
+    "chess-tcn": "^1.0.3",
     "chess.js": "1.0.0-beta.3",
     "chessground": "^8.3.7",
     "mantine-datatable": "^2.2.3",
