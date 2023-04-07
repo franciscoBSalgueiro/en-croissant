@@ -53,6 +53,12 @@ function AddEngine({
   setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
   const os = useOs();
+
+  let filters = [{ name: "All Files", extensions: ["*"] }];
+  if (os == "windows") {
+    filters = [{ name: "Executable Files", extensions: ["exe"] }, ...filters];
+  }
+
   const [defaultEngines, setDefaultEngines] = useState<Engine[]>([]);
   const [error, setError] = useState<boolean>(false);
   const form = useForm<Engine>({
@@ -134,10 +140,7 @@ function AddEngine({
                 onClick={async () => {
                   const selected = await open({
                     multiple: false,
-                    filters: [
-                      { name: "Executable Files", extensions: ["exe"] },
-                      { name: "All Files", extensions: ["*"] },
-                    ],
+                    filters,
                   });
                   const name: string = await invoke("get_engine_name", {
                     path: selected as string,
