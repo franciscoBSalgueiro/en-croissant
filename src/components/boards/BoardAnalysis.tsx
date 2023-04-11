@@ -23,6 +23,8 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api";
+import { save } from "@tauri-apps/api/dialog";
+import { writeTextFile } from "@tauri-apps/api/fs";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { VariationTree, goToPosition, parsePGN } from "../../utils/chess";
@@ -237,12 +239,26 @@ function BoardAnalysis({
     );
   }
 
+  async function saveFile() {
+    const filePath = await save({
+      filters: [
+        {
+          name: "PGN",
+          extensions: ["pgn"],
+        },
+      ],
+    });
+    if (filePath)
+      await writeTextFile(filePath, tree.getTopVariation().getPGN());
+  }
+
   useHotkeys([
     ["ArrowLeft", () => undoMove()],
     ["ArrowRight", () => redoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
     ["Delete", () => deleteVariation()],
+    ["Ctrl+S", () => saveFile()],
   ]);
 
   useEffect(() => {
