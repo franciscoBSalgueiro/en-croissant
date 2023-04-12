@@ -363,6 +363,13 @@ function BoardGame({
                 <Button
                   onClick={() => {
                     setOpponent(null);
+                    setCompleteGame((prev) => ({
+                      game: {
+                        ...prev.game,
+                        result: Outcome.Unknown
+                      },
+                      currentMove: [],
+                    }));
                     setTree(new VariationTree(null, DEFAULT_POSITION, null));
                   }}
                   leftIcon={<IconPlus />}
