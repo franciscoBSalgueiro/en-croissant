@@ -5,7 +5,6 @@ import {
   createStyles,
   Divider,
   Group,
-  Input,
   Modal,
   Stack,
   Tabs,
@@ -25,6 +24,7 @@ import {
   getDefaultDatabases,
 } from "../../utils/db";
 import { formatBytes, formatNumber } from "../../utils/format";
+import FileInput from "../common/FileInput";
 import { ProgressButton } from "../common/ProgressButton";
 
 const useStyles = createStyles((theme) => ({
@@ -149,35 +149,28 @@ function AddDatabase({
               {...form.getInputProps("description")}
             />
 
-            <Input.Wrapper
+            <FileInput
               label="PGN file"
               description="Click to select the PGN file"
-              withAsterisk
+              onClick={async () => {
+                const selected = (await open({
+                  multiple: false,
+                  filters: [
+                    {
+                      name: "PGN file",
+                      extensions: ["pgn", "pgn.zst"],
+                    },
+                  ],
+                })) as string;
+                form.setFieldValue("file", selected);
+                const filename = selected.split(/(\\|\/)/g).pop();
+                if (filename) {
+                  form.setFieldValue("filename", filename);
+                }
+              }}
+              filename={form.values.filename}
               {...form.getInputProps("path")}
-            >
-              <Input
-                component="button"
-                type="button"
-                onClick={async () => {
-                  const selected = (await open({
-                    multiple: false,
-                    filters: [
-                      {
-                        name: "PGN file",
-                        extensions: ["pgn", "pgn.zst"],
-                      },
-                    ],
-                  })) as string;
-                  form.setFieldValue("file", selected);
-                  const filename = selected.split(/(\\|\/)/g).pop();
-                  if (filename) {
-                    form.setFieldValue("filename", filename);
-                  }
-                }}
-              >
-                <Text lineClamp={1}>{form.values.filename}</Text>
-              </Input>
-            </Input.Wrapper>
+            />
 
             <Button fullWidth mt="xl" type="submit">
               Convert

@@ -4,13 +4,12 @@ import {
   Card,
   createStyles,
   Group,
-  Input,
   Modal,
   NumberInput,
   Stack,
   Tabs,
   Text,
-  TextInput,
+  TextInput
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
@@ -22,6 +21,7 @@ import { appDataDir, join } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
+import FileInput from "../common/FileInput";
 import { ProgressButton } from "../common/ProgressButton";
 
 const useStyles = createStyles((theme) => ({
@@ -128,30 +128,23 @@ function AddEngine({
               setOpened(false);
             })}
           >
-            <Input.Wrapper
+            <FileInput
               label="Binary file"
               description="Click to select the binary file"
+              filename={form.values.path}
               withAsterisk
-              {...form.getInputProps("path")}
-            >
-              <Input
-                component="button"
-                type="button"
-                onClick={async () => {
-                  const selected = await open({
-                    multiple: false,
-                    filters,
-                  });
-                  const name: string = await invoke("get_engine_name", {
-                    path: selected as string,
-                  });
-                  form.setFieldValue("path", selected as string);
-                  form.setFieldValue("name", name);
-                }}
-              >
-                <Text lineClamp={1}>{form.values.path}</Text>
-              </Input>
-            </Input.Wrapper>
+              onClick={async () => {
+                const selected = await open({
+                  multiple: false,
+                  filters,
+                });
+                const name: string = await invoke("get_engine_name", {
+                  path: selected as string,
+                });
+                form.setFieldValue("path", selected as string);
+                form.setFieldValue("name", name);
+              }}
+            />
 
             <TextInput
               label="Name"

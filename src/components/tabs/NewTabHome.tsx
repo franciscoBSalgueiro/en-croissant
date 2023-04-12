@@ -8,6 +8,7 @@ import {
   Box,
   Button,
   Card,
+  Divider,
   Modal,
   Select,
   SimpleGrid,
@@ -16,11 +17,15 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
+import { open } from "@tauri-apps/api/dialog";
+
+import { readTextFile } from "@tauri-apps/api/fs";
 import { useState } from "react";
 import { getCompleteGame } from "../../utils/chess";
 import { getChesscomGame } from "../../utils/chesscom";
 import { getLichessGame } from "../../utils/lichess";
 import { Tab } from "../../utils/tabs";
+import FileInput from "../common/FileInput";
 
 export default function NewTabHome({
   setTabs,
@@ -141,6 +146,7 @@ function ImportModal({
   id: string;
 }) {
   const [pgn, setPgn] = useState("");
+  const [file, setFile] = useState<string | null>(null);
   const [link, setLink] = useState("");
   const [importType, setImportType] = useState<string>("PGN");
 
@@ -153,6 +159,7 @@ function ImportModal({
       <Select
         label="Type of import"
         placeholder="Pick one"
+        mb="lg"
         data={[
           { value: "PGN", label: "PGN" },
           { value: "Link", label: "Link" },
@@ -162,13 +169,36 @@ function ImportModal({
       />
 
       {importType === "PGN" && (
-        <Textarea
-          value={pgn}
-          onChange={(event) => setPgn(event.currentTarget.value)}
-          label="PGN game"
-          data-autofocus
-          minRows={10}
-        />
+        <>
+          <FileInput
+            label="PGN file"
+            description={"Click to select a PGN file."}
+            onClick={async () => {
+              const selected = (await open({
+                multiple: false,
+
+                filters: [
+                  {
+                    name: "PGN file",
+                    extensions: ["pgn"],
+                  },
+                ],
+              })) as string;
+              setFile(selected);
+            }}
+            disabled={pgn !== ""}
+            filename={file}
+          />
+          <Divider label="OR" labelPosition="center" />
+          <Textarea
+            value={pgn}
+            disabled={file !== null}
+            onChange={(event) => setPgn(event.currentTarget.value)}
+            label="PGN game"
+            data-autofocus
+            minRows={10}
+          />
+        </>
       )}
 
       {importType === "Link" && (
@@ -184,19 +214,26 @@ function ImportModal({
         fullWidth
         mt="md"
         radius="md"
+        disabled={importType === "PGN" ? !pgn && !file : !link}
         onClick={async () => {
           if (importType === "PGN") {
-            if (!pgn) return;
-            setTabs((prev) => {
-              const tab = prev.find((t) => t.value === id)!;
-              const completeGame = getCompleteGame(pgn);
-
-              sessionStorage.setItem(id, JSON.stringify(completeGame));
-
-              tab.name = `${completeGame.game.white.name} - ${completeGame.game.black.name} (Imported)`;
-              tab.type = "analysis";
-              return [...prev];
-            });
+            if (file || pgn) {
+              const input = file ? await readTextFile(file) : pgn;
+              setTabs((prevTabs) =>
+                prevTabs.map((tab) => {
+                  if (tab.value === id) {
+                    const completeGame = getCompleteGame(input);
+                    sessionStorage.setItem(id, JSON.stringify(completeGame));
+                    return {
+                      ...tab,
+                      name: `${completeGame.game.white.name} - ${completeGame.game.black.name} (Imported)`,
+                      type: "analysis",
+                    };
+                  }
+                  return tab;
+                })
+              );
+            }
           } else if (importType === "Link") {
             if (!link) return;
             let pgn = "";
