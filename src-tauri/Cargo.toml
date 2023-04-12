@@ -1,6 +1,6 @@
 [package]
 name = "en-croissant"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
 license = ""

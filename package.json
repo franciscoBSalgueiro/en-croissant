@@ -1,7 +1,7 @@
 {
   "name": "en-croissant",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "scripts": {
     "dev": "next dev -p 1420",
     "build": "next build && next export -o dist",
