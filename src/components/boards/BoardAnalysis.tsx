@@ -90,7 +90,7 @@ function BoardAnalysis({
     defaultValue: initial_tree,
     serialize: (value) => {
       const storedTree = JSON.stringify({
-        pgn: value.getTopVariation().getPGN(),
+        pgn: value.getTopVariation().getPGN({ headers: game }),
         currentMove: value.getPosition(),
       });
       return storedTree;
@@ -249,7 +249,10 @@ function BoardAnalysis({
       ],
     });
     if (filePath)
-      await writeTextFile(filePath, tree.getTopVariation().getPGN());
+      await writeTextFile(
+        filePath,
+        tree.getTopVariation().getPGN({ headers: game })
+      );
   }
 
   useHotkeys([
@@ -279,7 +282,12 @@ function BoardAnalysis({
   return (
     <TreeContext.Provider value={tree}>
       <ReportModal
-        moves={tree.getTopVariation().getPGN(false, false, false)}
+        moves={tree.getTopVariation().getPGN({
+          headers: game,
+          comments: false,
+          specialSymbols: false,
+          symbols: false,
+        })}
         reportingMode={reportingMode}
         toggleReportingMode={toggleReportingMode}
         setLoading={setAnalysisLoading}
@@ -327,7 +335,7 @@ function BoardAnalysis({
               <Stack>
                 <GameInfo game={game} />
                 <FenInput onSubmit={resetToFen} />
-                <PgnInput />
+                <PgnInput game={game} />
               </Stack>
             </Tabs.Panel>
             <Tabs.Panel value="database" pt="xs">
@@ -392,6 +400,7 @@ function BoardAnalysis({
           </Tabs>
           <Stack>
             <GameNotation
+              game={game}
               setTree={setTree}
               deleteVariation={deleteVariation}
               promoteVariation={promoteVariation}

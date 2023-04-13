@@ -1,9 +1,10 @@
 import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { useContext } from "react";
+import { NormalizedGame } from "../../../utils/db";
 import TreeContext from "../../common/TreeContext";
 
-function PgnInput() {
+function PgnInput({ game }: { game: NormalizedGame }) {
   const tree = useContext(TreeContext);
   const [comments, toggleComments] = useToggle([true, false]);
   const [symbols, toggleSymbols] = useToggle([true, false]);
@@ -42,7 +43,13 @@ function PgnInput() {
         </Group>
         <Textarea
           readOnly
-          value={root.getPGN(symbols, comments, variations, specialSymbols)}
+          value={root.getPGN({
+            headers: game,
+            symbols,
+            comments,
+            variations,
+            specialSymbols,
+          })}
         />
       </Stack>
     </>

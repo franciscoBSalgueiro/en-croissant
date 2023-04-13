@@ -6,7 +6,7 @@ import {
   Select,
   SimpleGrid,
   Stack,
-  Text
+  Text,
 } from "@mantine/core";
 import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import {
@@ -114,7 +114,7 @@ function BoardGame({
     defaultValue: initial_tree,
     serialize: (value) => {
       const storedTree = JSON.stringify({
-        pgn: value.getTopVariation().getPGN(),
+        pgn: value.getTopVariation().getPGN({ headers: game }),
         currentMove: value.getPosition(),
       });
       return storedTree;
@@ -366,7 +366,7 @@ function BoardGame({
                     setCompleteGame((prev) => ({
                       game: {
                         ...prev.game,
-                        result: Outcome.Unknown
+                        result: Outcome.Unknown,
                       },
                       currentMove: [],
                     }));
@@ -385,6 +385,7 @@ function BoardGame({
                 </Button>
               </Group>
               <GameNotation
+                game={game}
                 setTree={setTree}
                 topVariation={tree.getTopVariation()}
                 result={Outcome.Unknown}

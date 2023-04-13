@@ -7,11 +7,11 @@ import {
     PieceSymbol,
     ROOK,
     Square,
-    SQUARES
+    SQUARES,
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
-import { CompleteGame, Outcome } from "./db";
+import { CompleteGame, getHeaders, NormalizedGame, Outcome } from "./db";
 import { formatScore } from "./format";
 
 export type Score = {
@@ -229,21 +229,24 @@ export class VariationTree {
         return moveText;
     }
 
-    getPGN(
-        symbols: boolean = true,
-        comments: boolean = true,
-        variations: boolean = true,
-        specialSymbols: boolean = true
-    ): string {
+    getPGN({
+        headers,
+        symbols = true,
+        comments = true,
+        variations = true,
+        specialSymbols = true,
+    }: {
+        headers: NormalizedGame | null;
+        symbols?: boolean;
+        comments?: boolean;
+        variations?: boolean;
+        specialSymbols?: boolean;
+    }): string {
         let pgn = "";
+        if (headers) {
+            pgn += getHeaders(headers);
+        }
         if (this.parent === null) {
-            pgn += '[Event "?"]\n';
-            pgn += '[Site "?"]\n';
-            pgn += '[Date "?"]\n';
-            pgn += '[Round "?"]\n';
-            pgn += '[White "?"]\n';
-            pgn += '[Black "?"]\n';
-            pgn += '[Result "*"]\n';
             if (this.fen !== DEFAULT_POSITION) {
                 pgn += '[FEN "' + this.fen + '"]\n\n';
             } else {
@@ -251,21 +254,20 @@ export class VariationTree {
             }
         }
         const variationsPGN = variations
-            ? this.children
-                  .slice(1)
-                  .map(
-                      (variation) =>
-                          `${variation.getMoveText(
-                              symbols,
-                              comments,
-                              true
-                          )} ${variation.getPGN(
-                              symbols,
-                              comments,
-                              variations,
-                              specialSymbols
-                          )}`
-                  )
+            ? this.children.slice(1).map(
+                  (variation) =>
+                      `${variation.getMoveText(
+                          symbols,
+                          comments,
+                          true
+                      )} ${variation.getPGN({
+                          headers: null,
+                          symbols,
+                          comments,
+                          variations,
+                          specialSymbols,
+                      })}`
+              )
             : [];
         if (this.children.length > 0) {
             const child = this.children[0];
@@ -278,12 +280,13 @@ export class VariationTree {
         }
 
         if (this.children.length > 0) {
-            pgn += this.children[0].getPGN(
+            pgn += this.children[0].getPGN({
+                headers: null,
                 symbols,
                 comments,
                 variations,
-                specialSymbols
-            );
+                specialSymbols,
+            });
         }
         return pgn.trim();
     }

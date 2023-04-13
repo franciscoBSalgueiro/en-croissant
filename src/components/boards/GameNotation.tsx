@@ -12,7 +12,7 @@ import {
   Text,
   Tooltip,
   TypographyStylesProvider,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useForceUpdate, useToggle } from "@mantine/hooks";
 import {
@@ -27,10 +27,10 @@ import {
   IconEyeOff,
   IconMinus,
   IconPlus,
-  IconX
+  IconX,
 } from "@tabler/icons-react";
 import { VariationTree } from "../../utils/chess";
-import { Outcome } from "../../utils/db";
+import { NormalizedGame, Outcome } from "../../utils/db";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 
@@ -45,6 +45,7 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function GameNotation({
+  game,
   setTree,
   topVariation,
   result,
@@ -52,6 +53,7 @@ function GameNotation({
   deleteVariation,
   promoteVariation,
 }: {
+  game: NormalizedGame;
   setTree: (tree: VariationTree) => void;
   topVariation: VariationTree;
   deleteVariation?: () => void;
@@ -65,7 +67,7 @@ function GameNotation({
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
   const { classes } = useStyles();
-  const pgn = topVariation.getPGN();
+  const pgn = topVariation.getPGN({ headers: game });
 
   const multipleLine =
     topVariation.commentHTML.split("</p>").length - 1 > 1 ||

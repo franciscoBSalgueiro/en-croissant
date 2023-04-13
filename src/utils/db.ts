@@ -222,6 +222,18 @@ export interface NormalizedGame {
     moves: string;
 }
 
+export function getHeaders(game: NormalizedGame): string {
+    let headers = `[Event "${game.event.name}"]
+[Site "${game.site.name}"]
+[Date "${game.date}"]
+[Round "${game.round}"]
+[White "${game.white.name}"]
+[Black "${game.black.name}"]
+[Result "${game.result}"]
+`;
+    return headers;
+}
+
 export function defaultGame(): NormalizedGame {
     return {
         id: 0,
