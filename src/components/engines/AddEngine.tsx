@@ -54,9 +54,12 @@ function AddEngine({
 }) {
   const os = useOs();
 
-  let filters = [{ name: "All Files", extensions: ["*"] }];
+  let filters: {
+    name: string;
+    extensions: string[];
+  }[] = [];
   if (os == "windows") {
-    filters = [{ name: "Executable Files", extensions: ["exe"] }, ...filters];
+    filters = [{ name: "Executable Files", extensions: ["exe"] }];
   }
 
   const [defaultEngines, setDefaultEngines] = useState<Engine[]>([]);
