@@ -9,18 +9,18 @@ import {
   Stack,
   Tabs,
   Text,
-  TextInput
+  TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
+import { invoke } from "../../utils/misc";
 import FileInput from "../common/FileInput";
 import { ProgressButton } from "../common/ProgressButton";
 
@@ -141,6 +141,7 @@ function AddEngine({
                   multiple: false,
                   filters,
                 });
+                if (!selected) return;
                 const name: string = await invoke("get_engine_name", {
                   path: selected as string,
                 });

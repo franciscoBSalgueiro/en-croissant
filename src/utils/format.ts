@@ -1,6 +1,6 @@
 import { Score } from "./chess";
 export function formatNumber(value?: number): string {
-    if (!value) return "";
+    if (!value) return "0";
     return Intl.NumberFormat().format(value);
 }
 

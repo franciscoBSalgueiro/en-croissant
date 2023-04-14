@@ -19,11 +19,11 @@ import {
   useToggle,
 } from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DatabaseInfo, getDatabases } from "../../utils/db";
 import { formatBytes, formatNumber } from "../../utils/format";
+import { invoke } from "../../utils/misc";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
@@ -33,7 +33,7 @@ export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedDatabse, setSelectedDatabase] =
+  const [selectedDatabase, setSelectedDatabase] =
     useSessionStorage<DatabaseInfo | null>({
       key: "database-view",
       defaultValue: null,
@@ -44,7 +44,7 @@ export default function DatabasesPage() {
     key: "reference-database",
     defaultValue: null,
   });
-  const isReference = referenceDatabase === selectedDatabse?.file;
+  const isReference = referenceDatabase === selectedDatabase?.file;
 
   const database = selected !== null ? databases[selected] : null;
 
@@ -69,9 +69,6 @@ export default function DatabasesPage() {
         .then(() => {
           getDatabases().then((dbs) => setDatabases(dbs));
         })
-        .catch((e) => {
-          console.log(e);
-        });
     }
   }, [debouncedTitle, debouncedDescription]);
 

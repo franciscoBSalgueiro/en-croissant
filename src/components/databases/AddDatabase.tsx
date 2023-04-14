@@ -13,7 +13,6 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
@@ -24,6 +23,7 @@ import {
   getDefaultDatabases,
 } from "../../utils/db";
 import { formatBytes, formatNumber } from "../../utils/format";
+import { invoke } from "../../utils/misc";
 import FileInput from "../common/FileInput";
 import { ProgressButton } from "../common/ProgressButton";
 
@@ -162,6 +162,7 @@ function AddDatabase({
                     },
                   ],
                 })) as string;
+                if (!selected) return;
                 form.setFieldValue("file", selected);
                 const filename = selected.split(/(\\|\/)/g).pop();
                 if (filename) {

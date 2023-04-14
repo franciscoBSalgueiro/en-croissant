@@ -2,12 +2,12 @@ import { Button, Modal, Select, TextInput } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { getChessComAccount } from "../../utils/chesscom";
 import { DatabaseInfo, getDatabases } from "../../utils/db";
 import { createCodes, getLichessAccount } from "../../utils/lichess";
+import { invoke } from "../../utils/misc";
 import { Session } from "../../utils/session";
 import AccountCards from "../common/AccountCards";
 

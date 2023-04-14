@@ -22,7 +22,6 @@ import {
   IconRobot,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
@@ -30,7 +29,7 @@ import { useEffect, useMemo, useState } from "react";
 import { VariationTree, goToPosition, parsePGN } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
-import { useLocalFile } from "../../utils/hooks";
+import { invoke, useLocalFile } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";

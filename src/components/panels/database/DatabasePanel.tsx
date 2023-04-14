@@ -8,7 +8,6 @@ import {
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
@@ -17,6 +16,7 @@ import { useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
 import { CompleteGame, NormalizedGame, Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
+import { invoke } from "../../../utils/misc";
 import { createTab, Tab } from "../../../utils/tabs";
 import TreeContext from "../../common/TreeContext";
 

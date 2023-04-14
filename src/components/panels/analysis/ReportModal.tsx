@@ -9,7 +9,6 @@ import {
   Text
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { invoke } from "@tauri-apps/api";
 import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import {
@@ -22,6 +21,7 @@ import {
 import { DatabaseInfo, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
+import { invoke } from "../../../utils/misc";
 
 function ReportModal({
   moves,

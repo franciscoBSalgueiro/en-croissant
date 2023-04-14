@@ -18,8 +18,8 @@ import {
   IconTrash,
   IconX,
 } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { useEffect, useState } from "react";
+import { invoke } from "../../utils/misc";
 import {
   Completion,
   Puzzle,

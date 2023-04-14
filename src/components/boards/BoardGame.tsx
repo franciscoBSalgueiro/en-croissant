@@ -16,7 +16,6 @@ import {
   IconUsers,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -28,6 +27,7 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, Outcome, defaultGame } from "../../utils/db";
 import { Engine, getEngines } from "../../utils/engines";
+import { invoke } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
 import GameInfo from "../common/GameInfo";
 import GenericCard from "../common/GenericCard";

@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
+import { invoke } from "./misc";
 
 export enum Completion {
     CORRECT,

@@ -1,7 +1,7 @@
 import { OS } from "@mantine/hooks";
-import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
+import { invoke } from "./misc";
 
 export interface Engine {
     name: string;

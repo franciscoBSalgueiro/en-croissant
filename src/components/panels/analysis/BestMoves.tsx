@@ -22,7 +22,6 @@ import {
   IconSettings,
   IconTargetArrow
 } from "@tabler/icons-react";
-import { invoke } from "@tauri-apps/api";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
@@ -35,6 +34,7 @@ import {
   VariationTree
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
+import { invoke } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
 import TreeContext from "../../common/TreeContext";
 import CoresSlide from "./CoresSlider";

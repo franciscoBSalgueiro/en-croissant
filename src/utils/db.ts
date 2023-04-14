@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
+import { invoke } from "./misc";
 
 export enum Sides {
     WhiteBlack = "WhiteBlack",
