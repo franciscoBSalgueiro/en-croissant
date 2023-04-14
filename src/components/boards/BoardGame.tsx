@@ -2,6 +2,7 @@ import {
   Button,
   Card,
   Divider,
+  Flex,
   Group,
   Select,
   SimpleGrid,
@@ -225,7 +226,7 @@ function BoardGame({
 
   return (
     <TreeContext.Provider value={tree}>
-      <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
+      <Flex gap="md" wrap="wrap" align="start">
         <BoardPlay
           makeMove={makeMove}
           arrows={[]}
@@ -240,7 +241,12 @@ function BoardGame({
           side={playingColor}
           addPiece={() => {}}
         />
-        <Stack>
+        <Stack
+          sx={{
+            flexGrow: 1,
+            justifyContent: "space-between",
+          }}
+        >
           {opponent === null ? (
             <Card shadow="sm" p="md">
               <Text fw="bold" mb="md">
@@ -400,7 +406,7 @@ function BoardGame({
             </>
           )}
         </Stack>
-      </SimpleGrid>
+      </Flex>
     </TreeContext.Provider>
   );
 }

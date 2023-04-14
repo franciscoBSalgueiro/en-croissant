@@ -1,6 +1,5 @@
 import {
   Accordion,
-  Box,
   Button,
   Flex,
   Group,
@@ -42,7 +41,6 @@ import DatabasePanel from "../panels/database/DatabasePanel";
 import FenInput from "../panels/info/FenInput";
 import PgnInput from "../panels/info/PgnInput";
 import BoardPlay from "./BoardPlay";
-import EvalBar from "./EvalBar";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis({
@@ -293,20 +291,17 @@ function BoardAnalysis({
         setTree={setTree}
       />
       <Flex gap="md" wrap="wrap" align="start">
-        {width > 800 && <EvalBar score={tree.score} boardSize={boardSize} />}
-        <Box mx="auto">
-          <BoardPlay
-            makeMove={makeMove}
-            arrows={arrows}
-            forceUpdate={forceUpdate}
-            setTree={setTree}
-            editingMode={editingMode}
-            toggleEditingMode={toggleEditingMode}
-            setCompleteGame={setCompleteGame}
-            completeGame={completeGame}
-            addPiece={addPiece}
-          />
-        </Box>
+        <BoardPlay
+          makeMove={makeMove}
+          arrows={arrows}
+          forceUpdate={forceUpdate}
+          setTree={setTree}
+          editingMode={editingMode}
+          toggleEditingMode={toggleEditingMode}
+          setCompleteGame={setCompleteGame}
+          completeGame={completeGame}
+          addPiece={addPiece}
+        />
         <Stack
           sx={{
             flex: 1,

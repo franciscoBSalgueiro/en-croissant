@@ -9,18 +9,18 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Tooltip
+  Tooltip,
 } from "@mantine/core";
 import {
   useHotkeys,
   useLocalStorage,
   useToggle,
-  useViewportSize
+  useViewportSize,
 } from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconEdit,
-  IconSwitchVertical
+  IconSwitchVertical,
 } from "@tabler/icons-react";
 import {
   BISHOP,
@@ -29,7 +29,7 @@ import {
   PieceSymbol,
   QUEEN,
   ROOK,
-  Square
+  Square,
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
@@ -41,13 +41,14 @@ import {
   moveToKey,
   parseUci,
   toDests,
-  VariationTree
+  VariationTree,
 } from "../../utils/chess";
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
 import Piece from "../common/Piece";
 import TreeContext from "../common/TreeContext";
 import FenInput from "../panels/info/FenInput";
+import EvalBar from "./EvalBar";
 
 const useStyles = createStyles(() => ({
   chessboard: {
@@ -172,163 +173,173 @@ function BoardPlay({
   const pieces = ["p", "n", "b", "r", "q", "k"] as const;
   const colors = ["w", "b"] as const;
   return (
-    <Stack justify="center">
-      {editingMode && (
-        <Card shadow="md" style={{ overflow: "visible" }}>
-          <FenInput
-            onSubmit={(fen) => {
-              setTree(new VariationTree(null, fen, null));
-            }}
-          />
-          <SimpleGrid cols={6}>
-            {colors.map((color) => {
-              return pieces.map((piece) => {
-                return (
-                  <Piece
-                    addPiece={addPiece}
-                    boardRef={boardRef}
-                    piece={piece}
-                    color={color}
-                  />
-                );
-              });
-            })}
-          </SimpleGrid>
-        </Card>
+    <>
+      {width > 800 && (
+        <EvalBar
+          score={tree.score}
+          boardSize={boardSize}
+          orientation={orientation}
+        />
       )}
-      <Modal
-        opened={pendingMove !== null}
-        onClose={() => setPendingMove(null)}
-        withCloseButton={false}
-        size={375}
-      >
-        <SimpleGrid cols={2}>
-          {promotionPieces.map((p) => (
-            <ActionIcon
-              key={p}
-              sx={{ width: "100%", height: "100%", position: "relative" }}
-              onClick={() => {
-                makeMove({
-                  from: pendingMove!.from,
-                  to: pendingMove!.to,
-                  promotion: p,
-                });
-                setPendingMove(null);
-              }}
-            >
-              <Piece piece={p} color={turn === "white" ? "w" : "b"} />
-            </ActionIcon>
-          ))}
-        </SimpleGrid>
-      </Modal>
 
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size="1rem" />}
-          title="Invalid position"
-          color="red"
+      <Stack justify="center">
+        {editingMode && (
+          <Card shadow="md" style={{ overflow: "visible" }}>
+            <FenInput
+              onSubmit={(fen) => {
+                setTree(new VariationTree(null, fen, null));
+              }}
+            />
+            <SimpleGrid cols={6}>
+              {colors.map((color) => {
+                return pieces.map((piece) => {
+                  return (
+                    <Piece
+                      addPiece={addPiece}
+                      boardRef={boardRef}
+                      piece={piece}
+                      color={color}
+                    />
+                  );
+                });
+              })}
+            </SimpleGrid>
+          </Card>
+        )}
+        <Modal
+          opened={pendingMove !== null}
+          onClose={() => setPendingMove(null)}
+          withCloseButton={false}
+          size={375}
         >
-          {error}
-        </Alert>
-      )}
-      <Box className={classes.chessboard} ref={boardRef}>
-        <Chessground
-          width={boardSize}
-          height={boardSize}
-          orientation={side ?? orientation}
-          fen={fen}
-          coordinates={false}
-          movable={{
-            free: editingMode,
-            color: editingMode ? "both" : turn,
-            dests:
-              editingMode || viewOnly
-                ? undefined
-                : disableVariations && tree.children.length > 0
-                ? undefined
-                : dests,
-            showDests,
-            events: {
-              after: (orig, dest, metadata) => {
-                if (editingMode) {
+          <SimpleGrid cols={2}>
+            {promotionPieces.map((p) => (
+              <ActionIcon
+                key={p}
+                sx={{ width: "100%", height: "100%", position: "relative" }}
+                onClick={() => {
                   makeMove({
-                    from: orig as Square,
-                    to: dest as Square,
+                    from: pendingMove!.from,
+                    to: pendingMove!.to,
+                    promotion: p,
                   });
-                } else {
-                  if (chess) {
-                    let newDest = handleMove(chess, orig, dest)!;
-                    if (
-                      chess.get(orig as Square).type === "p" &&
-                      ((newDest[1] === "8" && turn === "white") ||
-                        (newDest[1] === "1" && turn === "black"))
-                    ) {
-                      if (autoPromote && !metadata.ctrlKey) {
+                  setPendingMove(null);
+                }}
+              >
+                <Piece piece={p} color={turn === "white" ? "w" : "b"} />
+              </ActionIcon>
+            ))}
+          </SimpleGrid>
+        </Modal>
+
+        {error && (
+          <Alert
+            icon={<IconAlertCircle size="1rem" />}
+            title="Invalid position"
+            color="red"
+          >
+            {error}
+          </Alert>
+        )}
+        <Box className={classes.chessboard} ref={boardRef}>
+          <Chessground
+            width={boardSize}
+            height={boardSize}
+            orientation={side ?? orientation}
+            fen={fen}
+            coordinates={false}
+            movable={{
+              free: editingMode,
+              color: editingMode ? "both" : turn,
+              dests:
+                editingMode || viewOnly
+                  ? undefined
+                  : disableVariations && tree.children.length > 0
+                  ? undefined
+                  : dests,
+              showDests,
+              events: {
+                after: (orig, dest, metadata) => {
+                  if (editingMode) {
+                    makeMove({
+                      from: orig as Square,
+                      to: dest as Square,
+                    });
+                  } else {
+                    if (chess) {
+                      let newDest = handleMove(chess, orig, dest)!;
+                      if (
+                        chess.get(orig as Square).type === "p" &&
+                        ((newDest[1] === "8" && turn === "white") ||
+                          (newDest[1] === "1" && turn === "black"))
+                      ) {
+                        if (autoPromote && !metadata.ctrlKey) {
+                          makeMove({
+                            from: orig as Square,
+                            to: newDest,
+                            promotion: QUEEN,
+                          });
+                        } else {
+                          setPendingMove({ from: orig as Square, to: newDest });
+                        }
+                      } else {
                         makeMove({
                           from: orig as Square,
                           to: newDest,
-                          promotion: QUEEN,
                         });
-                      } else {
-                        setPendingMove({ from: orig as Square, to: newDest });
                       }
-                    } else {
-                      makeMove({
-                        from: orig as Square,
-                        to: newDest,
-                      });
                     }
                   }
-                }
+                },
               },
-            },
-          }}
-          turnColor={turn}
-          check={chess?.inCheck()}
-          lastMove={moveToKey(lastMove)}
-          drawable={{
-            enabled: true,
-            visible: true,
-            defaultSnapToValidMove: true,
-            eraseOnClick: true,
-            autoShapes: shapes,
-            onChange: (shapes) => {
-              const shape = shapes[0];
-              const index = tree.shapes.findIndex(
-                (s) => s.orig === shape.orig && s.dest === shape.dest
-              );
+            }}
+            turnColor={turn}
+            check={chess?.inCheck()}
+            lastMove={moveToKey(lastMove)}
+            drawable={{
+              enabled: true,
+              visible: true,
+              defaultSnapToValidMove: true,
+              eraseOnClick: true,
+              autoShapes: shapes,
+              onChange: (shapes) => {
+                const shape = shapes[0];
+                const index = tree.shapes.findIndex(
+                  (s) => s.orig === shape.orig && s.dest === shape.dest
+                );
 
-              if (index !== -1) {
-                tree.shapes.splice(index, 1);
-              } else {
-                tree.shapes.push(shape);
-              }
-              setTree(tree);
-              forceUpdate();
-            },
-          }}
-        />
-      </Box>
+                if (index !== -1) {
+                  tree.shapes.splice(index, 1);
+                } else {
+                  tree.shapes.push(shape);
+                }
+                setTree(tree);
+                forceUpdate();
+              },
+            }}
+          />
+        </Box>
 
-      <Group position={"apart"} h={20}>
-        {tree.score ? <Text>{formatScore(tree.score).text}</Text> : <div />}
+        <Group position={"apart"} h={20}>
+          {tree.score ? <Text>{formatScore(tree.score).text}</Text> : <div />}
 
-        <Group>
-          {!disableVariations && (
-            <Tooltip label={"Edit Position"}>
-              <ActionIcon onClick={() => toggleEditingMode()}>
-                <IconEdit />
+          <Group>
+            {!disableVariations && (
+              <Tooltip label={"Edit Position"}>
+                <ActionIcon onClick={() => toggleEditingMode()}>
+                  <IconEdit />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <Tooltip label={"Flip Board"}>
+              <ActionIcon onClick={() => toggleOrientation()}>
+                <IconSwitchVertical />
               </ActionIcon>
             </Tooltip>
-          )}
-          <Tooltip label={"Flip Board"}>
-            <ActionIcon onClick={() => toggleOrientation()}>
-              <IconSwitchVertical />
-            </ActionIcon>
-          </Tooltip>
+          </Group>
         </Group>
-      </Group>
-    </Stack>
+      </Stack>
+    </>
   );
 }
 
