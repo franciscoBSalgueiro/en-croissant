@@ -32,11 +32,18 @@ export function useLocalFile<T>(filename: string, defaultValue: T) {
   return [state, setState] as const;
 }
 
-export async function invoke<T>(name: string, payload?: any): Promise<T> {
+export async function invoke<T>(
+  name: string,
+  payload?: any,
+  allowedErrors?: (s: string) => boolean
+): Promise<T> {
   try {
     return await invokeTauri<T>(name, payload);
   } catch (e) {
     if (typeof e === "string") {
+      if (allowedErrors && !allowedErrors(e)) {
+        return Promise.reject(e);
+      }
       notifications.show({
         title: "Error",
         message: e,

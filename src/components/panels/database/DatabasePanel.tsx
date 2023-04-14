@@ -73,7 +73,8 @@ function DatabasePanel({
         {
           file: referenceDatabase,
           fen,
-        }
+        },
+        (s) => s === "Search stopped\n"
       );
 
       return openings;
