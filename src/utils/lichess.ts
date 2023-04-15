@@ -1,6 +1,5 @@
-import { appDataDir } from "@tauri-apps/api/path";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Color } from "chessground/types";
-import { resolve } from "path";
 import { invoke } from "./misc";
 const base_url = "https://lichess.org/api";
 const explorer_url = "https://explorer.lichess.ovh";
