@@ -41,7 +41,7 @@ export async function invoke<T>(
     return await invokeTauri<T>(name, payload);
   } catch (e) {
     if (typeof e === "string") {
-      if (allowedErrors && !allowedErrors(e)) {
+      if (allowedErrors && allowedErrors(e)) {
         return Promise.reject(e);
       }
       notifications.show({

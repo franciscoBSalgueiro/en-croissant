@@ -74,7 +74,7 @@ function DatabasePanel({
           file: referenceDatabase,
           fen,
         },
-        (s) => s === "Search stopped\n"
+        (s) => s === "Search stopped"
       );
 
       return openings;
