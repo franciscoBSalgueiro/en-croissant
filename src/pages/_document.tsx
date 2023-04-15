@@ -1,20 +1,28 @@
+import { useLocalStorage } from "@mantine/hooks";
 import { createGetInitialProps } from "@mantine/next";
-import Document, { Head, Html, Main, NextScript } from "next/document";
+import { DocumentContext, Head, Html, Main, NextScript } from "next/document";
 
 const getInitialProps = createGetInitialProps();
 
-export default class _Document extends Document {
-  static getInitialProps = getInitialProps;
+function Document({}: DocumentContext) {
+  const [pieceSet] = useLocalStorage({
+    key: "piece-set",
+    defaultValue: "staunty",
+  });
 
-  render() {
-    return (
-      <Html>
-        <Head />
-        <body>
-          <Main />
-          <NextScript />
-        </body>
-      </Html>
-    );
-  }
+  return (
+    <Html>
+      <Head>
+        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  );
 }
+
+Document.getInitialProps = getInitialProps;
+
+export default Document;

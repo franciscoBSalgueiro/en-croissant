@@ -28,11 +28,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const toggleColorScheme = (value?: ColorScheme) =>
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
 
-  const [pieceSet] = useLocalStorage({
-    key: "piece-set",
-    defaultValue: "staunty",
-  });
-
   return (
     <ColorSchemeProvider
       colorScheme={colorScheme}
@@ -44,7 +39,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width"
         />
-        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
       </Head>
       <MantineProvider
         withGlobalStyles
