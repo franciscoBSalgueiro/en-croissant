@@ -37,7 +37,7 @@ Refer to the [Tauri documentation](https://tauri.app/v1/guides/getting-started/p
 git clone https://github.com/franciscoBSalgueiro/en-croissant
 cd en-croissant
 pnpm install
-pnpm tauri build
+pnpm tauri build --bundle none
 ```
 
 The built app will be on `src-tauri/target/release`
