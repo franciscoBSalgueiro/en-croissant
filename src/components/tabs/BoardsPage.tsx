@@ -6,8 +6,9 @@ import {
   Stack,
   Tabs,
 } from "@mantine/core";
-import { useHotkeys, useSessionStorage } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
+import { useSessionStorage } from "../../utils/misc";
 import { createTab, genID, Tab } from "../../utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -32,20 +33,19 @@ const useStyles = createStyles((theme) => ({
 
 export default function BoardsPage() {
   const { classes } = useStyles();
-  const firstId = genID();
   const [tabs, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
     defaultValue: [
       {
         name: "New tab",
-        value: firstId,
+        value: genID(),
         type: "new",
       },
     ],
   });
   const [activeTab, setActiveTab] = useSessionStorage<string | null>({
     key: "activeTab",
-    defaultValue: firstId,
+    defaultValue: tabs[0] ? tabs[0].value : null,
   });
 
   function closeTab(value: string | null) {

@@ -2,9 +2,33 @@ import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { invoke as invokeTauri } from "@tauri-apps/api";
 import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
-export function useLocalFile<T>(filename: string, defaultValue: T) {
+type StorageValue<T> = [T, React.Dispatch<React.SetStateAction<T>>];
+
+export function useSessionStorage<T>({
+  key,
+  defaultValue,
+}: {
+  key: string;
+  defaultValue: T;
+}): StorageValue<T> {
+  const [state, setState] = useState<T>(() => {
+    const storedValue = sessionStorage.getItem(key);
+    return storedValue ? JSON.parse(storedValue) : defaultValue;
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem(key, JSON.stringify(state));
+  }, [key, state]);
+
+  return [state, setState];
+}
+
+export function useLocalFile<T>(
+  filename: string,
+  defaultValue: T
+): StorageValue<T> {
   const [state, setState] = useState<T>(defaultValue);
   const [loaded, setLoaded] = useState(false);
 
@@ -29,7 +53,7 @@ export function useLocalFile<T>(filename: string, defaultValue: T) {
     }
   }, [filename, state]);
 
-  return [state, setState] as const;
+  return [state, setState];
 }
 
 export async function invoke<T>(

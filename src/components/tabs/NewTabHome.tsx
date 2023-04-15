@@ -43,8 +43,9 @@ export default function NewTabHome({
       description: "Play against an engine or a friend",
       label: "Play",
       onClick: () => {
-        setTabs((prev: any) => {
-          const tab = prev.find((t: any) => t.value === id);
+        setTabs((prev: Tab[]) => {
+          const tab = prev.find((t) => t.value === id);
+          if (!tab) return prev;
           tab.name = "New Game";
           tab.type = "play";
           return [...prev];
@@ -57,8 +58,9 @@ export default function NewTabHome({
       description: "Analyze a game or position",
       label: "Open",
       onClick: () => {
-        setTabs((prev: any) => {
-          const tab = prev.find((t: any) => t.value === id);
+        setTabs((prev: Tab[]) => {
+          const tab = prev.find((t) => t.value === id);
+          if (!tab) return prev;
           tab.name = "Analysis Board";
           tab.type = "analysis";
           return [...prev];
