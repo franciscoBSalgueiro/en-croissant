@@ -22,7 +22,7 @@ function parseScore(score: string): Score {
     if (score.startsWith("#")) {
         return { mate: parseInt(score.slice(1)) } as Score;
     } else {
-        return { cp: parseFloat(score) * 100 } as Score;
+        return { cp: parseFloat(score) } as Score;
     }
 }
 
