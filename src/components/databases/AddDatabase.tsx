@@ -14,7 +14,6 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
-import { listen } from "@tauri-apps/api/event";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
@@ -116,7 +115,6 @@ function AddDatabase({
                 databaseId={i}
                 key={i}
                 setDatabases={setDatabases}
-                setOpened={setOpened}
                 initInstalled={databases.some((e) => e.title === engine.title)}
               />
             ))}
@@ -185,23 +183,16 @@ function AddDatabase({
 
 function DatabaseCard({
   setDatabases,
-  setOpened,
   database,
   databaseId,
   initInstalled,
 }: {
   setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
-  setOpened: (opened: boolean) => void;
   database: DatabaseInfo;
   databaseId: number;
   initInstalled: boolean;
 }) {
-  const [progress, setProgress] = useState(0);
-  const [inProgress, setInProgress] = useState(false);
-  const [installed, setInstalled] = useState(initInstalled);
-
   async function downloadDatabase(id: number, url: string, name: string) {
-    setInProgress(true);
     const path = await resolve(await appDataDir(), "db", name + ".db3");
     await invoke("download_file", {
       id,
@@ -210,26 +201,7 @@ function DatabaseCard({
       path,
     });
     setDatabases(await getDatabases());
-    setInProgress(false);
-    setOpened(false);
   }
-
-  useEffect(() => {
-    async function getDatabaseProgress() {
-      const unlisten = await listen("download_progress", async (event) => {
-        const { progress, id, finished } = event.payload as any;
-        if (id !== databaseId) return;
-        if (finished) {
-          setInstalled(true);
-          unlisten();
-        } else {
-          setProgress(progress);
-        }
-      });
-    }
-    getDatabaseProgress();
-  }, []);
-
   const { classes } = useStyles();
 
   return (
@@ -274,7 +246,15 @@ function DatabaseCard({
             </Stack>
           </Group>
           <ProgressButton
-            loaded={installed}
+            id={databaseId}
+            progressEvent="download_progress"
+            initInstalled={initInstalled}
+            labels={{
+              completed: "Installed",
+              action: "Install",
+              inProgress: "Downloading",
+              finalizing: "Extracting",
+            }}
             onClick={() =>
               downloadDatabase(
                 databaseId,
@@ -282,9 +262,6 @@ function DatabaseCard({
                 database.title!
               )
             }
-            progress={progress}
-            id={databaseId}
-            disabled={installed || inProgress}
           />
         </div>
       </Group>

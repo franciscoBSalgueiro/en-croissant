@@ -8,10 +8,10 @@ use futures_util::StreamExt;
 use tauri::Manager;
 
 #[derive(Clone, serde::Serialize)]
-pub struct DownloadFilePayload {
-    progress: f64,
-    id: u64,
-    finished: bool,
+pub struct ProgressPayload {
+    pub progress: f64,
+    pub id: u64,
+    pub finished: bool,
 }
 
 #[tauri::command]
@@ -46,7 +46,7 @@ pub async fn download_file(
             // emit object with progress and id
             app.emit_all(
                 "download_progress",
-                DownloadFilePayload {
+                ProgressPayload {
                     progress,
                     id,
                     finished: false,
@@ -67,7 +67,7 @@ pub async fn download_file(
     }
     app.emit_all(
         "download_progress",
-        DownloadFilePayload {
+        ProgressPayload {
             progress: 100.0,
             id,
             finished: true,

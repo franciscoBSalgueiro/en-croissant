@@ -32,6 +32,7 @@ import { invoke, useLocalFile } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
+import { ProgressButton } from "../common/ProgressButton";
 import TreeContext from "../common/TreeContext";
 import BestMoves from "../panels/analysis/BestMoves";
 import EngineSettingsBoard from "../panels/analysis/EngineSettingsBoard";
@@ -380,13 +381,20 @@ function BoardAnalysis({
                     >
                       Play against engine
                     </Button>
-                    <Button
+                    <ProgressButton
+                      id={0}
+                      redoable
+                      disabled={tree.getTopVariation().children.length === 0}
                       leftIcon={<IconZoomCheck size={14} />}
                       onClick={() => toggleReportingMode()}
-                      loading={analysisLoading}
-                    >
-                      Generate Report
-                    </Button>
+                      initInstalled={false}
+                      progressEvent="report_progress"
+                      labels={{
+                        action: "Generate report",
+                        completed: "Report generated",
+                        inProgress: "Generating report",
+                      }}
+                    />
                   </Group>
                 </Stack>
               </ScrollArea>

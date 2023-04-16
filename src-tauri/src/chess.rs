@@ -16,6 +16,8 @@ use tokio::{
     process::{Child, ChildStdin, ChildStdout, Command},
 };
 
+use crate::fs::ProgressPayload;
+
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -243,6 +245,7 @@ pub async fn analyze_game(
     moves: String,
     engine: String,
     move_time: usize,
+    app: tauri::AppHandle,
 ) -> Result<Vec<BestMoves>, String> {
     let path = PathBuf::from(&engine);
     let number_lines = 1;
@@ -265,7 +268,19 @@ pub async fn analyze_game(
     )
     .await;
 
-    for m in moves.split_whitespace() {
+    let splitted_moves: Vec<&str> = moves.split_whitespace().collect();
+    let len_moves = splitted_moves.len();
+
+    for (i, m) in splitted_moves.iter().enumerate() {
+        app.emit_all(
+            "report_progress",
+            ProgressPayload {
+                progress: (i as f64 / len_moves as f64) * 100.0,
+                id: 0,
+                finished: false,
+            },
+        )
+        .unwrap();
         let san = San::from_ascii(m.as_bytes()).unwrap();
         let m = san.to_move(&chess).unwrap();
         chess.play_unchecked(&m);
@@ -287,6 +302,15 @@ pub async fn analyze_game(
         }
         evals.push(current_payload);
     }
+    app.emit_all(
+        "report_progress",
+        ProgressPayload {
+            progress: 1.0,
+            id: 0,
+            finished: true,
+        },
+    )
+    .unwrap();
     Ok(evals)
 }
 

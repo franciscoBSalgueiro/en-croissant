@@ -1,12 +1,14 @@
 import { Button, createStyles, Progress } from "@mantine/core";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useState } from "react";
 
-const useStyles = createStyles((theme) => ({
+const useStyles = createStyles((theme, finished: boolean) => ({
   button: {
     position: "relative",
     transition: "background-color 150ms ease",
     ":disabled": {
-      backgroundColor: theme.colors.green[7],
-      color: theme.colors.gray[2],
+      backgroundColor: finished ? theme.colors.green[7] : theme.colors.gray[7],
+      color: finished ? theme.colors.gray[2] : theme.colors.gray[5],
     },
   },
 
@@ -27,36 +29,83 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-export function ProgressButton({
-  loaded,
-  progress,
-  onClick,
-  id,
-  disabled
-}: {
-  loaded: boolean;
-  progress: number;
-  onClick: (id: number) => void;
+type ProgressPayload = {
   id: number;
+  progress: number;
+  finished: boolean;
+};
+
+type Props = {
+  id: number;
+  initInstalled: boolean;
+  progressEvent: string;
+  onClick: (id: number) => void;
+  leftIcon?: React.ReactNode;
+  labels: {
+    completed: string;
+    action: string;
+    inProgress: string;
+    finalizing?: string;
+  };
   disabled?: boolean;
-}) {
-  const { classes, theme } = useStyles();
+  redoable?: boolean;
+};
+
+export function ProgressButton({
+  id,
+  initInstalled,
+  progressEvent,
+  onClick,
+  leftIcon,
+  labels,
+  disabled,
+  redoable,
+}: Props) {
+  const [progress, setProgress] = useState(0);
+  const [completed, setCompleted] = useState(initInstalled);
+  const [inProgress, setInProgress] = useState(false);
+  const { classes, theme } = useStyles(completed);
+
+  useEffect(() => {
+    async function getProgress() {
+      const unlisten = await listen<ProgressPayload>(
+        progressEvent,
+        async ({ payload }) => {
+          if (payload.id !== id) return;
+          if (payload.finished) {
+            setInProgress(false);
+            setCompleted(true);
+            setProgress(0);
+            unlisten();
+          } else {
+            setProgress(payload.progress);
+          }
+        }
+      );
+    }
+    getProgress();
+  }, []);
+
   let label: string;
-  if (loaded) {
-    label = "Installed";
+  if (completed) {
+    label = labels.completed;
   } else {
-    if (progress === 0) label = "Install";
-    else if (progress === 100) label = "Extracting";
-    else label = "Downloading";
+    if (progress === 0 && !inProgress) label = labels.action;
+    else if (progress === 100) label = labels.finalizing ?? labels.inProgress;
+    else label = labels.inProgress;
   }
 
   return (
     <Button
       fullWidth
       className={classes.button}
-      onClick={() => onClick(id)}
-      disabled={disabled}
-      color={loaded ? "green" : theme.primaryColor}
+      onClick={() => {
+        onClick(id);
+        setInProgress(true);
+      }}
+      disabled={(completed && !redoable) || disabled}
+      color={completed ? "green" : theme.primaryColor}
+      leftIcon={leftIcon}
     >
       <div className={classes.label}>{label}</div>
       {progress !== 0 && (

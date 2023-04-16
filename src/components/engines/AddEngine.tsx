@@ -15,7 +15,6 @@ import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
-import { listen } from "@tauri-apps/api/event";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
@@ -210,12 +209,7 @@ function EngineCard({
   engineId: number;
   initInstalled: boolean;
 }) {
-  const [progress, setProgress] = useState(0);
-  const [inProgress, setInProgress] = useState(false);
-  const [installed, setInstalled] = useState(initInstalled);
-
   async function downloadEngine(id: number, url: string) {
-    setInProgress(true);
     await invoke("download_file", {
       id,
       url,
@@ -239,24 +233,7 @@ function EngineCard({
         path: enginePath,
       },
     ]);
-    setInProgress(false);
   }
-
-  useEffect(() => {
-    async function getEngineProgress() {
-      const unlisten = await listen("download_progress", async (event) => {
-        const { progress, id, finished } = event.payload as any;
-        if (id !== engineId) return;
-        if (finished) {
-          setInstalled(true);
-          unlisten();
-        } else {
-          setProgress(progress);
-        }
-      });
-    }
-    getEngineProgress();
-  }, []);
 
   const { classes } = useStyles();
 
@@ -288,11 +265,16 @@ function EngineCard({
             <Text size="xs">{formatBytes(engine.downloadSize!)}</Text>
           </Group>
           <ProgressButton
-            loaded={installed}
-            onClick={() => downloadEngine(engineId, engine.downloadLink!)}
-            progress={progress}
             id={engineId}
-            disabled={installed || inProgress}
+            progressEvent="download_progress"
+            initInstalled={initInstalled}
+            labels={{
+              completed: "Installed",
+              action: "Install",
+              inProgress: "Downloading",
+              finalizing: "Extracting",
+            }}
+            onClick={() => downloadEngine(engineId, engine.downloadLink!)}
           />
         </div>
       </Group>
