@@ -6,7 +6,7 @@ import {
   NumberInput,
   Select,
   Stack,
-  Text
+  Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Chess } from "chess.js";
@@ -16,7 +16,7 @@ import {
   BestMoves,
   Score,
   VariationTree,
-  goToPosition
+  goToPosition,
 } from "../../../utils/chess";
 import { DatabaseInfo, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
@@ -75,19 +75,36 @@ function ReportModal({
   }, []);
 
   function analyze() {
-    function getAnnotation(prevScore: Score, curScore: Score): Annotation {
-      if (prevScore.cp && curScore.mate) {
+    function getAnnotation(
+      prevScore: Score,
+      curScore: Score,
+      isWhite: boolean
+    ): Annotation {
+      if (prevScore.cp !== undefined && curScore.mate) {
         return Annotation.Blunder;
       }
-      if (curScore.cp - prevScore.cp > 2) {
-        return Annotation.Blunder;
+      if (isWhite) {
+        if (prevScore.cp - curScore.cp > 300) {
+          return Annotation.Blunder;
+        }
+        if (prevScore.cp - curScore.cp > 100) {
+          return Annotation.Mistake;
+        }
+        if (prevScore.cp - curScore.cp > 50) {
+          return Annotation.Dubious;
+        }
+      } else {
+        if (prevScore.cp - curScore.cp < -300) {
+          return Annotation.Blunder;
+        }
+        if (prevScore.cp - curScore.cp < -100) {
+          return Annotation.Mistake;
+        }
+        if (prevScore.cp - curScore.cp < -50) {
+          return Annotation.Dubious;
+        }
       }
-      if (curScore.cp - prevScore.cp > 1) {
-        return Annotation.Mistake;
-      }
-      if (curScore.cp - prevScore.cp > 0.5) {
-        return Annotation.Dubious;
-      }
+
       return Annotation.None;
     }
 
@@ -100,18 +117,27 @@ function ReportModal({
     }).then((result) => {
       setLoading(false);
       const evals = result as BestMoves[];
+
       setTree((prev) => {
         let position = prev.getPosition();
         let root = prev.getTopVariation().children[0];
+        let originalRoot = root;
         let i = 0;
-        while (root.children.length > 0) {
+        while (root !== undefined) {
           root.score = evals[i].score;
+
+          let prevScore = { cp: 0 } as Score;
+          if (i > 0) {
+            prevScore = evals[i - 1].score;
+          }
+          const curScore = evals[i].score;
+          const isWhite = i % 2 === 0;
+          root.annotation = getAnnotation(prevScore, curScore, isWhite);
 
           root = root.children[0];
           i++;
         }
-        root.score = evals[i].score;
-        return goToPosition(root.getTopVariation(), position);
+        return goToPosition(originalRoot.getTopVariation(), position);
       });
     });
   }
