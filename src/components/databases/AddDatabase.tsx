@@ -192,7 +192,10 @@ function DatabaseCard({
   databaseId: number;
   initInstalled: boolean;
 }) {
+  const [inProgress, setInProgress] = useState<boolean>(false);
+
   async function downloadDatabase(id: number, url: string, name: string) {
+    setInProgress(true);
     const path = await resolve(await appDataDir(), "db", name + ".db3");
     await invoke("download_file", {
       id,
@@ -262,6 +265,8 @@ function DatabaseCard({
                 database.title!
               )
             }
+            inProgress={inProgress}
+            setInProgress={setInProgress}
           />
         </div>
       </Group>

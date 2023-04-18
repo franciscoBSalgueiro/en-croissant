@@ -276,6 +276,7 @@ function BoardAnalysis({
     return initial;
   }
   const boardSize = getBoardSize(height, width);
+  const [inProgress, setInProgress] = useState(false);
 
   return (
     <TreeContext.Provider value={tree}>
@@ -290,6 +291,7 @@ function BoardAnalysis({
         toggleReportingMode={toggleReportingMode}
         setLoading={setAnalysisLoading}
         setTree={setTree}
+        setInProgress={setInProgress}
       />
       <Flex gap="md" wrap="wrap" align="start">
         <BoardPlay
@@ -394,6 +396,8 @@ function BoardAnalysis({
                         completed: "Report generated",
                         inProgress: "Generating report",
                       }}
+                      inProgress={inProgress}
+                      setInProgress={setInProgress}
                     />
                   </Group>
                 </Stack>

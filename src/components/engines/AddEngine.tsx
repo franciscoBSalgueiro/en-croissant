@@ -209,7 +209,9 @@ function EngineCard({
   engineId: number;
   initInstalled: boolean;
 }) {
+  const [inProgress, setInProgress] = useState<boolean>(false);
   async function downloadEngine(id: number, url: string) {
+    setInProgress(true);
     await invoke("download_file", {
       id,
       url,
@@ -275,6 +277,8 @@ function EngineCard({
               finalizing: "Extracting",
             }}
             onClick={() => downloadEngine(engineId, engine.downloadLink!)}
+            inProgress={inProgress}
+            setInProgress={setInProgress}
           />
         </div>
       </Group>

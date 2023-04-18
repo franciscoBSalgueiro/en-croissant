@@ -49,6 +49,8 @@ type Props = {
   };
   disabled?: boolean;
   redoable?: boolean;
+  inProgress: boolean;
+  setInProgress: (inProgress: boolean) => void;
 };
 
 export function ProgressButton({
@@ -60,10 +62,11 @@ export function ProgressButton({
   labels,
   disabled,
   redoable,
+  inProgress,
+  setInProgress,
 }: Props) {
   const [progress, setProgress] = useState(0);
   const [completed, setCompleted] = useState(initInstalled);
-  const [inProgress, setInProgress] = useState(false);
   const { classes, theme } = useStyles(completed);
 
   useEffect(() => {
@@ -101,7 +104,6 @@ export function ProgressButton({
       className={classes.button}
       onClick={() => {
         onClick(id);
-        setInProgress(true);
       }}
       disabled={(completed && !redoable) || disabled}
       color={completed ? "green" : theme.primaryColor}

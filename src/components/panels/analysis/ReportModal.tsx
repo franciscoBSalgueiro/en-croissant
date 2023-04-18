@@ -29,12 +29,14 @@ function ReportModal({
   reportingMode,
   toggleReportingMode,
   setTree,
+  setInProgress,
 }: {
   moves: string;
   setLoading: (loading: boolean) => void;
   reportingMode: boolean;
   toggleReportingMode: () => void;
   setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
+  setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
@@ -108,6 +110,7 @@ function ReportModal({
       return Annotation.None;
     }
 
+    setInProgress(true);
     toggleReportingMode();
     setLoading(true);
     invoke("analyze_game", {
@@ -148,7 +151,7 @@ function ReportModal({
       onClose={() => toggleReportingMode()}
       title="Generate report"
     >
-      <form onSubmit={form.onSubmit((values) => analyze())}>
+      <form onSubmit={form.onSubmit(() => analyze())}>
         <Stack>
           <Select
             withAsterisk
