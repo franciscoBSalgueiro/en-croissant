@@ -28,7 +28,7 @@ use std::{
     ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::{atomic::Ordering, Mutex},
+    sync::Mutex,
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -1131,9 +1131,11 @@ pub async fn search_position(
     let start = Instant::now();
     println!("start: {:?}", start.elapsed());
 
-    state.new_request.store(true, Ordering::Relaxed);
+    let permit = state.new_request.acquire().await.unwrap();
+    println!("Waiting for games");
+    println!("got permit: {:?}", state.new_request.available_permits());
     let mut games = state.db_cache.lock().unwrap();
-    state.new_request.store(false, Ordering::Relaxed);
+    println!("pre-fetch got games: {:?}", start.elapsed());
 
     if games.is_empty() {
         *games = games::table
@@ -1156,7 +1158,7 @@ pub async fn search_position(
 
     games.par_iter().for_each(
         |(id, result, game, end_pawn_home, white_material, black_material)| {
-            if state.new_request.load(Ordering::Relaxed) {
+            if state.new_request.available_permits() == 0 {
                 return;
             }
             let end_material: ByColor<u8> = ByColor {
@@ -1204,7 +1206,8 @@ pub async fn search_position(
         },
     );
     println!("done: {:?}", start.elapsed());
-    if state.new_request.load(Ordering::Relaxed) {
+    if state.new_request.available_permits() == 0 {
+        drop(permit);
         return Err("Search stopped".to_string());
     }
 
@@ -1226,5 +1229,6 @@ pub async fn search_position(
     let mut line_cache = state.line_cache.lock().unwrap();
     line_cache.insert((fen, file), (openings.clone(), normalized_games.clone()));
 
+    drop(permit);
     Ok((openings, normalized_games))
 }

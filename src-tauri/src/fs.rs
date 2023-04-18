@@ -39,7 +39,6 @@ pub async fn download_file(
         let chunk = item.map_err(|_| format!("Failed to get chunk from '{}'", &url))?;
         file.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
-        println!("Downloaded {} bytes", downloaded);
         if let Some(total_size) = total_size {
             let progress = (downloaded as f64 / total_size as f64) * 100.0;
             println!("Downloaded {}%", progress);

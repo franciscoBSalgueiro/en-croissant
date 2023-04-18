@@ -10,18 +10,20 @@ mod opening;
 mod puzzle;
 
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, fs::create_dir_all, path::Path};
 
 use db::{NormalizedGame, PositionStats};
+use derivative::Derivative;
 use reqwest::Url;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
 };
 
-use crate::chess::{analyze_game, get_engine_name, get_single_best_move, make_move, put_piece, make_random_move};
+use crate::chess::{
+    analyze_game, get_engine_name, get_single_best_move, make_move, make_random_move, put_piece,
+};
 use crate::db::{
     clear_games, convert_pgn, delete_database, get_players_game_info, search_position,
 };
@@ -33,6 +35,7 @@ use crate::{
     fs::download_file,
     opening::get_opening,
 };
+use tokio::sync::Semaphore;
 
 use tauri_plugin_oauth::start;
 
@@ -86,7 +89,8 @@ async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
     .map_err(|err| err.to_string())
 }
 
-#[derive(Default)]
+#[derive(Derivative)]
+#[derivative(Default)]
 pub struct AppState {
     connection_pool: Mutex<
         HashMap<
@@ -96,7 +100,8 @@ pub struct AppState {
     >,
     line_cache: Mutex<HashMap<(String, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>>,
     db_cache: Mutex<Vec<(i32, Option<String>, Vec<u8>, i32, i32, i32)>>,
-    new_request: AtomicBool,
+    #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
+    new_request: Arc<Semaphore>,
 }
 
 fn main() {
