@@ -15,7 +15,7 @@ import { useForm } from "@mantine/form";
 import { useOs } from "@mantine/hooks";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
-import { appDataDir, join } from "@tauri-apps/api/path";
+import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
@@ -212,11 +212,12 @@ function EngineCard({
   const [inProgress, setInProgress] = useState<boolean>(false);
   async function downloadEngine(id: number, url: string) {
     setInProgress(true);
+    const path = await resolve(await appDataDir(), "engines");
     await invoke("download_file", {
       id,
       url,
       zip: true,
-      path: (await appDataDir()) + "engines",
+      path,
     });
     let appDataDirPath = await appDataDir();
     if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {

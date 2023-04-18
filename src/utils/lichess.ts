@@ -148,11 +148,12 @@ export async function downloadLichess(
     if (timestamp) {
         url += `?since=${timestamp}`;
     }
+    const path = await resolve(await appDataDir(), "db", player + "_lichess.pgn");
     await invoke("download_file", {
         id: 1,
         url,
         zip: false,
-        path: resolve(await appDataDir(), "db", player + "_lichess.pgn"),
+        path,
     });
 }
 
