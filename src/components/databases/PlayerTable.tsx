@@ -1,14 +1,14 @@
 import {
-    ActionIcon,
-    Box,
-    Center,
-    Collapse,
-    Flex,
-    Grid,
-    Group,
-    NumberInput,
-    Text,
-    TextInput
+  ActionIcon,
+  Box,
+  Center,
+  Collapse,
+  Flex,
+  Grid,
+  Group,
+  NumberInput,
+  Text,
+  TextInput,
 } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
@@ -25,7 +25,6 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState<[number, number]>([0, 3000]);
-  const [tempRange, setTempRange] = useState<[number, number]>([0, 3000]);
   const [limit, setLimit] = useState(25);
   const [activePage, setActivePage] = useState(1);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
@@ -71,8 +70,6 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
       setCount(res.count);
     });
   }, [activePage, sort]);
-
-  console.log(tempRange);
 
   useHotkeys([
     [

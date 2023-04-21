@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Chess } from "chess.js";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   Annotation,
   BestMoves,
@@ -22,22 +22,22 @@ import { DatabaseInfo, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
+import GameContext from "../../common/GameContext";
 
 function ReportModal({
   moves,
-  setLoading,
   reportingMode,
   toggleReportingMode,
   setTree,
   setInProgress,
 }: {
   moves: string;
-  setLoading: (loading: boolean) => void;
   reportingMode: boolean;
   toggleReportingMode: () => void;
-  setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
+  setTree: (tree: VariationTree) => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const tree = useContext(GameContext).game.tree;
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [engines, setEngines] = useState<Engine[]>([]);
 
@@ -112,36 +112,32 @@ function ReportModal({
 
     setInProgress(true);
     toggleReportingMode();
-    setLoading(true);
     invoke("analyze_game", {
       moves: uciMoves.join(" "),
       engine: form.values.engine,
       moveTime: form.values.secondsPerMove,
     }).then((result) => {
-      setLoading(false);
       const evals = result as BestMoves[];
 
-      setTree((prev) => {
-        let position = prev.getPosition();
-        let root = prev.getTopVariation().children[0];
-        let originalRoot = root;
-        let i = 0;
-        while (root !== undefined) {
-          root.score = evals[i].score;
+      let position = tree.getPosition();
+      let root = tree.getTopVariation().children[0];
+      let originalRoot = root;
+      let i = 0;
+      while (root !== undefined) {
+        root.score = evals[i].score;
 
-          let prevScore = { cp: 0 } as Score;
-          if (i > 0) {
-            prevScore = evals[i - 1].score;
-          }
-          const curScore = evals[i].score;
-          const isWhite = i % 2 === 0;
-          root.annotation = getAnnotation(prevScore, curScore, isWhite);
-
-          root = root.children[0];
-          i++;
+        let prevScore = { cp: 0 } as Score;
+        if (i > 0) {
+          prevScore = evals[i - 1].score;
         }
-        return goToPosition(originalRoot.getTopVariation(), position);
-      });
+        const curScore = evals[i].score;
+        const isWhite = i % 2 === 0;
+        root.annotation = getAnnotation(prevScore, curScore, isWhite);
+
+        root = root.children[0];
+        i++;
+      }
+      setTree(goToPosition(originalRoot.getTopVariation(), position));
     });
   }
 

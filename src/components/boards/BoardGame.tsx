@@ -9,7 +9,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { useHotkeys, useSessionStorage } from "@mantine/hooks";
+import { useHotkeys, useSessionStorage, useViewportSize } from "@mantine/hooks";
 import {
   IconDice,
   IconPlus,
@@ -18,22 +18,22 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   VariationTree,
   goToPosition,
-  movesToVariationTree,
   parsePGN,
   parseUci,
+  stripPGNheader,
 } from "../../utils/chess";
 import { CompleteGame, Outcome, defaultGame } from "../../utils/db";
 import { Engine, getEngines } from "../../utils/engines";
 import { invoke } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
+import GameContext from "../common/GameContext";
 import GameInfo from "../common/GameInfo";
 import GenericCard from "../common/GenericCard";
 import MoveControls from "../common/MoveControls";
-import TreeContext from "../common/TreeContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
 
@@ -91,42 +91,47 @@ function BoardGame({
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
     key: id,
     defaultValue: { game: defaultGame(), currentMove: [] },
+    serialize: (value) => {
+      const storedGame: any = {
+        ...value.game,
+        tree: undefined,
+        moves: stripPGNheader(value.game.moves),
+      };
+
+      const storedTree = JSON.stringify({
+        game: storedGame,
+        currentMove: value.game.tree.getPosition(),
+      });
+      return storedTree;
+    },
+    deserialize: (value) => {
+      const { game, currentMove } = JSON.parse(value);
+      const tree = parsePGN(stripPGNheader(game.moves));
+      const treeAtPosition = goToPosition(tree, currentMove);
+      game.tree = treeAtPosition;
+      return { game, currentMove };
+    },
   });
+  const game = completeGame.game;
+  const tree = game.tree;
+  const setTree = (tree: VariationTree) => {
+    console.log(tree);
+    const pgn = tree.getTopVariation().getPGN({ headers: completeGame.game });
+    setCompleteGame({
+      ...completeGame,
+      game: {
+        ...completeGame.game,
+        moves: pgn,
+        tree,
+      },
+    });
+  };
   const [engines, setEngines] = useState<Engine[]>([]);
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white"
   );
   const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
   const [engine, setEngine] = useState<string | null>(null);
-  const game = completeGame.game;
-
-  const initial_tree = useMemo(() => {
-    if (game.moves[0] === "1" || game.moves[0] === "[") {
-      const tree = parsePGN(game.moves);
-      return tree;
-    }
-    const tree = movesToVariationTree(game.moves);
-    return tree;
-  }, [game.moves]);
-
-  // Variation tree of all the previous moves
-  const [tree, setTree] = useSessionStorage<VariationTree>({
-    key: id + "-tree",
-    defaultValue: initial_tree,
-    serialize: (value) => {
-      const storedTree = JSON.stringify({
-        pgn: value.getTopVariation().getPGN({ headers: game }),
-        currentMove: value.getPosition(),
-      });
-      return storedTree;
-    },
-    deserialize: (value) => {
-      const { pgn, currentMove } = JSON.parse(value);
-      const tree = parsePGN(pgn);
-      const treeAtPosition = goToPosition(tree, currentMove);
-      return treeAtPosition;
-    },
-  });
   const chess = new Chess(tree.fen);
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
@@ -224,8 +229,10 @@ function BoardGame({
     }
   }, [tree, engine, playingColor]);
 
+  const { height, width } = useViewportSize();
+
   return (
-    <TreeContext.Provider value={tree}>
+    <GameContext.Provider value={completeGame}>
       <Flex gap="md" wrap="wrap" align="start">
         <BoardPlay
           makeMove={makeMove}
@@ -243,8 +250,10 @@ function BoardGame({
         />
         <Stack
           sx={{
+            flex: 1,
             flexGrow: 1,
             justifyContent: "space-between",
+            height: width > 1000 ? "80vh" : "100%",
           }}
         >
           {opponent === null ? (
@@ -407,7 +416,7 @@ function BoardGame({
           )}
         </Stack>
       </Flex>
-    </TreeContext.Provider>
+    </GameContext.Provider>
   );
 }
 

@@ -1,11 +1,11 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { useContext } from "react";
 import {
-  Annotation,
-  annotationColor,
-  VariationTree,
+    Annotation,
+    VariationTree,
+    annotationColor,
 } from "../../../utils/chess";
-import TreeContext from "../../common/TreeContext";
+import GameContext from "../../common/GameContext";
 import { AnnotationEditor } from "./AnnotationEditor";
 
 interface AnnotationPanelProps {
@@ -14,7 +14,7 @@ interface AnnotationPanelProps {
 }
 
 function AnnotationPanel({ setTree, forceUpdate }: AnnotationPanelProps) {
-  const tree = useContext(TreeContext);
+  const tree = useContext(GameContext).game.tree;
 
   function annotate(annotation: Annotation) {
     if (tree.annotation === annotation) {

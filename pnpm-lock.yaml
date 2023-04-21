@@ -7,6 +7,7 @@ specifiers:
   '@fortawesome/free-solid-svg-icons': ^6.3.0
   '@fortawesome/react-fontawesome': ^0.2.0
   '@mantine/core': ^6.0.0
+  '@mantine/dates': ^6.0.8
   '@mantine/form': ^6.0.0
   '@mantine/hooks': ^6.0.0
   '@mantine/next': ^6.0.0
@@ -27,6 +28,7 @@ specifiers:
   chess-tcn: ^1.0.3
   chess.js: 1.0.0-beta.3
   chessground: ^8.3.7
+  dayjs: ^1.11.7
   mantine-datatable: ^2.2.3
   next: ^13.2.3
   prettier: ^2.8.4
@@ -54,6 +56,7 @@ dependencies:
   '@fortawesome/free-solid-svg-icons': 6.3.0
   '@fortawesome/react-fontawesome': 0.2.0_d5rbrisxfyemehbvmdbryvgjte
   '@mantine/core': 6.0.0_2anhyhi6fovdpc2mtkpggnnsdu
+  '@mantine/dates': 6.0.8_ncvgvj24f77yz23u7neymwb32i
   '@mantine/form': 6.0.0_react@18.2.0
   '@mantine/hooks': 6.0.0_react@18.2.0
   '@mantine/next': 6.0.0_a7hn2ezcj5vhoyhoix22hbrmtq
@@ -70,6 +73,7 @@ dependencies:
   chess-tcn: 1.0.3
   chess.js: 1.0.0-beta.3
   chessground: 8.3.7
+  dayjs: 1.11.7
   mantine-datatable: 2.2.3_ozkgi6fw4fio2q572m2hpudknm
   next: 13.2.3_biqbaboplfbrettd7655fr4n2y
   prosemirror-commands: 1.5.1
@@ -2032,6 +2036,21 @@ packages:
       - '@types/react'
     dev: false
 
+  /@mantine/dates/6.0.8_ncvgvj24f77yz23u7neymwb32i:
+    resolution: {integrity: sha512-hWMtkKyg5X8xfvEyFJrXHVJu4Vmq7gWnICUxtyP6xD1KUAP4tZdIIq7fQw0bCow+O99YFzZwv0j7wwGzdTqVlg==}
+    peerDependencies:
+      '@mantine/core': 6.0.8
+      '@mantine/hooks': 6.0.8
+      dayjs: '>=1.0.0'
+      react: '>=16.8.0'
+    dependencies:
+      '@mantine/core': 6.0.0_2anhyhi6fovdpc2mtkpggnnsdu
+      '@mantine/hooks': 6.0.0_react@18.2.0
+      '@mantine/utils': 6.0.8_react@18.2.0
+      dayjs: 1.11.7
+      react: 18.2.0
+    dev: false
+
   /@mantine/form/6.0.0_react@18.2.0:
     resolution: {integrity: sha512-RQIvQtMqB5rOUzC2LhaQnwii3BNv6J8Btaju/Twqql6mcwnKq8ce+Edw51TuLJ6krAD/iVz6O/Q/HW/0MEUw1A==}
     peerDependencies:
@@ -2134,6 +2153,14 @@ packages:
 
   /@mantine/utils/6.0.0_react@18.2.0:
     resolution: {integrity: sha512-1AalSgzINKP4uv1DBTkJe/jh6yGwC2xaCQE4Atlr2bSHiLezYFMy/deGQ8XLFFv2AL0sjvewLW4ernlFujGMZg==}
+    peerDependencies:
+      react: '>=16.8.0'
+    dependencies:
+      react: 18.2.0
+    dev: false
+
+  /@mantine/utils/6.0.8_react@18.2.0:
+    resolution: {integrity: sha512-G7omM5XjnGzXLiFU/r2yOJrixDFnY2pUkqD38cV9e/Qa6KFEErp4mNb+rhkSHafCnvfwBiNcdryZwEhJTtuC+Q==}
     peerDependencies:
       react: '>=16.8.0'
     dependencies:
@@ -5220,6 +5247,10 @@ packages:
       abab: 2.0.6
       whatwg-mimetype: 2.3.0
       whatwg-url: 7.1.0
+    dev: false
+
+  /dayjs/1.11.7:
+    resolution: {integrity: sha512-+Yw9U6YO5TQohxLcIkrXBeY73WP3ejHWVvx8XCk3gxvQDCTEmS48ZrSZCKciI7Bhl/uCMyxYtE9UqRILmFphkQ==}
     dev: false
 
   /debug/2.6.9:

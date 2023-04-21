@@ -13,14 +13,14 @@ import {
   Table,
   Text,
   Tooltip,
-  useMantineTheme
+  useMantineTheme,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
   IconPlayerPause,
   IconPlayerPlay,
   IconSettings,
-  IconTargetArrow
+  IconTargetArrow,
 } from "@tabler/icons-react";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
@@ -30,13 +30,13 @@ import {
   BestMoves,
   BestMovesPayload,
   Score,
-  swapMove,
-  VariationTree
+  swapMove
 } from "../../../utils/chess";
+import { CompleteGame } from "../../../utils/db";
 import { Engine } from "../../../utils/engines";
 import { invoke } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
-import TreeContext from "../../common/TreeContext";
+import GameContext from "../../common/GameContext";
 import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";
@@ -98,7 +98,7 @@ interface BestMovesProps {
   engine: Engine;
   makeMoves: (moves: string[]) => void;
   setArrows: (arrows: string[]) => void;
-  setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
+  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
 }
 
 function BestMoves({
@@ -107,9 +107,9 @@ function BestMoves({
   makeMoves,
   engine,
   setArrows,
-  setTree,
+  setCompleteGame,
 }: BestMovesProps) {
-  const tree = useContext(TreeContext);
+  const tree = useContext(GameContext).game.tree;
   let chess: Chess | null;
   try {
     chess = new Chess(tree.fen);
@@ -152,9 +152,9 @@ function BestMoves({
         const ev = payload.bestLines;
         if (payload.engine === engine.path && payload.tab === tab) {
           setEngineVariation(ev);
-          setTree((tree) => {
-            tree.score = ev[0].score;
-            return tree;
+          setCompleteGame((prevGame) => {
+            prevGame.game.tree.score = ev[0].score;
+            return prevGame;
           });
           if (id === 0) {
             setArrows(

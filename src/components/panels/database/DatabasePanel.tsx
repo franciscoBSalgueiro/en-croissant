@@ -1,10 +1,10 @@
 import {
-  ActionIcon,
-  createStyles,
-  Progress,
-  Tabs,
-  Text,
-  useMantineTheme,
+    ActionIcon,
+    createStyles,
+    Progress,
+    Tabs,
+    Text,
+    useMantineTheme,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
@@ -18,7 +18,7 @@ import { CompleteGame, NormalizedGame, Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
 import { createTab, Tab } from "../../../utils/tabs";
-import TreeContext from "../../common/TreeContext";
+import GameContext from "../../common/GameContext";
 
 const useStyles = createStyles((theme) => ({
   clickable: {
@@ -38,7 +38,7 @@ function DatabasePanel({
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
   height: number;
 }) {
-  const tree = useContext(TreeContext);
+  const tree = useContext(GameContext).game.tree;
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const [loading, setLoading] = useState(false);

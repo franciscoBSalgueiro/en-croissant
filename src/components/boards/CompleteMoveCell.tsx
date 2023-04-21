@@ -1,23 +1,21 @@
 import { Box, TypographyStylesProvider } from "@mantine/core";
 import { useContext } from "react";
 import { VariationTree } from "../../utils/chess";
-import TreeContext from "../common/TreeContext";
+import GameContext from "../common/GameContext";
 import MoveCell from "./MoveCell";
 
 function CompleteMoveCell({
   tree,
   setTree,
-  forceUpdate,
   showComments,
   first,
 }: {
   tree: VariationTree;
   setTree: (tree: VariationTree) => void;
-  forceUpdate: () => void;
   showComments: boolean;
   first?: boolean;
 }) {
-  const currentTree = useContext(TreeContext);
+  const currentTree = useContext(GameContext).game.tree;
   const move_number = Math.ceil(tree.halfMoves / 2);
   const is_white = tree.halfMoves % 2 === 1;
   const hasNumber = tree.halfMoves > 0 && (first || is_white);

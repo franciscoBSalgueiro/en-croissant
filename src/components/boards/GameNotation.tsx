@@ -225,7 +225,6 @@ function RenderVariationTree({
           <CompleteMoveCell
             tree={variation}
             setTree={setTree}
-            forceUpdate={forceUpdate}
             showComments={showComments}
             first
           />
@@ -248,7 +247,6 @@ function RenderVariationTree({
         <CompleteMoveCell
           tree={variations[0]}
           setTree={setTree}
-          forceUpdate={forceUpdate}
           showComments={showComments}
           first={first}
         />

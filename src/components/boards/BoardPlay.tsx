@@ -45,8 +45,8 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
+import GameContext from "../common/GameContext";
 import Piece from "../common/Piece";
-import TreeContext from "../common/TreeContext";
 import FenInput from "../panels/info/FenInput";
 import EvalBar from "./EvalBar";
 
@@ -63,7 +63,7 @@ interface ChessboardProps {
   arrows: string[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
   forceUpdate: () => void;
-  setTree: React.Dispatch<React.SetStateAction<VariationTree>>;
+  setTree: (tree: VariationTree) => void;
   addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
   editingMode: boolean;
   toggleEditingMode: () => void;
@@ -90,7 +90,7 @@ function BoardPlay({
   completeGame,
   side,
 }: ChessboardProps) {
-  const tree = useContext(TreeContext);
+  const tree = useContext(GameContext).game.tree;
   let chess: Chess | null;
   let error: string | null = null;
   try {
@@ -185,11 +185,7 @@ function BoardPlay({
       <Stack justify="center">
         {editingMode && (
           <Card shadow="md" style={{ overflow: "visible" }}>
-            <FenInput
-              onSubmit={(fen) => {
-                setTree(new VariationTree(null, fen, null));
-              }}
-            />
+            <FenInput setCompleteGame={setCompleteGame} />
             <SimpleGrid cols={6}>
               {colors.map((color) => {
                 return pieces.map((piece) => {

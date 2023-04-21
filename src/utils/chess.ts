@@ -563,21 +563,25 @@ export function movesToVariationTree(
     return tree;
 }
 
-export function getCompleteGame(pgn: string): CompleteGame {
-    function stripPGNheader(pgn: string) {
-        const lines = pgn.split("\n");
-        let i = 0;
-        while (i < lines.length && lines[i].startsWith("[")) {
-            i++;
-        }
-        return lines.slice(i).join("\n");
-    }
+export function stripPGNheader(pgn: string) {
+    const lines = pgn.split("\n");
+    let i = 0;
 
+    while (
+        i < lines.length &&
+        (lines[i].startsWith("[") || lines[i].trim() === "")
+    ) {
+        i++;
+    }
+    return lines.slice(i).join("\n");
+}
+
+export function getCompleteGame(pgn: string): CompleteGame {
     pgn = pgn.replaceAll("0-0", "O-O");
 
     const chess = new Chess();
     chess.loadPgn(pgn);
-    const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event } =
+    const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event, FEN } =
         chess.header();
 
     const game: CompleteGame = {
@@ -606,6 +610,7 @@ export function getCompleteGame(pgn: string): CompleteGame {
                 id: 0,
                 name: Event ?? "",
             },
+            tree: new VariationTree(null, FEN || DEFAULT_POSITION, null),
         },
     };
     return game;

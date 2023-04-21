@@ -4,17 +4,18 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useContext } from "react";
-import TreeContext from "../../common/TreeContext";
+import { VariationTree } from "../../../utils/chess";
+import GameContext from "../../common/GameContext";
 
 interface AnnotationEditorProps {
   forceUpdate: () => void;
-  setTree: any;
+  setTree: (tree: VariationTree) => void;
 }
 export function AnnotationEditor({
   setTree,
   forceUpdate,
 }: AnnotationEditorProps) {
-  const tree = useContext(TreeContext);
+  const tree = useContext(GameContext).game.tree;
 
   const editor = useEditor(
     {
@@ -25,17 +26,15 @@ export function AnnotationEditor({
       ],
       content: tree.commentHTML,
       onUpdate: ({ editor }) => {
-        setTree((prev: any) => {
-          const html = editor.getHTML();
-          if (html === "<p></p>") {
-            prev.commentHTML = "";
-            prev.commentText = "";
-          } else {
-            prev.commentHTML = html;
-            prev.commentText = editor.getText();
-          }
-          return prev;
-        });
+        const html = editor.getHTML();
+        if (html === "<p></p>") {
+          tree.commentHTML = "";
+          tree.commentText = "";
+        } else {
+          tree.commentHTML = html;
+          tree.commentText = editor.getText();
+        }
+        setTree(tree);
         forceUpdate();
       },
     },

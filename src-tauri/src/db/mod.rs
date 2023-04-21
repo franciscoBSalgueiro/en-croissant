@@ -1132,10 +1132,7 @@ pub async fn search_position(
     println!("start: {:?}", start.elapsed());
 
     let permit = state.new_request.acquire().await.unwrap();
-    println!("Waiting for games");
-    println!("got permit: {:?}", state.new_request.available_permits());
     let mut games = state.db_cache.lock().unwrap();
-    println!("pre-fetch got games: {:?}", start.elapsed());
 
     if games.is_empty() {
         *games = games::table

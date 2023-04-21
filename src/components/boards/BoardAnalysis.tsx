@@ -24,16 +24,21 @@ import {
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
-import { useEffect, useMemo, useState } from "react";
-import { VariationTree, goToPosition, parsePGN } from "../../utils/chess";
+import { useEffect, useState } from "react";
+import {
+  VariationTree,
+  goToPosition,
+  parsePGN,
+  stripPGNheader,
+} from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
 import { invoke, useLocalFile } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
+import GameContext from "../common/GameContext";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import { ProgressButton } from "../common/ProgressButton";
-import TreeContext from "../common/TreeContext";
 import BestMoves from "../panels/analysis/BestMoves";
 import EngineSettingsBoard from "../panels/analysis/EngineSettingsBoard";
 import ReportModal from "../panels/analysis/ReportModal";
@@ -56,53 +61,49 @@ function BoardAnalysis({
   const [completeGame, setCompleteGame] = useSessionStorage<CompleteGame>({
     key: id,
     defaultValue: { game: defaultGame(), currentMove: [] },
-  });
-  const game = completeGame.game;
-
-  const forceUpdate = useForceUpdate();
-  const [editingMode, toggleEditingMode] = useToggle();
-  const [reportingMode, toggleReportingMode] = useToggle();
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [engines, setEngines] = useLocalFile<Engine[]>(
-    "engines/engines.json",
-    []
-  );
-
-  const initial_tree = useMemo(() => {
-    const storedTree = sessionStorage.getItem(id + "-tree");
-    if (storedTree) {
-      const { pgn, currentMove } = JSON.parse(storedTree);
-      const tree = parsePGN(pgn);
-      if (tree.children.length > 0) {
-        const treeAtPosition = goToPosition(tree, currentMove);
-        return treeAtPosition;
-      }
-    }
-    const tree = parsePGN(game.moves);
-    return tree;
-  }, [game.moves]);
-
-  // Variation tree of all the previous moves
-  const [tree, setTree] = useSessionStorage<VariationTree>({
-    key: id + "-tree",
-    defaultValue: initial_tree,
     serialize: (value) => {
+      const storedGame: any = {
+        ...value.game,
+        tree: undefined,
+        moves: stripPGNheader(value.game.moves),
+      };
+
       const storedTree = JSON.stringify({
-        pgn: value.getTopVariation().getPGN({ headers: game }),
-        currentMove: value.getPosition(),
+        game: storedGame,
+        currentMove: value.game.tree.getPosition(),
       });
       return storedTree;
     },
     deserialize: (value) => {
-      const { pgn, currentMove } = JSON.parse(value);
-      const tree = parsePGN(pgn);
+      const { game, currentMove } = JSON.parse(value);
+      const tree = parsePGN(stripPGNheader(game.moves));
       const treeAtPosition = goToPosition(tree, currentMove);
-      return treeAtPosition;
+      game.tree = treeAtPosition;
+      return { game, currentMove };
     },
   });
-  useEffect(() => {
-    setTree(initial_tree);
-  }, [initial_tree]);
+  const game = completeGame.game;
+  const tree = game.tree;
+  const setTree = (tree: VariationTree) => {
+    console.log(tree);
+    const pgn = tree.getTopVariation().getPGN({ headers: completeGame.game });
+    setCompleteGame({
+      ...completeGame,
+      game: {
+        ...completeGame.game,
+        moves: pgn,
+        tree,
+      },
+    });
+  };
+
+  const forceUpdate = useForceUpdate();
+  const [editingMode, toggleEditingMode] = useToggle();
+  const [reportingMode, toggleReportingMode] = useToggle();
+  const [engines, setEngines] = useLocalFile<Engine[]>(
+    "engines/engines.json",
+    []
+  );
   const [arrows, setArrows] = useState<string[]>([]);
   let chess: Chess | null;
   try {
@@ -110,7 +111,6 @@ function BoardAnalysis({
   } catch (e) {
     chess = null;
   }
-  let turn = chess?.turn();
 
   function makeMove(move: { from: Square; to: Square; promotion?: string }) {
     if (chess === null) {
@@ -227,10 +227,6 @@ function BoardAnalysis({
     setTree(tree.getBottomVariation());
   }
 
-  function resetToFen(fen: string) {
-    setTree(new VariationTree(null, fen, null));
-  }
-
   function changeToPlayMode() {
     setTabs(
       tabs.map((tab) => (tab.value === id ? { ...tab, type: "play" } : tab))
@@ -279,7 +275,7 @@ function BoardAnalysis({
   const [inProgress, setInProgress] = useState(false);
 
   return (
-    <TreeContext.Provider value={tree}>
+    <GameContext.Provider value={completeGame}>
       <ReportModal
         moves={tree.getTopVariation().getPGN({
           headers: game,
@@ -289,7 +285,6 @@ function BoardAnalysis({
         })}
         reportingMode={reportingMode}
         toggleReportingMode={toggleReportingMode}
-        setLoading={setAnalysisLoading}
         setTree={setTree}
         setInProgress={setInProgress}
       />
@@ -330,8 +325,8 @@ function BoardAnalysis({
             </Tabs.List>
             <Tabs.Panel value="info" pt="xs">
               <Stack>
-                <GameInfo game={game} />
-                <FenInput onSubmit={resetToFen} />
+                <GameInfo game={game} setCompleteGame={setCompleteGame} />
+                <FenInput setCompleteGame={setCompleteGame} />
                 <PgnInput game={game} />
               </Stack>
             </Tabs.Panel>
@@ -365,7 +360,7 @@ function BoardAnalysis({
                               engine={engine}
                               makeMoves={makeMoves}
                               setArrows={setArrows}
-                              setTree={setTree}
+                              setCompleteGame={setCompleteGame}
                             />
                           </Accordion.Item>
                         );
@@ -423,7 +418,7 @@ function BoardAnalysis({
           </Stack>
         </Stack>
       </Flex>
-    </TreeContext.Provider>
+    </GameContext.Provider>
   );
 }
 

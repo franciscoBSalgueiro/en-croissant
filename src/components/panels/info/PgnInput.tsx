@@ -2,10 +2,10 @@ import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { useContext } from "react";
 import { NormalizedGame } from "../../../utils/db";
-import TreeContext from "../../common/TreeContext";
+import GameContext from "../../common/GameContext";
 
 function PgnInput({ game }: { game: NormalizedGame }) {
-  const tree = useContext(TreeContext);
+  const tree = useContext(GameContext).game.tree;
   const [comments, toggleComments] = useToggle([true, false]);
   const [symbols, toggleSymbols] = useToggle([true, false]);
   const [variations, toggleVariations] = useToggle([true, false]);

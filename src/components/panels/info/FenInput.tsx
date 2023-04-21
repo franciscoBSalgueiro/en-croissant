@@ -2,12 +2,27 @@ import { ActionIcon, Flex, Stack, Text, TextInput } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { validateFen } from "chess.js";
 import { useContext, useEffect, useState } from "react";
-import TreeContext from "../../common/TreeContext";
+import { CompleteGame } from "../../../utils/db";
+import GameContext from "../../common/GameContext";
 
 const EMPTY_POSITION = "8/8/8/8/8/8/8/8 w - - 0 1";
 
-function FenInput({ onSubmit }: { onSubmit: (fen: string) => void }) {
-  const tree = useContext(TreeContext);
+function FenInput({
+  setCompleteGame,
+}: {
+  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
+}) {
+  function changeFen(fen: string) {
+    setCompleteGame((game) => ({
+      ...game,
+      game: {
+        ...game.game,
+        fen,
+      },
+    }));
+  }
+
+  const tree = useContext(GameContext).game.tree;
   const [fen, setFen] = useState(tree.fen);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -24,7 +39,8 @@ function FenInput({ onSubmit }: { onSubmit: (fen: string) => void }) {
             e.preventDefault();
             const v = validateFen(fen);
             if (v.ok) {
-              onSubmit(fen);
+              changeFen(fen);
+              setError(undefined);
             } else {
               setError(v.error);
             }
@@ -41,7 +57,7 @@ function FenInput({ onSubmit }: { onSubmit: (fen: string) => void }) {
         </form>
         <ActionIcon
           onClick={() => {
-            onSubmit(EMPTY_POSITION);
+            changeFen(EMPTY_POSITION);
           }}
         >
           <IconTrash />
