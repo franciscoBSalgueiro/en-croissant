@@ -1,7 +1,51 @@
-import { Group, Stack, Text } from "@mantine/core";
+import {
+  Group,
+  NumberInput,
+  Stack,
+  Text,
+  TextInput,
+  createStyles,
+} from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import dayjs from "dayjs";
 import { CompleteGame, NormalizedGame } from "../../utils/db";
+
+const useStyles = createStyles((theme) => ({
+  nameInput: {
+    "& input": {
+      padding: 0,
+      fontWeight: 500,
+      lineHeight: 0,
+      height: "auto",
+    },
+    "& input:disabled": {
+      cursor: "default",
+      backgroundColor: "transparent",
+      color: theme.colorScheme === "dark" ? theme.colors.gray[0] : theme.black,
+    },
+  },
+  eloInput: {
+    height: "auto",
+    "& input": {
+      opacity: "75%",
+      padding: 0,
+      lineHeight: 0,
+      height: "auto",
+    },
+    "& input:disabled": {
+      cursor: "default",
+      backgroundColor: "transparent",
+      color: theme.colorScheme === "dark" ? "#fff" : "#000",
+    },
+  },
+  dateInput: {
+    "& input": { textAlign: "center" },
+    "& input:disabled": {
+      cursor: "default",
+      backgroundColor: "transparent",
+    },
+  },
+}));
 
 function GameInfo({
   game,
@@ -15,17 +59,54 @@ function GameInfo({
       ? dayjs(game.date, "YYYY.MM.DD").toDate()
       : null
     : null;
+  const { classes } = useStyles();
   return (
     <Group align="apart" my="sm" mx="md" grow>
       <Stack align="start" spacing={0}>
         <Group noWrap>
-          {/* <Avatar src={game.white.image} /> */}
           <div>
             <Text c="dimmed" tt="uppercase" fw="bold">
               White
             </Text>
-            <Text weight={500}>{game.white.name || "?"}</Text>
-            <Text c="dimmed">{game.white_elo || "Unknown ELO"}</Text>
+            <TextInput
+              variant="unstyled"
+              className={classes.nameInput}
+              size="lg"
+              placeholder="?"
+              value={game.white.name}
+              onChange={(e) =>
+                setCompleteGame &&
+                setCompleteGame((prev) => ({
+                  ...prev,
+                  game: {
+                    ...prev.game,
+                    white: {
+                      ...prev.game.white,
+                      name: e.currentTarget.value,
+                    },
+                  },
+                }))
+              }
+              disabled={!setCompleteGame}
+            />
+            <NumberInput
+              variant="unstyled"
+              size="md"
+              className={classes.eloInput}
+              placeholder="Unknown ELO"
+              value={game.white_elo ?? ""}
+              onChange={(n) =>
+                setCompleteGame &&
+                setCompleteGame((prev) => ({
+                  ...prev,
+                  game: {
+                    ...prev.game,
+                    white_elo: n === "" ? null : n,
+                  },
+                }))
+              }
+              disabled={!setCompleteGame}
+            />
           </div>
         </Group>
       </Stack>
@@ -51,13 +132,7 @@ function GameInfo({
                 },
               }));
           }}
-          sx={{
-            "& input": { textAlign: "center" },
-            "& input:disabled": {
-              cursor: "default",
-              backgroundColor: "transparent",
-            },
-          }}
+          className={classes.dateInput}
         />
       </Stack>
       <Stack align="end" spacing={0}>
@@ -66,14 +141,48 @@ function GameInfo({
             <Text c="dimmed" align="right" tt="uppercase" fw="bold">
               Black
             </Text>
-            <Text weight={500} align="right">
-              {game.black.name || "?"}
-            </Text>
-            <Text c="dimmed" align="right">
-              {game.black_elo || "Unknown ELO"}
-            </Text>
+            <TextInput
+              variant="unstyled"
+              className={classes.nameInput}
+              size="lg"
+              placeholder="?"
+              sx={{ "& input": { textAlign: "right" } }}
+              value={game.black.name}
+              onChange={(e) =>
+                setCompleteGame &&
+                setCompleteGame((prev) => ({
+                  ...prev,
+                  game: {
+                    ...prev.game,
+                    black: {
+                      ...prev.game.black,
+                      name: e.currentTarget.value,
+                    },
+                  },
+                }))
+              }
+              disabled={!setCompleteGame}
+            />
+            <NumberInput
+              variant="unstyled"
+              size="md"
+              className={classes.eloInput}
+              sx={{ "& input": { textAlign: "right" } }}
+              placeholder="Unknown ELO"
+              value={game.black_elo ?? ""}
+              onChange={(n) =>
+                setCompleteGame &&
+                setCompleteGame((prev) => ({
+                  ...prev,
+                  game: {
+                    ...prev.game,
+                    black_elo: n === "" ? null : n,
+                  },
+                }))
+              }
+              disabled={!setCompleteGame}
+            />
           </div>
-          {/* <Avatar src={black.image} /> */}
         </Group>
       </Stack>
     </Group>

@@ -207,13 +207,13 @@ export interface NormalizedGame {
         name: string;
         elo?: number;
     };
-    white_elo?: number;
+    white_elo?: number | null;
     black: {
         id: number;
         name: string;
         elo?: number;
     };
-    black_elo?: number;
+    black_elo?: number | null;
     result: Outcome;
     time_control?: string;
     eco?: string;
