@@ -95,7 +95,7 @@ function Puzzles({ id }: { id: string }) {
   const [tmpSelected, setTmpSelected] = useState<string | null>(null);
   const [chess, setChess] = useState<Chess | null>(null);
 
-  return selectedDb === null || puzzles.length === 0 || chess === null ? (
+  return selectedDb === null || puzzles.length === 0 ? (
     <>
       <Title mb="md">Puzzle Collections</Title>
       <SimpleGrid cols={4} mb="md">
@@ -204,13 +204,14 @@ function Puzzles({ id }: { id: string }) {
                   await new Promise((r) => setTimeout(r, 500));
                 }
               }}
+              disabled={currentMove === puzzles[currentPuzzle].moves.length}
             >
               View Solution
             </Button>
           </Group>
         </Card>
         <Card>
-          <Text>Results</Text>
+          <Text mb="md">Puzzles</Text>
           <Group>
             {puzzles.map((p, i) => {
               const current = i === currentPuzzle;
@@ -218,7 +219,10 @@ function Puzzles({ id }: { id: string }) {
                 case Completion.CORRECT:
                   return (
                     <ActionIcon
-                      onClick={() => setCurrentPuzzle(i)}
+                      onClick={() => {
+                        setCurrentPuzzle(i);
+                        setCurrentMove(1);
+                      }}
                       variant="light"
                       key={i}
                       color="green"

@@ -181,11 +181,8 @@ function PuzzleBoard({
                 ) {
                   setPendingMove({ from: orig as Square, to: newDest });
                 } else {
-                  console.log(puzzle.moves[currentMove]);
                   if (puzzle.moves[currentMove] === `${orig}${newDest}`) {
-                    console.log("correct move", currentMove);
                     if (currentMove === puzzle.moves.length - 1) {
-                      console.log("last move");
                       if (puzzle.completion !== Completion.INCORRECT) {
                         changeCompletion(Completion.CORRECT);
                       }
