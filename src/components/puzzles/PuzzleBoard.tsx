@@ -1,20 +1,22 @@
 import {
   ActionIcon,
-  AspectRatio,
   Box,
   Modal,
   SimpleGrid,
   Stack,
-  createStyles,
+  createStyles
 } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import {
-  IconChessBishop,
-  IconChessKnight,
-  IconChessQueen,
-  IconChessRook,
-} from "@tabler/icons-react";
-import { BISHOP, Chess, KNIGHT, Move, QUEEN, ROOK, Square } from "chess.js";
+  BISHOP,
+  Chess,
+  KNIGHT,
+  Move,
+  PieceSymbol,
+  QUEEN,
+  ROOK,
+  Square,
+} from "chess.js";
 import { useState } from "react";
 import Chessground from "react-chessground";
 import {
@@ -25,6 +27,7 @@ import {
   toDests,
 } from "../../utils/chess";
 import { Completion, Puzzle } from "../../utils/puzzles";
+import Piece from "../common/Piece";
 
 const useStyles = createStyles(() => ({
   chessboard: {
@@ -35,27 +38,7 @@ const useStyles = createStyles(() => ({
   },
 }));
 
-const promotionPieces = [
-  {
-    piece: QUEEN,
-    icon: <IconChessQueen size={50} />,
-  },
-
-  {
-    piece: ROOK,
-    icon: <IconChessRook size={50} />,
-  },
-
-  {
-    piece: KNIGHT,
-    icon: <IconChessKnight size={50} />,
-  },
-
-  {
-    piece: BISHOP,
-    icon: <IconChessBishop size={50} />,
-  },
-];
+const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
 
 function PuzzleBoard({
   puzzles,
@@ -118,42 +101,40 @@ function PuzzleBoard({
       >
         <SimpleGrid cols={2}>
           {promotionPieces.map((p) => (
-            <Box key={p.piece} sx={{ width: "100%", height: "100%" }}>
-              <AspectRatio ratio={1}>
-                <ActionIcon
-                  onClick={() => {
-                    if (
-                      puzzle.moves[currentMove] ===
-                      `${pendingMove?.from}${pendingMove?.to}${p.piece}`
-                    ) {
-                      chess.move({
-                        from: pendingMove!.from,
-                        to: pendingMove!.to,
-                        promotion: p.piece,
-                      });
-                      if (currentMove === puzzle.moves.length) {
-                        if (puzzle.completion !== Completion.INCORRECT) {
-                          changeCompletion(Completion.CORRECT);
-                        }
-                        setCurrentMove(1);
-                        setEnded(false);
-
-                        generatePuzzle(db);
-                      }
-                      setCurrentMove(currentMove + 2);
-                    } else {
-                      if (!ended) {
-                        changeCompletion(Completion.INCORRECT);
-                      }
-                      setEnded(true);
+            <ActionIcon
+              key={p}
+              sx={{ width: "100%", height: "100%", position: "relative" }}
+              onClick={() => {
+                if (
+                  puzzle.moves[currentMove] ===
+                  `${pendingMove?.from}${pendingMove?.to}${p}`
+                ) {
+                  chess.move({
+                    from: pendingMove!.from,
+                    to: pendingMove!.to,
+                    promotion: p,
+                  });
+                  if (currentMove === puzzle.moves.length) {
+                    if (puzzle.completion !== Completion.INCORRECT) {
+                      changeCompletion(Completion.CORRECT);
                     }
-                    setPendingMove(null);
-                  }}
-                >
-                  {p.icon}
-                </ActionIcon>
-              </AspectRatio>
-            </Box>
+                    setCurrentMove(1);
+                    setEnded(false);
+
+                    generatePuzzle(db);
+                  }
+                  setCurrentMove(currentMove + 2);
+                } else {
+                  if (!ended) {
+                    changeCompletion(Completion.INCORRECT);
+                  }
+                  setEnded(true);
+                }
+                setPendingMove(null);
+              }}
+            >
+              <Piece piece={p} color={turn === "white" ? "w" : "b"} />
+            </ActionIcon>
           ))}
         </SimpleGrid>
       </Modal>
