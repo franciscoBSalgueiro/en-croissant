@@ -2,14 +2,12 @@ import {
   Button,
   Card,
   Divider,
-  Flex,
   Group,
   Select,
   SimpleGrid,
-  Stack,
   Text,
 } from "@mantine/core";
-import { useHotkeys, useSessionStorage, useViewportSize } from "@mantine/hooks";
+import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import {
   IconDice,
   IconPlus,
@@ -18,7 +16,8 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { Chess, DEFAULT_POSITION, Square } from "chess.js";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import BoardLayout from "../../layouts/BoardLayout";
 import {
   VariationTree,
   goToPosition,
@@ -114,18 +113,19 @@ function BoardGame({
   });
   const game = completeGame.game;
   const tree = game.tree;
-  const setTree = (tree: VariationTree) => {
-    console.log(tree);
-    const pgn = tree.getTopVariation().getPGN({ headers: completeGame.game });
-    setCompleteGame({
-      ...completeGame,
-      game: {
-        ...completeGame.game,
-        moves: pgn,
-        tree,
-      },
+  const setTree = useCallback((tree: VariationTree) => {
+    setCompleteGame((prevGame) => {
+      return {
+        ...prevGame,
+        game: {
+          ...prevGame.game,
+          moves: tree.getTopVariation().getPGN({ headers: prevGame.game }),
+          tree,
+        },
+      };
     });
-  };
+  }, []);
+
   const [engines, setEngines] = useState<Engine[]>([]);
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white"
@@ -229,193 +229,185 @@ function BoardGame({
     }
   }, [tree, engine, playingColor]);
 
-  const { height, width } = useViewportSize();
-
   return (
     <GameContext.Provider value={completeGame}>
-      <Flex gap="md" wrap="wrap" align="start">
-        <BoardPlay
-          makeMove={makeMove}
-          arrows={[]}
-          forceUpdate={() => {}}
-          setTree={setTree}
-          editingMode={false}
-          toggleEditingMode={() => {}}
-          viewOnly={opponent === null}
-          disableVariations
-          setCompleteGame={setCompleteGame}
-          completeGame={completeGame}
-          side={playingColor}
-          addPiece={() => {}}
-        />
-        <Stack
-          sx={{
-            flex: 1,
-            flexGrow: 1,
-            justifyContent: "space-between",
-            height: width > 1000 ? "80vh" : "100%",
-          }}
-        >
-          {opponent === null ? (
-            <Card shadow="sm" p="md">
-              <Text fw="bold" mb="md">
-                Choose an opponent
-              </Text>
-              <SimpleGrid cols={3} spacing="md">
-                <OpponentCard
-                  opponent={Opponent.Random}
-                  isSelected={selected === Opponent.Random}
-                  setSelected={setSelected}
-                  Icon={IconDice}
-                />
-                <OpponentCard
-                  opponent={Opponent.Easy}
-                  isSelected={selected === Opponent.Easy}
-                  setSelected={setSelected}
-                  Icon={IconRobot}
-                />
-                <OpponentCard
-                  opponent={Opponent.Medium}
-                  isSelected={selected === Opponent.Medium}
-                  setSelected={setSelected}
-                  Icon={IconRobot}
-                />
-                <OpponentCard
-                  opponent={Opponent.Hard}
-                  isSelected={selected === Opponent.Hard}
-                  setSelected={setSelected}
-                  Icon={IconRobot}
-                />
-                <OpponentCard
-                  opponent={Opponent.Impossible}
-                  isSelected={selected === Opponent.Impossible}
-                  setSelected={setSelected}
-                  Icon={IconRobot}
-                />
-                <OpponentCard
-                  opponent={Opponent.Human}
-                  isSelected={selected === Opponent.Human}
-                  setSelected={setSelected}
-                  Icon={IconUsers}
-                />
-              </SimpleGrid>
-              {(selected === Opponent.Easy ||
-                selected === Opponent.Medium ||
-                selected === Opponent.Hard ||
-                selected === Opponent.Impossible) && (
-                <Select
-                  mt="md"
-                  w={200}
-                  label="Engine"
-                  data={engines.map((engine) => ({
-                    label: engine.name,
-                    value: engine.path,
-                  }))}
-                  value={engine}
-                  onChange={(e) => {
-                    setEngine(e as string);
-                  }}
-                />
-              )}
-
+      <BoardLayout
+        board={
+          <BoardPlay
+            makeMove={makeMove}
+            arrows={[]}
+            forceUpdate={() => {}}
+            setTree={setTree}
+            editingMode={false}
+            toggleEditingMode={() => {}}
+            viewOnly={opponent === null}
+            disableVariations
+            setCompleteGame={setCompleteGame}
+            completeGame={completeGame}
+            side={playingColor}
+            addPiece={() => {}}
+          />
+        }
+      >
+        {opponent === null ? (
+          <Card shadow="sm" p="md">
+            <Text fw="bold" mb="md">
+              Choose an opponent
+            </Text>
+            <SimpleGrid cols={3} spacing="md">
+              <OpponentCard
+                opponent={Opponent.Random}
+                isSelected={selected === Opponent.Random}
+                setSelected={setSelected}
+                Icon={IconDice}
+              />
+              <OpponentCard
+                opponent={Opponent.Easy}
+                isSelected={selected === Opponent.Easy}
+                setSelected={setSelected}
+                Icon={IconRobot}
+              />
+              <OpponentCard
+                opponent={Opponent.Medium}
+                isSelected={selected === Opponent.Medium}
+                setSelected={setSelected}
+                Icon={IconRobot}
+              />
+              <OpponentCard
+                opponent={Opponent.Hard}
+                isSelected={selected === Opponent.Hard}
+                setSelected={setSelected}
+                Icon={IconRobot}
+              />
+              <OpponentCard
+                opponent={Opponent.Impossible}
+                isSelected={selected === Opponent.Impossible}
+                setSelected={setSelected}
+                Icon={IconRobot}
+              />
+              <OpponentCard
+                opponent={Opponent.Human}
+                isSelected={selected === Opponent.Human}
+                setSelected={setSelected}
+                Icon={IconUsers}
+              />
+            </SimpleGrid>
+            {(selected === Opponent.Easy ||
+              selected === Opponent.Medium ||
+              selected === Opponent.Hard ||
+              selected === Opponent.Impossible) && (
               <Select
                 mt="md"
                 w={200}
-                label="Color"
-                data={[
-                  { value: "white", label: "White" },
-                  { value: "random", label: "Random" },
-                  { value: "black", label: "Black" },
-                ]}
-                value={inputColor}
+                label="Engine"
+                data={engines.map((engine) => ({
+                  label: engine.name,
+                  value: engine.path,
+                }))}
+                value={engine}
                 onChange={(e) => {
-                  setInputColor(e as "white" | "black" | "random");
+                  setEngine(e as string);
                 }}
               />
+            )}
 
-              <Divider my="md" />
+            <Select
+              mt="md"
+              w={200}
+              label="Color"
+              data={[
+                { value: "white", label: "White" },
+                { value: "random", label: "Random" },
+                { value: "black", label: "Black" },
+              ]}
+              value={inputColor}
+              onChange={(e) => {
+                setInputColor(e as "white" | "black" | "random");
+              }}
+            />
+
+            <Divider my="md" />
+            <Button
+              disabled={
+                selected === null ||
+                ((selected === Opponent.Easy ||
+                  selected === Opponent.Medium ||
+                  selected === Opponent.Hard ||
+                  selected === Opponent.Impossible) &&
+                  engine === null)
+              }
+              onClick={() => {
+                setPlayingColor(
+                  inputColor === "random"
+                    ? Math.random() > 0.5
+                      ? "white"
+                      : "black"
+                    : inputColor
+                );
+                setOpponent(selected);
+                setCompleteGame((prev) => ({
+                  game: {
+                    ...prev.game,
+                    white: {
+                      id: -1,
+                      name: "You",
+                    },
+                    black: {
+                      id: -1,
+                      name: selected ?? "",
+                    },
+                  },
+                  currentMove: [],
+                }));
+              }}
+            >
+              Play
+            </Button>
+          </Card>
+        ) : (
+          <>
+            <GameInfo game={game} />
+            <Group grow>
               <Button
-                disabled={
-                  selected === null ||
-                  ((selected === Opponent.Easy ||
-                    selected === Opponent.Medium ||
-                    selected === Opponent.Hard ||
-                    selected === Opponent.Impossible) &&
-                    engine === null)
-                }
                 onClick={() => {
-                  setPlayingColor(
-                    inputColor === "random"
-                      ? Math.random() > 0.5
-                        ? "white"
-                        : "black"
-                      : inputColor
-                  );
-                  setOpponent(selected);
+                  setOpponent(null);
                   setCompleteGame((prev) => ({
                     game: {
                       ...prev.game,
-                      white: {
-                        id: -1,
-                        name: "You",
-                      },
-                      black: {
-                        id: -1,
-                        name: selected ?? "",
-                      },
+                      result: Outcome.Unknown,
                     },
                     currentMove: [],
                   }));
+                  setTree(new VariationTree(null, DEFAULT_POSITION, null));
                 }}
+                leftIcon={<IconPlus />}
               >
-                Play
+                New Game
               </Button>
-            </Card>
-          ) : (
-            <>
-              <GameInfo game={game} />
-              <Group grow>
-                <Button
-                  onClick={() => {
-                    setOpponent(null);
-                    setCompleteGame((prev) => ({
-                      game: {
-                        ...prev.game,
-                        result: Outcome.Unknown,
-                      },
-                      currentMove: [],
-                    }));
-                    setTree(new VariationTree(null, DEFAULT_POSITION, null));
-                  }}
-                  leftIcon={<IconPlus />}
-                >
-                  New Game
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => changeToAnalysisMode()}
-                  leftIcon={<IconZoomCheck />}
-                >
-                  Analyze
-                </Button>
-              </Group>
-              <GameNotation
-                game={game}
-                setTree={setTree}
-                topVariation={tree.getTopVariation()}
-                result={Outcome.Unknown}
-                boardSize={600}
-              />
-              <MoveControls
-                goToStart={goToStart}
-                goToEnd={goToEnd}
-                redoMove={redoMove}
-                undoMove={undoMove}
-              />
-            </>
-          )}
-        </Stack>
-      </Flex>
+              <Button
+                variant="default"
+                onClick={() => changeToAnalysisMode()}
+                leftIcon={<IconZoomCheck />}
+              >
+                Analyze
+              </Button>
+            </Group>
+            <GameNotation
+              game={game}
+              setTree={setTree}
+              topVariation={tree.getTopVariation()}
+              result={Outcome.Unknown}
+              boardSize={600}
+            />
+            <MoveControls
+              goToStart={goToStart}
+              goToEnd={goToEnd}
+              redoMove={redoMove}
+              undoMove={undoMove}
+            />
+          </>
+        )}
+      </BoardLayout>
     </GameContext.Provider>
   );
 }

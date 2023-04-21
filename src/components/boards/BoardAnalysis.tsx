@@ -1,11 +1,10 @@
 import {
   Accordion,
   Button,
-  Flex,
   Group,
   ScrollArea,
   Stack,
-  Tabs,
+  Tabs
 } from "@mantine/core";
 import {
   useForceUpdate,
@@ -24,7 +23,8 @@ import {
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import BoardLayout from "../../layouts/BoardLayout";
 import {
   VariationTree,
   goToPosition,
@@ -84,18 +84,18 @@ function BoardAnalysis({
   });
   const game = completeGame.game;
   const tree = game.tree;
-  const setTree = (tree: VariationTree) => {
-    console.log(tree);
-    const pgn = tree.getTopVariation().getPGN({ headers: completeGame.game });
-    setCompleteGame({
-      ...completeGame,
-      game: {
-        ...completeGame.game,
-        moves: pgn,
-        tree,
-      },
+  const setTree = useCallback((tree: VariationTree) => {
+    setCompleteGame((prevGame) => {
+      return {
+        ...prevGame,
+        game: {
+          ...prevGame.game,
+          moves: tree.getTopVariation().getPGN({ headers: prevGame.game }),
+          tree,
+        },
+      };
     });
-  };
+  }, []);
 
   const forceUpdate = useForceUpdate();
   const [editingMode, toggleEditingMode] = useToggle();
@@ -288,26 +288,22 @@ function BoardAnalysis({
         setTree={setTree}
         setInProgress={setInProgress}
       />
-      <Flex gap="md" wrap="wrap" align="start">
-        <BoardPlay
-          makeMove={makeMove}
-          arrows={arrows}
-          forceUpdate={forceUpdate}
-          setTree={setTree}
-          editingMode={editingMode}
-          toggleEditingMode={toggleEditingMode}
-          setCompleteGame={setCompleteGame}
-          completeGame={completeGame}
-          addPiece={addPiece}
-        />
-        <Stack
-          sx={{
-            flex: 1,
-            flexGrow: 1,
-            justifyContent: "space-between",
-            height: width > 1000 ? "80vh" : "100%",
-          }}
-        >
+      <BoardLayout
+        board={
+          <BoardPlay
+            makeMove={makeMove}
+            arrows={arrows}
+            forceUpdate={forceUpdate}
+            setTree={setTree}
+            editingMode={editingMode}
+            toggleEditingMode={toggleEditingMode}
+            setCompleteGame={setCompleteGame}
+            completeGame={completeGame}
+            addPiece={addPiece}
+          />
+        }
+      >
+        <>
           <Tabs defaultValue="analysis">
             <Tabs.List grow>
               <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
@@ -416,8 +412,8 @@ function BoardAnalysis({
               undoMove={undoMove}
             />
           </Stack>
-        </Stack>
-      </Flex>
+        </>
+      </BoardLayout>
     </GameContext.Provider>
   );
 }

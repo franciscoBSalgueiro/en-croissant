@@ -15,7 +15,6 @@ function GameInfo({
       ? dayjs(game.date, "YYYY.MM.DD").toDate()
       : null
     : null;
-  console.log(date);
   return (
     <Group align="apart" my="sm" mx="md" grow>
       <Stack align="start" spacing={0}>
@@ -41,7 +40,6 @@ function GameInfo({
           allowDeselect
           disabled={!setCompleteGame}
           onChange={(date) => {
-            console.log(date);
             setCompleteGame &&
               setCompleteGame((prev) => ({
                 ...prev,

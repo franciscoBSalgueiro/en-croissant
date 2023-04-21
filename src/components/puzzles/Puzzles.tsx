@@ -1,13 +1,13 @@
 import {
   ActionIcon,
+  Button,
   Card,
-  Center,
   Divider,
   Group,
   RangeSlider,
   SimpleGrid,
-  Stack,
   Text,
+  Title,
   Tooltip,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
@@ -18,7 +18,9 @@ import {
   IconTrash,
   IconX,
 } from "@tabler/icons-react";
+import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
+import BoardLayout from "../../layouts/BoardLayout";
 import { invoke } from "../../utils/misc";
 import {
   Completion,
@@ -35,8 +37,13 @@ function Puzzles({ id }: { id: string }) {
     defaultValue: [],
   });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
+  const [currentMove, setCurrentMove] = useState(1);
+
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
-  const [selectedDb, setSelectedDb] = useState<number | null>(null);
+  const [selectedDb, setSelectedDb] = useLocalStorage<string | null>({
+    key: "puzzle-db",
+    defaultValue: null,
+  });
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
       setPuzzleDbs(databases);
@@ -61,12 +68,9 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
     lostPuzzles.length;
 
-  function generatePuzzle() {
-    if (selectedDb === null) {
-      return;
-    }
+  function generatePuzzle(db: string) {
     invoke("get_puzzle", {
-      file: puzzleDbs[selectedDb].path,
+      file: db,
       minRating: ratingRange[0],
       maxRating: ratingRange[1],
     }).then((res: any) => {
@@ -75,7 +79,9 @@ function Puzzles({ id }: { id: string }) {
       setPuzzles((puzzles) => {
         return [...puzzles, res];
       });
+      setChess(new Chess(res.fen));
       setCurrentPuzzle(puzzles.length);
+      setCurrentMove(1);
     });
   }
 
@@ -86,15 +92,37 @@ function Puzzles({ id }: { id: string }) {
     });
   }
 
-  useEffect(() => {
-    if (sessionStorage.getItem(id) === null) {
-      generatePuzzle();
-    }
-  }, []);
+  const [tmpSelected, setTmpSelected] = useState<string | null>(null);
+  const [chess, setChess] = useState<Chess | null>(null);
 
-  return (
-    <SimpleGrid cols={2} breakpoints={[{ maxWidth: 800, cols: 1 }]}>
-      {puzzles[currentPuzzle] ? (
+  return selectedDb === null || puzzles.length === 0 || chess === null ? (
+    <>
+      <Title mb="md">Puzzle Collections</Title>
+      <SimpleGrid cols={4} mb="md">
+        {puzzleDbs.map((db) => (
+          <PuzzleDbCard
+            key={db.path}
+            db={db}
+            isSelected={tmpSelected === db.path}
+            setSelected={setTmpSelected}
+          />
+        ))}
+      </SimpleGrid>
+      <Button
+        onClick={() => {
+          setSelectedDb(tmpSelected);
+          generatePuzzle(tmpSelected!);
+          setTmpSelected(null);
+        }}
+        disabled={tmpSelected === null}
+        leftIcon={<IconCheck />}
+      >
+        Select
+      </Button>
+    </>
+  ) : (
+    <BoardLayout
+      board={
         <PuzzleBoard
           key={currentPuzzle}
           puzzles={puzzles}
@@ -102,31 +130,18 @@ function Puzzles({ id }: { id: string }) {
           changeCompletion={changeCompletion}
           generatePuzzle={generatePuzzle}
           setCurrentPuzzle={setCurrentPuzzle}
+          currentMove={currentMove}
+          setCurrentMove={setCurrentMove}
+          db={selectedDb}
         />
-      ) : (
-        <Center>
-          <Text>No puzzle database selected</Text>
-        </Center>
-      )}
-      <Stack>
-        <SimpleGrid cols={2}>
-          {puzzleDbs.map((db, i) => (
-            <PuzzleDbCard
-              id={i}
-              key={db.path}
-              isSelected={selectedDb === i}
-              setSelected={setSelectedDb}
-              title={db.title}
-              puzzles={db.puzzle_count}
-              storage={db.storage_size}
-            />
-          ))}
-        </SimpleGrid>
+      }
+    >
+      <div>
         <Card>
           <Group>
             <div>
               <Text size="sm" color="dimmed">
-                Rating
+                Puzzle Rating
               </Text>
               <Text weight={500} size="xl">
                 {puzzles[currentPuzzle]?.rating}
@@ -164,15 +179,34 @@ function Puzzles({ id }: { id: string }) {
           <Divider my="sm" />
           <Group>
             <Tooltip label="New Puzzle">
-              <ActionIcon onClick={() => generatePuzzle()}>
+              <ActionIcon onClick={() => generatePuzzle(selectedDb)}>
                 <IconPlus />
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Clear Session">
-              <ActionIcon onClick={() => setPuzzles([])}>
+              <ActionIcon
+                onClick={() => {
+                  setPuzzles([]);
+                  setSelectedDb(null);
+                }}
+              >
                 <IconTrash />
               </ActionIcon>
             </Tooltip>
+            <Button
+              onClick={async () => {
+                const curPuzzle = puzzles[currentPuzzle];
+                if (curPuzzle.completion === Completion.INCOMPLETE) {
+                  changeCompletion(Completion.INCORRECT);
+                }
+                for (let i = currentMove; i < curPuzzle.moves.length; i++) {
+                  setCurrentMove((currentMove) => currentMove + 1);
+                  await new Promise((r) => setTimeout(r, 500));
+                }
+              }}
+            >
+              View Solution
+            </Button>
           </Group>
         </Card>
         <Card>
@@ -221,8 +255,8 @@ function Puzzles({ id }: { id: string }) {
             })}
           </Group>
         </Card>
-      </Stack>
-    </SimpleGrid>
+      </div>
+    </BoardLayout>
   );
 }
 

@@ -2,6 +2,7 @@ import {
   faChess,
   faChessBoard,
   faFileImport,
+  faPuzzlePiece,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -76,20 +77,20 @@ export default function NewTabHome({
         setOpenModal(true);
       },
     },
-    // {
-    //   icon: faPuzzlePiece,
-    //   title: "Puzzles",
-    //   description: "Train your chess skills",
-    //   label: "Train",
-    //   onClick: () => {
-    //     setTabs((prev: any) => {
-    //       const tab = prev.find((t: any) => t.value === id);
-    //       tab.name = "Puzzle Training";
-    //       tab.type = "puzzles";
-    //       return [...prev];
-    //     });
-    //   },
-    // },
+    {
+      icon: faPuzzlePiece,
+      title: "Puzzles",
+      description: "Train your chess skills",
+      label: "Train",
+      onClick: () => {
+        setTabs((prev: any) => {
+          const tab = prev.find((t: any) => t.value === id);
+          tab.name = "Puzzle Training";
+          tab.type = "puzzles";
+          return [...prev];
+        });
+      },
+    },
   ];
 
   return (
