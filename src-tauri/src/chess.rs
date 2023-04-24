@@ -287,7 +287,7 @@ pub async fn analyze_game(
         let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
 
         send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
-        send_command(&mut stdin, format!("go movetime {}\n", &move_time * 1000)).await;
+        send_command(&mut stdin, format!("go movetime {}\n", &move_time)).await;
 
         let mut current_payload = BestMoves::default();
         while let Ok(Some(line)) = stdout.next_line().await {

@@ -1,11 +1,4 @@
-import {
-  Accordion,
-  Button,
-  Group,
-  ScrollArea,
-  Stack,
-  Tabs
-} from "@mantine/core";
+import { Stack, Tabs } from "@mantine/core";
 import {
   useForceUpdate,
   useHotkeys,
@@ -17,7 +10,6 @@ import {
   IconDatabase,
   IconInfoCircle,
   IconNotes,
-  IconRobot,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { save } from "@tauri-apps/api/dialog";
@@ -38,9 +30,7 @@ import { Tab } from "../../utils/tabs";
 import GameContext from "../common/GameContext";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
-import { ProgressButton } from "../common/ProgressButton";
-import BestMoves from "../panels/analysis/BestMoves";
-import EngineSettingsBoard from "../panels/analysis/EngineSettingsBoard";
+import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
@@ -333,66 +323,19 @@ function BoardAnalysis({
               <AnnotationPanel forceUpdate={forceUpdate} setTree={setTree} />
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
-              <ScrollArea
-                style={{ height: boardSize / 2 }}
-                offsetScrollbars
-                type="always"
-              >
-                <Stack>
-                  <Accordion
-                    variant="separated"
-                    multiple
-                    chevronSize={0}
-                    defaultValue={engines.map((e) => e.path)}
-                  >
-                    {engines
-                      .filter((e) => e.loaded)
-                      .map((engine, i) => {
-                        return (
-                          <Accordion.Item key={engine.path} value={engine.path}>
-                            <BestMoves
-                              id={i}
-                              tab={id}
-                              engine={engine}
-                              makeMoves={makeMoves}
-                              setArrows={setArrows}
-                              setCompleteGame={setCompleteGame}
-                            />
-                          </Accordion.Item>
-                        );
-                      })}
-                  </Accordion>
-                  <EngineSettingsBoard
-                    engines={engines}
-                    setEngines={setEngines}
-                  />
-                  <Group grow>
-                    <Button
-                      variant="default"
-                      leftIcon={<IconRobot size={14} />}
-                      onClick={() => changeToPlayMode()}
-                    >
-                      Play against engine
-                    </Button>
-                    <ProgressButton
-                      id={0}
-                      redoable
-                      disabled={tree.getTopVariation().children.length === 0}
-                      leftIcon={<IconZoomCheck size={14} />}
-                      onClick={() => toggleReportingMode()}
-                      initInstalled={false}
-                      progressEvent="report_progress"
-                      labels={{
-                        action: "Generate report",
-                        completed: "Report generated",
-                        inProgress: "Generating report",
-                      }}
-                      inProgress={inProgress}
-                      setInProgress={setInProgress}
-                    />
-                  </Group>
-                </Stack>
-              </ScrollArea>
+              <AnalysisPanel
+                boardSize={boardSize}
+                engines={engines}
+                id={id}
+                makeMoves={makeMoves}
+                setArrows={setArrows}
+                setCompleteGame={setCompleteGame}
+                setEngines={setEngines}
+                changeToPlayMode={changeToPlayMode}
+                toggleReportingMode={toggleReportingMode}
+                inProgress={inProgress}
+                setInProgress={setInProgress}
+              />
             </Tabs.Panel>
           </Tabs>
           <Stack>

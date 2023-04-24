@@ -19,10 +19,10 @@ export type Score = {
 };
 
 function parseScore(score: string): Score {
-    if (score.startsWith("#")) {
-        return { mate: parseInt(score.slice(1)) } as Score;
+    if (score.includes("M")) {
+        return { mate: parseInt(score.split("M")[1]) } as Score;
     } else {
-        return { cp: parseFloat(score) } as Score;
+        return { cp: parseFloat(score) * 100 } as Score;
     }
 }
 
@@ -429,7 +429,7 @@ export function parsePGN(
     pgn = pgn.replaceAll("{", " { ");
     pgn = pgn.replaceAll("}", " } ");
     pgn = pgn.replaceAll(/\s+/g, " ");
-    pgn = pgn.replaceAll(/\d+\./g, "");
+    // pgn = pgn.replaceAll(/\d+\./g, "");
     pgn = pgn.trim();
     const tokens = pgn.split(" ");
 
@@ -449,7 +449,7 @@ export function parsePGN(
             if (tag === "FEN") {
                 tree.fen = value.substring(1, value.length - 1);
             }
-        } else if (token === "") {
+        } else if (token === "" || token.match(/\d+\./)) {
             continue;
         } else if (token === "{") {
             let comment = "";

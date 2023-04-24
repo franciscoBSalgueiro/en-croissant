@@ -53,7 +53,7 @@ function ReportModal({
   const form = useForm({
     initialValues: {
       engine: "",
-      secondsPerMove: 1,
+      millisecondsPerMove: 500,
       skipAnalyzingTheory: true,
     },
 
@@ -61,7 +61,7 @@ function ReportModal({
       engine: (value) => {
         if (!value) return "Engine is required";
       },
-      secondsPerMove: (value) => {
+      millisecondsPerMove: (value) => {
         if (!value) return "Seconds per move is required";
       },
     },
@@ -115,7 +115,7 @@ function ReportModal({
     invoke("analyze_game", {
       moves: uciMoves.join(" "),
       engine: form.values.engine,
-      moveTime: form.values.secondsPerMove,
+      moveTime: form.values.millisecondsPerMove,
     }).then((result) => {
       const evals = result as BestMoves[];
 
@@ -164,8 +164,9 @@ function ReportModal({
           <NumberInput
             withAsterisk
             label="Seconds per Move"
-            {...form.getInputProps("secondsPerMove")}
             min={1}
+            step={200}
+            {...form.getInputProps("millisecondsPerMove")}
           />
 
           <Checkbox
@@ -175,7 +176,9 @@ function ReportModal({
 
           <Text size="sm">
             Estimated time:{" "}
-            {formatDuration(uciMoves.length * form.values.secondsPerMove)}
+            {formatDuration(
+              (uciMoves.length * form.values.millisecondsPerMove) / 1000
+            )}
           </Text>
 
           <Group position="right">
