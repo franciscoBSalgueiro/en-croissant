@@ -9,7 +9,11 @@ import {
 } from "@mantine/core";
 import { IconRobot, IconZoomCheck } from "@tabler/icons-react";
 import { useContext } from "react";
-import { Annotation, VariationTree } from "../../../utils/chess";
+import {
+  Annotation,
+  VariationTree,
+  getAccuracyFromCp,
+} from "../../../utils/chess";
 import { CompleteGame } from "../../../utils/db";
 import { Engine } from "../../../utils/engines";
 import GameContext from "../../common/GameContext";
@@ -45,9 +49,11 @@ function AnalysisPanel({
   const tree = useContext(GameContext).game.tree;
   /* get through the main line and get the average centipawn loss for each player*/
   const getGameStats = (tree: VariationTree) => {
-    let whiteSum = 0;
+    let whiteCPSum = 0;
+    let whiteAccuracy = 0;
     let whiteCount = 0;
-    let blackSum = 0;
+    let blackCPSum = 0;
+    let blackAccuracy = 0;
     let blackCount = 0;
 
     let whiteAnnotations = {
@@ -70,7 +76,14 @@ function AnalysisPanel({
 
     let current = tree.getTopVariation();
     if (current.children.length === 0) {
-      return { white: 0, black: 0, whiteAnnotations, blackAnnotations };
+      return {
+        whiteCPL: 0,
+        blackCPL: 0,
+        whiteAccuracy,
+        blackAccuracy,
+        whiteAnnotations,
+        blackAnnotations,
+      };
     }
     let prevScore = current.score ?? { cp: 30 };
     while (current.children.length > 0) {
@@ -84,10 +97,12 @@ function AnalysisPanel({
       }
       if (current.score && current.score.cp) {
         if (current.halfMoves % 2 === 1) {
-          whiteSum += Math.max(prevScore?.cp - current.score.cp, 0);
+          whiteCPSum += Math.max(prevScore?.cp - current.score.cp, 0);
+          whiteAccuracy += getAccuracyFromCp(prevScore?.cp, current.score.cp);
           whiteCount++;
         } else {
-          blackSum += Math.max(-(prevScore?.cp - current.score.cp), 0);
+          blackCPSum += Math.max(-(prevScore?.cp - current.score.cp), 0);
+          blackAccuracy += getAccuracyFromCp(prevScore?.cp, current.score.cp);
           blackCount++;
         }
         prevScore = current.score;
@@ -95,14 +110,22 @@ function AnalysisPanel({
     }
 
     return {
-      white: whiteSum / whiteCount,
-      black: blackSum / blackCount,
+      whiteCPL: whiteCPSum / whiteCount,
+      blackCPL: blackCPSum / blackCount,
+      whiteAccuracy: whiteAccuracy / whiteCount,
+      blackAccuracy: blackAccuracy / blackCount,
       whiteAnnotations,
       blackAnnotations,
     };
   };
-  const { white, black, whiteAnnotations, blackAnnotations } =
-    getGameStats(tree);
+  const {
+    whiteCPL,
+    blackCPL,
+    whiteAccuracy,
+    blackAccuracy,
+    whiteAnnotations,
+    blackAnnotations,
+  } = getGameStats(tree);
 
   return (
     <Tabs defaultValue="engines">
@@ -156,8 +179,11 @@ function AnalysisPanel({
       <Tabs.Panel value="report" pt="xs">
         <Stack mb="lg">
           <Group grow sx={{ textAlign: "center" }}>
-            <div>{white.toFixed(1)}</div>
-            <div>{black.toFixed(1)}</div>
+            <div>{whiteCPL.toFixed(1)}</div>
+            <div>{whiteAccuracy.toFixed(1)}</div>
+
+            <div>{blackCPL.toFixed(1)}</div>
+            <div>{blackAccuracy.toFixed(1)}</div>
           </Group>
           <Group grow sx={{ textAlign: "center" }}>
             <div>{whiteAnnotations["!!"]}</div>

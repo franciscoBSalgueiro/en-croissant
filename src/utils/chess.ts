@@ -660,3 +660,18 @@ export function uciToMove(uci: string, fen: string): Move | null {
         return null;
     }
 }
+
+function getWinChance(centipawns: number) {
+    return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
+}
+
+function getAccuracy(winChanceBefore: number, winChanceAfter: number) {
+    return (
+        103.1668 * Math.exp(-0.04354 * (winChanceBefore - winChanceAfter)) -
+        3.1669
+    );
+}
+
+export function getAccuracyFromCp(cpBefore: number, cpAfter: number) {
+    return getAccuracy(getWinChance(cpBefore), getWinChance(cpAfter));
+}
