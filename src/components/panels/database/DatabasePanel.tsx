@@ -1,10 +1,10 @@
 import {
-    ActionIcon,
-    createStyles,
-    Progress,
-    Tabs,
-    Text,
-    useMantineTheme,
+  ActionIcon,
+  createStyles,
+  Progress,
+  Tabs,
+  Text,
+  useMantineTheme,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
@@ -99,12 +99,12 @@ function DatabasePanel({
   }, [tree, referenceDatabase]);
 
   return (
-    <Tabs defaultValue="stats">
+    <Tabs defaultValue="stats" orientation="vertical" placement="right">
       <Tabs.List>
         <Tabs.Tab value="stats">Stats</Tabs.Tab>
         <Tabs.Tab value="games">Games</Tabs.Tab>
       </Tabs.List>
-      <Tabs.Panel value="stats" pt="xs">
+      <Tabs.Panel value="stats" pt="xs" mr="xs">
         <DataTable
           withBorder
           highlightOnHover
@@ -192,7 +192,7 @@ function DatabasePanel({
           }}
         />
       </Tabs.Panel>
-      <Tabs.Panel value="games" pt="xs">
+      <Tabs.Panel value="games" pt="xs" mr="xs">
         <DataTable
           withBorder
           highlightOnHover

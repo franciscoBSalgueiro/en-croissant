@@ -2,6 +2,7 @@ import {
   Accordion,
   Button,
   Group,
+  Paper,
   ScrollArea,
   Stack,
   Tabs,
@@ -102,7 +103,7 @@ function AnalysisPanel({
           whiteCount++;
         } else {
           blackCPSum += Math.max(-(prevScore?.cp - current.score.cp), 0);
-          blackAccuracy += getAccuracyFromCp(prevScore?.cp, current.score.cp);
+          blackAccuracy += getAccuracyFromCp(-prevScore?.cp, -current.score.cp);
           blackCount++;
         }
         prevScore = current.score;
@@ -128,7 +129,7 @@ function AnalysisPanel({
   } = getGameStats(tree);
 
   return (
-    <Tabs defaultValue="engines">
+    <Tabs defaultValue="engines" orientation="vertical" placement="right">
       <Tabs.List>
         <Tabs.Tab value="engines">Engines</Tabs.Tab>
         <Tabs.Tab value="report">Report</Tabs.Tab>
@@ -177,15 +178,24 @@ function AnalysisPanel({
         </ScrollArea>
       </Tabs.Panel>
       <Tabs.Panel value="report" pt="xs">
-        <Stack mb="lg">
+        <Stack mb="lg" spacing="0.4rem" mr="xs">
           <Group grow sx={{ textAlign: "center" }}>
-            <div>{whiteCPL.toFixed(1)}</div>
-            <div>{whiteAccuracy.toFixed(1)}</div>
-
-            <div>{blackCPL.toFixed(1)}</div>
-            <div>{blackAccuracy.toFixed(1)}</div>
+            {whiteAccuracy && blackAccuracy && (
+              <>
+                <AccuracyCard
+                  color="WHITE"
+                  accuracy={whiteAccuracy}
+                  cpl={whiteCPL}
+                />
+                <AccuracyCard
+                  color="BLACK"
+                  accuracy={blackAccuracy}
+                  cpl={blackCPL}
+                />
+              </>
+            )}
           </Group>
-          <Group grow sx={{ textAlign: "center" }}>
+          <Group grow sx={{ textAlign: "center" }} mt="xs">
             <div>{whiteAnnotations["!!"]}</div>
             <Text>Brilliant</Text>
             <div> {blackAnnotations["!!"]}</div>
@@ -234,6 +244,28 @@ function AnalysisPanel({
         />
       </Tabs.Panel>
     </Tabs>
+  );
+}
+
+function AccuracyCard({
+  color,
+  cpl,
+  accuracy,
+}: {
+  color: string;
+  cpl: number;
+  accuracy: number;
+}) {
+  return (
+    <Paper withBorder p="xs">
+      <Group position="apart">
+        <Stack spacing={0} align="start">
+          <Text color="dimmed">{color}</Text>
+          <Text fz="sm">{cpl.toFixed(1)} CPL</Text>
+        </Stack>
+        <Text fz="xl">{accuracy.toFixed(1)}%</Text>
+      </Group>
+    </Paper>
   );
 }
 
