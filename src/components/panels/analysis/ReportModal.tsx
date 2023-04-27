@@ -9,16 +9,16 @@ import {
   Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useLocalStorage } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import { useContext, useEffect, useState } from "react";
 import {
   Annotation,
-  BestMoves,
+  MoveAnalysis,
   Score,
   VariationTree,
   goToPosition,
 } from "../../../utils/chess";
-import { DatabaseInfo, getDatabases } from "../../../utils/db";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
@@ -38,7 +38,10 @@ function ReportModal({
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const tree = useContext(GameContext).game.tree;
-  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
+  const [referenceDb] = useLocalStorage<string | null>({
+    key: "reference-database",
+    defaultValue: null,
+  });
   const [engines, setEngines] = useState<Engine[]>([]);
 
   const chess = new Chess();
@@ -54,7 +57,7 @@ function ReportModal({
     initialValues: {
       engine: "",
       millisecondsPerMove: 500,
-      skipAnalyzingTheory: true,
+      novelty: true,
     },
 
     validate: {
@@ -68,9 +71,6 @@ function ReportModal({
   });
 
   useEffect(() => {
-    getDatabases().then((dbs) => {
-      setDatabases(dbs);
-    });
     getEngines().then((engines) => {
       setEngines(engines);
     });
@@ -112,25 +112,30 @@ function ReportModal({
 
     setInProgress(true);
     toggleReportingMode();
-    invoke("analyze_game", {
+    invoke<MoveAnalysis[]>("analyze_game", {
       moves: uciMoves.join(" "),
       engine: form.values.engine,
+      annotateNovelties: form.values.novelty,
       moveTime: form.values.millisecondsPerMove,
-    }).then((result) => {
-      const evals = result as BestMoves[];
-
+      referenceDb,
+    }).then((analysis) => {
       let position = tree.getPosition();
       let root = tree.getTopVariation().children[0];
       let originalRoot = root;
       let i = 0;
       while (root !== undefined) {
-        root.score = evals[i].score;
+        root.score = analysis[i].best.score;
+
+        if (analysis[i].novelty) {
+          root.commentHTML = "Novelty";
+          root.commentText = "Novelty";
+        }
 
         let prevScore = { cp: 0 } as Score;
         if (i > 0) {
-          prevScore = evals[i - 1].score;
+          prevScore = analysis[i - 1].best.score;
         }
-        const curScore = evals[i].score;
+        const curScore = analysis[i].best.score;
         const isWhite = i % 2 === 0;
         root.annotation = getAnnotation(prevScore, curScore, isWhite);
 
@@ -170,8 +175,9 @@ function ReportModal({
           />
 
           <Checkbox
-            label="Skip Analyzing Theory"
-            {...form.getInputProps("skipAnalyzingTheory", { type: "checkbox" })}
+            label="Annotate Novelties"
+            description="Add a comment to the first position that is not in the reference database."
+            {...form.getInputProps("novelty", { type: "checkbox" })}
           />
 
           <Text size="sm">

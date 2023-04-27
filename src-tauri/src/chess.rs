@@ -16,7 +16,7 @@ use tokio::{
     process::{Child, ChildStdin, ChildStdout, Command},
 };
 
-use crate::fs::ProgressPayload;
+use crate::{db::is_position_in_db, fs::ProgressPayload, AppState};
 
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -123,7 +123,7 @@ fn start_engine(path: PathBuf) -> Result<Child, String> {
     #[cfg(target_os = "windows")]
     command.creation_flags(CREATE_NO_WINDOW);
 
-    let child = command.spawn().expect("Failed to start engine");
+    let child = command.spawn().or(Err("Failed to start engine"))?;
 
     Ok(child)
 }
@@ -240,17 +240,26 @@ pub async fn get_best_moves(
     Ok(())
 }
 
+#[derive(Serialize, Debug, Default)]
+pub struct MoveAnalysis {
+    best: BestMoves,
+    novelty: bool,
+}
+
 #[tauri::command]
 pub async fn analyze_game(
     moves: String,
+    annotate_novelties: bool,
     engine: String,
     move_time: usize,
+    reference_db: PathBuf,
+    state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
-) -> Result<Vec<BestMoves>, String> {
+) -> Result<Vec<MoveAnalysis>, String> {
     let path = PathBuf::from(&engine);
     let number_lines = 1;
     let number_threads = 4;
-    let mut evals: Vec<BestMoves> = Vec::new();
+    let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
     let mut child = start_engine(path)?;
     let (mut stdin, mut stdout) = get_handles(&mut child);
@@ -271,6 +280,8 @@ pub async fn analyze_game(
     let splitted_moves: Vec<&str> = moves.split_whitespace().collect();
     let len_moves = splitted_moves.len();
 
+    let mut novelty_found = false;
+
     for (i, m) in splitted_moves.iter().enumerate() {
         app.emit_all(
             "report_progress",
@@ -289,18 +300,26 @@ pub async fn analyze_game(
         send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
         send_command(&mut stdin, format!("go movetime {}\n", &move_time)).await;
 
-        let mut current_payload = BestMoves::default();
+        let mut current_analysis = MoveAnalysis::default();
         while let Ok(Some(line)) = stdout.next_line().await {
             if line.starts_with("bestmove") {
                 break;
             }
             if line.starts_with("info") && line.contains("pv") {
                 if let Ok(best_moves) = parse_uci(&line, &fen) {
-                    current_payload = best_moves;
+                    current_analysis.best = best_moves;
                 }
             }
         }
-        evals.push(current_payload);
+
+        if annotate_novelties && !novelty_found {
+            current_analysis.novelty =
+                !is_position_in_db(reference_db.clone(), fen.to_string(), state.clone()).await?;
+            if current_analysis.novelty {
+                novelty_found = true;
+            }
+        }
+        analysis.push(current_analysis);
     }
     app.emit_all(
         "report_progress",
@@ -311,7 +330,7 @@ pub async fn analyze_game(
         },
     )
     .unwrap();
-    Ok(evals)
+    Ok(analysis)
 }
 
 #[tauri::command]

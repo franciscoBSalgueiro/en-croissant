@@ -114,6 +114,11 @@ export interface BestMoves {
     nps: number;
 }
 
+export interface MoveAnalysis {
+    best: BestMoves;
+    novelty: boolean;
+}
+
 export interface BestMovesPayload {
     bestLines: BestMoves[];
     engine: string;

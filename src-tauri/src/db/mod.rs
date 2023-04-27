@@ -1229,3 +1229,81 @@ pub async fn search_position(
     drop(permit);
     Ok((openings, normalized_games))
 }
+
+pub async fn is_position_in_db(
+    file: PathBuf,
+    fen: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<bool, String> {
+    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db = &mut pool.get().unwrap();
+
+    {
+        let line_cache = state.line_cache.lock().unwrap();
+
+        if let Some(pos) = line_cache.get(&(fen.clone(), file.clone())) {
+            return Ok(!pos.0.is_empty());
+        }
+    }
+
+    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
+    let processed_position: Chess = processed_fen
+        .into_position(shakmaty::CastlingMode::Standard)
+        .or(Err("Invalid fen"))?;
+
+    let material = get_material_count(processed_position.board());
+    let pawn_home = get_pawn_home(processed_position.board());
+
+    // start counting the time
+    let start = Instant::now();
+    println!("start: {:?}", start.elapsed());
+
+    let permit = state.new_request.acquire().await.unwrap();
+    let mut games = state.db_cache.lock().unwrap();
+
+    if games.is_empty() {
+        *games = games::table
+            .select((
+                games::id,
+                games::result,
+                games::moves,
+                games::pawn_home,
+                games::white_material,
+                games::black_material,
+            ))
+            .load(db)
+            .expect("load games");
+
+        println!("got {} games: {:?}", games.len(), start.elapsed());
+    }
+
+    let exists = games.par_iter().any(
+        |(_id, _result, game, end_pawn_home, white_material, black_material)| {
+            if state.new_request.available_permits() == 0 {
+                return false;
+            }
+            let end_material: ByColor<u8> = ByColor {
+                white: *white_material as u8,
+                black: *black_material as u8,
+            };
+            is_end_reachable(*end_pawn_home as u16, pawn_home)
+                && is_material_reachable(&end_material, &material)
+                && position_search(game, &processed_position, &end_material, pawn_home)
+                    .unwrap_or(None)
+                    .is_some()
+        },
+    );
+    println!("done: {:?}", start.elapsed());
+    if state.new_request.available_permits() == 0 {
+        drop(permit);
+        return Err("Search stopped".to_string());
+    }
+
+    if !exists {
+        let mut line_cache = state.line_cache.lock().unwrap();
+        line_cache.insert((fen, file), (vec![], vec![]));
+    }
+
+    drop(permit);
+    Ok(exists)
+}

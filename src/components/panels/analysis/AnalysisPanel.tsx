@@ -261,9 +261,16 @@ function AccuracyCard({
       <Group position="apart">
         <Stack spacing={0} align="start">
           <Text color="dimmed">{color}</Text>
-          <Text fz="sm">{cpl.toFixed(1)} CPL</Text>
+          <Text fz="sm">{cpl.toFixed(1)} ACPL</Text>
         </Stack>
-        <Text fz="xl">{accuracy.toFixed(1)}%</Text>
+        <Stack spacing={0} align="center">
+          <Text fz="xl" lh="normal">
+            {accuracy.toFixed(1)}%
+          </Text>
+          <Text fz="sm" color="dimmed" lh="normal">
+            Accuracy
+          </Text>
+        </Stack>
       </Group>
     </Paper>
   );
