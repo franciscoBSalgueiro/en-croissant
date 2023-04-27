@@ -621,10 +621,10 @@ export function getCompleteGame(pgn: string): CompleteGame {
     return game;
 }
 
-export function handleMove(chess: Chess, orig: Key, dest: Key): Square | null {
+export function handleMove(chess: Chess, orig: Key, dest: Key): Square {
     if (orig === "a0" || dest === "a0") {
         // NOTE: Idk if this can happen
-        return null;
+        throw new Error("Invalid move");
     }
     // allow castling to the rooks
     if (chess.get(orig).type === KING && chess.get(dest).type === ROOK) {

@@ -241,8 +241,7 @@ function ImportModal({
             if (!link) return;
             let pgn = "";
             if (link.includes("chess.com")) {
-              const gameId = link.split("/").pop()!;
-              pgn = await getChesscomGame(gameId);
+              pgn = await getChesscomGame(link);
             } else if (link.includes("lichess")) {
               const gameId = link.split("/")[3];
               pgn = await getLichessGame(gameId);

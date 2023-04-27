@@ -1,8 +1,9 @@
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import tcn from "chess-tcn";
 import { Chess } from "chess.js";
+import { handleMove } from "./chess";
+import { decodeTCN } from "./tcn";
 const base_url = "https://api.chess.com";
 
 type ChessComPerf = {
@@ -97,10 +98,20 @@ export async function downloadChessCom(
     );
 }
 
-export async function getChesscomGame(gameId: string) {
-    const apiData = await fetch<{ game: { moveList: string, pgnHeaders: any } }>(
-        `https://www.chess.com/callback/live/game/${gameId}`
-    );
+export async function getChesscomGame(gameURL: string) {
+    const regex = /.*\/game\/(live|daily)\/(\d+)/;
+    const match = gameURL.match(regex);
+
+    if (!match) {
+        return "";
+    }
+
+    const gameType = match[1];
+    const gameId = match[2];
+
+    const apiData = await fetch<{
+        game: { moveList: string; pgnHeaders: any };
+    }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`);
     const apiDataJson = await apiData.data;
     const moveList = apiDataJson.game.moveList;
     const headers = apiDataJson.game.pgnHeaders;
@@ -113,7 +124,9 @@ export async function getChesscomGame(gameId: string) {
         chess.header(header, headers[header]);
     }
     moves.forEach((move) => {
-        const m = tcn.decode(move);
+        const m = decodeTCN(move);
+        const newDest = handleMove(chess, m.from, m.to);
+        m.to = newDest;
         chess.move(m);
     });
     return chess.pgn();

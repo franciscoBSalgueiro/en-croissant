@@ -25,7 +25,6 @@ specifiers:
   '@types/node': ^18.14.6
   '@types/react': ^18.0.28
   '@types/react-dom': ^18.0.11
-  chess-tcn: ^1.0.3
   chess.js: 1.0.0-beta.3
   chessground: ^8.3.7
   dayjs: ^1.11.7
@@ -70,7 +69,6 @@ dependencies:
   '@tiptap/pm': 2.0.0-beta.220
   '@tiptap/react': 2.0.0-beta.220_3gpavhzg2mvb4vpkw66uqh52dq
   '@tiptap/starter-kit': 2.0.0-beta.220_@tiptap+pm@2.0.0-beta.220
-  chess-tcn: 1.0.3
   chess.js: 1.0.0-beta.3
   chessground: 8.3.7
   dayjs: 1.11.7
@@ -4407,10 +4405,6 @@ packages:
     resolution: {integrity: sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==}
     dev: false
 
-  /chess-tcn/1.0.3:
-    resolution: {integrity: sha512-KvXD/+5+mf3oO5Gtnk0fF8H23CVssGzfO4riv3bohDcLEFBi0aI/aCIFcM1LoouswWX+7YFHpraiJ95VNMXUjg==}
-    dev: false
-
   /chess.js/1.0.0-beta.3:
     resolution: {integrity: sha512-zu8QVvP0BmMzrstlsrXL2LxdHfAkrtyNftVRaJXGI5mn2ZSsgTJujvZx5BVJsPMwBkRZ+omCdZkVyVLBlKn2HA==}
     dev: false
@@ -6713,7 +6707,7 @@ packages:
     resolution: {integrity: sha512-oWb1Z6mkHIskLzEJ/XWX0srkpkTQ7vaopMQkyaEIoq0fmtFVxOthb8cCxeT+p3ynTdkk/RZwbgG4brR5BeWECw==}
     engines: {node: '>= 4.0'}
     os: [darwin]
-    deprecated: fsevents 1 will break on node v14+ and could be using insecure binaries. Upgrade to fsevents 2.
+    deprecated: The v1 package contains DANGEROUS / INSECURE binaries. Upgrade to safe fsevents v2
     requiresBuild: true
     dependencies:
       bindings: 1.5.0
