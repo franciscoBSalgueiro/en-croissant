@@ -65,7 +65,7 @@ function ReportModal({
         if (!value) return "Engine is required";
       },
       millisecondsPerMove: (value) => {
-        if (!value) return "Seconds per move is required";
+        if (!value) return "Milliseconds per move is required";
       },
     },
   });
@@ -168,7 +168,7 @@ function ReportModal({
           />
           <NumberInput
             withAsterisk
-            label="Seconds per Move"
+            label="Milliseconds per Move"
             min={1}
             step={200}
             {...form.getInputProps("millisecondsPerMove")}
