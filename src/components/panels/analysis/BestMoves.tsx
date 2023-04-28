@@ -3,7 +3,6 @@ import {
   ActionIcon,
   Box,
   ChevronIcon,
-  Collapse,
   createStyles,
   Flex,
   Group,
@@ -30,16 +29,14 @@ import {
   BestMoves,
   BestMovesPayload,
   Score,
-  swapMove
+  swapMove,
 } from "../../../utils/chess";
 import { CompleteGame } from "../../../utils/db";
 import { Engine } from "../../../utils/engines";
 import { invoke } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
 import GameContext from "../../common/GameContext";
-import CoresSlide from "./CoresSlider";
-import DepthSlider from "./DepthSlider";
-import LinesSlider from "./LinesSlider";
+import EngineSettings from "./EngineSettings";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -116,7 +113,6 @@ function BestMoves({
   } catch (e) {
     chess = null;
   }
-  const halfMoves = tree.halfMoves;
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
   const [numberLines, setNumberLines] = useState<number>(3);
   const [maxDepth, setMaxDepth] = useState<number>(24);
@@ -189,80 +185,6 @@ function BestMoves({
     }
   }, [chess]);
 
-  function AnalysisRow({
-    score,
-    moves,
-    index,
-  }: {
-    score: Score;
-    moves: string[];
-    index: number;
-  }) {
-    const currentOpen = open[index];
-
-    return (
-      <tr style={{ verticalAlign: "top" }}>
-        <td>
-          <ScoreBubble score={score} />
-        </td>
-        <td>
-          <Flex
-            direction="row"
-            wrap="wrap"
-            sx={{
-              height: currentOpen ? "100%" : 35,
-              overflow: "hidden",
-              alignItems: "center",
-            }}
-          >
-            {moves.map((move, index) => {
-              const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
-              const is_white = total_moves % 2 === 1;
-              const move_number = Math.ceil(total_moves / 2);
-
-              return (
-                <>
-                  {(index === 0 || is_white) && (
-                    <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
-                  )}
-                  <MoveCell
-                    key={index}
-                    move={move}
-                    isCurrentVariation={false}
-                    annotation={Annotation.None}
-                    comment={""}
-                    onClick={() => {
-                      if (!threat) makeMoves(moves.slice(0, index + 1));
-                    }}
-                  />
-                </>
-              );
-            })}
-          </Flex>
-        </td>
-        <td>
-          <ActionIcon
-            style={{
-              transition: "transform 200ms ease",
-              transform: currentOpen ? `rotate(180deg)` : "none",
-            }}
-            onClick={() =>
-              setOpen((prev) => {
-                return {
-                  ...prev,
-                  [index]: !prev[index],
-                };
-              })
-            }
-          >
-            <ChevronIcon />
-          </ActionIcon>
-        </td>
-      </tr>
-    );
-  }
-  const [open, setOpen] = useState<boolean[]>([]);
-
   return (
     <>
       <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -326,26 +248,15 @@ function BestMoves({
           <IconSettings size={16} />
         </ActionIcon>
       </Box>
-      <Collapse in={settingsOn} px={30} pb={15}>
-        <Group grow>
-          <Text size="sm" fw="bold">
-            Number of Lines
-          </Text>
-          <LinesSlider value={numberLines} setValue={setNumberLines} />
-        </Group>
-        <Group grow>
-          <Text size="sm" fw="bold">
-            Engine Depth
-          </Text>
-          <DepthSlider value={maxDepth} setValue={setMaxDepth} />
-        </Group>
-        <Group grow>
-          <Text size="sm" fw="bold">
-            Number of cores
-          </Text>
-          <CoresSlide value={cores} setValue={setCores} />
-        </Group>
-      </Collapse>
+      <EngineSettings
+        settingsOn={settingsOn}
+        numberLines={numberLines}
+        setNumberLines={setNumberLines}
+        maxDepth={maxDepth}
+        setMaxDepth={setMaxDepth}
+        cores={cores}
+        setCores={setCores}
+      />
 
       <Progress
         value={progress}
@@ -382,7 +293,9 @@ function BestMoves({
                   key={index}
                   moves={engineVariation.sanMoves}
                   score={engineVariation.score}
-                  index={index}
+                  halfMoves={tree.halfMoves}
+                  makeMoves={makeMoves}
+                  threat={threat}
                 />
               );
             })}
@@ -390,6 +303,76 @@ function BestMoves({
         </Table>
       </Accordion.Panel>
     </>
+  );
+}
+
+function AnalysisRow({
+  score,
+  moves,
+  halfMoves,
+  threat,
+  makeMoves,
+}: {
+  score: Score;
+  moves: string[];
+  halfMoves: number;
+  threat: boolean;
+  makeMoves: (moves: string[]) => void;
+}) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  return (
+    <tr style={{ verticalAlign: "top" }}>
+      <td>
+        <ScoreBubble score={score} />
+      </td>
+      <td>
+        <Flex
+          direction="row"
+          wrap="wrap"
+          sx={{
+            height: open ? "100%" : 35,
+            overflow: "hidden",
+            alignItems: "center",
+          }}
+        >
+          {moves.map((move, index) => {
+            const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
+            const is_white = total_moves % 2 === 1;
+            const move_number = Math.ceil(total_moves / 2);
+
+            return (
+              <>
+                {(index === 0 || is_white) && (
+                  <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
+                )}
+                <MoveCell
+                  key={index}
+                  move={move}
+                  isCurrentVariation={false}
+                  annotation={Annotation.None}
+                  comment={""}
+                  onClick={() => {
+                    if (!threat) makeMoves(moves.slice(0, index + 1));
+                  }}
+                />
+              </>
+            );
+          })}
+        </Flex>
+      </td>
+      <td>
+        <ActionIcon
+          style={{
+            transition: "transform 200ms ease",
+            transform: open ? `rotate(180deg)` : "none",
+          }}
+          onClick={() => setOpen(!open)}
+        >
+          <ChevronIcon />
+        </ActionIcon>
+      </td>
+    </tr>
   );
 }
 

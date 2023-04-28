@@ -20,7 +20,7 @@ import { Engine } from "../../../utils/engines";
 import GameContext from "../../common/GameContext";
 import { ProgressButton } from "../../common/ProgressButton";
 import BestMoves from "./BestMoves";
-import EngineSettingsBoard from "./EngineSettingsBoard";
+import EngineSelection from "./EngineSelection";
 
 function AnalysisPanel({
   boardSize,
@@ -164,7 +164,7 @@ function AnalysisPanel({
                   );
                 })}
             </Accordion>
-            <EngineSettingsBoard engines={engines} setEngines={setEngines} />
+            <EngineSelection engines={engines} setEngines={setEngines} />
             <Group grow>
               <Button
                 variant="default"

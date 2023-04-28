@@ -12,7 +12,10 @@ interface AnnotationPanelProps {
   setTree: (t: VariationTree) => void;
 }
 
-function AnnotationPanel({ setTree }: AnnotationPanelProps) {
+function SymbolButton({
+  annotation,
+  setTree,
+}: AnnotationPanelProps & { annotation: Annotation }) {
   const tree = useContext(GameContext).game.tree;
 
   function annotate(annotation: Annotation) {
@@ -24,58 +27,58 @@ function AnnotationPanel({ setTree }: AnnotationPanelProps) {
     setTree(tree);
   }
 
+  let label: string;
+  switch (annotation) {
+    case Annotation.Good:
+      label = "Good";
+      break;
+    case Annotation.Brilliant:
+      label = "Brilliant";
+      break;
+    case Annotation.Mistake:
+      label = "Mistake";
+      break;
+    case Annotation.Blunder:
+      label = "Blunder";
+      break;
+    case Annotation.Dubious:
+      label = "Dubious";
+      break;
+    case Annotation.Interesting:
+      label = "Interesting";
+      break;
+    default:
+      label = "Unknown";
+  }
+  const color = annotationColor(annotation);
+  const isActive = tree.annotation === annotation;
+  return (
+    <Tooltip label={label}>
+      <ActionIcon
+        onClick={() => annotate(annotation)}
+        variant={isActive ? "filled" : "default"}
+        color={color}
+      >
+        <Text>{annotation}</Text>
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
+function AnnotationPanel({ setTree }: AnnotationPanelProps) {
   return (
     <Stack>
       <Group grow>
-        <SymbolButton annotation={Annotation.Brilliant} />
-        <SymbolButton annotation={Annotation.Good} />
-        <SymbolButton annotation={Annotation.Interesting} />
-        <SymbolButton annotation={Annotation.Dubious} />
-        <SymbolButton annotation={Annotation.Mistake} />
-        <SymbolButton annotation={Annotation.Blunder} />
+        <SymbolButton setTree={setTree} annotation={Annotation.Brilliant} />
+        <SymbolButton setTree={setTree} annotation={Annotation.Good} />
+        <SymbolButton setTree={setTree} annotation={Annotation.Interesting} />
+        <SymbolButton setTree={setTree} annotation={Annotation.Dubious} />
+        <SymbolButton setTree={setTree} annotation={Annotation.Mistake} />
+        <SymbolButton setTree={setTree} annotation={Annotation.Blunder} />
       </Group>
       <AnnotationEditor setTree={setTree} />
     </Stack>
   );
-
-  function SymbolButton({ annotation }: { annotation: Annotation }) {
-    let label: string;
-    switch (annotation) {
-      case Annotation.Good:
-        label = "Good";
-        break;
-      case Annotation.Brilliant:
-        label = "Brilliant";
-        break;
-      case Annotation.Mistake:
-        label = "Mistake";
-        break;
-      case Annotation.Blunder:
-        label = "Blunder";
-        break;
-      case Annotation.Dubious:
-        label = "Dubious";
-        break;
-      case Annotation.Interesting:
-        label = "Interesting";
-        break;
-      default:
-        label = "Unknown";
-    }
-    const color = annotationColor(annotation);
-    const isActive = tree.annotation === annotation;
-    return (
-      <Tooltip label={label}>
-        <ActionIcon
-          onClick={() => annotate(annotation)}
-          variant={isActive ? "filled" : "default"}
-          color={color}
-        >
-          <Text>{annotation}</Text>
-        </ActionIcon>
-      </Tooltip>
-    );
-  }
 }
 
 export default memo(AnnotationPanel);
