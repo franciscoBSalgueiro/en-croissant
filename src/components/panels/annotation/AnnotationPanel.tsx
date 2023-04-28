@@ -1,19 +1,18 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { useContext } from "react";
+import { memo, useContext } from "react";
 import {
-    Annotation,
-    VariationTree,
-    annotationColor,
+  Annotation,
+  VariationTree,
+  annotationColor,
 } from "../../../utils/chess";
 import GameContext from "../../common/GameContext";
 import { AnnotationEditor } from "./AnnotationEditor";
 
 interface AnnotationPanelProps {
-  forceUpdate: () => void;
   setTree: (t: VariationTree) => void;
 }
 
-function AnnotationPanel({ setTree, forceUpdate }: AnnotationPanelProps) {
+function AnnotationPanel({ setTree }: AnnotationPanelProps) {
   const tree = useContext(GameContext).game.tree;
 
   function annotate(annotation: Annotation) {
@@ -23,7 +22,6 @@ function AnnotationPanel({ setTree, forceUpdate }: AnnotationPanelProps) {
       tree.annotation = annotation;
     }
     setTree(tree);
-    forceUpdate();
   }
 
   return (
@@ -36,7 +34,7 @@ function AnnotationPanel({ setTree, forceUpdate }: AnnotationPanelProps) {
         <SymbolButton annotation={Annotation.Mistake} />
         <SymbolButton annotation={Annotation.Blunder} />
       </Group>
-      <AnnotationEditor forceUpdate={forceUpdate} setTree={setTree} />
+      <AnnotationEditor setTree={setTree} />
     </Stack>
   );
 
@@ -80,4 +78,4 @@ function AnnotationPanel({ setTree, forceUpdate }: AnnotationPanelProps) {
   }
 }
 
-export default AnnotationPanel;
+export default memo(AnnotationPanel);

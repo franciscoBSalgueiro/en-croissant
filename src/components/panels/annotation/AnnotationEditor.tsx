@@ -8,13 +8,9 @@ import { VariationTree } from "../../../utils/chess";
 import GameContext from "../../common/GameContext";
 
 interface AnnotationEditorProps {
-  forceUpdate: () => void;
   setTree: (tree: VariationTree) => void;
 }
-export function AnnotationEditor({
-  setTree,
-  forceUpdate,
-}: AnnotationEditorProps) {
+export function AnnotationEditor({ setTree }: AnnotationEditorProps) {
   const tree = useContext(GameContext).game.tree;
 
   const editor = useEditor(
@@ -35,7 +31,6 @@ export function AnnotationEditor({
           tree.commentText = editor.getText();
         }
         setTree(tree);
-        forceUpdate();
       },
     },
     [tree]

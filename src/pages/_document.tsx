@@ -14,6 +14,7 @@ function Document({}: DocumentContext) {
     <Html>
       <Head>
         <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+        {/* <script src="http://localhost:8097"></script> */}
       </Head>
       <body>
         <Main />

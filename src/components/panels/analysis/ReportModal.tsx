@@ -11,12 +11,12 @@ import {
 import { useForm } from "@mantine/form";
 import { useLocalStorage } from "@mantine/hooks";
 import { Chess } from "chess.js";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
-  Annotation,
   MoveAnalysis,
   Score,
   VariationTree,
+  getAnnotation,
   goToPosition,
 } from "../../../utils/chess";
 import { Engine, getEngines } from "../../../utils/engines";
@@ -44,14 +44,17 @@ function ReportModal({
   });
   const [engines, setEngines] = useState<Engine[]>([]);
 
-  const chess = new Chess();
-  let uciMoves: string[] = [];
-  try {
-    chess.loadPgn(moves);
-    uciMoves = chess.history();
-  } catch (e) {
-    console.error(e);
-  }
+  const uciMoves = useMemo(() => {
+    const chess = new Chess();
+    let uciMoves: string[] = [];
+    try {
+      chess.loadPgn(moves);
+      uciMoves = chess.history();
+    } catch (e) {
+      console.error(e);
+    }
+    return uciMoves;
+  }, [moves]);
 
   const form = useForm({
     initialValues: {
@@ -77,39 +80,6 @@ function ReportModal({
   }, []);
 
   function analyze() {
-    function getAnnotation(
-      prevScore: Score,
-      curScore: Score,
-      isWhite: boolean
-    ): Annotation {
-      if (prevScore.cp !== undefined && curScore.mate) {
-        return Annotation.Blunder;
-      }
-      if (isWhite) {
-        if (prevScore.cp - curScore.cp > 300) {
-          return Annotation.Blunder;
-        }
-        if (prevScore.cp - curScore.cp > 100) {
-          return Annotation.Mistake;
-        }
-        if (prevScore.cp - curScore.cp > 50) {
-          return Annotation.Dubious;
-        }
-      } else {
-        if (prevScore.cp - curScore.cp < -300) {
-          return Annotation.Blunder;
-        }
-        if (prevScore.cp - curScore.cp < -100) {
-          return Annotation.Mistake;
-        }
-        if (prevScore.cp - curScore.cp < -50) {
-          return Annotation.Dubious;
-        }
-      }
-
-      return Annotation.None;
-    }
-
     setInProgress(true);
     toggleReportingMode();
     invoke<MoveAnalysis[]>("analyze_game", {

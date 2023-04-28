@@ -12,7 +12,7 @@ import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useState } from "react";
+import { memo, useContext, useEffect, useState } from "react";
 import { uciToMove } from "../../../utils/chess";
 import { CompleteGame, NormalizedGame, Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
@@ -31,6 +31,12 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+function sortOpenings(openings: Opening[]) {
+  return openings.sort(
+    (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white)
+  );
+}
+
 function DatabasePanel({
   makeMove,
   height,
@@ -42,29 +48,21 @@ function DatabasePanel({
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const [loading, setLoading] = useState(false);
-  const [referenceDatabase, setReferenceDatabase] = useLocalStorage<
-    string | null
-  >({
+  const [referenceDatabase] = useLocalStorage<string | null>({
     key: "reference-database",
     defaultValue: null,
   });
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+  const [, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
     defaultValue: [],
   });
-  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
+  const [, setActiveTab] = useSessionStorage<string | null>({
     key: "activeTab",
     defaultValue: null,
   });
   const { classes } = useStyles();
   const theme = useMantineTheme();
   const router = useRouter();
-
-  function sortOpenings(openings: Opening[]) {
-    return openings.sort(
-      (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white)
-    );
-  }
 
   useEffect(() => {
     async function getOpening(referenceDatabase: string | null, fen: string) {
@@ -261,6 +259,6 @@ function DatabasePanel({
       </Tabs.Panel>
     </Tabs>
   );
-}
+};
 
-export default DatabasePanel;
+export default memo(DatabasePanel);

@@ -1,6 +1,5 @@
 import { Stack, Tabs } from "@mantine/core";
 import {
-  useForceUpdate,
   useHotkeys,
   useSessionStorage,
   useToggle,
@@ -14,8 +13,8 @@ import {
 } from "@tabler/icons-react";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
-import { Chess, Color, PieceSymbol, Square } from "chess.js";
-import { useCallback, useEffect, useState } from "react";
+import { Chess, Color, PieceSymbol, Square, validateFen } from "chess.js";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import {
   VariationTree,
@@ -25,7 +24,7 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
-import { invoke, useLocalFile } from "../../utils/misc";
+import { getBoardSize, invoke, useLocalFile } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
 import GameContext from "../common/GameContext";
 import GameInfo from "../common/GameInfo";
@@ -72,8 +71,6 @@ function BoardAnalysis({
       return { game, currentMove };
     },
   });
-  const game = completeGame.game;
-  const tree = game.tree;
   const setTree = useCallback((tree: VariationTree) => {
     setCompleteGame((prevGame) => {
       return {
@@ -87,7 +84,6 @@ function BoardAnalysis({
     });
   }, []);
 
-  const forceUpdate = useForceUpdate();
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
   const [engines, setEngines] = useLocalFile<Engine[]>(
@@ -95,133 +91,165 @@ function BoardAnalysis({
     []
   );
   const [arrows, setArrows] = useState<string[]>([]);
-  let chess: Chess | null;
-  try {
-    chess = new Chess(tree.fen);
-  } catch (e) {
-    chess = null;
-  }
+  const chess: Chess | null = useMemo(
+    () =>
+      validateFen(completeGame.game.tree.fen).ok
+        ? new Chess(completeGame.game.tree.fen)
+        : null,
+    [completeGame.game.tree.fen]
+  );
 
-  function makeMove(move: { from: Square; to: Square; promotion?: string }) {
-    if (chess === null) {
-      invoke("make_move", {
-        fen: tree.fen,
-        from: move.from,
-        to: move.to,
-      }).then((fen) => {
-        const newTree = new VariationTree(null, fen as string, null);
-        setTree(newTree);
-      });
-    } else if (editingMode) {
-      const piece = chess.get(move.from);
-      chess.remove(move.to);
-      chess.remove(move.from);
-      chess.put(piece, move.to);
-      const newTree = new VariationTree(null, chess.fen(), null);
-      setTree(newTree);
-    } else {
-      const newMove = chess.move(move);
-      const newTree = new VariationTree(tree, chess.fen(), newMove);
-      if (tree.children.length === 0) {
-        tree.children = [newTree];
-        setTree(newTree);
-      } else if (tree.children.every((child) => child.fen !== chess!.fen())) {
-        tree.children.push(newTree);
+  const makeMove = useCallback(
+    function makeMove(move: { from: Square; to: Square; promotion?: string }) {
+      if (chess === null) {
+        invoke("make_move", {
+          fen: completeGame.game.tree.fen,
+          from: move.from,
+          to: move.to,
+        }).then((fen) => {
+          const newTree = new VariationTree(null, fen as string, null);
+          setTree(newTree);
+        });
+      } else if (editingMode) {
+        const piece = chess.get(move.from);
+        chess.remove(move.to);
+        chess.remove(move.from);
+        chess.put(piece, move.to);
+        const newTree = new VariationTree(null, chess.fen(), null);
         setTree(newTree);
       } else {
-        const child = tree.children.find((child) => child.fen === chess!.fen());
-        setTree(child!);
+        const newMove = chess.move(move);
+        const newTree = new VariationTree(
+          completeGame.game.tree,
+          chess.fen(),
+          newMove
+        );
+        if (completeGame.game.tree.children.length === 0) {
+          completeGame.game.tree.children = [newTree];
+          setTree(newTree);
+        } else if (
+          completeGame.game.tree.children.every(
+            (child) => child.fen !== chess!.fen()
+          )
+        ) {
+          completeGame.game.tree.children.push(newTree);
+          setTree(newTree);
+        } else {
+          const child = completeGame.game.tree.children.find(
+            (child) => child.fen === chess!.fen()
+          );
+          setTree(child!);
+        }
       }
-    }
-  }
+    },
+    [chess, completeGame.game.tree, editingMode, setTree]
+  );
 
-  function makeMoves(moves: string[]) {
-    let parentTree = tree;
-    let newTree = tree;
-    moves.forEach((move) => {
-      const newMove = chess!.move(move);
-      newTree = new VariationTree(parentTree, chess!.fen(), newMove);
-      if (parentTree.children.length === 0) {
-        parentTree.children = [newTree];
-        parentTree = newTree;
-      } else if (
-        parentTree.children.every((child) => child.fen !== newTree.fen)
-      ) {
-        parentTree.children.push(newTree);
-        parentTree = newTree;
-      } else {
-        parentTree = parentTree.children.find(
-          (child) => child.fen === newTree.fen
-        )!;
-      }
-    });
-    setTree(newTree);
-  }
-
-  function deleteVariation() {
-    if (tree.parent) {
-      tree.parent.children = tree.parent.children.filter(
-        (child) => !child.equals(tree)
-      );
-      setTree(tree.parent);
-    }
-  }
-
-  function promoteVariation() {
-    if (tree.parent) {
-      const parent = tree.parent;
-      parent.children = [
-        tree,
-        ...parent.children.filter((child) => !child.equals(tree)),
-      ];
-      forceUpdate();
-    }
-  }
-
-  function addPiece(square: Square, piece: PieceSymbol, color: Color) {
-    let newTree: VariationTree;
-    if (chess) {
-      chess.put({ type: piece, color }, square);
-      newTree = new VariationTree(null, chess.fen(), null);
-      setTree(newTree);
-    } else {
-      invoke("put_piece", {
-        fen: tree.fen,
-        square,
-        piece,
-        color,
-      }).then((fen) => {
-        newTree = new VariationTree(null, fen as string, null);
-        setTree(newTree);
+  const makeMoves = useCallback(
+    function makeMoves(moves: string[]) {
+      let parentTree = completeGame.game.tree;
+      let newTree = completeGame.game.tree;
+      moves.forEach((move) => {
+        const newMove = chess!.move(move);
+        newTree = new VariationTree(parentTree, chess!.fen(), newMove);
+        if (parentTree.children.length === 0) {
+          parentTree.children = [newTree];
+          parentTree = newTree;
+        } else if (
+          parentTree.children.every((child) => child.fen !== newTree.fen)
+        ) {
+          parentTree.children.push(newTree);
+          parentTree = newTree;
+        } else {
+          parentTree = parentTree.children.find(
+            (child) => child.fen === newTree.fen
+          )!;
+        }
       });
-    }
-  }
+      setTree(newTree);
+    },
+    [chess, completeGame.game.tree, setTree]
+  );
+
+  const deleteVariation = useCallback(
+    function deleteVariation() {
+      if (completeGame.game.tree.parent) {
+        completeGame.game.tree.parent.children =
+          completeGame.game.tree.parent.children.filter(
+            (child) => !child.equals(completeGame.game.tree)
+          );
+        setTree(completeGame.game.tree.parent);
+      }
+    },
+    [completeGame.game.tree]
+  );
+
+  const promoteVariation = useCallback(
+    function promoteVariation() {
+      if (completeGame.game.tree.parent) {
+        const parent = completeGame.game.tree.parent;
+        parent.children = [
+          completeGame.game.tree,
+          ...parent.children.filter(
+            (child) => !child.equals(completeGame.game.tree)
+          ),
+        ];
+        setTree(completeGame.game.tree);
+      }
+    },
+    [completeGame.game.tree]
+  );
+
+  const addPiece = useCallback(
+    function addPiece(square: Square, piece: PieceSymbol, color: Color) {
+      let newTree: VariationTree;
+      if (chess) {
+        chess.put({ type: piece, color }, square);
+        newTree = new VariationTree(null, chess.fen(), null);
+        setTree(newTree);
+      } else {
+        invoke("put_piece", {
+          fen: completeGame.game.tree.fen,
+          square,
+          piece,
+          color,
+        }).then((fen) => {
+          newTree = new VariationTree(null, fen as string, null);
+          setTree(newTree);
+        });
+      }
+    },
+    [chess, completeGame.game.tree.fen, setTree]
+  );
 
   function undoMove() {
-    if (tree.parent) {
-      setTree(tree.parent);
+    if (completeGame.game.tree.parent) {
+      setTree(completeGame.game.tree.parent);
     }
   }
 
   function redoMove() {
-    if (tree.children.length > 0) {
-      setTree(tree.children[0]);
+    if (completeGame.game.tree.children.length > 0) {
+      setTree(completeGame.game.tree.children[0]);
     }
   }
 
   function goToStart() {
-    setTree(tree.getTopVariation());
+    setTree(completeGame.game.tree.getTopVariation());
   }
 
   function goToEnd() {
-    setTree(tree.getBottomVariation());
+    setTree(completeGame.game.tree.getBottomVariation());
   }
 
-  function changeToPlayMode() {
-    setTabs(
-      tabs.map((tab) => (tab.value === id ? { ...tab, type: "play" } : tab))
-    );
-  }
+  const changeToPlayMode = useCallback(
+    function changeToPlayMode() {
+      setTabs(
+        tabs.map((tab) => (tab.value === id ? { ...tab, type: "play" } : tab))
+      );
+    },
+    [id, tabs]
+  );
 
   async function saveFile() {
     const filePath = await save({
@@ -235,7 +263,9 @@ function BoardAnalysis({
     if (filePath)
       await writeTextFile(
         filePath,
-        tree.getTopVariation().getPGN({ headers: game })
+        completeGame.game.tree
+          .getTopVariation()
+          .getPGN({ headers: completeGame.game })
       );
   }
 
@@ -250,25 +280,18 @@ function BoardAnalysis({
 
   useEffect(() => {
     setArrows([]);
-  }, [tree.fen]);
+  }, [completeGame.game.tree.fen]);
 
   const { height, width } = useViewportSize();
 
-  function getBoardSize(height: number, width: number) {
-    const initial = Math.min((height - 140) * 0.95, width * 0.4);
-    if (width < 680) {
-      return width - 120;
-    }
-    return initial;
-  }
   const boardSize = getBoardSize(height, width);
   const [inProgress, setInProgress] = useState(false);
 
   return (
     <GameContext.Provider value={completeGame}>
       <ReportModal
-        moves={tree.getTopVariation().getPGN({
-          headers: game,
+        moves={completeGame.game.tree.getTopVariation().getPGN({
+          headers: completeGame.game,
           comments: false,
           specialSymbols: false,
           symbols: false,
@@ -283,7 +306,6 @@ function BoardAnalysis({
           <BoardPlay
             makeMove={makeMove}
             arrows={arrows}
-            forceUpdate={forceUpdate}
             setTree={setTree}
             editingMode={editingMode}
             toggleEditingMode={toggleEditingMode}
@@ -311,16 +333,19 @@ function BoardAnalysis({
             </Tabs.List>
             <Tabs.Panel value="info" pt="xs">
               <Stack>
-                <GameInfo game={game} setCompleteGame={setCompleteGame} />
+                <GameInfo
+                  game={completeGame.game}
+                  setCompleteGame={setCompleteGame}
+                />
                 <FenInput setCompleteGame={setCompleteGame} />
-                <PgnInput game={game} />
+                <PgnInput game={completeGame.game} />
               </Stack>
             </Tabs.Panel>
             <Tabs.Panel value="database" pt="xs">
               <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
-              <AnnotationPanel forceUpdate={forceUpdate} setTree={setTree} />
+              <AnnotationPanel setTree={setTree} />
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <AnalysisPanel
@@ -340,12 +365,12 @@ function BoardAnalysis({
           </Tabs>
           <Stack>
             <GameNotation
-              game={game}
+              game={completeGame.game}
               setTree={setTree}
               deleteVariation={deleteVariation}
               promoteVariation={promoteVariation}
-              topVariation={tree.getTopVariation()}
-              result={game.result}
+              topVariation={completeGame.game.tree.getTopVariation()}
+              result={completeGame.game.result}
               boardSize={width > 1000 ? boardSize : 600}
             />
             <MoveControls

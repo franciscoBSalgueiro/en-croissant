@@ -14,7 +14,7 @@ import {
   TypographyStylesProvider,
   useMantineTheme,
 } from "@mantine/core";
-import { useForceUpdate, useToggle } from "@mantine/hooks";
+import { useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
@@ -29,6 +29,7 @@ import {
   IconPlus,
   IconX,
 } from "@tabler/icons-react";
+import { memo } from "react";
 import { VariationTree } from "../../utils/chess";
 import { NormalizedGame, Outcome } from "../../utils/db";
 import CompleteMoveCell from "./CompleteMoveCell";
@@ -61,7 +62,6 @@ function GameNotation({
   result?: string;
   boardSize: number;
 }) {
-  const forceUpdate = useForceUpdate();
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
   const [showVariations, toggleVariations] = useToggle([true, false]);
@@ -177,7 +177,6 @@ function GameNotation({
               depth={0}
               first
               setTree={setTree}
-              forceUpdate={forceUpdate}
               showVariations={showVariations}
               showComments={showComments}
             />
@@ -206,7 +205,6 @@ function RenderVariationTree({
   depth,
   first,
   setTree,
-  forceUpdate,
   showVariations,
   showComments,
 }: {
@@ -214,7 +212,6 @@ function RenderVariationTree({
   depth: number;
   first?: boolean;
   setTree: (tree: VariationTree) => void;
-  forceUpdate: () => void;
   showVariations: boolean;
   showComments: boolean;
 }) {
@@ -233,7 +230,6 @@ function RenderVariationTree({
             depth={depth + 2}
             setTree={setTree}
             first
-            forceUpdate={forceUpdate}
             showVariations={showVariations}
             showComments={showComments}
           />
@@ -259,7 +255,6 @@ function RenderVariationTree({
           tree={tree.children[0]}
           depth={depth + 1}
           setTree={setTree}
-          forceUpdate={forceUpdate}
           showVariations={showVariations}
           showComments={showComments}
         />
@@ -318,4 +313,4 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   else return <></>;
 }
 
-export default GameNotation;
+export default memo(GameNotation);

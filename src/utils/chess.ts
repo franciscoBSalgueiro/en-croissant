@@ -680,3 +680,36 @@ function getAccuracy(winChanceBefore: number, winChanceAfter: number) {
 export function getAccuracyFromCp(cpBefore: number, cpAfter: number) {
     return getAccuracy(getWinChance(cpBefore), getWinChance(cpAfter));
 }
+
+export function getAnnotation(
+    prevScore: Score,
+    curScore: Score,
+    isWhite: boolean
+): Annotation {
+    if (prevScore.cp !== undefined && curScore.mate) {
+        return Annotation.Blunder;
+    }
+    if (isWhite) {
+        if (prevScore.cp - curScore.cp > 300) {
+            return Annotation.Blunder;
+        }
+        if (prevScore.cp - curScore.cp > 100) {
+            return Annotation.Mistake;
+        }
+        if (prevScore.cp - curScore.cp > 50) {
+            return Annotation.Dubious;
+        }
+    } else {
+        if (prevScore.cp - curScore.cp < -300) {
+            return Annotation.Blunder;
+        }
+        if (prevScore.cp - curScore.cp < -100) {
+            return Annotation.Mistake;
+        }
+        if (prevScore.cp - curScore.cp < -50) {
+            return Annotation.Dubious;
+        }
+    }
+
+    return Annotation.None;
+}

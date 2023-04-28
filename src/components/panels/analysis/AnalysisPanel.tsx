@@ -9,7 +9,7 @@ import {
   Text,
 } from "@mantine/core";
 import { IconRobot, IconZoomCheck } from "@tabler/icons-react";
-import { useContext } from "react";
+import { memo, useContext } from "react";
 import {
   Annotation,
   VariationTree,
@@ -245,7 +245,7 @@ function AnalysisPanel({
       </Tabs.Panel>
     </Tabs>
   );
-}
+};
 
 function AccuracyCard({
   color,
@@ -276,4 +276,4 @@ function AccuracyCard({
   );
 }
 
-export default AnalysisPanel;
+export default memo(AnalysisPanel);

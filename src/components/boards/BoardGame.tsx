@@ -236,7 +236,6 @@ function BoardGame({
           <BoardPlay
             makeMove={makeMove}
             arrows={[]}
-            forceUpdate={() => {}}
             setTree={setTree}
             editingMode={false}
             toggleEditingMode={() => {}}

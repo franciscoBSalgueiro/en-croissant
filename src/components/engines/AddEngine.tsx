@@ -16,7 +16,13 @@ import { useOs } from "@mantine/hooks";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
 import { invoke } from "../../utils/misc";
@@ -210,7 +216,7 @@ function EngineCard({
   initInstalled: boolean;
 }) {
   const [inProgress, setInProgress] = useState<boolean>(false);
-  async function downloadEngine(id: number, url: string) {
+  const downloadEngine = useCallback(async (id: number, url: string) => {
     setInProgress(true);
     const path = await resolve(await appDataDir(), "engines");
     await invoke("download_file", {
@@ -236,7 +242,7 @@ function EngineCard({
         path: enginePath,
       },
     ]);
-  }
+  }, []);
 
   const { classes } = useStyles();
 

@@ -45,6 +45,7 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
+import { getBoardSize } from "../../utils/misc";
 import GameContext from "../common/GameContext";
 import Piece from "../common/Piece";
 import FenInput from "../panels/info/FenInput";
@@ -62,7 +63,6 @@ const useStyles = createStyles(() => ({
 interface ChessboardProps {
   arrows: string[];
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
-  forceUpdate: () => void;
   setTree: (tree: VariationTree) => void;
   addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
   editingMode: boolean;
@@ -78,7 +78,6 @@ const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
 
 function BoardPlay({
   arrows,
-  forceUpdate,
   setTree,
   makeMove,
   addPiece,
@@ -143,13 +142,6 @@ function BoardPlay({
   const { classes } = useStyles();
   const { height, width } = useViewportSize();
 
-  function getBoardSize(height: number, width: number) {
-    const initial = Math.min((height - 140) * 0.95, width * 0.4);
-    if (width < 680) {
-      return width - 120;
-    }
-    return initial;
-  }
   const boardSize = getBoardSize(height, width);
 
   useHotkeys([["f", () => toggleOrientation()]]);
@@ -310,7 +302,6 @@ function BoardPlay({
                   tree.shapes.push(shape);
                 }
                 setTree(tree);
-                forceUpdate();
               },
             }}
           />

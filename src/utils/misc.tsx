@@ -78,3 +78,11 @@ export async function invoke<T>(
     return Promise.reject(e);
   }
 }
+
+export function getBoardSize(height: number, width: number) {
+  const initial = Math.min((height - 140) * 0.95, width * 0.4);
+  if (width < 680) {
+    return width - 120;
+  }
+  return initial;
+}

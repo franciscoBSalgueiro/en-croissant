@@ -4,7 +4,7 @@ import {
   Modal,
   SimpleGrid,
   Stack,
-  createStyles
+  createStyles,
 } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import {
@@ -26,6 +26,7 @@ import {
   parseUci,
   toDests,
 } from "../../utils/chess";
+import { getBoardSize } from "../../utils/misc";
 import { Completion, Puzzle } from "../../utils/puzzles";
 import Piece from "../common/Piece";
 
@@ -80,13 +81,6 @@ function PuzzleBoard({
 
   const { height, width } = useViewportSize();
 
-  function getBoardSize(height: number, width: number) {
-    const initial = Math.min((height - 140) * 0.95, width * 0.4);
-    if (width < 680) {
-      return width - 120;
-    }
-    return initial;
-  }
   const boardSize = getBoardSize(height, width);
 
   const { classes } = useStyles();
