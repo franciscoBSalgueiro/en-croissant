@@ -334,7 +334,12 @@ function BoardAnalysis({
             <Tabs.Panel value="info" pt="xs">
               <Stack>
                 <GameInfo
-                  game={completeGame.game}
+                  dateString={completeGame.game.date}
+                  whiteName={completeGame.game.white.name}
+                  blackName={completeGame.game.black.name}
+                  white_elo={completeGame.game.white_elo}
+                  black_elo={completeGame.game.black_elo}
+                  result={completeGame.game.result}
                   setCompleteGame={setCompleteGame}
                 />
                 <FenInput setCompleteGame={setCompleteGame} />

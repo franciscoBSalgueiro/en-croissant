@@ -8,7 +8,8 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import dayjs from "dayjs";
-import { CompleteGame, NormalizedGame } from "../../utils/db";
+import { memo } from "react";
+import { CompleteGame } from "../../utils/db";
 
 const useStyles = createStyles((theme) => ({
   nameInput: {
@@ -48,15 +49,25 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function GameInfo({
-  game,
+  dateString,
   setCompleteGame,
+  white_elo,
+  whiteName,
+  black_elo,
+  blackName,
+  result,
 }: {
-  game: NormalizedGame;
+  dateString?: string;
   setCompleteGame?: React.Dispatch<React.SetStateAction<CompleteGame>>;
+  white_elo?: number | null;
+  whiteName?: string;
+  black_elo?: number | null;
+  blackName?: string;
+  result: string;
 }) {
-  const date = game.date
-    ? dayjs(game.date, "YYYY.MM.DD").isValid()
-      ? dayjs(game.date, "YYYY.MM.DD").toDate()
+  const date = dateString
+    ? dayjs(dateString, "YYYY.MM.DD").isValid()
+      ? dayjs(dateString, "YYYY.MM.DD").toDate()
       : null
     : null;
   const { classes } = useStyles();
@@ -73,7 +84,7 @@ function GameInfo({
               className={classes.nameInput}
               size="lg"
               placeholder="?"
-              value={game.white.name}
+              value={whiteName}
               onChange={(e) =>
                 setCompleteGame &&
                 setCompleteGame((prev) => ({
@@ -94,7 +105,7 @@ function GameInfo({
               size="md"
               className={classes.eloInput}
               placeholder="Unknown ELO"
-              value={game.white_elo ?? ""}
+              value={white_elo ?? ""}
               onChange={(n) =>
                 setCompleteGame &&
                 setCompleteGame((prev) => ({
@@ -111,7 +122,7 @@ function GameInfo({
         </Group>
       </Stack>
       <Stack align="center" justify="end" spacing={0}>
-        <Text>{game.result}</Text>
+        <Text>{result}</Text>
         {/* <Text>{outcome.replaceAll("1/2", "½")}</Text> */}
         <DateInput
           variant="unstyled"
@@ -147,7 +158,7 @@ function GameInfo({
               size="lg"
               placeholder="?"
               sx={{ "& input": { textAlign: "right" } }}
-              value={game.black.name}
+              value={blackName}
               onChange={(e) =>
                 setCompleteGame &&
                 setCompleteGame((prev) => ({
@@ -169,7 +180,7 @@ function GameInfo({
               className={classes.eloInput}
               sx={{ "& input": { textAlign: "right" } }}
               placeholder="Unknown ELO"
-              value={game.black_elo ?? ""}
+              value={black_elo ?? ""}
               onChange={(n) =>
                 setCompleteGame &&
                 setCompleteGame((prev) => ({
@@ -189,4 +200,4 @@ function GameInfo({
   );
 }
 
-export default GameInfo;
+export default memo(GameInfo);

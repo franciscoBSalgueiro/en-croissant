@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.3.0",
   "scripts": {
-    "dev": "next dev -p 1420 --turbo",
+    "dev": "next dev -p 1420",
     "build": "next build && next export -o dist",
     "tauri": "tauri",
     "pretty": "prettier --write \"./src/**/*.{ts,tsx}\""
