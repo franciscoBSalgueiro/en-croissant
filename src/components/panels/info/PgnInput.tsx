@@ -1,4 +1,10 @@
-import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
+import {
+  Checkbox,
+  Group,
+  Stack,
+  Text,
+  Textarea
+} from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { useContext } from "react";
 import { NormalizedGame } from "../../../utils/db";
@@ -7,9 +13,9 @@ import GameContext from "../../common/GameContext";
 function PgnInput({ game }: { game: NormalizedGame }) {
   const tree = useContext(GameContext).game.tree;
   const [comments, toggleComments] = useToggle([true, false]);
-  const [symbols, toggleSymbols] = useToggle([true, false]);
+  const [annotations, toggleAnnotations] = useToggle([true, false]);
   const [variations, toggleVariations] = useToggle([true, false]);
-  const [specialSymbols, toggleSpecialSymbols] = useToggle();
+  const [symbols, toggleSymbols] = useToggle();
   const root = tree.getTopVariation();
   return (
     <>
@@ -25,8 +31,8 @@ function PgnInput({ game }: { game: NormalizedGame }) {
           <Checkbox
             label="Symbols"
             size="xs"
-            checked={symbols}
-            onChange={() => toggleSymbols()}
+            checked={annotations}
+            onChange={() => toggleAnnotations()}
           />
           <Checkbox
             label="Variations"
@@ -37,18 +43,19 @@ function PgnInput({ game }: { game: NormalizedGame }) {
           <Checkbox
             label="Special Symbols"
             size="xs"
-            checked={specialSymbols}
-            onChange={() => toggleSpecialSymbols()}
+            checked={symbols}
+            onChange={() => toggleSymbols()}
           />
         </Group>
         <Textarea
           readOnly
+          autosize
           value={root.getPGN({
             headers: game,
-            symbols,
+            symbols: annotations,
             comments,
             variations,
-            specialSymbols,
+            specialSymbols: symbols,
           })}
         />
       </Stack>

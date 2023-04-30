@@ -229,6 +229,8 @@ function BoardGame({
     }
   }, [tree, engine, playingColor]);
 
+  const [notationExpanded, setNotationExpanded] = useState(false);
+
   return (
     <GameContext.Provider value={completeGame}>
       <BoardLayout
@@ -365,45 +367,52 @@ function BoardGame({
           </Card>
         ) : (
           <>
-            <GameInfo
-              dateString={completeGame.game.date}
-              whiteName={completeGame.game.white.name}
-              blackName={completeGame.game.black.name}
-              white_elo={completeGame.game.white_elo}
-              black_elo={completeGame.game.black_elo}
-              result={completeGame.game.result}
-            />
-            <Group grow>
-              <Button
-                onClick={() => {
-                  setOpponent(null);
-                  setCompleteGame((prev) => ({
-                    game: {
-                      ...prev.game,
-                      result: Outcome.Unknown,
-                    },
-                    currentMove: [],
-                  }));
-                  setTree(new VariationTree(null, DEFAULT_POSITION, null));
-                }}
-                leftIcon={<IconPlus />}
-              >
-                New Game
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => changeToAnalysisMode()}
-                leftIcon={<IconZoomCheck />}
-              >
-                Analyze
-              </Button>
-            </Group>
+            {!notationExpanded && (
+              <>
+                <GameInfo
+                  dateString={completeGame.game.date}
+                  whiteName={completeGame.game.white.name}
+                  blackName={completeGame.game.black.name}
+                  white_elo={completeGame.game.white_elo}
+                  black_elo={completeGame.game.black_elo}
+                  result={completeGame.game.result}
+                />
+                <Group grow>
+                  <Button
+                    onClick={() => {
+                      setOpponent(null);
+                      setCompleteGame((prev) => ({
+                        game: {
+                          ...prev.game,
+                          result: Outcome.Unknown,
+                        },
+                        currentMove: [],
+                      }));
+                      setTree(new VariationTree(null, DEFAULT_POSITION, null));
+                    }}
+                    leftIcon={<IconPlus />}
+                  >
+                    New Game
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => changeToAnalysisMode()}
+                    leftIcon={<IconZoomCheck />}
+                  >
+                    Analyze
+                  </Button>
+                </Group>
+              </>
+            )}
+
             <GameNotation
               game={game}
               setTree={setTree}
               topVariation={tree.getTopVariation()}
               result={Outcome.Unknown}
-              boardSize={600}
+              boardSize={notationExpanded ? 1750 : 600}
+              notationExpanded={notationExpanded}
+              setNotationExpanded={setNotationExpanded}
             />
             <MoveControls
               goToStart={goToStart}

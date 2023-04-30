@@ -138,7 +138,6 @@ function AnalysisPanel({
         <ScrollArea
           sx={{ height: boardSize / 2 }}
           offsetScrollbars
-          type="always"
         >
           <Stack>
             <Accordion

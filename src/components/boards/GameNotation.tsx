@@ -17,6 +17,8 @@ import {
 import { useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
+  IconArrowsDiagonal,
+  IconArrowsDiagonalMinimize2,
   IconArrowsSplit,
   IconArrowUp,
   IconArticle,
@@ -27,7 +29,7 @@ import {
   IconEyeOff,
   IconMinus,
   IconPlus,
-  IconX,
+  IconX
 } from "@tabler/icons-react";
 import { memo, useContext } from "react";
 import { VariationTree } from "../../utils/chess";
@@ -54,6 +56,8 @@ function GameNotation({
   boardSize,
   deleteVariation,
   promoteVariation,
+  setNotationExpanded,
+  notationExpanded,
 }: {
   game: NormalizedGame;
   setTree: (tree: VariationTree) => void;
@@ -62,6 +66,8 @@ function GameNotation({
   promoteVariation?: () => void;
   result?: string;
   boardSize: number;
+  setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  notationExpanded: boolean;
 }) {
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
@@ -98,6 +104,15 @@ function GameNotation({
                     </ActionIcon>
                   </Tooltip>
                 )}
+                <Tooltip label={invisible ? "Expand Moves" : "Shrink Moves"}>
+                  <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
+                    {notationExpanded ? (
+                      <IconArrowsDiagonalMinimize2 size={15} />
+                    ) : (
+                      <IconArrowsDiagonal size={15} />
+                    )}
+                  </ActionIcon>
+                </Tooltip>
                 <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
                   <ActionIcon onClick={() => toggleVisible()}>
                     {invisible ? (

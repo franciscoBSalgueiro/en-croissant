@@ -1,4 +1,4 @@
-import { Stack, Tabs } from "@mantine/core";
+import { ScrollArea, Stack, Tabs } from "@mantine/core";
 import {
   useHotkeys,
   useSessionStorage,
@@ -100,7 +100,9 @@ function BoardAnalysis({
   );
 
   const makeMove = useCallback(
-    function makeMove(move: { from: Square; to: Square; promotion?: string } | string) {
+    function makeMove(
+      move: { from: Square; to: Square; promotion?: string } | string
+    ) {
       if (chess === null) return;
       // if (chess === null) {
       //   invoke("make_move", {
@@ -119,28 +121,28 @@ function BoardAnalysis({
       //   const newTree = new VariationTree(null, chess.fen(), null);
       //   setTree(newTree);
       // } else {
-        const newMove = chess.move(move);
-        const newTree = new VariationTree(
-          completeGame.game.tree,
-          chess.fen(),
-          newMove
+      const newMove = chess.move(move);
+      const newTree = new VariationTree(
+        completeGame.game.tree,
+        chess.fen(),
+        newMove
+      );
+      if (completeGame.game.tree.children.length === 0) {
+        completeGame.game.tree.children = [newTree];
+        setTree(newTree);
+      } else if (
+        completeGame.game.tree.children.every(
+          (child) => child.fen !== chess!.fen()
+        )
+      ) {
+        completeGame.game.tree.children.push(newTree);
+        setTree(newTree);
+      } else {
+        const child = completeGame.game.tree.children.find(
+          (child) => child.fen === chess!.fen()
         );
-        if (completeGame.game.tree.children.length === 0) {
-          completeGame.game.tree.children = [newTree];
-          setTree(newTree);
-        } else if (
-          completeGame.game.tree.children.every(
-            (child) => child.fen !== chess!.fen()
-          )
-        ) {
-          completeGame.game.tree.children.push(newTree);
-          setTree(newTree);
-        } else {
-          const child = completeGame.game.tree.children.find(
-            (child) => child.fen === chess!.fen()
-          );
-          setTree(child!);
-        }
+        setTree(child!);
+      }
       // }
     },
     [chess, completeGame.game.tree, editingMode, setTree]
@@ -288,6 +290,8 @@ function BoardAnalysis({
   const boardSize = getBoardSize(height, width);
   const [inProgress, setInProgress] = useState(false);
 
+  const [notationExpanded, setNotationExpanded] = useState(false);
+
   return (
     <GameContext.Provider value={completeGame}>
       <ReportModal
@@ -317,58 +321,60 @@ function BoardAnalysis({
         }
       >
         <>
-          <Tabs defaultValue="analysis">
-            <Tabs.List grow>
-              <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
-                Analysis
-              </Tabs.Tab>
-              <Tabs.Tab value="database" icon={<IconDatabase size={16} />}>
-                Database
-              </Tabs.Tab>
-              <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
-                Annotate
-              </Tabs.Tab>
-              <Tabs.Tab value="info" icon={<IconInfoCircle size={16} />}>
-                Info
-              </Tabs.Tab>
-            </Tabs.List>
-            <Tabs.Panel value="info" pt="xs">
-              <Stack>
-                <GameInfo
-                  dateString={completeGame.game.date}
-                  whiteName={completeGame.game.white.name}
-                  blackName={completeGame.game.black.name}
-                  white_elo={completeGame.game.white_elo}
-                  black_elo={completeGame.game.black_elo}
-                  result={completeGame.game.result}
+          {!notationExpanded && (
+            <Tabs defaultValue="analysis">
+              <Tabs.List grow>
+                <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
+                  Analysis
+                </Tabs.Tab>
+                <Tabs.Tab value="database" icon={<IconDatabase size={16} />}>
+                  Database
+                </Tabs.Tab>
+                <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
+                  Annotate
+                </Tabs.Tab>
+                <Tabs.Tab value="info" icon={<IconInfoCircle size={16} />}>
+                  Info
+                </Tabs.Tab>
+              </Tabs.List>
+              <Tabs.Panel value="info" pt="xs">
+                <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
+                  <GameInfo
+                    dateString={completeGame.game.date}
+                    whiteName={completeGame.game.white.name}
+                    blackName={completeGame.game.black.name}
+                    white_elo={completeGame.game.white_elo}
+                    black_elo={completeGame.game.black_elo}
+                    result={completeGame.game.result}
+                    setCompleteGame={setCompleteGame}
+                  />
+                  <FenInput setCompleteGame={setCompleteGame} />
+                  <PgnInput game={completeGame.game} />
+                </ScrollArea>
+              </Tabs.Panel>
+              <Tabs.Panel value="database" pt="xs">
+                <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
+              </Tabs.Panel>
+              <Tabs.Panel value="annotate" pt="xs">
+                <AnnotationPanel setTree={setTree} />
+              </Tabs.Panel>
+              <Tabs.Panel value="analysis" pt="xs">
+                <AnalysisPanel
+                  boardSize={boardSize}
+                  engines={engines}
+                  id={id}
+                  makeMoves={makeMoves}
+                  setArrows={setArrows}
                   setCompleteGame={setCompleteGame}
+                  setEngines={setEngines}
+                  changeToPlayMode={changeToPlayMode}
+                  toggleReportingMode={toggleReportingMode}
+                  inProgress={inProgress}
+                  setInProgress={setInProgress}
                 />
-                <FenInput setCompleteGame={setCompleteGame} />
-                <PgnInput game={completeGame.game} />
-              </Stack>
-            </Tabs.Panel>
-            <Tabs.Panel value="database" pt="xs">
-              <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
-            </Tabs.Panel>
-            <Tabs.Panel value="annotate" pt="xs">
-              <AnnotationPanel setTree={setTree} />
-            </Tabs.Panel>
-            <Tabs.Panel value="analysis" pt="xs">
-              <AnalysisPanel
-                boardSize={boardSize}
-                engines={engines}
-                id={id}
-                makeMoves={makeMoves}
-                setArrows={setArrows}
-                setCompleteGame={setCompleteGame}
-                setEngines={setEngines}
-                changeToPlayMode={changeToPlayMode}
-                toggleReportingMode={toggleReportingMode}
-                inProgress={inProgress}
-                setInProgress={setInProgress}
-              />
-            </Tabs.Panel>
-          </Tabs>
+              </Tabs.Panel>
+            </Tabs>
+          )}
           <Stack>
             <GameNotation
               game={completeGame.game}
@@ -377,7 +383,9 @@ function BoardAnalysis({
               promoteVariation={promoteVariation}
               topVariation={completeGame.game.tree.getTopVariation()}
               result={completeGame.game.result}
-              boardSize={width > 1000 ? boardSize : 600}
+              boardSize={notationExpanded ? 1750 : (width > 1000 ? boardSize : 600)}
+              setNotationExpanded={setNotationExpanded}
+              notationExpanded={notationExpanded}
             />
             <MoveControls
               goToStart={goToStart}
