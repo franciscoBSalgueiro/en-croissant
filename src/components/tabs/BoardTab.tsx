@@ -86,7 +86,10 @@ export function BoardTab({
               <CloseButton
                 component="div"
                 size={14}
-                onClick={() => closeTab(tab.value)}
+                onClick={(e) => {
+                  closeTab(tab.value);
+                  e.stopPropagation();
+                }}
               />
             }
             onDoubleClick={() => toggleRenaming(true)}
