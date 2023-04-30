@@ -1,4 +1,4 @@
-use shakmaty::{san::SanPlus, ByColor, Chess, Move, Position, uci::Uci};
+use shakmaty::{san::SanPlus, uci::Uci, ByColor, Chess, Move, Position};
 
 use super::{get_material_count, get_pawn_home, is_end_reachable, is_material_reachable};
 
@@ -36,8 +36,8 @@ pub fn position_search(
             return Ok(Some("*".to_string()));
         }
         let next_move = decode_move(move_blob[0], &chess).unwrap();
-        let uci = Uci::from_move(&next_move, shakmaty::CastlingMode::Standard);
-        return Ok(Some(uci.to_string()));
+        let san = SanPlus::from_move(chess, &next_move);
+        return Ok(Some(san.to_string()));
     }
 
     for (i, byte) in move_blob.iter().enumerate() {
@@ -55,8 +55,8 @@ pub fn position_search(
                 return Ok(Some("*".to_string()));
             }
             let next_move = decode_move(move_blob[i + 1], &chess).unwrap();
-            let uci = Uci::from_move(&next_move, shakmaty::CastlingMode::Standard);
-            return Ok(Some(uci.to_string()));
+            let san = SanPlus::from_move(chess, &next_move);
+            return Ok(Some(san.to_string()));
         }
     }
     Ok(None)

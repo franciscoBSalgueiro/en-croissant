@@ -100,24 +100,25 @@ function BoardAnalysis({
   );
 
   const makeMove = useCallback(
-    function makeMove(move: { from: Square; to: Square; promotion?: string }) {
-      if (chess === null) {
-        invoke("make_move", {
-          fen: completeGame.game.tree.fen,
-          from: move.from,
-          to: move.to,
-        }).then((fen) => {
-          const newTree = new VariationTree(null, fen as string, null);
-          setTree(newTree);
-        });
-      } else if (editingMode) {
-        const piece = chess.get(move.from);
-        chess.remove(move.to);
-        chess.remove(move.from);
-        chess.put(piece, move.to);
-        const newTree = new VariationTree(null, chess.fen(), null);
-        setTree(newTree);
-      } else {
+    function makeMove(move: { from: Square; to: Square; promotion?: string } | string) {
+      if (chess === null) return;
+      // if (chess === null) {
+      //   invoke("make_move", {
+      //     fen: completeGame.game.tree.fen,
+      //     from: move.from,
+      //     to: move.to,
+      //   }).then((fen) => {
+      //     const newTree = new VariationTree(null, fen as string, null);
+      //     setTree(newTree);
+      //   });
+      // } else if (editingMode) {
+      //   const piece = chess.get(move.from);
+      //   chess.remove(move.to);
+      //   chess.remove(move.from);
+      //   chess.put(piece, move.to);
+      //   const newTree = new VariationTree(null, chess.fen(), null);
+      //   setTree(newTree);
+      // } else {
         const newMove = chess.move(move);
         const newTree = new VariationTree(
           completeGame.game.tree,
@@ -140,7 +141,7 @@ function BoardAnalysis({
           );
           setTree(child!);
         }
-      }
+      // }
     },
     [chess, completeGame.game.tree, editingMode, setTree]
   );

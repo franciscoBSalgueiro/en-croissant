@@ -13,7 +13,6 @@ import { DataTable } from "mantine-datatable";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { memo, useContext, useEffect, useState } from "react";
-import { uciToMove } from "../../../utils/chess";
 import { CompleteGame, NormalizedGame, Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
@@ -41,7 +40,9 @@ function DatabasePanel({
   makeMove,
   height,
 }: {
-  makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
+  makeMove: (
+    move: { from: Square; to: Square; promotion?: string } | string
+  ) => void;
   height: number;
 }) {
   const tree = useContext(GameContext).game.tree;
@@ -65,7 +66,10 @@ function DatabasePanel({
   const router = useRouter();
 
   useEffect(() => {
-    async function getOpening(referenceDatabase: string | null, fen: string) {
+    async function searchPosition(
+      referenceDatabase: string | null,
+      fen: string
+    ) {
       let openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
@@ -74,7 +78,6 @@ function DatabasePanel({
         },
         (s) => s === "Search stopped"
       );
-
       return openings;
     }
     if (!referenceDatabase) return;
@@ -83,7 +86,7 @@ function DatabasePanel({
 
     setLoading(true);
 
-    getOpening(referenceDatabase, tree.fen).then((openings) => {
+    searchPosition(referenceDatabase, tree.fen).then((openings) => {
       if (!ignore) {
         setOpenings(sortOpenings(openings[0]));
         setGames(openings[1]);
@@ -97,7 +100,12 @@ function DatabasePanel({
   }, [tree, referenceDatabase]);
 
   return (
-    <Tabs defaultValue="stats" orientation="vertical" placement="right">
+    <Tabs
+      defaultValue="stats"
+      orientation="vertical"
+      placement="right"
+      keepMounted={false}
+    >
       <Tabs.List>
         <Tabs.Tab value="stats">Stats</Tabs.Tab>
         <Tabs.Tab value="games">Games</Tabs.Tab>
@@ -115,9 +123,7 @@ function DatabasePanel({
               width: 100,
               render: ({ move }) => {
                 if (move === "*") return <Text fs="italic">Game end</Text>;
-                const chessMove = uciToMove(move, tree.fen);
-                if (!chessMove) return null;
-                return <Text>{chessMove.san}</Text>;
+                return <Text>{move}</Text>;
               },
             },
             {
@@ -141,6 +147,7 @@ function DatabasePanel({
                     mt="md"
                     size="xl"
                     radius="xl"
+                    animate={false}
                     sections={[
                       {
                         className: classes.whiteLabel,
@@ -180,13 +187,7 @@ function DatabasePanel({
             )
           }
           onRowClick={({ move }) => {
-            const chessMove = uciToMove(move, tree.fen);
-            if (!chessMove) return;
-            makeMove({
-              from: chessMove.from as Square,
-              to: chessMove.to as Square,
-              promotion: chessMove.promotion,
-            });
+            makeMove(move);
           }}
         />
       </Tabs.Panel>
@@ -259,6 +260,6 @@ function DatabasePanel({
       </Tabs.Panel>
     </Tabs>
   );
-};
+}
 
 export default memo(DatabasePanel);

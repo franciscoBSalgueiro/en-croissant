@@ -29,9 +29,10 @@ import {
   IconPlus,
   IconX,
 } from "@tabler/icons-react";
-import { memo } from "react";
+import { memo, useContext } from "react";
 import { VariationTree } from "../../utils/chess";
 import { NormalizedGame, Outcome } from "../../utils/db";
+import GameContext from "../common/GameContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 
@@ -215,6 +216,7 @@ function RenderVariationTree({
   showVariations: boolean;
   showComments: boolean;
 }) {
+  const currentTree = useContext(GameContext).game.tree;
   const variations = tree.children;
   const moveNodes = showVariations
     ? variations.slice(1).map((variation) => (
@@ -223,6 +225,7 @@ function RenderVariationTree({
             tree={variation}
             setTree={setTree}
             showComments={showComments}
+            isCurrentVariation={variation === currentTree}
             first
           />
           <RenderVariationTree
@@ -244,6 +247,7 @@ function RenderVariationTree({
           tree={variations[0]}
           setTree={setTree}
           showComments={showComments}
+          isCurrentVariation={variations[0] === currentTree}
           first={first}
         />
       )}
