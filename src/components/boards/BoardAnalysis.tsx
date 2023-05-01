@@ -329,60 +329,61 @@ function BoardAnalysis({
         }
       >
         <>
-          {!notationExpanded && (
-            <Tabs defaultValue="analysis">
-              <Tabs.List grow>
-                <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
-                  Analysis
-                </Tabs.Tab>
-                <Tabs.Tab value="database" icon={<IconDatabase size={16} />}>
-                  Database
-                </Tabs.Tab>
-                <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
-                  Annotate
-                </Tabs.Tab>
-                <Tabs.Tab value="info" icon={<IconInfoCircle size={16} />}>
-                  Info
-                </Tabs.Tab>
-              </Tabs.List>
-              <Tabs.Panel value="info" pt="xs">
-                <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
-                  <GameInfo
-                    dateString={completeGame.game.date}
-                    whiteName={completeGame.game.white.name}
-                    blackName={completeGame.game.black.name}
-                    white_elo={completeGame.game.white_elo}
-                    black_elo={completeGame.game.black_elo}
-                    result={completeGame.game.result}
-                    setCompleteGame={setCompleteGame}
-                  />
-                  <FenInput setCompleteGame={setCompleteGame} />
-                  <PgnInput game={completeGame.game} />
-                </ScrollArea>
-              </Tabs.Panel>
-              <Tabs.Panel value="database" pt="xs">
-                <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
-              </Tabs.Panel>
-              <Tabs.Panel value="annotate" pt="xs">
-                <AnnotationPanel setTree={setTree} />
-              </Tabs.Panel>
-              <Tabs.Panel value="analysis" pt="xs">
-                <AnalysisPanel
-                  boardSize={boardSize}
-                  engines={engines}
-                  id={id}
-                  makeMoves={makeMoves}
-                  setArrows={setArrows}
+          <Tabs
+            defaultValue="analysis"
+            sx={{ display: notationExpanded ? "none" : undefined }}
+          >
+            <Tabs.List grow>
+              <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
+                Analysis
+              </Tabs.Tab>
+              <Tabs.Tab value="database" icon={<IconDatabase size={16} />}>
+                Database
+              </Tabs.Tab>
+              <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
+                Annotate
+              </Tabs.Tab>
+              <Tabs.Tab value="info" icon={<IconInfoCircle size={16} />}>
+                Info
+              </Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="info" pt="xs">
+              <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
+                <GameInfo
+                  dateString={completeGame.game.date}
+                  whiteName={completeGame.game.white.name}
+                  blackName={completeGame.game.black.name}
+                  white_elo={completeGame.game.white_elo}
+                  black_elo={completeGame.game.black_elo}
+                  result={completeGame.game.result}
                   setCompleteGame={setCompleteGame}
-                  setEngines={setEngines}
-                  changeToPlayMode={changeToPlayMode}
-                  toggleReportingMode={toggleReportingMode}
-                  inProgress={inProgress}
-                  setInProgress={setInProgress}
                 />
-              </Tabs.Panel>
-            </Tabs>
-          )}
+                <FenInput setCompleteGame={setCompleteGame} />
+                <PgnInput game={completeGame.game} />
+              </ScrollArea>
+            </Tabs.Panel>
+            <Tabs.Panel value="database" pt="xs">
+              <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
+            </Tabs.Panel>
+            <Tabs.Panel value="annotate" pt="xs">
+              <AnnotationPanel setTree={setTree} />
+            </Tabs.Panel>
+            <Tabs.Panel value="analysis" pt="xs">
+              <AnalysisPanel
+                boardSize={boardSize}
+                engines={engines}
+                id={id}
+                makeMoves={makeMoves}
+                setArrows={setArrows}
+                setCompleteGame={setCompleteGame}
+                setEngines={setEngines}
+                changeToPlayMode={changeToPlayMode}
+                toggleReportingMode={toggleReportingMode}
+                inProgress={inProgress}
+                setInProgress={setInProgress}
+              />
+            </Tabs.Panel>
+          </Tabs>
           <Stack>
             <GameNotation
               game={completeGame.game}

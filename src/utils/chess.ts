@@ -15,14 +15,15 @@ import { CompleteGame, getHeaders, NormalizedGame, Outcome } from "./db";
 import { formatScore } from "./format";
 
 export type Score = {
-    [key in "cp" | "mate"]: number;
+    cp?: number;
+    mate?: number;
 };
 
 function parseScore(score: string): Score {
     if (score.includes("M")) {
-        return { mate: parseInt(score.split("M")[1]) } as Score;
+        return { mate: parseInt(score.split("M")[1]) };
     } else {
-        return { cp: parseFloat(score) * 100 } as Score;
+        return { cp: parseFloat(score) * 100 };
     }
 }
 
@@ -666,7 +667,7 @@ export function uciToMove(uci: string, fen: string): Move | null {
     }
 }
 
-function getWinChance(centipawns: number) {
+export function getWinChance(centipawns: number) {
     return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
 }
 
@@ -690,23 +691,23 @@ export function getAnnotation(
         return Annotation.Blunder;
     }
     if (isWhite) {
-        if (prevScore.cp - curScore.cp > 300) {
+        if (prevScore.cp! - curScore.cp! > 300) {
             return Annotation.Blunder;
         }
-        if (prevScore.cp - curScore.cp > 100) {
+        if (prevScore.cp! - curScore.cp! > 100) {
             return Annotation.Mistake;
         }
-        if (prevScore.cp - curScore.cp > 50) {
+        if (prevScore.cp! - curScore.cp! > 50) {
             return Annotation.Dubious;
         }
     } else {
-        if (prevScore.cp - curScore.cp < -300) {
+        if (prevScore.cp! - curScore.cp! < -300) {
             return Annotation.Blunder;
         }
-        if (prevScore.cp - curScore.cp < -100) {
+        if (prevScore.cp! - curScore.cp! < -100) {
             return Annotation.Mistake;
         }
-        if (prevScore.cp - curScore.cp < -50) {
+        if (prevScore.cp! - curScore.cp! < -50) {
             return Annotation.Dubious;
         }
     }

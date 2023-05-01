@@ -1,7 +1,6 @@
-import { Box } from "@mantine/core";
+import { Box, useMantineTheme } from "@mantine/core";
 import { Color } from "chessground/types";
-import { Score } from "../../utils/chess";
-import { formatScore } from "../../utils/format";
+import { Score, getWinChance } from "../../utils/chess";
 
 function EvalBar({
   score,
@@ -12,10 +11,32 @@ function EvalBar({
   boardSize: number;
   orientation: Color;
 }) {
-  const { text, value } = formatScore(score ?? ({ cp: 0 } as Score));
-  let progress = value / 30 + 50;
-  if (score?.mate) {
-    progress = score.mate > 0 ? 100 : 0;
+  const theme = useMantineTheme();
+
+  let ScoreBars = null;
+  if (score) {
+    const progress = score.cp
+      ? getWinChance(score.cp)
+      : score.mate! > 0
+      ? 100
+      : 0;
+
+    ScoreBars = (
+      <>
+        <Box
+          sx={{
+            height: `${100 - progress}%`,
+            backgroundColor: theme.colors.dark[4],
+          }}
+        />
+        <Box
+          sx={{
+            height: `${progress}%`,
+            backgroundColor: theme.colors.gray[2],
+          }}
+        />
+      </>
+    );
   }
 
   return (
@@ -23,29 +44,11 @@ function EvalBar({
       sx={{
         width: 25,
         height: boardSize,
-        rotate: orientation === "white" ? "0" : "180deg",
+        rotate: orientation === "white" ? "0deg" : "180deg",
+        borderRadius: 10,
       }}
     >
-      {score && (
-        <>
-          <Box
-            sx={{
-              height: `${100 - progress}%`,
-              backgroundColor: "black",
-              borderTopRightRadius: 10,
-              borderTopLeftRadius: 10,
-            }}
-          />
-          <Box
-            sx={{
-              height: `${progress}%`,
-              backgroundColor: "white",
-              borderBottomRightRadius: 10,
-              borderBottomLeftRadius: 10,
-            }}
-          />
-        </>
-      )}
+      {ScoreBars}
     </Box>
   );
 }
