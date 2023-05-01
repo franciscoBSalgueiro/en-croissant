@@ -29,9 +29,10 @@ import {
   IconEyeOff,
   IconMinus,
   IconPlus,
-  IconX
+  IconX,
 } from "@tabler/icons-react";
-import { memo, useContext } from "react";
+import { DEFAULT_POSITION } from "chess.js";
+import { memo, useContext, useEffect, useRef } from "react";
 import { VariationTree } from "../../utils/chess";
 import { NormalizedGame, Outcome } from "../../utils/db";
 import GameContext from "../common/GameContext";
@@ -69,6 +70,22 @@ function GameNotation({
   setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   notationExpanded: boolean;
 }) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (viewport.current) {
+      if (game.tree.fen === DEFAULT_POSITION) {
+        viewport.current.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (targetRef.current) {
+        viewport.current.scrollTo({
+          top: targetRef.current.offsetTop - 65,
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [game.tree.fen]);
+
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
   const [showVariations, toggleVariations] = useToggle([true, false]);
@@ -84,7 +101,11 @@ function GameNotation({
 
   return (
     <Paper withBorder p="md" sx={{ position: "relative" }}>
-      <ScrollArea sx={{ height: boardSize / 3 }} offsetScrollbars>
+      <ScrollArea
+        sx={{ height: boardSize / 3 }}
+        offsetScrollbars
+        viewportRef={viewport}
+      >
         <Stack>
           <Stack className={classes.scroller}>
             <Group style={{ justifyContent: "space-between" }}>
@@ -189,6 +210,7 @@ function GameNotation({
               </TypographyStylesProvider>
             )}
             <RenderVariationTree
+              targetRef={targetRef}
               tree={topVariation}
               depth={0}
               first
@@ -223,6 +245,7 @@ function RenderVariationTree({
   setTree,
   showVariations,
   showComments,
+  targetRef,
 }: {
   tree: VariationTree;
   depth: number;
@@ -230,6 +253,7 @@ function RenderVariationTree({
   setTree: (tree: VariationTree) => void;
   showVariations: boolean;
   showComments: boolean;
+  targetRef: React.RefObject<HTMLSpanElement>;
 }) {
   const currentTree = useContext(GameContext).game.tree;
   const variations = tree.children;
@@ -237,6 +261,11 @@ function RenderVariationTree({
     ? variations.slice(1).map((variation) => (
         <>
           <CompleteMoveCell
+            targetRef={targetRef}
+            annotation={variation.annotation}
+            commentHTML={variation.commentHTML}
+            halfMoves={variation.halfMoves}
+            move={variation.move?.san}
             tree={variation}
             setTree={setTree}
             showComments={showComments}
@@ -244,6 +273,7 @@ function RenderVariationTree({
             first
           />
           <RenderVariationTree
+            targetRef={targetRef}
             tree={variation}
             depth={depth + 2}
             setTree={setTree}
@@ -259,6 +289,11 @@ function RenderVariationTree({
     <>
       {variations.length > 0 && (
         <CompleteMoveCell
+          targetRef={targetRef}
+          annotation={variations[0].annotation}
+          commentHTML={variations[0].commentHTML}
+          halfMoves={variations[0].halfMoves}
+          move={variations[0].move?.san}
           tree={variations[0]}
           setTree={setTree}
           showComments={showComments}
@@ -271,6 +306,7 @@ function RenderVariationTree({
 
       {tree.children.length > 0 && (
         <RenderVariationTree
+          targetRef={targetRef}
           tree={tree.children[0]}
           depth={depth + 1}
           setTree={setTree}

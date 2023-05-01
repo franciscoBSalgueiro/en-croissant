@@ -1,35 +1,45 @@
 import { Box, TypographyStylesProvider } from "@mantine/core";
 import { memo } from "react";
-import { VariationTree } from "../../utils/chess";
+import { Annotation, VariationTree } from "../../utils/chess";
 import MoveCell from "./MoveCell";
 
 function CompleteMoveCell({
   tree,
+  halfMoves,
+  move,
+  commentHTML,
   setTree,
+  annotation,
   showComments,
   first,
   isCurrentVariation,
+  targetRef,
 }: {
   tree: VariationTree;
+  halfMoves: number;
+  commentHTML: string;
+  annotation: Annotation;
   setTree: (tree: VariationTree) => void;
   showComments: boolean;
+  move?: string;
   first?: boolean;
   isCurrentVariation: boolean;
+  targetRef: React.RefObject<HTMLSpanElement>;
 }) {
-  const move_number = Math.ceil(tree.halfMoves / 2);
-  const is_white = tree.halfMoves % 2 === 1;
-  const hasNumber = tree.halfMoves > 0 && (first || is_white);
-  const lastMove = tree.move;
+  const move_number = Math.ceil(halfMoves / 2);
+  const is_white = halfMoves % 2 === 1;
+  const hasNumber = halfMoves > 0 && (first || is_white);
 
   const multipleLine =
-    tree.commentHTML.split("</p>").length - 1 > 1 ||
-    tree.commentHTML.includes("<blockquote>") ||
-    tree.commentHTML.includes("<ul>") ||
-    tree.commentHTML.includes("<h");
+    commentHTML.split("</p>").length - 1 > 1 ||
+    commentHTML.includes("<blockquote>") ||
+    commentHTML.includes("<ul>") ||
+    commentHTML.includes("<h");
 
   return (
     <>
       <Box
+        ref={isCurrentVariation ? targetRef : undefined}
         component="span"
         sx={{
           display: "inline-block",
@@ -40,17 +50,17 @@ function CompleteMoveCell({
         {hasNumber && (
           <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
         )}
-        {lastMove && (
+        {move && (
           <MoveCell
-            move={lastMove.san}
-            annotation={tree.annotation}
-            comment={tree.commentHTML}
+            move={move}
+            annotation={annotation}
+            comment={commentHTML}
             isCurrentVariation={isCurrentVariation}
             onClick={() => setTree(tree)}
           />
         )}
       </Box>
-      {showComments && tree.commentHTML && (
+      {showComments && commentHTML && (
         <TypographyStylesProvider
           style={{
             display: multipleLine ? "block" : "inline-block",
@@ -60,7 +70,7 @@ function CompleteMoveCell({
         >
           <span
             dangerouslySetInnerHTML={{
-              __html: tree.commentHTML,
+              __html: commentHTML,
             }}
           />
         </TypographyStylesProvider>
