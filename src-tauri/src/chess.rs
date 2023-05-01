@@ -21,12 +21,36 @@ use crate::{db::is_position_in_db, fs::ProgressPayload, AppState};
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-#[derive(Debug, serde::Serialize, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Score {
-    #[serde(rename = "cp")]
     Cp(i64),
-    #[serde(rename = "mate")]
     Mate(i64),
+}
+
+#[derive(serde::Serialize)]
+struct ScoreJson {
+    #[serde(rename = "type")]
+    score_type: &'static str,
+    value: i64,
+}
+
+impl serde::Serialize for Score {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let score_json = match self {
+            Score::Cp(value) => ScoreJson {
+                score_type: "cp",
+                value: *value,
+            },
+            Score::Mate(value) => ScoreJson {
+                score_type: "mate",
+                value: *value,
+            },
+        };
+        score_json.serialize(serializer)
+    }
 }
 
 #[derive(Clone, Serialize, Debug, Derivative)]

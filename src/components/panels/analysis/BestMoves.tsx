@@ -33,6 +33,7 @@ import {
 } from "../../../utils/chess";
 import { CompleteGame } from "../../../utils/db";
 import { Engine } from "../../../utils/engines";
+import { formatScore } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
 import GameContext from "../../common/GameContext";
@@ -48,25 +49,12 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function ScoreBubble({ score }: { score: Score }) {
-  const scoreNumber = score.cp ?? score.mate;
-  let scoreText = "";
-  const type = score.cp !== undefined ? "cp" : "mate";
-  if (type === "cp") {
-    scoreText = Math.abs(scoreNumber / 100).toFixed(2);
-  } else {
-    scoreText = "M" + Math.abs(scoreNumber);
-  }
-  if (scoreNumber > 0) {
-    scoreText = "+" + scoreText;
-  }
-  if (scoreNumber < 0) {
-    scoreText = "-" + scoreText;
-  }
+  const text = formatScore(score);
   return (
     <Box
       sx={(theme) => ({
         backgroundColor:
-          scoreNumber >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
+          score.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
         padding: 5,
         borderRadius: theme.radius.md,
@@ -76,14 +64,14 @@ function ScoreBubble({ score }: { score: Score }) {
     >
       <Text
         weight={700}
-        color={scoreNumber >= 0 ? "black" : "white"}
+        color={score.value >= 0 ? "black" : "white"}
         size="md"
         align="center"
         sx={(theme) => ({
           fontFamily: theme.fontFamilyMonospace,
         })}
       >
-        {scoreText}
+        {text}
       </Text>
     </Box>
   );

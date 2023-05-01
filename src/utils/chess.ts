@@ -15,15 +15,15 @@ import { CompleteGame, getHeaders, NormalizedGame, Outcome } from "./db";
 import { formatScore } from "./format";
 
 export type Score = {
-    cp?: number;
-    mate?: number;
+    type: "cp" | "mate";
+    value: number;
 };
 
 function parseScore(score: string): Score {
     if (score.includes("M")) {
-        return { mate: parseInt(score.split("M")[1]) };
+        return { type: "mate", value: parseInt(score.split("M")[1]) };
     } else {
-        return { cp: parseFloat(score) * 100 };
+        return { type: "cp", value: parseFloat(score) * 100 };
     }
 }
 
@@ -172,12 +172,12 @@ export class VariationTree {
         return positions;
     }
 
-    getMoveText(
-        symbols: boolean,
-        comments: boolean,
-        specialSymbols: boolean,
-        isFirst?: boolean
-    ): string {
+    getMoveText(opt: {
+        symbols: boolean;
+        comments: boolean;
+        specialSymbols: boolean;
+        isFirst?: boolean;
+    }): string {
         if (this.move === null) {
             return "";
         }
@@ -185,26 +185,26 @@ export class VariationTree {
         const moveNumber = Math.ceil(this.halfMoves / 2);
         let moveText = "";
         if (isBlack) {
-            if (isFirst) {
+            if (opt.isFirst) {
                 moveText += `${moveNumber}... `;
             }
         } else {
             moveText += `${moveNumber}. `;
         }
         moveText += this.move.san;
-        if (symbols) {
+        if (opt.symbols) {
             moveText += this.annotation;
         }
         moveText += " ";
 
-        if (comments || specialSymbols) {
+        if (opt.comments || opt.specialSymbols) {
             let content = "{";
 
-            if (specialSymbols && this.score !== null) {
-                content += `[%eval ${formatScore(this.score).text}] `;
+            if (opt.specialSymbols && this.score !== null) {
+                content += `[%eval ${formatScore(this.score)}] `;
             }
 
-            if (specialSymbols && this.shapes.length > 0) {
+            if (opt.specialSymbols && this.shapes.length > 0) {
                 const squares = this.shapes
                     .filter((shape) => shape.dest === undefined)
                     .map((shape) => {
@@ -223,7 +223,7 @@ export class VariationTree {
                 }
             }
 
-            if (comments && this.commentText !== "") {
+            if (opt.comments && this.commentText !== "") {
                 content += this.commentText;
             }
             content += "} ";
@@ -262,11 +262,12 @@ export class VariationTree {
         const variationsPGN = variations
             ? this.children.slice(1).map(
                   (variation) =>
-                      `${variation.getMoveText(
+                      `${variation.getMoveText({
                           symbols,
                           comments,
-                          true
-                      )} ${variation.getPGN({
+                          specialSymbols,
+                          isFirst: true,
+                      })} ${variation.getPGN({
                           headers: null,
                           symbols,
                           comments,
@@ -277,7 +278,7 @@ export class VariationTree {
             : [];
         if (this.children.length > 0) {
             const child = this.children[0];
-            pgn += child.getMoveText(symbols, comments, specialSymbols);
+            pgn += child.getMoveText({ symbols, comments, specialSymbols });
         }
         if (variationsPGN.length >= 1) {
             variationsPGN.forEach((variation) => {
@@ -687,28 +688,30 @@ export function getAnnotation(
     curScore: Score,
     isWhite: boolean
 ): Annotation {
-    if (prevScore.cp !== undefined && curScore.mate) {
+    if (prevScore.type === "cp" && curScore.type === "mate") {
         return Annotation.Blunder;
     }
-    if (isWhite) {
-        if (prevScore.cp! - curScore.cp! > 300) {
-            return Annotation.Blunder;
-        }
-        if (prevScore.cp! - curScore.cp! > 100) {
-            return Annotation.Mistake;
-        }
-        if (prevScore.cp! - curScore.cp! > 50) {
-            return Annotation.Dubious;
-        }
-    } else {
-        if (prevScore.cp! - curScore.cp! < -300) {
-            return Annotation.Blunder;
-        }
-        if (prevScore.cp! - curScore.cp! < -100) {
-            return Annotation.Mistake;
-        }
-        if (prevScore.cp! - curScore.cp! < -50) {
-            return Annotation.Dubious;
+    if (curScore.type === "cp") {
+        if (isWhite) {
+            if (prevScore.value - curScore.value > 300) {
+                return Annotation.Blunder;
+            }
+            if (prevScore.value - curScore.value > 100) {
+                return Annotation.Mistake;
+            }
+            if (prevScore.value - curScore.value > 50) {
+                return Annotation.Dubious;
+            }
+        } else {
+            if (prevScore.value - curScore.value < -300) {
+                return Annotation.Blunder;
+            }
+            if (prevScore.value - curScore.value < -100) {
+                return Annotation.Mistake;
+            }
+            if (prevScore.value - curScore.value < -50) {
+                return Annotation.Dubious;
+            }
         }
     }
 

@@ -15,11 +15,12 @@ function EvalBar({
 
   let ScoreBars = null;
   if (score) {
-    const progress = score.cp
-      ? getWinChance(score.cp)
-      : score.mate! > 0
-      ? 100
-      : 0;
+    const progress =
+      score.type === "cp"
+        ? getWinChance(score.value)
+        : score.value > 0
+        ? 100
+        : 0;
 
     ScoreBars = (
       <>

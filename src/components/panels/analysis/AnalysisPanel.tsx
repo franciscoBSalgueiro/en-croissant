@@ -12,6 +12,7 @@ import { IconRobot, IconZoomCheck } from "@tabler/icons-react";
 import { memo, useContext } from "react";
 import {
   Annotation,
+  Score,
   VariationTree,
   getAccuracyFromCp,
 } from "../../../utils/chess";
@@ -86,7 +87,7 @@ function AnalysisPanel({
         blackAnnotations,
       };
     }
-    let prevScore = current.score ?? { cp: 30 };
+    let prevScore: Score = current.score ?? { type: "cp", value: 30 };
     while (current.children.length > 0) {
       current = current.children[0];
       if (current.annotation) {
@@ -96,14 +97,20 @@ function AnalysisPanel({
           blackAnnotations[current.annotation]++;
         }
       }
-      if (current.score && current.score.cp) {
+      if (current.score && current.score.type === "cp") {
         if (current.halfMoves % 2 === 1) {
-          whiteCPSum += Math.max(prevScore?.cp - current.score.cp, 0);
-          whiteAccuracy += getAccuracyFromCp(prevScore?.cp, current.score.cp);
+          whiteCPSum += Math.max(prevScore.value - current.score.value, 0);
+          whiteAccuracy += getAccuracyFromCp(
+            prevScore?.value,
+            current.score.value
+          );
           whiteCount++;
         } else {
-          blackCPSum += Math.max(-(prevScore?.cp - current.score.cp), 0);
-          blackAccuracy += getAccuracyFromCp(-prevScore?.cp, -current.score.cp);
+          blackCPSum += Math.max(-(prevScore?.value - current.score.value), 0);
+          blackAccuracy += getAccuracyFromCp(
+            -prevScore?.value,
+            -current.score.value
+          );
           blackCount++;
         }
         prevScore = current.score;
@@ -135,10 +142,7 @@ function AnalysisPanel({
         <Tabs.Tab value="report">Report</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="engines" pt="xs">
-        <ScrollArea
-          sx={{ height: boardSize / 2 }}
-          offsetScrollbars
-        >
+        <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
           <Stack>
             <Accordion
               variant="separated"
@@ -244,7 +248,7 @@ function AnalysisPanel({
       </Tabs.Panel>
     </Tabs>
   );
-};
+}
 
 function AccuracyCard({
   color,

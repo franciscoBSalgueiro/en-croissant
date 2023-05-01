@@ -17,7 +17,7 @@ import {
   Score,
   VariationTree,
   getAnnotation,
-  goToPosition
+  goToPosition,
 } from "../../../utils/chess";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
@@ -101,7 +101,7 @@ function ReportModal({
           root.commentText = "Novelty";
         }
 
-        let prevScore: Score = { cp: 0 };
+        let prevScore: Score = { type: "cp", value: 0 };
         if (i > 0) {
           prevScore = analysis[i - 1].best.score;
         }

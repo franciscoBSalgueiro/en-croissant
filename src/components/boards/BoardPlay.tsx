@@ -308,7 +308,7 @@ function BoardPlay({
         </Box>
 
         <Group position={"apart"} h={20}>
-          {tree.score ? <Text>{formatScore(tree.score).text}</Text> : <div />}
+          {tree.score ? <Text>{formatScore(tree.score)}</Text> : <div />}
 
           <Group>
             {!disableVariations && (

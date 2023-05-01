@@ -50,20 +50,20 @@ export function formatDuration(seconds: number): string {
     return parts.join(", ");
 }
 
-export function formatScore(score: Score): { text: string; value: number } {
-    const scoreNumber = score.cp ?? score.mate;
+export function formatScore(score: Score): string {
     let scoreText = "";
-    const type = score.cp !== undefined ? "cp" : "mate";
-    if (type === "cp") {
-        scoreText = Math.abs(scoreNumber / 100).toFixed(2);
+    console.log(score);
+    if (score.type === "cp") {
+        scoreText = Math.abs(score.value / 100).toFixed(2);
     } else {
-        scoreText = "M" + Math.abs(scoreNumber);
+        scoreText = "M" + Math.abs(score.value);
     }
-    if (scoreNumber > 0) {
+    if (score.value > 0) {
         scoreText = "+" + scoreText;
     }
-    if (scoreNumber < 0) {
+    if (score.value < 0) {
         scoreText = "-" + scoreText;
     }
-    return { text: scoreText, value: scoreNumber };
+    console.log(scoreText);
+    return scoreText;
 }
