@@ -24,7 +24,12 @@ import {
 } from "../../utils/chess";
 import { CompleteGame, defaultGame } from "../../utils/db";
 import { Engine } from "../../utils/engines";
-import { getBoardSize, invoke, useLocalFile } from "../../utils/misc";
+import {
+  getBoardSize,
+  invoke,
+  useLocalFile,
+  useThrottle,
+} from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
 import GameContext from "../common/GameContext";
 import GameInfo from "../common/GameInfo";
@@ -272,9 +277,12 @@ function BoardAnalysis({
       );
   }
 
+  const throttledRedoMove = useThrottle(redoMove, 50);
+  const throttledSaveFile = useThrottle(undoMove, 50);
+
   useHotkeys([
-    ["ArrowLeft", () => undoMove()],
-    ["ArrowRight", () => redoMove()],
+    ["ArrowLeft", () => throttledSaveFile()],
+    ["ArrowRight", () => throttledRedoMove()],
     ["ArrowUp", () => goToStart()],
     ["ArrowDown", () => goToEnd()],
     ["Delete", () => deleteVariation()],
@@ -383,7 +391,9 @@ function BoardAnalysis({
               promoteVariation={promoteVariation}
               topVariation={completeGame.game.tree.getTopVariation()}
               result={completeGame.game.result}
-              boardSize={notationExpanded ? 1750 : (width > 1000 ? boardSize : 600)}
+              boardSize={
+                notationExpanded ? 1750 : width > 1000 ? boardSize : 600
+              }
               setNotationExpanded={setNotationExpanded}
               notationExpanded={notationExpanded}
             />

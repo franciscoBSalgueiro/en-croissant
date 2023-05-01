@@ -2,7 +2,7 @@ import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { invoke as invokeTauri } from "@tauri-apps/api";
 import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type StorageValue<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 
@@ -85,4 +85,34 @@ export function getBoardSize(height: number, width: number) {
     return width - 120;
   }
   return initial;
+}
+
+type ThrottledFunction<T extends (...args: any[]) => any> = (
+  ...args: Parameters<T>
+) => ReturnType<T>;
+
+export function useThrottle<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): ThrottledFunction<T> {
+  const canCallFn = useRef<boolean>(true);
+
+  const throttledFn = useCallback(
+    function (
+      this: ThisParameterType<T>,
+      ...args: Parameters<T>
+    ): ReturnType<T> | void {
+      if (canCallFn.current) {
+        const result = fn.apply(this, args) as ReturnType<T>;
+        canCallFn.current = false;
+        setTimeout(() => {
+          canCallFn.current = true;
+        }, delay);
+        return result;
+      }
+    },
+    [delay, fn]
+  );
+
+  return throttledFn as ThrottledFunction<T>;
 }
