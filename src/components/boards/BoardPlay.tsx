@@ -33,7 +33,7 @@ import {
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { useContext, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import Chessground from "react-chessground";
 import {
   formatMove,
@@ -46,7 +46,6 @@ import {
 import { CompleteGame, Outcome as Result } from "../../utils/db";
 import { formatScore } from "../../utils/format";
 import { getBoardSize } from "../../utils/misc";
-import GameContext from "../common/GameContext";
 import Piece from "../common/Piece";
 import FenInput from "../panels/info/FenInput";
 import EvalBar from "./EvalBar";
@@ -70,7 +69,8 @@ interface ChessboardProps {
   viewOnly?: boolean;
   disableVariations?: boolean;
   setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
-  completeGame: CompleteGame;
+  tree: VariationTree;
+  result: Result;
   side?: Color;
 }
 
@@ -86,10 +86,10 @@ function BoardPlay({
   viewOnly,
   disableVariations,
   setCompleteGame,
-  completeGame,
+  tree,
+  result,
   side,
 }: ChessboardProps) {
-  const tree = useContext(GameContext).game.tree;
   let chess: Chess | null;
   let error: string | null = null;
   try {
@@ -99,21 +99,20 @@ function BoardPlay({
     error = e.message;
   }
 
-  if (
-    chess !== null &&
-    chess.isCheckmate() &&
-    completeGame.game.result === Result.Unknown
-  ) {
+  if (chess !== null && chess.isGameOver() && result === Result.Unknown) {
     setCompleteGame((prev) => ({
       ...prev,
       game: {
         ...prev.game,
-        result: chess!.turn() === "w" ? Result.BlackWin : Result.WhiteWin,
+        result: chess!.isDraw()
+          ? Result.Draw
+          : chess!.turn() === "w"
+          ? Result.BlackWin
+          : Result.WhiteWin,
       },
     }));
   }
 
-  const lastMove = tree.move;
   const [showDests] = useLocalStorage<boolean>({
     key: "show-dests",
     defaultValue: true,
@@ -131,7 +130,6 @@ function BoardPlay({
     defaultValue: false,
   });
   const boardRef = useRef(null);
-  const fen = tree.fen;
   const dests = toDests(chess, forcedEP);
   const turn = chess ? formatMove(chess.turn()) : undefined;
   const [pendingMove, setPendingMove] = useState<{
@@ -234,7 +232,7 @@ function BoardPlay({
             width={boardSize}
             height={boardSize}
             orientation={side ?? orientation}
-            fen={fen}
+            fen={tree.fen}
             coordinates={false}
             movable={{
               free: editingMode,
@@ -283,7 +281,7 @@ function BoardPlay({
             }}
             turnColor={turn}
             check={chess?.inCheck()}
-            lastMove={moveToKey(lastMove)}
+            lastMove={moveToKey(tree.move)}
             drawable={{
               enabled: true,
               visible: true,
@@ -330,4 +328,4 @@ function BoardPlay({
   );
 }
 
-export default BoardPlay;
+export default memo(BoardPlay);

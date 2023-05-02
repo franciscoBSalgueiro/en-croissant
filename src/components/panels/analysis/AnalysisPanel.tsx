@@ -9,7 +9,7 @@ import {
   Text,
 } from "@mantine/core";
 import { IconRobot, IconZoomCheck } from "@tabler/icons-react";
-import { memo, useContext } from "react";
+import { memo } from "react";
 import {
   Annotation,
   Score,
@@ -18,7 +18,6 @@ import {
 } from "../../../utils/chess";
 import { CompleteGame } from "../../../utils/db";
 import { Engine } from "../../../utils/engines";
-import GameContext from "../../common/GameContext";
 import { ProgressButton } from "../../common/ProgressButton";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
@@ -35,6 +34,7 @@ function AnalysisPanel({
   toggleReportingMode,
   inProgress,
   setInProgress,
+  tree,
 }: {
   boardSize: number;
   engines: Engine[];
@@ -47,8 +47,8 @@ function AnalysisPanel({
   toggleReportingMode: () => void;
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
+  tree: VariationTree;
 }) {
-  const tree = useContext(GameContext).game.tree;
   /* get through the main line and get the average centipawn loss for each player*/
   const getGameStats = (tree: VariationTree) => {
     let whiteCPSum = 0;

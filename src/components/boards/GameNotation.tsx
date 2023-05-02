@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   Box,
-  CopyButton,
   createStyles,
   Divider,
   Group,
@@ -23,8 +22,6 @@ import {
   IconArrowUp,
   IconArticle,
   IconArticleOff,
-  IconCheck,
-  IconCopy,
   IconEye,
   IconEyeOff,
   IconMinus,
@@ -34,7 +31,7 @@ import {
 import { DEFAULT_POSITION } from "chess.js";
 import { memo, useContext, useEffect, useRef } from "react";
 import { VariationTree } from "../../utils/chess";
-import { NormalizedGame, Outcome } from "../../utils/db";
+import { Outcome } from "../../utils/db";
 import GameContext from "../common/GameContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
@@ -50,7 +47,7 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function GameNotation({
-  game,
+  tree,
   setTree,
   topVariation,
   result,
@@ -60,7 +57,7 @@ function GameNotation({
   setNotationExpanded,
   notationExpanded,
 }: {
-  game: NormalizedGame;
+  tree: VariationTree;
   setTree: (tree: VariationTree) => void;
   topVariation: VariationTree;
   deleteVariation?: () => void;
@@ -75,7 +72,7 @@ function GameNotation({
 
   useEffect(() => {
     if (viewport.current) {
-      if (game.tree.fen === DEFAULT_POSITION) {
+      if (tree.fen === DEFAULT_POSITION) {
         viewport.current.scrollTo({ top: 0, behavior: "smooth" });
       } else if (targetRef.current) {
         viewport.current.scrollTo({
@@ -84,14 +81,13 @@ function GameNotation({
         });
       }
     }
-  }, [game.tree.fen]);
+  }, [tree.fen]);
 
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
   const { classes } = useStyles();
-  const pgn = topVariation.getPGN({ headers: game });
 
   const multipleLine =
     topVariation.commentHTML.split("</p>").length - 1 > 1 ||
@@ -165,22 +161,6 @@ function GameNotation({
                     )}
                   </ActionIcon>
                 </Tooltip>
-                <CopyButton value={pgn} timeout={2000}>
-                  {({ copied, copy }) => (
-                    <Tooltip label={copied ? "Copied" : "Copy PGN"} withArrow>
-                      <ActionIcon
-                        color={copied ? "teal" : "gray"}
-                        onClick={copy}
-                      >
-                        {copied ? (
-                          <IconCheck size={15} />
-                        ) : (
-                          <IconCopy size={15} />
-                        )}
-                      </ActionIcon>
-                    </Tooltip>
-                  )}
-                </CopyButton>
               </Group>
             </Group>
             <Divider />

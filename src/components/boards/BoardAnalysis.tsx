@@ -76,8 +76,16 @@ function BoardAnalysis({
       return { game, currentMove };
     },
   });
-  const setTree = useCallback((tree: VariationTree) => {
+
+  const setTree = useCallback((s: React.SetStateAction<VariationTree>) => {
     setCompleteGame((prevGame) => {
+      let tree: VariationTree;
+      if (typeof s === "function") {
+        tree = s(prevGame.game.tree);
+      } else {
+        tree = s;
+      }
+
       return {
         ...prevGame,
         game: {
@@ -105,9 +113,7 @@ function BoardAnalysis({
   );
 
   const makeMove = useCallback(
-    function makeMove(
-      move: { from: Square; to: Square; promotion?: string } | string
-    ) {
+    (move: { from: Square; to: Square; promotion?: string } | string) => {
       if (chess === null) return;
       // if (chess === null) {
       //   invoke("make_move", {
@@ -153,10 +159,11 @@ function BoardAnalysis({
     [chess, completeGame.game.tree, editingMode, setTree]
   );
 
-  const makeMoves = useCallback(
-    function makeMoves(moves: string[]) {
-      let parentTree = completeGame.game.tree;
-      let newTree = completeGame.game.tree;
+  const makeMoves = useCallback((moves: string[]) => {
+    setTree((prevTree) => {
+      const chess = new Chess(prevTree.fen);
+      let parentTree = prevTree;
+      let newTree = prevTree;
       moves.forEach((move) => {
         const newMove = chess!.move(move);
         newTree = new VariationTree(parentTree, chess!.fen(), newMove);
@@ -174,10 +181,9 @@ function BoardAnalysis({
           )!;
         }
       });
-      setTree(newTree);
-    },
-    [chess, completeGame.game.tree, setTree]
-  );
+      return newTree;
+    });
+  }, []);
 
   const deleteVariation = useCallback(
     function deleteVariation() {
@@ -230,25 +236,13 @@ function BoardAnalysis({
     [chess, completeGame.game.tree.fen, setTree]
   );
 
-  function undoMove() {
-    if (completeGame.game.tree.parent) {
-      setTree(completeGame.game.tree.parent);
-    }
-  }
+  const undoMove = () => setTree((prev) => prev.parent || prev);
 
-  function redoMove() {
-    if (completeGame.game.tree.children.length > 0) {
-      setTree(completeGame.game.tree.children[0]);
-    }
-  }
+  const redoMove = () => setTree((prev) => prev.children[0] || prev);
 
-  function goToStart() {
-    setTree(completeGame.game.tree.getTopVariation());
-  }
+  const goToStart = () => setTree((prev) => prev.getTopVariation());
 
-  function goToEnd() {
-    setTree(completeGame.game.tree.getBottomVariation());
-  }
+  const goToEnd = () => setTree((prev) => prev.getBottomVariation());
 
   const changeToPlayMode = useCallback(
     function changeToPlayMode() {
@@ -323,7 +317,8 @@ function BoardAnalysis({
             editingMode={editingMode}
             toggleEditingMode={toggleEditingMode}
             setCompleteGame={setCompleteGame}
-            completeGame={completeGame}
+            result={completeGame.game.result}
+            tree={completeGame.game.tree}
             addPiece={addPiece}
           />
         }
@@ -366,7 +361,10 @@ function BoardAnalysis({
               <DatabasePanel makeMove={makeMove} height={boardSize / 2} />
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
-              <AnnotationPanel setTree={setTree} />
+              <AnnotationPanel
+                tree={completeGame.game.tree}
+                setTree={setTree}
+              />
             </Tabs.Panel>
             <Tabs.Panel value="analysis" pt="xs">
               <AnalysisPanel
@@ -381,12 +379,13 @@ function BoardAnalysis({
                 toggleReportingMode={toggleReportingMode}
                 inProgress={inProgress}
                 setInProgress={setInProgress}
+                tree={completeGame.game.tree}
               />
             </Tabs.Panel>
           </Tabs>
           <Stack>
             <GameNotation
-              game={completeGame.game}
+              tree={completeGame.game.tree}
               setTree={setTree}
               deleteVariation={deleteVariation}
               promoteVariation={promoteVariation}

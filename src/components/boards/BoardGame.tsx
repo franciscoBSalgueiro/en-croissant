@@ -199,7 +199,8 @@ function BoardGame({
       tree.children.length === 0 &&
       opponent &&
       opponent !== Opponent.Human &&
-      isBotTurn
+      isBotTurn &&
+      !chess.isGameOver()
     ) {
       let engineLevel;
       if (opponent === Opponent.Random) {
@@ -244,7 +245,8 @@ function BoardGame({
             viewOnly={opponent === null}
             disableVariations
             setCompleteGame={setCompleteGame}
-            completeGame={completeGame}
+            result={completeGame.game.result}
+            tree={completeGame.game.tree}
             side={playingColor}
             addPiece={() => {}}
           />
@@ -406,7 +408,7 @@ function BoardGame({
             )}
 
             <GameNotation
-              game={game}
+              tree={game.tree}
               setTree={setTree}
               topVariation={tree.getTopVariation()}
               result={Outcome.Unknown}

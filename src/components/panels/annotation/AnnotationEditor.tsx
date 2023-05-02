@@ -3,16 +3,13 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useContext } from "react";
 import { VariationTree } from "../../../utils/chess";
-import GameContext from "../../common/GameContext";
 
 interface AnnotationEditorProps {
+  tree: VariationTree;
   setTree: (tree: VariationTree) => void;
 }
-export function AnnotationEditor({ setTree }: AnnotationEditorProps) {
-  const tree = useContext(GameContext).game.tree;
-
+export function AnnotationEditor({ tree, setTree }: AnnotationEditorProps) {
   const editor = useEditor(
     {
       extensions: [

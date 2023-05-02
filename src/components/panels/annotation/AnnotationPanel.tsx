@@ -8,14 +8,13 @@ import {
 import GameContext from "../../common/GameContext";
 import { AnnotationEditor } from "./AnnotationEditor";
 
-interface AnnotationPanelProps {
-  setTree: (t: VariationTree) => void;
-}
-
 function SymbolButton({
   annotation,
   setTree,
-}: AnnotationPanelProps & { annotation: Annotation }) {
+}: {
+  annotation: Annotation;
+  setTree: (t: VariationTree) => void;
+}) {
   const tree = useContext(GameContext).game.tree;
 
   function annotate(annotation: Annotation) {
@@ -65,7 +64,13 @@ function SymbolButton({
   );
 }
 
-function AnnotationPanel({ setTree }: AnnotationPanelProps) {
+function AnnotationPanel({
+  tree,
+  setTree,
+}: {
+  tree: VariationTree;
+  setTree: (t: VariationTree) => void;
+}) {
   return (
     <Stack>
       <Group grow>
@@ -76,7 +81,7 @@ function AnnotationPanel({ setTree }: AnnotationPanelProps) {
         <SymbolButton setTree={setTree} annotation={Annotation.Mistake} />
         <SymbolButton setTree={setTree} annotation={Annotation.Blunder} />
       </Group>
-      <AnnotationEditor setTree={setTree} />
+      <AnnotationEditor tree={tree} setTree={setTree} />
     </Stack>
   );
 }
