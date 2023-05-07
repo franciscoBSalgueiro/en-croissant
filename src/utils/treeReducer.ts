@@ -158,23 +158,19 @@ export interface TreeState {
     position: number[];
 }
 
-function deepCopy<T>(obj: T): T {
-    return JSON.parse(JSON.stringify(obj));
-}
-
-const treeReducer = (state: TreeState, action: TreeAction): TreeState => {
+const treeReducer = (state: TreeState, action: TreeAction) => {
     switch (action.type) {
         case "SET_HEADERS":
-            return { ...state, headers: action.payload };
+            return void (state.headers = action.payload);
         case "MAKE_MOVE":
             return makeMove(state, action.payload);
         case "MAKE_MOVES":
             for (const move of action.payload) {
-                state = makeMove(state, move);
+                makeMove(state, move);
             }
-            return state;
+            break;
         case "GO_TO_START":
-            return { ...state, position: [] };
+            return void (state.position = []);
         case "GO_TO_END":
             const endPosition: number[] = [];
             let currentNode = state.root;
@@ -182,39 +178,61 @@ const treeReducer = (state: TreeState, action: TreeAction): TreeState => {
                 endPosition.push(0);
                 currentNode = currentNode.children[0];
             }
-            return { ...state, position: endPosition };
+            return void (state.position = endPosition);
         case "GO_TO_NEXT":
-            const nextPosition = [...state.position];
-            const nextNode = getNodeAtPath(state.root, nextPosition);
-            if (!nextNode) return state;
-            if (nextNode.children.length === 0) return state;
-            nextPosition.push(0);
-            return { ...state, position: nextPosition };
+            const node = getNodeAtPath(state.root, state.position);
+            if (node && node.children.length > 0) {
+                state.position.push(0);
+            }
+            break;
         case "GO_TO_PREVIOUS":
-            const previousPosition = [...state.position];
-            if (previousPosition.length === 0) return state;
-            previousPosition.pop();
-            return { ...state, position: previousPosition };
+            if (state.position.length !== 0) {
+                state.position.pop();
+            }
+            break;
         case "GO_TO_MOVE":
-            return { ...state, position: action.payload };
+            return void (state.position = action.payload);
         case "DELETE_MOVE":
             return deleteMove(state, action.payload || state.position);
         case "SET_ANNOTATION":
-            return setAnnotation(state, action.payload);
+            {
+                const node = getNodeAtPath(state.root, state.position);
+                if (node) {
+                    if (node.annotation === action.payload) {
+                        node.annotation = Annotation.None;
+                    } else {
+                        node.annotation = action.payload;
+                    }
+                }
+            }
+            break;
         case "SET_COMMENT":
-            return setComment(state, action.payload);
+            {
+                const node = getNodeAtPath(state.root, state.position);
+                if (node) {
+                    node.commentHTML = action.payload.html;
+                    node.commentText = action.payload.text;
+                }
+            }
+            break;
         case "SET_FEN":
-            return setFen(state, action.payload);
+            state.root = defaultTree(action.payload).root;
+            state.position = [];
+            break;
         case "SET_SCORE":
-            return setScore(state, action.payload);
+            {
+                const node = getNodeAtPath(state.root, state.position);
+                if (node) {
+                    node.score = action.payload;
+                }
+            }
+            break;
         case "ADD_ANALYSIS":
             return addAnalysis(state, action.payload);
         case "SET_SHAPES":
             return setShapes(state, action.payload);
         case "PROMOTE_VARIATION":
             return promoteVariation(state, action.payload);
-        default:
-            return state;
     }
 };
 
@@ -222,21 +240,18 @@ function makeMove(
     state: TreeState,
     move: { from: Square; to: Square; promotion?: string } | string
 ) {
-    const newTree = deepCopy(state.root);
-    const newPosition = [...state.position];
-    const moveNode = getNodeAtPath(newTree, state.position);
+    const moveNode = getNodeAtPath(state.root, state.position);
     if (!moveNode) return state;
     const chess = new Chess(moveNode.fen);
     let m: Move;
     try {
         m = chess.move(move);
     } catch (e) {
-        return state;
+        return;
     }
     const i = moveNode.children.findIndex((n) => n.move?.san === m.san);
     if (i !== -1) {
-        newPosition.push(i);
-        return { ...state, root: newTree, position: newPosition };
+        state.position.push(i);
     }
     const newMoveNode = createNode({
         fen: chess.fen(),
@@ -244,60 +259,22 @@ function makeMove(
         halfMoves: moveNode.halfMoves + 1,
     });
     moveNode.children.push(newMoveNode);
-    newPosition.push(moveNode.children.length - 1);
-    return { ...state, root: newTree, position: newPosition };
+    state.position.push(moveNode.children.length - 1);
 }
 
 function deleteMove(state: TreeState, path: number[]) {
-    const newTree = deepCopy(state.root);
-    const node = getNodeAtPath(newTree, path);
-    if (!node) return state;
-    const parent = getNodeAtPath(newTree, path.slice(0, -1));
-    if (!parent) return state;
+    const node = getNodeAtPath(state.root, path);
+    if (!node) return;
+    const parent = getNodeAtPath(state.root, path.slice(0, -1));
+    if (!parent) return;
     const index = parent.children.findIndex((n) => n === node);
     parent.children.splice(index, 1);
     if (isPrefix(path, state.position)) {
-        return { ...state, root: newTree, position: path.slice(0, -1) };
+        state.position = path.slice(0, -1);
     }
-    return { ...state, root: newTree };
 }
 
-function setAnnotation(state: TreeState, annotation: Annotation) {
-    const newTree = deepCopy(state.root);
-    const node = getNodeAtPath(newTree, state.position);
-    if (!node) return state;
-    if (node.annotation === annotation) {
-        node.annotation = Annotation.None;
-    } else {
-        node.annotation = annotation;
-    }
-    return { ...state, root: newTree };
-}
-
-function setComment(state: TreeState, payload: { html: string; text: string }) {
-    const newTree = deepCopy(state.root);
-    const node = getNodeAtPath(newTree, state.position);
-    if (!node) return state;
-    node.commentHTML = payload.html;
-    node.commentText = payload.text;
-    return { ...state, root: newTree };
-}
-
-function setScore(state: TreeState, score: Score): TreeState {
-    const newTree = deepCopy(state.root);
-    const node = getNodeAtPath(newTree, state.position);
-    if (!node) return state;
-    node.score = score;
-    return { ...state, root: newTree };
-}
-
-function setFen(state: TreeState, fen: string): TreeState {
-    const newTree = defaultTree(fen);
-    return { ...state, root: newTree.root, position: [] };
-}
-
-function promoteVariation(state: TreeState, path: number[]): TreeState {
-    const newTree = deepCopy(state.root);
+function promoteVariation(state: TreeState, path: number[]) {
     // get last element different from 0
     const [v, i] = path.reduceRight(
         (acc, v, i) => (v === 0 ? acc : [v, i]),
@@ -305,13 +282,12 @@ function promoteVariation(state: TreeState, path: number[]): TreeState {
     );
     if (i === 0) return state;
     const promotablePath = path.slice(0, i);
-    const newPosition = [...path];
-    newPosition[i] = 0;
+    path[i] = 0;
     if (promotablePath.length === 0) return state;
-    const node = getNodeAtPath(newTree, promotablePath);
+    const node = getNodeAtPath(state.root, promotablePath);
     if (!node) return state;
     node.children.unshift(node.children.splice(v, 1)[0]);
-    return { ...state, root: newTree, position: newPosition };
+    state.position = path;
 }
 
 export const getNodeAtPath = (
@@ -324,9 +300,8 @@ export const getNodeAtPath = (
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 
-function addAnalysis(state: TreeState, analysis: MoveAnalysis[]): TreeState {
-    let newTree = deepCopy(state.root);
-    let cur = newTree.children[0];
+function addAnalysis(state: TreeState, analysis: MoveAnalysis[]) {
+    let cur = state.root.children[0];
     let i = 0;
     while (cur !== undefined) {
         console.log(analysis[i]);
@@ -345,13 +320,10 @@ function addAnalysis(state: TreeState, analysis: MoveAnalysis[]): TreeState {
         cur = cur.children[0];
         i++;
     }
-    return { ...state, root: newTree };
 }
 
-function setShapes(state: TreeState, shapes: DrawShape[]): TreeState {
-    console.log(shapes);
-    const newTree = deepCopy(state.root);
-    const node = getNodeAtPath(newTree, state.position);
+function setShapes(state: TreeState, shapes: DrawShape[]) {
+    const node = getNodeAtPath(state.root, state.position);
     if (!node) return state;
     const shape = shapes[0];
     const index = node.shapes.findIndex(
@@ -363,7 +335,6 @@ function setShapes(state: TreeState, shapes: DrawShape[]): TreeState {
     } else {
         node.shapes.push(shape);
     }
-    return { ...state, root: newTree };
 }
 
 export default treeReducer;

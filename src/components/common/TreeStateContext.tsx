@@ -1,4 +1,5 @@
-import { createContext, useEffect, useReducer } from "react";
+import { createContext, useEffect } from "react";
+import { useImmerReducer } from "use-immer";
 import treeReducer, {
   TreeAction,
   TreeState,
@@ -27,7 +28,7 @@ export function TreeStateProvider({
   id: string;
   children: React.ReactNode;
 }) {
-  const [treeState, dispatch] = useReducer(
+  const [treeState, dispatch] = useImmerReducer(
     treeReducer,
     id,
     getTreeFromSessionStorage
