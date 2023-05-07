@@ -40,7 +40,7 @@ use tokio::sync::Semaphore;
 use tauri_plugin_oauth::start;
 
 #[tauri::command]
-async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
+async fn start_server(username: String, verifier: String, window: Window) -> Result<u16, String> {
     println!("Starting server");
 
     start(move |url| {
@@ -68,7 +68,8 @@ async fn start_server(verifier: String, window: Window) -> Result<u16, String> {
                 serde_json::json!({
                     "grant_type": "authorization_code",
                     "redirect_uri": base_url,
-                    "client_id": "FrankWillow",
+                    "username": username,
+                    "client_id": "org.encroissant.app",
                     "code": code,
                     "code_verifier": verifier
                 })

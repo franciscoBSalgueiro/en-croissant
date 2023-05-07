@@ -238,7 +238,7 @@ export async function getPlayersGameInfo(
             player = players.data[0];
         }
     }
-    return invoke("get_players_game_info", {
+    return await invoke("get_players_game_info", {
         file,
         id: player?.id,
     });

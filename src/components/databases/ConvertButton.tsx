@@ -36,8 +36,8 @@ function ConvertButton({
 
   useEffect(() => {
     async function getProgress() {
-      await listen("convert_progress", (event) => {
-        const progress = event.payload as number[];
+      await listen<number[]>("convert_progress", (event) => {
+        const progress = event.payload;
         setProgress({ total: progress[0], elapsed: progress[1] / 1000 });
       });
     }

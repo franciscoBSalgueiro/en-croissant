@@ -1052,7 +1052,10 @@ pub async fn get_players_game_info(
         }
 
         if let Some(date) = date {
-            let date = NaiveDate::parse_from_str(&date, "%Y.%m.%d").unwrap();
+            let date = match NaiveDate::parse_from_str(&date, "%Y.%m.%d") {
+                Ok(date) => date,
+                Err(_) => continue,
+            };
             let month = date.format("%Y-%m").to_string();
 
             // increment month count or add new month

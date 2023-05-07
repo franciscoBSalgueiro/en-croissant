@@ -1,7 +1,12 @@
-import { Button, Modal, Select, TextInput } from "@mantine/core";
+import {
+  Button,
+  Checkbox,
+  Modal,
+  Select,
+  Stack,
+  TextInput,
+} from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
-import { IconX } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { getChessComAccount } from "../../utils/chesscom";
@@ -27,10 +32,11 @@ function Accounts() {
   async function listen_for_code() {
     if (isListesning.current) return;
     isListesning.current = true;
-    await listen("redirect_uri", async (event) => {
+    await listen<string>("redirect_uri", async (event) => {
       if (authWindow.current) authWindow.current.close();
-      const token = event.payload as string;
-      const account = await getLichessAccount(token);
+      const token = event.payload;
+      const account = await getLichessAccount({ token });
+      if (!account) return;
       setSessions((sessions) => [
         ...sessions,
         { lichess: { accessToken: token, account }, updatedAt: Date.now() },
@@ -38,15 +44,19 @@ function Accounts() {
     });
   }
 
-  async function login(clientId: string) {
+  async function login(username: string) {
     const { verifier, challenge } = await createCodes();
-    const port = await invoke("start_server", { verifier: verifier });
+    const port = await invoke("start_server", {
+      username,
+      verifier,
+    });
 
     authWindow.current = window.open(
       "https://lichess.org/oauth?" +
         new URLSearchParams({
           response_type: "code",
-          client_id: clientId,
+          client_id: "org.encroissant.app",
+          username,
           redirect_uri: `http://localhost:${port}`,
           scope: "preference:read",
           code_challenge_method: "S256",
@@ -54,6 +64,21 @@ function Accounts() {
         }),
       "_blank"
     );
+  }
+
+  async function addLichess(username: string, withLogin: boolean) {
+    if (withLogin) {
+      login(username);
+    } else {
+      const account = await getLichessAccount({
+        username,
+      });
+      if (!account) return;
+      setSessions((sessions) => [
+        ...sessions,
+        { lichess: { username, account }, updatedAt: Date.now() },
+      ]);
+    }
   }
 
   useEffect(() => {
@@ -73,23 +98,15 @@ function Accounts() {
       <AccountModal
         open={open}
         setOpen={setOpen}
-        addLichess={login}
+        addLichess={addLichess}
         addChessCom={(u) => {
-          getChessComAccount(u)
-            .then((stats) => {
-              setSessions((sessions) => [
-                ...sessions,
-                { chessCom: { username: u, stats }, updatedAt: Date.now() },
-              ]);
-            })
-            .catch(() => {
-              notifications.show({
-                title: "Failed to add account",
-                message: 'Could not find account "' + u + '" on chess.com',
-                color: "red",
-                icon: <IconX />,
-              });
-            });
+          getChessComAccount(u).then((stats) => {
+            if (!stats) return;
+            setSessions((sessions) => [
+              ...sessions,
+              { chessCom: { username: u, stats }, updatedAt: Date.now() },
+            ]);
+          });
         }}
       />
     </>
@@ -106,15 +123,16 @@ function AccountModal({
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
-  addLichess: (username: string) => void;
+  addLichess: (username: string, withLogin: boolean) => void;
   addChessCom: (username: string) => void;
 }) {
   const [username, setUsername] = useState("");
   const [website, setWebsite] = useState<"lichess" | "chesscom">("lichess");
+  const [withLogin, setWithLogin] = useState(false);
 
   function addAccount() {
     if (website === "lichess") {
-      addLichess(username);
+      addLichess(username, withLogin);
     } else {
       addChessCom(username);
     }
@@ -129,27 +147,36 @@ function AccountModal({
           addAccount();
         }}
       >
-        <Select
-          label="Website"
-          placeholder="Select website"
-          data={[
-            { label: "Lichess", value: "lichess" },
-            { label: "Chess.com", value: "chesscom" },
-          ]}
-          value={website}
-          onChange={(e) => setWebsite(e as any)}
-          required
-        />
-        <TextInput
-          label="Username"
-          placeholder="Enter your username"
-          required
-          value={username}
-          onChange={(e) => setUsername(e.currentTarget.value)}
-        />
-        <Button sx={{ marginTop: "1rem" }} type="submit">
-          Add
-        </Button>
+        <Stack>
+          <Select
+            label="Website"
+            placeholder="Select website"
+            data={[
+              { label: "Lichess", value: "lichess" },
+              { label: "Chess.com", value: "chesscom" },
+            ]}
+            value={website}
+            onChange={(v) => setWebsite(v as any)}
+            required
+          />
+          <TextInput
+            label="Username"
+            placeholder="Enter your username"
+            required
+            value={username}
+            onChange={(e) => setUsername(e.currentTarget.value)}
+          />
+          {website === "lichess" && (
+            <Checkbox
+              label="Login with browser"
+              checked={withLogin}
+              onChange={(e) => setWithLogin(e.currentTarget.checked)}
+            />
+          )}
+          <Button sx={{ marginTop: "1rem" }} type="submit">
+            Add
+          </Button>
+        </Stack>
       </form>
     </Modal>
   );

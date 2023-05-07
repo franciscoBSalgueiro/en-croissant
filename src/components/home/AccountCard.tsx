@@ -39,6 +39,7 @@ interface AccountCardProps {
   logout: () => void;
   reload: () => void;
   setDatabases: (databases: DatabaseInfo[]) => void;
+  token?: string;
 }
 
 export function AccountCard({
@@ -51,6 +52,7 @@ export function AccountCard({
   logout,
   reload,
   setDatabases,
+  token
 }: AccountCardProps) {
   const { classes, theme } = useStyles();
   const items = stats.map((stat) => {
@@ -180,7 +182,7 @@ export function AccountCard({
               onClick={async () => {
                 setLoading(true);
                 if (type === "lichess") {
-                  await downloadLichess(title, timestamp);
+                  await downloadLichess(title, timestamp, token);
                 } else {
                   await downloadChessCom(title, timestamp);
                 }

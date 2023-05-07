@@ -1,4 +1,8 @@
-import { ChessComStats, getChessComAccount } from "../../utils/chesscom";
+import {
+  ChessComStats,
+  getChessComAccount,
+  getStats,
+} from "../../utils/chesscom";
 import { DatabaseInfo } from "../../utils/db";
 import { getLichessAccount } from "../../utils/lichess";
 import { Session } from "../../utils/session";
@@ -25,14 +29,14 @@ function AccountCards({
   }
   return (
     <>
-      {" "}
       {sessions.map((session) => {
-        if (session.lichess) {
+        if (session.lichess && session.lichess.account) {
           const account = session.lichess.account;
           const lichessSession = session.lichess;
           return (
             <AccountCard
               key={account.id}
+              token={lichessSession.accessToken}
               type="lichess"
               database={
                 databases.find(
@@ -49,24 +53,26 @@ function AccountCards({
               }}
               setDatabases={setDatabases}
               reload={() => {
-                getLichessAccount(lichessSession.accessToken).then(
-                  (account) => {
-                    setSessions((sessions) =>
-                      sessions.map((s) =>
-                        s.lichess?.account.id === account.id
-                          ? {
-                              ...s,
-                              lichess: {
-                                account: account,
-                                accessToken: lichessSession.accessToken,
-                              },
-                              updatedAt: Date.now(),
-                            }
-                          : s
-                      )
-                    );
-                  }
-                );
+                getLichessAccount({
+                  token: lichessSession.accessToken,
+                  username: lichessSession.username,
+                }).then((account) => {
+                  if (!account) return;
+                  setSessions((sessions) =>
+                    sessions.map((s) =>
+                      s.lichess?.account.id === account.id
+                        ? {
+                            ...s,
+                            lichess: {
+                              account: account,
+                              accessToken: lichessSession.accessToken,
+                            },
+                            updatedAt: Date.now(),
+                          }
+                        : s
+                    )
+                  );
+                });
               }}
               stats={[
                 {
@@ -93,7 +99,7 @@ function AccountCards({
             />
           );
         }
-        if (session.chessCom) {
+        if (session.chessCom && session.chessCom.stats) {
           return (
             <AccountCard
               key={session.chessCom.username}
@@ -107,24 +113,7 @@ function AccountCards({
               }
               updatedAt={session.updatedAt}
               total={countGames(session.chessCom.stats)}
-              stats={[
-                {
-                  value: session.chessCom.stats.chess_bullet.last.rating,
-                  label: "Bullet",
-                },
-                {
-                  value: session.chessCom.stats.chess_blitz.last.rating,
-                  label: "Blitz",
-                },
-                {
-                  value: session.chessCom.stats.chess_rapid.last.rating,
-                  label: "Rapid",
-                },
-                {
-                  value: session.chessCom.stats.chess_daily.last.rating,
-                  label: "Daily",
-                },
-              ]}
+              stats={getStats(session.chessCom.stats)}
               logout={() => {
                 setSessions((sessions) =>
                   sessions.filter(
@@ -134,6 +123,7 @@ function AccountCards({
               }}
               reload={() => {
                 getChessComAccount(session.chessCom!.username).then((stats) => {
+                  if (!stats) return;
                   setSessions((sessions) =>
                     sessions.map((s) =>
                       s.chessCom?.username === session.chessCom?.username

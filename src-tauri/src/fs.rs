@@ -1,6 +1,6 @@
 use std::{fs::create_dir_all, io::Cursor, path::Path};
 
-use reqwest::Client;
+use reqwest::{header::HeaderMap, Client};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
@@ -21,11 +21,24 @@ pub async fn download_file(
     path: String,
     zip: bool,
     app: tauri::AppHandle,
+    token: Option<String>,
 ) -> Result<String, String> {
     println!("Downloading file from {}", url);
     let client = Client::new();
-    let res = client
-        .get(&url)
+
+    let mut req = client.get(&url);
+    // add Bearer if token is present
+    if let Some(token) = token {
+        let mut header_map = HeaderMap::new();
+        header_map.insert(
+            "Authorization",
+            format!("Bearer {token}")
+                .parse()
+                .unwrap(),
+        );
+        req = req.headers(header_map);
+    }
+    let res = req
         .send()
         .await
         .map_err(|_| format!("Failed to GET from '{}'", &url))?;

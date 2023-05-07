@@ -2,7 +2,8 @@ import { ChessComStats } from "./chesscom";
 import { LichessAccount } from "./lichess";
 
 type LichessSession = {
-    accessToken: string;
+    accessToken?: string;
+    username?: string;
     account: LichessAccount;
 };
 
