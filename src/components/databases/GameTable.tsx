@@ -18,7 +18,6 @@ import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
-  CompleteGame,
   DatabaseInfo,
   NormalizedGame,
   Outcome,
@@ -262,17 +261,14 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                     variant="filled"
                     color={theme.primaryColor}
                     onClick={() => {
-                      const id = createTab(
-                        `${game.white.name} - ${game.black.name}`,
-                        "analysis",
+                      const id = createTab({
+                        name: `${game.white.name} - ${game.black.name}`,
+                        type: "analysis",
                         setTabs,
-                        setActiveTab
-                      );
-                      const completeGame: CompleteGame = {
-                        game,
-                        currentMove: [],
-                      };
-                      sessionStorage.setItem(id, JSON.stringify(completeGame));
+                        setActiveTab,
+                        pgn: game.moves,
+                        headers: game,
+                      });
                       router.push("/boards");
                     }}
                   >

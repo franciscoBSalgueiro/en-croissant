@@ -12,6 +12,7 @@ import { useSessionStorage } from "../../utils/misc";
 import { createTab, genID, Tab } from "../../utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
+import { TreeStateProvider } from "../common/TreeStateContext";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
@@ -125,7 +126,10 @@ export default function BoardsPage() {
   }
 
   useHotkeys([
-    ["ctrl+T", () => createTab("New Tab", "new", setTabs, setActiveTab)],
+    [
+      "ctrl+T",
+      () => createTab({ name: "New Tab", type: "new", setTabs, setActiveTab }),
+    ],
     ["ctrl+W", () => closeTab(activeTab)],
     ["ctrl+tab", () => cycleTabs()],
     ["ctrl+shift+tab", () => cycleTabs(true)],
@@ -173,7 +177,14 @@ export default function BoardsPage() {
               ))}
             </Tabs.List>
             <ActionIcon
-              onClick={() => createTab("New tab", "new", setTabs, setActiveTab)}
+              onClick={() =>
+                createTab({
+                  name: "New tab",
+                  type: "new",
+                  setTabs,
+                  setActiveTab,
+                })
+              }
               className={classes.newTab}
             >
               <IconPlus size={16} />
@@ -196,11 +207,18 @@ export default function BoardsPage() {
         return <NewTabHome setTabs={setTabs} id={tab.value} />;
 
       case "play":
-        return <BoardGame id={tab.value} tabs={tabs} setTabs={setTabs} />;
+        return (
+          <TreeStateProvider id={tab.value}>
+            <BoardGame id={tab.value} tabs={tabs} setTabs={setTabs} />
+          </TreeStateProvider>
+        );
 
       case "analysis":
-        return <BoardAnalysis id={tab.value} tabs={tabs} setTabs={setTabs} />;
-
+        return (
+          <TreeStateProvider id={tab.value}>
+            <BoardAnalysis id={tab.value} />
+          </TreeStateProvider>
+        );
       case "puzzles":
         return <Puzzles id={tab.value} />;
     }

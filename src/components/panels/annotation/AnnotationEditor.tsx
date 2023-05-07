@@ -3,13 +3,17 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { VariationTree } from "../../../utils/chess";
+import { memo, useContext } from "react";
+import { TreeDispatchContext } from "../../common/TreeStateContext";
 
-interface AnnotationEditorProps {
-  tree: VariationTree;
-  setTree: (tree: VariationTree) => void;
-}
-export function AnnotationEditor({ tree, setTree }: AnnotationEditorProps) {
+function AnnotationEditor({
+  path,
+  commentHTML,
+}: {
+  path: number[];
+  commentHTML: string;
+}) {
+  const dispatch = useContext(TreeDispatchContext);
   const editor = useEditor(
     {
       extensions: [
@@ -17,20 +21,28 @@ export function AnnotationEditor({ tree, setTree }: AnnotationEditorProps) {
         Underline,
         Placeholder.configure({ placeholder: "Write here..." }),
       ],
-      content: tree.commentHTML,
+      content: commentHTML,
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
+        let commentHTML: string;
+        let commentText: string;
         if (html === "<p></p>") {
-          tree.commentHTML = "";
-          tree.commentText = "";
+          commentHTML = "";
+          commentText = "";
         } else {
-          tree.commentHTML = html;
-          tree.commentText = editor.getText();
+          commentHTML = html;
+          commentText = editor.getText();
         }
-        setTree(tree);
+        dispatch({
+          type: "SET_COMMENT",
+          payload: {
+            html: commentHTML,
+            text: commentText,
+          },
+        });
       },
     },
-    [tree]
+    [commentHTML]
   );
 
   return (
@@ -63,3 +75,10 @@ export function AnnotationEditor({ tree, setTree }: AnnotationEditorProps) {
     </RichTextEditor>
   );
 }
+
+export default memo(
+  AnnotationEditor,
+  (prevProps, nextProps) =>
+    prevProps.path === nextProps.path ||
+    prevProps.commentHTML === nextProps.commentHTML
+);

@@ -1,14 +1,14 @@
 import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { NormalizedGame } from "../../../utils/db";
+import { memo } from "react";
+import { getPGN } from "../../../utils/chess";
+import { GameHeaders, TreeNode } from "../../../utils/treeReducer";
 
-function PgnInput({ game }: { game: NormalizedGame }) {
-  const tree = game.tree;
+function PgnInput({ root, headers }: { root: TreeNode; headers: GameHeaders }) {
   const [comments, toggleComments] = useToggle([true, false]);
   const [annotations, toggleAnnotations] = useToggle([true, false]);
   const [variations, toggleVariations] = useToggle([true, false]);
   const [symbols, toggleSymbols] = useToggle();
-  const root = tree.getTopVariation();
   return (
     <>
       <Stack spacing={0}>
@@ -42,8 +42,8 @@ function PgnInput({ game }: { game: NormalizedGame }) {
         <Textarea
           readOnly
           autosize
-          value={root.getPGN({
-            headers: game,
+          value={getPGN(root, {
+            headers: headers,
             symbols: annotations,
             comments,
             variations,
@@ -55,4 +55,4 @@ function PgnInput({ game }: { game: NormalizedGame }) {
   );
 }
 
-export default PgnInput;
+export default memo(PgnInput);

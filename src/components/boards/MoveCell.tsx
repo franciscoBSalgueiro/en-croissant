@@ -1,4 +1,5 @@
 import { Box, createStyles } from "@mantine/core";
+import { forwardRef } from "react";
 import { Annotation, annotationColor } from "../../utils/chess";
 
 const useStyles = createStyles(
@@ -36,29 +37,34 @@ const useStyles = createStyles(
   })
 );
 
-function MoveCell({
-  move,
-  isCurrentVariation,
-  annotation,
-  comment,
-  onClick,
-}: {
-  move: string;
-  isCurrentVariation: boolean;
-  annotation: Annotation;
-  comment: string;
-  onClick: () => void;
-}) {
-  const color = annotationColor(annotation);
-  const { classes } = useStyles({ isCurrentVariation, color });
+const MoveCell = forwardRef(function MoveCell(
+  props: {
+    annotation: Annotation;
+    isCurrentVariation: boolean;
+    move: string;
+    onClick: () => void;
+    onContextMenu: (e: any) => void;
+  },
+  ref
+) {
+  const color = annotationColor(props.annotation);
+  const { classes } = useStyles({
+    isCurrentVariation: props.isCurrentVariation,
+    color,
+  });
 
   return (
-    <>
-      <Box component="button" className={classes.cell} onClick={onClick}>
-        {move + annotation}
-      </Box>
-    </>
+    <Box
+      /* @ts-ignore */
+      ref={ref}
+      component="button"
+      className={classes.cell}
+      onClick={props.onClick}
+      onContextMenu={props.onContextMenu}
+    >
+      {props.move + props.annotation}
+    </Box>
   );
-}
+});
 
 export default MoveCell;

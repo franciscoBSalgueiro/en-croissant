@@ -1,89 +1,103 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { memo, useContext } from "react";
+import { Annotation, annotationColor } from "../../../utils/chess";
+import { getNodeAtPath } from "../../../utils/treeReducer";
 import {
-  Annotation,
-  VariationTree,
-  annotationColor,
-} from "../../../utils/chess";
-import GameContext from "../../common/GameContext";
-import { AnnotationEditor } from "./AnnotationEditor";
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../../common/TreeStateContext";
+import AnnotationEditor from "./AnnotationEditor";
 
-function SymbolButton({
-  annotation,
-  setTree,
-}: {
-  annotation: Annotation;
-  setTree: (t: VariationTree) => void;
-}) {
-  const tree = useContext(GameContext).game.tree;
-
-  function annotate(annotation: Annotation) {
-    if (tree.annotation === annotation) {
-      tree.annotation = Annotation.None;
-    } else {
-      tree.annotation = annotation;
+const SymbolButton = memo(
+  ({
+    curAnnotation,
+    annotation,
+  }: {
+    curAnnotation: Annotation;
+    annotation: Annotation;
+  }) => {
+    const dispatch = useContext(TreeDispatchContext);
+    let label: string;
+    switch (annotation) {
+      case Annotation.Good:
+        label = "Good";
+        break;
+      case Annotation.Brilliant:
+        label = "Brilliant";
+        break;
+      case Annotation.Mistake:
+        label = "Mistake";
+        break;
+      case Annotation.Blunder:
+        label = "Blunder";
+        break;
+      case Annotation.Dubious:
+        label = "Dubious";
+        break;
+      case Annotation.Interesting:
+        label = "Interesting";
+        break;
+      default:
+        label = "Unknown";
     }
-    setTree(tree);
+    const color = annotationColor(annotation);
+    const isActive = curAnnotation === annotation;
+    return (
+      <Tooltip label={label}>
+        <ActionIcon
+          onClick={() =>
+            dispatch({
+              type: "SET_ANNOTATION",
+              payload: annotation,
+            })
+          }
+          variant={isActive ? "filled" : "default"}
+          color={color}
+        >
+          <Text>{annotation}</Text>
+        </ActionIcon>
+      </Tooltip>
+    );
   }
+);
 
-  let label: string;
-  switch (annotation) {
-    case Annotation.Good:
-      label = "Good";
-      break;
-    case Annotation.Brilliant:
-      label = "Brilliant";
-      break;
-    case Annotation.Mistake:
-      label = "Mistake";
-      break;
-    case Annotation.Blunder:
-      label = "Blunder";
-      break;
-    case Annotation.Dubious:
-      label = "Dubious";
-      break;
-    case Annotation.Interesting:
-      label = "Interesting";
-      break;
-    default:
-      label = "Unknown";
+function AnnotationPanel() {
+  const { root, position } = useContext(TreeStateContext);
+  const currentNode = getNodeAtPath(root, position);
+  if (!currentNode) {
+    return null;
   }
-  const color = annotationColor(annotation);
-  const isActive = tree.annotation === annotation;
-  return (
-    <Tooltip label={label}>
-      <ActionIcon
-        onClick={() => annotate(annotation)}
-        variant={isActive ? "filled" : "default"}
-        color={color}
-      >
-        <Text>{annotation}</Text>
-      </ActionIcon>
-    </Tooltip>
-  );
-}
-
-function AnnotationPanel({
-  tree,
-  setTree,
-}: {
-  tree: VariationTree;
-  setTree: (t: VariationTree) => void;
-}) {
   return (
     <Stack>
       <Group grow>
-        <SymbolButton setTree={setTree} annotation={Annotation.Brilliant} />
-        <SymbolButton setTree={setTree} annotation={Annotation.Good} />
-        <SymbolButton setTree={setTree} annotation={Annotation.Interesting} />
-        <SymbolButton setTree={setTree} annotation={Annotation.Dubious} />
-        <SymbolButton setTree={setTree} annotation={Annotation.Mistake} />
-        <SymbolButton setTree={setTree} annotation={Annotation.Blunder} />
+        <SymbolButton
+          curAnnotation={currentNode.annotation}
+          annotation={Annotation.Brilliant}
+        />
+        <SymbolButton
+          curAnnotation={currentNode.annotation}
+          annotation={Annotation.Good}
+        />
+        <SymbolButton
+          curAnnotation={currentNode.annotation}
+          annotation={Annotation.Interesting}
+        />
+        <SymbolButton
+          curAnnotation={currentNode.annotation}
+          annotation={Annotation.Dubious}
+        />
+        <SymbolButton
+          curAnnotation={currentNode.annotation}
+          annotation={Annotation.Mistake}
+        />
+        <SymbolButton
+          curAnnotation={currentNode.annotation}
+          annotation={Annotation.Blunder}
+        />
       </Group>
-      <AnnotationEditor tree={tree} setTree={setTree} />
+      <AnnotationEditor path={position} commentHTML={currentNode.commentHTML} />
     </Stack>
   );
 }
 
-export default memo(AnnotationPanel);
+export default AnnotationPanel;

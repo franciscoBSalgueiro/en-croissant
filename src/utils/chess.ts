@@ -4,15 +4,23 @@ import {
     DEFAULT_POSITION,
     KING,
     Move,
-    PieceSymbol,
     ROOK,
     Square,
     SQUARES,
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
-import { CompleteGame, getHeaders, NormalizedGame, Outcome } from "./db";
+import { Outcome } from "./db";
 import { formatScore } from "./format";
+import {
+    createNode,
+    defaultTree,
+    GameHeaders,
+    getNodeAtPath,
+    headersToPGN,
+    TreeNode,
+    TreeState,
+} from "./treeReducer";
 
 export type Score = {
     type: "cp" | "mate";
@@ -126,233 +134,138 @@ export interface BestMovesPayload {
     tab: string;
 }
 
-export class VariationTree {
-    parent: VariationTree | null;
-    fen: string;
-    move: Move | null;
-    children: VariationTree[];
-    score: Score | null;
-    depth: number;
-    halfMoves: number;
-    shapes: DrawShape[] = [];
-    annotation: Annotation = Annotation.None;
-    commentHTML: string = "";
-    commentText: string = "";
-
-    constructor(
-        parent: VariationTree | null,
-        fen: string,
-        move: Move | null,
-        children?: VariationTree[],
-        score?: Score,
-        depth?: number
-    ) {
-        this.parent = parent;
-        this.fen = fen;
-        this.move = move;
-        this.children = children ?? [];
-        this.score = score ?? null;
-        this.depth = depth ?? 0;
-        this.halfMoves = parent ? parent.halfMoves + 1 : 0;
-    }
-
-    equals(other: VariationTree): boolean {
-        return this.fen === other.fen;
-    }
-
-    getPosition(): number[] {
-        let currentTree: VariationTree = this;
-        let positions: number[] = [];
-        while (currentTree.parent !== null) {
-            const parent = currentTree.parent;
-            const index = parent.children.indexOf(currentTree);
-            positions.unshift(index);
-            currentTree = parent;
-        }
-        return positions;
-    }
-
-    getMoveText(opt: {
+export function getMoveText(
+    tree: TreeNode,
+    opt: {
         symbols: boolean;
         comments: boolean;
         specialSymbols: boolean;
         isFirst?: boolean;
-    }): string {
-        if (this.move === null) {
-            return "";
-        }
-        const isBlack = this.halfMoves % 2 === 0;
-        const moveNumber = Math.ceil(this.halfMoves / 2);
-        let moveText = "";
-        if (isBlack) {
-            if (opt.isFirst) {
-                moveText += `${moveNumber}... `;
-            }
-        } else {
-            moveText += `${moveNumber}. `;
-        }
-        moveText += this.move.san;
-        if (opt.symbols) {
-            moveText += this.annotation;
-        }
-        moveText += " ";
-
-        if (opt.comments || opt.specialSymbols) {
-            let content = "{";
-
-            if (opt.specialSymbols && this.score !== null) {
-                content += `[%eval ${formatScore(this.score)}] `;
-            }
-
-            if (opt.specialSymbols && this.shapes.length > 0) {
-                const squares = this.shapes
-                    .filter((shape) => shape.dest === undefined)
-                    .map((shape) => {
-                        return shape.orig;
-                    });
-                const arrows = this.shapes
-                    .filter((shape) => shape.dest !== undefined)
-                    .map((shape) => {
-                        return shape.orig + shape.dest;
-                    });
-                if (squares.length > 0) {
-                    content += `[%csl ${squares.join(",")}] `;
-                }
-                if (arrows.length > 0) {
-                    content += `[%cal ${arrows.join(",")}] `;
-                }
-            }
-
-            if (opt.comments && this.commentText !== "") {
-                content += this.commentText;
-            }
-            content += "} ";
-
-            if (content !== "{} ") {
-                moveText += content;
-            }
-        }
-        return moveText;
     }
+): string {
+    if (tree.move === null) {
+        return "";
+    }
+    const isBlack = tree.halfMoves % 2 === 0;
+    const moveNumber = Math.ceil(tree.halfMoves / 2);
+    let moveText = "";
+    if (isBlack) {
+        if (opt.isFirst) {
+            moveText += `${moveNumber}... `;
+        }
+    } else {
+        moveText += `${moveNumber}. `;
+    }
+    moveText += tree.move.san;
+    if (opt.symbols) {
+        moveText += tree.annotation;
+    }
+    moveText += " ";
 
-    getPGN({
+    if (opt.comments || opt.specialSymbols) {
+        let content = "{";
+
+        if (opt.specialSymbols && tree.score !== null) {
+            content += `[%eval ${formatScore(tree.score)}] `;
+        }
+
+        if (opt.specialSymbols && tree.shapes.length > 0) {
+            const squares = tree.shapes
+                .filter((shape) => shape.dest === undefined)
+                .map((shape) => {
+                    return shape.orig;
+                });
+            const arrows = tree.shapes
+                .filter((shape) => shape.dest !== undefined)
+                .map((shape) => {
+                    return shape.orig + shape.dest;
+                });
+            if (squares.length > 0) {
+                content += `[%csl ${squares.join(",")}] `;
+            }
+            if (arrows.length > 0) {
+                content += `[%cal ${arrows.join(",")}] `;
+            }
+        }
+
+        if (opt.comments && tree.commentText !== "") {
+            content += tree.commentText;
+        }
+        content += "} ";
+
+        if (content !== "{} ") {
+            moveText += content;
+        }
+    }
+    return moveText;
+}
+
+export function getPGN(
+    tree: TreeNode,
+    {
         headers,
         symbols = true,
         comments = true,
         variations = true,
         specialSymbols = true,
+        root = true,
     }: {
-        headers: NormalizedGame | null;
+        headers: GameHeaders | null;
         symbols?: boolean;
         comments?: boolean;
         variations?: boolean;
         specialSymbols?: boolean;
-    }): string {
-        let pgn = "";
-        if (headers) {
-            pgn += getHeaders(headers);
-        }
-        if (this.parent === null) {
-            if (this.fen !== DEFAULT_POSITION) {
-                pgn += '[FEN "' + this.fen + '"]\n\n';
-            } else {
-                pgn += "\n";
-            }
-        }
-        const variationsPGN = variations
-            ? this.children.slice(1).map(
-                  (variation) =>
-                      `${variation.getMoveText({
-                          symbols,
-                          comments,
-                          specialSymbols,
-                          isFirst: true,
-                      })} ${variation.getPGN({
-                          headers: null,
-                          symbols,
-                          comments,
-                          variations,
-                          specialSymbols,
-                      })}`
-              )
-            : [];
-        if (this.children.length > 0) {
-            const child = this.children[0];
-            pgn += child.getMoveText({ symbols, comments, specialSymbols });
-        }
-        if (variationsPGN.length >= 1) {
-            variationsPGN.forEach((variation) => {
-                pgn += ` (${variation}) `;
-            });
-        }
-
-        if (this.children.length > 0) {
-            pgn += this.children[0].getPGN({
-                headers: null,
-                symbols,
-                comments,
-                variations,
-                specialSymbols,
-            });
-        }
-        return pgn.trim();
+        root?: boolean;
+    }
+): string {
+    let pgn = "";
+    if (headers) {
+        pgn += headersToPGN(headers);
+    }
+    if (root && tree.fen !== DEFAULT_POSITION) {
+        pgn += '[FEN "' + tree.fen + '"]\n';
+    }
+    pgn += "\n";
+    const variationsPGN = variations
+        ? tree.children.slice(1).map(
+              (variation) =>
+                  `${getMoveText(variation, {
+                      symbols,
+                      comments,
+                      specialSymbols,
+                      isFirst: true,
+                  })} ${getPGN(variation, {
+                      headers: null,
+                      symbols,
+                      comments,
+                      variations,
+                      specialSymbols,
+                      root: false,
+                  })}`
+          )
+        : [];
+    if (tree.children.length > 0) {
+        const child = tree.children[0];
+        pgn += getMoveText(child, { symbols, comments, specialSymbols });
+    }
+    if (variationsPGN.length >= 1) {
+        variationsPGN.forEach((variation) => {
+            pgn += ` (${variation}) `;
+        });
     }
 
-    getTopVariation(): VariationTree {
-        if (this.parent === null) {
-            return this;
-        }
-        return this.parent.getTopVariation();
+    if (tree.children.length > 0) {
+        pgn += getPGN(tree.children[0], {
+            headers: null,
+            symbols,
+            comments,
+            variations,
+            specialSymbols,
+            root: false,
+        });
     }
-
-    getBottomVariation(): VariationTree {
-        if (this.children.length === 0) {
-            return this;
-        }
-        return this.children[0].getBottomVariation();
-    }
-
-    isInBranch(tree: VariationTree): boolean {
-        if (this.equals(tree)) {
-            return true;
-        }
-        if (this.parent === null) {
-            return false;
-        }
-        return this.parent.isInBranch(tree);
-    }
-
-    getNumberOfChildren(): number {
-        let count = 0;
-        for (const child of this.children) {
-            count += 1 + child.getNumberOfChildren();
-        }
-        return count;
-    }
-
-    getNumberOfBranches(): number {
-        let count = 0;
-        for (let i = 0; i < this.children.length; i++) {
-            if (i !== 0) {
-                count += 1;
-            }
-            count += this.children[i].getNumberOfBranches();
-        }
-        return count;
-    }
+    return pgn.trim();
 }
-
-export function goToPosition(
-    tree: VariationTree,
-    position: number[]
-): VariationTree {
-    let currentTree = tree;
-    for (const index of position) {
-        currentTree = currentTree.children[index];
-    }
-    return currentTree;
-}
-
 export function moveToKey(move: Move | null) {
     return move ? ([move.from, move.to] as Key[]) : [];
 }
@@ -394,10 +307,6 @@ export function toDests(
     return dests;
 }
 
-export function formatMove(orientation: string) {
-    return orientation === "w" ? "white" : "black";
-}
-
 export function parseUci(move: string) {
     const from = move.substring(0, 2) as Square;
     const to = move.substring(2, 4) as Square;
@@ -405,13 +314,20 @@ export function parseUci(move: string) {
     return { from, to, promotion };
 }
 
-export async function getOpening(tree: VariationTree | null): Promise<string> {
+export async function getOpening(
+    root: TreeNode,
+    position: number[]
+): Promise<string> {
+    if (position.length === 0) {
+        return "";
+    }
+    const tree = getNodeAtPath(root, position);
     if (tree === null) {
         return "";
     }
     return invoke("get_opening", { fen: tree.fen })
         .then((v) => v as string)
-        .catch(() => getOpening(tree.parent));
+        .catch(() => getOpening(root, position.slice(0, -1)));
 }
 
 export function swapMove(fen: string) {
@@ -426,9 +342,11 @@ export function parsePGN(
     pgn: string,
     fen: string = DEFAULT_POSITION,
     halfMoves: number = 0
-): VariationTree {
-    let tree = new VariationTree(null, fen, null);
-    tree.halfMoves = halfMoves;
+): TreeState {
+    let tree = defaultTree(fen);
+    let root = tree.root;
+    let prevNode = root;
+    root.halfMoves = halfMoves;
     pgn = pgn.replaceAll("[", " [ ");
     pgn = pgn.replaceAll("]", " ] ");
     pgn = pgn.replaceAll("(", " ( ");
@@ -454,7 +372,7 @@ export function parsePGN(
                 i++;
             }
             if (tag === "FEN") {
-                tree.fen = value.substring(1, value.length - 1);
+                root.fen = value.substring(1, value.length - 1);
             }
         } else if (token === "" || token.match(/\d+\./)) {
             continue;
@@ -472,13 +390,13 @@ export function parsePGN(
                         i++;
                     }
                     if (tag === "%eval") {
-                        tree.score = parseScore(value);
+                        root.score = parseScore(value);
                     }
                     if (tag === "%csl") {
-                        tree.shapes.push(...parseCsl(value));
+                        root.shapes.push(...parseCsl(value));
                     }
                     if (tag === "%cal") {
-                        tree.shapes.push(...parseCal(value));
+                        root.shapes.push(...parseCal(value));
                     }
                     i++;
                     continue;
@@ -486,8 +404,8 @@ export function parsePGN(
                 comment += tokens[i] + " ";
                 i++;
             }
-            tree.commentText = comment;
-            tree.commentHTML = `<p>${comment}</p>`;
+            root.commentText = comment;
+            root.commentHTML = `<p>${comment}</p>`;
         } else if (token === "(") {
             let variation = "";
             let subvariations = 0;
@@ -502,12 +420,8 @@ export function parsePGN(
 
                 i++;
             }
-            tree = tree.parent!;
-            const variationTree = parsePGN(variation, tree.fen, tree.halfMoves)
-                .children[0];
-            variationTree.parent = tree;
-            tree.children.push(variationTree);
-            tree = tree.children[0];
+            const newTree = parsePGN(variation, prevNode.fen, root.halfMoves);
+            prevNode.children.push(newTree.root);
         } else if (token === ")") {
             continue;
         } else if (
@@ -518,7 +432,7 @@ export function parsePGN(
         ) {
             break;
         } else {
-            const chess = new Chess(tree.fen);
+            const chess = new Chess(root.fen);
             let m: Move;
             try {
                 m = chess.move(token);
@@ -527,8 +441,12 @@ export function parsePGN(
                 continue;
             }
 
-            const newTree = new VariationTree(tree, chess.fen(), m);
-            tree.children.push(newTree);
+            const newTree = createNode({
+                fen: chess.fen(),
+                move: m,
+                halfMoves: root.halfMoves + 1,
+            });
+            root.children.push(newTree);
 
             if (token.endsWith("!!" || "$3")) {
                 newTree.annotation = Annotation.Brilliant;
@@ -543,47 +461,14 @@ export function parsePGN(
             } else if (token.endsWith("?" || "$2")) {
                 newTree.annotation = Annotation.Mistake;
             }
-            tree = newTree;
+            prevNode = root;
+            root = newTree;
         }
-    }
-    return tree.getTopVariation();
-}
-
-export function movesToVariationTree(
-    moves: string,
-    fen: string = DEFAULT_POSITION
-) {
-    let movesList = moves.split(" ");
-    let tree = new VariationTree(null, fen, null);
-    if (moves === "") {
-        return tree;
-    }
-    let currentTree = tree;
-    for (let i = 0; i < movesList.length; i++) {
-        const move = movesList[i];
-        const chess = new Chess(currentTree.fen);
-        const m = chess.move(move);
-        const newTree = new VariationTree(currentTree, chess.fen(), m);
-        currentTree.children.push(newTree);
-        currentTree = newTree;
     }
     return tree;
 }
 
-export function stripPGNheader(pgn: string) {
-    const lines = pgn.split("\n");
-    let i = 0;
-
-    while (
-        i < lines.length &&
-        (lines[i].startsWith("[") || lines[i].trim() === "")
-    ) {
-        i++;
-    }
-    return lines.slice(i).join("\n");
-}
-
-export function getCompleteGame(pgn: string): CompleteGame {
+export function getPgnHeaders(pgn: string): GameHeaders {
     pgn = pgn.replaceAll("0-0", "O-O");
 
     const chess = new Chess();
@@ -591,36 +476,31 @@ export function getCompleteGame(pgn: string): CompleteGame {
     const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event, FEN } =
         chess.header();
 
-    const game: CompleteGame = {
-        currentMove: [],
-        game: {
+    const headers: GameHeaders = {
+        id: 0,
+        result: (Result as Outcome) ?? Outcome.Unknown,
+        black: {
             id: 0,
-            result: (Result as Outcome) ?? Outcome.Unknown,
-            black: {
-                id: 0,
-                name: Black ?? "?",
-            },
-            white: {
-                id: 0,
-                name: White ?? "?",
-            },
-            black_elo: BlackElo ? parseInt(BlackElo) : 0,
-            white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
-            date: Date ?? "",
-            moves: stripPGNheader(pgn),
-            ply_count: chess.history().length,
-            site: {
-                id: 0,
-                name: Site ?? "",
-            },
-            event: {
-                id: 0,
-                name: Event ?? "",
-            },
-            tree: new VariationTree(null, FEN || DEFAULT_POSITION, null),
+            name: Black ?? "?",
+        },
+        white: {
+            id: 0,
+            name: White ?? "?",
+        },
+        black_elo: BlackElo ? parseInt(BlackElo) : 0,
+        white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
+        date: Date ?? "",
+        ply_count: chess.history().length,
+        site: {
+            id: 0,
+            name: Site ?? "",
+        },
+        event: {
+            id: 0,
+            name: Event ?? "",
         },
     };
-    return game;
+    return headers;
 }
 
 export function handleMove(chess: Chess, orig: Key, dest: Key): Square {
@@ -646,26 +526,6 @@ export function handleMove(chess: Chess, orig: Key, dest: Key): Square {
         }
     }
     return dest;
-}
-
-export function uciToMove(uci: string, fen: string): Move | null {
-    try {
-        const chess = new Chess(fen);
-        const orig = uci.slice(0, 2) as Key;
-        const dest = handleMove(chess, orig, uci.slice(2, 4) as Key);
-        let promotion: PieceSymbol | undefined;
-        if (uci.length === 5) {
-            promotion = uci[4] as PieceSymbol;
-        }
-
-        return chess.move({
-            from: orig,
-            to: dest!,
-            promotion,
-        });
-    } catch (e) {
-        return null;
-    }
 }
 
 export function getWinChance(centipawns: number) {

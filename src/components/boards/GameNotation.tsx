@@ -13,26 +13,24 @@ import {
   TypographyStylesProvider,
   useMantineTheme,
 } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
+import { shallowEqual, useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsDiagonal,
   IconArrowsDiagonalMinimize2,
   IconArrowsSplit,
-  IconArrowUp,
   IconArticle,
   IconArticleOff,
   IconEye,
   IconEyeOff,
   IconMinus,
   IconPlus,
-  IconX,
 } from "@tabler/icons-react";
 import { DEFAULT_POSITION } from "chess.js";
 import { memo, useContext, useEffect, useRef } from "react";
-import { VariationTree } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
-import GameContext from "../common/GameContext";
+import { getNodeAtPath, TreeNode } from "../../utils/treeReducer";
+import { TreeStateContext } from "../common/TreeStateContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 
@@ -47,32 +45,25 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function GameNotation({
-  tree,
-  setTree,
-  topVariation,
-  result,
   boardSize,
-  deleteVariation,
-  promoteVariation,
   setNotationExpanded,
   notationExpanded,
 }: {
-  tree: VariationTree;
-  setTree: (tree: VariationTree) => void;
-  topVariation: VariationTree;
-  deleteVariation?: () => void;
-  promoteVariation?: () => void;
-  result?: string;
   boardSize: number;
   setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   notationExpanded: boolean;
 }) {
+  const { headers, position, root } = useContext(TreeStateContext);
+  const currentNode = getNodeAtPath(root, position);
+  if (!currentNode) {
+    return <></>;
+  }
   const viewport = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (viewport.current) {
-      if (tree.fen === DEFAULT_POSITION) {
+      if (currentNode.fen === DEFAULT_POSITION) {
         viewport.current.scrollTo({ top: 0, behavior: "smooth" });
       } else if (targetRef.current) {
         viewport.current.scrollTo({
@@ -81,7 +72,7 @@ function GameNotation({
         });
       }
     }
-  }, [tree.fen]);
+  }, [currentNode.fen]);
 
   const theme = useMantineTheme();
   const [invisible, toggleVisible] = useToggle();
@@ -90,10 +81,10 @@ function GameNotation({
   const { classes } = useStyles();
 
   const multipleLine =
-    topVariation.commentHTML.split("</p>").length - 1 > 1 ||
-    topVariation.commentHTML.includes("<blockquote>") ||
-    topVariation.commentHTML.includes("<ul>") ||
-    topVariation.commentHTML.includes("<h");
+    root.commentHTML.split("</p>").length - 1 > 1 ||
+    root.commentHTML.includes("<blockquote>") ||
+    root.commentHTML.includes("<ul>") ||
+    root.commentHTML.includes("<h");
 
   return (
     <Paper withBorder p="md" sx={{ position: "relative" }}>
@@ -103,68 +94,16 @@ function GameNotation({
         viewportRef={viewport}
       >
         <Stack>
-          <Stack className={classes.scroller}>
-            <Group style={{ justifyContent: "space-between" }}>
-              <OpeningName />
-              <Group spacing="sm">
-                {deleteVariation && (
-                  <Tooltip label="Delete variation">
-                    <ActionIcon onClick={() => deleteVariation()}>
-                      <IconX size={15} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-                {promoteVariation && (
-                  <Tooltip label="Promote variation">
-                    <ActionIcon onClick={() => promoteVariation()}>
-                      <IconArrowUp size={15} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-                <Tooltip label={invisible ? "Expand Moves" : "Shrink Moves"}>
-                  <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
-                    {notationExpanded ? (
-                      <IconArrowsDiagonalMinimize2 size={15} />
-                    ) : (
-                      <IconArrowsDiagonal size={15} />
-                    )}
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
-                  <ActionIcon onClick={() => toggleVisible()}>
-                    {invisible ? (
-                      <IconEyeOff size={15} />
-                    ) : (
-                      <IconEye size={15} />
-                    )}
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip
-                  label={showComments ? "Hide comments" : "Show comments"}
-                >
-                  <ActionIcon onClick={() => toggleComments()}>
-                    {showComments ? (
-                      <IconArticle size={15} />
-                    ) : (
-                      <IconArticleOff size={15} />
-                    )}
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip
-                  label={showVariations ? "Show Variations" : "Main line"}
-                >
-                  <ActionIcon onClick={() => toggleVariations()}>
-                    {showVariations ? (
-                      <IconArrowsSplit size={15} />
-                    ) : (
-                      <IconArrowRight size={15} />
-                    )}
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            </Group>
-            <Divider />
-          </Stack>
+          <NotationHeader
+            setNotationExpanded={setNotationExpanded}
+            notationExpanded={notationExpanded}
+            invisible={invisible}
+            toggleVisible={toggleVisible}
+            showComments={showComments}
+            toggleComments={toggleComments}
+            showVariations={showVariations}
+            toggleVariations={toggleVariations}
+          />
           <Box>
             {invisible && (
               <Overlay
@@ -174,7 +113,7 @@ function GameNotation({
                 zIndex={2}
               />
             )}
-            {showComments && topVariation.commentHTML && (
+            {showComments && root.commentHTML && (
               <TypographyStylesProvider
                 style={{
                   display: multipleLine ? "block" : "inline-block",
@@ -184,29 +123,30 @@ function GameNotation({
               >
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: topVariation.commentHTML,
+                    __html: root.commentHTML,
                   }}
                 />
               </TypographyStylesProvider>
             )}
             <RenderVariationTree
+              currentPath={position}
               targetRef={targetRef}
-              tree={topVariation}
+              tree={root}
               depth={0}
               first
-              setTree={setTree}
               showVariations={showVariations}
               showComments={showComments}
+              path={[]}
             />
           </Box>
-          {result && result !== Outcome.Unknown && (
+          {headers.result && headers.result !== Outcome.Unknown && (
             <Text align="center">
-              {result}
+              {headers.result}
               <br />
               <Text span fs="italic">
-                {result === Outcome.Draw
+                {headers.result === Outcome.Draw
                   ? "Draw"
-                  : result === Outcome.WhiteWin
+                  : headers.result === Outcome.WhiteWin
                   ? "White wins"
                   : "Black wins"}
               </Text>
@@ -218,24 +158,89 @@ function GameNotation({
   );
 }
 
+const NotationHeader = memo(
+  ({
+    setNotationExpanded,
+    notationExpanded,
+    invisible,
+    toggleVisible,
+    showComments,
+    toggleComments,
+    showVariations,
+    toggleVariations,
+  }: {
+    setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+    notationExpanded: boolean;
+    invisible: boolean;
+    toggleVisible: () => void;
+    showComments: boolean;
+    toggleComments: () => void;
+    showVariations: boolean;
+    toggleVariations: () => void;
+  }) => {
+    const { classes } = useStyles();
+    return (
+      <Stack className={classes.scroller}>
+        <Group style={{ justifyContent: "space-between" }}>
+          <OpeningName />
+          <Group spacing="sm">
+            <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
+              {notationExpanded ? (
+                <IconArrowsDiagonalMinimize2 size={15} />
+              ) : (
+                <IconArrowsDiagonal size={15} />
+              )}
+            </ActionIcon>
+            <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
+              <ActionIcon onClick={() => toggleVisible()}>
+                {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
+              <ActionIcon onClick={() => toggleComments()}>
+                {showComments ? (
+                  <IconArticle size={15} />
+                ) : (
+                  <IconArticleOff size={15} />
+                )}
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
+              <ActionIcon onClick={() => toggleVariations()}>
+                {showVariations ? (
+                  <IconArrowsSplit size={15} />
+                ) : (
+                  <IconArrowRight size={15} />
+                )}
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </Group>
+        <Divider />
+      </Stack>
+    );
+  }
+);
+
 function RenderVariationTree({
   tree,
   depth,
+  currentPath,
   first,
-  setTree,
   showVariations,
   showComments,
   targetRef,
+  path,
 }: {
-  tree: VariationTree;
+  currentPath: number[];
+  tree: TreeNode;
   depth: number;
   first?: boolean;
-  setTree: (tree: VariationTree) => void;
   showVariations: boolean;
   showComments: boolean;
   targetRef: React.RefObject<HTMLSpanElement>;
+  path: number[];
 }) {
-  const currentTree = useContext(GameContext).game.tree;
   const variations = tree.children;
   const moveNodes = showVariations
     ? variations.slice(1).map((variation) => (
@@ -246,20 +251,23 @@ function RenderVariationTree({
             commentHTML={variation.commentHTML}
             halfMoves={variation.halfMoves}
             move={variation.move?.san}
-            tree={variation}
-            setTree={setTree}
+            movePath={[...path, variations.indexOf(variation)]}
             showComments={showComments}
-            isCurrentVariation={variation === currentTree}
+            isCurrentVariation={shallowEqual(
+              [...path, variations.indexOf(variation)],
+              currentPath
+            )}
             first
           />
           <RenderVariationTree
+            currentPath={currentPath}
             targetRef={targetRef}
             tree={variation}
             depth={depth + 2}
-            setTree={setTree}
             first
             showVariations={showVariations}
             showComments={showComments}
+            path={[...path, variations.indexOf(variation)]}
           />
         </>
       ))
@@ -274,10 +282,9 @@ function RenderVariationTree({
           commentHTML={variations[0].commentHTML}
           halfMoves={variations[0].halfMoves}
           move={variations[0].move?.san}
-          tree={variations[0]}
-          setTree={setTree}
+          movePath={[...path, 0]}
           showComments={showComments}
-          isCurrentVariation={variations[0] === currentTree}
+          isCurrentVariation={shallowEqual([...path, 0], currentPath)}
           first={first}
         />
       )}
@@ -286,12 +293,13 @@ function RenderVariationTree({
 
       {tree.children.length > 0 && (
         <RenderVariationTree
+          currentPath={currentPath}
           targetRef={targetRef}
           tree={tree.children[0]}
           depth={depth + 1}
-          setTree={setTree}
           showVariations={showVariations}
           showComments={showComments}
+          path={[...path, 0]}
         />
       )}
     </>

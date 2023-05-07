@@ -76,7 +76,7 @@ export function BoardTab({
   }, [renaming]);
 
   return (
-    <Menu opened={open} shadow="md" width={200}>
+    <Menu opened={open} shadow="md" width={200} closeOnClickOutside>
       <Menu.Target>
         <Tooltip label={tab.name} key={tab.value}>
           <Tabs.Tab

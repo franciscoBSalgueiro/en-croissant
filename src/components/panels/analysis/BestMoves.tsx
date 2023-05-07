@@ -23,7 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Chess } from "chess.js";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   Annotation,
   BestMoves,
@@ -31,12 +31,11 @@ import {
   Score,
   swapMove,
 } from "../../../utils/chess";
-import { CompleteGame } from "../../../utils/db";
 import { Engine } from "../../../utils/engines";
 import { formatScore } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
-import GameContext from "../../common/GameContext";
+import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
 
 const useStyles = createStyles((theme) => ({
@@ -81,26 +80,20 @@ interface BestMovesProps {
   id: number;
   tab: string;
   engine: Engine;
-  makeMoves: (moves: string[]) => void;
   setArrows: (arrows: string[]) => void;
-  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
+  fen: string;
+  halfMoves: number;
 }
 
 function BestMoves({
   id,
   tab,
-  makeMoves,
   engine,
   setArrows,
-  setCompleteGame,
+  fen,
+  halfMoves,
 }: BestMovesProps) {
-  const tree = useContext(GameContext).game.tree;
-  let chess: Chess | null;
-  try {
-    chess = new Chess(tree.fen);
-  } catch (e) {
-    chess = null;
-  }
+  const dispatch = useContext(TreeDispatchContext);
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
   const [numberLines, setNumberLines] = useState<number>(3);
   const [maxDepth, setMaxDepth] = useState<number>(24);
@@ -114,21 +107,6 @@ function BestMoves({
   const progress = (depth / maxDepth) * 100;
   const theme = useMantineTheme();
 
-  async function startEngine() {
-    emit("stop_engine", engine.path);
-    if (!chess) {
-      return;
-    }
-    invoke("get_best_moves", {
-      engine: engine.path,
-      tab,
-      fen: threat ? swapMove(tree.fen) : tree.fen,
-      depth: maxDepth,
-      numberLines: Math.min(numberLines, chess.moves().length),
-      numberThreads: 2 ** cores,
-    });
-  }
-
   useEffect(() => {
     async function waitForMove() {
       await listen("best_moves", (event) => {
@@ -136,9 +114,9 @@ function BestMoves({
         const ev = payload.bestLines;
         if (payload.engine === engine.path && payload.tab === tab) {
           setEngineVariation(ev);
-          setCompleteGame((prevGame) => {
-            prevGame.game.tree.score = ev[0].score;
-            return prevGame;
+          dispatch({
+            type: "SET_SCORE",
+            payload: ev[0].score,
           });
           if (id === 0) {
             setArrows(
@@ -154,143 +132,163 @@ function BestMoves({
   }, []);
 
   useEffect(() => {
-    if (enabled) {
-      startEngine();
+    let chess: Chess | null;
+    try {
+      chess = new Chess(fen);
+    } catch (e) {
+      chess = null;
+    }
+    if (enabled && chess !== null) {
+      emit("stop_engine", engine.path);
+      invoke("get_best_moves", {
+        engine: engine.path,
+        tab,
+        fen: threat ? swapMove(fen) : fen,
+        depth: maxDepth,
+        numberLines: Math.min(numberLines, chess.moves().length),
+        numberThreads: 2 ** cores,
+      });
     } else {
       emit("stop_engine", engine.path);
     }
-  }, [tree.fen, enabled, numberLines, maxDepth, cores, threat]);
+  }, [enabled, numberLines, maxDepth, cores, threat, fen]);
 
   useEffect(() => {
     if (!enabled) {
       setEngineVariation([]);
     }
-  }, [tree.fen]);
+  }, [fen]);
 
-  useEffect(() => {
-    if (enabled && chess === null) {
-      toggleEnabled();
-    }
-  }, [chess]);
-
-  return (
-    <>
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        <Stack spacing={0}>
-          <ActionIcon
-            size="lg"
-            variant={enabled ? "filled" : "transparent"}
-            color={theme.primaryColor}
-            onClick={() => {
-              toggleEnabled();
-            }}
-            disabled={chess === null}
-            ml={12}
-          >
-            {enabled ? (
-              <IconPlayerPause size={16} />
-            ) : (
-              <IconPlayerPlay size={16} />
-            )}
-          </ActionIcon>
-        </Stack>
-
-        <Accordion.Control>
-          <Group position="apart">
-            <Group align="baseline">
-              <Text fw="bold" fz="xl">
-                {engine.name}
-              </Text>
-              {progress < 100 && enabled && (
-                <Tooltip label={"How fast the engine is running"}>
-                  <Text>{nps}k nodes/s</Text>
-                </Tooltip>
+  return useMemo(
+    () => (
+      <>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Stack spacing={0}>
+            <ActionIcon
+              size="lg"
+              variant={enabled ? "filled" : "transparent"}
+              color={theme.primaryColor}
+              onClick={() => {
+                toggleEnabled();
+              }}
+              ml={12}
+            >
+              {enabled ? (
+                <IconPlayerPause size={16} />
+              ) : (
+                <IconPlayerPlay size={16} />
               )}
-            </Group>
-            <Stack align="center" spacing={0}>
-              <Text
-                size="xs"
-                transform="uppercase"
-                weight={700}
-                className={classes.subtitle}
-              >
-                Depth
-              </Text>
-              <Text fw="bold" fz="xl">
-                {depth}
-              </Text>
-            </Stack>
-          </Group>
-        </Accordion.Control>
-        <Tooltip label="Check the opponent's threat">
-          <ActionIcon
-            size="lg"
-            onClick={() => toggleThreat()}
-            disabled={!enabled}
-            variant="transparent"
-          >
-            <IconTargetArrow color={threat ? "red" : undefined} size={16} />
-          </ActionIcon>
-        </Tooltip>
-        <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
-          <IconSettings size={16} />
-        </ActionIcon>
-      </Box>
-      <EngineSettings
-        settingsOn={settingsOn}
-        numberLines={numberLines}
-        setNumberLines={setNumberLines}
-        maxDepth={maxDepth}
-        setMaxDepth={setMaxDepth}
-        cores={cores}
-        setCores={setCores}
-      />
+            </ActionIcon>
+          </Stack>
 
-      <Progress
-        value={progress}
-        animate={progress < 100 && enabled}
-        size="xs"
-        striped={progress < 100 && !enabled}
-        // color={threat ? "red" : "blue"}
-        color={threat ? "red" : theme.primaryColor}
-      />
-      <Accordion.Panel>
-        <Table>
-          <tbody>
-            {engineVariations.length === 0 &&
-              (enabled ? (
-                Array.apply(null, Array(numberLines)).map((_, i) => (
-                  <tr key={i}>
+          <Accordion.Control>
+            <Group position="apart">
+              <Group align="baseline">
+                <Text fw="bold" fz="xl">
+                  {engine.name}
+                </Text>
+                {progress < 100 && enabled && (
+                  <Tooltip label={"How fast the engine is running"}>
+                    <Text>{nps}k nodes/s</Text>
+                  </Tooltip>
+                )}
+              </Group>
+              <Stack align="center" spacing={0}>
+                <Text
+                  size="xs"
+                  transform="uppercase"
+                  weight={700}
+                  className={classes.subtitle}
+                >
+                  Depth
+                </Text>
+                <Text fw="bold" fz="xl">
+                  {depth}
+                </Text>
+              </Stack>
+            </Group>
+          </Accordion.Control>
+          <Tooltip label="Check the opponent's threat">
+            <ActionIcon
+              size="lg"
+              onClick={() => toggleThreat()}
+              disabled={!enabled}
+              variant="transparent"
+            >
+              <IconTargetArrow color={threat ? "red" : undefined} size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
+            <IconSettings size={16} />
+          </ActionIcon>
+        </Box>
+        <EngineSettings
+          settingsOn={settingsOn}
+          numberLines={numberLines}
+          setNumberLines={setNumberLines}
+          maxDepth={maxDepth}
+          setMaxDepth={setMaxDepth}
+          cores={cores}
+          setCores={setCores}
+        />
+
+        <Progress
+          value={progress}
+          animate={progress < 100 && enabled}
+          size="xs"
+          striped={progress < 100 && !enabled}
+          // color={threat ? "red" : "blue"}
+          color={threat ? "red" : theme.primaryColor}
+        />
+        <Accordion.Panel>
+          <Table>
+            <tbody>
+              {engineVariations.length === 0 &&
+                (enabled ? (
+                  Array.apply(null, Array(numberLines)).map((_, i) => (
+                    <tr key={i}>
+                      <td>
+                        <Skeleton height={35} radius="xl" p={5} />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
                     <td>
-                      <Skeleton height={35} radius="xl" p={5} />
+                      <Text align="center" my="lg">
+                        Engine isn't enabled
+                      </Text>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td>
-                    <Text align="center" my="lg">
-                      Engine isn't enabled
-                    </Text>
-                  </td>
-                </tr>
-              ))}
-            {engineVariations.map((engineVariation, index) => {
-              return (
-                <AnalysisRow
-                  key={index}
-                  moves={engineVariation.sanMoves}
-                  score={engineVariation.score}
-                  halfMoves={tree.halfMoves}
-                  makeMoves={makeMoves}
-                  threat={threat}
-                />
-              );
-            })}
-          </tbody>
-        </Table>
-      </Accordion.Panel>
-    </>
+                ))}
+              {engineVariations.map((engineVariation, index) => {
+                return (
+                  <AnalysisRow
+                    key={index}
+                    moves={engineVariation.sanMoves}
+                    score={engineVariation.score}
+                    halfMoves={halfMoves}
+                    threat={threat}
+                  />
+                );
+              })}
+            </tbody>
+          </Table>
+        </Accordion.Panel>
+      </>
+    ),
+    [
+      enabled,
+      engineVariations,
+      threat,
+      settingsOn,
+      numberLines,
+      maxDepth,
+      cores,
+      progress,
+      nps,
+      depth,
+    ]
   );
 }
 
@@ -299,15 +297,14 @@ function AnalysisRow({
   moves,
   halfMoves,
   threat,
-  makeMoves,
 }: {
   score: Score;
   moves: string[];
   halfMoves: number;
   threat: boolean;
-  makeMoves: (moves: string[]) => void;
 }) {
   const [open, setOpen] = useState<boolean>(false);
+  const dispatch = useContext(TreeDispatchContext);
 
   return (
     <tr style={{ verticalAlign: "top" }}>
@@ -335,13 +332,18 @@ function AnalysisRow({
                   <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
                 )}
                 <MoveCell
-                  key={index}
+                  key={index + move}
                   move={move}
                   isCurrentVariation={false}
                   annotation={Annotation.None}
-                  comment={""}
+                  onContextMenu={() => {}}
                   onClick={() => {
-                    if (!threat) makeMoves(moves.slice(0, index + 1));
+                    if (!threat) {
+                      dispatch({
+                        type: "MAKE_MOVES",
+                        payload: moves.slice(0, index + 1),
+                      });
+                    }
                   }}
                 />
               </>
@@ -363,5 +365,4 @@ function AnalysisRow({
     </tr>
   );
 }
-
 export default BestMoves;

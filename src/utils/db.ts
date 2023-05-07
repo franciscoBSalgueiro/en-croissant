@@ -1,7 +1,5 @@
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
-import { DEFAULT_POSITION } from "chess.js";
-import { VariationTree } from "./chess";
 import { invoke } from "./misc";
 
 export enum Sides {
@@ -222,45 +220,6 @@ export interface NormalizedGame {
     black_material?: number;
     fen?: string;
     moves: string;
-    tree: VariationTree;
-}
-
-export function getHeaders(game: NormalizedGame): string {
-    let headers = `[Event "${game.event.name || "?"}"]
-[Site "${game.site.name || "?"}"]
-[Date "${game.date || "????.??.??"}"]
-[Round "${game.round || "?"}"]
-[White "${game.white.name || "?"}"]
-[Black "${game.black.name || "?"}"]
-[Result "${game.result}"]
-`;
-    return headers;
-}
-
-export function defaultGame(): NormalizedGame {
-    return {
-        id: 0,
-        event: {
-            id: 0,
-            name: "",
-        },
-        site: {
-            id: 0,
-            name: "",
-        },
-        white: {
-            id: 0,
-            name: "",
-        },
-        black: {
-            id: 0,
-            name: "",
-        },
-        ply_count: 0,
-        moves: "",
-        result: Outcome.Unknown,
-        tree: new VariationTree(null, DEFAULT_POSITION, null),
-    };
 }
 
 export async function getPlayersGameInfo(

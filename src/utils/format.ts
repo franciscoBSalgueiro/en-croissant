@@ -52,7 +52,6 @@ export function formatDuration(seconds: number): string {
 
 export function formatScore(score: Score): string {
     let scoreText = "";
-    console.log(score);
     if (score.type === "cp") {
         scoreText = Math.abs(score.value / 100).toFixed(2);
     } else {
@@ -64,6 +63,9 @@ export function formatScore(score: Score): string {
     if (score.value < 0) {
         scoreText = "-" + scoreText;
     }
-    console.log(scoreText);
     return scoreText;
+}
+
+export function formatMove(orientation: string) {
+    return orientation === "w" ? "white" : "black";
 }

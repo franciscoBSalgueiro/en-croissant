@@ -2,7 +2,7 @@ import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { invoke as invokeTauri } from "@tauri-apps/api";
 import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type StorageValue<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 
@@ -87,32 +87,15 @@ export function getBoardSize(height: number, width: number) {
   return initial;
 }
 
-type ThrottledFunction<T extends (...args: any[]) => any> = (
-  ...args: Parameters<T>
-) => ReturnType<T>;
 
-export function useThrottle<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number
-): ThrottledFunction<T> {
-  const canCallFn = useRef<boolean>(true);
-
-  const throttledFn = useCallback(
-    function (
-      this: ThisParameterType<T>,
-      ...args: Parameters<T>
-    ): ReturnType<T> | void {
-      if (canCallFn.current) {
-        const result = fn.apply(this, args) as ReturnType<T>;
-        canCallFn.current = false;
-        setTimeout(() => {
-          canCallFn.current = true;
-        }, delay);
-        return result;
+export function isPrefix<T>(arr1: T[], arr2: T[]): boolean {
+  if (arr1.length > arr2.length) {
+      return false;
+  }
+  for (let i = 0; i < arr1.length; i++) {
+      if (arr1[i] !== arr2[i]) {
+          return false;
       }
-    },
-    [delay, fn]
-  );
-
-  return throttledFn as ThrottledFunction<T>;
+  }
+  return true;
 }

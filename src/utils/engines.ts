@@ -1,4 +1,3 @@
-import { OS } from "@mantine/hooks";
 import { BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./misc";
@@ -8,13 +7,15 @@ export interface Engine {
     version: string;
     path: string;
     image: string;
-    elo: number | null;
+    elo: number | "";
     downloadSize?: number;
     downloadLink?: string;
     loaded?: boolean;
 }
 
-export async function getDefaultEngines(os: OS): Promise<Engine[]> {
+export async function getDefaultEngines(
+    os: "windows" | "linux" | "macos"
+): Promise<Engine[]> {
     let bmi2: boolean = await invoke("is_bmi2_compatible");
     let data: any = await fetch(
         `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,

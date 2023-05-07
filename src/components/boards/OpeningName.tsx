@@ -1,13 +1,15 @@
 import { Text } from "@mantine/core";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { getOpening } from "../../utils/chess";
-import GameContext from "../common/GameContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 
 function OpeningName() {
   const [openingName, setOpeningName] = useState("");
-  const tree = useContext(GameContext).game.tree;
+  const { root, position } = useContext(TreeStateContext);
 
-  getOpening(tree).then((v) => setOpeningName(v));
+  useEffect(() => {
+    getOpening(root, position).then((v) => setOpeningName(v));
+  }, [root, position]);
 
   return <Text fz="sm">{openingName}</Text>;
 }

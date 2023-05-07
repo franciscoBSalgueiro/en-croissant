@@ -20,12 +20,12 @@ import {
 import { useState } from "react";
 import Chessground from "react-chessground";
 import {
-  formatMove,
   handleMove,
   moveToKey,
   parseUci,
   toDests,
 } from "../../utils/chess";
+import { formatMove } from "../../utils/format";
 import { getBoardSize } from "../../utils/misc";
 import { Completion, Puzzle } from "../../utils/puzzles";
 import Piece from "../common/Piece";

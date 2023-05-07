@@ -7,14 +7,7 @@ function GameCard({ game }: { game: NormalizedGame }) {
   return (
     <Paper shadow="sm" p="sm" withBorder>
       <Stack>
-        <GameInfo
-          dateString={game.date}
-          whiteName={game.white.name}
-          blackName={game.black.name}
-          white_elo={game.white_elo}
-          black_elo={game.black_elo}
-          result={game.result}
-        />
+        <GameInfo headers={game} />
         <Divider mb="sm" />
         <GamePreview pgn={game.moves} />
       </Stack>

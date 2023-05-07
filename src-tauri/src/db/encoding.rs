@@ -1,4 +1,4 @@
-use shakmaty::{san::SanPlus, uci::Uci, ByColor, Chess, Move, Position};
+use shakmaty::{san::SanPlus, ByColor, Chess, Move, Position};
 
 use super::{get_material_count, get_pawn_home, is_end_reachable, is_material_reachable};
 

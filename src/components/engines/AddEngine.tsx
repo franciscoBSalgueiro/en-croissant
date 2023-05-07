@@ -12,9 +12,9 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useOs } from "@mantine/hooks";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
+import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import {
   Dispatch,
@@ -27,7 +27,7 @@ import { Engine, getDefaultEngines } from "../../utils/engines";
 import { formatBytes } from "../../utils/format";
 import { invoke } from "../../utils/misc";
 import FileInput from "../common/FileInput";
-import { ProgressButton } from "../common/ProgressButton";
+import ProgressButton from "../common/ProgressButton";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -57,7 +57,15 @@ function AddEngine({
   setOpened: (opened: boolean) => void;
   setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
-  const os = useOs();
+  const [os, setOs] = useState<"windows" | "linux" | "macos" | null>(null);
+
+  useEffect(() => {
+    platform().then((platform) => {
+      if (platform === "win32") setOs("windows");
+      else if (platform === "linux") setOs("linux");
+      else if (platform === "darwin") setOs("macos");
+    });
+  }, []);
 
   let filters: {
     name: string;
@@ -75,7 +83,7 @@ function AddEngine({
       name: "",
       path: "",
       image: "",
-      elo: null,
+      elo: "",
     },
 
     validate: {
@@ -90,7 +98,7 @@ function AddEngine({
   });
 
   useEffect(() => {
-    if (os === "undetermined") return;
+    if (!os) return;
     getDefaultEngines(os)
       .then((engines) => {
         setDefaultEngines(engines);
@@ -271,7 +279,7 @@ function EngineCard({
           </Group>
           <Group noWrap spacing="xs" mb="xs">
             <IconDatabase size={16} />
-            <Text size="xs">{formatBytes(engine.downloadSize!)}</Text>
+            <Text size="xs">{formatBytes(engine.downloadSize)}</Text>
           </Group>
           <ProgressButton
             id={engineId}

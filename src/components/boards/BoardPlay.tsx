@@ -33,20 +33,20 @@ import {
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { memo, useRef, useState } from "react";
+import { memo, useContext, useRef, useState } from "react";
 import Chessground from "react-chessground";
 import {
-  formatMove,
   handleMove,
   moveToKey,
   parseUci,
   toDests,
-  VariationTree,
 } from "../../utils/chess";
-import { CompleteGame, Outcome as Result } from "../../utils/db";
-import { formatScore } from "../../utils/format";
+import { Outcome } from "../../utils/db";
+import { formatMove, formatScore } from "../../utils/format";
 import { getBoardSize } from "../../utils/misc";
+import { GameHeaders, TreeNode } from "../../utils/treeReducer";
 import Piece from "../common/Piece";
+import { TreeDispatchContext } from "../common/TreeStateContext";
 import FenInput from "../panels/info/FenInput";
 import EvalBar from "./EvalBar";
 
@@ -60,57 +60,55 @@ const useStyles = createStyles(() => ({
 }));
 
 interface ChessboardProps {
+  currentNode: TreeNode;
   arrows: string[];
-  makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
-  setTree: (tree: VariationTree) => void;
-  addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
+  headers: GameHeaders;
+  // addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
   editingMode: boolean;
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
-  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
-  tree: VariationTree;
-  result: Result;
   side?: Color;
 }
 
 const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
 
 function BoardPlay({
+  currentNode,
+  headers,
   arrows,
-  setTree,
-  makeMove,
-  addPiece,
   editingMode,
   toggleEditingMode,
   viewOnly,
   disableVariations,
-  setCompleteGame,
-  tree,
-  result,
   side,
 }: ChessboardProps) {
+  const dispatch = useContext(TreeDispatchContext);
   let chess: Chess | null;
   let error: string | null = null;
   try {
-    chess = new Chess(tree.fen);
+    chess = new Chess(currentNode.fen);
   } catch (e: any) {
     chess = null;
     error = e.message;
   }
 
-  if (chess !== null && chess.isGameOver() && result === Result.Unknown) {
-    setCompleteGame((prev) => ({
-      ...prev,
-      game: {
-        ...prev.game,
-        result: chess!.isDraw()
-          ? Result.Draw
-          : chess!.turn() === "w"
-          ? Result.BlackWin
-          : Result.WhiteWin,
+  if (
+    chess !== null &&
+    chess.isGameOver() &&
+    headers.result === Outcome.Unknown
+  ) {
+    let newOutcome = Outcome.Draw;
+    if (chess.isCheckmate()) {
+      newOutcome = chess.turn() === "w" ? Outcome.BlackWin : Outcome.WhiteWin;
+    }
+    dispatch({
+      type: "SET_HEADERS",
+      payload: {
+        ...headers,
+        result: newOutcome,
       },
-    }));
+    });
   }
 
   const [showDests] = useLocalStorage<boolean>({
@@ -156,8 +154,8 @@ function BoardPlay({
         })
       : [];
 
-  if (tree.shapes.length > 0) {
-    shapes = shapes.concat(tree.shapes);
+  if (currentNode.shapes.length > 0) {
+    shapes = shapes.concat(currentNode.shapes);
   }
 
   const pieces = ["p", "n", "b", "r", "q", "k"] as const;
@@ -166,7 +164,7 @@ function BoardPlay({
     <>
       {width > 800 && (
         <EvalBar
-          score={tree.score}
+          score={currentNode.score}
           boardSize={boardSize}
           orientation={orientation}
         />
@@ -175,17 +173,12 @@ function BoardPlay({
       <Stack justify="center">
         {editingMode && (
           <Card shadow="md" style={{ overflow: "visible" }}>
-            <FenInput setCompleteGame={setCompleteGame} />
+            <FenInput />
             <SimpleGrid cols={6}>
               {colors.map((color) => {
                 return pieces.map((piece) => {
                   return (
-                    <Piece
-                      addPiece={addPiece}
-                      boardRef={boardRef}
-                      piece={piece}
-                      color={color}
-                    />
+                    <Piece boardRef={boardRef} piece={piece} color={color} />
                   );
                 });
               })}
@@ -204,10 +197,13 @@ function BoardPlay({
                 key={p}
                 sx={{ width: "100%", height: "100%", position: "relative" }}
                 onClick={() => {
-                  makeMove({
-                    from: pendingMove!.from,
-                    to: pendingMove!.to,
-                    promotion: p,
+                  dispatch({
+                    type: "MAKE_MOVE",
+                    payload: {
+                      from: pendingMove!.from,
+                      to: pendingMove!.to,
+                      promotion: p,
+                    },
                   });
                   setPendingMove(null);
                 }}
@@ -232,7 +228,7 @@ function BoardPlay({
             width={boardSize}
             height={boardSize}
             orientation={side ?? orientation}
-            fen={tree.fen}
+            fen={currentNode.fen}
             coordinates={false}
             movable={{
               free: editingMode,
@@ -240,16 +236,19 @@ function BoardPlay({
               dests:
                 editingMode || viewOnly
                   ? undefined
-                  : disableVariations && tree.children.length > 0
+                  : disableVariations && currentNode.children.length > 0
                   ? undefined
                   : dests,
               showDests,
               events: {
                 after: (orig, dest, metadata) => {
                   if (editingMode) {
-                    makeMove({
-                      from: orig as Square,
-                      to: dest as Square,
+                    dispatch({
+                      type: "MAKE_MOVE",
+                      payload: {
+                        from: orig as Square,
+                        to: dest as Square,
+                      },
                     });
                   } else {
                     if (chess) {
@@ -260,18 +259,24 @@ function BoardPlay({
                           (newDest[1] === "1" && turn === "black"))
                       ) {
                         if (autoPromote && !metadata.ctrlKey) {
-                          makeMove({
-                            from: orig as Square,
-                            to: newDest,
-                            promotion: QUEEN,
+                          dispatch({
+                            type: "MAKE_MOVE",
+                            payload: {
+                              from: orig as Square,
+                              to: newDest,
+                              promotion: QUEEN,
+                            },
                           });
                         } else {
                           setPendingMove({ from: orig as Square, to: newDest });
                         }
                       } else {
-                        makeMove({
-                          from: orig as Square,
-                          to: newDest,
+                        dispatch({
+                          type: "MAKE_MOVE",
+                          payload: {
+                            from: orig as Square,
+                            to: newDest,
+                          },
                         });
                       }
                     }
@@ -281,7 +286,7 @@ function BoardPlay({
             }}
             turnColor={turn}
             check={chess?.inCheck()}
-            lastMove={moveToKey(tree.move)}
+            lastMove={moveToKey(currentNode.move)}
             drawable={{
               enabled: true,
               visible: true,
@@ -289,24 +294,21 @@ function BoardPlay({
               eraseOnClick: true,
               autoShapes: shapes,
               onChange: (shapes) => {
-                const shape = shapes[0];
-                const index = tree.shapes.findIndex(
-                  (s) => s.orig === shape.orig && s.dest === shape.dest
-                );
-
-                if (index !== -1) {
-                  tree.shapes.splice(index, 1);
-                } else {
-                  tree.shapes.push(shape);
-                }
-                setTree(tree);
+                dispatch({
+                  type: "SET_SHAPES",
+                  payload: shapes,
+                });
               },
             }}
           />
         </Box>
 
         <Group position={"apart"} h={20}>
-          {tree.score ? <Text>{formatScore(tree.score)}</Text> : <div />}
+          {currentNode.score ? (
+            <Text>{formatScore(currentNode.score)}</Text>
+          ) : (
+            <div />
+          )}
 
           <Group>
             {!disableVariations && (

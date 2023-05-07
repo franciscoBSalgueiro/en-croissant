@@ -12,37 +12,29 @@ import { useForm } from "@mantine/form";
 import { useLocalStorage } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import { useContext, useEffect, useMemo, useState } from "react";
-import {
-  MoveAnalysis,
-  Score,
-  VariationTree,
-  getAnnotation,
-  goToPosition,
-} from "../../../utils/chess";
+import { MoveAnalysis } from "../../../utils/chess";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
-import GameContext from "../../common/GameContext";
+import { TreeDispatchContext } from "../../common/TreeStateContext";
 
 function ReportModal({
   moves,
   reportingMode,
   toggleReportingMode,
-  setTree,
   setInProgress,
 }: {
   moves: string;
   reportingMode: boolean;
   toggleReportingMode: () => void;
-  setTree: (tree: VariationTree) => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const tree = useContext(GameContext).game.tree;
   const [referenceDb] = useLocalStorage<string | null>({
     key: "reference-database",
     defaultValue: null,
   });
   const [engines, setEngines] = useState<Engine[]>([]);
+  const dispatch = useContext(TreeDispatchContext);
 
   const uciMoves = useMemo(() => {
     const chess = new Chess();
@@ -89,30 +81,10 @@ function ReportModal({
       moveTime: form.values.millisecondsPerMove,
       referenceDb,
     }).then((analysis) => {
-      let position = tree.getPosition();
-      let root = tree.getTopVariation().children[0];
-      let originalRoot = root;
-      let i = 0;
-      while (root !== undefined) {
-        root.score = analysis[i].best.score;
-
-        if (analysis[i].novelty) {
-          root.commentHTML = "Novelty";
-          root.commentText = "Novelty";
-        }
-
-        let prevScore: Score = { type: "cp", value: 0 };
-        if (i > 0) {
-          prevScore = analysis[i - 1].best.score;
-        }
-        const curScore = analysis[i].best.score;
-        const isWhite = i % 2 === 0;
-        root.annotation = getAnnotation(prevScore, curScore, isWhite);
-
-        root = root.children[0];
-        i++;
-      }
-      setTree(goToPosition(originalRoot.getTopVariation(), position));
+      dispatch({
+        type: "ADD_ANALYSIS",
+        payload: analysis,
+      });
     });
   }
 

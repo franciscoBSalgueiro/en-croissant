@@ -78,8 +78,8 @@ function GamePreview({
             <MoveControls
               goToStart={() => curMoveHandler.set(0)}
               goToEnd={() => curMoveHandler.set(totalMoves)}
-              redoMove={curMoveHandler.increment}
-              undoMove={curMoveHandler.decrement}
+              goToNext={curMoveHandler.increment}
+              goToPrevious={curMoveHandler.decrement}
             />
           </>
         )}

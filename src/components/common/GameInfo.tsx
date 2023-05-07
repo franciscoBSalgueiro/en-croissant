@@ -8,8 +8,9 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import dayjs from "dayjs";
-import { memo } from "react";
-import { CompleteGame } from "../../utils/db";
+import { memo, useContext } from "react";
+import { GameHeaders } from "../../utils/treeReducer";
+import { TreeDispatchContext } from "./TreeStateContext";
 
 const useStyles = createStyles((theme) => ({
   nameInput: {
@@ -48,26 +49,13 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function GameInfo({
-  dateString,
-  setCompleteGame,
-  white_elo,
-  whiteName,
-  black_elo,
-  blackName,
-  result,
-}: {
-  dateString?: string;
-  setCompleteGame?: React.Dispatch<React.SetStateAction<CompleteGame>>;
-  white_elo?: number | null;
-  whiteName?: string;
-  black_elo?: number | null;
-  blackName?: string;
-  result: string;
-}) {
-  const date = dateString
-    ? dayjs(dateString, "YYYY.MM.DD").isValid()
-      ? dayjs(dateString, "YYYY.MM.DD").toDate()
+function GameInfo({ headers }: { headers: GameHeaders }) {
+  const dispatch = useContext(TreeDispatchContext);
+  // check if dispatch has default value of () => {}
+  const disabled = dispatch.length === 0;
+  const date = headers.date
+    ? dayjs(headers.date, "YYYY.MM.DD").isValid()
+      ? dayjs(headers.date, "YYYY.MM.DD").toDate()
       : null
     : null;
   const { classes } = useStyles();
@@ -84,45 +72,43 @@ function GameInfo({
               className={classes.nameInput}
               size="lg"
               placeholder="?"
-              value={whiteName}
+              value={headers.white.name}
               onChange={(e) =>
-                setCompleteGame &&
-                setCompleteGame((prev) => ({
-                  ...prev,
-                  game: {
-                    ...prev.game,
+                dispatch({
+                  type: "SET_HEADERS",
+                  payload: {
+                    ...headers,
                     white: {
-                      ...prev.game.white,
+                      ...headers.white,
                       name: e.currentTarget.value,
                     },
                   },
-                }))
+                })
               }
-              disabled={!setCompleteGame}
+              disabled={disabled}
             />
             <NumberInput
               variant="unstyled"
               size="md"
               className={classes.eloInput}
               placeholder="Unknown ELO"
-              value={white_elo ?? ""}
+              value={headers.white_elo || ""}
               onChange={(n) =>
-                setCompleteGame &&
-                setCompleteGame((prev) => ({
-                  ...prev,
-                  game: {
-                    ...prev.game,
+                dispatch({
+                  type: "SET_HEADERS",
+                  payload: {
+                    ...headers,
                     white_elo: n === "" ? null : n,
                   },
-                }))
+                })
               }
-              disabled={!setCompleteGame}
+              disabled={disabled}
             />
           </div>
         </Group>
       </Stack>
       <Stack align="center" justify="end" spacing={0}>
-        <Text>{result}</Text>
+        <Text>{headers.result}</Text>
         {/* <Text>{outcome.replaceAll("1/2", "½")}</Text> */}
         <DateInput
           variant="unstyled"
@@ -130,19 +116,18 @@ function GameInfo({
           placeholder="????.??.??"
           value={date}
           allowDeselect
-          disabled={!setCompleteGame}
           onChange={(date) => {
-            setCompleteGame &&
-              setCompleteGame((prev) => ({
-                ...prev,
-                game: {
-                  ...prev.game,
-                  date: dayjs(date, "YYYY.MM.DD").isValid()
-                    ? dayjs(date, "YYYY.MM.DD").format("YYYY.MM.DD")
-                    : undefined,
-                },
-              }));
+            dispatch({
+              type: "SET_HEADERS",
+              payload: {
+                ...headers,
+                date: dayjs(date, "YYYY.MM.DD").isValid()
+                  ? dayjs(date, "YYYY.MM.DD").format("YYYY.MM.DD")
+                  : undefined,
+              },
+            });
           }}
+          disabled={disabled}
           className={classes.dateInput}
         />
       </Stack>
@@ -158,21 +143,20 @@ function GameInfo({
               size="lg"
               placeholder="?"
               sx={{ "& input": { textAlign: "right" } }}
-              value={blackName}
+              value={headers.black.name}
               onChange={(e) =>
-                setCompleteGame &&
-                setCompleteGame((prev) => ({
-                  ...prev,
-                  game: {
-                    ...prev.game,
+                dispatch({
+                  type: "SET_HEADERS",
+                  payload: {
+                    ...headers,
                     black: {
-                      ...prev.game.black,
+                      ...headers.black,
                       name: e.currentTarget.value,
                     },
                   },
-                }))
+                })
               }
-              disabled={!setCompleteGame}
+              disabled={disabled}
             />
             <NumberInput
               variant="unstyled"
@@ -180,18 +164,17 @@ function GameInfo({
               className={classes.eloInput}
               sx={{ "& input": { textAlign: "right" } }}
               placeholder="Unknown ELO"
-              value={black_elo ?? ""}
+              value={headers.black_elo || ""}
               onChange={(n) =>
-                setCompleteGame &&
-                setCompleteGame((prev) => ({
-                  ...prev,
-                  game: {
-                    ...prev.game,
+                dispatch({
+                  type: "SET_HEADERS",
+                  payload: {
+                    ...headers,
                     black_elo: n === "" ? null : n,
                   },
-                }))
+                })
               }
-              disabled={!setCompleteGame}
+              disabled={disabled}
             />
           </div>
         </Group>

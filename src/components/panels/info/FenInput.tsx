@@ -1,34 +1,29 @@
 import { ActionIcon, Flex, Stack, Text, TextInput } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { validateFen } from "chess.js";
-import { useContext, useEffect, useState } from "react";
-import { CompleteGame } from "../../../utils/db";
-import GameContext from "../../common/GameContext";
+import { memo, useContext, useEffect, useState } from "react";
+import { getNodeAtPath } from "../../../utils/treeReducer";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../../common/TreeStateContext";
 
 const EMPTY_POSITION = "8/8/8/8/8/8/8/8 w - - 0 1";
 
-function FenInput({
-  setCompleteGame,
-}: {
-  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
-}) {
-  function changeFen(fen: string) {
-    setCompleteGame((game) => ({
-      ...game,
-      game: {
-        ...game.game,
-        fen,
-      },
-    }));
+function FenInput() {
+  const { root, position } = useContext(TreeStateContext);
+  const dispatch = useContext(TreeDispatchContext);
+  const currentNode = getNodeAtPath(root, position);
+  if (!currentNode) {
+    return null;
   }
-
-  const tree = useContext(GameContext).game.tree;
-  const [fen, setFen] = useState(tree.fen);
+  const [fen, setFen] = useState(currentNode?.fen);
   const [error, setError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    setFen(tree.fen);
-  }, [tree.fen]);
+    setFen(currentNode.fen);
+  }, [currentNode?.fen]);
+
   return (
     <Stack spacing="sm">
       <Text fw="bold">FEN</Text>
@@ -39,7 +34,7 @@ function FenInput({
             e.preventDefault();
             const v = validateFen(fen);
             if (v.ok) {
-              changeFen(fen);
+              dispatch({ type: "SET_FEN", payload: fen });
               setError(undefined);
             } else {
               setError(v.error);
@@ -57,7 +52,7 @@ function FenInput({
         </form>
         <ActionIcon
           onClick={() => {
-            changeFen(EMPTY_POSITION);
+            dispatch({ type: "SET_FEN", payload: EMPTY_POSITION });
           }}
         >
           <IconTrash />
@@ -67,4 +62,4 @@ function FenInput({
   );
 }
 
-export default FenInput;
+export default memo(FenInput);

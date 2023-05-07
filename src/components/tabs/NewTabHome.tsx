@@ -22,7 +22,7 @@ import { open } from "@tauri-apps/api/dialog";
 
 import { readTextFile } from "@tauri-apps/api/fs";
 import { useState } from "react";
-import { getCompleteGame } from "../../utils/chess";
+import { getPgnHeaders, parsePGN } from "../../utils/chess";
 import { getChesscomGame } from "../../utils/chesscom";
 import { getLichessGame } from "../../utils/lichess";
 import { Tab } from "../../utils/tabs";
@@ -225,11 +225,12 @@ function ImportModal({
               setTabs((prevTabs) =>
                 prevTabs.map((tab) => {
                   if (tab.value === id) {
-                    const completeGame = getCompleteGame(input);
-                    sessionStorage.setItem(id, JSON.stringify(completeGame));
+                    const tree = parsePGN(input);
+                    tree.headers = getPgnHeaders(input);
+                    sessionStorage.setItem(id, JSON.stringify(tree));
                     return {
                       ...tab,
-                      name: `${completeGame.game.white.name} - ${completeGame.game.black.name} (Imported)`,
+                      name: `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`,
                       type: "analysis",
                     };
                   }
@@ -249,11 +250,11 @@ function ImportModal({
 
             setTabs((prev) => {
               const tab = prev.find((t) => t.value === id)!;
-              const completeGame = getCompleteGame(pgn);
+              const tree = parsePGN(pgn);
+              tree.headers = getPgnHeaders(pgn);
+              sessionStorage.setItem(id, JSON.stringify(tree));
 
-              sessionStorage.setItem(id, JSON.stringify(completeGame));
-
-              tab.name = `${completeGame.game.white.name} - ${completeGame.game.black.name} (Imported)`;
+              tab.name = `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`;
               tab.type = "analysis";
               return [...prev];
             });

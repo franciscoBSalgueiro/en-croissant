@@ -1,34 +1,40 @@
-import { Box, TypographyStylesProvider } from "@mantine/core";
-import { memo } from "react";
-import { Annotation, VariationTree } from "../../utils/chess";
+import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
+import { shallowEqual, useClickOutside } from "@mantine/hooks";
+import { IconChevronUp, IconTrash } from "@tabler/icons-react";
+import { memo, useContext, useState } from "react";
+import { Annotation } from "../../utils/chess";
+import { TreeDispatchContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
 
 function CompleteMoveCell({
-  tree,
+  movePath,
   halfMoves,
   move,
   commentHTML,
-  setTree,
   annotation,
   showComments,
   first,
   isCurrentVariation,
   targetRef,
 }: {
-  tree: VariationTree;
   halfMoves: number;
   commentHTML: string;
   annotation: Annotation;
-  setTree: (tree: VariationTree) => void;
   showComments: boolean;
   move?: string;
   first?: boolean;
   isCurrentVariation: boolean;
+  movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement>;
 }) {
+  const dispatch = useContext(TreeDispatchContext);
   const move_number = Math.ceil(halfMoves / 2);
   const is_white = halfMoves % 2 === 1;
   const hasNumber = halfMoves > 0 && (first || is_white);
+  const ref = useClickOutside(() => {
+    setOpen(false);
+  });
+  const [open, setOpen] = useState(false);
 
   const multipleLine =
     commentHTML.split("</p>").length - 1 > 1 ||
@@ -51,13 +57,53 @@ function CompleteMoveCell({
           <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
         )}
         {move && (
-          <MoveCell
-            move={move}
-            annotation={annotation}
-            comment={commentHTML}
-            isCurrentVariation={isCurrentVariation}
-            onClick={() => setTree(tree)}
-          />
+          <Menu opened={open} width={200}>
+            <Menu.Target>
+              <MoveCell
+                ref={ref}
+                move={move}
+                annotation={annotation}
+                isCurrentVariation={isCurrentVariation}
+                onClick={() =>
+                  dispatch({
+                    type: "GO_TO_MOVE",
+                    payload: movePath,
+                  })
+                }
+                onContextMenu={(e: any) => {
+                  setOpen((v) => !v);
+                  e.preventDefault();
+                }}
+              />
+            </Menu.Target>
+
+            <Portal>
+              <Menu.Dropdown>
+                <Menu.Item
+                  icon={<IconChevronUp size={14} />}
+                  onClick={() => dispatch({ type: "PROMOTE_VARIATION", payload: movePath })}
+                  disabled={
+                    false
+                    // tree.parent === null ||
+                    // tree.parent.children.length === 1 ||
+                    // tree === tree.parent.children[0]
+                  }
+                >
+                  Promote Variation
+                </Menu.Item>
+                
+                <Menu.Item
+                  color="red"
+                  icon={<IconTrash size={14} />}
+                  onClick={() =>
+                    dispatch({ type: "DELETE_MOVE", payload: movePath })
+                  }
+                >
+                  Delete Move
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Portal>
+          </Menu>
         )}
       </Box>
       {showComments && commentHTML && (
@@ -79,4 +125,15 @@ function CompleteMoveCell({
   );
 }
 
-export default memo(CompleteMoveCell);
+export default memo(CompleteMoveCell, (prev, next) => {
+  return (
+    prev.move === next.move &&
+    prev.commentHTML === next.commentHTML &&
+    prev.annotation === next.annotation &&
+    prev.showComments === next.showComments &&
+    prev.first === next.first &&
+    prev.isCurrentVariation === next.isCurrentVariation &&
+    shallowEqual(prev.movePath, next.movePath) &&
+    prev.halfMoves === next.halfMoves
+  );
+});

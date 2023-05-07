@@ -8,16 +8,15 @@ import {
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
-import { Square } from "chess.js";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { memo, useContext, useEffect, useState } from "react";
-import { CompleteGame, NormalizedGame, Opening } from "../../../utils/db";
+import { NormalizedGame, Opening } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
 import { createTab, Tab } from "../../../utils/tabs";
-import GameContext from "../../common/GameContext";
+import { TreeDispatchContext } from "../../common/TreeStateContext";
 
 const useStyles = createStyles((theme) => ({
   clickable: {
@@ -36,16 +35,8 @@ function sortOpenings(openings: Opening[]) {
   );
 }
 
-function DatabasePanel({
-  makeMove,
-  height,
-}: {
-  makeMove: (
-    move: { from: Square; to: Square; promotion?: string } | string
-  ) => void;
-  height: number;
-}) {
-  const tree = useContext(GameContext).game.tree;
+function DatabasePanel({ height, fen }: { height: number; fen: string }) {
+  const dispatch = useContext(TreeDispatchContext);
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +77,7 @@ function DatabasePanel({
 
     setLoading(true);
 
-    searchPosition(referenceDatabase, tree.fen).then((openings) => {
+    searchPosition(referenceDatabase, fen).then((openings) => {
       if (!ignore) {
         setOpenings(sortOpenings(openings[0]));
         setGames(openings[1]);
@@ -97,7 +88,7 @@ function DatabasePanel({
     return () => {
       ignore = true;
     };
-  }, [tree, referenceDatabase]);
+  }, [referenceDatabase, fen]);
 
   return (
     <Tabs
@@ -187,7 +178,10 @@ function DatabasePanel({
             )
           }
           onRowClick={({ move }) => {
-            makeMove(move);
+            dispatch({
+              type: "MAKE_MOVE",
+              payload: move,
+            });
           }}
         />
       </Tabs.Panel>
@@ -207,17 +201,14 @@ function DatabasePanel({
                   variant="filled"
                   color={theme.primaryColor}
                   onClick={() => {
-                    const id = createTab(
-                      `${game.white.name} - ${game.black.name}`,
-                      "analysis",
+                    const id = createTab({
+                      name: `${game.white.name} - ${game.black.name}`,
+                      type: "analysis",
                       setTabs,
-                      setActiveTab
-                    );
-                    const completeGame: CompleteGame = {
-                      game,
-                      currentMove: [],
-                    };
-                    sessionStorage.setItem(id, JSON.stringify(completeGame));
+                      setActiveTab,
+                      pgn: game.moves,
+                      headers: game,
+                    });
                     router.push("/boards");
                   }}
                 >

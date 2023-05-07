@@ -1,3 +1,6 @@
+import { getPgnHeaders, parsePGN } from "./chess";
+import { GameHeaders } from "./treeReducer";
+
 type TabType = "new" | "play" | "analysis" | "puzzles";
 
 export interface Tab {
@@ -13,13 +16,28 @@ export function genID() {
     return S4() + S4();
 }
 
-export function createTab(
-    name: string,
-    type: TabType,
-    setTabs: React.Dispatch<React.SetStateAction<Tab[]>>,
-    setActiveTab: React.Dispatch<React.SetStateAction<string | null>>
-) {
+export function createTab({
+    name,
+    type,
+    setTabs,
+    setActiveTab,
+    pgn,
+    headers,
+}: {
+    name: string;
+    type: TabType;
+    setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+    setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
+    pgn?: string;
+    headers?: GameHeaders;
+}) {
     const id = genID();
+
+    if (pgn) {
+        const tree = parsePGN(pgn);
+        tree.headers = headers || getPgnHeaders(pgn);
+        sessionStorage.setItem(id, JSON.stringify(tree));
+    }
 
     setTabs((prev) => [
         ...prev,

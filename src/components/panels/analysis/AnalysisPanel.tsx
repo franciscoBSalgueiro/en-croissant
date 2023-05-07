@@ -1,6 +1,5 @@
 import {
   Accordion,
-  Button,
   Group,
   Paper,
   ScrollArea,
@@ -8,49 +7,45 @@ import {
   Tabs,
   Text,
 } from "@mantine/core";
-import { IconRobot, IconZoomCheck } from "@tabler/icons-react";
-import { memo } from "react";
-import {
-  Annotation,
-  Score,
-  VariationTree,
-  getAccuracyFromCp,
-} from "../../../utils/chess";
-import { CompleteGame } from "../../../utils/db";
+import { IconZoomCheck } from "@tabler/icons-react";
+import { memo, useContext } from "react";
+import { Annotation, Score, getAccuracyFromCp } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
-import { ProgressButton } from "../../common/ProgressButton";
+import { useLocalFile } from "../../../utils/misc";
+import { TreeNode, getNodeAtPath } from "../../../utils/treeReducer";
+import ProgressButton from "../../common/ProgressButton";
+import { TreeStateContext } from "../../common/TreeStateContext";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 
 function AnalysisPanel({
   boardSize,
-  engines,
   id,
-  makeMoves,
   setArrows,
-  setCompleteGame,
-  setEngines,
-  changeToPlayMode,
   toggleReportingMode,
   inProgress,
   setInProgress,
-  tree,
 }: {
   boardSize: number;
-  engines: Engine[];
   id: string;
-  makeMoves: (moves: string[]) => void;
   setArrows: (arrows: string[]) => void;
-  setCompleteGame: React.Dispatch<React.SetStateAction<CompleteGame>>;
-  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
-  changeToPlayMode: () => void;
   toggleReportingMode: () => void;
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
-  tree: VariationTree;
 }) {
+  const { root, headers, position } = useContext(TreeStateContext);
+  const currentNode = getNodeAtPath(root, position);
+  if (!currentNode) {
+    return <></>;
+  }
+
+  const [engines, setEngines] = useLocalFile<Engine[]>(
+    "engines/engines.json",
+    []
+  );
+
   /* get through the main line and get the average centipawn loss for each player*/
-  const getGameStats = (tree: VariationTree) => {
+  const getGameStats = (tree: TreeNode) => {
     let whiteCPSum = 0;
     let whiteAccuracy = 0;
     let whiteCount = 0;
@@ -76,8 +71,7 @@ function AnalysisPanel({
       [Annotation.Interesting]: 0,
     };
 
-    let current = tree.getTopVariation();
-    if (current.children.length === 0) {
+    if (tree.children.length === 0) {
       return {
         whiteCPL: 0,
         blackCPL: 0,
@@ -87,33 +81,33 @@ function AnalysisPanel({
         blackAnnotations,
       };
     }
-    let prevScore: Score = current.score ?? { type: "cp", value: 30 };
-    while (current.children.length > 0) {
-      current = current.children[0];
-      if (current.annotation) {
-        if (current.halfMoves % 2 === 1) {
-          whiteAnnotations[current.annotation]++;
+    let prevScore: Score = tree.score ?? { type: "cp", value: 30 };
+    while (tree.children.length > 0) {
+      tree = tree.children[0];
+      if (tree.annotation) {
+        if (tree.halfMoves % 2 === 1) {
+          whiteAnnotations[tree.annotation]++;
         } else {
-          blackAnnotations[current.annotation]++;
+          blackAnnotations[tree.annotation]++;
         }
       }
-      if (current.score && current.score.type === "cp") {
-        if (current.halfMoves % 2 === 1) {
-          whiteCPSum += Math.max(prevScore.value - current.score.value, 0);
+      if (tree.score && tree.score.type === "cp") {
+        if (tree.halfMoves % 2 === 1) {
+          whiteCPSum += Math.max(prevScore.value - tree.score.value, 0);
           whiteAccuracy += getAccuracyFromCp(
             prevScore?.value,
-            current.score.value
+            tree.score.value
           );
           whiteCount++;
         } else {
-          blackCPSum += Math.max(-(prevScore?.value - current.score.value), 0);
+          blackCPSum += Math.max(-(prevScore?.value - tree.score.value), 0);
           blackAccuracy += getAccuracyFromCp(
             -prevScore?.value,
-            -current.score.value
+            -tree.score.value
           );
           blackCount++;
         }
-        prevScore = current.score;
+        prevScore = tree.score;
       }
     }
 
@@ -133,7 +127,7 @@ function AnalysisPanel({
     blackAccuracy,
     whiteAnnotations,
     blackAnnotations,
-  } = getGameStats(tree);
+  } = getGameStats(root);
 
   return (
     <Tabs defaultValue="engines" orientation="vertical" placement="right">
@@ -159,24 +153,15 @@ function AnalysisPanel({
                         id={i}
                         tab={id}
                         engine={engine}
-                        makeMoves={makeMoves}
                         setArrows={setArrows}
-                        setCompleteGame={setCompleteGame}
+                        fen={currentNode.fen}
+                        halfMoves={currentNode.halfMoves}
                       />
                     </Accordion.Item>
                   );
                 })}
             </Accordion>
             <EngineSelection engines={engines} setEngines={setEngines} />
-            <Group grow>
-              <Button
-                variant="default"
-                leftIcon={<IconRobot size={14} />}
-                onClick={() => changeToPlayMode()}
-              >
-                Play against engine
-              </Button>
-            </Group>
           </Stack>
         </ScrollArea>
       </Tabs.Panel>
@@ -232,7 +217,7 @@ function AnalysisPanel({
         <ProgressButton
           id={0}
           redoable
-          disabled={tree.getTopVariation().children.length === 0}
+          disabled={root.children.length === 0}
           leftIcon={<IconZoomCheck size={14} />}
           onClick={() => toggleReportingMode()}
           initInstalled={false}

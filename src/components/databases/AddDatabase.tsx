@@ -24,7 +24,7 @@ import {
 import { formatBytes, formatNumber } from "../../utils/format";
 import { invoke } from "../../utils/misc";
 import FileInput from "../common/FileInput";
-import { ProgressButton } from "../common/ProgressButton";
+import ProgressButton from "../common/ProgressButton";
 
 const useStyles = createStyles((theme) => ({
   card: {

@@ -53,7 +53,7 @@ type Props = {
   setInProgress: (inProgress: boolean) => void;
 };
 
-export function ProgressButton({
+function ProgressButton({
   id,
   initInstalled,
   progressEvent,
@@ -121,3 +121,5 @@ export function ProgressButton({
     </Button>
   );
 }
+
+export default ProgressButton;
