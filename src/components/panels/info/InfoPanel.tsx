@@ -7,7 +7,6 @@ import PgnInput from "./PgnInput";
 
 function InfoPanel({ boardSize }: { boardSize: number }) {
   const tree = useContext(TreeStateContext);
-  console.log(tree.headers)
   return (
     <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
       <GameInfo headers={tree.headers} />

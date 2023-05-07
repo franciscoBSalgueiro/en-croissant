@@ -306,6 +306,10 @@ function AnalysisRow({
   const [open, setOpen] = useState<boolean>(false);
   const dispatch = useContext(TreeDispatchContext);
 
+  if (!open) {
+    moves = moves.slice(0, 12);
+  }
+
   return (
     <tr style={{ verticalAlign: "top" }}>
       <td>

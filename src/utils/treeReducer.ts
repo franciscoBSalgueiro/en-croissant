@@ -241,7 +241,7 @@ function makeMove(
     move: { from: Square; to: Square; promotion?: string } | string
 ) {
     const moveNode = getNodeAtPath(state.root, state.position);
-    if (!moveNode) return state;
+    if (!moveNode) return;
     const chess = new Chess(moveNode.fen);
     let m: Move;
     try {
@@ -252,14 +252,15 @@ function makeMove(
     const i = moveNode.children.findIndex((n) => n.move?.san === m.san);
     if (i !== -1) {
         state.position.push(i);
+    } else {
+        const newMoveNode = createNode({
+            fen: chess.fen(),
+            move: m,
+            halfMoves: moveNode.halfMoves + 1,
+        });
+        moveNode.children.push(newMoveNode);
+        state.position.push(moveNode.children.length - 1);
     }
-    const newMoveNode = createNode({
-        fen: chess.fen(),
-        move: m,
-        halfMoves: moveNode.halfMoves + 1,
-    });
-    moveNode.children.push(newMoveNode);
-    state.position.push(moveNode.children.length - 1);
 }
 
 function deleteMove(state: TreeState, path: number[]) {
@@ -271,6 +272,8 @@ function deleteMove(state: TreeState, path: number[]) {
     parent.children.splice(index, 1);
     if (isPrefix(path, state.position)) {
         state.position = path.slice(0, -1);
+    } else if (isPrefix(path.slice(0, -1), state.position)) {
+        state.position[path.length - 1] = 0;
     }
 }
 

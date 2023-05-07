@@ -81,17 +81,13 @@ function CompleteMoveCell({
               <Menu.Dropdown>
                 <Menu.Item
                   icon={<IconChevronUp size={14} />}
-                  onClick={() => dispatch({ type: "PROMOTE_VARIATION", payload: movePath })}
-                  disabled={
-                    false
-                    // tree.parent === null ||
-                    // tree.parent.children.length === 1 ||
-                    // tree === tree.parent.children[0]
+                  onClick={() =>
+                    dispatch({ type: "PROMOTE_VARIATION", payload: movePath })
                   }
                 >
                   Promote Variation
                 </Menu.Item>
-                
+
                 <Menu.Item
                   color="red"
                   icon={<IconTrash size={14} />}

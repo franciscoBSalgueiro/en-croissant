@@ -29,6 +29,7 @@ import {
 import { DEFAULT_POSITION } from "chess.js";
 import { memo, useContext, useEffect, useRef } from "react";
 import { Outcome } from "../../utils/db";
+import { isPrefix } from "../../utils/misc";
 import { getNodeAtPath, TreeNode } from "../../utils/treeReducer";
 import { TreeStateContext } from "../common/TreeStateContext";
 import CompleteMoveCell from "./CompleteMoveCell";
@@ -222,89 +223,108 @@ const NotationHeader = memo(
   }
 );
 
-function RenderVariationTree({
-  tree,
-  depth,
-  currentPath,
-  first,
-  showVariations,
-  showComments,
-  targetRef,
-  path,
-}: {
-  currentPath: number[];
-  tree: TreeNode;
-  depth: number;
-  first?: boolean;
-  showVariations: boolean;
-  showComments: boolean;
-  targetRef: React.RefObject<HTMLSpanElement>;
-  path: number[];
-}) {
-  const variations = tree.children;
-  const moveNodes = showVariations
-    ? variations.slice(1).map((variation) => (
-        <>
+const RenderVariationTree = memo(
+  ({
+    tree,
+    depth,
+    currentPath,
+    first,
+    showVariations,
+    showComments,
+    targetRef,
+    path,
+  }: {
+    currentPath: number[];
+    tree: TreeNode;
+    depth: number;
+    first?: boolean;
+    showVariations: boolean;
+    showComments: boolean;
+    targetRef: React.RefObject<HTMLSpanElement>;
+    path: number[];
+  }) => {
+    const variations = tree.children;
+    const moveNodes = showVariations
+      ? variations.slice(1).map((variation) => (
+          <>
+            <CompleteMoveCell
+              targetRef={targetRef}
+              annotation={variation.annotation}
+              commentHTML={variation.commentHTML}
+              halfMoves={variation.halfMoves}
+              move={variation.move?.san}
+              movePath={[...path, variations.indexOf(variation)]}
+              showComments={showComments}
+              isCurrentVariation={shallowEqual(
+                [...path, variations.indexOf(variation)],
+                currentPath
+              )}
+              first
+            />
+            <RenderVariationTree
+              currentPath={currentPath}
+              targetRef={targetRef}
+              tree={variation}
+              depth={depth + 2}
+              first
+              showVariations={showVariations}
+              showComments={showComments}
+              path={[...path, variations.indexOf(variation)]}
+            />
+          </>
+        ))
+      : [];
+
+    return (
+      <>
+        {variations.length > 0 && (
           <CompleteMoveCell
             targetRef={targetRef}
-            annotation={variation.annotation}
-            commentHTML={variation.commentHTML}
-            halfMoves={variation.halfMoves}
-            move={variation.move?.san}
-            movePath={[...path, variations.indexOf(variation)]}
+            annotation={variations[0].annotation}
+            commentHTML={variations[0].commentHTML}
+            halfMoves={variations[0].halfMoves}
+            move={variations[0].move?.san}
+            movePath={[...path, 0]}
             showComments={showComments}
-            isCurrentVariation={shallowEqual(
-              [...path, variations.indexOf(variation)],
-              currentPath
-            )}
-            first
+            isCurrentVariation={shallowEqual([...path, 0], currentPath)}
+            first={first}
           />
+        )}
+
+        <VariationCell moveNodes={moveNodes} />
+
+        {tree.children.length > 0 && (
           <RenderVariationTree
             currentPath={currentPath}
             targetRef={targetRef}
-            tree={variation}
-            depth={depth + 2}
-            first
+            tree={tree.children[0]}
+            depth={depth + 1}
             showVariations={showVariations}
             showComments={showComments}
-            path={[...path, variations.indexOf(variation)]}
+            path={[...path, 0]}
           />
-        </>
-      ))
-    : [];
-
-  return (
-    <>
-      {variations.length > 0 && (
-        <CompleteMoveCell
-          targetRef={targetRef}
-          annotation={variations[0].annotation}
-          commentHTML={variations[0].commentHTML}
-          halfMoves={variations[0].halfMoves}
-          move={variations[0].move?.san}
-          movePath={[...path, 0]}
-          showComments={showComments}
-          isCurrentVariation={shallowEqual([...path, 0], currentPath)}
-          first={first}
-        />
-      )}
-
-      <VariationCell moveNodes={moveNodes} />
-
-      {tree.children.length > 0 && (
-        <RenderVariationTree
-          currentPath={currentPath}
-          targetRef={targetRef}
-          tree={tree.children[0]}
-          depth={depth + 1}
-          showVariations={showVariations}
-          showComments={showComments}
-          path={[...path, 0]}
-        />
-      )}
-    </>
-  );
-}
+        )}
+      </>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.depth === next.depth &&
+      prev.first === next.first &&
+      prev.showVariations === next.showVariations &&
+      prev.showComments === next.showComments &&
+      shallowEqual(prev.path, next.path) &&
+      ((shallowEqual(prev.currentPath, next.currentPath) &&
+        !isPrefix(next.path.slice(0, -1), next.currentPath) &&
+        shallowEqual(
+          getNodeAtPath(next.tree, next.path),
+          getNodeAtPath(prev.tree, prev.path)
+        )) ||
+        (!isPrefix(next.path, next.currentPath) &&
+          !isPrefix(next.path, prev.currentPath)))
+    );
+  }
+);
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   const [invisible, toggleVisible] = useToggle();
