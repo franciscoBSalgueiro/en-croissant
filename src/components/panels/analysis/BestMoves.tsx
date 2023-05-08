@@ -22,8 +22,13 @@ import {
   IconTargetArrow,
 } from "@tabler/icons-react";
 import { emit, listen } from "@tauri-apps/api/event";
-import { Chess } from "chess.js";
-import { useContext, useEffect, useMemo, useState } from "react";
+import {
+  startTransition,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Annotation,
   BestMoves,
@@ -33,7 +38,7 @@ import {
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import { formatScore } from "../../../utils/format";
-import { invoke } from "../../../utils/misc";
+import useThrottledEffect, { invoke } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
@@ -113,50 +118,52 @@ function BestMoves({
         const payload = event.payload as BestMovesPayload;
         const ev = payload.bestLines;
         if (payload.engine === engine.path && payload.tab === tab) {
-          setEngineVariation(ev);
-          dispatch({
-            type: "SET_SCORE",
-            payload: ev[0].score,
+          startTransition(() => {
+            setEngineVariation(ev);
+            dispatch({
+              type: "SET_SCORE",
+              payload: ev[0].score,
+            });
+            if (id === 0) {
+              setArrows(
+                ev.map((ev) => {
+                  return ev.uciMoves[0];
+                })
+              );
+            }
           });
-          if (id === 0) {
-            setArrows(
-              ev.map((ev) => {
-                return ev.uciMoves[0];
-              })
-            );
-          }
         }
       });
     }
     waitForMove();
   }, []);
 
-  useEffect(() => {
-    let chess: Chess | null;
-    try {
-      chess = new Chess(fen);
-    } catch (e) {
-      chess = null;
-    }
-    if (enabled && chess !== null) {
-      emit("stop_engine", engine.path);
-      invoke("get_best_moves", {
-        engine: engine.path,
-        tab,
-        fen: threat ? swapMove(fen) : fen,
-        depth: maxDepth,
-        numberLines: Math.min(numberLines, chess.moves().length),
-        numberThreads: 2 ** cores,
-      });
-    } else {
-      emit("stop_engine", engine.path);
-    }
-  }, [enabled, numberLines, maxDepth, cores, threat, fen]);
+  useThrottledEffect(
+    () => {
+      if (enabled) {
+        emit("stop_engine", engine.path);
+        invoke("get_best_moves", {
+          engine: engine.path,
+          tab,
+          fen: threat ? swapMove(fen) : fen,
+          depth: maxDepth,
+          numberLines,
+          numberThreads: 2 ** cores,
+        });
+      } else {
+        emit("stop_engine", engine.path);
+      }
+    },
+    50,
+    [enabled, numberLines, maxDepth, cores, threat, fen]
+  );
 
   useEffect(() => {
-    if (!enabled) {
-      setEngineVariation([]);
-    }
+    startTransition(() => {
+      if (!enabled) {
+        setEngineVariation([]);
+      }
+    });
   }, [fen]);
 
   return useMemo(

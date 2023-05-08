@@ -33,14 +33,9 @@ import {
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { memo, useContext, useRef, useState } from "react";
+import { memo, useContext, useMemo, useRef, useState } from "react";
 import Chessground from "react-chessground";
-import {
-  handleMove,
-  moveToKey,
-  parseUci,
-  toDests,
-} from "../../utils/chess";
+import { handleMove, moveToKey, parseUci, toDests } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
 import { formatMove, formatScore } from "../../utils/format";
 import { getBoardSize } from "../../utils/misc";
@@ -160,6 +155,27 @@ function BoardPlay({
 
   const pieces = ["p", "n", "b", "r", "q", "k"] as const;
   const colors = ["w", "b"] as const;
+
+  const controls = useMemo(
+    () => (
+      <Group>
+        {!disableVariations && (
+          <Tooltip label={"Edit Position"}>
+            <ActionIcon onClick={() => toggleEditingMode()}>
+              <IconEdit />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        <Tooltip label={"Flip Board"}>
+          <ActionIcon onClick={() => toggleOrientation()}>
+            <IconSwitchVertical />
+          </ActionIcon>
+        </Tooltip>
+      </Group>
+    ),
+    [disableVariations, toggleEditingMode, toggleOrientation]
+  );
+
   return (
     <>
       {width > 800 && (
@@ -173,7 +189,7 @@ function BoardPlay({
       <Stack justify="center">
         {editingMode && (
           <Card shadow="md" style={{ overflow: "visible" }}>
-            <FenInput />
+            <FenInput currentFen={currentNode.fen} />
             <SimpleGrid cols={6}>
               {colors.map((color) => {
                 return pieces.map((piece) => {
@@ -185,35 +201,11 @@ function BoardPlay({
             </SimpleGrid>
           </Card>
         )}
-        <Modal
-          opened={pendingMove !== null}
-          onClose={() => setPendingMove(null)}
-          withCloseButton={false}
-          size={375}
-        >
-          <SimpleGrid cols={2}>
-            {promotionPieces.map((p) => (
-              <ActionIcon
-                key={p}
-                sx={{ width: "100%", height: "100%", position: "relative" }}
-                onClick={() => {
-                  dispatch({
-                    type: "MAKE_MOVE",
-                    payload: {
-                      from: pendingMove!.from,
-                      to: pendingMove!.to,
-                      promotion: p,
-                    },
-                  });
-                  setPendingMove(null);
-                }}
-              >
-                <Piece piece={p} color={turn === "white" ? "w" : "b"} />
-              </ActionIcon>
-            ))}
-          </SimpleGrid>
-        </Modal>
-
+        <PromotionModal
+          pendingMove={pendingMove}
+          setPendingMove={setPendingMove}
+          turn={turn}
+        />
         {error && (
           <Alert
             icon={<IconAlertCircle size="1rem" />}
@@ -310,24 +302,55 @@ function BoardPlay({
             <div />
           )}
 
-          <Group>
-            {!disableVariations && (
-              <Tooltip label={"Edit Position"}>
-                <ActionIcon onClick={() => toggleEditingMode()}>
-                  <IconEdit />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            <Tooltip label={"Flip Board"}>
-              <ActionIcon onClick={() => toggleOrientation()}>
-                <IconSwitchVertical />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
+          {controls}
         </Group>
       </Stack>
     </>
   );
 }
+
+const PromotionModal = memo(
+  ({
+    pendingMove,
+    setPendingMove,
+    turn,
+  }: {
+    pendingMove: { from: Square; to: Square } | null;
+    setPendingMove: (move: { from: Square; to: Square } | null) => void;
+    turn?: Color;
+  }) => {
+    const dispatch = useContext(TreeDispatchContext);
+    return (
+      <Modal
+        opened={pendingMove !== null}
+        onClose={() => setPendingMove(null)}
+        withCloseButton={false}
+        size={375}
+      >
+        <SimpleGrid cols={2}>
+          {promotionPieces.map((p) => (
+            <ActionIcon
+              key={p}
+              sx={{ width: "100%", height: "100%", position: "relative" }}
+              onClick={() => {
+                dispatch({
+                  type: "MAKE_MOVE",
+                  payload: {
+                    from: pendingMove!.from,
+                    to: pendingMove!.to,
+                    promotion: p,
+                  },
+                });
+                setPendingMove(null);
+              }}
+            >
+              <Piece piece={p} color={turn === "white" ? "w" : "b"} />
+            </ActionIcon>
+          ))}
+        </SimpleGrid>
+      </Modal>
+    );
+  }
+);
 
 export default memo(BoardPlay);

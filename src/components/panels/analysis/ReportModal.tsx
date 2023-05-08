@@ -11,7 +11,7 @@ import {
 import { useForm } from "@mantine/form";
 import { useLocalStorage } from "@mantine/hooks";
 import { Chess } from "chess.js";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { MoveAnalysis } from "../../../utils/chess";
 import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
@@ -138,4 +138,4 @@ function ReportModal({
   );
 }
 
-export default ReportModal;
+export default memo(ReportModal);

@@ -243,3 +243,18 @@ export async function getPlayersGameInfo(
         id: player?.id,
     });
 }
+
+export async function searchPosition(
+    referenceDatabase: string | null,
+    fen: string
+  ) {
+    let openings: [Opening[], NormalizedGame[]] = await invoke(
+      "search_position",
+      {
+        file: referenceDatabase,
+        fen,
+      },
+      (s) => s === "Search stopped"
+    );
+    return openings;
+  }

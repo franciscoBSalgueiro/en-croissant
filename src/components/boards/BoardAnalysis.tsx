@@ -88,6 +88,7 @@ function BoardAnalysis({ id }: { id: string }) {
       >
         <>
           <Tabs
+            keepMounted={false}
             defaultValue="analysis"
             sx={{ display: notationExpanded ? "none" : undefined }}
           >

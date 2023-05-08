@@ -2,27 +2,20 @@ import { ActionIcon, Flex, Stack, Text, TextInput } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { validateFen } from "chess.js";
 import { memo, useContext, useEffect, useState } from "react";
-import { getNodeAtPath } from "../../../utils/treeReducer";
 import {
-  TreeDispatchContext,
-  TreeStateContext,
+  TreeDispatchContext
 } from "../../common/TreeStateContext";
 
 const EMPTY_POSITION = "8/8/8/8/8/8/8/8 w - - 0 1";
 
-function FenInput() {
-  const { root, position } = useContext(TreeStateContext);
+function FenInput({ currentFen }: { currentFen: string }) {
   const dispatch = useContext(TreeDispatchContext);
-  const currentNode = getNodeAtPath(root, position);
-  if (!currentNode) {
-    return null;
-  }
-  const [fen, setFen] = useState(currentNode?.fen);
+  const [fen, setFen] = useState(currentFen);
   const [error, setError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    setFen(currentNode.fen);
-  }, [currentNode?.fen]);
+    setFen(currentFen);
+  }, [currentFen]);
 
   return (
     <Stack spacing="sm">

@@ -19,6 +19,7 @@ import { Chess, DEFAULT_POSITION } from "chess.js";
 import { useContext, useEffect, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { parseUci } from "../../utils/chess";
+import { Outcome } from "../../utils/db";
 import { Engine, getEngines } from "../../utils/engines";
 import { invoke } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
@@ -293,6 +294,13 @@ function BoardGame({
                     dispatch({
                       type: "SET_FEN",
                       payload: DEFAULT_POSITION,
+                    });
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        result: Outcome.Unknown
+                      },
                     });
                   }}
                   leftIcon={<IconPlus />}

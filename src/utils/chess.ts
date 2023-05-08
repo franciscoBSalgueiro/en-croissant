@@ -577,3 +577,83 @@ export function getAnnotation(
 
     return Annotation.None;
 }
+
+/* traverse the main line and get the average centipawn loss for each player*/
+export function getGameStats(tree: TreeNode) {
+    let whiteCPSum = 0;
+    let whiteAccuracy = 0;
+    let whiteCount = 0;
+    let blackCPSum = 0;
+    let blackAccuracy = 0;
+    let blackCount = 0;
+
+    let whiteAnnotations = {
+        [Annotation.Blunder]: 0,
+        [Annotation.Mistake]: 0,
+        [Annotation.Dubious]: 0,
+        [Annotation.Brilliant]: 0,
+        [Annotation.Good]: 0,
+        [Annotation.Interesting]: 0,
+    };
+
+    let blackAnnotations = {
+        [Annotation.Blunder]: 0,
+        [Annotation.Mistake]: 0,
+        [Annotation.Dubious]: 0,
+        [Annotation.Brilliant]: 0,
+        [Annotation.Good]: 0,
+        [Annotation.Interesting]: 0,
+    };
+
+    if (tree.children.length === 0) {
+        return {
+            whiteCPL: 0,
+            blackCPL: 0,
+            whiteAccuracy,
+            blackAccuracy,
+            whiteAnnotations,
+            blackAnnotations,
+        };
+    }
+    let prevScore: Score = tree.score ?? { type: "cp", value: 30 };
+    while (tree.children.length > 0) {
+        tree = tree.children[0];
+        if (tree.annotation) {
+            if (tree.halfMoves % 2 === 1) {
+                whiteAnnotations[tree.annotation]++;
+            } else {
+                blackAnnotations[tree.annotation]++;
+            }
+        }
+        if (tree.score && tree.score.type === "cp") {
+            if (tree.halfMoves % 2 === 1) {
+                whiteCPSum += Math.max(prevScore.value - tree.score.value, 0);
+                whiteAccuracy += getAccuracyFromCp(
+                    prevScore?.value,
+                    tree.score.value
+                );
+                whiteCount++;
+            } else {
+                blackCPSum += Math.max(
+                    -(prevScore?.value - tree.score.value),
+                    0
+                );
+                blackAccuracy += getAccuracyFromCp(
+                    -prevScore?.value,
+                    -tree.score.value
+                );
+                blackCount++;
+            }
+            prevScore = tree.score;
+        }
+    }
+
+    return {
+        whiteCPL: whiteCPSum / whiteCount,
+        blackCPL: blackCPSum / blackCount,
+        whiteAccuracy: whiteAccuracy / whiteCount,
+        blackAccuracy: blackAccuracy / blackCount,
+        whiteAnnotations,
+        blackAnnotations,
+    };
+}

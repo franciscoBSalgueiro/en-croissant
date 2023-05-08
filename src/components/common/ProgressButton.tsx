@@ -1,6 +1,6 @@
 import { Button, createStyles, Progress } from "@mantine/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 const useStyles = createStyles((theme, finished: boolean) => ({
   button: {
@@ -122,4 +122,4 @@ function ProgressButton({
   );
 }
 
-export default ProgressButton;
+export default memo(ProgressButton);
