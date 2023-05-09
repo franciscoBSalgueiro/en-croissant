@@ -73,6 +73,7 @@ function AnalysisPanel({
                   return (
                     <Accordion.Item key={engine.path} value={engine.path}>
                       <BestMoves
+                        tabId={id}
                         id={i}
                         tab={id}
                         engine={engine}

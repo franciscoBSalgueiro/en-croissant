@@ -11,8 +11,10 @@ mod puzzle;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::{collections::HashMap, fs::create_dir_all, path::Path};
+use std::{fs::create_dir_all, path::Path};
 
+use chess::{BestMoves, AnalysisCacheKey};
+use dashmap::DashMap;
 use db::{NormalizedGame, PositionStats};
 use derivative::Derivative;
 use reqwest::Url;
@@ -93,14 +95,13 @@ async fn start_server(username: String, verifier: String, window: Window) -> Res
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct AppState {
-    connection_pool: Mutex<
-        HashMap<
-            String,
-            diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
-        >,
+    connection_pool: DashMap<
+        String,
+        diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
-    line_cache: Mutex<HashMap<(String, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>>,
+    line_cache: DashMap<(String, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     db_cache: Mutex<Vec<(i32, Option<String>, Vec<u8>, i32, i32, i32)>>,
+    analysis_cache: DashMap<AnalysisCacheKey, Vec<BestMoves>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
 }

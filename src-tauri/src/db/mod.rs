@@ -127,20 +127,21 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
 }
 
 fn get_db_or_create(
-    app_state: &State<AppState>,
+    state: &State<AppState>,
     db_path: &str,
     options: ConnectionOptions,
 ) -> Result<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>, String> {
-    let mut state = app_state.connection_pool.lock().unwrap();
-    if state.contains_key(db_path) {
-        Ok(state.get(db_path).unwrap().clone())
+    if state.connection_pool.contains_key(db_path) {
+        Ok(state.connection_pool.get(db_path).unwrap().clone())
     } else {
         let pool = Pool::builder()
             .max_size(16)
             .connection_customizer(Box::new(options))
             .build(ConnectionManager::<SqliteConnection>::new(db_path))
             .map_err(|err| err.to_string())?;
-        state.insert(db_path.to_string(), pool.clone());
+        state
+            .connection_pool
+            .insert(db_path.to_string(), pool.clone());
         Ok(pool)
     }
 }
@@ -1079,11 +1080,9 @@ pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut state = state.connection_pool.lock().unwrap();
+    let pool = &state.connection_pool;
     let path_str = file.to_str().unwrap();
-    if state.contains_key(path_str) {
-        state.remove(path_str);
-    }
+    pool.remove(path_str);
 
     // delete file
     remove_file(path_str).map_err(|_| format!("Could not delete file {}", path_str))?;
@@ -1114,12 +1113,8 @@ pub async fn search_position(
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
-    {
-        let line_cache = state.line_cache.lock().unwrap();
-
-        if let Some(pos) = line_cache.get(&(fen.clone(), file.clone())) {
-            return Ok(pos.clone());
-        }
+    if let Some(pos) = state.line_cache.get(&(fen.clone(), file.clone())) {
+        return Ok(pos.clone());
     }
 
     let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
@@ -1226,8 +1221,9 @@ pub async fn search_position(
 
     let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
 
-    let mut line_cache = state.line_cache.lock().unwrap();
-    line_cache.insert((fen, file), (openings.clone(), normalized_games.clone()));
+    state
+        .line_cache
+        .insert((fen, file), (openings.clone(), normalized_games.clone()));
 
     drop(permit);
     Ok((openings, normalized_games))
@@ -1241,12 +1237,8 @@ pub async fn is_position_in_db(
     let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let db = &mut pool.get().unwrap();
 
-    {
-        let line_cache = state.line_cache.lock().unwrap();
-
-        if let Some(pos) = line_cache.get(&(fen.clone(), file.clone())) {
-            return Ok(!pos.0.is_empty());
-        }
+    if let Some(pos) = state.line_cache.get(&(fen.clone(), file.clone())) {
+        return Ok(!pos.0.is_empty());
     }
 
     let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
@@ -1303,8 +1295,7 @@ pub async fn is_position_in_db(
     }
 
     if !exists {
-        let mut line_cache = state.line_cache.lock().unwrap();
-        line_cache.insert((fen, file), (vec![], vec![]));
+        state.line_cache.insert((fen, file), (vec![], vec![]));
     }
 
     drop(permit);

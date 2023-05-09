@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::Stdio};
 
 use derivative::Derivative;
 use rand::seq::SliceRandom;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Piece,
     Position, Role, Setup, Square,
@@ -51,6 +51,14 @@ impl serde::Serialize for Score {
         };
         score_json.serialize(serializer)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AnalysisCacheKey {
+    pub tab: String,
+    pub fen: String,
+    pub engine: String,
+    pub multipv: usize,
 }
 
 #[derive(Clone, Serialize, Debug, Derivative)]
@@ -172,17 +180,49 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
         .expect("Failed to write command");
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct EngineOptions {
+    pub depth: usize,
+    pub multipv: usize,
+    pub threads: usize,
+}
+
 #[tauri::command]
 pub async fn get_best_moves(
     engine: String,
     tab: String,
     fen: String,
-    depth: usize,
-    number_lines: usize,
-    number_threads: usize,
+    options: EngineOptions,
     app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let path = PathBuf::from(&engine);
+
+    let key = AnalysisCacheKey {
+        fen: fen.clone(),
+        engine: engine.clone(),
+        tab: tab.clone(),
+        multipv: options.multipv,
+    };
+
+    let mut last_depth = 0;
+
+    if state.analysis_cache.contains_key(&key) {
+        let payload = state.analysis_cache.get(&key).unwrap();
+        let best_moves_payload = BestMovesPayload {
+            best_lines: payload.to_vec(),
+            engine: engine.clone(),
+            tab: tab.clone(),
+        };
+        app.emit_all("best_moves", &Some(best_moves_payload))
+            .unwrap();
+        let cached_depth = payload[0].depth;
+        if cached_depth >= options.depth {
+            return Ok(());
+        }
+        last_depth = cached_depth;
+    }
+
     let mut child = start_engine(path)?;
     let (mut stdin, mut stdout) = get_handles(&mut child);
 
@@ -215,15 +255,15 @@ pub async fn get_best_moves(
     send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
     send_command(
         &mut stdin,
-        format!("setoption name Threads value {}\n", &number_threads),
+        format!("setoption name Threads value {}\n", options.threads),
     )
     .await;
     send_command(
         &mut stdin,
-        format!("setoption name MultiPV value {}\n", &number_lines),
+        format!("setoption name MultiPV value {}\n", options.multipv),
     )
     .await;
-    send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
+    send_command(&mut stdin, format!("go depth {}\n", options.depth)).await;
 
     let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
     loop {
@@ -243,9 +283,11 @@ pub async fn get_best_moves(
                                     let multipv = best_moves.multipv;
                                     let cur_depth = best_moves.depth;
                                     best_moves_payload.best_lines.push(best_moves);
-                                    if multipv == number_lines {
-                                        if best_moves_payload.best_lines.iter().all(|x| x.depth == cur_depth) {
+                                    if multipv == options.multipv {
+                                        if best_moves_payload.best_lines.iter().all(|x| x.depth == cur_depth) && cur_depth >= last_depth {
                                             app.emit_all("best_moves", &best_moves_payload).unwrap();
+                                            state.analysis_cache.insert(key.clone(), best_moves_payload.best_lines.clone());
+                                            last_depth = cur_depth;
                                         }
                                         best_moves_payload.best_lines.clear();
                                     }

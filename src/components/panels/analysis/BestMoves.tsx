@@ -14,7 +14,7 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
+import { useSessionStorage, useToggle } from "@mantine/hooks";
 import {
   IconPlayerPause,
   IconPlayerPlay,
@@ -82,6 +82,7 @@ function ScoreBubble({ score }: { score: Score }) {
 }
 
 interface BestMovesProps {
+  tabId: string;
   id: number;
   tab: string;
   engine: Engine;
@@ -91,6 +92,7 @@ interface BestMovesProps {
 }
 
 function BestMoves({
+  tabId,
   id,
   tab,
   engine,
@@ -100,10 +102,22 @@ function BestMoves({
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
-  const [numberLines, setNumberLines] = useState<number>(3);
-  const [maxDepth, setMaxDepth] = useState<number>(24);
-  const [cores, setCores] = useState<number>(2);
-  const [enabled, toggleEnabled] = useToggle();
+  const [numberLines, setNumberLines] = useSessionStorage<number>({
+    key: `${tabId}-${engine.path}-numberLines`,
+    defaultValue: 3,
+  });
+  const [maxDepth, setMaxDepth] = useSessionStorage<number>({
+    key: `${tabId}-${engine.path}-maxDepth`,
+    defaultValue: 24,
+  });
+  const [cores, setCores] = useSessionStorage<number>({
+    key: `${tabId}-${engine.path}-cores`,
+    defaultValue: 2,
+  });
+  const [enabled, setEnabled] = useSessionStorage({
+    key: `${tabId}-${engine.path}-enabled`,
+    defaultValue: false,
+  });
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
   const { classes } = useStyles();
@@ -114,8 +128,7 @@ function BestMoves({
 
   useEffect(() => {
     async function waitForMove() {
-      await listen("best_moves", (event) => {
-        const payload = event.payload as BestMovesPayload;
+      await listen<BestMovesPayload>("best_moves", ({ payload }) => {
         const ev = payload.bestLines;
         if (payload.engine === engine.path && payload.tab === tab) {
           startTransition(() => {
@@ -146,9 +159,11 @@ function BestMoves({
           engine: engine.path,
           tab,
           fen: threat ? swapMove(fen) : fen,
-          depth: maxDepth,
-          numberLines,
-          numberThreads: 2 ** cores,
+          options: {
+            depth: maxDepth,
+            multipv: numberLines,
+            threads: 2 ** cores,
+          },
         });
       } else {
         emit("stop_engine", engine.path);
@@ -176,7 +191,7 @@ function BestMoves({
               variant={enabled ? "filled" : "transparent"}
               color={theme.primaryColor}
               onClick={() => {
-                toggleEnabled();
+                setEnabled((v) => !v);
               }}
               ml={12}
             >
