@@ -25,9 +25,9 @@ export interface PuzzleDatabase {
 }
 
 export async function getPuzzleDatabase(path: string): Promise<PuzzleDatabase> {
-    let db = (await invoke("get_puzzle_db_info", {
+    let db = await invoke<PuzzleDatabase>("get_puzzle_db_info", {
         file: path,
-    })) as PuzzleDatabase;
+    });
     return db;
 }
 

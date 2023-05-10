@@ -7,7 +7,6 @@ import {
   Stack,
   Switch,
   Text,
-  useMantineTheme,
 } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { ColorControl } from "./ColorControl";
@@ -101,7 +100,6 @@ function SettingsPage() {
     defaultValue: "staunty",
   });
   const { classes } = useStyles();
-  const theme = useMantineTheme();
 
   return (
     <Stack my="md" mx="md">

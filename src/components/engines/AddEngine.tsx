@@ -6,6 +6,7 @@ import {
   Group,
   Modal,
   NumberInput,
+  ScrollArea,
   Stack,
   Tabs,
   Text,
@@ -109,7 +110,12 @@ function AddEngine({
   }, [os]);
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title="Add Engine">
+    <Modal
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title="Add Engine"
+      scrollAreaComponent={ScrollArea.Autosize}
+    >
       <Tabs defaultValue="web">
         <Tabs.List>
           <Tabs.Tab value="web">Web</Tabs.Tab>

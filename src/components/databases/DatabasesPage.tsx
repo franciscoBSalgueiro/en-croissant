@@ -65,10 +65,9 @@ export default function DatabasesPage() {
         file: database.file,
         title: debouncedTitle,
         description: debouncedDescription,
-      })
-        .then(() => {
-          getDatabases().then((dbs) => setDatabases(dbs));
-        })
+      }).then(() => {
+        getDatabases().then((dbs) => setDatabases(dbs));
+      });
     }
   }, [debouncedTitle, debouncedDescription]);
 
@@ -145,16 +144,20 @@ export default function DatabasesPage() {
         {databases.map((item, i) => (
           <GenericCard
             id={i}
+            key={item.filename}
             isSelected={selected === i}
             setSelected={setSelected}
+            error={item.error}
             Header={
               <Group noWrap position="apart">
                 <Group noWrap>
                   <IconDatabase size={24} />
                   <div>
-                    <Text weight={500}>{item.title}</Text>
+                    <Text weight={500}>
+                      {item.error ? item.error : item.title}
+                    </Text>
                     <Text size="xs" color="dimmed">
-                      {item.description}
+                      {item.error ? item.file : item.description}
                     </Text>
                   </div>
                 </Group>
@@ -164,11 +167,11 @@ export default function DatabasesPage() {
             stats={[
               {
                 label: "Games",
-                value: formatNumber(item.game_count),
+                value: item.error ? "???" : formatNumber(item.game_count),
               },
               {
                 label: "Storage",
-                value: formatBytes(item.storage_size),
+                value: item.error ? "???" : formatBytes(item.storage_size),
               },
             ]}
           />
@@ -180,36 +183,59 @@ export default function DatabasesPage() {
         <Box mx={30}>
           <Divider my="md" />
           <Stack>
-            <TextInput
-              label="Title"
-              value={title ?? ""}
-              onChange={(e) => setTitle(e.currentTarget.value)}
-              error={title === "" && "Name is required"}
-            />
-            <Textarea
-              label="Description"
-              value={description ?? ""}
-              onChange={(e) => setDescription(e.currentTarget.value)}
-            />
-            <Checkbox
-              label="Reference Database"
-              checked={isReference}
-              onChange={() => {
-                if (isReference) {
-                  setReferenceDatabase(null);
-                  invoke("clear_games");
-                } else {
-                  if (database.file !== referenceDatabase) {
-                    invoke("clear_games");
-                  }
-                  setReferenceDatabase(database.file);
-                }
-              }}
-            />
+            {database.error ? (
+              <>
+                <Text fz="lg" fw="bold">
+                  There was an error loading this database
+                </Text>
+
+                <Text>
+                  <Text underline span>
+                    Reason:
+                  </Text>
+                  {" " + database.error}
+                </Text>
+
+                <Text>
+                  Check if the file exists and that it is not corrupted.
+                </Text>
+              </>
+            ) : (
+              <>
+                <TextInput
+                  label="Title"
+                  value={title ?? ""}
+                  onChange={(e) => setTitle(e.currentTarget.value)}
+                  error={title === "" && "Name is required"}
+                />
+                <Textarea
+                  label="Description"
+                  value={description ?? ""}
+                  onChange={(e) => setDescription(e.currentTarget.value)}
+                />
+                <Checkbox
+                  label="Reference Database"
+                  checked={isReference}
+                  onChange={() => {
+                    if (isReference) {
+                      setReferenceDatabase(null);
+                      invoke("clear_games");
+                    } else {
+                      if (database.file !== referenceDatabase) {
+                        invoke("clear_games");
+                      }
+                      setReferenceDatabase(database.file);
+                    }
+                  }}
+                />
+              </>
+            )}
             <Group>
-              <Link href={`/db/view`}>
-                <Button>Explore</Button>
-              </Link>
+              {!database.error && (
+                <Link href={`/db/view`}>
+                  <Button>Explore</Button>
+                </Link>
+              )}
               <Button onClick={() => toggleDeleteModal()} color="red">
                 Delete
               </Button>

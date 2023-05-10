@@ -21,6 +21,7 @@ export interface DatabaseInfo {
     player_count?: number;
     storage_size?: number;
     downloadLink?: string;
+    error?: string;
     file: string;
 }
 
@@ -150,22 +151,26 @@ export async function query_players(
 export async function getDatabases(): Promise<DatabaseInfo[]> {
     let files = await readDir("db", { dir: BaseDirectory.AppData });
     let dbs = files.filter((file) => file.name?.endsWith(".db3"));
-    return (
-        await Promise.all(
-            dbs.map((db) =>
-                getDatabase(db.path).catch((e) => {
-                    console.log(e);
-                    return null;
-                })
-            )
-        )
-    ).filter((db) => db !== null) as DatabaseInfo[];
+    return await Promise.all(dbs.map((db) => getDatabase(db.path)));
 }
 
 export async function getDatabase(path: string): Promise<DatabaseInfo> {
-    let db = (await invoke("get_db_info", {
-        file: path,
-    })) as DatabaseInfo;
+    let db: DatabaseInfo;
+    try {
+        db = await invoke<DatabaseInfo>(
+            "get_db_info",
+            {
+                file: path,
+            },
+            () => true
+        );
+    } catch (e) {
+        db = {
+            filename: path,
+            file: path,
+            error: e as string,
+        };
+    }
     db.file = path;
     return db;
 }
@@ -247,14 +252,14 @@ export async function getPlayersGameInfo(
 export async function searchPosition(
     referenceDatabase: string | null,
     fen: string
-  ) {
+) {
     let openings: [Opening[], NormalizedGame[]] = await invoke(
-      "search_position",
-      {
-        file: referenceDatabase,
-        fen,
-      },
-      (s) => s === "Search stopped"
+        "search_position",
+        {
+            file: referenceDatabase,
+            fen,
+        },
+        (s) => s === "Search stopped"
     );
     return openings;
-  }
+}

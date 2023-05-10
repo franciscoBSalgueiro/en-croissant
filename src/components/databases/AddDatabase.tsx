@@ -6,6 +6,7 @@ import {
   Divider,
   Group,
   Modal,
+  ScrollArea,
   Stack,
   Tabs,
   Text,
@@ -63,7 +64,11 @@ function AddDatabase({
     let fileName = path.split(/(\\|\/)/g).pop();
     fileName = fileName?.replace(".pgn", ".ocgdb.db3");
     setLoading(true);
-    await invoke("convert_pgn", { file: path, title, description });
+    await invoke("convert_pgn", { file: path, title, description }).catch(
+      () => {
+        setLoading(false);
+      }
+    );
     setDatabases(await getDatabases());
     setLoading(false);
   }
@@ -101,6 +106,7 @@ function AddDatabase({
       opened={opened}
       onClose={() => setOpened(false)}
       title="Add Database"
+      scrollAreaComponent={ScrollArea.Autosize}
     >
       <Tabs defaultValue="web">
         <Tabs.List>

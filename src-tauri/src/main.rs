@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::{fs::create_dir_all, path::Path};
 
-use chess::{BestMoves, AnalysisCacheKey};
+use chess::{AnalysisCacheKey, BestMoves};
 use dashmap::DashMap;
 use db::{NormalizedGame, PositionStats};
 use derivative::Derivative;

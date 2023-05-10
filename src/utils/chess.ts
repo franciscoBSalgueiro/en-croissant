@@ -325,8 +325,8 @@ export async function getOpening(
     if (tree === null) {
         return "";
     }
-    return invoke("get_opening", { fen: tree.fen })
-        .then((v) => v as string)
+    return invoke<string>("get_opening", { fen: tree.fen })
+        .then((v) => v)
         .catch(() => getOpening(root, position.slice(0, -1)));
 }
 

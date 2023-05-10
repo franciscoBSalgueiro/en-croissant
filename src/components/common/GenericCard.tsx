@@ -2,7 +2,7 @@ import { Card, Stack, Text, createStyles } from "@mantine/core";
 import { ReactNode } from "react";
 
 const useStyles = createStyles(
-  (theme, { selected }: { selected: boolean }) => ({
+  (theme, { selected, error }: { selected: boolean; error: boolean }) => ({
     card: {
       cursor: "pointer",
       backgroundColor: selected
@@ -14,17 +14,21 @@ const useStyles = createStyles(
         : theme.white,
 
       borderStyle: "solid",
-      borderColor: selected
+      borderColor: error
+        ? theme.colors.red[6]
+        : selected
         ? theme.colors[theme.primaryColor][6]
         : "transparent",
-      borderWidth: 2,
+      borderWidth: error ? 1 : 2,
 
       "&:hover": {
         backgroundColor:
           theme.colorScheme === "dark"
             ? theme.colors.dark[6]
             : theme.colors.gray[0],
-        borderColor: selected
+        borderColor: error
+          ? theme.colors.red[6]
+          : selected
           ? theme.colors[theme.primaryColor][6]
           : theme.colors.gray[6],
       },
@@ -50,6 +54,7 @@ type Props<T> = {
   id: T;
   isSelected: boolean;
   setSelected: (id: T | ((prevId: T) => T)) => void;
+  error?: string;
   stats?: {
     label: string;
     value: string;
@@ -61,10 +66,11 @@ export default function GenericCard<T>({
   id,
   isSelected,
   setSelected,
+  error,
   stats,
   Header,
 }: Props<T>) {
-  const { classes } = useStyles({ selected: isSelected });
+  const { classes } = useStyles({ selected: isSelected, error: !!error });
 
   return (
     <>
@@ -79,7 +85,7 @@ export default function GenericCard<T>({
           {stats && (
             <div className={classes.info}>
               {stats.map((stat) => (
-                <div>
+                <div key={stat.label}>
                   <Text
                     size="sm"
                     color="dimmed"

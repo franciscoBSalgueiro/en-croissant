@@ -130,20 +130,26 @@ fn get_db_or_create(
     state: &State<AppState>,
     db_path: &str,
     options: ConnectionOptions,
-) -> Result<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>, String> {
-    if state.connection_pool.contains_key(db_path) {
-        Ok(state.connection_pool.get(db_path).unwrap().clone())
-    } else {
-        let pool = Pool::builder()
-            .max_size(16)
-            .connection_customizer(Box::new(options))
-            .build(ConnectionManager::<SqliteConnection>::new(db_path))
-            .map_err(|err| err.to_string())?;
-        state
-            .connection_pool
-            .insert(db_path.to_string(), pool.clone());
-        Ok(pool)
-    }
+) -> Result<
+    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
+    String,
+> {
+    let pool = match state.connection_pool.get(db_path) {
+        Some(pool) => pool.clone(),
+        None => {
+            let pool = Pool::builder()
+                .max_size(16)
+                .connection_customizer(Box::new(options))
+                .build(ConnectionManager::<SqliteConnection>::new(db_path))
+                .map_err(|e| e.to_string())?;
+            state
+                .connection_pool
+                .insert(db_path.to_string(), pool.clone());
+            pool
+        }
+    };
+
+    pool.get().map_err(|e| e.to_string())
 }
 
 #[derive(Debug)]
@@ -189,7 +195,7 @@ pub struct TempGame {
 }
 
 impl TempGame {
-    pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), String> {
+    pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
         let pawn_home = get_pawn_home(self.position.board());
 
         let white;
@@ -198,25 +204,25 @@ impl TempGame {
         let event_id;
 
         if let Some(name) = &self.white_name {
-            white = create_player(db, name).map_err(|e| e.to_string())?;
+            white = create_player(db, name)?;
         } else {
             white = Player::default();
         }
         if let Some(name) = &self.black_name {
-            black = create_player(db, name).map_err(|e| e.to_string())?;
+            black = create_player(db, name)?;
         } else {
             black = Player::default();
         }
 
         if let Some(name) = &self.event_name {
-            let event = create_event(db, name).map_err(|e| e.to_string())?;
+            let event = create_event(db, name)?;
             event_id = event.id;
         } else {
             event_id = 1;
         }
 
         if let Some(name) = &self.site_name {
-            let site = create_site(db, name).map_err(|e| e.to_string())?;
+            let site = create_site(db, name)?;
             site_id = site.id;
         } else {
             site_id = 1;
@@ -249,7 +255,7 @@ impl TempGame {
             pawn_home: pawn_home as i32,
         };
 
-        create_game(db, new_game).map_err(|e| e.to_string())?;
+        create_game(db, new_game)?;
         Ok(())
     }
 }
@@ -397,12 +403,12 @@ pub async fn convert_pgn(
         &db_filename,
         Some(BaseDirectory::AppData),
     )
-    .expect("resolve path");
+    .or(Err("Failed to resolve path"))?;
 
     let db_exists = destination.exists();
 
     // create the database file
-    let pool = get_db_or_create(
+    let db = &mut get_db_or_create(
         &state,
         destination.to_str().unwrap(),
         ConnectionOptions {
@@ -411,7 +417,6 @@ pub async fn convert_pgn(
             journal_mode: JournalMode::Off,
         },
     )?;
-    let db = &mut pool.get().unwrap();
 
     if !db_exists {
         db.batch_execute(
@@ -455,8 +460,10 @@ pub async fn convert_pgn(
         .or(Err("Failed to create tables"))?;
     }
 
-    let file =
-        File::open(&file).unwrap_or_else(|_| panic!("open pgn file: {}", file.to_str().unwrap()));
+    let file = File::open(&file).or(Err(format!(
+        "Failed to open pgn file: {}",
+        file.to_str().unwrap()
+    )))?;
 
     let uncompressed: Box<dyn std::io::Read + Send> = if extension == OsStr::new("bz2") {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
@@ -481,12 +488,12 @@ pub async fn convert_pgn(
                 app.emit_all("convert_progress", (i, elapsed)).unwrap();
             }
             if !game.moves.is_empty() {
-                game.insert_to_db(db).unwrap();
+                game.insert_to_db(db)?;
             }
         }
         Ok(())
     })
-    .unwrap();
+    .map_err(|e| e.to_string())?;
 
     if !db_exists {
         // Create all the necessary indexes
@@ -499,7 +506,7 @@ pub async fn convert_pgn(
             CREATE INDEX games_black_elo_idx ON Games(BlackElo);
         ",
         )
-        .expect("create indexes");
+        .or(Err("Failed to create indexes"))?;
     }
 
     // get game, player, event and site counts and to the info table
@@ -507,11 +514,11 @@ pub async fn convert_pgn(
     let player_count: i64 = players::table
         .count()
         .get_result(db)
-        .expect("get player count");
+        .or(Err("Failed to get player count"))?;
     let event_count: i64 = events::table
         .count()
         .get_result(db)
-        .expect("get event count");
+        .or(Err("Failed to get event count"))?;
     let site_count: i64 = sites::table.count().get_result(db).expect("get site count");
 
     let counts = vec![
@@ -528,7 +535,7 @@ pub async fn convert_pgn(
             .do_update()
             .set(info::value.eq(c.1.to_string()))
             .execute(db)
-            .expect("insert game count");
+            .or(Err("Failed to insert counts"))?;
     }
 
     Ok(())
@@ -561,28 +568,27 @@ pub async fn get_db_info(
     )
     .or(Err("resolve path"))?;
 
-    let pool = get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
     let player_count_info: Info = info::table
         .filter(info::name.eq("PlayerCount"))
         .first(db)
-        .or(Err("get player count"))?;
+        .or(Err("Failed to get player count"))?;
     let player_count = player_count_info
         .value
         .unwrap()
         .parse::<usize>()
-        .or(Err("parse player count"))?;
+        .or(Err("Failed to parse player count"))?;
 
     let game_count_info: Info = info::table
         .filter(info::name.eq("GameCount"))
         .first(db)
-        .or(Err("get game count"))?;
+        .or(Err("Failed to get game count"))?;
     let game_count = game_count_info
         .value
         .unwrap()
         .parse::<usize>()
-        .or(Err("parse game count"))?;
+        .or(Err("Failed to parse game count"))?;
 
     let title = match info::table
         .filter(info::name.eq("Title"))
@@ -622,8 +628,7 @@ pub async fn edit_db_info(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(title) = title {
         diesel::insert_into(info::table)
@@ -632,7 +637,7 @@ pub async fn edit_db_info(
             .do_update()
             .set(info::value.eq(title))
             .execute(db)
-            .or(Err("upsert title"))?;
+            .or(Err("Failed to update title"))?;
     }
 
     if let Some(description) = description {
@@ -645,7 +650,7 @@ pub async fn edit_db_info(
             .do_update()
             .set(info::value.eq(description))
             .execute(db)
-            .or(Err("upsert description"))?;
+            .or(Err("Failed to update description"))?;
     }
 
     Ok(())
@@ -712,8 +717,7 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut count: Option<i64> = None;
 
@@ -822,9 +826,7 @@ pub async fn get_games(
                 );
             }
 
-            if query.range1.is_some() && query.range2.is_some() {
-                let range1 = query.range1.unwrap();
-                let range2 = query.range2.unwrap();
+            if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
                 sql_query = sql_query.filter(
                     games::white_elo
                         .between(range1.0, range1.1)
@@ -962,8 +964,7 @@ pub async fn get_players(
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count = None;
 
     let mut sql_query = players::table.into_boxed();
@@ -1028,8 +1029,7 @@ pub async fn get_players_game_info(
     id: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<PlayerGameInfo, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let sql_query = games::table
         .select((games::result, games::date))
@@ -1110,8 +1110,7 @@ pub async fn search_position(
     fen: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(pos) = state.line_cache.get(&(fen.clone(), file.clone())) {
         return Ok(pos.clone());
@@ -1234,8 +1233,7 @@ pub async fn is_position_in_db(
     fen: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, String> {
-    let pool = get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let db = &mut pool.get().unwrap();
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(pos) = state.line_cache.get(&(fen.clone(), file.clone())) {
         return Ok(!pos.0.is_empty());
