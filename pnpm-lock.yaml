@@ -62,8 +62,8 @@ dependencies:
     specifier: 2.0.3
     version: 2.0.3(@tiptap/pm@2.0.3)
   chess.js:
-    specifier: 1.0.0-beta.5
-    version: 1.0.0-beta.5
+    specifier: github:jhlywa/chess.js
+    version: github.com/jhlywa/chess.js/371c622e5747b3a66f3d41898bb428d31da224af
   chessground:
     specifier: ^8.3.7
     version: 8.3.7
@@ -4551,10 +4551,6 @@ packages:
 
   /chardet@0.7.0:
     resolution: {integrity: sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==}
-    dev: false
-
-  /chess.js@1.0.0-beta.5:
-    resolution: {integrity: sha512-ZmSBraFoGrLCiC7m5vwPax02KoKFjC+3uQrlDYKoORUi8MY+7qceDXQW1ho0Gt6pylGCzTTTBa6gy55bOXp2Jw==}
     dev: false
 
   /chessground@7.12.0:
@@ -13770,4 +13766,10 @@ packages:
 
   /zod@3.21.4:
     resolution: {integrity: sha512-m46AKbrzKVzOzs/DZgVnG5H55N1sv1M8qZU3A8RIKbs3mrACDNeIOeilDymVb2HdmP8uwshOCF4uJ8uM9rCqJw==}
+    dev: false
+
+  github.com/jhlywa/chess.js/371c622e5747b3a66f3d41898bb428d31da224af:
+    resolution: {tarball: https://codeload.github.com/jhlywa/chess.js/tar.gz/371c622e5747b3a66f3d41898bb428d31da224af}
+    name: chess.js
+    version: 1.0.0-beta.5
     dev: false

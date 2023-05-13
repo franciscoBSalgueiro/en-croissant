@@ -124,9 +124,7 @@ function ReportModal({
 
           <Text size="sm">
             Estimated time:{" "}
-            {formatDuration(
-              (uciMoves.length * form.values.millisecondsPerMove) / 1000
-            )}
+            {formatDuration(uciMoves.length * form.values.millisecondsPerMove)}
           </Text>
 
           <Group position="right">

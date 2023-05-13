@@ -14,7 +14,7 @@ import { useRouter } from "next/router";
 import { memo, startTransition, useContext, useState } from "react";
 import { NormalizedGame, Opening, searchPosition } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
-import useThrottledEffect from "../../../utils/misc";
+import { useThrottledEffect } from "../../../utils/misc";
 import { createTab, Tab } from "../../../utils/tabs";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 

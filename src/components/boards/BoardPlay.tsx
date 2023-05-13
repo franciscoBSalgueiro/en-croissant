@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Alert,
   Box,
-  Card,
   createStyles,
   Group,
   Modal,
@@ -33,16 +32,15 @@ import {
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { memo, useContext, useMemo, useRef, useState } from "react";
+import { memo, useContext, useMemo, useState } from "react";
 import Chessground from "react-chessground";
 import { handleMove, moveToKey, parseUci, toDests } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
 import { formatMove, formatScore } from "../../utils/format";
-import { getBoardSize } from "../../utils/misc";
+import { getBoardSize, invoke } from "../../utils/misc";
 import { GameHeaders, TreeNode } from "../../utils/treeReducer";
 import Piece from "../common/Piece";
 import { TreeDispatchContext } from "../common/TreeStateContext";
-import FenInput from "../panels/info/FenInput";
 import EvalBar from "./EvalBar";
 
 const useStyles = createStyles(() => ({
@@ -58,12 +56,12 @@ interface ChessboardProps {
   currentNode: TreeNode;
   arrows: string[];
   headers: GameHeaders;
-  // addPiece: (square: Square, piece: PieceSymbol, color: "w" | "b") => void;
   editingMode: boolean;
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
   side?: Color;
+  boardRef: React.MutableRefObject<HTMLDivElement | null>;
 }
 
 const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
@@ -77,6 +75,7 @@ function BoardPlay({
   viewOnly,
   disableVariations,
   side,
+  boardRef,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
   let chess: Chess | null;
@@ -122,7 +121,6 @@ function BoardPlay({
     key: "forced-en-passant",
     defaultValue: false,
   });
-  const boardRef = useRef(null);
   const dests = toDests(chess, forcedEP);
   const turn = chess ? formatMove(chess.turn()) : undefined;
   const [pendingMove, setPendingMove] = useState<{
@@ -152,9 +150,6 @@ function BoardPlay({
   if (currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);
   }
-
-  const pieces = ["p", "n", "b", "r", "q", "k"] as const;
-  const colors = ["w", "b"] as const;
 
   const controls = useMemo(
     () => (
@@ -187,20 +182,6 @@ function BoardPlay({
       )}
 
       <Stack justify="center">
-        {editingMode && (
-          <Card shadow="md" style={{ overflow: "visible" }}>
-            <FenInput currentFen={currentNode.fen} />
-            <SimpleGrid cols={6}>
-              {colors.map((color) => {
-                return pieces.map((piece) => {
-                  return (
-                    <Piece boardRef={boardRef} piece={piece} color={color} />
-                  );
-                });
-              })}
-            </SimpleGrid>
-          </Card>
-        )}
         <PromotionModal
           pendingMove={pendingMove}
           setPendingMove={setPendingMove}
@@ -235,13 +216,23 @@ function BoardPlay({
               events: {
                 after: (orig, dest, metadata) => {
                   if (editingMode) {
-                    dispatch({
-                      type: "MAKE_MOVE",
-                      payload: {
-                        from: orig as Square,
-                        to: dest as Square,
-                      },
+                    invoke<string>("make_move", {
+                      fen: currentNode.fen,
+                      from: orig,
+                      to: dest,
+                    }).then((newFen) => {
+                      dispatch({
+                        type: "SET_FEN",
+                        payload: newFen,
+                      });
                     });
+                    // dispatch({
+                    //   type: "MAKE_MOVE",
+                    //   payload: {
+                    //     from: orig as Square,
+                    //     to: dest as Square,
+                    //   },
+                    // });
                   } else {
                     if (chess) {
                       let newDest = handleMove(chess, orig, dest)!;
@@ -344,7 +335,12 @@ const PromotionModal = memo(
                 setPendingMove(null);
               }}
             >
-              <Piece piece={p} color={turn === "white" ? "w" : "b"} />
+              <Piece
+                piece={{
+                  type: p,
+                  color: turn === "white" ? "w" : "b",
+                }}
+              />
             </ActionIcon>
           ))}
         </SimpleGrid>

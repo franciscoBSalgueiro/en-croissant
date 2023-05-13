@@ -25,6 +25,7 @@ use tauri::{
 
 use crate::chess::{
     analyze_game, get_engine_name, get_single_best_move, make_move, make_random_move, put_piece,
+    validate_fen,
 };
 use crate::db::{
     clear_games, convert_pgn, delete_database, get_players_game_info, search_position,
@@ -167,7 +168,8 @@ fn main() {
             put_piece,
             make_move,
             make_random_move,
-            set_file_as_executable
+            set_file_as_executable,
+            validate_fen,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

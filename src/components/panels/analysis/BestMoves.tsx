@@ -38,7 +38,7 @@ import {
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import { formatScore } from "../../../utils/format";
-import useThrottledEffect, { invoke } from "../../../utils/misc";
+import { invoke, useThrottledEffect } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";

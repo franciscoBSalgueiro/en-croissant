@@ -1,24 +1,22 @@
-import { Color, PieceSymbol, Square } from "chess.js";
+import { Piece, Square } from "chess.js";
 import { useRef } from "react";
 import Draggable from "react-draggable";
 
 function Piece({
   piece,
-  color,
   boardRef,
-  addPiece,
+  putPiece,
 }: {
-  piece: PieceSymbol;
-  color: Color;
+  piece: Piece;
   boardRef?: React.RefObject<HTMLDivElement>;
-  addPiece?: (square: Square, piece: PieceSymbol, color: Color) => void;
+  putPiece?: (square: Square, piece: Piece) => void;
 }) {
   const pieceRef = useRef<HTMLDivElement>(null);
-  if (!boardRef || !addPiece) {
+  if (!boardRef || !putPiece) {
     return (
       <div
         ref={pieceRef}
-        className={getPieceName(piece, color)}
+        className={getPieceName(piece)}
         style={{
           width: 75,
           height: 75,
@@ -29,6 +27,7 @@ function Piece({
   }
   const handleDrop = (position: { x: number; y: number }) => {
     const boardRect = boardRef.current?.getBoundingClientRect();
+    console.log(boardRect);
     if (
       boardRect &&
       position.x > boardRect.left &&
@@ -43,11 +42,7 @@ function Piece({
       const x = Math.floor((position.x - boardRect.left) / squareWidth);
       const y = Math.floor((position.y - boardRect.top) / squareHeight);
 
-      addPiece(
-        `${String.fromCharCode(97 + x)}${8 - y}` as Square,
-        piece,
-        color
-      );
+      putPiece(`${String.fromCharCode(97 + x)}${8 - y}` as Square, piece);
     }
   };
 
@@ -62,7 +57,7 @@ function Piece({
     >
       <div
         ref={pieceRef}
-        className={getPieceName(piece, color)}
+        className={getPieceName(piece)}
         style={{
           width: 75,
           height: 75,
@@ -74,9 +69,9 @@ function Piece({
   );
 }
 
-function getPieceName(piece: PieceSymbol, color: Color) {
-  const colorText = color === "w" ? "white" : "black";
-  switch (piece) {
+function getPieceName(piece: Piece) {
+  const colorText = piece.color === "w" ? "white" : "black";
+  switch (piece.type) {
     case "p":
       return `${colorText} pawn`;
     case "r":

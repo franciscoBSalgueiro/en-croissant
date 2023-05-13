@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { getPGN } from "../../utils/chess";
 import { getBoardSize } from "../../utils/misc";
@@ -21,6 +21,7 @@ import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
+import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis({ id }: { id: string }) {
@@ -45,6 +46,8 @@ function BoardAnalysis({ id }: { id: string }) {
         })
       );
   }
+
+  const boardRef = useRef(null);
 
   useHotkeys([["Ctrl+S", () => saveFile()]]);
 
@@ -83,6 +86,7 @@ function BoardAnalysis({ id }: { id: string }) {
             headers={headers}
             editingMode={editingMode}
             toggleEditingMode={toggleEditingMode}
+            boardRef={boardRef}
           />
         }
       >
@@ -90,7 +94,9 @@ function BoardAnalysis({ id }: { id: string }) {
           <Tabs
             keepMounted={false}
             defaultValue="analysis"
-            sx={{ display: notationExpanded ? "none" : undefined }}
+            sx={{
+              display: notationExpanded || editingMode ? "none" : undefined,
+            }}
           >
             <Tabs.List grow>
               <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
@@ -126,6 +132,14 @@ function BoardAnalysis({ id }: { id: string }) {
               />
             </Tabs.Panel>
           </Tabs>
+
+          {editingMode && (
+            <EditingCard
+              boardRef={boardRef}
+              fen={currentNode!.fen}
+              setEditingMode={toggleEditingMode}
+            />
+          )}
           <Stack>
             <GameNotation
               boardSize={

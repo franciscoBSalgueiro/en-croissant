@@ -4,8 +4,8 @@ use derivative::Derivative;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode, Piece,
-    Position, Role, Setup, Square,
+    fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode,
+    FromSetup, Piece, Position, PositionErrorKinds, Role, Setup, Square,
 };
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -497,8 +497,20 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
     let from = Square::from_ascii(from.as_bytes()).or(Err("Invalid square"))?;
     let to = Square::from_ascii(to.as_bytes()).or(Err("Invalid square"))?;
     let from_piece = pos.board.piece_at(from).unwrap();
+
     pos.board.set_piece_at(to, from_piece);
     pos.board.remove_piece_at(from).unwrap();
+
+    if let Err(e) = Chess::from_setup(pos.clone(), CastlingMode::Standard) {
+        println!("{:?}", e.kinds());
+
+        if e.kinds()
+            .contains(PositionErrorKinds::INVALID_CASTLING_RIGHTS)
+        {
+            pos.castling_rights.clear();
+        }
+    }
+
     let fen = Fen::from_setup(pos);
     Ok(fen.to_string())
 }
@@ -512,4 +524,24 @@ pub fn make_random_move(fen: String) -> Result<String, String> {
     let random_move = legal_moves.choose(&mut rng).ok_or("No legal moves")?;
     let uci = Uci::from_move(random_move, CastlingMode::Standard);
     Ok(uci.to_string())
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FenValidation {
+    pub valid: bool,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn validate_fen(fen: String) -> Result<FenValidation, ()> {
+    match fen.parse::<Fen>() {
+        Ok(_) => Ok(FenValidation {
+            valid: true,
+            error: None,
+        }),
+        Err(err) => Ok(FenValidation {
+            valid: false,
+            error: Some(err.to_string()),
+        }),
+    }
 }

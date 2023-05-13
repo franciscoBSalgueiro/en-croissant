@@ -3,10 +3,11 @@
   "private": true,
   "version": "0.3.0",
   "scripts": {
-    "dev": "next dev -p 1420 --turbo",
+    "dev": "next dev -p 1420",
     "build": "next build && next export -o dist",
     "tauri": "tauri",
-    "pretty": "prettier --write \"./src/**/*.{ts,tsx}\""
+    "pretty": "prettier --write \"./src/**/*.{ts,tsx}\"",
+    "postinstall": "cd ./node_modules/chess.js && npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",
@@ -29,7 +30,7 @@
     "@tiptap/pm": "2.0.3",
     "@tiptap/react": "2.0.3",
     "@tiptap/starter-kit": "2.0.3",
-    "chess.js": "1.0.0-beta.5",
+    "chess.js": "github:jhlywa/chess.js",
     "chessground": "^8.3.7",
     "dayjs": "^1.11.7",
     "mantine-datatable": "^2.4.16",

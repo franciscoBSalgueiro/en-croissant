@@ -99,7 +99,11 @@ export function isPrefix<T>(arr1: T[], arr2: T[]): boolean {
   return true;
 }
 
-export const useThrottledEffect = (callback: () => void, delay: number, deps: any[]) => {
+export const useThrottledEffect = (
+  callback: () => void,
+  delay: number,
+  deps: any[]
+) => {
   const lastRan = useRef(Date.now());
 
   useEffect(() => {
@@ -115,5 +119,3 @@ export const useThrottledEffect = (callback: () => void, delay: number, deps: an
     };
   }, [delay, ...deps]);
 };
-
-export default useThrottledEffect;

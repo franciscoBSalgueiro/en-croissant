@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api";
 import {
     Chess,
+    Color,
     DEFAULT_POSITION,
     KING,
     Move,
@@ -330,9 +331,13 @@ export async function getOpening(
         .catch(() => getOpening(root, position.slice(0, -1)));
 }
 
-export function swapMove(fen: string) {
+export function swapMove(fen: string, color?: Color) {
     const fenGroups = fen.split(" ");
-    fenGroups[1] = fenGroups[1] === "w" ? "b" : "w";
+    if (color) {
+        fenGroups[1] = color;
+    } else {
+        fenGroups[1] = fenGroups[1] === "w" ? "b" : "w";
+    }
     fenGroups[3] = "-";
 
     return fenGroups.join(" ");

@@ -16,7 +16,7 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { Chess, DEFAULT_POSITION } from "chess.js";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { parseUci } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
@@ -91,6 +91,8 @@ function BoardGame({
   if (!currentNode) {
     return <></>;
   }
+
+  const boardRef = useRef(null);
 
   const [engines, setEngines] = useState<Engine[]>([]);
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
@@ -173,6 +175,7 @@ function BoardGame({
           toggleEditingMode={() => {}}
           viewOnly={opponent === null}
           disableVariations
+          boardRef={boardRef}
           side={playingColor}
         />
       }
@@ -299,7 +302,7 @@ function BoardGame({
                       type: "SET_HEADERS",
                       payload: {
                         ...headers,
-                        result: Outcome.Unknown
+                        result: Outcome.Unknown,
                       },
                     });
                   }}
