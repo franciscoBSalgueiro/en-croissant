@@ -528,41 +528,6 @@ export function handleMove(chess: Chess, orig: Key, dest: Key): Square {
     return dest;
 }
 
-export function getAnnotation(
-    prevScore: Score,
-    curScore: Score,
-    isWhite: boolean
-): Annotation {
-    if (prevScore.type === "cp" && curScore.type === "mate") {
-        return Annotation.Blunder;
-    }
-    if (curScore.type === "cp") {
-        if (isWhite) {
-            if (prevScore.value - curScore.value > 300) {
-                return Annotation.Blunder;
-            }
-            if (prevScore.value - curScore.value > 100) {
-                return Annotation.Mistake;
-            }
-            if (prevScore.value - curScore.value > 50) {
-                return Annotation.Dubious;
-            }
-        } else {
-            if (prevScore.value - curScore.value < -300) {
-                return Annotation.Blunder;
-            }
-            if (prevScore.value - curScore.value < -100) {
-                return Annotation.Mistake;
-            }
-            if (prevScore.value - curScore.value < -50) {
-                return Annotation.Dubious;
-            }
-        }
-    }
-
-    return Annotation.None;
-}
-
 type ColorMap<T> = {
     [key in Color]: T;
 };

@@ -148,8 +148,8 @@ function GameNotation({
                 {headers.result === Outcome.Draw
                   ? "Draw"
                   : headers.result === Outcome.WhiteWin
-                  ? "White wins"
-                  : "Black wins"}
+                    ? "White wins"
+                    : "Black wins"}
               </Text>
             </Text>
           )}
@@ -246,33 +246,33 @@ const RenderVariationTree = memo(
     const variations = tree.children;
     const moveNodes = showVariations
       ? variations.slice(1).map((variation) => (
-          <>
-            <CompleteMoveCell
-              targetRef={targetRef}
-              annotation={variation.annotation}
-              commentHTML={variation.commentHTML}
-              halfMoves={variation.halfMoves}
-              move={variation.move?.san}
-              movePath={[...path, variations.indexOf(variation)]}
-              showComments={showComments}
-              isCurrentVariation={shallowEqual(
-                [...path, variations.indexOf(variation)],
-                currentPath
-              )}
-              first
-            />
-            <RenderVariationTree
-              currentPath={currentPath}
-              targetRef={targetRef}
-              tree={variation}
-              depth={depth + 2}
-              first
-              showVariations={showVariations}
-              showComments={showComments}
-              path={[...path, variations.indexOf(variation)]}
-            />
-          </>
-        ))
+        <>
+          <CompleteMoveCell
+            targetRef={targetRef}
+            annotation={variation.annotation}
+            commentHTML={variation.commentHTML}
+            halfMoves={variation.halfMoves}
+            move={variation.move?.san}
+            movePath={[...path, variations.indexOf(variation)]}
+            showComments={showComments}
+            isCurrentVariation={shallowEqual(
+              [...path, variations.indexOf(variation)],
+              currentPath
+            )}
+            first
+          />
+          <RenderVariationTree
+            currentPath={currentPath}
+            targetRef={targetRef}
+            tree={variation}
+            depth={depth + 2}
+            first
+            showVariations={showVariations}
+            showComments={showComments}
+            path={[...path, variations.indexOf(variation)]}
+          />
+        </>
+      ))
       : [];
 
     return (
@@ -314,6 +314,7 @@ const RenderVariationTree = memo(
       prev.showVariations === next.showVariations &&
       prev.showComments === next.showComments &&
       shallowEqual(prev.path, next.path) &&
+      next.path.some((v) => v !== 0) && // don't memoize main line
       ((shallowEqual(prev.currentPath, next.currentPath) &&
         !isPrefix(next.path.slice(0, -1), next.currentPath) &&
         shallowEqual(

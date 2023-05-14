@@ -1,5 +1,6 @@
 import { minMax } from "@tiptap/react";
 import { Color } from "chess.js";
+import { Annotation } from "./chess";
 
 export type Score = {
     type: "cp" | "mate";
@@ -88,4 +89,22 @@ export function getCPLoss(prev: Score, next: Score, color: Color): number {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
 
     return Math.max(0, prevCP - nextCP);
+}
+
+export function getAnnotation(
+    prev: Score,
+    next: Score,
+    color: Color
+): Annotation {
+    const { prevCP, nextCP } = normalizeScores(prev, next, color);
+    const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
+
+    if (winChanceDiff > 20) {
+        return Annotation.Blunder;
+    } else if (winChanceDiff > 10) {
+        return Annotation.Mistake;
+    } else if (winChanceDiff > 5) {
+        return Annotation.Dubious;
+    }
+    return Annotation.None;
 }

@@ -361,6 +361,9 @@ pub async fn analyze_game(
         let san = San::from_ascii(m.as_bytes()).unwrap();
         let m = san.to_move(&chess).unwrap();
         chess.play_unchecked(&m);
+        if chess.is_game_over() {
+            break;
+        }
         let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
 
         send_command(&mut stdin, format!("position fen {}\n", &fen)).await;

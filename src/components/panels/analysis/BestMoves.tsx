@@ -41,6 +41,7 @@ import MoveCell from "../../boards/MoveCell";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
 import { formatScore, Score } from "../../../utils/score";
+import { Chess } from "chess.js";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -150,20 +151,28 @@ function BestMoves({
     waitForMove();
   }, []);
 
+  const chess = new Chess(fen);
+
   useThrottledEffect(
     () => {
       if (enabled) {
-        emit("stop_engine", engine.path);
-        invoke("get_best_moves", {
-          engine: engine.path,
-          tab,
-          fen: threat ? swapMove(fen) : fen,
-          options: {
-            depth: maxDepth,
-            multipv: numberLines,
-            threads: 2 ** cores,
-          },
-        });
+        const chess = new Chess(fen);
+        if (chess.isGameOver()) {
+          setEnabled(false);
+          setEngineVariation([]);
+        } else {
+          emit("stop_engine", engine.path);
+          invoke("get_best_moves", {
+            engine: engine.path,
+            tab,
+            fen: threat ? swapMove(fen) : fen,
+            options: {
+              depth: maxDepth,
+              multipv: numberLines,
+              threads: 2 ** cores,
+            },
+          });
+        }
       } else {
         emit("stop_engine", engine.path);
       }
@@ -192,6 +201,7 @@ function BestMoves({
               onClick={() => {
                 setEnabled((v) => !v);
               }}
+              disabled={chess.isGameOver()}
               ml={12}
             >
               {enabled ? (

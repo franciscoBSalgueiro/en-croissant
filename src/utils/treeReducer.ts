@@ -1,9 +1,9 @@
 import { Chess, DEFAULT_POSITION, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
-import { Annotation, MoveAnalysis, getAnnotation } from "./chess";
+import { Annotation, MoveAnalysis } from "./chess";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
-import { Score } from "./score";
+import { Score, getAnnotation } from "./score";
 
 export interface TreeNode {
     fen: string;
@@ -128,15 +128,15 @@ export function headersToPGN(game: GameHeaders): string {
 export type TreeAction =
     | { type: "SET_HEADERS"; payload: GameHeaders }
     | {
-          type: "MAKE_MOVE";
-          payload:
-              | {
-                    from: Square;
-                    to: Square;
-                    promotion?: string;
-                }
-              | string;
-      }
+        type: "MAKE_MOVE";
+        payload:
+        | {
+            from: Square;
+            to: Square;
+            promotion?: string;
+        }
+        | string;
+    }
     | { type: "MAKE_MOVES"; payload: string[] }
     | { type: "GO_TO_START" }
     | { type: "GO_TO_END" }
@@ -307,8 +307,7 @@ export const getNodeAtPath = (
 function addAnalysis(state: TreeState, analysis: MoveAnalysis[]) {
     let cur = state.root.children[0];
     let i = 0;
-    while (cur !== undefined) {
-        console.log(analysis[i]);
+    while (cur !== undefined && i < analysis.length) {
         cur.score = analysis[i].best.score;
         if (analysis[i].novelty) {
             cur.commentHTML = "Novelty";
@@ -319,8 +318,8 @@ function addAnalysis(state: TreeState, analysis: MoveAnalysis[]) {
             prevScore = analysis[i - 1].best.score;
         }
         const curScore = analysis[i].best.score;
-        const isWhite = i % 2 === 0;
-        cur.annotation = getAnnotation(prevScore, curScore, isWhite);
+        const color = i % 2 === 0 ? "w" : "b";
+        cur.annotation = getAnnotation(prevScore, curScore, color);
         cur = cur.children[0];
         i++;
     }
