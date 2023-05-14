@@ -1,4 +1,3 @@
-import { Score } from "./chess";
 export function formatNumber(value?: number): string {
     if (!value) return "0";
     return Intl.NumberFormat().format(value);
@@ -42,22 +41,6 @@ export function formatDuration(ms: number): string {
         );
     }
     return parts.join(", ");
-}
-
-export function formatScore(score: Score): string {
-    let scoreText = "";
-    if (score.type === "cp") {
-        scoreText = Math.abs(score.value / 100).toFixed(2);
-    } else {
-        scoreText = "M" + Math.abs(score.value);
-    }
-    if (score.value > 0) {
-        scoreText = "+" + scoreText;
-    }
-    if (score.value < 0) {
-        scoreText = "-" + scoreText;
-    }
-    return scoreText;
 }
 
 export function formatMove(orientation: string) {

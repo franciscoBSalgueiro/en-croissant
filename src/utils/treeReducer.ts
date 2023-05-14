@@ -1,8 +1,9 @@
 import { Chess, DEFAULT_POSITION, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
-import { Annotation, MoveAnalysis, Score, getAnnotation } from "./chess";
+import { Annotation, MoveAnalysis, getAnnotation } from "./chess";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
+import { Score } from "./score";
 
 export interface TreeNode {
     fen: string;

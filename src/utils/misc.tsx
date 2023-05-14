@@ -119,3 +119,12 @@ export const useThrottledEffect = (
     };
   }, [delay, ...deps]);
 };
+
+export function mean(arr: number[]): number {
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+export function harmonicMean(arr: number[]): number {
+  const sum = arr.reduce((a, b) => a + 1 / b, 0);
+  return arr.length / sum;
+}

@@ -33,15 +33,14 @@ import {
   Annotation,
   BestMoves,
   BestMovesPayload,
-  Score,
   swapMove,
 } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
-import { formatScore } from "../../../utils/format";
 import { invoke, useThrottledEffect } from "../../../utils/misc";
 import MoveCell from "../../boards/MoveCell";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
+import { formatScore, Score } from "../../../utils/score";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {

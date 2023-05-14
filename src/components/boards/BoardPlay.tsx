@@ -36,12 +36,13 @@ import { memo, useContext, useMemo, useState } from "react";
 import Chessground from "react-chessground";
 import { handleMove, moveToKey, parseUci, toDests } from "../../utils/chess";
 import { Outcome } from "../../utils/db";
-import { formatMove, formatScore } from "../../utils/format";
+import { formatMove } from "../../utils/format";
 import { getBoardSize, invoke } from "../../utils/misc";
 import { GameHeaders, TreeNode } from "../../utils/treeReducer";
 import Piece from "../common/Piece";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import EvalBar from "./EvalBar";
+import { formatScore } from "../../utils/score";
 
 const useStyles = createStyles(() => ({
   chessboard: {

@@ -12,7 +12,6 @@ import {
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
 import { Outcome } from "./db";
-import { formatScore } from "./format";
 import {
     createNode,
     defaultTree,
@@ -22,19 +21,15 @@ import {
     TreeNode,
     TreeState,
 } from "./treeReducer";
-
-export type Score = {
-    type: "cp" | "mate";
-    value: number;
-};
-
-function parseScore(score: string): Score {
-    if (score.includes("M")) {
-        return { type: "mate", value: parseInt(score.split("M")[1]) };
-    } else {
-        return { type: "cp", value: parseFloat(score) * 100 };
-    }
-}
+import {
+    INITIAL_SCORE,
+    Score,
+    formatScore,
+    getAccuracy,
+    getCPLoss,
+    parseScore,
+} from "./score";
+import { harmonicMean, mean } from "./misc";
 
 function parseCsl(csl: string): DrawShape[] {
     let shapes = csl.split(",").map((square) => {
@@ -229,21 +224,21 @@ export function getPGN(
     pgn += "\n";
     const variationsPGN = variations
         ? tree.children.slice(1).map(
-              (variation) =>
-                  `${getMoveText(variation, {
-                      symbols,
-                      comments,
-                      specialSymbols,
-                      isFirst: true,
-                  })} ${getPGN(variation, {
-                      headers: null,
-                      symbols,
-                      comments,
-                      variations,
-                      specialSymbols,
-                      root: false,
-                  })}`
-          )
+            (variation) =>
+                `${getMoveText(variation, {
+                    symbols,
+                    comments,
+                    specialSymbols,
+                    isFirst: true,
+                })} ${getPGN(variation, {
+                    headers: null,
+                    symbols,
+                    comments,
+                    variations,
+                    specialSymbols,
+                    root: false,
+                })}`
+        )
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
@@ -533,21 +528,6 @@ export function handleMove(chess: Chess, orig: Key, dest: Key): Square {
     return dest;
 }
 
-export function getWinChance(centipawns: number) {
-    return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
-}
-
-function getAccuracy(winChanceBefore: number, winChanceAfter: number) {
-    return (
-        103.1668 * Math.exp(-0.04354 * (winChanceBefore - winChanceAfter)) -
-        3.1669
-    );
-}
-
-export function getAccuracyFromCp(cpBefore: number, cpAfter: number) {
-    return getAccuracy(getWinChance(cpBefore), getWinChance(cpAfter));
-}
-
 export function getAnnotation(
     prevScore: Score,
     curScore: Score,
@@ -583,15 +563,12 @@ export function getAnnotation(
     return Annotation.None;
 }
 
+type ColorMap<T> = {
+    [key in Color]: T;
+};
+
 /* traverse the main line and get the average centipawn loss for each player*/
 export function getGameStats(tree: TreeNode) {
-    let whiteCPSum = 0;
-    let whiteAccuracy = 0;
-    let whiteCount = 0;
-    let blackCPSum = 0;
-    let blackAccuracy = 0;
-    let blackCount = 0;
-
     let whiteAnnotations = {
         [Annotation.Blunder]: 0,
         [Annotation.Mistake]: 0,
@@ -614,13 +591,22 @@ export function getGameStats(tree: TreeNode) {
         return {
             whiteCPL: 0,
             blackCPL: 0,
-            whiteAccuracy,
-            blackAccuracy,
+            whiteAccuracy: 0,
+            blackAccuracy: 0,
             whiteAnnotations,
             blackAnnotations,
         };
     }
-    let prevScore: Score = tree.score ?? { type: "cp", value: 30 };
+
+    let prevScore: Score = tree.score ?? INITIAL_SCORE;
+    let cplosses: ColorMap<number[]> = {
+        w: [],
+        b: [],
+    }
+    let accuracies: ColorMap<number[]> = {
+        w: [],
+        b: [],
+    }
     while (tree.children.length > 0) {
         tree = tree.children[0];
         if (tree.annotation) {
@@ -630,34 +616,23 @@ export function getGameStats(tree: TreeNode) {
                 blackAnnotations[tree.annotation]++;
             }
         }
-        if (tree.score && tree.score.type === "cp") {
-            if (tree.halfMoves % 2 === 1) {
-                whiteCPSum += Math.max(prevScore.value - tree.score.value, 0);
-                whiteAccuracy += getAccuracyFromCp(
-                    prevScore?.value,
-                    tree.score.value
-                );
-                whiteCount++;
-            } else {
-                blackCPSum += Math.max(
-                    -(prevScore?.value - tree.score.value),
-                    0
-                );
-                blackAccuracy += getAccuracyFromCp(
-                    -prevScore?.value,
-                    -tree.score.value
-                );
-                blackCount++;
-            }
+        const color = tree.halfMoves % 2 == 1 ? "w" : "b";
+        if (tree.score) {
+            cplosses[color].push(getCPLoss(prevScore, tree.score, color));
+            accuracies[color].push(getAccuracy(prevScore, tree.score, color));
             prevScore = tree.score;
         }
     }
+    const whiteCPL = mean(cplosses.w);
+    const blackCPL = mean(cplosses.b);
+    const whiteAccuracy = harmonicMean(accuracies.w);
+    const blackAccuracy = harmonicMean(accuracies.b);
 
     return {
-        whiteCPL: whiteCPSum / whiteCount,
-        blackCPL: blackCPSum / blackCount,
-        whiteAccuracy: whiteAccuracy / whiteCount,
-        blackAccuracy: blackAccuracy / blackCount,
+        whiteCPL,
+        blackCPL,
+        whiteAccuracy,
+        blackAccuracy,
         whiteAnnotations,
         blackAnnotations,
     };
