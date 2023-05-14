@@ -5,15 +5,9 @@ import { DocumentContext, Head, Html, Main, NextScript } from "next/document";
 const getInitialProps = createGetInitialProps();
 
 function Document({}: DocumentContext) {
-  const [pieceSet] = useLocalStorage({
-    key: "piece-set",
-    defaultValue: "staunty",
-  });
-
   return (
     <Html>
       <Head>
-        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
         {/* <script src="http://localhost:8097"></script> */}
       </Head>
       <body>

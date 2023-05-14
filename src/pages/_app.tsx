@@ -27,6 +27,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   });
   const toggleColorScheme = (value?: ColorScheme) =>
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
+  const [pieceSet] = useLocalStorage({
+    key: "piece-set",
+    defaultValue: "staunty",
+  });
 
   return (
     <ColorSchemeProvider
@@ -35,6 +39,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     >
       <Head>
         <title>Page title</title>
+        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
         <meta
           name="viewport"
           content="minimum-scale=1, initial-scale=1, width=device-width"
@@ -51,7 +56,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
               "square.last-move": {
                 background: theme.fn.rgba(
                   theme.colors[theme.primaryColor][
-                    theme.colorScheme === "dark" ? 5 : 3
+                  theme.colorScheme === "dark" ? 5 : 3
                   ],
                   0.4
                 ),
@@ -59,7 +64,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
               "square.selected": {
                 backgroundColor: theme.fn.rgba(
                   theme.colors[theme.primaryColor][
-                    theme.colorScheme === "dark" ? 5 : 3
+                  theme.colorScheme === "dark" ? 5 : 3
                   ],
                   0.5
                 ),
@@ -73,7 +78,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                 ":hover": {
                   backgroundColor: theme.fn.rgba(
                     theme.colors[theme.primaryColor][
-                      theme.colorScheme === "dark" ? 5 : 3
+                    theme.colorScheme === "dark" ? 5 : 3
                     ],
                     0.6
                   ),
@@ -88,7 +93,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                 ":hover": {
                   background: theme.fn.rgba(
                     theme.colors[theme.primaryColor][
-                      theme.colorScheme === "dark" ? 5 : 3
+                    theme.colorScheme === "dark" ? 5 : 3
                     ],
                     0.6
                   ),
