@@ -1,16 +1,17 @@
 import {
   Accordion,
+  Grid,
   Group,
   Paper,
   ScrollArea,
   Stack,
   Tabs,
-  Text,
+  Text
 } from "@mantine/core";
 import { shallowEqual } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import { memo, useContext } from "react";
-import { getGameStats } from "../../../utils/chess";
+import { ANNOTATION_INFO, getGameStats } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import { useLocalFile } from "../../../utils/misc";
 import { getNodeAtPath } from "../../../utils/treeReducer";
@@ -136,36 +137,21 @@ const GameStats = memo(
           </>
         )}
       </Group>
-      <Group grow sx={{ textAlign: "center" }} mt="xs">
-        <div>{whiteAnnotations["!!"]}</div>
-        <Text>Brilliant</Text>
-        <div> {blackAnnotations["!!"]}</div>
-      </Group>
-      <Group grow sx={{ textAlign: "center" }}>
-        <div>{whiteAnnotations["!"]}</div>
-        <Text>Good</Text>
-        <div> {blackAnnotations["!"]}</div>
-      </Group>
-      <Group grow sx={{ textAlign: "center" }}>
-        <div>{whiteAnnotations["!?"]}</div>
-        <Text>Interesting</Text>
-        <div> {blackAnnotations["!?"]}</div>
-      </Group>
-      <Group grow sx={{ textAlign: "center" }}>
-        <div>{whiteAnnotations["?!"]}</div>
-        <Text>Dubious</Text>
-        <div> {blackAnnotations["?!"]}</div>
-      </Group>
-      <Group grow sx={{ textAlign: "center" }}>
-        <div>{whiteAnnotations["?"]}</div>
-        <Text>Mistake</Text>
-        <div> {blackAnnotations["?"]}</div>
-      </Group>
-      <Group grow sx={{ textAlign: "center" }}>
-        <div>{whiteAnnotations["??"]}</div>
-        <Text>Blunder</Text>
-        <div> {blackAnnotations["??"]}</div>
-      </Group>
+      <Grid columns={11} justify="space-between">
+        {(Object.keys(ANNOTATION_INFO)).filter((a) => a !== "").map((annotation) => {
+          const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
+          return (
+            <>
+              <Grid.Col span={4} sx={{ textAlign: "center" }}>
+                {whiteAnnotations[s]}
+              </Grid.Col>
+              <Grid.Col span={1}>{annotation}</Grid.Col>
+              <Grid.Col span={4}>{ANNOTATION_INFO[s].name}</Grid.Col>
+              <Grid.Col span={2}>{blackAnnotations[s]}</Grid.Col>
+            </>
+          )
+        })}
+      </Grid>
     </Stack>
   ),
   (prev, next) => {

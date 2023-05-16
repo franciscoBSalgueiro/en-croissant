@@ -12,6 +12,15 @@ import {
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
 import { Outcome } from "./db";
+import { harmonicMean, mean } from "./misc";
+import {
+    formatScore,
+    getAccuracy,
+    getCPLoss,
+    INITIAL_SCORE,
+    parseScore,
+    Score,
+} from "./score";
 import {
     createNode,
     defaultTree,
@@ -21,15 +30,6 @@ import {
     TreeNode,
     TreeState,
 } from "./treeReducer";
-import {
-    INITIAL_SCORE,
-    Score,
-    formatScore,
-    getAccuracy,
-    getCPLoss,
-    parseScore,
-} from "./score";
-import { harmonicMean, mean } from "./misc";
 
 function parseCsl(csl: string): DrawShape[] {
     let shapes = csl.split(",").map((square) => {
@@ -73,7 +73,7 @@ function parseCal(csl: string): DrawShape[] {
     return shapes;
 }
 
-export enum Annotation {
+export const enum Annotation {
     None = "",
     Good = "!",
     Brilliant = "!!",
@@ -81,34 +81,22 @@ export enum Annotation {
     Blunder = "??",
     Dubious = "?!",
     Interesting = "!?",
-}
+};
 
-export function annotationColor(annotation: Annotation) {
-    let color: string;
-    switch (annotation) {
-        case Annotation.Brilliant:
-            color = "cyan";
-            break;
-        case Annotation.Good:
-            color = "teal";
-            break;
-        case Annotation.Interesting:
-            color = "lime";
-            break;
-        case Annotation.Dubious:
-            color = "yellow";
-            break;
-        case Annotation.Mistake:
-            color = "orange";
-            break;
-        case Annotation.Blunder:
-            color = "red";
-            break;
-        default:
-            color = "gray";
-    }
-    return color;
-}
+type AnnotationInfo = {
+    name: string;
+    color: string;
+};
+
+export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
+    [Annotation.None]: { name: "None", color: "gray" },
+    [Annotation.Brilliant]: { name: "Brilliant", color: "cyan" },
+    [Annotation.Good]: { name: "Good", color: "teal" },
+    [Annotation.Interesting]: { name: "Interesting", color: "lime" },
+    [Annotation.Dubious]: { name: "Dubious", color: "yellow" },
+    [Annotation.Mistake]: { name: "Mistake", color: "orange" },
+    [Annotation.Blunder]: { name: "Blunder", color: "red" },
+};
 
 export interface BestMoves {
     depth: number;

@@ -1,6 +1,6 @@
 import { Box, createStyles } from "@mantine/core";
 import { forwardRef } from "react";
-import { Annotation, annotationColor } from "../../utils/chess";
+import { ANNOTATION_INFO, Annotation } from "../../utils/chess";
 
 const useStyles = createStyles(
   (
@@ -47,7 +47,7 @@ const MoveCell = forwardRef(function MoveCell(
   },
   ref
 ) {
-  const color = annotationColor(props.annotation);
+  const color = ANNOTATION_INFO[props.annotation].color;
   const { classes } = useStyles({
     isCurrentVariation: props.isCurrentVariation,
     color,

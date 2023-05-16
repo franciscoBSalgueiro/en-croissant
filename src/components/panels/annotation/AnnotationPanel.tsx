@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { memo, useContext } from "react";
-import { Annotation, annotationColor } from "../../../utils/chess";
+import { ANNOTATION_INFO, Annotation } from "../../../utils/chess";
 import { getNodeAtPath } from "../../../utils/treeReducer";
 import {
   TreeDispatchContext,
@@ -17,33 +17,10 @@ const SymbolButton = memo(
     annotation: Annotation;
   }) => {
     const dispatch = useContext(TreeDispatchContext);
-    let label: string;
-    switch (annotation) {
-      case Annotation.Good:
-        label = "Good";
-        break;
-      case Annotation.Brilliant:
-        label = "Brilliant";
-        break;
-      case Annotation.Mistake:
-        label = "Mistake";
-        break;
-      case Annotation.Blunder:
-        label = "Blunder";
-        break;
-      case Annotation.Dubious:
-        label = "Dubious";
-        break;
-      case Annotation.Interesting:
-        label = "Interesting";
-        break;
-      default:
-        label = "Unknown";
-    }
-    const color = annotationColor(annotation);
+    const { name, color } = ANNOTATION_INFO[annotation];
     const isActive = curAnnotation === annotation;
     return (
-      <Tooltip label={label}>
+      <Tooltip label={name}>
         <ActionIcon
           onClick={() =>
             dispatch({
@@ -70,30 +47,14 @@ function AnnotationPanel() {
   return (
     <Stack>
       <Group grow>
-        <SymbolButton
-          curAnnotation={currentNode.annotation}
-          annotation={Annotation.Brilliant}
-        />
-        <SymbolButton
-          curAnnotation={currentNode.annotation}
-          annotation={Annotation.Good}
-        />
-        <SymbolButton
-          curAnnotation={currentNode.annotation}
-          annotation={Annotation.Interesting}
-        />
-        <SymbolButton
-          curAnnotation={currentNode.annotation}
-          annotation={Annotation.Dubious}
-        />
-        <SymbolButton
-          curAnnotation={currentNode.annotation}
-          annotation={Annotation.Mistake}
-        />
-        <SymbolButton
-          curAnnotation={currentNode.annotation}
-          annotation={Annotation.Blunder}
-        />
+        {(Object.keys(ANNOTATION_INFO)).filter((a) => a !== "").map((annotation) => {
+          return (
+            <SymbolButton
+              curAnnotation={currentNode.annotation}
+              annotation={annotation as Annotation}
+            />
+          )
+        })}
       </Group>
       <AnnotationEditor path={position} commentHTML={currentNode.commentHTML} />
     </Stack>
