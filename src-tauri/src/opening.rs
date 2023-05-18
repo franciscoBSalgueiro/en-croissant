@@ -1,7 +1,12 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::San, zobrist::{ZobristHash, Zobrist64}, CastlingMode, Chess, Position, EnPassantMode};
+use shakmaty::{
+    fen::Fen,
+    san::San,
+    zobrist::{Zobrist64, ZobristHash},
+    CastlingMode, Chess, EnPassantMode, Position,
+};
 
 use lazy_static::lazy_static;
 
@@ -27,7 +32,7 @@ const TSV_DATA: [&[u8]; 5] = [
 ];
 
 #[tauri::command]
-pub fn get_opening(fen: &str) -> Result<&str, &str> {
+pub fn get_opening_from_fen(fen: &str) -> Result<&str, &str> {
     let fen: Fen = fen.parse().or(Err("Invalid FEN"))?;
     let pos: Chess = fen
         .into_position(CastlingMode::Standard)
@@ -35,6 +40,14 @@ pub fn get_opening(fen: &str) -> Result<&str, &str> {
     let hash: Zobrist64 = pos.zobrist_hash(EnPassantMode::Legal);
     OPENINGS
         .get(&hash)
+        .map(|o| o.name.as_str())
+        .ok_or("No opening found")
+}
+
+pub fn get_opening_from_eco(eco: &str) -> Result<&str, &str> {
+    OPENINGS
+        .values()
+        .find(|o| o.eco == eco)
         .map(|o| o.name.as_str())
         .ok_or("No opening found")
 }
@@ -73,7 +86,8 @@ mod tests {
     #[test]
     fn test_get_opening() {
         let opening =
-            get_opening("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR b kq - 1 2").unwrap();
+            get_opening_from_fen("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR b kq - 1 2")
+                .unwrap();
         assert_eq!(opening, "Bongcloud Attack");
     }
 }

@@ -58,6 +58,7 @@ export enum Outcome {
 interface GameQuery extends Query {
     player1?: string;
     player2?: string;
+    tournament_id?: number;
     sides?: Sides;
     rangePlayer1?: [number, number];
     rangePlayer2?: [number, number];
@@ -109,6 +110,7 @@ export async function query_games(
             range1: normalizeRange(query.rangePlayer1),
             player2: query.player2,
             range2: normalizeRange(query.rangePlayer2),
+            tournament_id: query.tournament_id,
             sides: query.sides,
             speed: query.speed,
             outcome: query.outcome,
@@ -144,6 +146,34 @@ export async function query_players(
             },
             name: query.name,
             range: normalizeRange(query.range),
+        },
+    });
+}
+
+interface TournamentQuery extends Query {
+    name?: string;
+}
+
+export interface Tournament {
+    id: number;
+    name: string;
+}
+
+export async function query_tournaments(
+    db: string,
+    query: TournamentQuery
+): Promise<QueryResponse<Tournament[]>> {
+    return invoke("get_tournaments", {
+        file: db,
+        query: {
+            options: {
+                skip_count: query.skip_count || false,
+                page: query.page,
+                page_size: query.pageSize,
+                sort: query.sort,
+                direction: query.direction,
+            },
+            name: query.name,
         },
     });
 }
@@ -225,6 +255,19 @@ export interface NormalizedGame {
     black_material?: number;
     fen?: string;
     moves: string;
+}
+
+
+export async function getTournamentGames(
+    file: string,
+    id: number,
+) {
+    return await query_games(file, {
+        direction: "asc",
+        sort: "id",
+        tournament_id: id,
+        skip_count: true,
+    });
 }
 
 export async function getPlayersGameInfo(

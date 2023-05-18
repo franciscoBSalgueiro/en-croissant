@@ -9,6 +9,7 @@ use crate::{
         ops::*,
         schema::*,
     },
+    opening::get_opening_from_eco,
     AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
@@ -699,6 +700,7 @@ pub struct GameQuery {
     pub options: QueryOptions<GameSort>,
     pub player1: Option<String>,
     pub player2: Option<String>,
+    pub tournament_id: Option<i32>,
     pub range1: Option<(i32, i32)>,
     pub range2: Option<(i32, i32)>,
     pub sides: Option<Sides>,
@@ -741,6 +743,11 @@ pub async fn get_games(
     if let Some(outcome) = query.outcome {
         sql_query = sql_query.filter(games::result.eq(outcome.clone()));
         count_query = count_query.filter(games::result.eq(outcome));
+    }
+
+    if let Some(tournament_id) = query.tournament_id {
+        sql_query = sql_query.filter(games::event_id.eq(tournament_id));
+        count_query = count_query.filter(games::event_id.eq(tournament_id));
     }
 
     if let Some(limit) = query.options.page_size {
@@ -1015,12 +1022,77 @@ pub async fn get_players(
     })
 }
 
-#[derive(Debug, Clone, Serialize)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TournamentSort {
+    #[serde(rename = "id")]
+    Id,
+    #[serde(rename = "name")]
+    Name,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TournamentQuery {
+    pub options: QueryOptions<TournamentSort>,
+    pub name: Option<String>,
+}
+
+#[tauri::command]
+pub async fn get_tournaments(
+    file: PathBuf,
+    query: TournamentQuery,
+    state: tauri::State<'_, AppState>,
+) -> Result<QueryResponse<Vec<Event>>, String> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let mut count = None;
+
+    let mut sql_query = events::table.into_boxed();
+    let mut count_query = events::table.into_boxed();
+
+    if let Some(name) = query.name {
+        sql_query = sql_query.filter(events::name.like(format!("%{}%", name)));
+        count_query = count_query.filter(events::name.like(format!("%{}%", name)));
+    }
+
+    if !query.options.skip_count {
+        count = Some(count_query.count().get_result(db).expect("count players"));
+    }
+
+    if let Some(limit) = query.options.page_size {
+        sql_query = sql_query.limit(limit);
+    }
+
+    if let Some(page) = query.options.page {
+        sql_query = sql_query.offset((page - 1) * query.options.page_size.unwrap_or(10));
+    }
+
+    sql_query = match query.options.sort {
+        TournamentSort::Id => match query.options.direction {
+            SortDirection::Asc => sql_query.order(events::id.asc()),
+            SortDirection::Desc => sql_query.order(events::id.desc()),
+        },
+        TournamentSort::Name => match query.options.direction {
+            SortDirection::Asc => sql_query.order(events::name.asc()),
+            SortDirection::Desc => sql_query.order(events::name.desc()),
+        },
+    };
+
+    let events = sql_query.load::<Event>(db).expect("load events");
+
+    Ok(QueryResponse {
+        data: events,
+        count,
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct PlayerGameInfo {
     pub won: usize,
     pub lost: usize,
     pub draw: usize,
     pub games_per_month: Vec<(String, usize)>,
+    pub white_openings: Vec<(String, usize)>,
+    pub black_openings: Vec<(String, usize)>,
 }
 
 #[tauri::command]
@@ -1032,24 +1104,43 @@ pub async fn get_players_game_info(
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let sql_query = games::table
-        .select((games::result, games::date))
+        .select((
+            games::white_id,
+            games::black_id,
+            games::result,
+            games::date,
+            games::eco,
+        ))
         .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
 
-    let info: Vec<(Option<String>, Option<String>)> = sql_query.load(db).expect("load games");
+    let info: Vec<(i32, i32, Option<String>, Option<String>, Option<String>)> =
+        sql_query.load(db).expect("load games");
 
-    let mut game_info = PlayerGameInfo {
-        won: 0,
-        lost: 0,
-        draw: 0,
-        games_per_month: vec![],
-    };
+    let mut game_info = PlayerGameInfo::default();
 
-    for (outcome, date) in info {
+    for (white_id, black_id, outcome, date, opening) in info {
+        let is_white = white_id == id;
+        assert!(is_white || black_id == id);
+
         match outcome.unwrap_or_default().as_str() {
             "1-0" => game_info.won += 1,
             "0-1" => game_info.lost += 1,
             "1/2-1/2" => game_info.draw += 1,
             _ => (),
+        }
+
+        if let Some(opening) = opening {
+            let openings = if is_white {
+                &mut game_info.white_openings
+            } else {
+                &mut game_info.black_openings
+            };
+
+            if let Some((_, count)) = openings.iter_mut().find(|(o, _)| o == &opening) {
+                *count += 1;
+            } else {
+                openings.push((opening, 1));
+            }
         }
 
         if let Some(date) = date {
@@ -1071,6 +1162,30 @@ pub async fn get_players_game_info(
             }
         }
     }
+
+    // sort openings by count
+    game_info.white_openings.sort_by(|(_, a), (_, b)| b.cmp(a));
+    game_info.black_openings.sort_by(|(_, a), (_, b)| b.cmp(a));
+
+    game_info.white_openings.iter_mut().for_each(|(o, _)| {
+        let opening_name = match get_opening_from_eco(o) {
+            Ok(opening) => opening.to_string(),
+            Err(_) => return,
+        };
+        *o = opening_name;
+    });
+    game_info.black_openings.iter_mut().for_each(|(o, _)| {
+        let opening_name = match get_opening_from_eco(o) {
+            Ok(opening) => opening.to_string(),
+            Err(_) => return,
+        };
+        *o = opening_name;
+    });
+
+    game_info.white_openings.truncate(10);
+    game_info.black_openings.truncate(10);
+
+    // transform ECO to opening name
 
     Ok(game_info)
 }

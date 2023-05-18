@@ -28,7 +28,7 @@ use crate::chess::{
     validate_fen,
 };
 use crate::db::{
-    clear_games, convert_pgn, delete_database, get_players_game_info, search_position,
+    clear_games, convert_pgn, delete_database, get_players_game_info, search_position, get_tournaments,
 };
 use crate::fs::set_file_as_executable;
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
@@ -36,7 +36,7 @@ use crate::{
     chess::get_best_moves,
     db::{edit_db_info, get_db_info, get_games, get_players},
     fs::download_file,
-    opening::get_opening,
+    opening::get_opening_from_fen,
 };
 use tokio::sync::Semaphore;
 
@@ -148,10 +148,11 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             download_file,
             get_best_moves,
-            get_opening,
+            get_opening_from_fen,
             get_puzzle,
             get_games,
             get_players,
+            get_tournaments,
             get_db_info,
             get_puzzle_db_info,
             edit_db_info,
