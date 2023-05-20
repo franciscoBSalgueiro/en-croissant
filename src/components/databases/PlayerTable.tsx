@@ -142,33 +142,32 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
             </Group>
           </Collapse>
         </Box>
-        <Box sx={{ height: 500 }}>
-          <DataTable
-            withBorder
-            highlightOnHover
-            records={players}
-            columns={[
-              { accessor: "id", sortable: true },
-              { accessor: "name", sortable: true },
-              { accessor: "elo", sortable: true },
-            ]}
-            rowClassName={(_, i) =>
-              i === selectedPlayer ? classes.selected : ""
-            }
-            noRecordsText="No players found"
-            totalRecords={count}
-            recordsPerPage={limit}
-            page={activePage}
-            onPageChange={setActivePage}
-            onRecordsPerPageChange={setLimit}
-            sortStatus={sort}
-            onSortStatusChange={setSort}
-            recordsPerPageOptions={[10, 25, 50]}
-            onRowClick={(_, i) => {
-              setSelectedPlayer(i);
-            }}
-          />
-        </Box>
+        <DataTable
+          height={500}
+          withBorder
+          highlightOnHover
+          records={players}
+          columns={[
+            { accessor: "id", sortable: true },
+            { accessor: "name", sortable: true },
+            { accessor: "elo", sortable: true },
+          ]}
+          rowClassName={(_, i) =>
+            i === selectedPlayer ? classes.selected : ""
+          }
+          noRecordsText="No players found"
+          totalRecords={count}
+          recordsPerPage={limit}
+          page={activePage}
+          onPageChange={setActivePage}
+          onRecordsPerPageChange={setLimit}
+          sortStatus={sort}
+          onSortStatusChange={setSort}
+          recordsPerPageOptions={[10, 25, 50]}
+          onRowClick={(_, i) => {
+            setSelectedPlayer(i);
+          }}
+        />
       </Grid.Col>
 
       <Grid.Col span={2}>

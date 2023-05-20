@@ -108,32 +108,31 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
             />
           </Flex>
         </Box>
-        <Box sx={{ height: 500 }}>
-          <DataTable
-            withBorder
-            highlightOnHover
-            records={tournaments}
-            columns={[
-              { accessor: "id", sortable: true },
-              { accessor: "name", sortable: true },
-            ]}
-            rowClassName={(_, i) =>
-              i === selected ? classes.selected : ""
-            }
-            noRecordsText="No tournaments found"
-            totalRecords={count}
-            recordsPerPage={limit}
-            page={activePage}
-            onPageChange={setActivePage}
-            onRecordsPerPageChange={setLimit}
-            sortStatus={sort}
-            onSortStatusChange={setSort}
-            recordsPerPageOptions={[10, 25, 50]}
-            onRowClick={(_, i) => {
-              setSelected(i);
-            }}
-          />
-        </Box>
+        <DataTable
+          height={500}
+          withBorder
+          highlightOnHover
+          records={tournaments}
+          columns={[
+            { accessor: "id", sortable: true },
+            { accessor: "name", sortable: true },
+          ]}
+          rowClassName={(_, i) =>
+            i === selected ? classes.selected : ""
+          }
+          noRecordsText="No tournaments found"
+          totalRecords={count}
+          recordsPerPage={limit}
+          page={activePage}
+          onPageChange={setActivePage}
+          onRecordsPerPageChange={setLimit}
+          sortStatus={sort}
+          onSortStatusChange={setSort}
+          recordsPerPageOptions={[10, 25, 50]}
+          onRowClick={(_, i) => {
+            setSelected(i);
+          }}
+        />
       </Grid.Col>
 
       <Grid.Col span={2}>

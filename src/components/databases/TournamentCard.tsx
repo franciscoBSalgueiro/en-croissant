@@ -1,10 +1,25 @@
-import { Paper, Stack, Text } from "@mantine/core";
+import { ActionIcon, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
+import { useSessionStorage } from "@mantine/hooks";
+import { IconEye } from "@tabler/icons-react";
+import { DataTable } from "mantine-datatable";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { NormalizedGame, Tournament, getTournamentGames } from "../../utils/db";
+import { Tab, createTab } from "../../utils/tabs";
 
 
 function PlayerCard({ tournament, file }: { tournament: Tournament; file: string }) {
   const [games, setGames] = useState<NormalizedGame[]>([]);
+  const theme = useMantineTheme();
+  const router = useRouter();
+  const [, setTabs] = useSessionStorage<Tab[]>({
+    key: "tabs",
+    defaultValue: [],
+  });
+  const [, setActiveTab] = useSessionStorage<string | null>({
+    key: "activeTab",
+    defaultValue: null,
+  });
 
   useEffect(() => {
     let ignored = false;
@@ -26,9 +41,68 @@ function PlayerCard({ tournament, file }: { tournament: Tournament; file: string
         <Text fz="lg" weight={500}>
           {tournament.name}
         </Text>
+        <DataTable
+          withBorder
+          highlightOnHover
+          records={games}
+          height={500}
+          columns={[
+            {
+              accessor: "actions",
+              title: "",
+              render: (game) => (
+                <ActionIcon
+                  variant="filled"
+                  color={theme.primaryColor}
+                  onClick={() => {
+                    const id = createTab({
+                      name: `${game.white.name} - ${game.black.name}`,
+                      type: "analysis",
+                      setTabs,
+                      setActiveTab,
+                      pgn: game.moves,
+                      headers: game,
+                    });
+                    router.push("/boards");
+                  }}
+                >
+                  <IconEye size={16} stroke={1.5} />
+                </ActionIcon>
+              ),
+            },
+            {
+              accessor: "white",
+              render: ({ white, white_elo }) => (
+                <div>
+                  <Text size="sm" weight={500}>
+                    {white.name}
+                  </Text>
+                  <Text size="xs" color="dimmed">
+                    {white_elo}
+                  </Text>
+                </div>
+              ),
+            },
+            {
+              accessor: "black",
+              render: ({ black, black_elo }) => (
+                <div>
+                  <Text size="sm" weight={500}>
+                    {black.name}
+                  </Text>
+                  <Text size="xs" color="dimmed">
+                    {black_elo}
+                  </Text>
+                </div>
+              ),
+            },
+            { accessor: "date", sortable: true },
+            { accessor: "result" },
+            { accessor: "ply_count", sortable: true },
+          ]}
+          noRecordsText="No games found"
+        />
       </Stack>
-
-      <Text align="center">{games.length} Games</Text>
 
     </Paper>
   );

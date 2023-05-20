@@ -246,83 +246,82 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             </ActionIcon>
           </Flex>
         </Box>
-        <Box sx={{ height: 500 }}>
-          <DataTable
-            withBorder
-            highlightOnHover
-            records={games}
-            fetching={loading}
-            columns={[
-              {
-                accessor: "actions",
-                title: "",
-                render: (game) => (
-                  <ActionIcon
-                    variant="filled"
-                    color={theme.primaryColor}
-                    onClick={() => {
-                      const id = createTab({
-                        name: `${game.white.name} - ${game.black.name}`,
-                        type: "analysis",
-                        setTabs,
-                        setActiveTab,
-                        pgn: game.moves,
-                        headers: game,
-                      });
-                      router.push("/boards");
-                    }}
-                  >
-                    <IconEye size={16} stroke={1.5} />
-                  </ActionIcon>
-                ),
-              },
-              {
-                accessor: "white",
-                render: ({ white, white_elo }) => (
-                  <div>
-                    <Text size="sm" weight={500}>
-                      {white.name}
-                    </Text>
-                    <Text size="xs" color="dimmed">
-                      {white_elo}
-                    </Text>
-                  </div>
-                ),
-              },
-              {
-                accessor: "black",
-                render: ({ black, black_elo }) => (
-                  <div>
-                    <Text size="sm" weight={500}>
-                      {black.name}
-                    </Text>
-                    <Text size="xs" color="dimmed">
-                      {black_elo}
-                    </Text>
-                  </div>
-                ),
-              },
-              { accessor: "date", sortable: true },
-              { accessor: "result" },
-              { accessor: "ply_count", sortable: true },
-            ]}
-            rowClassName={(_, i) =>
-              i === selectedGame ? classes.selected : ""
-            }
-            noRecordsText="No games found"
-            totalRecords={count}
-            recordsPerPage={limit}
-            page={activePage}
-            onPageChange={setActivePage}
-            onRecordsPerPageChange={setLimit}
-            sortStatus={sort}
-            onSortStatusChange={setSort}
-            recordsPerPageOptions={[10, 25, 50]}
-            onRowClick={(_, i) => {
-              setSelectedGame(i);
-            }}
-          />
-        </Box>
+        <DataTable
+          height={500}
+          withBorder
+          highlightOnHover
+          records={games}
+          fetching={loading}
+          columns={[
+            {
+              accessor: "actions",
+              title: "",
+              render: (game) => (
+                <ActionIcon
+                  variant="filled"
+                  color={theme.primaryColor}
+                  onClick={() => {
+                    const id = createTab({
+                      name: `${game.white.name} - ${game.black.name}`,
+                      type: "analysis",
+                      setTabs,
+                      setActiveTab,
+                      pgn: game.moves,
+                      headers: game,
+                    });
+                    router.push("/boards");
+                  }}
+                >
+                  <IconEye size={16} stroke={1.5} />
+                </ActionIcon>
+              ),
+            },
+            {
+              accessor: "white",
+              render: ({ white, white_elo }) => (
+                <div>
+                  <Text size="sm" weight={500}>
+                    {white.name}
+                  </Text>
+                  <Text size="xs" color="dimmed">
+                    {white_elo}
+                  </Text>
+                </div>
+              ),
+            },
+            {
+              accessor: "black",
+              render: ({ black, black_elo }) => (
+                <div>
+                  <Text size="sm" weight={500}>
+                    {black.name}
+                  </Text>
+                  <Text size="xs" color="dimmed">
+                    {black_elo}
+                  </Text>
+                </div>
+              ),
+            },
+            { accessor: "date", sortable: true },
+            { accessor: "result" },
+            { accessor: "ply_count", sortable: true },
+          ]}
+          rowClassName={(_, i) =>
+            i === selectedGame ? classes.selected : ""
+          }
+          noRecordsText="No games found"
+          totalRecords={count}
+          recordsPerPage={limit}
+          page={activePage}
+          onPageChange={setActivePage}
+          onRecordsPerPageChange={setLimit}
+          sortStatus={sort}
+          onSortStatusChange={setSort}
+          recordsPerPageOptions={[10, 25, 50]}
+          onRowClick={(_, i) => {
+            setSelectedGame(i);
+          }}
+        />
       </Grid.Col>
 
       <Grid.Col span={2}>
