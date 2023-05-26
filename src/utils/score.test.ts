@@ -1,4 +1,4 @@
-import { parseScore, formatScore, getWinChance, getAccuracy, getCPLoss } from "./score";
+import { formatScore, getAccuracy, getCPLoss, getWinChance, parseScore } from "./score";
 
 describe("parseScore", () => {
     it("should parse a cp score correctly", () => {
@@ -41,7 +41,7 @@ describe("getWinChance", () => {
 describe("getAccuracy", () => {
     it("should calculate the accuracy correctly", () => {
         expect(getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: 0 }, "w")).toBeCloseTo(100);
-        expect(getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: -500 }, "w")).toBeCloseTo(18.06, 1);
+        expect(getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: -500 }, "w")).toBeCloseTo(19.06, 1);
     });
 });
 

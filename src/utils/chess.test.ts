@@ -13,9 +13,9 @@ describe("getGameStats", () => {
         const tree = parsePGN(GAME_1);
         const stats = getGameStats(tree.root);
         expect(stats.whiteCPL).toBeCloseTo(81, 0);
-        expect(stats.whiteAccuracy).toBeCloseTo(61, 0);
+        expect(stats.whiteAccuracy).toBeCloseTo(63, 0);
         expect(stats.blackCPL).toBeCloseTo(66, 0);
-        expect(stats.blackAccuracy).toBeCloseTo(68.6, 0);
+        expect(stats.blackAccuracy).toBeCloseTo(70.3, 0);
 
         expect(stats.whiteAnnotations).toEqual({
             [Annotation.Blunder]: 7,
@@ -40,9 +40,36 @@ describe("getGameStats", () => {
         const stats = getGameStats(tree.root);
 
         expect(stats.whiteCPL).toBeCloseTo(27, 0);
-        expect(stats.whiteAccuracy).toBeCloseTo(85.5, 0);
+        expect(stats.whiteAccuracy).toBeCloseTo(86.5, 0);
         expect(stats.blackCPL).toBeCloseTo(13, 0);
-        expect(stats.blackAccuracy).toBeCloseTo(91.5, 0);
+        expect(stats.blackAccuracy).toBeCloseTo(92.5, 0);
+
+        expect(stats.whiteAnnotations).toEqual({
+            [Annotation.Blunder]: 3,
+            [Annotation.Mistake]: 0,
+            [Annotation.Dubious]: 1,
+            [Annotation.Good]: 0,
+            [Annotation.Interesting]: 0,
+            [Annotation.Brilliant]: 0,
+        });
+        expect(stats.blackAnnotations).toEqual({
+            [Annotation.Blunder]: 1,
+            [Annotation.Mistake]: 1,
+            [Annotation.Dubious]: 0,
+            [Annotation.Good]: 0,
+            [Annotation.Interesting]: 0,
+            [Annotation.Brilliant]: 0,
+        });
+    })
+
+    it("should return correct stats for game 2", () => {
+        const tree = parsePGN(GAME_2);
+        const stats = getGameStats(tree.root);
+
+        expect(stats.whiteCPL).toBeCloseTo(27, 0);
+        expect(stats.whiteAccuracy).toBeCloseTo(86.5, 0);
+        expect(stats.blackCPL).toBeCloseTo(13, 0);
+        expect(stats.blackAccuracy).toBeCloseTo(92.5, 0);
 
         expect(stats.whiteAnnotations).toEqual({
             [Annotation.Blunder]: 3,

@@ -42,17 +42,6 @@ export function getWinChance(centipawns: number) {
     return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
 }
 
-export function getAccuracyfromCP(
-    winChanceBefore: number,
-    winChanceAfter: number
-) {
-    return Math.min(
-        103.1668 * Math.exp(-0.04354 * (winChanceBefore - winChanceAfter)) -
-        3.1669,
-        100
-    );
-}
-
 function normalizeScores(
     prev: Score,
     next: Score,
@@ -82,7 +71,11 @@ function normalizeScores(
 
 export function getAccuracy(prev: Score, next: Score, color: Color): number {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
-    return getAccuracyfromCP(getWinChance(prevCP), getWinChance(nextCP));
+    return minMax(
+        103.1668 * Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) - 3.1669 + 1,
+        0,
+        100,
+    );
 }
 
 export function getCPLoss(prev: Score, next: Score, color: Color): number {
