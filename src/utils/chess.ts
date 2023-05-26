@@ -81,7 +81,7 @@ export const enum Annotation {
     Blunder = "??",
     Dubious = "?!",
     Interesting = "!?",
-};
+}
 
 type AnnotationInfo = {
     name: string;
@@ -392,8 +392,10 @@ export function parsePGN(
                 comment += tokens[i] + " ";
                 i++;
             }
-            root.commentText = comment;
-            root.commentHTML = `<p>${comment}</p>`;
+            if (comment.trim() !== "") {
+                root.commentText = comment;
+                root.commentHTML = `<p>${comment}</p>`;
+            }
         } else if (token === "(") {
             let variation = "";
             let subvariations = 0;
@@ -408,10 +410,31 @@ export function parsePGN(
 
                 i++;
             }
-            const newTree = parsePGN(variation, prevNode.fen, root.halfMoves);
-            prevNode.children.push(newTree.root);
+            const newTree = parsePGN(variation, prevNode.fen, root.halfMoves - 1);
+            prevNode.children.push(newTree.root.children[0]);
         } else if (token === ")") {
             continue;
+        } else if (
+            token === "$1" ||
+            token === "$2" ||
+            token === "$3" ||
+            token === "$4" ||
+            token === "$5" ||
+            token === "$6"
+        ) {
+            if (token.endsWith("!!") || token.endsWith("$3")) {
+                root.annotation = Annotation.Brilliant;
+            } else if (token.endsWith("!?") || token.endsWith("$5")) {
+                root.annotation = Annotation.Interesting;
+            } else if (token.endsWith("?!") || token.endsWith("$6")) {
+                root.annotation = Annotation.Dubious;
+            } else if (token.endsWith("??") || token.endsWith("$4")) {
+                root.annotation = Annotation.Blunder;
+            } else if (token.endsWith("!") || token.endsWith("$1")) {
+                root.annotation = Annotation.Good;
+            } else if (token.endsWith("?") || token.endsWith("$2")) {
+                root.annotation = Annotation.Mistake;
+            }
         } else if (
             token === "1-0" ||
             token === "0-1" ||
@@ -436,17 +459,17 @@ export function parsePGN(
             });
             root.children.push(newTree);
 
-            if (token.endsWith("!!" || "$3")) {
+            if (token.endsWith("!!") || token.endsWith("$3")) {
                 newTree.annotation = Annotation.Brilliant;
-            } else if (token.endsWith("!?" || "$5")) {
+            } else if (token.endsWith("!?") || token.endsWith("$5")) {
                 newTree.annotation = Annotation.Interesting;
-            } else if (token.endsWith("?!" || "$6")) {
+            } else if (token.endsWith("?!") || token.endsWith("$6")) {
                 newTree.annotation = Annotation.Dubious;
-            } else if (token.endsWith("??" || "$4")) {
+            } else if (token.endsWith("??") || token.endsWith("$4")) {
                 newTree.annotation = Annotation.Blunder;
-            } else if (token.endsWith("!" || "$1")) {
+            } else if (token.endsWith("!") || token.endsWith("$1")) {
                 newTree.annotation = Annotation.Good;
-            } else if (token.endsWith("?" || "$2")) {
+            } else if (token.endsWith("?") || token.endsWith("$2")) {
                 newTree.annotation = Annotation.Mistake;
             }
             prevNode = root;
@@ -555,11 +578,11 @@ export function getGameStats(tree: TreeNode) {
     let cplosses: ColorMap<number[]> = {
         w: [],
         b: [],
-    }
+    };
     let accuracies: ColorMap<number[]> = {
         w: [],
         b: [],
-    }
+    };
     while (tree.children.length > 0) {
         tree = tree.children[0];
         if (tree.annotation) {
