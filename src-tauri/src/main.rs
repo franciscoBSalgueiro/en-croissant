@@ -28,7 +28,8 @@ use crate::chess::{
     validate_fen,
 };
 use crate::db::{
-    clear_games, convert_pgn, delete_database, get_players_game_info, search_position, get_tournaments,
+    clear_games, convert_pgn, delete_database, get_players_game_info, get_tournaments,
+    list_pgn_games, read_games, search_position,
 };
 use crate::fs::set_file_as_executable;
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
@@ -105,6 +106,8 @@ pub struct AppState {
     analysis_cache: DashMap<AnalysisCacheKey, Vec<BestMoves>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
+    pgn_offsets: DashMap<String, Vec<u64>>,
+    pgn_counts: DashMap<String, i64>,
 }
 
 fn main() {
@@ -171,6 +174,8 @@ fn main() {
             make_random_move,
             set_file_as_executable,
             validate_fen,
+            list_pgn_games,
+            read_games
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

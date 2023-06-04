@@ -20,10 +20,10 @@ import {
 } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
-import { readTextFile } from "@tauri-apps/api/fs";
 import { useState } from "react";
 import { getPgnHeaders, parsePGN } from "../../utils/chess";
 import { getChesscomGame } from "../../utils/chesscom";
+import { list_pgn_games } from "../../utils/db";
 import { getLichessGame } from "../../utils/lichess";
 import { Tab } from "../../utils/tabs";
 import FileInput from "../common/FileInput";
@@ -152,6 +152,7 @@ function ImportModal({
   const [file, setFile] = useState<string | null>(null);
   const [link, setLink] = useState("");
   const [importType, setImportType] = useState<string>("PGN");
+  const [loading, setLoading] = useState(false);
 
   return (
     <Modal
@@ -217,11 +218,19 @@ function ImportModal({
         fullWidth
         mt="md"
         radius="md"
+        loading={loading}
         disabled={importType === "PGN" ? !pgn && !file : !link}
         onClick={async () => {
           if (importType === "PGN") {
             if (file || pgn) {
-              const input = file ? await readTextFile(file) : pgn;
+              let input = pgn;
+              if (file) {
+                setLoading(true);
+                const games = await list_pgn_games(file);
+                setLoading(false);
+                input = games.data;
+              }
+              // const input = file ? await readTextFile(file) : pgn;
               setTabs((prevTabs) =>
                 prevTabs.map((tab) => {
                   if (tab.value === id) {
@@ -231,6 +240,8 @@ function ImportModal({
                     return {
                       ...tab,
                       name: `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`,
+                      file: file ?? undefined,
+                      gameNumber: 0,
                       type: "analysis",
                     };
                   }
@@ -261,7 +272,7 @@ function ImportModal({
           }
         }}
       >
-        Load
+        {loading ? "Importing..." : "Import"}
       </Button>
     </Modal>
   );

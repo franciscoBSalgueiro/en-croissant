@@ -93,7 +93,7 @@ function BoardAnalysis({ id }: { id: string }) {
         <>
           <Tabs
             keepMounted={false}
-            defaultValue="analysis"
+            defaultValue="info"
             sx={{
               display: notationExpanded || editingMode ? "none" : undefined,
             }}
@@ -113,7 +113,7 @@ function BoardAnalysis({ id }: { id: string }) {
               </Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="info" pt="xs">
-              <InfoPanel boardSize={boardSize} />
+              <InfoPanel boardSize={boardSize} id={id} />
             </Tabs.Panel>
             <Tabs.Panel value="database" pt="xs">
               <DatabasePanel fen={currentNode!.fen} height={boardSize / 2} />

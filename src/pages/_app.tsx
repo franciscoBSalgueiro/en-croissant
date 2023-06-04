@@ -12,6 +12,7 @@ import { SideBar } from "../components/Sidebar";
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
 import Head from "next/head";
+import 'react-virtualized/styles.css';
 import "../styles/chessgroundBaseOverride.css";
 import "../styles/chessgroundColorsOverride.css";
 

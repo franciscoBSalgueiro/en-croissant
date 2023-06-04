@@ -7,7 +7,6 @@
     "build": "next build && next export -o dist",
     "tauri": "tauri",
     "pretty": "prettier --write \"./src/**/*.{ts,tsx}\"",
-    "postinstall": "cd ./node_modules/chess.js && npm run build",
     "test": "jest",
     "test:ci": "jest --ci"
   },
@@ -32,7 +31,8 @@
     "@tiptap/pm": "2.0.3",
     "@tiptap/react": "2.0.3",
     "@tiptap/starter-kit": "2.0.3",
-    "chess.js": "github:jhlywa/chess.js",
+    "@types/react-virtualized": "^9.21.22",
+    "chess.js": "1.0.0-beta.6",
     "chessground": "^8.3.7",
     "dayjs": "^1.11.7",
     "mantine-datatable": "^2.4.16",
@@ -51,6 +51,7 @@
     "react-chessground": "^1.5.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.5",
+    "react-virtualized": "^9.22.5",
     "recharts": "^2.5.0",
     "use-immer": "^0.9.0"
   },

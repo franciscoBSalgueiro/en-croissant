@@ -257,11 +257,7 @@ export interface NormalizedGame {
     moves: string;
 }
 
-
-export async function getTournamentGames(
-    file: string,
-    id: number,
-) {
+export async function getTournamentGames(file: string, id: number) {
     return await query_games(file, {
         direction: "asc",
         sort: "id",
@@ -305,4 +301,19 @@ export async function searchPosition(
         (s) => s === "Search stopped"
     );
     return openings;
+}
+
+export async function list_pgn_games(file: string) {
+    return await invoke<QueryResponse<string>>("list_pgn_games", {
+        file,
+    });
+}
+
+export async function read_games(file: string, start: number, end: number) {
+    const games = await invoke<string[]>("read_games", {
+        file,
+        start,
+        end
+    });
+    return games;
 }

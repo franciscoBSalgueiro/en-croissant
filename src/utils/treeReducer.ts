@@ -126,6 +126,7 @@ export function headersToPGN(game: GameHeaders): string {
 }
 
 export type TreeAction =
+    | { type: "SET_STATE"; payload: TreeState }
     | { type: "SET_HEADERS"; payload: GameHeaders }
     | {
         type: "MAKE_MOVE";
@@ -161,6 +162,8 @@ export interface TreeState {
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
     switch (action.type) {
+        case "SET_STATE":
+            return action.payload;
         case "SET_HEADERS":
             return void (state.headers = action.payload);
         case "MAKE_MOVE":

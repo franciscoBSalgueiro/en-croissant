@@ -3,13 +3,15 @@ import { useContext } from "react";
 import { getNodeAtPath } from "../../../utils/treeReducer";
 import GameInfo from "../../common/GameInfo";
 import { TreeStateContext } from "../../common/TreeStateContext";
+import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
 
-function InfoPanel({ boardSize }: { boardSize: number }) {
+function InfoPanel({ boardSize, id }: { boardSize: number, id: string }) {
   const tree = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(tree.root, tree.position);
   return (
     <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
+      <GameSelector id={id} headers={tree.headers} />
       <Stack>
         <GameInfo headers={tree.headers} />
         {currentNode && (

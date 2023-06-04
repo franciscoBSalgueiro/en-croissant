@@ -7,6 +7,8 @@ export interface Tab {
     name: string;
     value: string;
     type: TabType;
+    file?: string;
+    gameNumber?: number;
 }
 
 export function genID() {
