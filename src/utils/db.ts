@@ -179,8 +179,8 @@ export async function query_tournaments(
 }
 
 export async function getDatabases(): Promise<DatabaseInfo[]> {
-    let files = await readDir("db", { dir: BaseDirectory.AppData });
-    let dbs = files.filter((file) => file.name?.endsWith(".db3"));
+    const files = await readDir("db", { dir: BaseDirectory.AppData });
+    const dbs = files.filter((file) => file.name?.endsWith(".db3"));
     return await Promise.all(dbs.map((db) => getDatabase(db.path)));
 }
 
@@ -206,7 +206,7 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
 }
 
 export async function getDefaultDatabases(): Promise<DatabaseInfo[]> {
-    let data: any = await fetch(`https://www.encroissant.org/databases`, {
+    const data: any = await fetch(`https://www.encroissant.org/databases`, {
         method: "GET",
     });
     if (!data.ok) {
@@ -292,7 +292,7 @@ export async function searchPosition(
     referenceDatabase: string | null,
     fen: string
 ) {
-    let openings: [Opening[], NormalizedGame[]] = await invoke(
+    const openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
             file: referenceDatabase,
@@ -313,7 +313,7 @@ export async function read_games(file: string, start: number, end: number) {
     const games = await invoke<string[]>("read_games", {
         file,
         start,
-        end
+        end,
     });
     return games;
 }

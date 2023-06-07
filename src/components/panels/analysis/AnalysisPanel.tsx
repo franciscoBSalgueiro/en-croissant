@@ -6,7 +6,7 @@ import {
   ScrollArea,
   Stack,
   Tabs,
-  Text
+  Text,
 } from "@mantine/core";
 import { shallowEqual } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
@@ -109,51 +109,55 @@ function AnalysisPanel({
   );
 }
 
-type GameStats = ReturnType<typeof getGameStats>;
+type Stats = ReturnType<typeof getGameStats>;
 
 const GameStats = memo(
-  ({
+  function GameStats({
     whiteCPL,
     blackCPL,
     whiteAccuracy,
     blackAccuracy,
     whiteAnnotations,
     blackAnnotations,
-  }: GameStats) => (
-    <Stack mb="lg" spacing="0.4rem" mr="xs">
-      <Group grow sx={{ textAlign: "center" }}>
-        {whiteAccuracy && blackAccuracy && (
-          <>
-            <AccuracyCard
-              color="WHITE"
-              accuracy={whiteAccuracy}
-              cpl={whiteCPL}
-            />
-            <AccuracyCard
-              color="BLACK"
-              accuracy={blackAccuracy}
-              cpl={blackCPL}
-            />
-          </>
-        )}
-      </Group>
-      <Grid columns={11} justify="space-between">
-        {(Object.keys(ANNOTATION_INFO)).filter((a) => a !== "").map((annotation) => {
-          const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
-          return (
+  }: Stats) {
+    return (
+      <Stack mb="lg" spacing="0.4rem" mr="xs">
+        <Group grow sx={{ textAlign: "center" }}>
+          {whiteAccuracy && blackAccuracy && (
             <>
-              <Grid.Col span={4} sx={{ textAlign: "center" }}>
-                {whiteAnnotations[s]}
-              </Grid.Col>
-              <Grid.Col span={1}>{annotation}</Grid.Col>
-              <Grid.Col span={4}>{ANNOTATION_INFO[s].name}</Grid.Col>
-              <Grid.Col span={2}>{blackAnnotations[s]}</Grid.Col>
+              <AccuracyCard
+                color="WHITE"
+                accuracy={whiteAccuracy}
+                cpl={whiteCPL}
+              />
+              <AccuracyCard
+                color="BLACK"
+                accuracy={blackAccuracy}
+                cpl={blackCPL}
+              />
             </>
-          )
-        })}
-      </Grid>
-    </Stack>
-  ),
+          )}
+        </Group>
+        <Grid columns={11} justify="space-between">
+          {Object.keys(ANNOTATION_INFO)
+            .filter((a) => a !== "")
+            .map((annotation) => {
+              const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
+              return (
+                <>
+                  <Grid.Col span={4} sx={{ textAlign: "center" }}>
+                    {whiteAnnotations[s]}
+                  </Grid.Col>
+                  <Grid.Col span={1}>{annotation}</Grid.Col>
+                  <Grid.Col span={4}>{ANNOTATION_INFO[s].name}</Grid.Col>
+                  <Grid.Col span={2}>{blackAnnotations[s]}</Grid.Col>
+                </>
+              );
+            })}
+        </Grid>
+      </Stack>
+    );
+  },
   (prev, next) => {
     return (
       prev.whiteCPL === next.whiteCPL &&

@@ -8,35 +8,33 @@ import {
 } from "../../common/TreeStateContext";
 import AnnotationEditor from "./AnnotationEditor";
 
-const SymbolButton = memo(
-  ({
-    curAnnotation,
-    annotation,
-  }: {
-    curAnnotation: Annotation;
-    annotation: Annotation;
-  }) => {
-    const dispatch = useContext(TreeDispatchContext);
-    const { name, color } = ANNOTATION_INFO[annotation];
-    const isActive = curAnnotation === annotation;
-    return (
-      <Tooltip label={name}>
-        <ActionIcon
-          onClick={() =>
-            dispatch({
-              type: "SET_ANNOTATION",
-              payload: annotation,
-            })
-          }
-          variant={isActive ? "filled" : "default"}
-          color={color}
-        >
-          <Text>{annotation}</Text>
-        </ActionIcon>
-      </Tooltip>
-    );
-  }
-);
+const SymbolButton = memo(function SymbolButton({
+  curAnnotation,
+  annotation,
+}: {
+  curAnnotation: Annotation;
+  annotation: Annotation;
+}) {
+  const dispatch = useContext(TreeDispatchContext);
+  const { name, color } = ANNOTATION_INFO[annotation];
+  const isActive = curAnnotation === annotation;
+  return (
+    <Tooltip label={name}>
+      <ActionIcon
+        onClick={() =>
+          dispatch({
+            type: "SET_ANNOTATION",
+            payload: annotation,
+          })
+        }
+        variant={isActive ? "filled" : "default"}
+        color={color}
+      >
+        <Text>{annotation}</Text>
+      </ActionIcon>
+    </Tooltip>
+  );
+});
 
 function AnnotationPanel() {
   const { root, position } = useContext(TreeStateContext);
@@ -47,14 +45,17 @@ function AnnotationPanel() {
   return (
     <Stack>
       <Group grow>
-        {(Object.keys(ANNOTATION_INFO)).filter((a) => a !== "").map((annotation) => {
-          return (
-            <SymbolButton
-              curAnnotation={currentNode.annotation}
-              annotation={annotation as Annotation}
-            />
-          )
-        })}
+        {Object.keys(ANNOTATION_INFO)
+          .filter((a) => a !== "")
+          .map((annotation) => {
+            return (
+              <SymbolButton
+                key={annotation}
+                curAnnotation={currentNode.annotation}
+                annotation={annotation as Annotation}
+              />
+            );
+          })}
       </Group>
       <AnnotationEditor path={position} commentHTML={currentNode.commentHTML} />
     </Stack>

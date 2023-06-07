@@ -1,9 +1,9 @@
 import { createStyles } from "@mantine/core";
 
-const useStyles = createStyles((theme) => ({
+const useStyles = createStyles(() => ({
   logo: {
     width: 35,
-    height: 35
+    height: 35,
   },
 }));
 

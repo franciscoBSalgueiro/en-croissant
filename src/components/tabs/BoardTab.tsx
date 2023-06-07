@@ -73,7 +73,7 @@ export function BoardTab({
 
   useEffect(() => {
     if (renaming) ref.current?.focus();
-  }, [renaming]);
+  }, [renaming, ref]);
 
   return (
     <Menu opened={open} shadow="md" width={200} closeOnClickOutside>

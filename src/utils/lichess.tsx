@@ -109,7 +109,7 @@ export async function getLichessAccount({
 }: {
   token?: string;
   username?: string;
-}) {
+}): Promise<LichessAccount | null> {
   let response: Response;
   if (token) {
     const url = `${base_url}/account`;
@@ -128,10 +128,10 @@ export async function getLichessAccount({
     });
     return null;
   }
-  return (await response!.json()) as LichessAccount;
+  return await response.json();
 }
 
-export async function getCloudEvaluation(fen: string, multipv: number = 1) {
+export async function getCloudEvaluation(fen: string, multipv = 1) {
   const url = `${base_url}/cloud-eval?fen=${fen}&multipv=${multipv}`;
   return getJson(url);
 }

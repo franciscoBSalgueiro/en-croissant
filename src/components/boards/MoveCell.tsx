@@ -43,7 +43,7 @@ const MoveCell = forwardRef(function MoveCell(
     isCurrentVariation: boolean;
     move: string;
     onClick: () => void;
-    onContextMenu: (e: any) => void;
+    onContextMenu: (e: React.MouseEvent) => void;
   },
   ref
 ) {

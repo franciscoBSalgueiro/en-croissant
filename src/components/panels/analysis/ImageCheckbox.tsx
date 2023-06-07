@@ -4,7 +4,7 @@ import {
   createStyles,
   Image,
   Text,
-  UnstyledButton
+  UnstyledButton,
 } from "@mantine/core";
 import { useUncontrolled } from "@mantine/hooks";
 import { IconRobot } from "@tabler/icons-react";
@@ -93,7 +93,7 @@ export default function ImageCheckbox({
 
       <Checkbox
         checked={value}
-        onChange={() => {}}
+        onChange={() => undefined}
         tabIndex={-1}
         styles={{ input: { cursor: "pointer" } }}
       />

@@ -30,12 +30,7 @@ pub async fn download_file(
     // add Bearer if token is present
     if let Some(token) = token {
         let mut header_map = HeaderMap::new();
-        header_map.insert(
-            "Authorization",
-            format!("Bearer {token}")
-                .parse()
-                .unwrap(),
-        );
+        header_map.insert("Authorization", format!("Bearer {token}").parse().unwrap());
         req = req.headers(header_map);
     }
     let res = req

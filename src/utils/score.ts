@@ -72,9 +72,12 @@ function normalizeScores(
 export function getAccuracy(prev: Score, next: Score, color: Color): number {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
     return minMax(
-        103.1668 * Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) - 3.1669 + 1,
+        103.1668 *
+            Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
+            3.1669 +
+            1,
         0,
-        100,
+        100
     );
 }
 

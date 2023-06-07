@@ -62,11 +62,11 @@ function GameTable({ database }: { database: DatabaseInfo }) {
 
   const router = useRouter();
 
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+  const [, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
     defaultValue: [],
   });
-  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
+  const [, setActiveTab] = useSessionStorage<string | null>({
     key: "activeTab",
     defaultValue: null,
   });
@@ -261,9 +261,11 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                   variant="filled"
                   color={theme.primaryColor}
                   onClick={() => {
-                    const id = createTab({
-                      name: `${game.white.name} - ${game.black.name}`,
-                      type: "analysis",
+                    createTab({
+                      tab: {
+                        name: `${game.white.name} - ${game.black.name}`,
+                        type: "analysis",
+                      },
                       setTabs,
                       setActiveTab,
                       pgn: game.moves,
@@ -306,9 +308,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             { accessor: "result" },
             { accessor: "ply_count", sortable: true },
           ]}
-          rowClassName={(_, i) =>
-            i === selectedGame ? classes.selected : ""
-          }
+          rowClassName={(_, i) => (i === selectedGame ? classes.selected : "")}
           noRecordsText="No games found"
           totalRecords={count}
           recordsPerPage={limit}

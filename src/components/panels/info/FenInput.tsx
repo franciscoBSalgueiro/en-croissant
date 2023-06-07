@@ -27,8 +27,11 @@ const POSITIONS: ItemProps[] = [
   },
 ];
 
-const SelectItem = forwardRef<HTMLDivElement, ItemProps>(
-  ({ label, value: fen, ...others }: ItemProps, ref) => (
+const SelectItem = forwardRef<HTMLDivElement, ItemProps>(function SelectItem(
+  { label, value: fen, ...others }: ItemProps,
+  ref
+) {
+  return (
     <div ref={ref} {...others} key={label}>
       <Group noWrap>
         <div>
@@ -39,8 +42,8 @@ const SelectItem = forwardRef<HTMLDivElement, ItemProps>(
         </div>
       </Group>
     </div>
-  )
-);
+  );
+});
 
 type Castlingrights = {
   k: boolean;

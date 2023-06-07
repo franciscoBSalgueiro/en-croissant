@@ -88,9 +88,6 @@ function BoardGame({
   const { headers, root, position } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
   const currentNode = getNodeAtPath(root, position);
-  if (!currentNode) {
-    return <></>;
-  }
 
   const boardRef = useRef(null);
 
@@ -100,6 +97,10 @@ function BoardGame({
   );
   const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
   const [engine, setEngine] = useState<string | null>(null);
+  if (!currentNode) {
+    return <></>;
+  }
+
   const chess = new Chess(currentNode.fen);
 
   function changeToAnalysisMode() {
@@ -172,7 +173,7 @@ function BoardGame({
           arrows={[]}
           headers={headers}
           editingMode={false}
-          toggleEditingMode={() => {}}
+          toggleEditingMode={() => undefined}
           viewOnly={opponent === null}
           disableVariations
           boardRef={boardRef}
@@ -237,7 +238,7 @@ function BoardGame({
               }))}
               value={engine}
               onChange={(e) => {
-                setEngine(e as string);
+                setEngine(e);
               }}
             />
           )}

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Center,
-  Flex,
-  Grid,
-  Text,
-  TextInput
-} from "@mantine/core";
+import { Box, Center, Flex, Grid, Text, TextInput } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
@@ -117,9 +110,7 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
             { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },
           ]}
-          rowClassName={(_, i) =>
-            i === selected ? classes.selected : ""
-          }
+          rowClassName={(_, i) => (i === selected ? classes.selected : "")}
           noRecordsText="No tournaments found"
           totalRecords={count}
           recordsPerPage={limit}
@@ -137,7 +128,10 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
 
       <Grid.Col span={2}>
         {selected !== null ? (
-          <TournamentCard tournament={tournaments[selected]} file={database.file} />
+          <TournamentCard
+            tournament={tournaments[selected]}
+            file={database.file}
+          />
         ) : (
           <Center h="100%">
             <Text>No tournament selected</Text>

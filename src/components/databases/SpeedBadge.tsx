@@ -6,6 +6,7 @@ function SpeeedBadge({ speed }: { speed: Speed }) {
   switch (speed) {
     case Speed.UltraBullet:
       color = "pink";
+      break;
     case Speed.Bullet:
       color = "red";
       break;

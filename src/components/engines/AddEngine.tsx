@@ -138,7 +138,7 @@ function AddEngine({
                 title="Error"
                 color="red"
               >
-                Failed to fetch the engine's info from the server.
+                {"Failed to fetch the engine's info from the server."}
               </Alert>
             )}
           </Stack>

@@ -1,8 +1,6 @@
-use crate::db::models::{
-    Event, Game, NewEvent, NewGame, NewPlayer, NewSite, Player, Site,
-};
+use crate::db::models::{Event, Game, NewEvent, NewGame, NewPlayer, NewSite, Player, Site};
+use diesel::prelude::*;
 use diesel::SqliteConnection;
-use diesel::{prelude::*};
 
 /// Creates a new player in the database, and returns the player's ID.
 /// If the player already exists, returns the ID of the existing player.

@@ -1,12 +1,12 @@
 import {
-    ActionIcon,
-    Button,
-    Group,
-    Image,
-    ScrollArea,
-    Table,
-    Text,
-    Title
+  ActionIcon,
+  Button,
+  Group,
+  Image,
+  ScrollArea,
+  Table,
+  Text,
+  Title,
 } from "@mantine/core";
 import { IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";

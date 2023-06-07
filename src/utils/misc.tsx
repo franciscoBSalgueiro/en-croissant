@@ -51,14 +51,14 @@ export function useLocalFile<T>(
         dir: BaseDirectory.AppData,
       });
     }
-  }, [filename, state]);
+  }, [filename, state, loaded]);
 
   return [state, setState];
 }
 
 export async function invoke<T>(
   name: string,
-  payload?: any,
+  payload?: Record<string, unknown>,
   allowedErrors?: (s: string) => boolean
 ): Promise<T> {
   try {
@@ -102,7 +102,7 @@ export function isPrefix<T>(arr1: T[], arr2: T[]): boolean {
 export const useThrottledEffect = (
   callback: () => void,
   delay: number,
-  deps: any[]
+  deps: React.DependencyList
 ) => {
   const lastRan = useRef(Date.now());
 

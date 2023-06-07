@@ -674,7 +674,7 @@ fn read_games_from_offset(
             } else {
                 new_game = true;
             }
-            if n >= n_left + 1 {
+            if n > n_left {
                 game.push_str(&line);
             }
             line.clear();

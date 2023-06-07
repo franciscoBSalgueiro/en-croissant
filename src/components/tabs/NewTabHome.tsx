@@ -32,7 +32,7 @@ export default function NewTabHome({
   setTabs,
   id,
 }: {
-  setTabs: (tabs: any) => void;
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
   id: string;
 }) {
   const [openModal, setOpenModal] = useState(false);
@@ -83,8 +83,9 @@ export default function NewTabHome({
       description: "Train your chess skills",
       label: "Train",
       onClick: () => {
-        setTabs((prev: any) => {
-          const tab = prev.find((t: any) => t.value === id);
+        setTabs((prev) => {
+          const tab = prev.find((t) => t.value === id);
+          if (!tab) return prev;
           tab.name = "Puzzle Training";
           tab.type = "puzzles";
           return [...prev];
@@ -169,7 +170,7 @@ function ImportModal({
           { value: "Link", label: "Link" },
         ]}
         value={importType}
-        onChange={(v) => setImportType(v!)}
+        onChange={(v) => setImportType(v as string)}
       />
 
       {importType === "PGN" && (
@@ -260,7 +261,8 @@ function ImportModal({
             }
 
             setTabs((prev) => {
-              const tab = prev.find((t) => t.value === id)!;
+              const tab = prev.find((t) => t.value === id);
+              if (!tab) return prev;
               const tree = parsePGN(pgn);
               tree.headers = getPgnHeaders(pgn);
               sessionStorage.setItem(id, JSON.stringify(tree));

@@ -18,6 +18,7 @@ import {
 } from "@mantine/hooks";
 import {
   IconAlertCircle,
+  IconDeviceFloppy,
   IconEdit,
   IconSwitchVertical,
 } from "@tabler/icons-react";
@@ -63,6 +64,7 @@ interface ChessboardProps {
   disableVariations?: boolean;
   side?: Color;
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
+  saveFile?: () => void;
 }
 
 const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
@@ -77,15 +79,18 @@ function BoardPlay({
   disableVariations,
   side,
   boardRef,
+  saveFile,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
   let chess: Chess | null;
   let error: string | null = null;
   try {
     chess = new Chess(currentNode.fen);
-  } catch (e: any) {
+  } catch (e) {
     chess = null;
-    error = e.message;
+    if (e instanceof Error) {
+      error = e.message;
+    }
   }
 
   if (
@@ -162,6 +167,13 @@ function BoardPlay({
             </ActionIcon>
           </Tooltip>
         )}
+        {saveFile && (
+          <Tooltip label={"Save PGN"}>
+            <ActionIcon onClick={() => saveFile()}>
+              <IconDeviceFloppy />
+            </ActionIcon>
+          </Tooltip>
+        )}
         <Tooltip label={"Flip Board"}>
           <ActionIcon onClick={() => toggleOrientation()}>
             <IconSwitchVertical />
@@ -169,7 +181,7 @@ function BoardPlay({
         </Tooltip>
       </Group>
     ),
-    [disableVariations, toggleEditingMode, toggleOrientation]
+    [disableVariations, saveFile, toggleEditingMode, toggleOrientation]
   );
 
   return (
@@ -236,7 +248,7 @@ function BoardPlay({
                     // });
                   } else {
                     if (chess) {
-                      let newDest = handleMove(chess, orig, dest)!;
+                      const newDest = handleMove(chess, orig, dest);
                       if (
                         chess.get(orig as Square).type === "p" &&
                         ((newDest[1] === "8" && turn === "white") ||
@@ -301,53 +313,51 @@ function BoardPlay({
   );
 }
 
-const PromotionModal = memo(
-  ({
-    pendingMove,
-    setPendingMove,
-    turn,
-  }: {
-    pendingMove: { from: Square; to: Square } | null;
-    setPendingMove: (move: { from: Square; to: Square } | null) => void;
-    turn?: Color;
-  }) => {
-    const dispatch = useContext(TreeDispatchContext);
-    return (
-      <Modal
-        opened={pendingMove !== null}
-        onClose={() => setPendingMove(null)}
-        withCloseButton={false}
-        size={375}
-      >
-        <SimpleGrid cols={2}>
-          {promotionPieces.map((p) => (
-            <ActionIcon
-              key={p}
-              sx={{ width: "100%", height: "100%", position: "relative" }}
-              onClick={() => {
-                dispatch({
-                  type: "MAKE_MOVE",
-                  payload: {
-                    from: pendingMove!.from,
-                    to: pendingMove!.to,
-                    promotion: p,
-                  },
-                });
-                setPendingMove(null);
+const PromotionModal = memo(function PromotionModal({
+  pendingMove,
+  setPendingMove,
+  turn,
+}: {
+  pendingMove: { from: Square; to: Square } | null;
+  setPendingMove: (move: { from: Square; to: Square } | null) => void;
+  turn?: Color;
+}) {
+  const dispatch = useContext(TreeDispatchContext);
+  return (
+    <Modal
+      opened={pendingMove !== null}
+      onClose={() => setPendingMove(null)}
+      withCloseButton={false}
+      size={375}
+    >
+      <SimpleGrid cols={2}>
+        {promotionPieces.map((p) => (
+          <ActionIcon
+            key={p}
+            sx={{ width: "100%", height: "100%", position: "relative" }}
+            onClick={() => {
+              dispatch({
+                type: "MAKE_MOVE",
+                payload: {
+                  from: pendingMove!.from,
+                  to: pendingMove!.to,
+                  promotion: p,
+                },
+              });
+              setPendingMove(null);
+            }}
+          >
+            <Piece
+              piece={{
+                type: p,
+                color: turn === "white" ? "w" : "b",
               }}
-            >
-              <Piece
-                piece={{
-                  type: p,
-                  color: turn === "white" ? "w" : "b",
-                }}
-              />
-            </ActionIcon>
-          ))}
-        </SimpleGrid>
-      </Modal>
-    );
-  }
-);
+            />
+          </ActionIcon>
+        ))}
+      </SimpleGrid>
+    </Modal>
+  );
+});
 
 export default memo(BoardPlay);

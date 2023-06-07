@@ -70,7 +70,7 @@ function CompleteMoveCell({
                     payload: movePath,
                   })
                 }
-                onContextMenu={(e: any) => {
+                onContextMenu={(e: React.MouseEvent) => {
                   setOpen((v) => !v);
                   e.preventDefault();
                 }}

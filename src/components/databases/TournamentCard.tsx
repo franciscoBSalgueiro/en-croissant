@@ -7,8 +7,13 @@ import { useEffect, useState } from "react";
 import { NormalizedGame, Tournament, getTournamentGames } from "../../utils/db";
 import { Tab, createTab } from "../../utils/tabs";
 
-
-function PlayerCard({ tournament, file }: { tournament: Tournament; file: string }) {
+function PlayerCard({
+  tournament,
+  file,
+}: {
+  tournament: Tournament;
+  file: string;
+}) {
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const theme = useMantineTheme();
   const router = useRouter();
@@ -24,7 +29,7 @@ function PlayerCard({ tournament, file }: { tournament: Tournament; file: string
   useEffect(() => {
     let ignored = false;
     async function fetchGames() {
-      const games = (await getTournamentGames(file, tournament.id));
+      const games = await getTournamentGames(file, tournament.id);
       if (ignored) return;
       setGames(games.data);
     }
@@ -32,7 +37,7 @@ function PlayerCard({ tournament, file }: { tournament: Tournament; file: string
 
     return () => {
       ignored = true;
-    }
+    };
   }, [tournament.id]);
 
   return (
@@ -55,9 +60,11 @@ function PlayerCard({ tournament, file }: { tournament: Tournament; file: string
                   variant="filled"
                   color={theme.primaryColor}
                   onClick={() => {
-                    const id = createTab({
-                      name: `${game.white.name} - ${game.black.name}`,
-                      type: "analysis",
+                    createTab({
+                      tab: {
+                        name: `${game.white.name} - ${game.black.name}`,
+                        type: "analysis",
+                      },
                       setTabs,
                       setActiveTab,
                       pgn: game.moves,
@@ -103,7 +110,6 @@ function PlayerCard({ tournament, file }: { tournament: Tournament; file: string
           noRecordsText="No games found"
         />
       </Stack>
-
     </Paper>
   );
 }

@@ -79,7 +79,6 @@ function GameNotation({
   const [invisible, toggleVisible] = useToggle();
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
-  const { classes } = useStyles();
 
   const multipleLine =
     root.commentHTML.split("</p>").length - 1 > 1 ||
@@ -148,8 +147,8 @@ function GameNotation({
                 {headers.result === Outcome.Draw
                   ? "Draw"
                   : headers.result === Outcome.WhiteWin
-                    ? "White wins"
-                    : "Black wins"}
+                  ? "White wins"
+                  : "Black wins"}
               </Text>
             </Text>
           )}
@@ -159,72 +158,70 @@ function GameNotation({
   );
 }
 
-const NotationHeader = memo(
-  ({
-    setNotationExpanded,
-    notationExpanded,
-    invisible,
-    toggleVisible,
-    showComments,
-    toggleComments,
-    showVariations,
-    toggleVariations,
-  }: {
-    setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-    notationExpanded: boolean;
-    invisible: boolean;
-    toggleVisible: () => void;
-    showComments: boolean;
-    toggleComments: () => void;
-    showVariations: boolean;
-    toggleVariations: () => void;
-  }) => {
-    const { classes } = useStyles();
-    return (
-      <Stack className={classes.scroller}>
-        <Group style={{ justifyContent: "space-between" }}>
-          <OpeningName />
-          <Group spacing="sm">
-            <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
-              {notationExpanded ? (
-                <IconArrowsDiagonalMinimize2 size={15} />
+const NotationHeader = memo(function NotationHeader({
+  setNotationExpanded,
+  notationExpanded,
+  invisible,
+  toggleVisible,
+  showComments,
+  toggleComments,
+  showVariations,
+  toggleVariations,
+}: {
+  setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  notationExpanded: boolean;
+  invisible: boolean;
+  toggleVisible: () => void;
+  showComments: boolean;
+  toggleComments: () => void;
+  showVariations: boolean;
+  toggleVariations: () => void;
+}) {
+  const { classes } = useStyles();
+  return (
+    <Stack className={classes.scroller}>
+      <Group style={{ justifyContent: "space-between" }}>
+        <OpeningName />
+        <Group spacing="sm">
+          <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
+            {notationExpanded ? (
+              <IconArrowsDiagonalMinimize2 size={15} />
+            ) : (
+              <IconArrowsDiagonal size={15} />
+            )}
+          </ActionIcon>
+          <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
+            <ActionIcon onClick={() => toggleVisible()}>
+              {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
+            <ActionIcon onClick={() => toggleComments()}>
+              {showComments ? (
+                <IconArticle size={15} />
               ) : (
-                <IconArrowsDiagonal size={15} />
+                <IconArticleOff size={15} />
               )}
             </ActionIcon>
-            <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
-              <ActionIcon onClick={() => toggleVisible()}>
-                {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
-              <ActionIcon onClick={() => toggleComments()}>
-                {showComments ? (
-                  <IconArticle size={15} />
-                ) : (
-                  <IconArticleOff size={15} />
-                )}
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
-              <ActionIcon onClick={() => toggleVariations()}>
-                {showVariations ? (
-                  <IconArrowsSplit size={15} />
-                ) : (
-                  <IconArrowRight size={15} />
-                )}
-              </ActionIcon>
-            </Tooltip>
-          </Group>
+          </Tooltip>
+          <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
+            <ActionIcon onClick={() => toggleVariations()}>
+              {showVariations ? (
+                <IconArrowsSplit size={15} />
+              ) : (
+                <IconArrowRight size={15} />
+              )}
+            </ActionIcon>
+          </Tooltip>
         </Group>
-        <Divider />
-      </Stack>
-    );
-  }
-);
+      </Group>
+      <Divider />
+    </Stack>
+  );
+});
 
 const RenderVariationTree = memo(
-  ({
+  function RenderVariationTree({
     tree,
     depth,
     currentPath,
@@ -242,37 +239,37 @@ const RenderVariationTree = memo(
     showComments: boolean;
     targetRef: React.RefObject<HTMLSpanElement>;
     path: number[];
-  }) => {
+  }) {
     const variations = tree.children;
     const moveNodes = showVariations
       ? variations.slice(1).map((variation) => (
-        <>
-          <CompleteMoveCell
-            targetRef={targetRef}
-            annotation={variation.annotation}
-            commentHTML={variation.commentHTML}
-            halfMoves={variation.halfMoves}
-            move={variation.move?.san}
-            movePath={[...path, variations.indexOf(variation)]}
-            showComments={showComments}
-            isCurrentVariation={shallowEqual(
-              [...path, variations.indexOf(variation)],
-              currentPath
-            )}
-            first
-          />
-          <RenderVariationTree
-            currentPath={currentPath}
-            targetRef={targetRef}
-            tree={variation}
-            depth={depth + 2}
-            first
-            showVariations={showVariations}
-            showComments={showComments}
-            path={[...path, variations.indexOf(variation)]}
-          />
-        </>
-      ))
+          <>
+            <CompleteMoveCell
+              targetRef={targetRef}
+              annotation={variation.annotation}
+              commentHTML={variation.commentHTML}
+              halfMoves={variation.halfMoves}
+              move={variation.move?.san}
+              movePath={[...path, variations.indexOf(variation)]}
+              showComments={showComments}
+              isCurrentVariation={shallowEqual(
+                [...path, variations.indexOf(variation)],
+                currentPath
+              )}
+              first
+            />
+            <RenderVariationTree
+              currentPath={currentPath}
+              targetRef={targetRef}
+              tree={variation}
+              depth={depth + 2}
+              first
+              showVariations={showVariations}
+              showComments={showComments}
+              path={[...path, variations.indexOf(variation)]}
+            />
+          </>
+        ))
       : [];
 
     return (

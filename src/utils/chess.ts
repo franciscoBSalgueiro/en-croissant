@@ -32,7 +32,7 @@ import {
 } from "./treeReducer";
 
 function parseCsl(csl: string): DrawShape[] {
-    let shapes = csl.split(",").map((square) => {
+    const shapes = csl.split(",").map((square) => {
         if (square.length === 2) {
             return {
                 orig: square as Square,
@@ -52,7 +52,7 @@ function parseCsl(csl: string): DrawShape[] {
 }
 
 function parseCal(csl: string): DrawShape[] {
-    let shapes = csl.split(",").map((square) => {
+    const shapes = csl.split(",").map((square) => {
         if (square.length === 4) {
             return {
                 orig: square.slice(0, 2) as Square,
@@ -212,21 +212,21 @@ export function getPGN(
     pgn += "\n";
     const variationsPGN = variations
         ? tree.children.slice(1).map(
-            (variation) =>
-                `${getMoveText(variation, {
-                    symbols,
-                    comments,
-                    specialSymbols,
-                    isFirst: true,
-                })} ${getPGN(variation, {
-                    headers: null,
-                    symbols,
-                    comments,
-                    variations,
-                    specialSymbols,
-                    root: false,
-                })}`
-        )
+              (variation) =>
+                  `${getMoveText(variation, {
+                      symbols,
+                      comments,
+                      specialSymbols,
+                      isFirst: true,
+                  })} ${getPGN(variation, {
+                      headers: null,
+                      symbols,
+                      comments,
+                      variations,
+                      specialSymbols,
+                      root: false,
+                  })}`
+          )
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
@@ -329,9 +329,9 @@ export function swapMove(fen: string, color?: Color) {
 export function parsePGN(
     pgn: string,
     fen: string = DEFAULT_POSITION,
-    halfMoves: number = 0
+    halfMoves = 0
 ): TreeState {
-    let tree = defaultTree(fen);
+    const tree = defaultTree(fen);
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
@@ -410,7 +410,11 @@ export function parsePGN(
 
                 i++;
             }
-            const newTree = parsePGN(variation, prevNode.fen, root.halfMoves - 1);
+            const newTree = parsePGN(
+                variation,
+                prevNode.fen,
+                root.halfMoves - 1
+            );
             prevNode.children.push(newTree.root.children[0]);
         } else if (token === ")") {
             continue;
@@ -484,7 +488,7 @@ export function getPgnHeaders(pgn: string): GameHeaders {
 
     const chess = new Chess();
     chess.loadPgn(pgn);
-    const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event, FEN } =
+    const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event } =
         chess.header();
 
     const headers: GameHeaders = {
@@ -545,7 +549,7 @@ type ColorMap<T> = {
 
 /* traverse the main line and get the average centipawn loss for each player*/
 export function getGameStats(tree: TreeNode) {
-    let whiteAnnotations = {
+    const whiteAnnotations = {
         [Annotation.Blunder]: 0,
         [Annotation.Mistake]: 0,
         [Annotation.Dubious]: 0,
@@ -554,7 +558,7 @@ export function getGameStats(tree: TreeNode) {
         [Annotation.Interesting]: 0,
     };
 
-    let blackAnnotations = {
+    const blackAnnotations = {
         [Annotation.Blunder]: 0,
         [Annotation.Mistake]: 0,
         [Annotation.Dubious]: 0,
@@ -575,11 +579,11 @@ export function getGameStats(tree: TreeNode) {
     }
 
     let prevScore: Score = tree.score ?? INITIAL_SCORE;
-    let cplosses: ColorMap<number[]> = {
+    const cplosses: ColorMap<number[]> = {
         w: [],
         b: [],
     };
-    let accuracies: ColorMap<number[]> = {
+    const accuracies: ColorMap<number[]> = {
         w: [],
         b: [],
     };

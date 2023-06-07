@@ -18,7 +18,6 @@ import {
   IconTrash,
   IconX,
 } from "@tabler/icons-react";
-import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { invoke } from "../../utils/misc";
@@ -69,17 +68,16 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.length;
 
   function generatePuzzle(db: string) {
-    invoke("get_puzzle", {
+    invoke<any>("get_puzzle", {
       file: db,
       minRating: ratingRange[0],
       maxRating: ratingRange[1],
-    }).then((res: any) => {
+    }).then((res) => {
       res.moves = res.moves.split(" ");
       res.completion = Completion.INCOMPLETE;
       setPuzzles((puzzles) => {
         return [...puzzles, res];
       });
-      setChess(new Chess(res.fen));
       setCurrentPuzzle(puzzles.length);
       setCurrentMove(1);
     });
@@ -93,7 +91,6 @@ function Puzzles({ id }: { id: string }) {
   }
 
   const [tmpSelected, setTmpSelected] = useState<string | null>(null);
-  const [chess, setChess] = useState<Chess | null>(null);
 
   return selectedDb === null || puzzles.length === 0 ? (
     <>

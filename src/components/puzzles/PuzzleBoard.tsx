@@ -147,7 +147,7 @@ function PuzzleBoard({
             dests: dests,
             events: {
               after: (orig, dest, metadata) => {
-                let newDest = handleMove(chess, orig, dest)!;
+                const newDest = handleMove(chess, orig, dest)!;
                 // handle promotions
                 if (
                   chess.get(orig as Square).type === "p" &&

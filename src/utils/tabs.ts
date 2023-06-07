@@ -12,22 +12,20 @@ export interface Tab {
 }
 
 export function genID() {
-    var S4 = function () {
+    function S4() {
         return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
-    };
+    }
     return S4() + S4();
 }
 
 export function createTab({
-    name,
-    type,
+    tab,
     setTabs,
     setActiveTab,
     pgn,
     headers,
 }: {
-    name: string;
-    type: TabType;
+    tab: Omit<Tab, "value">;
     setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
     setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
     pgn?: string;
@@ -44,9 +42,8 @@ export function createTab({
     setTabs((prev) => [
         ...prev,
         {
-            name,
+            ...tab,
             value: id,
-            type,
         },
     ]);
     setActiveTab(id);

@@ -61,8 +61,6 @@ function AddDatabase({
   const [error, setError] = useState(false);
 
   async function convertDB(path: string, title: string, description?: string) {
-    let fileName = path.split(/(\\|\/)/g).pop();
-    fileName = fileName?.replace(".pgn", ".ocgdb.db3");
     setLoading(true);
     await invoke("convert_pgn", { file: path, title, description }).catch(
       () => {
@@ -130,7 +128,7 @@ function AddDatabase({
                 title="Error"
                 color="red"
               >
-                Failed to fetch the database's info from the server.
+                {"Failed to fetch the database's info from the server."}
               </Alert>
             )}
           </Stack>
@@ -157,7 +155,7 @@ function AddDatabase({
               label="PGN file"
               description="Click to select the PGN file"
               onClick={async () => {
-                const selected = (await open({
+                const selected = await open({
                   multiple: false,
                   filters: [
                     {
@@ -165,8 +163,8 @@ function AddDatabase({
                       extensions: ["pgn", "pgn.zst"],
                     },
                   ],
-                })) as string;
-                if (!selected) return;
+                });
+                if (!selected || typeof selected === "object") return;
                 form.setFieldValue("file", selected);
                 const filename = selected.split(/(\\|\/)/g).pop();
                 if (filename) {
@@ -239,19 +237,19 @@ function DatabaseCard({
               <Text transform="uppercase" color="dimmed" weight={700} size="xs">
                 SIZE
               </Text>
-              <Text size="xs">{formatBytes(database.storage_size!)}</Text>
+              <Text size="xs">{formatBytes(database.storage_size)}</Text>
             </Stack>
             <Stack spacing={0} align="center">
               <Text transform="uppercase" color="dimmed" weight={700} size="xs">
                 GAMES
               </Text>
-              <Text size="xs">{formatNumber(database.game_count!)}</Text>
+              <Text size="xs">{formatNumber(database.game_count)}</Text>
             </Stack>
             <Stack spacing={0} align="center">
               <Text transform="uppercase" color="dimmed" weight={700} size="xs">
                 PLAYERS
               </Text>
-              <Text size="xs">{formatNumber(database.player_count!)}</Text>
+              <Text size="xs">{formatNumber(database.player_count)}</Text>
             </Stack>
           </Group>
           <ProgressButton

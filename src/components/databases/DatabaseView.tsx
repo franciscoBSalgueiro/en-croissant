@@ -1,6 +1,11 @@
 import { Button, Tabs, Title } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
-import { IconArrowBackUp, IconChess, IconTrophy, IconUser } from "@tabler/icons-react";
+import {
+  IconArrowBackUp,
+  IconChess,
+  IconTrophy,
+  IconUser,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import GameTable from "../../components/databases/GameTable";
 import PlayerTable from "../../components/databases/PlayerTable";
@@ -8,7 +13,7 @@ import { DatabaseInfo } from "../../utils/db";
 import TournamentTable from "./TournamentTable";
 
 function DatabaseView() {
-  const [database, setDatabase] = useSessionStorage<DatabaseInfo | null>({
+  const [database] = useSessionStorage<DatabaseInfo | null>({
     key: "database-view",
     defaultValue: null,
   });

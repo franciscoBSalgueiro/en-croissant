@@ -50,7 +50,16 @@ function PgnInput({ root, headers }: { root: TreeNode; headers: GameHeaders }) {
         </Group>
       </>
     ),
-    [comments, annotations, variations, symbols]
+    [
+      comments,
+      annotations,
+      variations,
+      symbols,
+      toggleComments,
+      toggleAnnotations,
+      toggleVariations,
+      toggleSymbols,
+    ]
   );
 
   const pgnArea = useMemo(

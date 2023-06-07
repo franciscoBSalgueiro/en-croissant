@@ -276,7 +276,7 @@ function BestMoves({
             <tbody>
               {engineVariations.length === 0 &&
                 (enabled ? (
-                  Array.apply(null, Array(numberLines)).map((_, i) => (
+                  [...Array(numberLines)].map((_, i) => (
                     <tr key={i}>
                       <td>
                         <Skeleton height={35} radius="xl" p={5} />
@@ -287,7 +287,7 @@ function BestMoves({
                   <tr>
                     <td>
                       <Text align="center" my="lg">
-                        Engine isn't enabled
+                        {"Engine isn't enabled"}
                       </Text>
                     </td>
                   </tr>
@@ -371,7 +371,7 @@ function AnalysisRow({
                   move={move}
                   isCurrentVariation={false}
                   annotation={Annotation.None}
-                  onContextMenu={() => {}}
+                  onContextMenu={() => undefined}
                   onClick={() => {
                     if (!threat) {
                       dispatch({

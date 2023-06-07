@@ -3,7 +3,7 @@ import {
   Navbar,
   Stack,
   Tooltip,
-  UnstyledButton
+  UnstyledButton,
 } from "@mantine/core";
 import {
   Icon,
@@ -11,7 +11,7 @@ import {
   IconDatabase,
   IconHome2,
   IconRobot,
-  IconSettings
+  IconSettings,
 } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 

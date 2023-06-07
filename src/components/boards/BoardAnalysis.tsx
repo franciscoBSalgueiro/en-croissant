@@ -1,5 +1,10 @@
 import { Stack, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle, useViewportSize } from "@mantine/hooks";
+import {
+  useHotkeys,
+  useSessionStorage,
+  useToggle,
+  useViewportSize,
+} from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
@@ -8,7 +13,7 @@ import {
 } from "@tabler/icons-react";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { getPGN } from "../../utils/chess";
 import { getBoardSize } from "../../utils/misc";
@@ -23,33 +28,24 @@ import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
+import { Tab } from "../../utils/tabs";
 
 function BoardAnalysis({ id }: { id: string }) {
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
   const [arrows, setArrows] = useState<string[]>([]);
-
-  async function saveFile() {
-    const filePath = await save({
-      filters: [
-        {
-          name: "PGN",
-          extensions: ["pgn"],
-        },
-      ],
-    });
-    if (filePath)
-      await writeTextFile(
-        filePath,
-        getPGN(root, {
-          headers,
-        })
-      );
-  }
+  const [tabs, setTabs] = useSessionStorage<Tab[]>({
+    key: "tabs",
+    defaultValue: [],
+  });
+  const [activeTabValue] = useSessionStorage<string | null>({
+    key: "activeTab",
+    defaultValue: null,
+  });
 
   const boardRef = useRef(null);
 
-  useHotkeys([["Ctrl+S", () => saveFile()]]);
+  console.log(tabs);
 
   const { height, width } = useViewportSize();
 
@@ -65,6 +61,46 @@ function BoardAnalysis({ id }: { id: string }) {
     setArrows([]);
   }, [position]);
 
+  const saveFile = useCallback(async () => {
+    const activeTab = tabs.find((tab) => tab.value === activeTabValue);
+    console.log({ tabs });
+    console.log({ activeTab });
+
+    let filePath: string;
+    if (activeTab?.file) {
+      filePath = activeTab.file;
+    } else {
+      const userChoice = await save({
+        filters: [
+          {
+            name: "PGN",
+            extensions: ["pgn"],
+          },
+        ],
+      });
+      if (userChoice === null) return;
+      filePath = userChoice;
+      setTabs((prev) => {
+        const index = prev.findIndex((tab) => tab.value === activeTabValue);
+        if (index !== -1) {
+          const newTabs = [...prev];
+          newTabs[index].file = userChoice;
+          return newTabs;
+        }
+        return prev;
+      });
+    }
+    await writeTextFile(
+      filePath,
+      getPGN(root, {
+        headers,
+      })
+    );
+  }, [tabs, activeTabValue, headers, root, setTabs]);
+
+  useHotkeys([["Ctrl+S", () => saveFile()]]);
+
+  if (!currentNode) return null;
   return (
     <>
       <ReportModal
@@ -81,12 +117,13 @@ function BoardAnalysis({ id }: { id: string }) {
       <BoardLayout
         board={
           <BoardPlay
-            currentNode={currentNode!}
+            currentNode={currentNode}
             arrows={arrows}
             headers={headers}
             editingMode={editingMode}
             toggleEditingMode={toggleEditingMode}
             boardRef={boardRef}
+            saveFile={saveFile}
           />
         }
       >
@@ -116,7 +153,7 @@ function BoardAnalysis({ id }: { id: string }) {
               <InfoPanel boardSize={boardSize} id={id} />
             </Tabs.Panel>
             <Tabs.Panel value="database" pt="xs">
-              <DatabasePanel fen={currentNode!.fen} height={boardSize / 2} />
+              <DatabasePanel fen={currentNode.fen} height={boardSize / 2} />
             </Tabs.Panel>
             <Tabs.Panel value="annotate" pt="xs">
               <AnnotationPanel />
@@ -136,7 +173,7 @@ function BoardAnalysis({ id }: { id: string }) {
           {editingMode && (
             <EditingCard
               boardRef={boardRef}
-              fen={currentNode!.fen}
+              fen={currentNode.fen}
               setEditingMode={toggleEditingMode}
             />
           )}

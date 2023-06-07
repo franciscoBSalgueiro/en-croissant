@@ -1,4 +1,14 @@
-import { Button, ChevronIcon, createStyles, Divider, Group, Paper, Progress, Stack, Text } from "@mantine/core";
+import {
+  Button,
+  ChevronIcon,
+  createStyles,
+  Divider,
+  Group,
+  Paper,
+  Progress,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 import {
   Bar,
@@ -8,7 +18,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from "recharts";
 import { getPlayersGameInfo, Player } from "../../utils/db";
 
@@ -34,7 +44,7 @@ function fillMissingMonths(data: { name: string; games: number }[]) {
   const startDate = new Date(data[0].name + "-01");
   const endDate = new Date(data[data.length - 1].name + "-01");
   const months = [];
-  let currDate = startDate;
+  const currDate = startDate;
 
   while (currDate <= endDate) {
     months.push(currDate.toISOString().slice(0, 7));
@@ -81,28 +91,28 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
 
   const sections = info
     ? [
-      {
-        value: (info.won / total) * 100,
-        color: "green",
-        label: `${((info.won / total) * 100).toFixed(1)}%`,
-        tooltip: `${info.won} wins`,
-      },
-      {
-        value: (info.lost / total) * 100,
-        color: "red",
-        label: `${((info.lost / total) * 100).toFixed(1)}%`,
-        tooltip: `${info.lost} losses`,
-      },
-      {
-        value: (info.draw / total) * 100,
-        color: "gray",
-        label:
-          info.draw / total > 0.05
-            ? `${((info.draw / total) * 100).toFixed(1)}%`
-            : undefined,
-        tooltip: `${info.draw} draws`,
-      },
-    ]
+        {
+          value: (info.won / total) * 100,
+          color: "green",
+          label: `${((info.won / total) * 100).toFixed(1)}%`,
+          tooltip: `${info.won} wins`,
+        },
+        {
+          value: (info.lost / total) * 100,
+          color: "red",
+          label: `${((info.lost / total) * 100).toFixed(1)}%`,
+          tooltip: `${info.lost} losses`,
+        },
+        {
+          value: (info.draw / total) * 100,
+          color: "gray",
+          label:
+            info.draw / total > 0.05
+              ? `${((info.draw / total) * 100).toFixed(1)}%`
+              : undefined,
+          tooltip: `${info.draw} draws`,
+        },
+      ]
     : [];
 
   useEffect(() => {
@@ -156,7 +166,6 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
             </Text>
           ))}
         </Stack>
-
       </Group>
       <Divider
         my="xs"
@@ -164,12 +173,21 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
         labelPosition="center"
         onClick={() => setExpanded((v) => !v)}
         label={
-          <Button size="sm" variant="subtle" leftIcon={<ChevronIcon style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }} />}>
+          <Button
+            size="sm"
+            variant="subtle"
+            leftIcon={
+              <ChevronIcon
+                style={{
+                  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            }
+          >
             {expanded ? "Show Less" : "Show More"}
           </Button>
         }
       />
-
 
       <Stack>
         <Progress

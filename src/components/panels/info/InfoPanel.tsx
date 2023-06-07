@@ -6,7 +6,7 @@ import { TreeStateContext } from "../../common/TreeStateContext";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
 
-function InfoPanel({ boardSize, id }: { boardSize: number, id: string }) {
+function InfoPanel({ boardSize, id }: { boardSize: number; id: string }) {
   const tree = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(tree.root, tree.position);
   return (

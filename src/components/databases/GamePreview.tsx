@@ -39,13 +39,10 @@ function GamePreview({
     setFen(chess.fen());
   }, [curMove, pgn]);
 
-  {
-    !hideControls &&
-      useHotkeys([
-        ["ArrowLeft", curMoveHandler.decrement],
-        ["ArrowRight", curMoveHandler.increment],
-      ]);
-  }
+  useHotkeys([
+    ["ArrowLeft", curMoveHandler.decrement],
+    ["ArrowRight", curMoveHandler.increment],
+  ]);
 
   function goToGame() {
     if (id) {

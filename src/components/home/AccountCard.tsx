@@ -14,6 +14,7 @@ import {
   IconDownload,
   IconRefresh,
   IconX,
+  TablerIconsProps,
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";
@@ -52,12 +53,12 @@ export function AccountCard({
   logout,
   reload,
   setDatabases,
-  token
+  token,
 }: AccountCardProps) {
-  const { classes, theme } = useStyles();
+  const { classes } = useStyles();
   const items = stats.map((stat) => {
-    let color: string;
-    let DiffIcon: any;
+    let color = "gray.5";
+    let DiffIcon: React.FC<TablerIconsProps> = IconArrowRight;
     if (stat.diff) {
       switch (Math.sign(stat.diff)) {
         case 1:
@@ -67,10 +68,6 @@ export function AccountCard({
         case -1:
           DiffIcon = IconArrowDownRight;
           color = "red";
-          break;
-        default:
-          DiffIcon = IconArrowRight;
-          color = "gray.5";
           break;
       }
     }
@@ -84,12 +81,7 @@ export function AccountCard({
             </Text>
           </div>
           {stat.diff && (
-            <Text
-              color={color!}
-              size="sm"
-              weight={500}
-              className={classes.diff}
-            >
+            <Text color={color} size="sm" weight={500} className={classes.diff}>
               <span>{stat.diff}</span>
               <DiffIcon size={16} stroke={1.5} />
             </Text>

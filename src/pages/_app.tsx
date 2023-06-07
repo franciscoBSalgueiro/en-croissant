@@ -12,7 +12,7 @@ import { SideBar } from "../components/Sidebar";
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
 import Head from "next/head";
-import 'react-virtualized/styles.css';
+import "react-virtualized/styles.css";
 import "../styles/chessgroundBaseOverride.css";
 import "../styles/chessgroundColorsOverride.css";
 
@@ -22,7 +22,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     key: "mantine-color-scheme",
     defaultValue: "dark",
   });
-  const [primaryColor, _] = useLocalStorage<MantineColor>({
+  const [primaryColor] = useLocalStorage<MantineColor>({
     key: "mantine-primary-color",
     defaultValue: "blue",
   });
@@ -57,7 +57,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
               "square.last-move": {
                 background: theme.fn.rgba(
                   theme.colors[theme.primaryColor][
-                  theme.colorScheme === "dark" ? 5 : 3
+                    theme.colorScheme === "dark" ? 5 : 3
                   ],
                   0.4
                 ),
@@ -65,7 +65,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
               "square.selected": {
                 backgroundColor: theme.fn.rgba(
                   theme.colors[theme.primaryColor][
-                  theme.colorScheme === "dark" ? 5 : 3
+                    theme.colorScheme === "dark" ? 5 : 3
                   ],
                   0.5
                 ),
@@ -79,7 +79,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                 ":hover": {
                   backgroundColor: theme.fn.rgba(
                     theme.colors[theme.primaryColor][
-                    theme.colorScheme === "dark" ? 5 : 3
+                      theme.colorScheme === "dark" ? 5 : 3
                     ],
                     0.6
                   ),
@@ -94,7 +94,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                 ":hover": {
                   background: theme.fn.rgba(
                     theme.colors[theme.primaryColor][
-                    theme.colorScheme === "dark" ? 5 : 3
+                      theme.colorScheme === "dark" ? 5 : 3
                     ],
                     0.6
                   ),

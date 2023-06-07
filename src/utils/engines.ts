@@ -16,8 +16,8 @@ export interface Engine {
 export async function getDefaultEngines(
     os: "windows" | "linux" | "macos"
 ): Promise<Engine[]> {
-    let bmi2: boolean = await invoke("is_bmi2_compatible");
-    let data: any = await fetch(
+    const bmi2: boolean = await invoke("is_bmi2_compatible");
+    const data = await fetch<Engine[]>(
         `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
         {
             method: "GET",

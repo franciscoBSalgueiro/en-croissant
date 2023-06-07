@@ -114,7 +114,7 @@ export type GameHeaders = {
 };
 
 export function headersToPGN(game: GameHeaders): string {
-    let headers = `[Event "${game.event.name || "?"}"]
+    const headers = `[Event "${game.event.name || "?"}"]
 [Site "${game.site.name || "?"}"]
 [Date "${game.date || "????.??.??"}"]
 [Round "${game.round || "?"}"]
@@ -129,15 +129,15 @@ export type TreeAction =
     | { type: "SET_STATE"; payload: TreeState }
     | { type: "SET_HEADERS"; payload: GameHeaders }
     | {
-        type: "MAKE_MOVE";
-        payload:
-        | {
-            from: Square;
-            to: Square;
-            promotion?: string;
-        }
-        | string;
-    }
+          type: "MAKE_MOVE";
+          payload:
+              | {
+                    from: Square;
+                    to: Square;
+                    promotion?: string;
+                }
+              | string;
+      }
     | { type: "MAKE_MOVES"; payload: string[] }
     | { type: "GO_TO_START" }
     | { type: "GO_TO_END" }
@@ -162,43 +162,59 @@ export interface TreeState {
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
     switch (action.type) {
-        case "SET_STATE":
+        case "SET_STATE": {
             return action.payload;
-        case "SET_HEADERS":
-            return void (state.headers = action.payload);
-        case "MAKE_MOVE":
-            return makeMove(state, action.payload);
-        case "MAKE_MOVES":
+        }
+        case "SET_HEADERS": {
+            state.headers = action.payload;
+            break;
+        }
+        case "MAKE_MOVE": {
+            makeMove(state, action.payload);
+            break;
+        }
+        case "MAKE_MOVES": {
             for (const move of action.payload) {
                 makeMove(state, move);
             }
             break;
-        case "GO_TO_START":
-            return void (state.position = []);
-        case "GO_TO_END":
+        }
+        case "GO_TO_START": {
+            state.position = [];
+            break;
+        }
+        case "GO_TO_END": {
             const endPosition: number[] = [];
             let currentNode = state.root;
             while (currentNode.children.length > 0) {
                 endPosition.push(0);
                 currentNode = currentNode.children[0];
             }
-            return void (state.position = endPosition);
-        case "GO_TO_NEXT":
+            state.position = endPosition;
+            break;
+        }
+        case "GO_TO_NEXT": {
             const node = getNodeAtPath(state.root, state.position);
             if (node && node.children.length > 0) {
                 state.position.push(0);
             }
             break;
-        case "GO_TO_PREVIOUS":
+        }
+        case "GO_TO_PREVIOUS": {
             if (state.position.length !== 0) {
                 state.position.pop();
             }
             break;
-        case "GO_TO_MOVE":
-            return void (state.position = action.payload);
-        case "DELETE_MOVE":
-            return deleteMove(state, action.payload || state.position);
-        case "SET_ANNOTATION":
+        }
+        case "GO_TO_MOVE": {
+            state.position = action.payload;
+            break;
+        }
+        case "DELETE_MOVE": {
+            deleteMove(state, action.payload || state.position);
+            break;
+        }
+        case "SET_ANNOTATION": {
             {
                 const node = getNodeAtPath(state.root, state.position);
                 if (node) {
@@ -210,7 +226,8 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
                 }
             }
             break;
-        case "SET_COMMENT":
+        }
+        case "SET_COMMENT": {
             {
                 const node = getNodeAtPath(state.root, state.position);
                 if (node) {
@@ -219,11 +236,13 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
                 }
             }
             break;
-        case "SET_FEN":
+        }
+        case "SET_FEN": {
             state.root = defaultTree(action.payload).root;
             state.position = [];
             break;
-        case "SET_SCORE":
+        }
+        case "SET_SCORE": {
             {
                 const node = getNodeAtPath(state.root, state.position);
                 if (node) {
@@ -231,12 +250,19 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
                 }
             }
             break;
-        case "ADD_ANALYSIS":
-            return addAnalysis(state, action.payload);
-        case "SET_SHAPES":
-            return setShapes(state, action.payload);
-        case "PROMOTE_VARIATION":
-            return promoteVariation(state, action.payload);
+        }
+        case "ADD_ANALYSIS": {
+            addAnalysis(state, action.payload);
+            break;
+        }
+        case "SET_SHAPES": {
+            setShapes(state, action.payload);
+            break;
+        }
+        case "PROMOTE_VARIATION": {
+            promoteVariation(state, action.payload);
+            break;
+        }
     }
 };
 

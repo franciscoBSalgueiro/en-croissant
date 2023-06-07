@@ -29,21 +29,6 @@ function Accounts() {
   }, []);
   const [open, setOpen] = useState(false);
 
-  async function listen_for_code() {
-    if (isListesning.current) return;
-    isListesning.current = true;
-    await listen<string>("redirect_uri", async (event) => {
-      if (authWindow.current) authWindow.current.close();
-      const token = event.payload;
-      const account = await getLichessAccount({ token });
-      if (!account) return;
-      setSessions((sessions) => [
-        ...sessions,
-        { lichess: { accessToken: token, account }, updatedAt: Date.now() },
-      ]);
-    });
-  }
-
   async function login(username: string) {
     const { verifier, challenge } = await createCodes();
     const port = await invoke("start_server", {
@@ -82,8 +67,23 @@ function Accounts() {
   }
 
   useEffect(() => {
+    async function listen_for_code() {
+      if (isListesning.current) return;
+      isListesning.current = true;
+      await listen<string>("redirect_uri", async (event) => {
+        if (authWindow.current) authWindow.current.close();
+        const token = event.payload;
+        const account = await getLichessAccount({ token });
+        if (!account) return;
+        setSessions((sessions) => [
+          ...sessions,
+          { lichess: { accessToken: token, account }, updatedAt: Date.now() },
+        ]);
+      });
+    }
+
     listen_for_code();
-  }, []);
+  }, [setSessions]);
 
   return (
     <>
@@ -156,7 +156,7 @@ function AccountModal({
               { label: "Chess.com", value: "chesscom" },
             ]}
             value={website}
-            onChange={(v) => setWebsite(v as any)}
+            onChange={(v) => setWebsite(v as "lichess" | "chesscom")}
             required
           />
           <TextInput

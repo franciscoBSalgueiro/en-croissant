@@ -25,15 +25,15 @@ export interface PuzzleDatabase {
 }
 
 export async function getPuzzleDatabase(path: string): Promise<PuzzleDatabase> {
-    let db = await invoke<PuzzleDatabase>("get_puzzle_db_info", {
+    const db = await invoke<PuzzleDatabase>("get_puzzle_db_info", {
         file: path,
     });
     return db;
 }
 
 export async function getPuzzleDatabases(): Promise<PuzzleDatabase[]> {
-    let files = await readDir("puzzles", { dir: BaseDirectory.AppData });
-    let dbs = files.filter((file) => file.name?.endsWith(".db3"));
+    const files = await readDir("puzzles", { dir: BaseDirectory.AppData });
+    const dbs = files.filter((file) => file.name?.endsWith(".db3"));
     return (
         await Promise.all(
             dbs.map((db) => getPuzzleDatabase(db.path).catch(() => null))
