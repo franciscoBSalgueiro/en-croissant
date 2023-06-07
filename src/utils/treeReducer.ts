@@ -323,13 +323,10 @@ function promoteVariation(state: TreeState, path: number[]) {
     state.position = path;
 }
 
-export const getNodeAtPath = (
-    node: TreeNode,
-    path: number[]
-): TreeNode | null => {
+export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     if (path.length === 0) return node;
     const index = path[0];
-    if (index >= node.children.length) return null;
+    if (index >= node.children.length) throw new Error("Invalid path");
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 

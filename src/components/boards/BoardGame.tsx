@@ -97,9 +97,6 @@ function BoardGame({
   );
   const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
   const [engine, setEngine] = useState<string | null>(null);
-  if (!currentNode) {
-    return <></>;
-  }
 
   const chess = new Chess(currentNode.fen);
 

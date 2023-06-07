@@ -27,7 +27,6 @@ function Piece({
   }
   const handleDrop = (position: { x: number; y: number }) => {
     const boardRect = boardRef.current?.getBoundingClientRect();
-    console.log(boardRect);
     if (
       boardRect &&
       position.x > boardRect.left &&
@@ -50,7 +49,7 @@ function Piece({
     <Draggable
       position={{ x: 0, y: 0 }}
       onStop={(e) => {
-        /// @ts-ignore
+        e = e as MouseEvent;
         handleDrop({ x: e.clientX, y: e.clientY });
       }}
       scale={1}

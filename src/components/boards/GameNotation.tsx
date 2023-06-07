@@ -56,9 +56,7 @@ function GameNotation({
 }) {
   const { headers, position, root } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
-  if (!currentNode) {
-    return <></>;
-  }
+
   const viewport = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLSpanElement>(null);
 

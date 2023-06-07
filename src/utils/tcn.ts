@@ -4,8 +4,7 @@ const pieceEncoding =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?{~}(^)[_]@#$,./&-*++=";
 
 export function decodeTCN(moveCode: string): Move {
-    // @ts-ignore
-    const move: Move = {};
+    const move = {} as Move;
     const codeLength = moveCode.length;
     const decodedMoves: Move[] = [];
 

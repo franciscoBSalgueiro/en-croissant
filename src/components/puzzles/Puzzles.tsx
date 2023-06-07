@@ -126,7 +126,6 @@ function Puzzles({ id }: { id: string }) {
           currentPuzzle={currentPuzzle}
           changeCompletion={changeCompletion}
           generatePuzzle={generatePuzzle}
-          setCurrentPuzzle={setCurrentPuzzle}
           currentMove={currentMove}
           setCurrentMove={setCurrentMove}
           db={selectedDb}

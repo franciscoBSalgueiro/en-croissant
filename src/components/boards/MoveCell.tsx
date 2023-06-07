@@ -1,6 +1,14 @@
 import { Box, createStyles } from "@mantine/core";
-import { forwardRef } from "react";
+import { ForwardedRef, forwardRef } from "react";
 import { ANNOTATION_INFO, Annotation } from "../../utils/chess";
+
+interface MoveCellProps {
+  annotation: Annotation;
+  isCurrentVariation: boolean;
+  move: string;
+  onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}
 
 const useStyles = createStyles(
   (
@@ -38,14 +46,8 @@ const useStyles = createStyles(
 );
 
 const MoveCell = forwardRef(function MoveCell(
-  props: {
-    annotation: Annotation;
-    isCurrentVariation: boolean;
-    move: string;
-    onClick: () => void;
-    onContextMenu: (e: React.MouseEvent) => void;
-  },
-  ref
+  props: MoveCellProps,
+  ref: ForwardedRef<HTMLButtonElement>
 ) {
   const color = ANNOTATION_INFO[props.annotation].color;
   const { classes } = useStyles({
@@ -55,7 +57,6 @@ const MoveCell = forwardRef(function MoveCell(
 
   return (
     <Box
-      /* @ts-ignore */
       ref={ref}
       component="button"
       className={classes.cell}

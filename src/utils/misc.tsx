@@ -117,6 +117,7 @@ export const useThrottledEffect = (
     return () => {
       clearTimeout(handler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [delay, ...deps]);
 };
 

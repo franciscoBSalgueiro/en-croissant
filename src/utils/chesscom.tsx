@@ -118,7 +118,7 @@ export async function getChesscomGame(gameURL: string) {
   const gameId = match[2];
 
   const apiData = await fetch<{
-    game: { moveList: string; pgnHeaders: any };
+    game: { moveList: string; pgnHeaders: Record<string, string> };
   }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`);
   const apiDataJson = await apiData.data;
   const moveList = apiDataJson.game.moveList;

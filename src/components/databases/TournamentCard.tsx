@@ -38,7 +38,7 @@ function PlayerCard({
     return () => {
       ignored = true;
     };
-  }, [tournament.id]);
+  }, [tournament.id, file]);
 
   return (
     <Paper shadow="sm" p="sm" withBorder>

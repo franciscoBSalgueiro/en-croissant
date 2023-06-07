@@ -22,11 +22,10 @@ const useStyles = createStyles((theme) => ({
     "& + &": {
       paddingTop: theme.spacing.sm,
       marginTop: theme.spacing.sm,
-      borderTop: `1px solid ${
-        theme.colorScheme === "dark"
+      borderTop: `1px solid ${theme.colorScheme === "dark"
           ? theme.colors.dark[4]
           : theme.colors.gray[2]
-      }`,
+        }`,
     },
   },
 

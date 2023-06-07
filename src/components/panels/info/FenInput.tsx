@@ -97,8 +97,8 @@ function FenInput({ currentFen }: { currentFen: string }) {
         if (v.valid) {
           dispatch({ type: "SET_FEN", payload: fen });
           setError(undefined);
-        } else {
-          setError(capitalize(v.error!));
+        } else if (v.error) {
+          setError(capitalize(v.error));
         }
       });
     }

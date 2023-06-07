@@ -206,9 +206,12 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
 }
 
 export async function getDefaultDatabases(): Promise<DatabaseInfo[]> {
-    const data: any = await fetch(`https://www.encroissant.org/databases`, {
-        method: "GET",
-    });
+    const data = await fetch<DatabaseInfo[]>(
+        `https://www.encroissant.org/databases`,
+        {
+            method: "GET",
+        }
+    );
     if (!data.ok) {
         throw new Error("Failed to fetch engines");
     }

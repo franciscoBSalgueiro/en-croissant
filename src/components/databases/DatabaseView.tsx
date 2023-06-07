@@ -46,13 +46,13 @@ function DatabaseView() {
               </Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="games">
-              <GameTable database={database!} />
+              <GameTable database={database} />
             </Tabs.Panel>
             <Tabs.Panel value="players">
-              <PlayerTable database={database!} />
+              <PlayerTable database={database} />
             </Tabs.Panel>
             <Tabs.Panel value="tournaments">
-              <TournamentTable database={database!} />
+              <TournamentTable database={database} />
             </Tabs.Panel>
           </Tabs>
         </>

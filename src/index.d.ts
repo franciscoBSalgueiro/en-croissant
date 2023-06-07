@@ -9,7 +9,7 @@ declare module "react-chessground" {
 
     declare class Chessground extends React.Component<
         ReactChessGroundProps,
-        any
+        unknown
     > {}
     export default Chessground;
 }

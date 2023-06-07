@@ -73,15 +73,15 @@ export default function DatabasesPage() {
 
   useEffect(() => {
     setTitle(database?.title ?? null);
-  }, [database?.file]);
+  }, [database]);
 
   useEffect(() => {
     setDescription(database?.description ?? null);
-  }, [database?.file]);
+  }, [database]);
 
   useEffect(() => {
     setSelectedDatabase(database);
-  }, [database?.file]);
+  }, [database, setSelectedDatabase]);
 
   return (
     <>
@@ -153,9 +153,7 @@ export default function DatabasesPage() {
                 <Group noWrap>
                   <IconDatabase size={24} />
                   <div>
-                    <Text weight={500}>
-                      {item.error ? item.error : item.title}
-                    </Text>
+                    <Text weight={500}>{item.error ?? item.title}</Text>
                     <Text size="xs" color="dimmed">
                       {item.error ? item.file : item.description}
                     </Text>

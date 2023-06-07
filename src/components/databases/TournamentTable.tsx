@@ -106,6 +106,7 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
           withBorder
           highlightOnHover
           records={tournaments}
+          fetching={loading}
           columns={[
             { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },

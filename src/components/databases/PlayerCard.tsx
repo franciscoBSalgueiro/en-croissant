@@ -91,28 +91,28 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
 
   const sections = info
     ? [
-        {
-          value: (info.won / total) * 100,
-          color: "green",
-          label: `${((info.won / total) * 100).toFixed(1)}%`,
-          tooltip: `${info.won} wins`,
-        },
-        {
-          value: (info.lost / total) * 100,
-          color: "red",
-          label: `${((info.lost / total) * 100).toFixed(1)}%`,
-          tooltip: `${info.lost} losses`,
-        },
-        {
-          value: (info.draw / total) * 100,
-          color: "gray",
-          label:
-            info.draw / total > 0.05
-              ? `${((info.draw / total) * 100).toFixed(1)}%`
-              : undefined,
-          tooltip: `${info.draw} draws`,
-        },
-      ]
+      {
+        value: (info.won / total) * 100,
+        color: "green",
+        label: `${((info.won / total) * 100).toFixed(1)}%`,
+        tooltip: `${info.won} wins`,
+      },
+      {
+        value: (info.lost / total) * 100,
+        color: "red",
+        label: `${((info.lost / total) * 100).toFixed(1)}%`,
+        tooltip: `${info.lost} losses`,
+      },
+      {
+        value: (info.draw / total) * 100,
+        color: "gray",
+        label:
+          info.draw / total > 0.05
+            ? `${((info.draw / total) * 100).toFixed(1)}%`
+            : undefined,
+        tooltip: `${info.draw} draws`,
+      },
+    ]
     : [];
 
   useEffect(() => {
@@ -121,7 +121,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
       setInfo(games);
     }
     fetchGames();
-  }, [player.id]);
+  }, [file, player]);
 
   const data =
     info?.games_per_month

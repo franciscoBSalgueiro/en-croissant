@@ -147,6 +147,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
           withBorder
           highlightOnHover
           records={players}
+          fetching={loading}
           columns={[
             { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },

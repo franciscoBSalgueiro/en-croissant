@@ -44,9 +44,6 @@ function AnalysisPanel({
 }) {
   const { root, position } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
-  if (!currentNode) {
-    return <></>;
-  }
 
   const [engines, setEngines] = useLocalFile<Engine[]>(
     "engines/engines.json",

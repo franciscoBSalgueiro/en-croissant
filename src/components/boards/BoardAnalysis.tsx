@@ -17,6 +17,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { getPGN } from "../../utils/chess";
 import { getBoardSize } from "../../utils/misc";
+import { Tab } from "../../utils/tabs";
 import { getNodeAtPath } from "../../utils/treeReducer";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -28,7 +29,6 @@ import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
-import { Tab } from "../../utils/tabs";
 
 function BoardAnalysis({ id }: { id: string }) {
   const [editingMode, toggleEditingMode] = useToggle();
@@ -44,8 +44,6 @@ function BoardAnalysis({ id }: { id: string }) {
   });
 
   const boardRef = useRef(null);
-
-  console.log(tabs);
 
   const { height, width } = useViewportSize();
 
@@ -63,8 +61,6 @@ function BoardAnalysis({ id }: { id: string }) {
 
   const saveFile = useCallback(async () => {
     const activeTab = tabs.find((tab) => tab.value === activeTabValue);
-    console.log({ tabs });
-    console.log({ activeTab });
 
     let filePath: string;
     if (activeTab?.file) {

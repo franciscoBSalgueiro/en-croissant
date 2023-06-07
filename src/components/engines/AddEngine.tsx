@@ -256,7 +256,7 @@ function EngineCard({
         path: enginePath,
       },
     ]);
-  }, []);
+  }, [engine, setEngines]);
 
   const { classes } = useStyles();
 

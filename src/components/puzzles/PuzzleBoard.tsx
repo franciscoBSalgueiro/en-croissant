@@ -41,7 +41,6 @@ function PuzzleBoard({
   currentPuzzle,
   changeCompletion,
   generatePuzzle,
-  setCurrentPuzzle,
   currentMove,
   setCurrentMove,
   db,
@@ -50,7 +49,6 @@ function PuzzleBoard({
   currentPuzzle: number;
   changeCompletion: (completion: Completion) => void;
   generatePuzzle: (db: string) => void;
-  setCurrentPuzzle: (currentPuzzle: number) => void;
   currentMove: number;
   setCurrentMove: (currentMove: number) => void;
   db: string;
@@ -58,7 +56,7 @@ function PuzzleBoard({
   const puzzle = puzzles[currentPuzzle];
   const [ended, setEnded] = useState(false);
   const chess = new Chess(puzzle.fen);
-  let lastMove: Move;
+  let lastMove: Move | null = null;
   let orientation: "white" | "black" = "white";
   for (let i = 0; i < Math.min(currentMove, puzzle.moves.length); i++) {
     lastMove = chess.move(parseUci(puzzle.moves[i]));
@@ -79,6 +77,8 @@ function PuzzleBoard({
   const boardSize = getBoardSize(height, width);
 
   const { classes } = useStyles();
+
+  if (!lastMove) return null;
 
   return (
     <Stack justify="center">
@@ -146,8 +146,8 @@ function PuzzleBoard({
             color: turn,
             dests: dests,
             events: {
-              after: (orig, dest, metadata) => {
-                const newDest = handleMove(chess, orig, dest)!;
+              after: (orig, dest) => {
+                const newDest = handleMove(chess, orig, dest);
                 // handle promotions
                 if (
                   chess.get(orig as Square).type === "p" &&
@@ -180,7 +180,7 @@ function PuzzleBoard({
               },
             },
           }}
-          lastMove={moveToKey(lastMove!)}
+          lastMove={moveToKey(lastMove)}
           turnColor={turn}
           fen={fen}
           check={chess.inCheck()}
