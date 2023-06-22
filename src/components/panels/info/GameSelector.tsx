@@ -100,7 +100,6 @@ export default function GameSelector({
                 <AutoSizer>
                   {({ width }) => (
                     <List
-                      style={{ scrollbarWidth: "none" }}
                       width={width}
                       height={200}
                       rowHeight={50}
