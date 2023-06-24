@@ -6,25 +6,6 @@ import React, { useEffect, useRef, useState } from "react";
 
 type StorageValue<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 
-export function useSessionStorage<T>({
-  key,
-  defaultValue,
-}: {
-  key: string;
-  defaultValue: T;
-}): StorageValue<T> {
-  const [state, setState] = useState<T>(() => {
-    const storedValue = sessionStorage.getItem(key);
-    return storedValue ? JSON.parse(storedValue) : defaultValue;
-  });
-
-  useEffect(() => {
-    sessionStorage.setItem(key, JSON.stringify(state));
-  }, [key, state]);
-
-  return [state, setState];
-}
-
 export function useLocalFile<T>(
   filename: string,
   defaultValue: T

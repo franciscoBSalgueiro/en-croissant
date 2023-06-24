@@ -73,11 +73,9 @@ function OpponentCard({
 
 function BoardGame({
   id,
-  tabs,
   setTabs,
 }: {
   id: string;
-  tabs: Tab[];
   setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
 }) {
   const [opponent, setOpponent] = useSessionStorage<Opponent | null>({
@@ -101,8 +99,8 @@ function BoardGame({
   const chess = new Chess(currentNode.fen);
 
   function changeToAnalysisMode() {
-    setTabs(
-      tabs.map((tab) => (tab.value === id ? { ...tab, type: "analysis" } : tab))
+    setTabs((prev) =>
+      prev.map((tab) => (tab.value === id ? { ...tab, type: "analysis" } : tab))
     );
   }
 

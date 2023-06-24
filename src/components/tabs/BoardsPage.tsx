@@ -6,9 +6,8 @@ import {
   Stack,
   Tabs,
 } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys, useSessionStorage } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useSessionStorage } from "../../utils/misc";
 import { createTab, genID, Tab } from "../../utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -16,6 +15,7 @@ import { TreeStateProvider } from "../common/TreeStateContext";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
+import { useCallback } from "react";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -49,23 +49,26 @@ export default function BoardsPage() {
     defaultValue: tabs[0] ? tabs[0].value : null,
   });
 
-  function closeTab(value: string | null) {
-    if (value !== null) {
-      if (value === activeTab) {
-        const index = tabs.findIndex((tab) => tab.value === value);
-        if (tabs.length > 1) {
-          if (index === tabs.length - 1) {
-            setActiveTab(tabs[index - 1].value);
+  const closeTab = useCallback(
+    (value: string | null) => {
+      if (value !== null) {
+        if (value === activeTab) {
+          const index = tabs.findIndex((tab) => tab.value === value);
+          if (tabs.length > 1) {
+            if (index === tabs.length - 1) {
+              setActiveTab(tabs[index - 1].value);
+            } else {
+              setActiveTab(tabs[index + 1].value);
+            }
           } else {
-            setActiveTab(tabs[index + 1].value);
+            setActiveTab(null);
           }
-        } else {
-          setActiveTab(null);
         }
+        setTabs((prev) => prev.filter((tab) => tab.value !== value));
       }
-      setTabs((prev) => prev.filter((tab) => tab.value !== value));
-    }
-  }
+    },
+    [tabs, activeTab, setTabs, setActiveTab]
+  );
 
   function selectTab(index: number) {
     setActiveTab(tabs[Math.min(index, tabs.length - 1)].value);
@@ -88,42 +91,48 @@ export default function BoardsPage() {
     }
   }
 
-  function renameTab(value: string, name: string) {
-    setTabs((prev) =>
-      prev.map((tab) => {
-        if (tab.value === value) {
-          return { ...tab, name };
-        }
-        return tab;
-      })
-    );
-  }
-
-  function duplicateTab(value: string) {
-    const id = genID();
-    const tab = tabs.find((tab) => tab.value === value);
-    if (sessionStorage.getItem(value)) {
-      sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
-    }
-    if (sessionStorage.getItem(value + "-tree")) {
-      sessionStorage.setItem(
-        id + "-tree",
-        sessionStorage.getItem(value + "-tree") || ""
+  const renameTab = useCallback(
+    (value: string, name: string) => {
+      setTabs((prev) =>
+        prev.map((tab) => {
+          if (tab.value === value) {
+            return { ...tab, name };
+          }
+          return tab;
+        })
       );
-    }
+    },
+    [setTabs]
+  );
 
-    if (tab) {
-      setTabs((prev) => [
-        ...prev,
-        {
-          name: tab.name,
-          value: id,
-          type: tab.type,
-        },
-      ]);
-      setActiveTab(id);
-    }
-  }
+  const duplicateTab = useCallback(
+    (value: string) => {
+      const id = genID();
+      const tab = tabs.find((tab) => tab.value === value);
+      if (sessionStorage.getItem(value)) {
+        sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
+      }
+      if (sessionStorage.getItem(value + "-tree")) {
+        sessionStorage.setItem(
+          id + "-tree",
+          sessionStorage.getItem(value + "-tree") || ""
+        );
+      }
+
+      if (tab) {
+        setTabs((prev) => [
+          ...prev,
+          {
+            name: tab.name,
+            value: id,
+            type: tab.type,
+          },
+        ]);
+        setActiveTab(id);
+      }
+    },
+    [tabs, setTabs, setActiveTab]
+  );
 
   useHotkeys([
     [
@@ -201,33 +210,39 @@ export default function BoardsPage() {
 
         {tabs.map((tab) => (
           <Tabs.Panel key={tab.value} value={tab.value}>
-            <TabSwitch tab={tab} />
+            <TabSwitch tab={tab} setTabs={setTabs} />
           </Tabs.Panel>
         ))}
       </Stack>
     </Tabs>
   );
+}
 
-  function TabSwitch({ tab }: { tab: Tab }) {
-    switch (tab.type) {
-      case "new":
-        return <NewTabHome setTabs={setTabs} id={tab.value} />;
+function TabSwitch({
+  tab,
+  setTabs,
+}: {
+  tab: Tab;
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+}) {
+  switch (tab.type) {
+    case "new":
+      return <NewTabHome setTabs={setTabs} id={tab.value} />;
 
-      case "play":
-        return (
-          <TreeStateProvider id={tab.value}>
-            <BoardGame id={tab.value} tabs={tabs} setTabs={setTabs} />
-          </TreeStateProvider>
-        );
+    case "play":
+      return (
+        <TreeStateProvider id={tab.value}>
+          <BoardGame id={tab.value} setTabs={setTabs} />
+        </TreeStateProvider>
+      );
 
-      case "analysis":
-        return (
-          <TreeStateProvider id={tab.value}>
-            <BoardAnalysis id={tab.value} />
-          </TreeStateProvider>
-        );
-      case "puzzles":
-        return <Puzzles id={tab.value} />;
-    }
+    case "analysis":
+      return (
+        <TreeStateProvider id={tab.value}>
+          <BoardAnalysis id={tab.value} />
+        </TreeStateProvider>
+      );
+    case "puzzles":
+      return <Puzzles id={tab.value} />;
   }
 }
