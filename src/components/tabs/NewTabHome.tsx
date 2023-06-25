@@ -23,9 +23,9 @@ import { open } from "@tauri-apps/api/dialog";
 import { useState } from "react";
 import { getPgnHeaders, parsePGN } from "../../utils/chess";
 import { getChesscomGame } from "../../utils/chesscom";
-import { list_pgn_games } from "../../utils/db";
+import { count_pgn_games, read_games } from "../../utils/db";
 import { getLichessGame } from "../../utils/lichess";
-import { Tab } from "../../utils/tabs";
+import { FileInfo, Tab } from "../../utils/tabs";
 import FileInput from "../common/FileInput";
 
 export default function NewTabHome({
@@ -224,12 +224,18 @@ function ImportModal({
         onClick={async () => {
           if (importType === "PGN") {
             if (file || pgn) {
+              let fileInfo: FileInfo | undefined;
               let input = pgn;
               if (file) {
                 setLoading(true);
-                const games = await list_pgn_games(file);
+                const count = await count_pgn_games(file);
+                input = (await read_games(file, 0, 1))[0];
                 setLoading(false);
-                input = games.data;
+
+                fileInfo = {
+                  path: file,
+                  numGames: count,
+                };
               }
               // const input = file ? await readTextFile(file) : pgn;
               setTabs((prevTabs) =>
@@ -241,7 +247,7 @@ function ImportModal({
                     return {
                       ...tab,
                       name: `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`,
-                      file: file ?? undefined,
+                      file: fileInfo,
                       gameNumber: 0,
                       type: "analysis",
                     };

@@ -7,6 +7,7 @@ mod chess;
 mod db;
 mod fs;
 mod opening;
+mod pgn;
 mod puzzle;
 
 use std::path::PathBuf;
@@ -29,9 +30,10 @@ use crate::chess::{
 };
 use crate::db::{
     clear_games, convert_pgn, delete_database, get_players_game_info, get_tournaments,
-    list_pgn_games, read_games, search_position,
+    search_position,
 };
-use crate::fs::set_file_as_executable;
+use crate::fs::{append_to_file, set_file_as_executable};
+use crate::pgn::{count_pgn_games, delete_game, read_games};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
@@ -174,8 +176,10 @@ fn main() {
             make_random_move,
             set_file_as_executable,
             validate_fen,
-            list_pgn_games,
-            read_games
+            count_pgn_games,
+            read_games,
+            append_to_file,
+            delete_game
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

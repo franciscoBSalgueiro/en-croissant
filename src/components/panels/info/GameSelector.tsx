@@ -1,14 +1,15 @@
 import { Accordion, ActionIcon, Group } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
-import { IconCheck } from "@tabler/icons-react";
+import { IconCheck, IconTrash } from "@tabler/icons-react";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
 import { getPgnHeaders, parsePGN } from "../../../utils/chess";
-import { list_pgn_games, read_games } from "../../../utils/db";
+import { read_games } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import { Tab } from "../../../utils/tabs";
 import { GameHeaders } from "../../../utils/treeReducer";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { invoke } from "../../../utils/misc";
 
 export default function GameSelector({
   id,
@@ -17,7 +18,6 @@ export default function GameSelector({
   id: string;
   headers: GameHeaders;
 }) {
-  const [total, setTotal] = useState(0);
   const [games, setGames] = useState(new Map<number, string>());
 
   function isRowLoaded({ index }: { index: number }) {
@@ -32,6 +32,7 @@ export default function GameSelector({
 
   const tab = tabs.find((t) => t.value === id);
   const activePage = tab?.gameNumber || 0;
+  const total = tab?.file ? tab.file.numGames : 0;
 
   const setPage = useCallback(
     (page: number) => {
@@ -53,7 +54,7 @@ export default function GameSelector({
     stopIndex: number;
   }) {
     if (!tab?.file) return;
-    const data = await read_games(tab?.file, startIndex, stopIndex);
+    const data = await read_games(tab?.file.path, startIndex, stopIndex);
     setGames((prev) => {
       const newGames = new Map(prev);
       data.forEach((game, index) => {
@@ -65,14 +66,7 @@ export default function GameSelector({
 
   useEffect(() => {
     if (!tab?.file) return;
-    list_pgn_games(tab?.file).then((games) => {
-      setTotal(games.count);
-    });
-  }, [tab]);
-
-  useEffect(() => {
-    if (!tab?.file) return;
-    read_games(tab?.file, activePage, activePage).then((game) => {
+    read_games(tab.file.path, activePage, activePage).then((game) => {
       const tree = parsePGN(game[0]);
       tree.headers = getPgnHeaders(game[0]);
       dispatch({
@@ -116,6 +110,18 @@ export default function GameSelector({
                             color="blue"
                           >
                             <IconCheck />
+                          </ActionIcon>
+                          <ActionIcon
+                            onClick={() => {
+                              invoke("delete_game", {
+                                file: tab?.file?.path,
+                                n: index,
+                              });
+                            }}
+                            variant={"outline"}
+                            color="blue"
+                          >
+                            <IconTrash />
                           </ActionIcon>
                         </Group>
                       )}

@@ -306,8 +306,8 @@ export async function searchPosition(
     return openings;
 }
 
-export async function list_pgn_games(file: string) {
-    return await invoke<QueryResponse<string>>("list_pgn_games", {
+export async function count_pgn_games(file: string) {
+    return await invoke<number>("count_pgn_games", {
         file,
     });
 }

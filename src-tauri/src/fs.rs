@@ -1,4 +1,8 @@
-use std::{fs::create_dir_all, io::Cursor, path::Path};
+use std::{
+    fs::create_dir_all,
+    io::{Cursor, Write},
+    path::Path,
+};
 
 use reqwest::{header::HeaderMap, Client};
 #[cfg(unix)]
@@ -125,4 +129,10 @@ pub async fn set_file_as_executable(_path: String) {
         permissions.set_mode(0o755);
         std::fs::set_permissions(path, permissions).unwrap();
     }
+}
+
+#[tauri::command]
+pub async fn append_to_file(path: String, text: String) {
+    let mut file = std::fs::OpenOptions::new().append(true).open(path).unwrap();
+    file.write_all(text.as_bytes()).unwrap();
 }

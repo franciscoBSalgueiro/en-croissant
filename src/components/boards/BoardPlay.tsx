@@ -20,6 +20,7 @@ import {
   IconAlertCircle,
   IconDeviceFloppy,
   IconEdit,
+  IconPlus,
   IconSwitchVertical,
 } from "@tabler/icons-react";
 import {
@@ -65,6 +66,7 @@ interface ChessboardProps {
   side?: Color;
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
+  addGame?: () => void;
 }
 
 const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
@@ -80,6 +82,7 @@ function BoardPlay({
   side,
   boardRef,
   saveFile,
+  addGame,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
   let chess: Chess | null;
@@ -174,6 +177,13 @@ function BoardPlay({
             </ActionIcon>
           </Tooltip>
         )}
+        {addGame && (
+          <Tooltip label={"Add Game"}>
+            <ActionIcon onClick={() => addGame()}>
+              <IconPlus />
+            </ActionIcon>
+          </Tooltip>
+        )}
         <Tooltip label={"Flip Board"}>
           <ActionIcon onClick={() => toggleOrientation()}>
             <IconSwitchVertical />
@@ -181,7 +191,7 @@ function BoardPlay({
         </Tooltip>
       </Group>
     ),
-    [disableVariations, saveFile, toggleEditingMode, toggleOrientation]
+    [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
   );
 
   return (

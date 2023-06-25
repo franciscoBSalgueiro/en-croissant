@@ -16,7 +16,7 @@ import { writeTextFile } from "@tauri-apps/api/fs";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { getPGN } from "../../utils/chess";
-import { getBoardSize } from "../../utils/misc";
+import { getBoardSize, invoke } from "../../utils/misc";
 import { Tab } from "../../utils/tabs";
 import { getNodeAtPath } from "../../utils/treeReducer";
 import MoveControls from "../common/MoveControls";
@@ -64,7 +64,7 @@ function BoardAnalysis({ id }: { id: string }) {
 
     let filePath: string;
     if (activeTab?.file) {
-      filePath = activeTab.file;
+      filePath = activeTab.file.path;
     } else {
       const userChoice = await save({
         filters: [
@@ -80,7 +80,10 @@ function BoardAnalysis({ id }: { id: string }) {
         const index = prev.findIndex((tab) => tab.value === activeTabValue);
         if (index !== -1) {
           const newTabs = [...prev];
-          newTabs[index].file = userChoice;
+          newTabs[index].file = {
+            path: userChoice,
+            numGames: 1,
+          };
           return newTabs;
         }
         return prev;
@@ -93,6 +96,25 @@ function BoardAnalysis({ id }: { id: string }) {
       })
     );
   }, [tabs, activeTabValue, headers, root, setTabs]);
+
+  const addGame = useCallback(() => {
+    setTabs((prev) => {
+      const tab = prev.find((t) => t.value === id);
+      if (!tab?.file) return prev;
+      tab.gameNumber = tab.file.numGames;
+      tab.file.numGames += 1;
+      // write to file
+      return [...prev];
+    });
+    invoke("append_to_file", {
+      path: tabs.find((t) => t.value === id)?.file?.path,
+      text:
+        "\n\n" +
+        getPGN(root, {
+          headers,
+        }),
+    });
+  }, [headers, id, root, setTabs, tabs]);
 
   useHotkeys([["Ctrl+S", () => saveFile()]]);
 
@@ -120,6 +142,7 @@ function BoardAnalysis({ id }: { id: string }) {
             toggleEditingMode={toggleEditingMode}
             boardRef={boardRef}
             saveFile={saveFile}
+            addGame={addGame}
           />
         }
       >

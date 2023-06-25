@@ -3,13 +3,18 @@ import { GameHeaders } from "./treeReducer";
 
 type TabType = "new" | "play" | "analysis" | "puzzles";
 
-export interface Tab {
+export type Tab = {
     name: string;
     value: string;
     type: TabType;
-    file?: string;
     gameNumber?: number;
-}
+    file?: FileInfo;
+};
+
+export type FileInfo = {
+    path: string;
+    numGames: number;
+};
 
 export function genID() {
     function S4() {
