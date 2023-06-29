@@ -229,7 +229,7 @@ function ImportModal({
               if (file) {
                 setLoading(true);
                 const count = await count_pgn_games(file);
-                input = (await read_games(file, 0, 1))[0];
+                input = (await read_games(file, 0, 0))[0];
                 setLoading(false);
 
                 fileInfo = {

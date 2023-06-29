@@ -6,7 +6,7 @@ use std::{
 
 use crate::AppState;
 
-const GAME_OFFSET_FREQ: i64 = 2;
+const GAME_OFFSET_FREQ: i64 = 100;
 
 struct PgnParser {
     reader: BufReader<File>,
@@ -25,18 +25,34 @@ impl PgnParser {
         }
     }
 
-    fn skip_games(&mut self, n: i64) -> std::io::Result<()> {
+    fn offset_by_index(&mut self, n: i64, state: &AppState, file: &String) -> std::io::Result<()> {
+        let offset_index = (n / GAME_OFFSET_FREQ) as usize;
+        let n_left = n % GAME_OFFSET_FREQ;
+
+        let offset = match offset_index {
+            0 => 0,
+            _ => state.pgn_offsets.get(file).unwrap()[offset_index - 1],
+        };
+
+        self.reader.seek(SeekFrom::Start(offset))?;
+
+        self.skip_games(n_left)?;
+        Ok(())
+    }
+
+    /// Skip n games, and return the number of bytes read
+    fn skip_games(&mut self, n: i64) -> std::io::Result<usize> {
         let mut new_game = false;
+        let mut skipped = 0;
         let mut count = 0;
 
-        dbg!(n);
-
         if n == 0 {
-            return Ok(());
+            return Ok(0);
         }
 
         let mut line = String::new();
         while let Ok(bytes) = self.reader.read_line(&mut line) {
+            skipped += bytes;
             if bytes == 0 {
                 break;
             }
@@ -54,7 +70,7 @@ impl PgnParser {
             }
             line.clear();
         }
-        Ok(())
+        Ok(skipped)
     }
 
     fn read_game(&mut self) -> std::io::Result<String> {
@@ -101,39 +117,23 @@ pub async fn count_pgn_games(
         file.to_str().unwrap()
     )))?;
 
-    let mut reader = BufReader::new(file.try_clone().unwrap());
-    ignore_bom(&mut reader).unwrap();
+    let mut parser = PgnParser::new(file.try_clone().unwrap());
 
     let mut offsets = Vec::new();
 
     let mut count: i64 = 0;
-    let mut new_game = true;
 
-    let mut line = String::new();
-    loop {
-        if let Ok(bytes) = reader.read_line(&mut line) {
-            if bytes == 0 {
-                break;
-            }
-
-            if line.starts_with('[') {
-                if new_game {
-                    count += 1;
-                    if count % GAME_OFFSET_FREQ == 0 {
-                        let cur_pos = reader.stream_position().unwrap();
-                        println!("adding game {} on {}", count, cur_pos - bytes as u64);
-                        offsets.push(cur_pos - bytes as u64);
-                    }
-                    new_game = false;
-                }
-            } else {
-                new_game = true;
-            }
-            line.clear();
-        } else {
-            continue;
+    while let Ok(skipped) = parser.skip_games(1) {
+        if skipped == 0 {
+            break;
+        }
+        count += 1;
+        if count % GAME_OFFSET_FREQ == 0 {
+            let cur_pos = parser.reader.stream_position().unwrap();
+            offsets.push(cur_pos);
         }
     }
+
     state.pgn_offsets.insert(files_string.clone(), offsets);
     state.pgn_counts.insert(files_string, count);
 
@@ -147,19 +147,20 @@ pub async fn read_games(
     end: i64,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
-    let offset_index = (start / GAME_OFFSET_FREQ) as usize;
-    let n_left = start % GAME_OFFSET_FREQ;
+    let file_r = File::open(&file).unwrap();
 
-    let offset = match offset_index {
-        0 => 0,
-        _ => state
-            .pgn_offsets
-            .get(&file.to_string_lossy().to_string())
-            .unwrap()[offset_index - 1],
-    };
+    let mut parser = PgnParser::new(file_r.try_clone().unwrap());
 
-    let game = read_games_from_offset(file, offset, n_left, (end - start) + 1)?;
-    Ok(game)
+    parser
+        .offset_by_index(start, &state, &file.to_string_lossy().to_string())
+        .unwrap();
+
+    let mut games: Vec<String> = Vec::with_capacity((end - start) as usize);
+
+    for _ in start..=end {
+        games.push(parser.read_game().unwrap());
+    }
+    Ok(games)
 }
 
 #[tauri::command]
@@ -168,34 +169,18 @@ pub async fn delete_game(
     n: i64,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let offset_index = (n / GAME_OFFSET_FREQ) as usize;
-    let n_left = n % GAME_OFFSET_FREQ;
-
-    let offset = match offset_index {
-        0 => 0,
-        _ => state
-            .pgn_offsets
-            .get(&file.to_string_lossy().to_string())
-            .unwrap()[offset_index - 1],
-    };
-
-    dbg!(offset);
-    dbg!(n_left);
-
     let file_r = File::open(&file).or(Err(format!(
         "Failed to open pgn file: {}",
         file.to_str().unwrap()
     )))?;
 
-    println!("deleting game {}", n);
-
     let mut parser = PgnParser::new(file_r.try_clone().unwrap());
 
-    parser.skip_games(n).unwrap();
+    parser
+        .offset_by_index(n, &state, &file.to_string_lossy().to_string())
+        .unwrap();
 
     let starting_bytes = parser.reader.stream_position().unwrap();
-
-    dbg!(starting_bytes);
 
     parser.skip_games(1).unwrap();
 
@@ -215,83 +200,4 @@ pub async fn delete_game(
     let end = file_w.stream_position().unwrap();
     file_w.set_len(end).unwrap();
     Ok(())
-}
-
-/// Reads n games and returns the number of bytes read
-fn skip_games(reader: &mut BufReader<File>, n: i64) -> std::io::Result<()> {
-    let mut new_game = false;
-    let mut count = 0;
-
-    dbg!(n);
-
-    if n == 0 {
-        return Ok(());
-    }
-
-    let mut line = String::new();
-    while let Ok(bytes) = reader.read_line(&mut line) {
-        if bytes == 0 {
-            break;
-        }
-        if line.starts_with('[') {
-            if new_game {
-                count += 1;
-                if count == n {
-                    reader.seek(SeekFrom::Current(-(bytes as i64)))?;
-                    break;
-                }
-                new_game = false;
-            }
-        } else {
-            new_game = true;
-        }
-        line.clear();
-    }
-    Ok(())
-}
-
-fn read_games_from_offset(
-    path: PathBuf,
-    offset: u64,
-    n_left: i64,
-    count: i64,
-) -> Result<Vec<String>, String> {
-    let file = File::open(&path).unwrap();
-    let mut reader = BufReader::new(file);
-    reader.seek(SeekFrom::Start(offset)).unwrap();
-    let mut games: Vec<String> = Vec::with_capacity(count as usize);
-    ignore_bom(&mut reader).unwrap();
-    let mut game = String::new();
-    let mut new_game = true;
-    let mut line = String::new();
-    let mut n: i64 = 0;
-    loop {
-        if let Ok(bytes) = reader.read_line(&mut line) {
-            if bytes == 0 {
-                games.push(std::mem::take(&mut game));
-                break;
-            }
-            if line.starts_with('[') {
-                if new_game {
-                    if n > n_left {
-                        games.push(std::mem::take(&mut game));
-                    }
-                    if n == n_left + count {
-                        break;
-                    }
-                    n += 1;
-                    new_game = false;
-                }
-            } else {
-                new_game = true;
-            }
-            if n > n_left {
-                game.push_str(&line);
-            }
-            line.clear();
-        } else {
-            continue;
-        }
-    }
-    Ok(games)
 }
