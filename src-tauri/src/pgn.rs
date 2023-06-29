@@ -6,7 +6,7 @@ use std::{
 
 use crate::AppState;
 
-const GAME_OFFSET_FREQ: i64 = 100;
+const GAME_OFFSET_FREQ: usize = 100;
 
 struct PgnParser {
     reader: BufReader<File>,
@@ -25,8 +25,13 @@ impl PgnParser {
         }
     }
 
-    fn offset_by_index(&mut self, n: i64, state: &AppState, file: &String) -> std::io::Result<()> {
-        let offset_index = (n / GAME_OFFSET_FREQ) as usize;
+    fn offset_by_index(
+        &mut self,
+        n: usize,
+        state: &AppState,
+        file: &String,
+    ) -> std::io::Result<()> {
+        let offset_index = n / GAME_OFFSET_FREQ;
         let n_left = n % GAME_OFFSET_FREQ;
 
         let offset = match offset_index {
@@ -41,7 +46,7 @@ impl PgnParser {
     }
 
     /// Skip n games, and return the number of bytes read
-    fn skip_games(&mut self, n: i64) -> std::io::Result<usize> {
+    fn skip_games(&mut self, n: usize) -> std::io::Result<usize> {
         let mut new_game = false;
         let mut skipped = 0;
         let mut count = 0;
@@ -107,7 +112,7 @@ fn ignore_bom(reader: &mut BufReader<File>) -> std::io::Result<()> {
 pub async fn count_pgn_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<i64, String> {
+) -> Result<usize, String> {
     let files_string = file.to_string_lossy().to_string();
     if let Some(count) = state.pgn_counts.get(&files_string) {
         return Ok(*count);
@@ -121,7 +126,7 @@ pub async fn count_pgn_games(
 
     let mut offsets = Vec::new();
 
-    let mut count: i64 = 0;
+    let mut count = 0;
 
     while let Ok(skipped) = parser.skip_games(1) {
         if skipped == 0 {
@@ -143,8 +148,8 @@ pub async fn count_pgn_games(
 #[tauri::command]
 pub async fn read_games(
     file: PathBuf,
-    start: i64,
-    end: i64,
+    start: usize,
+    end: usize,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
     let file_r = File::open(&file).unwrap();
@@ -155,7 +160,7 @@ pub async fn read_games(
         .offset_by_index(start, &state, &file.to_string_lossy().to_string())
         .unwrap();
 
-    let mut games: Vec<String> = Vec::with_capacity((end - start) as usize);
+    let mut games: Vec<String> = Vec::with_capacity(end - start);
 
     for _ in start..=end {
         games.push(parser.read_game().unwrap());
@@ -166,7 +171,7 @@ pub async fn read_games(
 #[tauri::command]
 pub async fn delete_game(
     file: PathBuf,
-    n: i64,
+    n: usize,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let file_r = File::open(&file).or(Err(format!(

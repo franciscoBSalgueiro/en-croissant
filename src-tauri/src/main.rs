@@ -109,7 +109,7 @@ pub struct AppState {
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     pgn_offsets: DashMap<String, Vec<u64>>,
-    pgn_counts: DashMap<String, i64>,
+    pgn_counts: DashMap<String, usize>,
 }
 
 fn main() {
