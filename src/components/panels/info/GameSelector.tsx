@@ -1,7 +1,7 @@
-import { Accordion, ActionIcon, Group } from "@mantine/core";
+import { Accordion, ActionIcon, Code, Divider, Group } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
 import { IconCheck, IconTrash } from "@tabler/icons-react";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
 import { getPgnHeaders, parsePGN } from "../../../utils/chess";
 import { read_games } from "../../../utils/db";
@@ -14,12 +14,14 @@ import { invoke } from "../../../utils/misc";
 export default function GameSelector({
   id,
   headers,
+  games,
+  setGames,
 }: {
   id: string;
   headers: GameHeaders;
+  games: Map<number, string>;
+  setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
 }) {
-  const [games, setGames] = useState(new Map<number, string>());
-
   function isRowLoaded({ index }: { index: number }) {
     return games.has(index);
   }
@@ -101,28 +103,41 @@ export default function GameSelector({
                       ref={registerChild}
                       onRowsRendered={onRowsRendered}
                       rowRenderer={({ index, key, style }) => (
-                        <Group key={key} style={style}>
+                        <Group key={key} style={style} position="apart" pr="xl">
                           {formatNumber(index + 1)}. {games.get(index)}
-                          <ActionIcon
-                            onClick={() => setPage(index)}
-                            disabled={index === activePage}
-                            variant={"outline"}
-                            color="blue"
-                          >
-                            <IconCheck />
-                          </ActionIcon>
-                          <ActionIcon
-                            onClick={() => {
-                              invoke("delete_game", {
-                                file: tab?.file?.path,
-                                n: index,
-                              });
-                            }}
-                            variant={"outline"}
-                            color="blue"
-                          >
-                            <IconTrash />
-                          </ActionIcon>
+                          <Group>
+                            <ActionIcon
+                              onClick={() => setPage(index)}
+                              disabled={index === activePage}
+                              variant={"outline"}
+                              color="blue"
+                            >
+                              <IconCheck />
+                            </ActionIcon>
+                            <ActionIcon
+                              onClick={() => {
+                                invoke("delete_game", {
+                                  file: tab?.file?.path,
+                                  n: index,
+                                });
+                                setTabs((prev) => {
+                                  const tab = prev.find((t) => t.value === id);
+                                  if (!tab?.file) return prev;
+                                  tab.file.numGames = total - 1;
+                                  return [...prev];
+                                });
+                                setGames((prev) => {
+                                  const newGames = new Map(prev);
+                                  newGames.delete(index);
+                                  return newGames;
+                                });
+                              }}
+                              variant={"outline"}
+                              color="blue"
+                            >
+                              <IconTrash />
+                            </ActionIcon>
+                          </Group>
                         </Group>
                       )}
                     />

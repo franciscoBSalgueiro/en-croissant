@@ -139,9 +139,10 @@ pub async fn count_pgn_games(
         }
     }
 
-    state.pgn_offsets.insert(files_string.clone(), offsets);
-    state.pgn_counts.insert(files_string, count);
-
+    if count > GAME_OFFSET_FREQ {
+        state.pgn_offsets.insert(files_string.clone(), offsets);
+        state.pgn_counts.insert(files_string, count);
+    }
     Ok(count)
 }
 
