@@ -12,16 +12,18 @@ struct PgnParser {
     reader: BufReader<File>,
     line: String,
     game: String,
+    start: u64,
 }
 
 impl PgnParser {
     fn new(file: File) -> Self {
         let mut reader = BufReader::new(file);
-        ignore_bom(&mut reader).unwrap();
+        let start = ignore_bom(&mut reader).unwrap_or(0);
         Self {
             reader,
             line: String::new(),
             game: String::new(),
+            start,
         }
     }
 
@@ -35,7 +37,7 @@ impl PgnParser {
         let n_left = n % GAME_OFFSET_FREQ;
 
         let offset = match offset_index {
-            0 => 0,
+            0 => self.start,
             _ => state.pgn_offsets.get(file).unwrap()[offset_index - 1],
         };
 
@@ -99,13 +101,14 @@ impl PgnParser {
     }
 }
 
-fn ignore_bom(reader: &mut BufReader<File>) -> std::io::Result<()> {
+fn ignore_bom(reader: &mut BufReader<File>) -> std::io::Result<u64> {
     let mut bom = [0; 3];
     reader.read_exact(&mut bom)?;
     if bom != [0xEF, 0xBB, 0xBF] {
         reader.seek(SeekFrom::Start(0))?;
+        return Ok(0);
     }
-    Ok(())
+    Ok(3)
 }
 
 #[tauri::command]
@@ -139,10 +142,8 @@ pub async fn count_pgn_games(
         }
     }
 
-    if count > GAME_OFFSET_FREQ {
-        state.pgn_offsets.insert(files_string.clone(), offsets);
-        state.pgn_counts.insert(files_string, count);
-    }
+    state.pgn_offsets.insert(files_string.clone(), offsets);
+    state.pgn_counts.insert(files_string, count);
     Ok(count)
 }
 
