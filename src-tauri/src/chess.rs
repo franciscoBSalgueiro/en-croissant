@@ -15,6 +15,7 @@ use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
     process::{Child, ChildStdin, ChildStdout, Command},
 };
+use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage};
 
 use crate::{db::is_position_in_db, fs::ProgressPayload, AppState};
 
@@ -58,21 +59,21 @@ pub struct AnalysisCacheKey {
     pub tab: String,
     pub fen: String,
     pub engine: String,
-    pub multipv: usize,
+    pub multipv: u16,
 }
 
 #[derive(Clone, Serialize, Debug, Derivative)]
 #[derivative(Default)]
 pub struct BestMoves {
-    depth: usize,
+    depth: u8,
     #[derivative(Default(value = "Score::Cp(0)"))]
     score: Score,
     #[serde(rename = "uciMoves")]
     uci_moves: Vec<String>,
     #[serde(rename = "sanMoves")]
     san_moves: Vec<String>,
-    multipv: usize,
-    nps: usize,
+    multipv: u16,
+    nps: u64,
 }
 
 #[derive(Serialize, Debug)]
@@ -83,65 +84,57 @@ pub struct BestMovesPayload {
     pub tab: String,
 }
 
-fn parse_uci(info: &str, fen: &Fen) -> Result<BestMoves, Box<dyn std::error::Error>> {
-    let mut depth = 0;
-    let mut score = Score::Cp(0);
-    let mut pv = String::new();
-    let mut multipv = 0;
-    let mut nps = 0;
-    // example input: info depth 1 seldepth 1 multipv 1 score cp 0 nodes 20 nps 10000 tbhits 0 time 2 pv e2e4
-    for (i, s) in info.split_whitespace().enumerate() {
-        match s {
-            "depth" => depth = info.split_whitespace().nth(i + 1).unwrap().parse()?,
-            "score" => {
-                if info.split_whitespace().nth(i + 1).unwrap() == "cp" {
-                    score = Score::Cp(info.split_whitespace().nth(i + 2).unwrap().parse()?);
-                } else {
-                    score = Score::Mate(info.split_whitespace().nth(i + 2).unwrap().parse()?);
+fn parse_uci_attrs(
+    attrs: Vec<UciInfoAttribute>,
+    fen: &Fen,
+) -> Result<BestMoves, Box<dyn std::error::Error>> {
+    let mut best_moves = BestMoves::default();
+
+    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
+        Ok(p) => p,
+        Err(e) => e.ignore_impossible_material()?,
+    };
+    let turn = pos.turn();
+
+    for a in attrs {
+        match a {
+            UciInfoAttribute::Pv(m) => {
+                for mv in m {
+                    let uci: Uci = mv.to_string().parse()?;
+                    let m = uci.to_move(&pos)?;
+                    let san = SanPlus::from_move_and_play_unchecked(&mut pos, &m);
+                    best_moves.san_moves.push(san.to_string());
+                    best_moves.uci_moves.push(uci.to_string());
                 }
             }
-            "nps" => nps = info.split_whitespace().nth(i + 1).unwrap().parse()?,
-            "multipv" => {
-                multipv = info.split_whitespace().nth(i + 1).unwrap().parse()?;
+            UciInfoAttribute::Nps(nps) => {
+                best_moves.nps = nps;
             }
-            "pv" => {
-                pv = info
-                    .split_whitespace()
-                    .skip(i + 1)
-                    .take_while(|x| !x.starts_with("currmove"))
-                    .collect::<Vec<&str>>()
-                    .join(" ");
+            UciInfoAttribute::Depth(depth) => {
+                best_moves.depth = depth;
+            }
+            UciInfoAttribute::MultiPv(multipv) => {
+                best_moves.multipv = multipv;
+            }
+            UciInfoAttribute::Score { cp, mate, .. } => {
+                if let Some(cp) = cp {
+                    best_moves.score = Score::Cp(cp as i64);
+                } else if let Some(mate) = mate {
+                    best_moves.score = Score::Mate(mate as i64);
+                }
             }
             _ => (),
         }
     }
-    let uci_moves: Vec<String> = pv.split_whitespace().map(|x| x.to_string()).collect();
-    let mut san_moves = Vec::new();
 
-    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
-        Ok(p) => p,
-        Err(e) => e.ignore_impossible_material().unwrap(),
-    };
-    if pos.turn() == Color::Black {
-        score = match score {
+    if turn == Color::Black {
+        best_moves.score = match best_moves.score {
             Score::Cp(x) => Score::Cp(-x),
             Score::Mate(x) => Score::Mate(-x),
         };
     }
-    for m in &uci_moves {
-        let uci: Uci = m.parse()?;
-        let m = uci.to_move(&pos)?;
-        let san = SanPlus::from_move_and_play_unchecked(&mut pos, &m);
-        san_moves.push(san.to_string());
-    }
-    Ok(BestMoves {
-        depth,
-        score,
-        uci_moves,
-        san_moves,
-        multipv,
-        nps,
-    })
+
+    Ok(best_moves)
 }
 
 fn start_engine(path: PathBuf) -> Result<Child, String> {
@@ -182,8 +175,8 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct EngineOptions {
-    pub depth: usize,
-    pub multipv: usize,
+    pub depth: u8,
+    pub multipv: u16,
     pub threads: usize,
 }
 
@@ -278,8 +271,8 @@ pub async fn get_best_moves(
                 match result {
                     Ok(line_opt) => {
                         if let Some(line) = line_opt {
-                            if line.starts_with("info") && line.contains("pv") {
-                                if let Ok(best_moves) = parse_uci(&line, &fen) {
+                            if let UciMessage::Info(attrs) = parse_one(&line) {
+                                if let Ok(best_moves) = parse_uci_attrs(attrs, &fen) {
                                     let multipv = best_moves.multipv;
                                     let cur_depth = best_moves.depth;
                                     best_moves_payload.best_lines.push(best_moves);
@@ -371,13 +364,16 @@ pub async fn analyze_game(
 
         let mut current_analysis = MoveAnalysis::default();
         while let Ok(Some(line)) = stdout.next_line().await {
-            if line.starts_with("bestmove") {
-                break;
-            }
-            if line.starts_with("info") && line.contains("pv") {
-                if let Ok(best_moves) = parse_uci(&line, &fen) {
-                    current_analysis.best = best_moves;
+            match parse_one(&line) {
+                UciMessage::Info(attrs) => {
+                    if let Ok(best_moves) = parse_uci_attrs(attrs, &fen) {
+                        current_analysis.best = best_moves;
+                    }
                 }
+                UciMessage::BestMove { .. } => {
+                    break;
+                }
+                _ => {}
             }
         }
 
