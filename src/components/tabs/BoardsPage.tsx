@@ -216,14 +216,14 @@ function TabSwitch({ tab }: { tab: Tab }) {
     case "play":
       return (
         <TreeStateProvider id={tab.value}>
-          <BoardGame id={tab.value} />
+          <BoardGame />
         </TreeStateProvider>
       );
 
     case "analysis":
       return (
         <TreeStateProvider id={tab.value}>
-          <BoardAnalysis id={tab.value} />
+          <BoardAnalysis />
         </TreeStateProvider>
       );
     case "puzzles":

@@ -29,14 +29,12 @@ const icon = <IconZoomCheck size={14} />;
 
 function AnalysisPanel({
   boardSize,
-  id,
   setArrows,
   toggleReportingMode,
   inProgress,
   setInProgress,
 }: {
   boardSize: number;
-  id: string;
   setArrows: (arrows: string[]) => void;
   toggleReportingMode: () => void;
   inProgress: boolean;
@@ -71,9 +69,7 @@ function AnalysisPanel({
                   return (
                     <Accordion.Item key={engine.path} value={engine.path}>
                       <BestMoves
-                        tabId={id}
                         id={i}
-                        tab={id}
                         engine={engine}
                         setArrows={setArrows}
                         fen={currentNode.fen}

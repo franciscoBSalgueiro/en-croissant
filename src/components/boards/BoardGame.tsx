@@ -33,6 +33,8 @@ import {
 } from "../common/TreeStateContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
+import { activeTabAtom } from "../../atoms/atoms";
+import { useAtomValue } from "jotai";
 
 enum Opponent {
   Random = "Random Bot",
@@ -71,9 +73,10 @@ function OpponentCard({
   );
 }
 
-function BoardGame({ id }: { id: string }) {
+function BoardGame() {
+  const activeTab = useAtomValue(activeTabAtom);
   const [opponent, setOpponent] = useSessionStorage<Opponent | null>({
-    key: id + "-opponent",
+    key: activeTab + "-opponent",
     defaultValue: null,
   });
   const [selected, setSelected] = useState<Opponent | null>(null);
@@ -95,7 +98,9 @@ function BoardGame({ id }: { id: string }) {
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
-      prev.map((tab) => (tab.value === id ? { ...tab, type: "analysis" } : tab))
+      prev.map((tab) =>
+        tab.value === activeTab ? { ...tab, type: "analysis" } : tab
+      )
     );
   }
 

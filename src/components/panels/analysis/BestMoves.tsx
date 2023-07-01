@@ -34,6 +34,8 @@ import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
 import { Chess } from "chess.js";
 import AnalysisRow from "./AnalysisRow";
+import { useAtomValue } from "jotai";
+import { activeTabAtom } from "../../../atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -45,40 +47,31 @@ const useStyles = createStyles((theme) => ({
 }));
 
 interface BestMovesProps {
-  tabId: string;
   id: number;
-  tab: string;
   engine: Engine;
   setArrows: (arrows: string[]) => void;
   fen: string;
   halfMoves: number;
 }
 
-function BestMoves({
-  tabId,
-  id,
-  tab,
-  engine,
-  setArrows,
-  fen,
-  halfMoves,
-}: BestMovesProps) {
+function BestMoves({ id, engine, setArrows, fen, halfMoves }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
+  const activeTab = useAtomValue(activeTabAtom);
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
   const [numberLines, setNumberLines] = useSessionStorage<number>({
-    key: `${tabId}-${engine.name}-numberLines`,
+    key: `${activeTab}-${engine.name}-numberLines`,
     defaultValue: 3,
   });
   const [maxDepth, setMaxDepth] = useSessionStorage<number>({
-    key: `${tabId}-${engine.name}-maxDepth`,
+    key: `${activeTab}-${engine.name}-maxDepth`,
     defaultValue: 24,
   });
   const [cores, setCores] = useSessionStorage<number>({
-    key: `${tabId}-${engine.name}-cores`,
+    key: `${activeTab}-${engine.name}-cores`,
     defaultValue: 2,
   });
   const [enabled, setEnabled] = useSessionStorage({
-    key: `${tabId}-${engine.name}-enabled`,
+    key: `${activeTab}-${engine.name}-enabled`,
     defaultValue: false,
   });
   const [settingsOn, toggleSettingsOn] = useToggle();
@@ -93,7 +86,7 @@ function BestMoves({
     async function waitForMove() {
       await listen<BestMovesPayload>("best_moves", ({ payload }) => {
         const ev = payload.bestLines;
-        if (payload.engine === engine.path && payload.tab === tab) {
+        if (payload.engine === engine.path && payload.tab === activeTab) {
           startTransition(() => {
             setEngineVariation(ev);
             dispatch({
@@ -127,7 +120,7 @@ function BestMoves({
           emit("stop_engine", engine.path);
           invoke("get_best_moves", {
             engine: engine.path,
-            tab,
+            tab: activeTab,
             fen: threat ? swapMove(fen) : fen,
             options: {
               depth: maxDepth,

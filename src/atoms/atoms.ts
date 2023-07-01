@@ -2,6 +2,7 @@ import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { Tab, genID } from "../utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
+import { atom } from "jotai";
 
 // Tabs
 
@@ -21,6 +22,29 @@ export const activeTabAtom = atomWithStorage<string | null>(
     "activeTab",
     firstTab.value,
     createJSONStorage(() => sessionStorage)
+);
+
+export const currentTabAtom = atom(
+    (get) => {
+        const tabs = get(tabsAtom);
+        const activeTab = get(activeTabAtom);
+        return tabs.find((tab) => tab.value === activeTab);
+    },
+    (get, set, newValue: Tab | ((currentTab: Tab) => Tab)) => {
+        const tabs = get(tabsAtom);
+        const activeTab = get(activeTabAtom);
+        const nextValue =
+            typeof newValue === "function"
+                ? newValue(get(currentTabAtom)!)
+                : newValue;
+        const newTabs = tabs.map((tab) => {
+            if (tab.value === activeTab) {
+                return nextValue;
+            }
+            return tab;
+        });
+        set(tabsAtom, newTabs);
+    }
 );
 
 // Settings

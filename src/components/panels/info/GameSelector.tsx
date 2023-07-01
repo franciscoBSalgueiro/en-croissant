@@ -9,40 +9,37 @@ import { GameHeaders } from "../../../utils/treeReducer";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import { invoke } from "../../../utils/misc";
 import { useAtom } from "jotai";
-import { tabsAtom } from "../../../atoms/atoms";
+import { currentTabAtom } from "../../../atoms/atoms";
+import { RESET, atomWithReset } from "jotai/utils";
 
-export default function GameSelector({
-  id,
-  headers,
-  games,
-  setGames,
-}: {
-  id: string;
-  headers: GameHeaders;
-  games: Map<number, string>;
-  setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
-}) {
+export const gamesAtom = atomWithReset<Map<number, string>>(new Map());
+
+export default function GameSelector({ headers }: { headers: GameHeaders }) {
+  const [games, setGames] = useAtom(gamesAtom);
+
+  console.log(games);
+
   function isRowLoaded({ index }: { index: number }) {
     return games.has(index);
   }
 
-  const [tabs, setTabs] = useAtom(tabsAtom);
+  const [activeTab, setActiveTab] = useAtom(currentTabAtom);
   const dispatch = useContext(TreeDispatchContext);
 
-  const tab = tabs.find((t) => t.value === id);
-  const activePage = tab?.gameNumber || 0;
-  const total = tab?.file ? tab.file.numGames : 0;
+  const activePage = activeTab?.gameNumber ?? 0;
+  const total = activeTab?.file?.numGames ?? 0;
 
   const setPage = useCallback(
     (page: number) => {
-      setTabs((prev) => {
-        const tab = prev.find((t) => t.value === id);
-        if (!tab) return prev;
-        tab.gameNumber = page;
-        return [...prev];
+      setActiveTab((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          gameNumber: page,
+        };
       });
     },
-    [id, setTabs]
+    [setActiveTab]
   );
 
   async function loadMoreRows({
@@ -52,8 +49,8 @@ export default function GameSelector({
     startIndex: number;
     stopIndex: number;
   }) {
-    if (!tab?.file) return;
-    const data = await read_games(tab?.file.path, startIndex, stopIndex);
+    if (!activeTab?.file) return;
+    const data = await read_games(activeTab.file.path, startIndex, stopIndex);
     setGames((prev) => {
       const newGames = new Map(prev);
       data.forEach((game, index) => {
@@ -64,8 +61,8 @@ export default function GameSelector({
   }
 
   useEffect(() => {
-    if (!tab?.file) return;
-    read_games(tab.file.path, activePage, activePage).then((game) => {
+    if (!activeTab?.file) return;
+    read_games(activeTab.file.path, activePage, activePage).then((game) => {
       const tree = parsePGN(game[0]);
       tree.headers = getPgnHeaders(game[0]);
       dispatch({
@@ -73,7 +70,7 @@ export default function GameSelector({
         payload: tree,
       });
     });
-  }, [activePage, dispatch, tab]);
+  }, [activePage, activeTab?.file, dispatch]);
 
   if (total < 2) return null;
   return (
@@ -114,20 +111,15 @@ export default function GameSelector({
                             <ActionIcon
                               onClick={() => {
                                 invoke("delete_game", {
-                                  file: tab?.file?.path,
+                                  file: activeTab?.file?.path,
                                   n: index,
                                 });
-                                setTabs((prev) => {
-                                  const tab = prev.find((t) => t.value === id);
-                                  if (!tab?.file) return prev;
-                                  tab.file.numGames = total - 1;
-                                  return [...prev];
+                                setActiveTab((prev) => {
+                                  if (!prev.file) return prev;
+                                  prev.file.numGames = total - 1;
+                                  return prev;
                                 });
-                                setGames((prev) => {
-                                  const newGames = new Map(prev);
-                                  newGames.delete(index);
-                                  return newGames;
-                                });
+                                setGames(RESET);
                               }}
                               variant={"outline"}
                               color="blue"
