@@ -127,6 +127,10 @@ fn parse_uci_attrs(
         }
     }
 
+    if best_moves.san_moves.is_empty() {
+        return Err("No moves found".into());
+    }
+
     if turn == Color::Black {
         best_moves.score = match best_moves.score {
             Score::Cp(x) => Score::Cp(-x),
@@ -190,6 +194,15 @@ pub async fn get_best_moves(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let path = PathBuf::from(&engine);
+
+    let parsed_fen: Fen = fen.parse().or(Err("Invalid fen"))?;
+    let pos: Chess = match parsed_fen.clone().into_position(CastlingMode::Standard) {
+        Ok(p) => p,
+        Err(e) => e.ignore_impossible_material().map_err(|e| e.to_string())?,
+    };
+
+    let mut options = options.clone();
+    options.multipv = options.multipv.min(pos.legal_moves().len() as u16);
 
     let key = AnalysisCacheKey {
         fen: fen.clone(),
@@ -258,7 +271,6 @@ pub async fn get_best_moves(
     .await;
     send_command(&mut stdin, format!("go depth {}\n", options.depth)).await;
 
-    let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
     loop {
         tokio::select! {
             _ = rx.recv() => {
@@ -272,7 +284,7 @@ pub async fn get_best_moves(
                     Ok(line_opt) => {
                         if let Some(line) = line_opt {
                             if let UciMessage::Info(attrs) = parse_one(&line) {
-                                if let Ok(best_moves) = parse_uci_attrs(attrs, &fen) {
+                                if let Ok(best_moves) = parse_uci_attrs(attrs, &parsed_fen) {
                                     let multipv = best_moves.multipv;
                                     let cur_depth = best_moves.depth;
                                     best_moves_payload.best_lines.push(best_moves);
