@@ -200,7 +200,7 @@ export default function BoardsPage() {
 
         {tabs.map((tab) => (
           <Tabs.Panel key={tab.value} value={tab.value}>
-            <TabSwitch tab={tab} setTabs={setTabs} />
+            <TabSwitch tab={tab} />
           </Tabs.Panel>
         ))}
       </Stack>
@@ -208,21 +208,15 @@ export default function BoardsPage() {
   );
 }
 
-function TabSwitch({
-  tab,
-  setTabs,
-}: {
-  tab: Tab;
-  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
-}) {
+function TabSwitch({ tab }: { tab: Tab }) {
   switch (tab.type) {
     case "new":
-      return <NewTabHome setTabs={setTabs} id={tab.value} />;
+      return <NewTabHome id={tab.value} />;
 
     case "play":
       return (
         <TreeStateProvider id={tab.value}>
-          <BoardGame id={tab.value} setTabs={setTabs} />
+          <BoardGame id={tab.value} />
         </TreeStateProvider>
       );
 

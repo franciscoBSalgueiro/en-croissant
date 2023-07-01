@@ -1,3 +1,4 @@
+import { useAtom } from "jotai";
 import {
   ChessComStats,
   getChessComAccount,
@@ -5,20 +6,17 @@ import {
 } from "../../utils/chesscom";
 import { DatabaseInfo } from "../../utils/db";
 import { getLichessAccount } from "../../utils/lichess";
-import { Session } from "../../utils/session";
 import { AccountCard } from "../home/AccountCard";
+import { sessionsAtom } from "../../atoms/atoms";
 
 function AccountCards({
-  sessions,
-  setSessions,
   databases,
   setDatabases,
 }: {
-  sessions: Session[];
-  setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
   databases: DatabaseInfo[];
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
 }) {
+  const [sessions, setSessions] = useAtom(sessionsAtom);
   function countGames(stats: ChessComStats) {
     let total = 0;
     Object.values(stats).forEach((stat) => {

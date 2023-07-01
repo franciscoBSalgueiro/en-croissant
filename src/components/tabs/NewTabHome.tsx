@@ -27,15 +27,12 @@ import { count_pgn_games, read_games } from "../../utils/db";
 import { getLichessGame } from "../../utils/lichess";
 import { FileInfo, Tab } from "../../utils/tabs";
 import FileInput from "../common/FileInput";
+import { useAtom } from "jotai";
+import { tabsAtom } from "../../atoms/atoms";
 
-export default function NewTabHome({
-  setTabs,
-  id,
-}: {
-  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
-  id: string;
-}) {
+export default function NewTabHome({ id }: { id: string }) {
   const [openModal, setOpenModal] = useState(false);
+  const [, setTabs] = useAtom(tabsAtom);
 
   const cards = [
     {
@@ -96,12 +93,7 @@ export default function NewTabHome({
 
   return (
     <>
-      <ImportModal
-        openModal={openModal}
-        setOpenModal={setOpenModal}
-        setTabs={setTabs}
-        id={id}
-      />
+      <ImportModal openModal={openModal} setOpenModal={setOpenModal} id={id} />
       <SimpleGrid
         cols={4}
         breakpoints={[
@@ -141,12 +133,10 @@ export default function NewTabHome({
 function ImportModal({
   openModal,
   setOpenModal,
-  setTabs,
   id,
 }: {
   openModal: boolean;
   setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
-  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
   id: string;
 }) {
   const [pgn, setPgn] = useState("");
@@ -154,6 +144,7 @@ function ImportModal({
   const [link, setLink] = useState("");
   const [importType, setImportType] = useState<string>("PGN");
   const [loading, setLoading] = useState(false);
+  const [, setTabs] = useAtom(tabsAtom);
 
   return (
     <Modal

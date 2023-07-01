@@ -2,9 +2,7 @@ import {
   Accordion,
   ActionIcon,
   Box,
-  ChevronIcon,
   createStyles,
-  Flex,
   Group,
   Progress,
   Skeleton,
@@ -29,19 +27,13 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  Annotation,
-  BestMoves,
-  BestMovesPayload,
-  swapMove,
-} from "../../../utils/chess";
+import { BestMoves, BestMovesPayload, swapMove } from "../../../utils/chess";
 import { Engine } from "../../../utils/engines";
 import { invoke, useThrottledEffect } from "../../../utils/misc";
-import MoveCell from "../../boards/MoveCell";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
-import { formatScore, Score } from "../../../utils/score";
 import { Chess } from "chess.js";
+import AnalysisRow from "./AnalysisRow";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -51,35 +43,6 @@ const useStyles = createStyles((theme) => ({
         : theme.black,
   },
 }));
-
-function ScoreBubble({ score }: { score: Score }) {
-  const text = formatScore(score);
-  return (
-    <Box
-      sx={(theme) => ({
-        backgroundColor:
-          score.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
-        textAlign: "center",
-        padding: 5,
-        borderRadius: theme.radius.md,
-        width: 70,
-        boxShadow: theme.shadows.md,
-      })}
-    >
-      <Text
-        weight={700}
-        color={score.value >= 0 ? "black" : "white"}
-        size="md"
-        align="center"
-        sx={(theme) => ({
-          fontFamily: theme.fontFamilyMonospace,
-        })}
-      >
-        {text}
-      </Text>
-    </Box>
-  );
-}
 
 interface BestMovesProps {
   tabId: string;
@@ -103,19 +66,19 @@ function BestMoves({
   const dispatch = useContext(TreeDispatchContext);
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
   const [numberLines, setNumberLines] = useSessionStorage<number>({
-    key: `${tabId}-${engine.path}-numberLines`,
+    key: `${tabId}-${engine.name}-numberLines`,
     defaultValue: 3,
   });
   const [maxDepth, setMaxDepth] = useSessionStorage<number>({
-    key: `${tabId}-${engine.path}-maxDepth`,
+    key: `${tabId}-${engine.name}-maxDepth`,
     defaultValue: 24,
   });
   const [cores, setCores] = useSessionStorage<number>({
-    key: `${tabId}-${engine.path}-cores`,
+    key: `${tabId}-${engine.name}-cores`,
     defaultValue: 2,
   });
   const [enabled, setEnabled] = useSessionStorage({
-    key: `${tabId}-${engine.path}-enabled`,
+    key: `${tabId}-${engine.name}-enabled`,
     defaultValue: false,
   });
   const [settingsOn, toggleSettingsOn] = useToggle();
@@ -323,81 +286,4 @@ function BestMoves({
   );
 }
 
-function AnalysisRow({
-  score,
-  moves,
-  halfMoves,
-  threat,
-}: {
-  score: Score;
-  moves: string[];
-  halfMoves: number;
-  threat: boolean;
-}) {
-  const [open, setOpen] = useState<boolean>(false);
-  const dispatch = useContext(TreeDispatchContext);
-
-  if (!open) {
-    moves = moves.slice(0, 12);
-  }
-
-  return (
-    <tr style={{ verticalAlign: "top" }}>
-      <td>
-        <ScoreBubble score={score} />
-      </td>
-      <td>
-        <Flex
-          direction="row"
-          wrap="wrap"
-          sx={{
-            height: open ? "100%" : 35,
-            overflow: "hidden",
-            alignItems: "center",
-          }}
-        >
-          {moves.map((move, index) => {
-            const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
-            const is_white = total_moves % 2 === 1;
-            const move_number = Math.ceil(total_moves / 2);
-
-            return (
-              <>
-                {(index === 0 || is_white) && (
-                  <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
-                )}
-                <MoveCell
-                  key={index + move}
-                  move={move}
-                  isCurrentVariation={false}
-                  annotation={Annotation.None}
-                  onContextMenu={() => undefined}
-                  onClick={() => {
-                    if (!threat) {
-                      dispatch({
-                        type: "MAKE_MOVES",
-                        payload: moves.slice(0, index + 1),
-                      });
-                    }
-                  }}
-                />
-              </>
-            );
-          })}
-        </Flex>
-      </td>
-      <td>
-        <ActionIcon
-          style={{
-            transition: "transform 200ms ease",
-            transform: open ? `rotate(180deg)` : "none",
-          }}
-          onClick={() => setOpen(!open)}
-        >
-          <ChevronIcon />
-        </ActionIcon>
-      </td>
-    </tr>
-  );
-}
 export default BestMoves;

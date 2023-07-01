@@ -71,13 +71,7 @@ function OpponentCard({
   );
 }
 
-function BoardGame({
-  id,
-  setTabs,
-}: {
-  id: string;
-  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
-}) {
+function BoardGame({ id }: { id: string }) {
   const [opponent, setOpponent] = useSessionStorage<Opponent | null>({
     key: id + "-opponent",
     defaultValue: null,
@@ -86,6 +80,7 @@ function BoardGame({
   const { headers, root, position } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
   const currentNode = getNodeAtPath(root, position);
+  const [, setTabs] = useState<Tab[]>([]);
 
   const boardRef = useRef(null);
 

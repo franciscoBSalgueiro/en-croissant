@@ -6,21 +6,18 @@ import {
   Stack,
   TextInput,
 } from "@mantine/core";
-import { useLocalStorage } from "@mantine/hooks";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { getChessComAccount } from "../../utils/chesscom";
 import { DatabaseInfo, getDatabases } from "../../utils/db";
 import { createCodes, getLichessAccount } from "../../utils/lichess";
 import { invoke } from "../../utils/misc";
-import { Session } from "../../utils/session";
 import AccountCards from "../common/AccountCards";
+import { useAtom } from "jotai";
+import { sessionsAtom } from "../../atoms/atoms";
 
 function Accounts() {
-  const [sessions, setSessions] = useLocalStorage<Session[]>({
-    key: "sessions",
-    defaultValue: [],
-  });
+  const [, setSessions] = useAtom(sessionsAtom);
   const authWindow = useRef<Window | null>(null);
   const isListesning = useRef(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
@@ -87,12 +84,7 @@ function Accounts() {
 
   return (
     <>
-      <AccountCards
-        sessions={sessions}
-        databases={databases}
-        setDatabases={setDatabases}
-        setSessions={setSessions}
-      />
+      <AccountCards databases={databases} setDatabases={setDatabases} />
 
       <Button onClick={() => setOpen(true)}>Add Account</Button>
       <AccountModal

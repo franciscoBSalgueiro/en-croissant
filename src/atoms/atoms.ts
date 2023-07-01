@@ -1,6 +1,7 @@
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { Tab, genID } from "../utils/tabs";
 import { MantineColor } from "@mantine/core";
+import { Session } from "../utils/session";
 
 // Tabs
 
@@ -33,6 +34,7 @@ export const primaryColorAtom = atomWithStorage<MantineColor>(
     "mantine-primary-color",
     "blue"
 );
+export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 
 // Database
 
