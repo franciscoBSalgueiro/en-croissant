@@ -188,6 +188,8 @@ fn main() {
 #[tauri::command]
 fn is_bmi2_compatible() -> bool {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    return is_x86_feature_detected!("bmi2");
+    if is_x86_feature_detected!("bmi2") {
+        return true;
+    }
     false
 }
