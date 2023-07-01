@@ -1,10 +1,5 @@
 import { Stack, Tabs } from "@mantine/core";
-import {
-  useHotkeys,
-  useSessionStorage,
-  useToggle,
-  useViewportSize,
-} from "@mantine/hooks";
+import { useHotkeys, useToggle, useViewportSize } from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
@@ -17,7 +12,6 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "../../layouts/BoardLayout";
 import { getPGN } from "../../utils/chess";
 import { getBoardSize, invoke } from "../../utils/misc";
-import { Tab } from "../../utils/tabs";
 import { getNodeAtPath } from "../../utils/treeReducer";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -29,17 +23,14 @@ import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
-import { useAtomValue } from "jotai";
-import { activeTabAtom } from "../../atoms/tabs";
+import { useAtom, useAtomValue } from "jotai";
+import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
 
 function BoardAnalysis({ id }: { id: string }) {
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
   const [arrows, setArrows] = useState<string[]>([]);
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
+  const [tabs, setTabs] = useAtom(tabsAtom);
   const activeTabValue = useAtomValue(activeTabAtom);
 
   const boardRef = useRef(null);

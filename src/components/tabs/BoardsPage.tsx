@@ -6,7 +6,7 @@ import {
   Stack,
   Tabs,
 } from "@mantine/core";
-import { useHotkeys, useSessionStorage } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { createTab, genID, Tab } from "../../utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
@@ -17,7 +17,7 @@ import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
 import { useCallback } from "react";
 import { useAtom } from "jotai";
-import { activeTabAtom, firstTab } from "../../atoms/tabs";
+import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -36,10 +36,7 @@ const useStyles = createStyles((theme) => ({
 
 export default function BoardsPage() {
   const { classes } = useStyles();
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [firstTab],
-  });
+  const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
 
   const closeTab = useCallback(

@@ -1,15 +1,15 @@
-import { Accordion, ActionIcon, Code, Divider, Group } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
+import { Accordion, ActionIcon, Group } from "@mantine/core";
 import { IconCheck, IconTrash } from "@tabler/icons-react";
 import { useCallback, useContext, useEffect } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
 import { getPgnHeaders, parsePGN } from "../../../utils/chess";
 import { read_games } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
-import { Tab } from "../../../utils/tabs";
 import { GameHeaders } from "../../../utils/treeReducer";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
 import { invoke } from "../../../utils/misc";
+import { useAtom } from "jotai";
+import { tabsAtom } from "../../../atoms/atoms";
 
 export default function GameSelector({
   id,
@@ -26,10 +26,7 @@ export default function GameSelector({
     return games.has(index);
   }
 
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
+  const [tabs, setTabs] = useAtom(tabsAtom);
   const dispatch = useContext(TreeDispatchContext);
 
   const tab = tabs.find((t) => t.value === id);

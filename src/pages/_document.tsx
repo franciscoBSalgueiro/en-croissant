@@ -7,9 +7,7 @@ const getInitialProps = createGetInitialProps();
 function Document({}: DocumentContext) {
   return (
     <Html>
-      <Head>
-        <script src="http://localhost:8097"></script>
-      </Head>
+      <Head>{/* <script src="http://localhost:8097"></script> */}</Head>
       <body>
         <Main />
         <NextScript />

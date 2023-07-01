@@ -2,15 +2,22 @@ import {
   Card,
   createStyles,
   Group,
-  MantineColor,
   Select,
   Stack,
   Switch,
   Text,
 } from "@mantine/core";
-import { useLocalStorage } from "@mantine/hooks";
 import { ColorControl } from "./ColorControl";
 import { ThemeButton } from "./ThemeButton";
+import { useAtom } from "jotai";
+import {
+  autoPromoteAtom,
+  forcedEnPassantAtom,
+  pieceSetAtom,
+  showArrowsAtom,
+  showDestsAtom,
+  primaryColorAtom,
+} from "../../atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -22,10 +29,11 @@ const useStyles = createStyles((theme) => ({
     "& + &": {
       paddingTop: theme.spacing.sm,
       marginTop: theme.spacing.sm,
-      borderTop: `1px solid ${theme.colorScheme === "dark"
+      borderTop: `1px solid ${
+        theme.colorScheme === "dark"
           ? theme.colors.dark[4]
           : theme.colors.gray[2]
-        }`,
+      }`,
     },
   },
 
@@ -74,30 +82,12 @@ const pieceSets = [
 ];
 
 function SettingsPage() {
-  const [showDests, setShowDests] = useLocalStorage<boolean>({
-    key: "show-dests",
-    defaultValue: true,
-  });
-  const [showArrows, setShowArrows] = useLocalStorage<boolean>({
-    key: "show-arrows",
-    defaultValue: true,
-  });
-  const [autoPromote, setAutoPromote] = useLocalStorage<boolean>({
-    key: "auto-promote",
-    defaultValue: true,
-  });
-  const [forcedEP, setForcedEP] = useLocalStorage<boolean>({
-    key: "forced-en-passant",
-    defaultValue: false,
-  });
-  const [primaryColor, setPrimaryColr] = useLocalStorage<MantineColor>({
-    key: "mantine-primary-color",
-    defaultValue: "blue",
-  });
-  const [pieceSet, setPieceSet] = useLocalStorage({
-    key: "piece-set",
-    defaultValue: "staunty",
-  });
+  const [showDests, setShowDests] = useAtom(showDestsAtom);
+  const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
+  const [autoPromote, setAutoPromote] = useAtom(autoPromoteAtom);
+  const [forcedEP, setForcedEP] = useAtom(forcedEnPassantAtom);
+  const [primaryColor, setPrimaryColor] = useAtom(primaryColorAtom);
+  const [pieceSet, setPieceSet] = useAtom(pieceSetAtom);
   const { classes } = useStyles();
 
   return (
@@ -232,7 +222,7 @@ function SettingsPage() {
             <ColorControl
               value={primaryColor}
               label={""}
-              onChange={(color) => setPrimaryColr(color)}
+              onChange={(color) => setPrimaryColor(color)}
             />
           </div>
         </Group>

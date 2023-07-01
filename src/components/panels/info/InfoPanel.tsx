@@ -17,18 +17,15 @@ import { TreeStateContext } from "../../common/TreeStateContext";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
 import { formatNumber } from "../../../utils/format";
-import { useSessionStorage } from "@mantine/hooks";
-import { Tab } from "../../../utils/tabs";
 import { IconReload } from "@tabler/icons-react";
 import { count_pgn_games } from "../../../utils/db";
+import { useAtom } from "jotai";
+import { tabsAtom } from "../../../atoms/atoms";
 
 function InfoPanel({ boardSize, id }: { boardSize: number; id: string }) {
   const tree = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(tree.root, tree.position);
-  const [tabs, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
+  const [tabs, setTabs] = useAtom(tabsAtom);
   const [games, setGames] = useState(new Map<number, string>());
 
   const tab = tabs.find((t) => t.value === id);

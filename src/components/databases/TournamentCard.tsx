@@ -1,13 +1,12 @@
 import { ActionIcon, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { NormalizedGame, Tournament, getTournamentGames } from "../../utils/db";
-import { Tab, createTab } from "../../utils/tabs";
-import { useSetAtom } from "jotai";
-import { activeTabAtom } from "../../atoms/tabs";
+import { createTab } from "../../utils/tabs";
+import { useAtom, useSetAtom } from "jotai";
+import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
 
 function PlayerCard({
   tournament,
@@ -19,10 +18,7 @@ function PlayerCard({
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const theme = useMantineTheme();
   const router = useRouter();
-  const [, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
+  const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
   useEffect(() => {

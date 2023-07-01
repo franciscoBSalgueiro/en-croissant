@@ -9,7 +9,6 @@ import {
   Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useLocalStorage } from "@mantine/hooks";
 import { Chess } from "chess.js";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { MoveAnalysis } from "../../../utils/chess";
@@ -17,6 +16,8 @@ import { Engine, getEngines } from "../../../utils/engines";
 import { formatDuration } from "../../../utils/format";
 import { invoke } from "../../../utils/misc";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { useAtomValue } from "jotai";
+import { referenceDbAtom } from "../../../atoms/atoms";
 
 function ReportModal({
   moves,
@@ -29,10 +30,7 @@ function ReportModal({
   toggleReportingMode: () => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const [referenceDb] = useLocalStorage<string | null>({
-    key: "reference-database",
-    defaultValue: null,
-  });
+  const referenceDb = useAtomValue(referenceDbAtom);
   const [engines, setEngines] = useState<Engine[]>([]);
   const dispatch = useContext(TreeDispatchContext);
 

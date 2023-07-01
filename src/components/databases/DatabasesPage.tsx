@@ -14,7 +14,6 @@ import {
 } from "@mantine/core";
 import {
   useDebouncedValue,
-  useLocalStorage,
   useSessionStorage,
   useToggle,
 } from "@mantine/hooks";
@@ -28,6 +27,8 @@ import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
 import ConvertButton from "./ConvertButton";
+import { useAtom } from "jotai";
+import { referenceDbAtom } from "../../atoms/atoms";
 
 export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
@@ -38,12 +39,7 @@ export default function DatabasesPage() {
       key: "database-view",
       defaultValue: null,
     });
-  const [referenceDatabase, setReferenceDatabase] = useLocalStorage<
-    string | null
-  >({
-    key: "reference-database",
-    defaultValue: null,
-  });
+  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
   const database = selected !== null ? databases[selected] : null;

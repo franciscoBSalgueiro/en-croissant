@@ -6,7 +6,6 @@ import {
   Text,
   useMantineTheme,
 } from "@mantine/core";
-import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
@@ -15,10 +14,10 @@ import { memo, startTransition, useContext, useState } from "react";
 import { NormalizedGame, Opening, searchPosition } from "../../../utils/db";
 import { formatNumber } from "../../../utils/format";
 import { useThrottledEffect } from "../../../utils/misc";
-import { createTab, Tab } from "../../../utils/tabs";
+import { createTab } from "../../../utils/tabs";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
-import { activeTabAtom } from "../../../atoms/tabs";
-import { useSetAtom } from "jotai";
+import { activeTabAtom, referenceDbAtom, tabsAtom } from "../../../atoms/atoms";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 
 const useStyles = createStyles(() => ({
   clickable: {
@@ -41,10 +40,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const [loading, setLoading] = useState(false);
-  const [referenceDatabase] = useLocalStorage<string | null>({
-    key: "reference-database",
-    defaultValue: null,
-  });
+  const referenceDatabase = useAtomValue(referenceDbAtom);
 
   useThrottledEffect(
     () => {
@@ -205,10 +201,7 @@ const GamesTable = memo(function GamesTable({
   height: number;
   loading: boolean;
 }) {
-  const [, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
+  const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
   const theme = useMantineTheme();

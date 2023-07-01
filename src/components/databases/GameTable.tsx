@@ -12,7 +12,7 @@ import {
   Text,
   useMantineTheme,
 } from "@mantine/core";
-import { useHotkeys, useSessionStorage, useToggle } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useRouter } from "next/router";
@@ -24,12 +24,12 @@ import {
   Sides,
   query_games,
 } from "../../utils/db";
-import { Tab, createTab } from "../../utils/tabs";
+import { createTab } from "../../utils/tabs";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
-import { useSetAtom } from "jotai";
-import { activeTabAtom } from "../../atoms/tabs";
+import { useAtom, useSetAtom } from "jotai";
+import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -64,10 +64,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
 
   const router = useRouter();
 
-  const [, setTabs] = useSessionStorage<Tab[]>({
-    key: "tabs",
-    defaultValue: [],
-  });
+  const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
   useEffect(() => {

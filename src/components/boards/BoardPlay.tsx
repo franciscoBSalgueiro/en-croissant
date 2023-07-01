@@ -10,12 +10,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import {
-  useHotkeys,
-  useLocalStorage,
-  useToggle,
-  useViewportSize,
-} from "@mantine/hooks";
+import { useHotkeys, useToggle, useViewportSize } from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconDeviceFloppy,
@@ -45,6 +40,13 @@ import Piece from "../common/Piece";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import EvalBar from "./EvalBar";
 import { formatScore } from "../../utils/score";
+import { useAtomValue } from "jotai";
+import {
+  autoPromoteAtom,
+  forcedEnPassantAtom,
+  showArrowsAtom,
+  showDestsAtom,
+} from "../../atoms/atoms";
 
 const useStyles = createStyles(() => ({
   chessboard: {
@@ -114,22 +116,11 @@ function BoardPlay({
     });
   }
 
-  const [showDests] = useLocalStorage<boolean>({
-    key: "show-dests",
-    defaultValue: true,
-  });
-  const [showArrows] = useLocalStorage<boolean>({
-    key: "show-arrows",
-    defaultValue: true,
-  });
-  const [autoPromote] = useLocalStorage<boolean>({
-    key: "auto-promote",
-    defaultValue: true,
-  });
-  const [forcedEP] = useLocalStorage<boolean>({
-    key: "forced-en-passant",
-    defaultValue: false,
-  });
+  const showDests = useAtomValue(showDestsAtom);
+  const showArrows = useAtomValue(showArrowsAtom);
+  const autoPromote = useAtomValue(autoPromoteAtom);
+  const forcedEP = useAtomValue(forcedEnPassantAtom);
+
   const dests = toDests(chess, forcedEP);
   const turn = chess ? formatMove(chess.turn()) : undefined;
   const [pendingMove, setPendingMove] = useState<{
