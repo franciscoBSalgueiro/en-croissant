@@ -16,6 +16,8 @@ import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
 import { useCallback } from "react";
+import { useAtom } from "jotai";
+import { activeTabAtom, firstTab } from "../../atoms/tabs";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -36,18 +38,9 @@ export default function BoardsPage() {
   const { classes } = useStyles();
   const [tabs, setTabs] = useSessionStorage<Tab[]>({
     key: "tabs",
-    defaultValue: [
-      {
-        name: "New tab",
-        value: genID(),
-        type: "new",
-      },
-    ],
+    defaultValue: [firstTab],
   });
-  const [activeTab, setActiveTab] = useSessionStorage<string | null>({
-    key: "activeTab",
-    defaultValue: tabs[0] ? tabs[0].value : null,
-  });
+  const [activeTab, setActiveTab] = useAtom(activeTabAtom);
 
   const closeTab = useCallback(
     (value: string | null) => {

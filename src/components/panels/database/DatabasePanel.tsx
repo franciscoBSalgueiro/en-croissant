@@ -17,6 +17,8 @@ import { formatNumber } from "../../../utils/format";
 import { useThrottledEffect } from "../../../utils/misc";
 import { createTab, Tab } from "../../../utils/tabs";
 import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { activeTabAtom } from "../../../atoms/tabs";
+import { useSetAtom } from "jotai";
 
 const useStyles = createStyles(() => ({
   clickable: {
@@ -207,10 +209,7 @@ const GamesTable = memo(function GamesTable({
     key: "tabs",
     defaultValue: [],
   });
-  const [, setActiveTab] = useSessionStorage<string | null>({
-    key: "activeTab",
-    defaultValue: null,
-  });
+  const setActiveTab = useSetAtom(activeTabAtom);
 
   const theme = useMantineTheme();
   const router = useRouter();

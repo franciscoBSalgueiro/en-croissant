@@ -28,6 +28,8 @@ import { Tab, createTab } from "../../utils/tabs";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
+import { useSetAtom } from "jotai";
+import { activeTabAtom } from "../../atoms/tabs";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -66,10 +68,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
     key: "tabs",
     defaultValue: [],
   });
-  const [, setActiveTab] = useSessionStorage<string | null>({
-    key: "activeTab",
-    defaultValue: null,
-  });
+  const setActiveTab = useSetAtom(activeTabAtom);
 
   useEffect(() => {
     let ignore = false;

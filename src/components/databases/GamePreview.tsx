@@ -5,6 +5,8 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Chessground from "react-chessground";
 import MoveControls from "../common/MoveControls";
+import { useSetAtom } from "jotai";
+import { activeTabAtom } from "../../atoms/tabs";
 
 function GamePreview({
   id,
@@ -29,6 +31,8 @@ function GamePreview({
     max: totalMoves,
   });
 
+  const setActiveTab = useSetAtom(activeTabAtom);
+
   useEffect(() => {
     const chess = new Chess();
     const moves = pgn.split(" ");
@@ -46,7 +50,7 @@ function GamePreview({
 
   function goToGame() {
     if (id) {
-      sessionStorage.setItem("activeTab", id);
+      setActiveTab(id);
       router.push("/boards");
     }
   }

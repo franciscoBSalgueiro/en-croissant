@@ -29,6 +29,8 @@ import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
+import { useAtomValue } from "jotai";
+import { activeTabAtom } from "../../atoms/tabs";
 
 function BoardAnalysis({ id }: { id: string }) {
   const [editingMode, toggleEditingMode] = useToggle();
@@ -38,10 +40,7 @@ function BoardAnalysis({ id }: { id: string }) {
     key: "tabs",
     defaultValue: [],
   });
-  const [activeTabValue] = useSessionStorage<string | null>({
-    key: "activeTab",
-    defaultValue: null,
-  });
+  const activeTabValue = useAtomValue(activeTabAtom);
 
   const boardRef = useRef(null);
 

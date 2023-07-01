@@ -6,6 +6,8 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { NormalizedGame, Tournament, getTournamentGames } from "../../utils/db";
 import { Tab, createTab } from "../../utils/tabs";
+import { useSetAtom } from "jotai";
+import { activeTabAtom } from "../../atoms/tabs";
 
 function PlayerCard({
   tournament,
@@ -21,10 +23,7 @@ function PlayerCard({
     key: "tabs",
     defaultValue: [],
   });
-  const [, setActiveTab] = useSessionStorage<string | null>({
-    key: "activeTab",
-    defaultValue: null,
-  });
+  const setActiveTab = useSetAtom(activeTabAtom);
 
   useEffect(() => {
     let ignored = false;
