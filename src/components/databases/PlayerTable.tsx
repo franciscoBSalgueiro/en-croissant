@@ -14,7 +14,7 @@ import { useHotkeys } from "@mantine/hooks";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
-import { DatabaseInfo, Player, query_players } from "../../utils/db";
+import { DatabaseInfo, Player, query_players } from "@/utils/db";
 import PlayerCard from "./PlayerCard";
 import useStyles from "./styles";
 

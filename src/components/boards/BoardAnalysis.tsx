@@ -9,10 +9,10 @@ import {
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import BoardLayout from "../../layouts/BoardLayout";
-import { getPGN } from "../../utils/chess";
-import { getBoardSize, invoke } from "../../utils/misc";
-import { getNodeAtPath } from "../../utils/treeReducer";
+import BoardLayout from "@/layouts/BoardLayout";
+import { getPGN } from "@/utils/chess";
+import { getBoardSize, invoke } from "@/utils/misc";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
@@ -24,7 +24,7 @@ import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
 import { useAtom } from "jotai";
-import { currentTabAtom } from "../../atoms/atoms";
+import { currentTabAtom } from "@/atoms/atoms";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();

@@ -24,9 +24,9 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Engine, getDefaultEngines } from "../../utils/engines";
-import { formatBytes } from "../../utils/format";
-import { invoke } from "../../utils/misc";
+import { Engine, getDefaultEngines } from "@/utils/engines";
+import { formatBytes } from "@/utils/format";
+import { invoke } from "@/utils/misc";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 

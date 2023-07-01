@@ -8,7 +8,7 @@ import {
 } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { createTab, genID, Tab } from "../../utils/tabs";
+import { createTab, genID, Tab } from "@/utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
 import { TreeStateProvider } from "../common/TreeStateContext";
@@ -17,7 +17,7 @@ import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
 import { useCallback } from "react";
 import { useAtom } from "jotai";
-import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   newTab: {

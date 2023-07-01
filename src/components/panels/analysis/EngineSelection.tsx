@@ -3,7 +3,7 @@ import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import Link from "next/link";
 import { memo } from "react";
-import { Engine } from "../../../utils/engines";
+import { Engine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 
 function EngineSelection({

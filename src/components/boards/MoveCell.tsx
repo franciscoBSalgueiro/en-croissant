@@ -1,6 +1,6 @@
 import { Box, createStyles } from "@mantine/core";
 import { ForwardedRef, forwardRef } from "react";
-import { ANNOTATION_INFO, Annotation } from "../../utils/chess";
+import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
 
 interface MoveCellProps {
   annotation: Annotation;

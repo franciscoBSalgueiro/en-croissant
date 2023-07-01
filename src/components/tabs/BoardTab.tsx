@@ -2,7 +2,7 @@ import { CloseButton, createStyles, Menu, Tabs, Tooltip } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
-import { Tab } from "../../utils/tabs";
+import { Tab } from "@/utils/tabs";
 
 const useStyles = createStyles(
   (

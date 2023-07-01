@@ -3,10 +3,10 @@ import { IconEye } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { NormalizedGame, Tournament, getTournamentGames } from "../../utils/db";
-import { createTab } from "../../utils/tabs";
+import { NormalizedGame, Tournament, getTournamentGames } from "@/utils/db";
+import { createTab } from "@/utils/tabs";
 import { useAtom, useSetAtom } from "jotai";
-import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 
 function PlayerCard({
   tournament,

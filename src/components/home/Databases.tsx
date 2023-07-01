@@ -1,6 +1,6 @@
 import { Card, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { DatabaseInfo, getDatabases } from "../../utils/db";
+import { DatabaseInfo, getDatabases } from "@/utils/db";
 import useStyles from "./styles";
 
 function Databases() {

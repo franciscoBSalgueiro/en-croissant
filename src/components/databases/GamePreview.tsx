@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Chessground from "react-chessground";
 import MoveControls from "../common/MoveControls";
 import { useSetAtom } from "jotai";
-import { activeTabAtom } from "../../atoms/atoms";
+import { activeTabAtom } from "@/atoms/atoms";
 
 function GamePreview({
   id,

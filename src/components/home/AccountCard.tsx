@@ -18,10 +18,10 @@ import {
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";
-import { downloadChessCom } from "../../utils/chesscom";
-import { DatabaseInfo, getDatabases, query_games } from "../../utils/db";
-import { downloadLichess } from "../../utils/lichess";
-import { invoke } from "../../utils/misc";
+import { downloadChessCom } from "@/utils/chesscom";
+import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
+import { downloadLichess } from "@/utils/lichess";
+import { invoke } from "@/utils/misc";
 import ChessComLogo from "./ChessComLogo";
 import LichessLogo from "./LichessLogo";
 import useStyles from "./styles";

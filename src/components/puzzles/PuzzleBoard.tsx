@@ -19,10 +19,10 @@ import {
 } from "chess.js";
 import { useState } from "react";
 import Chessground from "react-chessground";
-import { handleMove, moveToKey, parseUci, toDests } from "../../utils/chess";
-import { formatMove } from "../../utils/format";
-import { getBoardSize } from "../../utils/misc";
-import { Completion, Puzzle } from "../../utils/puzzles";
+import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
+import { formatMove } from "@/utils/format";
+import { getBoardSize } from "@/utils/misc";
+import { Completion, Puzzle } from "@/utils/puzzles";
 import Piece from "../common/Piece";
 
 const useStyles = createStyles(() => ({

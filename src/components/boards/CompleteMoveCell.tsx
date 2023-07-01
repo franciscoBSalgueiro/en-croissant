@@ -2,7 +2,7 @@ import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
 import { IconChevronUp, IconTrash } from "@tabler/icons-react";
 import { memo, useContext, useState } from "react";
-import { Annotation } from "../../utils/chess";
+import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
 

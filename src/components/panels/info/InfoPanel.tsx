@@ -1,8 +1,8 @@
 import { Box, ScrollArea, Stack, TextInput } from "@mantine/core";
 import { useContext } from "react";
-import { getNodeAtPath } from "../../../utils/treeReducer";
-import GameInfo from "../../common/GameInfo";
-import { TreeStateContext } from "../../common/TreeStateContext";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import GameInfo from "@/components/common/GameInfo";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
 import FileInfo from "./FileInfo";

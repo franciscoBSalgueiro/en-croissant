@@ -1,6 +1,6 @@
 import { Card, Group, Image, ScrollArea, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { Engine, getEngines } from "../../utils/engines";
+import { Engine, getEngines } from "@/utils/engines";
 import useStyles from "./styles";
 
 function Engines() {

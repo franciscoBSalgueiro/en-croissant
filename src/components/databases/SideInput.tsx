@@ -1,6 +1,6 @@
 import { Box, createStyles, Menu, UnstyledButton } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { Sides } from "../../utils/db";
+import { Sides } from "@/utils/db";
 
 const data = [
   { label: "White", color: "white" },

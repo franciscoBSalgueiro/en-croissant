@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 
 const DatabaseView = dynamic(
-  () => import("../../components/databases/DatabaseView"),
+  () => import("@/components/databases/DatabaseView"),
   {
     ssr: false,
   }

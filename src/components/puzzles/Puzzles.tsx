@@ -19,14 +19,14 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import BoardLayout from "../../layouts/BoardLayout";
-import { invoke } from "../../utils/misc";
+import BoardLayout from "@/layouts/BoardLayout";
+import { invoke } from "@/utils/misc";
 import {
   Completion,
   Puzzle,
   PuzzleDatabase,
   getPuzzleDatabases,
-} from "../../utils/puzzles";
+} from "@/utils/puzzles";
 import PuzzleBoard from "./PuzzleBoard";
 import { PuzzleDbCard } from "./PuzzleDbCard";
 

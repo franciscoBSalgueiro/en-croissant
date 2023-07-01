@@ -3,7 +3,7 @@ import { useHotkeys } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
-import { DatabaseInfo, Player, query_tournaments } from "../../utils/db";
+import { DatabaseInfo, Player, query_tournaments } from "@/utils/db";
 import TournamentCard from "./TournamentCard";
 import useStyles from "./styles";
 

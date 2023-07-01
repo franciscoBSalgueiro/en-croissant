@@ -17,7 +17,7 @@ import {
   showArrowsAtom,
   showDestsAtom,
   primaryColorAtom,
-} from "../../atoms/atoms";
+} from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   card: {

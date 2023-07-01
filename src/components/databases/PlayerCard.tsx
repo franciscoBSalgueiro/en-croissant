@@ -20,7 +20,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getPlayersGameInfo, Player } from "../../utils/db";
+import { getPlayersGameInfo, Player } from "@/utils/db";
 
 const useStyles = createStyles((theme) => ({
   progressLabel: {

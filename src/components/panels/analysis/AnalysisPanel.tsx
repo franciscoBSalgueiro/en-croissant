@@ -11,12 +11,12 @@ import {
 import { shallowEqual } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import { memo, useContext } from "react";
-import { ANNOTATION_INFO, getGameStats } from "../../../utils/chess";
-import { Engine } from "../../../utils/engines";
-import { useLocalFile } from "../../../utils/misc";
-import { getNodeAtPath } from "../../../utils/treeReducer";
-import ProgressButton from "../../common/ProgressButton";
-import { TreeStateContext } from "../../common/TreeStateContext";
+import { ANNOTATION_INFO, getGameStats } from "@/utils/chess";
+import { Engine } from "@/utils/engines";
+import { useLocalFile } from "@/utils/misc";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import ProgressButton from "@/components/common/ProgressButton";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 

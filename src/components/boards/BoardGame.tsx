@@ -17,13 +17,13 @@ import {
 } from "@tabler/icons-react";
 import { Chess, DEFAULT_POSITION } from "chess.js";
 import { useContext, useEffect, useRef, useState } from "react";
-import BoardLayout from "../../layouts/BoardLayout";
-import { parseUci } from "../../utils/chess";
-import { Outcome } from "../../utils/db";
-import { Engine, getEngines } from "../../utils/engines";
-import { invoke } from "../../utils/misc";
-import { Tab } from "../../utils/tabs";
-import { getNodeAtPath } from "../../utils/treeReducer";
+import BoardLayout from "@/layouts/BoardLayout";
+import { parseUci } from "@/utils/chess";
+import { Outcome } from "@/utils/db";
+import { Engine, getEngines } from "@/utils/engines";
+import { invoke } from "@/utils/misc";
+import { Tab } from "@/utils/tabs";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "../common/GameInfo";
 import GenericCard from "../common/GenericCard";
 import MoveControls from "../common/MoveControls";
@@ -33,7 +33,7 @@ import {
 } from "../common/TreeStateContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-import { activeTabAtom } from "../../atoms/atoms";
+import { activeTabAtom } from "@/atoms/atoms";
 import { useAtomValue } from "jotai";
 
 enum Opponent {

@@ -4,7 +4,7 @@ import treeReducer, {
   TreeAction,
   TreeState,
   defaultTree,
-} from "../../utils/treeReducer";
+} from "@/utils/treeReducer";
 
 export const TreeStateContext = createContext<TreeState>(defaultTree());
 export const TreeDispatchContext = createContext<React.Dispatch<TreeAction>>(

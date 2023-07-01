@@ -1,7 +1,7 @@
 import { Group, Text } from "@mantine/core";
 import { IconDatabase } from "@tabler/icons-react";
-import { formatBytes, formatNumber } from "../../utils/format";
-import { PuzzleDatabase } from "../../utils/puzzles";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { PuzzleDatabase } from "@/utils/puzzles";
 import GenericCard from "../common/GenericCard";
 
 interface PuzzleCardProps {

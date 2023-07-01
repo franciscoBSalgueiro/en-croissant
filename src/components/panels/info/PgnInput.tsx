@@ -1,8 +1,8 @@
 import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { memo, useMemo } from "react";
-import { getPGN } from "../../../utils/chess";
-import { GameHeaders, TreeNode } from "../../../utils/treeReducer";
+import { getPGN } from "@/utils/chess";
+import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 
 function PgnInput({ root, headers }: { root: TreeNode; headers: GameHeaders }) {
   const [comments, toggleComments] = useToggle([true, false]);

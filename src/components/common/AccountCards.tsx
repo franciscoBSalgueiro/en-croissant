@@ -3,11 +3,11 @@ import {
   ChessComStats,
   getChessComAccount,
   getStats,
-} from "../../utils/chesscom";
-import { DatabaseInfo } from "../../utils/db";
-import { getLichessAccount } from "../../utils/lichess";
+} from "@/utils/chesscom";
+import { DatabaseInfo } from "@/utils/db";
+import { getLichessAccount } from "@/utils/lichess";
 import { AccountCard } from "../home/AccountCard";
-import { sessionsAtom } from "../../atoms/atoms";
+import { sessionsAtom } from "@/atoms/atoms";
 
 function AccountCards({
   databases,

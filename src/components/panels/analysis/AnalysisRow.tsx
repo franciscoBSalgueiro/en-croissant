@@ -1,9 +1,9 @@
 import { Flex, ActionIcon, ChevronIcon } from "@mantine/core";
 import { useState, useContext } from "react";
-import { Annotation } from "../../../utils/chess";
-import { Score } from "../../../utils/score";
-import MoveCell from "../../boards/MoveCell";
-import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { Annotation } from "@/utils/chess";
+import { Score } from "@/utils/score";
+import MoveCell from "@/components/boards/MoveCell";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({

@@ -9,7 +9,7 @@ import {
 import { DateInput } from "@mantine/dates";
 import dayjs from "dayjs";
 import { memo, useContext } from "react";
-import { GameHeaders } from "../../utils/treeReducer";
+import { GameHeaders } from "@/utils/treeReducer";
 import { TreeDispatchContext } from "./TreeStateContext";
 
 const useStyles = createStyles((theme) => ({

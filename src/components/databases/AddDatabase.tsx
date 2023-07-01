@@ -21,9 +21,9 @@ import {
   DatabaseInfo,
   getDatabases,
   getDefaultDatabases,
-} from "../../utils/db";
-import { formatBytes, formatNumber } from "../../utils/format";
-import { invoke } from "../../utils/misc";
+} from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { invoke } from "@/utils/misc";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 

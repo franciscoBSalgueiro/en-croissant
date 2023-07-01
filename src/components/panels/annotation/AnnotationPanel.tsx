@@ -1,11 +1,11 @@
 import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { memo, useContext } from "react";
-import { ANNOTATION_INFO, Annotation } from "../../../utils/chess";
-import { getNodeAtPath } from "../../../utils/treeReducer";
+import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   TreeDispatchContext,
   TreeStateContext,
-} from "../../common/TreeStateContext";
+} from "@/components/common/TreeStateContext";
 import AnnotationEditor from "./AnnotationEditor";
 
 const SymbolButton = memo(function SymbolButton({

@@ -8,13 +8,13 @@ import {
 } from "@mantine/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
-import { getChessComAccount } from "../../utils/chesscom";
-import { DatabaseInfo, getDatabases } from "../../utils/db";
-import { createCodes, getLichessAccount } from "../../utils/lichess";
-import { invoke } from "../../utils/misc";
+import { getChessComAccount } from "@/utils/chesscom";
+import { DatabaseInfo, getDatabases } from "@/utils/db";
+import { createCodes, getLichessAccount } from "@/utils/lichess";
+import { invoke } from "@/utils/misc";
 import AccountCards from "../common/AccountCards";
 import { useAtom } from "jotai";
-import { sessionsAtom } from "../../atoms/atoms";
+import { sessionsAtom } from "@/atoms/atoms";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);

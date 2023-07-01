@@ -21,14 +21,14 @@ import {
 import { open } from "@tauri-apps/api/dialog";
 
 import { useState } from "react";
-import { getPgnHeaders, parsePGN } from "../../utils/chess";
-import { getChesscomGame } from "../../utils/chesscom";
-import { count_pgn_games, read_games } from "../../utils/db";
-import { getLichessGame } from "../../utils/lichess";
-import { FileInfo, Tab } from "../../utils/tabs";
+import { getPgnHeaders, parsePGN } from "@/utils/chess";
+import { getChesscomGame } from "@/utils/chesscom";
+import { count_pgn_games, read_games } from "@/utils/db";
+import { getLichessGame } from "@/utils/lichess";
+import { FileInfo, Tab } from "@/utils/tabs";
 import FileInput from "../common/FileInput";
 import { useAtom } from "jotai";
-import { tabsAtom } from "../../atoms/atoms";
+import { tabsAtom } from "@/atoms/atoms";
 
 export default function NewTabHome({ id }: { id: string }) {
   const [openModal, setOpenModal] = useState(false);

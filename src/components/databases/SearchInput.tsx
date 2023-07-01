@@ -1,7 +1,7 @@
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { useState } from "react";
-import { query_players, Sides } from "../../utils/db";
+import { query_players, Sides } from "@/utils/db";
 import { SideInput } from "./SideInput";
 
 export function SearchInput({

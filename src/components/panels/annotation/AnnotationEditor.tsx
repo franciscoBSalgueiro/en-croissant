@@ -4,7 +4,7 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { memo, useContext } from "react";
-import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 
 function AnnotationEditor({
   path,

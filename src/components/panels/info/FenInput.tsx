@@ -1,10 +1,10 @@
 import { Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { Chess } from "chess.js";
 import { forwardRef, memo, useContext, useState } from "react";
-import { swapMove } from "../../../utils/chess";
-import { capitalize } from "../../../utils/format";
-import { invoke } from "../../../utils/misc";
-import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { swapMove } from "@/utils/chess";
+import { capitalize } from "@/utils/format";
+import { invoke } from "@/utils/misc";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 
 type ItemProps = {
   label: string;

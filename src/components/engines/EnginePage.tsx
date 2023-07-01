@@ -10,8 +10,8 @@ import {
 } from "@mantine/core";
 import { IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
 import { useState } from "react";
-import { Engine } from "../../utils/engines";
-import { useLocalFile } from "../../utils/misc";
+import { Engine } from "@/utils/engines";
+import { useLocalFile } from "@/utils/misc";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 

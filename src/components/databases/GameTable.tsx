@@ -23,13 +23,13 @@ import {
   Outcome,
   Sides,
   query_games,
-} from "../../utils/db";
-import { createTab } from "../../utils/tabs";
+} from "@/utils/db";
+import { createTab } from "@/utils/tabs";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
 import { useAtom, useSetAtom } from "jotai";
-import { activeTabAtom, tabsAtom } from "../../atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;

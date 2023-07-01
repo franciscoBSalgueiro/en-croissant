@@ -31,22 +31,22 @@ import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { memo, useContext, useMemo, useState } from "react";
 import Chessground from "react-chessground";
-import { handleMove, moveToKey, parseUci, toDests } from "../../utils/chess";
-import { Outcome } from "../../utils/db";
-import { formatMove } from "../../utils/format";
-import { getBoardSize, invoke } from "../../utils/misc";
-import { GameHeaders, TreeNode } from "../../utils/treeReducer";
+import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
+import { Outcome } from "@/utils/db";
+import { formatMove } from "@/utils/format";
+import { getBoardSize, invoke } from "@/utils/misc";
+import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import Piece from "../common/Piece";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import EvalBar from "./EvalBar";
-import { formatScore } from "../../utils/score";
+import { formatScore } from "@/utils/score";
 import { useAtomValue } from "jotai";
 import {
   autoPromoteAtom,
   forcedEnPassantAtom,
   showArrowsAtom,
   showDestsAtom,
-} from "../../atoms/atoms";
+} from "@/atoms/atoms";
 
 const useStyles = createStyles(() => ({
   chessboard: {

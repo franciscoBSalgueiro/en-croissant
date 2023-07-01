@@ -28,9 +28,9 @@ import {
 } from "@tabler/icons-react";
 import { DEFAULT_POSITION } from "chess.js";
 import { memo, useContext, useEffect, useRef } from "react";
-import { Outcome } from "../../utils/db";
-import { isPrefix } from "../../utils/misc";
-import { getNodeAtPath, TreeNode } from "../../utils/treeReducer";
+import { Outcome } from "@/utils/db";
+import { isPrefix } from "@/utils/misc";
+import { getNodeAtPath, TreeNode } from "@/utils/treeReducer";
 import { TreeStateContext } from "../common/TreeStateContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";

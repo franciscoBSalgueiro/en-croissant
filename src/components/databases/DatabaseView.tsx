@@ -7,9 +7,9 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import Link from "next/link";
-import GameTable from "../../components/databases/GameTable";
-import PlayerTable from "../../components/databases/PlayerTable";
-import { DatabaseInfo } from "../../utils/db";
+import GameTable from "@/components/databases/GameTable";
+import PlayerTable from "@/components/databases/PlayerTable";
+import { DatabaseInfo } from "@/utils/db";
 import TournamentTable from "./TournamentTable";
 
 function DatabaseView() {

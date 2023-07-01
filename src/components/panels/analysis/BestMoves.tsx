@@ -27,15 +27,15 @@ import {
   useMemo,
   useState,
 } from "react";
-import { BestMoves, BestMovesPayload, swapMove } from "../../../utils/chess";
-import { Engine } from "../../../utils/engines";
-import { invoke, useThrottledEffect } from "../../../utils/misc";
-import { TreeDispatchContext } from "../../common/TreeStateContext";
+import { BestMoves, BestMovesPayload, swapMove } from "@/utils/chess";
+import { Engine } from "@/utils/engines";
+import { invoke, useThrottledEffect } from "@/utils/misc";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
 import { Chess } from "chess.js";
 import AnalysisRow from "./AnalysisRow";
 import { useAtomValue } from "jotai";
-import { activeTabAtom } from "../../../atoms/atoms";
+import { activeTabAtom } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
