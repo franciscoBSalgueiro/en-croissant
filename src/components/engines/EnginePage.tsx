@@ -14,6 +14,8 @@ import { Engine } from "@/utils/engines";
 import { useLocalFile } from "@/utils/misc";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
+import { useToggle } from "@mantine/hooks";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function EnginePage() {
   const [engines, setEngines] = useLocalFile<Engine[]>(
@@ -45,37 +47,13 @@ export default function EnginePage() {
           </thead>
           <tbody>
             {engines &&
-              engines.map((item, index) => {
-                return (
-                  <tr key={index}>
-                    <td>
-                      <Group spacing="sm">
-                        {item.image ? (
-                          <Image width={60} height={60} src={item.image} />
-                        ) : (
-                          <IconRobot size={60} />
-                        )}
-                        <Text size="md" weight={500}>
-                          {item.name}
-                        </Text>
-                      </Group>
-                    </td>
-                    <td>{item.elo}</td>
-                    <td>
-                      <ActionIcon>
-                        <IconTrash
-                          size={20}
-                          onClick={() =>
-                            setEngines(
-                              engines.filter((e) => e.name !== item.name)
-                            )
-                          }
-                        />
-                      </ActionIcon>
-                    </td>
-                  </tr>
-                );
-              })}
+              engines.map((item) => (
+                <EngineRow
+                  key={item.path}
+                  item={item}
+                  setEngines={setEngines}
+                />
+              ))}
             <tr>
               <td>
                 <Button
@@ -90,6 +68,50 @@ export default function EnginePage() {
           </tbody>
         </Table>
       </ScrollArea>
+    </>
+  );
+}
+
+function EngineRow({
+  item,
+  setEngines,
+}: {
+  item: Engine;
+  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
+}) {
+  const [deleteModal, toggleDeleteModal] = useToggle();
+
+  return (
+    <>
+      <ConfirmModal
+        title={"Remove engine"}
+        description={`Are you sure you want to remove "${item.name}"?`}
+        opened={deleteModal}
+        onClose={toggleDeleteModal}
+        onConfirm={() =>
+          setEngines((prev) => prev.filter((e) => e.name !== item.name))
+        }
+      />
+      <tr>
+        <td>
+          <Group spacing="sm">
+            {item.image ? (
+              <Image width={60} height={60} src={item.image} />
+            ) : (
+              <IconRobot size={60} />
+            )}
+            <Text size="md" weight={500}>
+              {item.name}
+            </Text>
+          </Group>
+        </td>
+        <td>{item.elo}</td>
+        <td>
+          <ActionIcon>
+            <IconTrash size={20} onClick={() => toggleDeleteModal()} />
+          </ActionIcon>
+        </td>
+      </tr>
     </>
   );
 }

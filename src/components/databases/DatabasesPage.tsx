@@ -29,6 +29,7 @@ import AddDatabase from "./AddDatabase";
 import ConvertButton from "./ConvertButton";
 import { useAtom } from "jotai";
 import { referenceDbAtom } from "@/atoms/atoms";
+import ConfirmModal from "../common/ConfirmModal";
 
 export default function DatabasesPage() {
   const [selected, setSelected] = useState<number | null>(null);
@@ -81,41 +82,21 @@ export default function DatabasesPage() {
 
   return (
     <>
-      <Modal
-        withCloseButton={false}
+      <ConfirmModal
+        title={"Delete Database"}
+        description={"Are you sure you want to delete this database?"}
         opened={deleteModal}
         onClose={toggleDeleteModal}
-      >
-        <Stack>
-          <div>
-            <Text fz="lg" fw="bold" mb={10}>
-              Delete Database
-            </Text>
-            <Text>Are you sure you want to delete this database?</Text>
-            <Text>This action cannot be undone.</Text>
-          </div>
-
-          <Group position="right">
-            <Button variant="default" onClick={() => toggleDeleteModal()}>
-              Cancel
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                invoke("delete_database", { file: database!.file }).then(() => {
-                  getDatabases().then((dbs) => {
-                    setDatabases(dbs);
-                    setSelected(null);
-                  });
-                });
-                toggleDeleteModal();
-              }}
-            >
-              Delete
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        onConfirm={() => {
+          invoke("delete_database", { file: database!.file }).then(() => {
+            getDatabases().then((dbs) => {
+              setDatabases(dbs);
+              setSelected(null);
+            });
+          });
+          toggleDeleteModal();
+        }}
+      />
 
       <AddDatabase
         databases={databases}
