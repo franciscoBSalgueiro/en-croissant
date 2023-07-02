@@ -7,7 +7,6 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { save } from "@tauri-apps/api/dialog";
-import { writeTextFile } from "@tauri-apps/api/fs";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { getPGN } from "@/utils/chess";

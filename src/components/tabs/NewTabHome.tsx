@@ -5,30 +5,13 @@ import {
   faPuzzlePiece,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  Box,
-  Button,
-  Card,
-  Divider,
-  Modal,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  Textarea,
-} from "@mantine/core";
-import { open } from "@tauri-apps/api/dialog";
+import { Box, Button, Card, SimpleGrid, Stack, Text } from "@mantine/core";
 
 import { useState } from "react";
-import { getPgnHeaders, parsePGN } from "@/utils/chess";
-import { getChesscomGame } from "@/utils/chesscom";
-import { count_pgn_games, read_games } from "@/utils/db";
-import { getLichessGame } from "@/utils/lichess";
-import { FileInfo, Tab } from "@/utils/tabs";
-import FileInput from "../common/FileInput";
+import { Tab } from "@/utils/tabs";
 import { useAtom } from "jotai";
 import { tabsAtom } from "@/atoms/atoms";
+import ImportModal from "./ImportModal";
 
 export default function NewTabHome({ id }: { id: string }) {
   const [openModal, setOpenModal] = useState(false);
@@ -93,7 +76,7 @@ export default function NewTabHome({ id }: { id: string }) {
 
   return (
     <>
-      <ImportModal openModal={openModal} setOpenModal={setOpenModal} id={id} />
+      <ImportModal openModal={openModal} setOpenModal={setOpenModal} />
       <SimpleGrid
         cols={4}
         breakpoints={[
@@ -127,152 +110,5 @@ export default function NewTabHome({ id }: { id: string }) {
         ))}
       </SimpleGrid>
     </>
-  );
-}
-
-function ImportModal({
-  openModal,
-  setOpenModal,
-  id,
-}: {
-  openModal: boolean;
-  setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
-  id: string;
-}) {
-  const [pgn, setPgn] = useState("");
-  const [file, setFile] = useState<string | null>(null);
-  const [link, setLink] = useState("");
-  const [importType, setImportType] = useState<string>("PGN");
-  const [loading, setLoading] = useState(false);
-  const [, setTabs] = useAtom(tabsAtom);
-
-  return (
-    <Modal
-      opened={openModal}
-      onClose={() => setOpenModal(false)}
-      title="Import game"
-    >
-      <Select
-        label="Type of import"
-        placeholder="Pick one"
-        mb="lg"
-        data={[
-          { value: "PGN", label: "PGN" },
-          { value: "Link", label: "Link" },
-        ]}
-        value={importType}
-        onChange={(v) => setImportType(v as string)}
-      />
-
-      {importType === "PGN" && (
-        <>
-          <FileInput
-            label="PGN file"
-            description={"Click to select a PGN file."}
-            onClick={async () => {
-              const selected = (await open({
-                multiple: false,
-
-                filters: [
-                  {
-                    name: "PGN file",
-                    extensions: ["pgn"],
-                  },
-                ],
-              })) as string;
-              setFile(selected);
-            }}
-            disabled={pgn !== ""}
-            filename={file}
-          />
-          <Divider label="OR" labelPosition="center" />
-          <Textarea
-            value={pgn}
-            disabled={file !== null}
-            onChange={(event) => setPgn(event.currentTarget.value)}
-            label="PGN game"
-            data-autofocus
-            minRows={10}
-          />
-        </>
-      )}
-
-      {importType === "Link" && (
-        <TextInput
-          value={link}
-          onChange={(event) => setLink(event.currentTarget.value)}
-          label="Game URL (lichess or chess.com)"
-          data-autofocus
-        />
-      )}
-
-      <Button
-        fullWidth
-        mt="md"
-        radius="md"
-        loading={loading}
-        disabled={importType === "PGN" ? !pgn && !file : !link}
-        onClick={async () => {
-          if (importType === "PGN") {
-            if (file || pgn) {
-              let fileInfo: FileInfo | undefined;
-              let input = pgn;
-              if (file) {
-                setLoading(true);
-                const count = await count_pgn_games(file);
-                input = (await read_games(file, 0, 0))[0];
-                setLoading(false);
-
-                fileInfo = {
-                  path: file,
-                  numGames: count,
-                };
-              }
-              // const input = file ? await readTextFile(file) : pgn;
-              setTabs((prevTabs) =>
-                prevTabs.map((tab) => {
-                  if (tab.value === id) {
-                    const tree = parsePGN(input);
-                    tree.headers = getPgnHeaders(input);
-                    sessionStorage.setItem(id, JSON.stringify(tree));
-                    return {
-                      ...tab,
-                      name: `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`,
-                      file: fileInfo,
-                      gameNumber: 0,
-                      type: "analysis",
-                    };
-                  }
-                  return tab;
-                })
-              );
-            }
-          } else if (importType === "Link") {
-            if (!link) return;
-            let pgn = "";
-            if (link.includes("chess.com")) {
-              pgn = await getChesscomGame(link);
-            } else if (link.includes("lichess")) {
-              const gameId = link.split("/")[3];
-              pgn = await getLichessGame(gameId);
-            }
-
-            setTabs((prev) => {
-              const tab = prev.find((t) => t.value === id);
-              if (!tab) return prev;
-              const tree = parsePGN(pgn);
-              tree.headers = getPgnHeaders(pgn);
-              sessionStorage.setItem(id, JSON.stringify(tree));
-
-              tab.name = `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`;
-              tab.type = "analysis";
-              return [...prev];
-            });
-          }
-        }}
-      >
-        {loading ? "Importing..." : "Import"}
-      </Button>
-    </Modal>
   );
 }
