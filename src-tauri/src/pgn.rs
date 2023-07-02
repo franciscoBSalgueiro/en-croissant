@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
+    io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
 
@@ -25,6 +25,10 @@ impl PgnParser {
             game: String::new(),
             start,
         }
+    }
+
+    fn position(&mut self) -> std::io::Result<u64> {
+        self.reader.stream_position()
     }
 
     fn offset_by_index(
@@ -117,9 +121,7 @@ pub async fn count_pgn_games(
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
     let files_string = file.to_string_lossy().to_string();
-    if let Some(count) = state.pgn_counts.get(&files_string) {
-        return Ok(*count);
-    }
+
     let file = File::open(&file).or(Err(format!(
         "Failed to open pgn file: {}",
         file.to_str().unwrap()
@@ -137,13 +139,12 @@ pub async fn count_pgn_games(
         }
         count += 1;
         if count % GAME_OFFSET_FREQ == 0 {
-            let cur_pos = parser.reader.stream_position().unwrap();
+            let cur_pos = parser.position().unwrap();
             offsets.push(cur_pos);
         }
     }
 
-    state.pgn_offsets.insert(files_string.clone(), offsets);
-    state.pgn_counts.insert(files_string, count);
+    state.pgn_offsets.insert(files_string, offsets);
     Ok(count)
 }
 
@@ -187,7 +188,7 @@ pub async fn delete_game(
         .offset_by_index(n, &state, &file.to_string_lossy().to_string())
         .unwrap();
 
-    let starting_bytes = parser.reader.stream_position().unwrap();
+    let starting_bytes = parser.position().unwrap();
 
     parser.skip_games(1).unwrap();
 
@@ -195,16 +196,50 @@ pub async fn delete_game(
 
     file_w.seek(SeekFrom::Start(starting_bytes)).unwrap();
 
-    // write the rest of the file until the end
-    let mut buf = [0; 1024];
-    loop {
-        let bytes = parser.reader.read(&mut buf).unwrap();
-        if bytes == 0 {
-            break;
-        }
-        file_w.write_all(&buf[..bytes]).unwrap();
-    }
-    let end = file_w.stream_position().unwrap();
-    file_w.set_len(end).unwrap();
+    write_to_end(&mut parser.reader, &mut file_w).unwrap();
+    Ok(())
+}
+
+fn write_to_end<R: Read>(reader: &mut R, writer: &mut File) -> io::Result<()> {
+    io::copy(reader, writer)?;
+    let end = writer.stream_position()?;
+    writer.set_len(end)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn write_game(
+    file: PathBuf,
+    n: usize,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let file_r = File::open(&file).or(Err(format!(
+        "Failed to open pgn file: {}",
+        file.to_str().unwrap()
+    )))?;
+    let mut file_w = OpenOptions::new().write(true).open(&file).unwrap();
+
+    let mut tmpf = tempfile::tempfile().unwrap();
+    io::copy(&mut file_r.try_clone().unwrap(), &mut tmpf).unwrap();
+
+    let mut parser = PgnParser::new(file_r.try_clone().unwrap());
+
+    parser
+        .offset_by_index(n, &state, &file.to_string_lossy().to_string())
+        .unwrap();
+
+    tmpf.seek(SeekFrom::Start(parser.position().unwrap()))
+        .unwrap();
+    tmpf.write_all(pgn.as_bytes()).unwrap();
+
+    parser.skip_games(1).unwrap();
+
+    write_to_end(&mut parser.reader, &mut tmpf).unwrap();
+
+    tmpf.seek(SeekFrom::Start(0)).unwrap();
+
+    write_to_end(&mut tmpf, &mut file_w).unwrap();
+
     Ok(())
 }

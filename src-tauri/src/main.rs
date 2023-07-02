@@ -33,7 +33,7 @@ use crate::db::{
     search_position,
 };
 use crate::fs::{append_to_file, set_file_as_executable};
-use crate::pgn::{count_pgn_games, delete_game, read_games};
+use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
@@ -109,7 +109,6 @@ pub struct AppState {
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     pgn_offsets: DashMap<String, Vec<u64>>,
-    pgn_counts: DashMap<String, usize>,
 }
 
 fn main() {
@@ -179,7 +178,8 @@ fn main() {
             count_pgn_games,
             read_games,
             append_to_file,
-            delete_game
+            delete_game,
+            write_game
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

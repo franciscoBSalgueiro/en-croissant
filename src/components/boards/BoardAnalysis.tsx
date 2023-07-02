@@ -73,13 +73,15 @@ function BoardAnalysis() {
         };
       });
     }
-    await writeTextFile(
-      filePath,
-      getPGN(root, {
-        headers,
-      })
-    );
-  }, [activeTab?.file, root, headers, setActiveTab]);
+    await invoke("write_game", {
+      file: filePath,
+      n: activeTab?.gameNumber || 0,
+      pgn:
+        getPGN(root, {
+          headers,
+        }) + "\n\n",
+    });
+  }, [activeTab?.file, activeTab?.gameNumber, root, headers, setActiveTab]);
 
   const addGame = useCallback(() => {
     setActiveTab((prev) => {

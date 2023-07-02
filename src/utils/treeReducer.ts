@@ -114,7 +114,7 @@ export type GameHeaders = {
 };
 
 export function headersToPGN(game: GameHeaders): string {
-    const headers = `[Event "${game.event.name || "?"}"]
+    let headers = `[Event "${game.event.name || "?"}"]
 [Site "${game.site.name || "?"}"]
 [Date "${game.date || "????.??.??"}"]
 [Round "${game.round || "?"}"]
@@ -122,6 +122,12 @@ export function headersToPGN(game: GameHeaders): string {
 [Black "${game.black.name || "?"}"]
 [Result "${game.result}"]
 `;
+    if (game.white_elo) {
+        headers += `[WhiteElo "${game.white_elo}"]\n`;
+    }
+    if (game.black_elo) {
+        headers += `[BlackElo "${game.black_elo}"]\n`;
+    }
     return headers;
 }
 

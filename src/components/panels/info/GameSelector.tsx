@@ -17,8 +17,6 @@ export const gamesAtom = atomWithReset<Map<number, string>>(new Map());
 export default function GameSelector({ headers }: { headers: GameHeaders }) {
   const [games, setGames] = useAtom(gamesAtom);
 
-  console.log(games);
-
   function isRowLoaded({ index }: { index: number }) {
     return games.has(index);
   }
