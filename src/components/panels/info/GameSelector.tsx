@@ -131,7 +131,11 @@ const useStyles = createStyles((theme) => ({
     },
   },
   active: {
-    backgroundColor: theme.fn.rgba(theme.colors[theme.primaryColor][6], 0.2),
+    backgroundColor: `${
+      theme.colorScheme === "dark"
+        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.3)
+        : theme.colors[theme.primaryColor][0]
+    } !important`,
   },
 }));
 
