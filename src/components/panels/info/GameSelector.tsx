@@ -1,5 +1,5 @@
-import { Accordion, ActionIcon, Group } from "@mantine/core";
-import { IconCheck, IconTrash } from "@tabler/icons-react";
+import { Accordion, ActionIcon, Group, createStyles } from "@mantine/core";
+import { IconTrash } from "@tabler/icons-react";
 import { useCallback, useContext, useEffect } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
 import { getPgnHeaders, parsePGN } from "@/utils/chess";
@@ -8,16 +8,22 @@ import { formatNumber } from "@/utils/format";
 import { GameHeaders } from "@/utils/treeReducer";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { invoke } from "@/utils/misc";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
-import { RESET, atomWithReset } from "jotai/utils";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
 
-export const gamesAtom = atomWithReset<Map<number, string>>(new Map());
-
-export default function GameSelector({ headers }: { headers: GameHeaders }) {
-  const [games, setGames] = useAtom(gamesAtom);
+export default function GameSelector({
+  headers,
+  games,
+  setGames,
+}: {
+  headers: GameHeaders;
+  games: Map<number, string>;
+  setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
+}) {
+  console.log(games);
+  console.log(headers);
 
   function isRowLoaded({ index }: { index: number }) {
     return games.has(index);
@@ -98,6 +104,7 @@ export default function GameSelector({ headers }: { headers: GameHeaders }) {
                           index={index}
                           game={games.get(index)}
                           style={style}
+                          setGames={setGames}
                         />
                       )}
                     />
@@ -112,20 +119,38 @@ export default function GameSelector({ headers }: { headers: GameHeaders }) {
   );
 }
 
+const useStyles = createStyles((theme) => ({
+  row: {
+    padding: "0 10px",
+    cursor: "pointer",
+    "&:hover": {
+      backgroundColor:
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[6]
+          : theme.colors.gray[2],
+    },
+  },
+  active: {
+    backgroundColor: theme.fn.rgba(theme.colors[theme.primaryColor][6], 0.2),
+  },
+}));
+
 function GameRow({
   style,
   index,
   game,
+  setGames,
 }: {
   style: React.CSSProperties;
   index: number;
   game: string | undefined;
+  setGames: (v: Map<number, string>) => void;
 }) {
-  const setGames = useSetAtom(gamesAtom);
   const [activeTab, setActiveTab] = useAtom(currentTabAtom);
   const activePage = activeTab?.gameNumber ?? 0;
   const total = activeTab?.file?.numGames ?? 0;
   const [deleteModal, toggleDelete] = useToggle();
+  const { classes } = useStyles();
 
   function setPage(page: number) {
     setActiveTab((prev) => {
@@ -154,21 +179,21 @@ function GameRow({
             prev.file.numGames = total - 1;
             return { ...prev };
           });
-          setGames(RESET);
+          setGames(new Map());
           toggleDelete();
         }}
       />
-      <Group style={style} position="apart" pr="xl">
+      <Group
+        style={style}
+        position="apart"
+        pr="xl"
+        className={
+          classes.row + (index === activePage ? " " + classes.active : "")
+        }
+        onClick={() => setPage(index)}
+      >
         {formatNumber(index + 1)}. {game}
         <Group>
-          <ActionIcon
-            onClick={() => setPage(index)}
-            disabled={index === activePage}
-            variant={"outline"}
-            color="blue"
-          >
-            <IconCheck />
-          </ActionIcon>
           <ActionIcon
             onClick={() => toggleDelete()}
             variant={"outline"}

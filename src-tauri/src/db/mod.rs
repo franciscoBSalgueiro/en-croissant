@@ -28,7 +28,6 @@ use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, Board, ByColor, Chess, Piece, Position};
 
 use std::{
-    ffi::OsStr,
     fs::{remove_file, File},
     path::{Path, PathBuf},
     sync::Mutex,
@@ -434,9 +433,7 @@ pub async fn convert_pgn(
             format!(
                 "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
                 INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");
-                INSERT INTO Sites (Name) VALUES (\"\");
-                INSERT INTO Events (Name) VALUES (\"\");"
+                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
             )
             .as_str(),
         )
@@ -448,9 +445,9 @@ pub async fn convert_pgn(
         file.to_str().unwrap()
     )))?;
 
-    let uncompressed: Box<dyn std::io::Read + Send> = if extension == OsStr::new("bz2") {
+    let uncompressed: Box<dyn std::io::Read + Send> = if extension == "bz2" {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
-    } else if extension == OsStr::new("zst") {
+    } else if extension == "zst" {
         Box::new(zstd::Decoder::new(file).expect("zstd decoder"))
     } else {
         Box::new(file)

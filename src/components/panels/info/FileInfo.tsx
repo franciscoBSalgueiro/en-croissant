@@ -4,12 +4,13 @@ import { count_pgn_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { useAtom, useSetAtom } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
-import { gamesAtom } from "./GameSelector";
-import { RESET } from "jotai/utils";
 
-function FileInfo() {
+function FileInfo({
+  setGames,
+}: {
+  setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
+}) {
   const [tab, setCurrentTab] = useAtom(currentTabAtom);
-  const setGames = useSetAtom(gamesAtom);
 
   if (!tab?.file) return null;
   return (
@@ -34,7 +35,7 @@ function FileInfo() {
                     prev.file!.numGames = v;
                     return { ...prev };
                   });
-                  setGames(RESET);
+                  setGames(new Map());
                 })
               }
             >

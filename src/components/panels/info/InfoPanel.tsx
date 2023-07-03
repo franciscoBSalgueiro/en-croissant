@@ -1,5 +1,5 @@
 import { Box, ScrollArea, Stack, TextInput } from "@mantine/core";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -10,6 +10,7 @@ import FileInfo from "./FileInfo";
 function InfoPanel({ boardSize }: { boardSize: number }) {
   const tree = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(tree.root, tree.position);
+  const [games, setGames] = useState<Map<number, string>>(new Map());
 
   return (
     <Box
@@ -19,9 +20,9 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
         height: `${boardSize / 2}px`,
       }}
     >
-      <GameSelector headers={tree.headers} />
+      <GameSelector headers={tree.headers} games={games} setGames={setGames} />
       <ScrollArea offsetScrollbars>
-        <FileInfo />
+        <FileInfo setGames={setGames} />
         <Stack>
           <GameInfo headers={tree.headers} />
           {currentNode && (
