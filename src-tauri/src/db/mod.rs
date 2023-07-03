@@ -744,10 +744,7 @@ pub async fn get_games(
         .inner_join(events::table.on(games::event_id.eq(events::id)))
         .inner_join(sites::table.on(games::site_id.eq(sites::id)))
         .into_boxed();
-    let mut count_query = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .into_boxed();
+    let mut count_query = games::table.into_boxed();
 
     // if let Some(speed) = query.speed {
     //     sql_query = sql_query.filter(games::speed.eq(speed as i32));
