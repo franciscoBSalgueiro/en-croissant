@@ -23,6 +23,7 @@ export interface DatabaseInfo {
     downloadLink?: string;
     error?: string;
     file: string;
+    indexed: boolean;
 }
 
 interface Query {
@@ -199,6 +200,7 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
             filename: path,
             file: path,
             error: e as string,
+            indexed: false,
         };
     }
     db.file = path;

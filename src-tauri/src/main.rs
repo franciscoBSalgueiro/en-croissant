@@ -29,8 +29,8 @@ use crate::chess::{
     validate_fen,
 };
 use crate::db::{
-    clear_games, convert_pgn, delete_database, get_players_game_info, get_tournaments,
-    search_position,
+    clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
+    get_players_game_info, get_tournaments, search_position,
 };
 use crate::fs::{append_to_file, set_file_as_executable};
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -179,7 +179,9 @@ fn main() {
             read_games,
             append_to_file,
             delete_game,
-            write_game
+            write_game,
+            delete_indexes,
+            create_indexes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

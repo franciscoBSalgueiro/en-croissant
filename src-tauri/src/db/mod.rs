@@ -19,6 +19,8 @@ use diesel::{
     insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
+    sql_query,
+    sql_types::Text,
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
@@ -55,6 +57,12 @@ fn get_material_count(board: &Board) -> ByColor<u8> {
 }
 
 const DATABASE_VERSION: &str = "1.0.0";
+
+const INDEXES_SQL: &str = include_str!("indexes.sql");
+
+const DELETE_INDEXES_SQL: &str = include_str!("delete_indexes.sql");
+
+const CREATE_TABLES_SQL: &str = include_str!("create.sql");
 
 const WHITE_PAWN: Piece = Piece {
     color: shakmaty::Color::White,
@@ -420,45 +428,19 @@ pub async fn convert_pgn(
     )?;
 
     if !db_exists {
+        db.batch_execute(CREATE_TABLES_SQL)
+            .or(Err("Failed to create tables"))?;
         db.batch_execute(
             format!(
-                "CREATE TABLE Info (Name TEXT UNIQUE NOT NULL, Value TEXT);
-        INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
-        INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
-        INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");
-        CREATE TABLE Events (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
-        INSERT INTO Events (Name) VALUES (\"\");
-        CREATE TABLE Sites (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE);
-        INSERT INTO Sites (Name) VALUES (\"\");
-        CREATE TABLE Players (ID INTEGER PRIMARY KEY, Name TEXT UNIQUE, Elo INTEGER);
-        CREATE TABLE Games (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            EventID INTEGER,
-            SiteID INTEGER,
-            Date TEXT,
-            UTCTime TEXT,
-            Round INTEGER,
-            WhiteID INTEGER,
-            WhiteElo INTEGER,
-            BlackID INTEGER,
-            BlackElo INTEGER,
-            WhiteMaterial INTEGER,
-            BlackMaterial INTEGER,
-            Result INTEGER,
-            TimeControl TEXT,
-            ECO TEXT,
-            PlyCount INTEGER,
-            FEN TEXT,
-            Moves BLOB,
-            PawnHome BLOB,
-            FOREIGN KEY(EventID) REFERENCES Events,
-            FOREIGN KEY(SiteID) REFERENCES Sites,
-            FOREIGN KEY(WhiteID) REFERENCES Players,
-            FOREIGN KEY(BlackID) REFERENCES Players);"
+                "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
+                INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
+                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");
+                INSERT INTO Sites (Name) VALUES (\"\");
+                INSERT INTO Events (Name) VALUES (\"\");"
             )
             .as_str(),
         )
-        .or(Err("Failed to create tables"))?;
+        .or(Err("Failed to insert default data"))?;
     }
 
     let file = File::open(&file).or(Err(format!(
@@ -498,16 +480,8 @@ pub async fn convert_pgn(
 
     if !db_exists {
         // Create all the necessary indexes
-        db.batch_execute(
-            "CREATE INDEX games_date_idx ON Games(Date);
-            CREATE INDEX games_white_idx ON Games(WhiteID);
-            CREATE INDEX games_black_idx ON Games(BlackID);
-            CREATE INDEX games_result_idx ON Games(Result);
-            CREATE INDEX games_white_elo_idx ON Games(WhiteElo);
-            CREATE INDEX games_black_elo_idx ON Games(BlackElo);
-        ",
-        )
-        .or(Err("Failed to create indexes"))?;
+        db.batch_execute(INDEXES_SQL)
+            .or(Err("Failed to create indexes"))?;
     }
 
     // get game, player, event and site counts and to the info table
@@ -550,6 +524,19 @@ pub struct DatabaseInfo {
     game_count: usize,
     storage_size: usize,
     filename: String,
+    indexed: bool,
+}
+
+#[derive(QueryableByName, Debug, Serialize)]
+struct IndexInfo {
+    #[diesel(sql_type = Text, column_name = "name")]
+    _name: String,
+}
+
+fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, String> {
+    let query = sql_query("SELECT name FROM pragma_index_list('Games');");
+    let indexes: Vec<IndexInfo> = query.load(conn).map_err(|e| e.to_string())?;
+    Ok(!indexes.is_empty())
 }
 
 #[tauri::command]
@@ -612,6 +599,7 @@ pub async fn get_db_info(
     let storage_size = path.metadata().expect("get metadata").len() as usize;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
+    let is_indexed = check_index_exists(db)?;
     Ok(DatabaseInfo {
         title,
         description,
@@ -619,7 +607,33 @@ pub async fn get_db_info(
         game_count,
         storage_size,
         filename: filename.to_string(),
+        indexed: is_indexed,
     })
+}
+
+#[tauri::command]
+pub async fn create_indexes(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    db.batch_execute(INDEXES_SQL).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_indexes(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    db.batch_execute(DELETE_INDEXES_SQL)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]

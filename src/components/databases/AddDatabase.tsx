@@ -17,11 +17,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import {
-  DatabaseInfo,
-  getDatabases,
-  getDefaultDatabases,
-} from "@/utils/db";
+import { DatabaseInfo, getDatabases, getDefaultDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/misc";
 import FileInput from "../common/FileInput";
@@ -77,6 +73,7 @@ function AddDatabase({
       description: "",
       file: "",
       filename: "",
+      indexed: false,
     },
 
     validate: {

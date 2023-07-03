@@ -1,16 +1,17 @@
 import {
+  Badge,
   Box,
   Button,
   Checkbox,
   Divider,
   Group,
-  Modal,
   SimpleGrid,
   Stack,
   Text,
   Textarea,
   TextInput,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import {
   useDebouncedValue,
@@ -177,6 +178,10 @@ export default function DatabasesPage() {
               </>
             ) : (
               <>
+                <Group>
+                  {database.indexed && <Badge>Indexed</Badge>}
+                  {isReference && <Badge>Reference</Badge>}
+                </Group>
                 <TextInput
                   label="Title"
                   value={title ?? ""}
@@ -207,9 +212,16 @@ export default function DatabasesPage() {
             )}
             <Group>
               {!database.error && (
-                <Link href={`/db/view`}>
-                  <Button>Explore</Button>
-                </Link>
+                <>
+                  <Link href={`/db/view`}>
+                    <Button>Explore</Button>
+                  </Link>
+                  <IndexButton
+                    indexed={database.indexed}
+                    file={database.file}
+                    setDatabases={setDatabases}
+                  />
+                </>
               )}
               <Button onClick={() => toggleDeleteModal()} color="red">
                 Delete
@@ -219,5 +231,57 @@ export default function DatabasesPage() {
         </Box>
       )}
     </>
+  );
+}
+
+function IndexButton({
+  indexed,
+  file,
+  setDatabases,
+}: {
+  indexed: boolean;
+  file: string;
+  setDatabases: (dbs: DatabaseInfo[]) => void;
+}) {
+  const [loading, setLoading] = useToggle();
+  return (
+    <Tooltip label="Indexes are used to speed up the search process, but they take up extra space.">
+      {indexed ? (
+        <Button
+          loading={loading}
+          onClick={() => {
+            setLoading(true);
+            invoke("delete_indexes", {
+              file,
+            }).then(() => {
+              getDatabases().then((dbs) => {
+                setDatabases(dbs);
+                setLoading(false);
+              });
+            });
+          }}
+          color="red"
+        >
+          Delete Indexes
+        </Button>
+      ) : (
+        <Button
+          loading={loading}
+          onClick={() => {
+            setLoading(true);
+            invoke("create_indexes", {
+              file,
+            }).then(() => {
+              getDatabases().then((dbs) => {
+                setDatabases(dbs);
+                setLoading(false);
+              });
+            });
+          }}
+        >
+          Create Indexes
+        </Button>
+      )}
+    </Tooltip>
   );
 }
