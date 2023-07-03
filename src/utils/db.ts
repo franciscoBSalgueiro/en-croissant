@@ -57,8 +57,8 @@ export enum Outcome {
 }
 
 interface GameQuery extends Query {
-    player1?: string;
-    player2?: string;
+    player1?: number;
+    player2?: number;
     tournament_id?: number;
     sides?: Sides;
     rangePlayer1?: [number, number];

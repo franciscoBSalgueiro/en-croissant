@@ -712,8 +712,8 @@ pub struct QueryOptions<SortT> {
 #[derive(Debug, Clone, Deserialize)]
 pub struct GameQuery {
     pub options: QueryOptions<GameSort>,
-    pub player1: Option<String>,
-    pub player2: Option<String>,
+    pub player1: Option<i32>,
+    pub player2: Option<i32>,
     pub tournament_id: Option<i32>,
     pub range1: Option<(i32, i32)>,
     pub range2: Option<(i32, i32)>,
@@ -775,14 +775,12 @@ pub async fn get_games(
     match query.sides {
         Some(Sides::BlackWhite) => {
             if let Some(player1) = query.player1 {
-                sql_query =
-                    sql_query.filter(black_players.field(players::name).eq(player1.clone()));
-                count_query = count_query.filter(black_players.field(players::name).eq(player1));
+                sql_query = sql_query.filter(games::black_id.eq(player1));
+                count_query = count_query.filter(games::black_id.eq(player1));
             }
             if let Some(player2) = query.player2 {
-                sql_query =
-                    sql_query.filter(white_players.field(players::name).eq(player2.clone()));
-                count_query = count_query.filter(white_players.field(players::name).eq(player2));
+                sql_query = sql_query.filter(games::white_id.eq(player2));
+                count_query = count_query.filter(games::white_id.eq(player2));
             }
 
             if let Some(range1) = query.range1 {
@@ -797,14 +795,12 @@ pub async fn get_games(
         }
         Some(Sides::WhiteBlack) => {
             if let Some(player1) = query.player1 {
-                sql_query =
-                    sql_query.filter(white_players.field(players::name).eq(player1.clone()));
-                count_query = count_query.filter(white_players.field(players::name).eq(player1));
+                sql_query = sql_query.filter(games::white_id.eq(player1));
+                count_query = count_query.filter(games::white_id.eq(player1));
             }
             if let Some(player2) = query.player2 {
-                sql_query =
-                    sql_query.filter(black_players.field(players::name).eq(player2.clone()));
-                count_query = count_query.filter(black_players.field(players::name).eq(player2));
+                sql_query = sql_query.filter(games::black_id.eq(player2));
+                count_query = count_query.filter(games::black_id.eq(player2));
             }
 
             if let Some(range1) = query.range1 {
@@ -819,32 +815,16 @@ pub async fn get_games(
         }
         Some(Sides::Any) => {
             if let Some(player1) = query.player1 {
-                sql_query = sql_query.filter(
-                    white_players
-                        .field(players::name)
-                        .eq(player1.clone())
-                        .or(black_players.field(players::name).eq(player1.clone())),
-                );
-                count_query = count_query.filter(
-                    white_players
-                        .field(players::name)
-                        .eq(player1.clone())
-                        .or(black_players.field(players::name).eq(player1)),
-                );
+                sql_query =
+                    sql_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
+                count_query =
+                    count_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
             }
             if let Some(player2) = query.player2 {
-                sql_query = sql_query.filter(
-                    white_players
-                        .field(players::name)
-                        .eq(player2.clone())
-                        .or(black_players.field(players::name).eq(player2.clone())),
-                );
-                count_query = count_query.filter(
-                    white_players
-                        .field(players::name)
-                        .eq(player2.clone())
-                        .or(black_players.field(players::name).eq(player2)),
-                );
+                sql_query =
+                    sql_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
+                count_query =
+                    count_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
             }
 
             if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
@@ -926,6 +906,12 @@ pub async fn get_games(
                 .expect("count games"),
         );
     }
+
+    // debug query
+    println!(
+        "{:?}\n",
+        diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
+    );
 
     let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db).expect("load games");
     let normalized_games = normalize_games(games);

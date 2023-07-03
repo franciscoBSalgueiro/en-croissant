@@ -1,53 +1,51 @@
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { useState } from "react";
-import { query_players, Sides } from "@/utils/db";
+import { Player, query_players, Sides } from "@/utils/db";
 import { SideInput } from "./SideInput";
 
 export function SearchInput({
   label,
   file,
-  value,
   sides,
   setSides,
   setValue,
 }: {
   label: string;
   file: string;
-  value: string;
   sides: Sides;
   setSides: (val: Sides) => void;
-  setValue: (val: string) => void;
+  setValue: (val: number | undefined) => void;
 }) {
-  const [tempValue, setTempValue] = useState(value);
-  const [data, setData] = useState<string[]>([]);
+  const [tempValue, setTempValue] = useState("");
+  const [data, setData] = useState<Player[]>([]);
 
   async function handleChange(val: string) {
     setTempValue(val);
-    if (data.includes(val)) {
-      setValue(val);
-    }
     if (val.trim().length === 0) {
-      setValue("");
+      setValue(undefined);
+      setData([]);
+      return;
     }
-    setData([]);
+    const player = data.find((player) => player.name === val);
+    if (player) {
+      setValue(player.id);
+    }
 
-    if (!(val.trim().length === 0)) {
-      const res = await query_players(file, {
-        page: 1,
-        pageSize: 5,
-        name: val,
-        skip_count: true,
-        sort: "elo",
-        direction: "asc",
-      });
-      setData(res.data.map((game) => game.name));
-    }
+    const res = await query_players(file, {
+      page: 1,
+      pageSize: 5,
+      name: val,
+      skip_count: true,
+      sort: "elo",
+      direction: "asc",
+    });
+    setData(res.data);
   }
   return (
     <Autocomplete
       value={tempValue}
-      data={data}
+      data={data.map((player) => player.name)}
       onChange={handleChange}
       rightSection={
         <SideInput sides={sides} setSides={setSides} label={label} />

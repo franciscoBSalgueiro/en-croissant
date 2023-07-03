@@ -36,12 +36,12 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const [games, setGames] = useState<NormalizedGame[]>([]);
 
   const [count, setCount] = useState(0);
-  const [player1, setPlayer1] = useState("");
+  const [player1, setPlayer1] = useState<number | undefined>();
   const [rangePlayer1, setRangePlayer1] = useState<[number, number]>([0, 3000]);
   const [tempRangePlayer1, setTempRangePlayer1] = useState<[number, number]>([
     0, 3000,
   ]);
-  const [player2, setplayer2] = useState("");
+  const [player2, setplayer2] = useState<number | undefined>();
   const [rangePlayer2, setRangePlayer2] = useState<[number, number]>([0, 3000]);
   const [tempRangePlayer2, setTempRangePlayer2] = useState<[number, number]>([
     0, 3000,
@@ -73,9 +73,9 @@ function GameTable({ database }: { database: DatabaseInfo }) {
     setSelectedGame(null);
     setLoading(true);
     query_games(file, {
-      player1: player1 === "" ? undefined : player1,
+      player1,
       rangePlayer1: rangePlayer1,
-      player2: player2 === "" ? undefined : player2,
+      player2,
       rangePlayer2: rangePlayer2,
       sides: sides,
       outcome: outcome === null ? undefined : (outcome as Outcome),
@@ -111,8 +111,8 @@ function GameTable({ database }: { database: DatabaseInfo }) {
     setLoading(true);
     setSelectedGame(null);
     query_games(file, {
-      player1: player1 === "" ? undefined : player1,
-      player2: player2 === "" ? undefined : player2,
+      player1,
+      player2,
       rangePlayer1: rangePlayer1,
       rangePlayer2: rangePlayer2,
       outcome: outcome === null ? undefined : (outcome as Outcome),
@@ -173,7 +173,6 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             <Box sx={{ flexGrow: 1 }}>
               <Group grow>
                 <SearchInput
-                  value={player1}
                   setValue={setPlayer1}
                   sides={sides}
                   setSides={setSides}
@@ -181,7 +180,6 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                   file={file}
                 />
                 <SearchInput
-                  value={player2}
                   setValue={setplayer2}
                   sides={sides}
                   setSides={setSides}
