@@ -1,11 +1,11 @@
-import { Card, Grid, SimpleGrid, Stack, Title } from "@mantine/core";
+import { Card, SimpleGrid, Stack, Title, Text } from "@mantine/core";
 import dynamic from "next/dynamic";
 
 const Accounts = dynamic(() => import("../components/home/Accounts"), {
   ssr: false,
 });
 
-const Engines = dynamic(() => import("../components/home/Engines"), {
+const PlayerCard = dynamic(() => import("../components/databases/PlayerCard"), {
   ssr: false,
 });
 
@@ -15,36 +15,18 @@ const Databases = dynamic(() => import("../components/home/Databases"), {
 
 function Page() {
   return (
-    <SimpleGrid
-      cols={2}
-      my="md"
-      spacing="md"
-      breakpoints={[{ maxWidth: "md", cols: 1 }]}
-    >
+    <SimpleGrid cols={2} my="md" spacing="md">
       <Card>
         <Stack>
           <Title>Accounts</Title>
           <Accounts />
         </Stack>
       </Card>
-      <Grid gutter="md">
-        <Grid.Col span={6}>
-          <Card h="100%">
-            <Stack>
-              <Title>Engines</Title>
-              <Engines />
-            </Stack>
-          </Card>
-        </Grid.Col>
-        <Grid.Col span={6}>
-          <Card h="100%">
-            <Stack>
-              <Title>Databases</Title>
-              <Databases />
-            </Stack>
-          </Card>
-        </Grid.Col>
-      </Grid>
+      <Card>
+        <Stack>
+          <Databases />
+        </Stack>
+      </Card>
     </SimpleGrid>
   );
 }

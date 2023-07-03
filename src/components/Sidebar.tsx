@@ -9,9 +9,9 @@ import {
   Icon,
   IconChess,
   IconDatabase,
-  IconHome2,
   IconRobot,
   IconSettings,
+  IconUser,
 } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 
@@ -75,7 +75,7 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 }
 
 const linksdata = [
-  { icon: IconHome2, label: "Home", url: "/" },
+  { icon: IconUser, label: "User", url: "/" },
   { icon: IconChess, label: "Play", url: "/boards" },
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },

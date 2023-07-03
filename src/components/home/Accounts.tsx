@@ -2,6 +2,7 @@ import {
   Button,
   Checkbox,
   Modal,
+  ScrollArea,
   Select,
   Stack,
   TextInput,
@@ -84,9 +85,12 @@ function Accounts() {
 
   return (
     <>
-      <AccountCards databases={databases} setDatabases={setDatabases} />
-
-      <Button onClick={() => setOpen(true)}>Add Account</Button>
+      <ScrollArea sx={{ height: "80vh" }}>
+        <Stack>
+          <AccountCards databases={databases} setDatabases={setDatabases} />
+          <Button onClick={() => setOpen(true)}>Add Account</Button>
+        </Stack>
+      </ScrollArea>
       <AccountModal
         open={open}
         setOpen={setOpen}

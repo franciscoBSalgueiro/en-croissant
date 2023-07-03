@@ -271,25 +271,19 @@ export async function getTournamentGames(file: string, id: number) {
     });
 }
 
-export async function getPlayersGameInfo(
-    file: string,
-    player?: Player,
-    username?: string
-) {
-    if (username) {
-        const players = await query_players(file, {
-            name: username,
-            pageSize: 1,
-            direction: "asc",
-            sort: "id",
-        });
-        if (players.data.length > 0) {
-            player = players.data[0];
-        }
-    }
-    return await invoke("get_players_game_info", {
+export interface PlayerGameInfo {
+    won: number;
+    lost: number;
+    draw: number;
+    games_per_month: [string, number][];
+    white_openings: [string, number][];
+    black_openings: [string, number][];
+}
+
+export async function getPlayersGameInfo(file: string, id: number) {
+    return await invoke<PlayerGameInfo>("get_players_game_info", {
         file,
-        id: player?.id,
+        id,
     });
 }
 

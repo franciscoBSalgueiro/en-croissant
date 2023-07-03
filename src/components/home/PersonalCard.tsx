@@ -74,8 +74,13 @@ function fillMissingMonths(data: { name: string; games: number }[]) {
   return newData;
 }
 
-function PlayerCard({ player, file }: { player: Player; file: string }) {
-  const [info, setInfo] = useState<PlayerGameInfo | null>(null);
+function PersonalPlayerCard({
+  name,
+  info,
+}: {
+  name: string;
+  info: PlayerGameInfo;
+}) {
   const total = info ? info.won + info.lost + info.draw : 0;
   const { classes } = useStyles();
   const [expanded, setExpanded] = useState(false);
@@ -89,12 +94,6 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           tooltip: `${info.won} wins`,
         },
         {
-          value: (info.lost / total) * 100,
-          color: "red",
-          label: `${((info.lost / total) * 100).toFixed(1)}%`,
-          tooltip: `${info.lost} losses`,
-        },
-        {
           value: (info.draw / total) * 100,
           color: "gray",
           label:
@@ -103,16 +102,14 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
               : undefined,
           tooltip: `${info.draw} draws`,
         },
+        {
+          value: (info.lost / total) * 100,
+          color: "red",
+          label: `${((info.lost / total) * 100).toFixed(1)}%`,
+          tooltip: `${info.lost} losses`,
+        },
       ]
     : [];
-
-  useEffect(() => {
-    async function fetchGames() {
-      const games = await getPlayersGameInfo(file, player.id);
-      setInfo(games);
-    }
-    fetchGames();
-  }, [file, player]);
 
   const data =
     info?.games_per_month
@@ -134,12 +131,20 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
     <Paper shadow="sm" p="sm" withBorder>
       <Stack align="center">
         <Text fz="lg" weight={500}>
-          {player.name}
+          {name}
         </Text>
       </Stack>
-
       <Text align="center">{total} Games</Text>
-
+      <Progress
+        sections={sections}
+        size={34}
+        classNames={{ label: classes.progressLabel }}
+        mt={40}
+      />
+      <Divider my="xs" />
+      <Text align="center" fw="bold">
+        Openings
+      </Text>
       <Group grow mt="lg">
         <Stack>
           <Text fw="bold">White</Text>
@@ -179,15 +184,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           </Button>
         }
       />
-
       <Stack>
-        <Progress
-          sections={sections}
-          size={34}
-          classNames={{ label: classes.progressLabel }}
-          mt={40}
-        />
-
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
             data={fillMissingMonths(data)}
@@ -215,4 +212,4 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
   );
 }
 
-export default PlayerCard;
+export default PersonalPlayerCard;
