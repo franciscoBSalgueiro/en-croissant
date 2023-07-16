@@ -9,7 +9,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -20,7 +20,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getPlayersGameInfo, Player, PlayerGameInfo } from "@/utils/db";
+import { PlayerGameInfo } from "@/utils/db";
 
 const useStyles = createStyles((theme) => ({
   progressLabel: {
@@ -51,27 +51,27 @@ function fillMissingMonths(data: { name: string; games: number }[]) {
     }
   });
 
-  if (newData.length > 36) {
-    // group by year in the same format
-    const grouped = newData.reduce((acc, curr) => {
-      const year = curr.name.slice(0, 4);
-      if (!acc[year]) {
-        acc[year] = [];
-      }
-      acc[year].push(curr);
-      return acc;
-    }, {} as { [key: string]: { name: string; games: number }[] });
-
-    // sum up the games per year
-    const summed = Object.entries(grouped).map(([year, months]) => {
-      const games = months.reduce((acc, curr) => acc + curr.games, 0);
-      return { name: year, games };
-    });
-
-    return summed;
-  }
-
   return newData;
+}
+
+function mergeYears(data: { name: string; games: number }[]) {
+  // group by year in the same format
+  const grouped = data.reduce((acc, curr) => {
+    const year = curr.name.slice(0, 4);
+    if (!acc[year]) {
+      acc[year] = [];
+    }
+    acc[year].push(curr);
+    return acc;
+  }, {} as { [key: string]: { name: string; games: number }[] });
+
+  // sum up the games per year
+  const summed = Object.entries(grouped).map(([year, months]) => {
+    const games = months.reduce((acc, curr) => acc + curr.games, 0);
+    return { name: year, games };
+  });
+
+  return summed;
 }
 
 function PersonalPlayerCard({
@@ -84,6 +84,7 @@ function PersonalPlayerCard({
   const total = info ? info.won + info.lost + info.draw : 0;
   const { classes } = useStyles();
   const [expanded, setExpanded] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const sections = info
     ? [
@@ -111,13 +112,20 @@ function PersonalPlayerCard({
       ]
     : [];
 
-  const data =
+  let data = fillMissingMonths(
     info?.games_per_month
       .map(([month, games]) => ({
         name: month,
         games,
       }))
-      .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
+      .sort((a, b) => a.name.localeCompare(b.name)) ?? []
+  );
+
+  if (selectedYear) {
+    data = data.filter((obj) => obj.name.startsWith(selectedYear.toString()));
+  } else if (data.length > 36) {
+    data = mergeYears(data);
+  }
 
   let white_openings = info?.white_openings ?? [];
   let black_openings = info?.black_openings ?? [];
@@ -187,12 +195,18 @@ function PersonalPlayerCard({
       <Stack>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
-            data={fillMissingMonths(data)}
+            data={data}
             margin={{
               top: 5,
               right: 30,
               left: 20,
               bottom: 5,
+            }}
+            onClick={(e) => {
+              const year = parseInt(e.activePayload?.[0]?.payload?.name);
+              if (year) {
+                setSelectedYear((prev) => (prev === year ? null : year));
+              }
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />

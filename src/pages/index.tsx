@@ -1,11 +1,7 @@
-import { Card, SimpleGrid, Stack, Title, Text } from "@mantine/core";
+import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
 import dynamic from "next/dynamic";
 
 const Accounts = dynamic(() => import("../components/home/Accounts"), {
-  ssr: false,
-});
-
-const PlayerCard = dynamic(() => import("../components/databases/PlayerCard"), {
   ssr: false,
 });
 
