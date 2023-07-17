@@ -22,9 +22,6 @@ export default function GameSelector({
   games: Map<number, string>;
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
 }) {
-  console.log(games);
-  console.log(headers);
-
   function isRowLoaded({ index }: { index: number }) {
     return games.has(index);
   }

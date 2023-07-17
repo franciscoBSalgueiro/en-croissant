@@ -335,6 +335,8 @@ export function parsePGN(
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
+    pgn = pgn.replaceAll("0-0-0", "O-O-O");
+    pgn = pgn.replaceAll("0-0", "O-O");
     pgn = pgn.replaceAll("[", " [ ");
     pgn = pgn.replaceAll("]", " ] ");
     pgn = pgn.replaceAll("(", " ( ");
@@ -484,12 +486,21 @@ export function parsePGN(
 }
 
 export function getPgnHeaders(pgn: string): GameHeaders {
-    pgn = pgn.replaceAll("0-0", "O-O");
+    const headersN = new Map<string, string>();
+    const headerRegex = /^\[([A-Za-z]+)\s+"([^"]+)"\]/;
+    const lines = pgn.split("\n");
 
-    const chess = new Chess();
-    chess.loadPgn(pgn);
-    const { Result, Site, Date, White, Black, BlackElo, WhiteElo, Event } =
-        chess.header();
+    for (const line of lines) {
+        const match = line.match(headerRegex);
+        if (match) {
+            const key = match[1];
+            const value = match[2].replace(/"/g, "");
+            headersN.set(key, value);
+        }
+    }
+
+    const { Black, White, BlackElo, WhiteElo, Date, Site, Event, Result } =
+        Object.fromEntries(headersN);
 
     const headers: GameHeaders = {
         id: 0,
@@ -505,7 +516,6 @@ export function getPgnHeaders(pgn: string): GameHeaders {
         black_elo: BlackElo ? parseInt(BlackElo) : 0,
         white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
         date: Date ?? "",
-        ply_count: chess.history().length,
         site: {
             id: 0,
             name: Site ?? "",

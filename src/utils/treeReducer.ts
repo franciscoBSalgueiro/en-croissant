@@ -43,7 +43,6 @@ export function defaultTree(fen?: string): TreeState {
                 id: 0,
                 name: "",
             },
-            ply_count: 0,
             result: Outcome.Unknown,
             event: {
                 id: 0,
@@ -108,7 +107,6 @@ export type GameHeaders = {
     result: Outcome;
     time_control?: string;
     eco?: string;
-    ply_count: number;
     white_material?: number;
     black_material?: number;
 };
