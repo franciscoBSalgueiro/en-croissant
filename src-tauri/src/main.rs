@@ -111,20 +111,27 @@ pub struct AppState {
     pgn_offsets: DashMap<String, Vec<u64>>,
 }
 
+const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
+    (BaseDirectory::AppData, "engines"),
+    (BaseDirectory::AppData, "db"),
+    (BaseDirectory::AppData, "puzzles"),
+    (BaseDirectory::Document, "EnCroissant"),
+];
+
+const REQUIRED_FILES: &[(BaseDirectory, &str)] =
+    &[(BaseDirectory::AppData, "engines/engines.json")];
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            // Check if all the necessary directories exist, and create them if they don't
-            let directories = vec!["engines", "db", "puzzles"];
-            let files = vec![("engines", "engines.json")];
-
-            for dir in directories.iter() {
+            // Check if all the required directories exist, and create them if they don't
+            for (dir, path) in REQUIRED_DIRS.iter() {
                 let path = resolve_path(
                     &app.config(),
                     app.package_info(),
                     &app.env(),
-                    dir,
-                    Some(BaseDirectory::AppData),
+                    path,
+                    Some(*dir),
                 )
                 .unwrap();
                 if !Path::new(&path).exists() {
@@ -132,13 +139,13 @@ fn main() {
                 }
             }
 
-            for (dir, file) in files.iter() {
+            for (dir, path) in REQUIRED_FILES.iter() {
                 let path = resolve_path(
                     &app.config(),
                     app.package_info(),
                     &app.env(),
-                    &format!("{}/{}", dir, file),
-                    Some(BaseDirectory::AppData),
+                    path,
+                    Some(*dir),
                 )
                 .unwrap();
                 if !Path::new(&path).exists() {
