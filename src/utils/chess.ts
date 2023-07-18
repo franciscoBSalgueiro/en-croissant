@@ -326,6 +326,26 @@ export function swapMove(fen: string, color?: Color) {
     return fenGroups.join(" ");
 }
 
+function tokenizer(pgn: string) {
+    pgn = pgn
+        .replaceAll("0-0-0", "O-O-O")
+        .replaceAll("0-0", "O-O")
+        .replaceAll("[", " [ ")
+        .replaceAll("]", " ] ")
+        .replaceAll("(", " ( ")
+        .replaceAll(")", " ) ")
+        .replaceAll("{", " { ")
+        .replaceAll("}", " } ")
+        .replaceAll(/\s+/g, " ");
+    // pgn = pgn.replaceAll(/\d+\./g, "");
+
+    pgn = pgn.replaceAll(/(\d+)\.([A-Za-z]+)/g, "$1. $2");
+
+    pgn = pgn.trim();
+    const tokens = pgn.split(" ");
+    return tokens;
+}
+
 export function parsePGN(
     pgn: string,
     fen: string = DEFAULT_POSITION,
@@ -335,18 +355,7 @@ export function parsePGN(
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
-    pgn = pgn.replaceAll("0-0-0", "O-O-O");
-    pgn = pgn.replaceAll("0-0", "O-O");
-    pgn = pgn.replaceAll("[", " [ ");
-    pgn = pgn.replaceAll("]", " ] ");
-    pgn = pgn.replaceAll("(", " ( ");
-    pgn = pgn.replaceAll(")", " ) ");
-    pgn = pgn.replaceAll("{", " { ");
-    pgn = pgn.replaceAll("}", " } ");
-    pgn = pgn.replaceAll(/\s+/g, " ");
-    // pgn = pgn.replaceAll(/\d+\./g, "");
-    pgn = pgn.trim();
-    const tokens = pgn.split(" ");
+    const tokens = tokenizer(pgn);
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
@@ -417,7 +426,9 @@ export function parsePGN(
                 prevNode.fen,
                 root.halfMoves - 1
             );
-            prevNode.children.push(newTree.root.children[0]);
+            if (newTree.root.children.length > 0) {
+                prevNode.children.push(newTree.root.children[0]);
+            }
         } else if (token === ")") {
             continue;
         } else if (
@@ -454,7 +465,6 @@ export function parsePGN(
             try {
                 m = chess.move(token);
             } catch (error) {
-                console.log(error);
                 continue;
             }
 
@@ -499,8 +509,23 @@ export function getPgnHeaders(pgn: string): GameHeaders {
         }
     }
 
-    const { Black, White, BlackElo, WhiteElo, Date, Site, Event, Result } =
+    // eslint-disable-next-line prefer-const
+    let { Black, White, BlackElo, WhiteElo, Date, Site, Event, Result } =
         Object.fromEntries(headersN);
+
+    if (!Result) {
+        const tokens = tokenizer(pgn);
+        const lastToken = tokens[tokens.length - 1];
+        if (lastToken === "1-0") {
+            Result = Outcome.WhiteWin;
+        }
+        if (lastToken === "0-1") {
+            Result = Outcome.BlackWin;
+        }
+        if (lastToken === "1/2-1/2" || lastToken === "½–½") {
+            Result = Outcome.Draw;
+        }
+    }
 
     const headers: GameHeaders = {
         id: 0,
