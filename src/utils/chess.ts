@@ -83,6 +83,15 @@ export const enum Annotation {
     Interesting = "!?",
 }
 
+const NAG_INFO = new Map([
+    ["$1", Annotation.Good],
+    ["$2", Annotation.Mistake],
+    ["$3", Annotation.Brilliant],
+    ["$4", Annotation.Blunder],
+    ["$5", Annotation.Interesting],
+    ["$6", Annotation.Dubious],
+]);
+
 type AnnotationInfo = {
     name: string;
     color: string;
@@ -326,28 +335,17 @@ export function swapMove(fen: string, color?: Color) {
     return fenGroups.join(" ");
 }
 
-function tokenizer(pgn: string) {
-    pgn = pgn
-        .replaceAll("0-0-0", "O-O-O")
-        .replaceAll("0-0", "O-O")
-        .replaceAll("[", " [ ")
-        .replaceAll("]", " ] ")
-        .replaceAll("(", " ( ")
-        .replaceAll(")", " ) ")
-        .replaceAll("{", " { ")
-        .replaceAll("}", " } ")
-        .replaceAll(/\s+/g, " ");
-    // pgn = pgn.replaceAll(/\d+\./g, "");
+type Token =
+    | { type: "ParenOpen" }
+    | { type: "ParenClose" }
+    | { type: "Comment"; value: string }
+    | { type: "San"; value: string }
+    | { type: "Header"; value: { tag: string; value: string } }
+    | { type: "Nag"; value: string }
+    | { type: "Outcome"; value: string };
 
-    pgn = pgn.replaceAll(/(\d+)\.([A-Za-z]+)/g, "$1. $2");
-
-    pgn = pgn.trim();
-    const tokens = pgn.split(" ");
-    return tokens;
-}
-
-export function parsePGN(
-    pgn: string,
+function innerParsePGN(
+    tokens: Token[],
     fen: string = DEFAULT_POSITION,
     halfMoves = 0
 ): TreeState {
@@ -355,73 +353,51 @@ export function parsePGN(
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
-    const tokens = tokenizer(pgn);
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
-        if (token === "[" && halfMoves === 0) {
-            let tag = "";
-            let value = "";
-            i++;
-            tag += tokens[i];
-            i++;
-            while (tokens[i] !== "]") {
-                value += tokens[i] + " ";
-                i++;
+        if (token.type === "Comment") {
+            let comment = token.value;
+
+            const evl = comment.match(/\[%eval\s+([-+]?[0-9]*\.?[0-9]+)\]/);
+            if (evl) {
+                root.score = parseScore(evl[1]);
             }
-            if (tag === "FEN") {
-                root.fen = value.substring(1, value.length - 1);
+
+            const csl = comment.match(/\[%csl\s+((?:[a-h][1-8],?)+)\]/);
+            if (csl) {
+                root.shapes.push(...parseCsl(csl[1]));
             }
-        } else if (token === "" || token.match(/\d+\./)) {
-            continue;
-        } else if (token === "{") {
-            let comment = "";
-            i++;
-            while (tokens[i] !== "}") {
-                if (tokens[i] === "[") {
-                    i++;
-                    const tag = tokens[i];
-                    i++;
-                    let value = "";
-                    while (tokens[i] !== "]") {
-                        value += tokens[i];
-                        i++;
-                    }
-                    if (tag === "%eval") {
-                        root.score = parseScore(value);
-                    }
-                    if (tag === "%csl") {
-                        root.shapes.push(...parseCsl(value));
-                    }
-                    if (tag === "%cal") {
-                        root.shapes.push(...parseCal(value));
-                    }
-                    i++;
-                    continue;
-                }
-                comment += tokens[i] + " ";
-                i++;
+
+            const cal = comment.match(
+                /\[%cal\s+((?:[a-h][1-8][a-h][1-8],?)+)\]/
+            );
+            if (cal) {
+                root.shapes.push(...parseCal(cal[1]));
             }
+
+            // remove the special tags from the comment text
+            comment = comment.replace(/\[%.*\]/g, "");
+
             if (comment.trim() !== "") {
                 root.commentText = comment;
                 root.commentHTML = `<p>${comment}</p>`;
             }
-        } else if (token === "(") {
-            let variation = "";
+        } else if (token.type === "ParenOpen") {
+            const variation = [];
             let subvariations = 0;
             i++;
-            while (subvariations > 0 || tokens[i] !== ")") {
-                if (tokens[i] === "(") {
+            while (subvariations > 0 || tokens[i].type !== "ParenClose") {
+                if (tokens[i].type === "ParenOpen") {
                     subvariations++;
-                } else if (tokens[i] === ")") {
+                } else if (tokens[i].type === "ParenClose") {
                     subvariations--;
                 }
-                variation += tokens[i] + " ";
-
+                variation.push(tokens[i]);
                 i++;
             }
-            const newTree = parsePGN(
+            const newTree = innerParsePGN(
                 variation,
                 prevNode.fen,
                 root.halfMoves - 1
@@ -429,41 +405,15 @@ export function parsePGN(
             if (newTree.root.children.length > 0) {
                 prevNode.children.push(newTree.root.children[0]);
             }
-        } else if (token === ")") {
+        } else if (token.type === "ParenClose") {
             continue;
-        } else if (
-            token === "$1" ||
-            token === "$2" ||
-            token === "$3" ||
-            token === "$4" ||
-            token === "$5" ||
-            token === "$6"
-        ) {
-            if (token.endsWith("!!") || token.endsWith("$3")) {
-                root.annotation = Annotation.Brilliant;
-            } else if (token.endsWith("!?") || token.endsWith("$5")) {
-                root.annotation = Annotation.Interesting;
-            } else if (token.endsWith("?!") || token.endsWith("$6")) {
-                root.annotation = Annotation.Dubious;
-            } else if (token.endsWith("??") || token.endsWith("$4")) {
-                root.annotation = Annotation.Blunder;
-            } else if (token.endsWith("!") || token.endsWith("$1")) {
-                root.annotation = Annotation.Good;
-            } else if (token.endsWith("?") || token.endsWith("$2")) {
-                root.annotation = Annotation.Mistake;
-            }
-        } else if (
-            token === "1-0" ||
-            token === "0-1" ||
-            token === "1/2-1/2" ||
-            token === "*"
-        ) {
-            break;
-        } else {
+        } else if (token.type === "Nag") {
+            root.annotation = NAG_INFO.get(token.value) || Annotation.None;
+        } else if (token.type === "San") {
             const chess = new Chess(root.fen);
             let m: Move;
             try {
-                m = chess.move(token);
+                m = chess.move(token.value);
             } catch (error) {
                 continue;
             }
@@ -475,60 +425,44 @@ export function parsePGN(
             });
             root.children.push(newTree);
 
-            if (token.endsWith("!!") || token.endsWith("$3")) {
-                newTree.annotation = Annotation.Brilliant;
-            } else if (token.endsWith("!?") || token.endsWith("$5")) {
-                newTree.annotation = Annotation.Interesting;
-            } else if (token.endsWith("?!") || token.endsWith("$6")) {
-                newTree.annotation = Annotation.Dubious;
-            } else if (token.endsWith("??") || token.endsWith("$4")) {
-                newTree.annotation = Annotation.Blunder;
-            } else if (token.endsWith("!") || token.endsWith("$1")) {
-                newTree.annotation = Annotation.Good;
-            } else if (token.endsWith("?") || token.endsWith("$2")) {
-                newTree.annotation = Annotation.Mistake;
-            }
             prevNode = root;
             root = newTree;
+        } else if (token.type === "Outcome") {
+            break;
         }
     }
     return tree;
 }
 
-export function getPgnHeaders(pgn: string): GameHeaders {
+export async function parsePGN(pgn: string, halfMoves = 0): Promise<TreeState> {
+    const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
+
+    console.log(tokens);
+
+    const headers = getPgnHeaders(tokens);
+    const tree = innerParsePGN(tokens, headers.fen, halfMoves);
+    tree.headers = headers;
+    return tree;
+}
+
+function getPgnHeaders(tokens: Token[]): GameHeaders {
     const headersN = new Map<string, string>();
-    const headerRegex = /^\[([A-Za-z]+)\s+"([^"]+)"\]/;
-    const lines = pgn.split("\n");
 
-    for (const line of lines) {
-        const match = line.match(headerRegex);
-        if (match) {
-            const key = match[1];
-            const value = match[2].replace(/"/g, "");
-            headersN.set(key, value);
+    for (const token of tokens) {
+        if (token.type === "Header") {
+            const { tag, value } = token.value;
+            headersN.set(tag, value);
+        } else if (token.type === "Outcome") {
+            headersN.set("Result", token.value);
         }
     }
 
-    // eslint-disable-next-line prefer-const
-    let { Black, White, BlackElo, WhiteElo, Date, Site, Event, Result } =
+    const { Black, White, BlackElo, WhiteElo, Date, Site, Event, Result, FEN } =
         Object.fromEntries(headersN);
-
-    if (!Result) {
-        const tokens = tokenizer(pgn);
-        const lastToken = tokens[tokens.length - 1];
-        if (lastToken === "1-0") {
-            Result = Outcome.WhiteWin;
-        }
-        if (lastToken === "0-1") {
-            Result = Outcome.BlackWin;
-        }
-        if (lastToken === "1/2-1/2" || lastToken === "½–½") {
-            Result = Outcome.Draw;
-        }
-    }
 
     const headers: GameHeaders = {
         id: 0,
+        fen: FEN ?? DEFAULT_POSITION,
         result: (Result as Outcome) ?? Outcome.Unknown,
         black: {
             id: 0,

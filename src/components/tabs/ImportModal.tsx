@@ -9,7 +9,7 @@ import {
 import { open } from "@tauri-apps/api/dialog";
 
 import { useState } from "react";
-import { getPgnHeaders, parsePGN } from "@/utils/chess";
+import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
 import { count_pgn_games, read_games } from "@/utils/db";
 import { getLichessGame } from "@/utils/lichess";
@@ -114,9 +114,8 @@ export default function ImportModal({
                   numGames: count,
                 };
               }
+              const tree = await parsePGN(input);
               setCurrentTab((prev) => {
-                const tree = parsePGN(input);
-                tree.headers = getPgnHeaders(input);
                 sessionStorage.setItem(prev.value, JSON.stringify(tree));
                 return {
                   ...prev,
@@ -137,9 +136,8 @@ export default function ImportModal({
               pgn = await getLichessGame(gameId);
             }
 
+            const tree = await parsePGN(pgn);
             setCurrentTab((prev) => {
-              const tree = parsePGN(pgn);
-              tree.headers = getPgnHeaders(pgn);
               sessionStorage.setItem(prev.value, JSON.stringify(tree));
               return {
                 ...prev,

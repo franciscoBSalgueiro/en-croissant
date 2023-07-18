@@ -35,6 +35,7 @@ export function defaultTree(fen?: string): TreeState {
         },
         headers: {
             id: 0,
+            fen: fen ?? DEFAULT_POSITION,
             black: {
                 id: 0,
                 name: "",
@@ -81,6 +82,7 @@ export function createNode({
 
 export type GameHeaders = {
     id: number;
+    fen: string;
     event: {
         id: number;
         name: string;

@@ -2,7 +2,7 @@ import { Accordion, ActionIcon, Group, createStyles } from "@mantine/core";
 import { IconTrash } from "@tabler/icons-react";
 import { useCallback, useContext, useEffect } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
-import { getPgnHeaders, parsePGN } from "@/utils/chess";
+import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { GameHeaders } from "@/utils/treeReducer";
@@ -44,8 +44,9 @@ export default function GameSelector({
       const data = await read_games(activeTab.file.path, startIndex, stopIndex);
       setGames((prev) => {
         const newGames = new Map(prev);
-        data.forEach((game, index) => {
-          newGames.set(startIndex + index, getPgnHeaders(game).event.name);
+        data.forEach(async (game, index) => {
+          const { headers } = await parsePGN(game);
+          newGames.set(startIndex + index, headers.event.name);
         });
         return newGames;
       });
@@ -54,15 +55,20 @@ export default function GameSelector({
   );
 
   useEffect(() => {
-    if (!activeTab?.file) return;
-    read_games(activeTab.file.path, activePage, activePage).then((game) => {
-      const tree = parsePGN(game[0]);
-      tree.headers = getPgnHeaders(game[0]);
+    async function load() {
+      if (!activeTab?.file) return;
+      const data = await read_games(
+        activeTab.file.path,
+        activePage,
+        activePage
+      );
+      const tree = await parsePGN(data[0]);
       dispatch({
         type: "SET_STATE",
         payload: tree,
       });
-    });
+    }
+    load();
   }, [activePage, activeTab, dispatch]);
 
   useEffect(() => {

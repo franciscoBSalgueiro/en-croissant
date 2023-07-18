@@ -1,4 +1,4 @@
-import { getPgnHeaders, parsePGN } from "./chess";
+import { parsePGN } from "./chess";
 import { GameHeaders } from "./treeReducer";
 
 type TabType = "new" | "play" | "analysis" | "puzzles";
@@ -23,7 +23,7 @@ export function genID() {
     return S4() + S4();
 }
 
-export function createTab({
+export async function createTab({
     tab,
     setTabs,
     setActiveTab,
@@ -39,8 +39,10 @@ export function createTab({
     const id = genID();
 
     if (pgn) {
-        const tree = parsePGN(pgn);
-        tree.headers = headers || getPgnHeaders(pgn);
+        const tree = await parsePGN(pgn);
+        if (headers) {
+            tree.headers = headers;
+        }
         sessionStorage.setItem(id, JSON.stringify(tree));
     }
 

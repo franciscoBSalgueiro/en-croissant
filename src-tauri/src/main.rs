@@ -6,6 +6,7 @@
 mod chess;
 mod db;
 mod fs;
+mod lexer;
 mod opening;
 mod pgn;
 mod puzzle;
@@ -33,6 +34,7 @@ use crate::db::{
     get_players_game_info, get_tournaments, search_position,
 };
 use crate::fs::{append_to_file, set_file_as_executable};
+use crate::lexer::lex_pgn;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
@@ -188,7 +190,8 @@ fn main() {
             delete_game,
             write_game,
             delete_indexes,
-            create_indexes
+            create_indexes,
+            lex_pgn
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
