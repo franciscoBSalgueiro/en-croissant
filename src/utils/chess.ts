@@ -388,7 +388,10 @@ function innerParsePGN(
             const variation = [];
             let subvariations = 0;
             i++;
-            while (subvariations > 0 || tokens[i].type !== "ParenClose") {
+            while (
+                i < tokens.length &&
+                (subvariations > 0 || tokens[i].type !== "ParenClose")
+            ) {
                 if (tokens[i].type === "ParenOpen") {
                     subvariations++;
                 } else if (tokens[i].type === "ParenClose") {
@@ -464,25 +467,13 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         id: 0,
         fen: FEN ?? DEFAULT_POSITION,
         result: (Result as Outcome) ?? Outcome.Unknown,
-        black: {
-            id: 0,
-            name: Black ?? "?",
-        },
-        white: {
-            id: 0,
-            name: White ?? "?",
-        },
+        black: Black ?? "?",
+        white: White ?? "?",
         black_elo: BlackElo ? parseInt(BlackElo) : 0,
         white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
         date: Date ?? "",
-        site: {
-            id: 0,
-            name: Site ?? "",
-        },
-        event: {
-            id: 0,
-            name: Event ?? "",
-        },
+        site: Site ?? "",
+        event: Event ?? "",
     };
     return headers;
 }

@@ -227,30 +227,21 @@ export interface Opening {
     draw: number;
 }
 
-export interface NormalizedGame {
+export type NormalizedGame = {
     id: number;
-    event: {
-        id: number;
-        name: string;
-    };
-    site: {
-        id: number;
-        name: string;
-    };
+    fen: string;
+    event: string;
+    event_id: number;
+    site: string;
+    site_id: number;
     date?: string;
     time?: string;
     round?: string;
-    white: {
-        id: number;
-        name: string;
-        elo?: number;
-    };
+    white: string;
+    white_id: number;
     white_elo?: number | null;
-    black: {
-        id: number;
-        name: string;
-        elo?: number;
-    };
+    black: string;
+    black_id: number;
     black_elo?: number | null;
     result: Outcome;
     time_control?: string;
@@ -258,9 +249,8 @@ export interface NormalizedGame {
     ply_count: number;
     white_material?: number;
     black_material?: number;
-    fen?: string;
     moves: string;
-}
+};
 
 export async function getTournamentGames(file: string, id: number) {
     return await query_games(file, {

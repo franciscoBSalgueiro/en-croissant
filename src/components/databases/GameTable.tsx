@@ -257,7 +257,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                   onClick={() => {
                     createTab({
                       tab: {
-                        name: `${game.white.name} - ${game.black.name}`,
+                        name: `${game.white} - ${game.black}`,
                         type: "analysis",
                       },
                       setTabs,
@@ -277,7 +277,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               render: ({ white, white_elo }) => (
                 <div>
                   <Text size="sm" weight={500}>
-                    {white.name}
+                    {white}
                   </Text>
                   <Text size="xs" color="dimmed">
                     {white_elo}
@@ -290,7 +290,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               render: ({ black, black_elo }) => (
                 <div>
                   <Text size="sm" weight={500}>
-                    {black.name}
+                    {black}
                   </Text>
                   <Text size="xs" color="dimmed">
                     {black_elo}

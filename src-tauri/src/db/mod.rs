@@ -921,14 +921,18 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
         .into_iter()
         .map(|(game, white, black, event, site)| NormalizedGame {
             id: game.id,
-            event,
-            site,
+            event: event.name.unwrap_or_default(),
+            event_id: event.id,
+            site: site.name.unwrap_or_default(),
+            site_id: site.id,
             date: game.date,
             time: game.time,
             round: game.round,
-            white,
+            white: white.name.unwrap_or_default(),
+            white_id: game.white_id,
             white_elo: game.white_elo,
-            black,
+            black: black.name.unwrap_or_default(),
+            black_id: game.black_id,
             black_elo: game.black_elo,
             result: game.result,
             time_control: game.time_control,
@@ -936,7 +940,7 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
             white_material: game.white_material,
             black_material: game.black_material,
             ply_count: game.ply_count,
-            fen: game.fen,
+            fen: game.fen.unwrap_or(Fen::default().to_string()),
             moves: decode_moves(game.moves).unwrap_or_default(),
         })
         .collect()

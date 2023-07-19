@@ -57,7 +57,7 @@ function PlayerCard({
                   onClick={() => {
                     createTab({
                       tab: {
-                        name: `${game.white.name} - ${game.black.name}`,
+                        name: `${game.white} - ${game.black}`,
                         type: "analysis",
                       },
                       setTabs,
@@ -77,7 +77,7 @@ function PlayerCard({
               render: ({ white, white_elo }) => (
                 <div>
                   <Text size="sm" weight={500}>
-                    {white.name}
+                    {white}
                   </Text>
                   <Text size="xs" color="dimmed">
                     {white_elo}
@@ -90,7 +90,7 @@ function PlayerCard({
               render: ({ black, black_elo }) => (
                 <div>
                   <Text size="sm" weight={500}>
-                    {black.name}
+                    {black}
                   </Text>
                   <Text size="xs" color="dimmed">
                     {black_elo}

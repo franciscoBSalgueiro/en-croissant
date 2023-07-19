@@ -72,16 +72,13 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
               className={classes.nameInput}
               size="lg"
               placeholder="?"
-              value={headers.white.name}
+              value={headers.white}
               onChange={(e) =>
                 dispatch({
                   type: "SET_HEADERS",
                   payload: {
                     ...headers,
-                    white: {
-                      ...headers.white,
-                      name: e.currentTarget.value,
-                    },
+                    white: e.currentTarget.value,
                   },
                 })
               }
@@ -143,16 +140,13 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
               size="lg"
               placeholder="?"
               sx={{ "& input": { textAlign: "right" } }}
-              value={headers.black.name}
+              value={headers.black}
               onChange={(e) =>
                 dispatch({
                   type: "SET_HEADERS",
                   payload: {
                     ...headers,
-                    black: {
-                      ...headers.black,
-                      name: e.currentTarget.value,
-                    },
+                    black: e.currentTarget.value,
                   },
                 })
               }

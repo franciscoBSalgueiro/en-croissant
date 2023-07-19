@@ -46,7 +46,7 @@ export default function GameSelector({
         const newGames = new Map(prev);
         data.forEach(async (game, index) => {
           const { headers } = await parsePGN(game);
-          newGames.set(startIndex + index, headers.event.name);
+          newGames.set(startIndex + index, headers.event);
         });
         return newGames;
       });
@@ -83,7 +83,7 @@ export default function GameSelector({
       <Accordion>
         <Accordion.Item value="customization">
           <Accordion.Control>
-            {formatNumber(activePage + 1)}. {headers.event.name}
+            {formatNumber(activePage + 1)}. {headers.event}
           </Accordion.Control>
           <Accordion.Panel h={200} mb={20}>
             <InfiniteLoader

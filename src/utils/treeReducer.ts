@@ -36,23 +36,11 @@ export function defaultTree(fen?: string): TreeState {
         headers: {
             id: 0,
             fen: fen ?? DEFAULT_POSITION,
-            black: {
-                id: 0,
-                name: "",
-            },
-            white: {
-                id: 0,
-                name: "",
-            },
+            black: "",
+            white: "",
             result: Outcome.Unknown,
-            event: {
-                id: 0,
-                name: "",
-            },
-            site: {
-                id: 0,
-                name: "",
-            },
+            event: "",
+            site: "",
         },
     };
 }
@@ -83,28 +71,14 @@ export function createNode({
 export type GameHeaders = {
     id: number;
     fen: string;
-    event: {
-        id: number;
-        name: string;
-    };
-    site: {
-        id: number;
-        name: string;
-    };
+    event: string;
+    site: string;
     date?: string;
     time?: string;
     round?: string;
-    white: {
-        id: number;
-        name: string;
-        elo?: number;
-    };
+    white: string;
     white_elo?: number | null;
-    black: {
-        id: number;
-        name: string;
-        elo?: number;
-    };
+    black: string;
     black_elo?: number | null;
     result: Outcome;
     time_control?: string;
@@ -114,12 +88,12 @@ export type GameHeaders = {
 };
 
 export function headersToPGN(game: GameHeaders): string {
-    let headers = `[Event "${game.event.name || "?"}"]
-[Site "${game.site.name || "?"}"]
+    let headers = `[Event "${game.event || "?"}"]
+[Site "${game.site || "?"}"]
 [Date "${game.date || "????.??.??"}"]
 [Round "${game.round || "?"}"]
-[White "${game.white.name || "?"}"]
-[Black "${game.black.name || "?"}"]
+[White "${game.white || "?"}"]
+[Black "${game.black || "?"}"]
 [Result "${game.result}"]
 `;
     if (game.white_elo) {

@@ -119,7 +119,7 @@ export default function ImportModal({
                 sessionStorage.setItem(prev.value, JSON.stringify(tree));
                 return {
                   ...prev,
-                  name: `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`,
+                  name: `${tree.headers.white} - ${tree.headers.black} (Imported)`,
                   file: fileInfo,
                   gameNumber: 0,
                   type: "analysis",
@@ -141,7 +141,7 @@ export default function ImportModal({
               sessionStorage.setItem(prev.value, JSON.stringify(tree));
               return {
                 ...prev,
-                name: `${tree.headers.white.name} - ${tree.headers.black.name} (Imported)`,
+                name: `${tree.headers.white} - ${tree.headers.black} (Imported)`,
                 type: "analysis",
               };
             });
