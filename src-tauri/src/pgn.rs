@@ -214,6 +214,10 @@ pub async fn write_game(
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
+    if !file.exists() {
+        File::create(&file).unwrap();
+    }
+
     let file_r = File::open(&file).or(Err(format!(
         "Failed to open pgn file: {}",
         file.to_str().unwrap()

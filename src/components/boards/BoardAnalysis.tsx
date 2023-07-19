@@ -24,6 +24,7 @@ import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
 import { useAtom } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
+import { documentDir, resolve } from "@tauri-apps/api/path";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
@@ -52,7 +53,9 @@ function BoardAnalysis() {
     if (activeTab?.file) {
       filePath = activeTab.file.path;
     } else {
+      const defaultPath = await resolve(await documentDir(), "EnCroissant");
       const userChoice = await save({
+        defaultPath,
         filters: [
           {
             name: "PGN",

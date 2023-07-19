@@ -109,7 +109,7 @@ export default function DatabasesPage() {
 
       <Group align="baseline" m="lg" mt="xl">
         <Title>Your Databases</Title>
-        <OpenFolderButton folder="db" />
+        <OpenFolderButton base="AppDir" folder="db" />
       </Group>
       <SimpleGrid
         cols={4}

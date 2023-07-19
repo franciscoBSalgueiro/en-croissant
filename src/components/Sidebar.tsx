@@ -9,6 +9,7 @@ import {
   Icon,
   IconChess,
   IconDatabase,
+  IconFiles,
   IconRobot,
   IconSettings,
   IconUser,
@@ -76,7 +77,8 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 
 const linksdata = [
   { icon: IconUser, label: "User", url: "/" },
-  { icon: IconChess, label: "Play", url: "/boards" },
+  { icon: IconChess, label: "Board", url: "/boards" },
+  { icon: IconFiles, label: "Files", url: "/files" },
   { icon: IconDatabase, label: "Databases", url: "/databases" },
   { icon: IconRobot, label: "Engines", url: "/engines" },
 ];

@@ -34,7 +34,7 @@ export default function EnginePage() {
       />
       <Group align="baseline" ml="lg" mt="xl">
         <Title>Your Engines</Title>
-        <OpenFolderButton folder="engines" />
+        <OpenFolderButton base="AppDir" folder="engines" />
       </Group>
       <ScrollArea>
         <Table sx={{ minWidth: 800 }} verticalSpacing="sm">

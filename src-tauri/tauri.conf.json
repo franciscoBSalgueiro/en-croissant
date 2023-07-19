@@ -14,10 +14,14 @@
       "all": true,
       "fs": {
         "all": true,
-        "scope": ["$APPDATA/**"]
+        "scope": ["$APPDATA/**", "$DOCUMENT/**"]
       },
       "http": {
-        "scope": ["https://www.encroissant.org/**", "https://api.chess.com/**", "https://www.chess.com/**"]
+        "scope": [
+          "https://www.encroissant.org/**",
+          "https://api.chess.com/**",
+          "https://www.chess.com/**"
+        ]
       }
     },
     "bundle": {

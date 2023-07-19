@@ -29,12 +29,14 @@ export async function createTab({
     setActiveTab,
     pgn,
     headers,
+    fileInfo,
 }: {
     tab: Omit<Tab, "value">;
     setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
     setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
     pgn?: string;
     headers?: GameHeaders;
+    fileInfo?: FileInfo;
 }) {
     const id = genID();
 
@@ -51,6 +53,7 @@ export async function createTab({
         {
             ...tab,
             value: id,
+            file: fileInfo,
         },
     ]);
     setActiveTab(id);
