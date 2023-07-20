@@ -513,8 +513,6 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
     pos.board.remove_piece_at(from).unwrap();
 
     if let Err(e) = Chess::from_setup(pos.clone(), CastlingMode::Standard) {
-        println!("{:?}", e.kinds());
-
         if e.kinds()
             .contains(PositionErrorKinds::INVALID_CASTLING_RIGHTS)
         {

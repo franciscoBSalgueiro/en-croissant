@@ -13,7 +13,10 @@ import { getPGN } from "@/utils/chess";
 import { getBoardSize, invoke } from "@/utils/misc";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import MoveControls from "../common/MoveControls";
-import { TreeStateContext } from "../common/TreeStateContext";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
@@ -31,6 +34,7 @@ function BoardAnalysis() {
   const [reportingMode, toggleReportingMode] = useToggle();
   const [arrows, setArrows] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useAtom(currentTabAtom);
+  const dispatch = useContext(TreeDispatchContext);
 
   const boardRef = useRef(null);
 
@@ -92,15 +96,12 @@ function BoardAnalysis() {
       prev.file.numGames += 1;
       return { ...prev };
     });
+    dispatch({ type: "RESET" });
     invoke("append_to_file", {
       path: activeTab?.file?.path,
-      text:
-        "\n\n" +
-        getPGN(root, {
-          headers,
-        }),
+      text: "\n\n",
     });
-  }, [headers, root, setActiveTab, activeTab]);
+  }, [setActiveTab, dispatch, activeTab?.file?.path, root, headers]);
 
   useHotkeys([["Ctrl+S", () => saveFile()]]);
 

@@ -1,6 +1,7 @@
 import {
   Group,
   NumberInput,
+  Select,
   Stack,
   Text,
   TextInput,
@@ -11,6 +12,7 @@ import dayjs from "dayjs";
 import { memo, useContext } from "react";
 import { GameHeaders } from "@/utils/treeReducer";
 import { TreeDispatchContext } from "./TreeStateContext";
+import { Outcome } from "@/utils/db";
 
 const useStyles = createStyles((theme) => ({
   nameInput: {
@@ -46,6 +48,9 @@ const useStyles = createStyles((theme) => ({
       cursor: "default",
       backgroundColor: "transparent",
     },
+  },
+  resultInput: {
+    "& input": { textAlign: "center", paddingRight: 0 },
   },
 }));
 
@@ -105,7 +110,23 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
         </Group>
       </Stack>
       <Stack align="center" justify="end" spacing={0}>
-        <Text>{headers.result}</Text>
+        <Select
+          data={["1-0", "0-1", "1/2-1/2", "*"]}
+          value={headers.result}
+          variant="unstyled"
+          rightSection={<></>}
+          rightSectionWidth={0}
+          className={classes.resultInput}
+          onChange={(result) =>
+            dispatch({
+              type: "SET_HEADERS",
+              payload: {
+                ...headers,
+                result: result as Outcome,
+              },
+            })
+          }
+        />
         {/* <Text>{outcome.replaceAll("1/2", "½")}</Text> */}
         <DateInput
           variant="unstyled"
