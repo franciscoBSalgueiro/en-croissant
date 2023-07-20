@@ -307,6 +307,44 @@ export function parseUci(move: string) {
     return { from, to, promotion };
 }
 
+export function parseKeyboardMove(san: string, fen: string) {
+    console.log(san);
+    function cleanSan(san: string) {
+        if (san.length > 2) {
+            const cleanedSan = san
+                .replace(/^([kqbnr])/i, (_, match) => match.toUpperCase())
+                .replace("o-o-o", "O-O-O")
+                .replace("o-o", "O-O");
+            return cleanedSan;
+        }
+        return san;
+    }
+
+    function makeMove(fen: string, san: string) {
+        const chess = new Chess(fen);
+        const move = chess.move(san);
+        if (move) {
+            return {
+                from: move.from as Square,
+                to: move.to as Square,
+                promotion: move.promotion,
+            };
+        }
+        return null;
+    }
+    try {
+        return makeMove(fen, san);
+    } catch (e) {
+        console.log(e);
+        try {
+            return makeMove(fen, cleanSan(san));
+        } catch (e) {
+            console.log(e);
+            return null;
+        }
+    }
+}
+
 export async function getOpening(
     root: TreeNode,
     position: number[]

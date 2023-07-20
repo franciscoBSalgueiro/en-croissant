@@ -4,6 +4,7 @@ import {
   Box,
   createStyles,
   Group,
+  Input,
   Modal,
   SimpleGrid,
   Stack,
@@ -31,7 +32,13 @@ import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { memo, useContext, useMemo, useState } from "react";
 import Chessground from "react-chessground";
-import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
+import {
+  handleMove,
+  moveToKey,
+  parseKeyboardMove,
+  parseUci,
+  toDests,
+} from "@/utils/chess";
 import { Outcome } from "@/utils/db";
 import { formatMove } from "@/utils/format";
 import { getBoardSize, invoke } from "@/utils/misc";
@@ -43,7 +50,9 @@ import { formatScore } from "@/utils/score";
 import { useAtomValue } from "jotai";
 import {
   autoPromoteAtom,
+  currentTabAtom,
   forcedEnPassantAtom,
+  moveInputAtom,
   showArrowsAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
@@ -116,10 +125,13 @@ function BoardPlay({
     });
   }
 
+  const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
+
+  const activeTab = useAtomValue(currentTabAtom);
 
   const dests = toDests(chess, forcedEP);
   const turn = chess ? formatMove(chess.turn()) : undefined;
@@ -168,7 +180,7 @@ function BoardPlay({
             </ActionIcon>
           </Tooltip>
         )}
-        {addGame && (
+        {addGame && activeTab?.file && (
           <Tooltip label={"Add Game"}>
             <ActionIcon onClick={() => addGame()}>
               <IconPlus />
@@ -301,16 +313,52 @@ function BoardPlay({
         </Box>
 
         <Group position={"apart"} h={20}>
-          {currentNode.score ? (
-            <Text>{formatScore(currentNode.score)}</Text>
-          ) : (
-            <div />
-          )}
+          <Group>
+            {moveInput && <MoveInput currentNode={currentNode} />}
+            {currentNode.score && <Text>{formatScore(currentNode.score)}</Text>}
+          </Group>
 
           {controls}
         </Group>
       </Stack>
     </>
+  );
+}
+
+function MoveInput({ currentNode }: { currentNode: TreeNode }) {
+  const dispatch = useContext(TreeDispatchContext);
+  const [move, setMove] = useState("");
+  const [error, setError] = useState("");
+
+  return (
+    <Input
+      size="sm"
+      w={80}
+      onChange={(e) => {
+        setMove(e.currentTarget.value);
+        setError("");
+      }}
+      error={error}
+      value={move}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const m = move.trim();
+          if (m.length > 0) {
+            const parsed = parseKeyboardMove(m, currentNode.fen);
+            console.log(parsed);
+            if (parsed) {
+              dispatch({
+                type: "MAKE_MOVE",
+                payload: parsed,
+              });
+              setMove("");
+            } else {
+              setError("Invalid move");
+            }
+          }
+        }
+      }}
+    />
   );
 }
 

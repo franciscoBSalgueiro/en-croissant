@@ -17,6 +17,7 @@ import {
   showArrowsAtom,
   showDestsAtom,
   primaryColorAtom,
+  moveInputAtom,
 } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
@@ -82,6 +83,7 @@ const pieceSets = [
 ];
 
 function SettingsPage() {
+  const [moveInput, setMoveInput] = useAtom(moveInputAtom);
   const [showDests, setShowDests] = useAtom(showDestsAtom);
   const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
   const [autoPromote, setAutoPromote] = useAtom(autoPromoteAtom);
@@ -128,6 +130,22 @@ function SettingsPage() {
             size="lg"
             checked={showArrows}
             onChange={(event) => setShowArrows(event.currentTarget.checked)}
+            className={classes.switch}
+          />
+        </Group>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Text Move Input</Text>
+            <Text size="xs" color="dimmed">
+              Enter moves in text format
+            </Text>
+          </div>
+          <Switch
+            onLabel="ON"
+            offLabel="OFF"
+            size="lg"
+            checked={moveInput}
+            onChange={(event) => setMoveInput(event.currentTarget.checked)}
             className={classes.switch}
           />
         </Group>

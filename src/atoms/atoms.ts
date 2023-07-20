@@ -49,6 +49,7 @@ export const currentTabAtom = atom(
 
 // Settings
 
+export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
