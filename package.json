@@ -4,7 +4,7 @@
   "version": "0.3.1",
   "scripts": {
     "dev": "next dev -p 1420",
-    "build": "next build && next export -o dist",
+    "build": "next build",
     "tauri": "tauri",
     "pretty": "prettier --write \"./src/**/*.{ts,tsx}\"",
     "test": "jest",
