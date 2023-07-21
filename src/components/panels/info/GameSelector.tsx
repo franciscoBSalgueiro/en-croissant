@@ -27,7 +27,6 @@ export default function GameSelector({
   }
 
   const activeTab = useAtomValue(currentTabAtom);
-  const dispatch = useContext(TreeDispatchContext);
 
   const activePage = activeTab?.gameNumber ?? 0;
   const total = activeTab?.file?.numGames ?? 0;
@@ -46,30 +45,16 @@ export default function GameSelector({
         const newGames = new Map(prev);
         data.forEach(async (game, index) => {
           const { headers } = await parsePGN(game);
-          newGames.set(startIndex + index, headers.event);
+          newGames.set(
+            startIndex + index,
+            `${headers.white} - ${headers.black}`
+          );
         });
         return newGames;
       });
     },
     [activeTab, setGames]
   );
-
-  useEffect(() => {
-    async function load() {
-      if (!activeTab?.file) return;
-      const data = await read_games(
-        activeTab.file.path,
-        activePage,
-        activePage
-      );
-      const tree = await parsePGN(data[0]);
-      dispatch({
-        type: "SET_STATE",
-        payload: tree,
-      });
-    }
-    load();
-  }, [activePage, activeTab, dispatch]);
 
   useEffect(() => {
     if (games.size === 0) {
@@ -83,7 +68,7 @@ export default function GameSelector({
       <Accordion>
         <Accordion.Item value="customization">
           <Accordion.Control>
-            {formatNumber(activePage + 1)}. {headers.event}
+            {formatNumber(activePage + 1)}. {headers.white} - {headers.black}
           </Accordion.Control>
           <Accordion.Panel h={200} mb={20}>
             <InfiniteLoader
@@ -158,14 +143,22 @@ function GameRow({
   const total = activeTab?.file?.numGames ?? 0;
   const [deleteModal, toggleDelete] = useToggle();
   const { classes } = useStyles();
+  const dispatch = useContext(TreeDispatchContext);
 
-  function setPage(page: number) {
+  async function setPage(page: number) {
     setActiveTab((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         gameNumber: page,
       };
+    });
+
+    const data = await read_games(activeTab!.file!.path, page, page);
+    const tree = await parsePGN(data[0]);
+    dispatch({
+      type: "SET_STATE",
+      payload: tree,
     });
   }
 

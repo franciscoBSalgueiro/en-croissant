@@ -478,8 +478,6 @@ function innerParsePGN(
 export async function parsePGN(pgn: string, halfMoves = 0): Promise<TreeState> {
     const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
 
-    console.log(tokens);
-
     const headers = getPgnHeaders(tokens);
     const tree = innerParsePGN(tokens, headers.fen, halfMoves);
     tree.headers = headers;
@@ -498,8 +496,18 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         }
     }
 
-    const { Black, White, BlackElo, WhiteElo, Date, Site, Event, Result, FEN } =
-        Object.fromEntries(headersN);
+    const {
+        Black,
+        White,
+        BlackElo,
+        WhiteElo,
+        Date,
+        Site,
+        Event,
+        Result,
+        FEN,
+        Round,
+    } = Object.fromEntries(headersN);
 
     const headers: GameHeaders = {
         id: 0,
@@ -507,6 +515,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         result: (Result as Outcome) ?? Outcome.Unknown,
         black: Black ?? "?",
         white: White ?? "?",
+        round: Round ?? "?",
         black_elo: BlackElo ? parseInt(BlackElo) : 0,
         white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
         date: Date ?? "",
