@@ -43,6 +43,7 @@ once_cell = "1.17.1"
 rand = "0.8.5"
 vampirc-uci = "0.11.1"
 tempfile = "3.6.0"
+quick-xml = { version= "0.29.0", features = ["serialize"] }
 
 [features]
 # by default Tauri runs in production mode
