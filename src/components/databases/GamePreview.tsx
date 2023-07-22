@@ -1,12 +1,19 @@
-import { AspectRatio, Container, ScrollArea } from "@mantine/core";
-import { useCounter, useHotkeys } from "@mantine/hooks";
-import { Chess } from "chess.js";
+import { AspectRatio, Container } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import Chessground from "react-chessground";
 import MoveControls from "../common/MoveControls";
 import { useSetAtom } from "jotai";
 import { activeTabAtom } from "@/atoms/atoms";
+import GameNotation from "../boards/GameNotation";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
+import { useImmerReducer } from "use-immer";
+import { parsePGN } from "@/utils/chess";
+import treeReducer, { defaultTree, getNodeAtPath } from "@/utils/treeReducer";
 
 function GamePreview({
   id,
@@ -18,35 +25,8 @@ function GamePreview({
   hideControls?: boolean;
 }) {
   const router = useRouter();
-  const globalChess = new Chess();
-  let totalMoves = 0;
-  pgn.split(" ").forEach((move) => {
-    globalChess.move(move);
-    totalMoves += 1;
-  });
-  const globalPGN = globalChess.pgn();
-  const [fen, setFen] = useState("");
-  const [curMove, curMoveHandler] = useCounter(totalMoves, {
-    min: 0,
-    max: totalMoves,
-  });
 
   const setActiveTab = useSetAtom(activeTabAtom);
-
-  useEffect(() => {
-    const chess = new Chess();
-    const moves = pgn.split(" ");
-    const movesToLoad = moves.slice(0, curMove);
-    movesToLoad.forEach((move) => {
-      chess.move(move);
-    });
-    setFen(chess.fen());
-  }, [curMove, pgn]);
-
-  useHotkeys([
-    ["ArrowLeft", curMoveHandler.decrement],
-    ["ArrowRight", curMoveHandler.increment],
-  ]);
 
   function goToGame() {
     if (id) {
@@ -55,37 +35,67 @@ function GamePreview({
     }
   }
 
+  const [treeState, dispatch] = useImmerReducer(
+    treeReducer,
+    undefined,
+    defaultTree
+  );
+
+  useEffect(() => {
+    async function loadPGN() {
+      const parsed = await parsePGN(pgn);
+      dispatch({ type: "SET_STATE", payload: parsed });
+    }
+    loadPGN();
+  }, [dispatch, pgn]);
+
+  useHotkeys([
+    ["ArrowLeft", () => dispatch({ type: "GO_TO_PREVIOUS" })],
+    ["ArrowRight", () => dispatch({ type: "GO_TO_NEXT" })],
+  ]);
+
   return (
-    <>
-      <Container sx={{ width: "100%" }} onClick={() => goToGame()}>
-        <AspectRatio ratio={1} mx="15%">
-          <Chessground
-            coordinates={false}
-            animation={{
-              enabled: false,
-            }}
-            style={{ justifyContent: "start" }}
-            width={"100%"}
-            height={"100%"}
-            viewOnly={true}
-            fen={fen}
-          />
-        </AspectRatio>
-        {!hideControls && (
-          <>
-            <ScrollArea my={20} h={100} offsetScrollbars>
-              {globalPGN}
-            </ScrollArea>
-            <MoveControls
-              goToStart={() => curMoveHandler.set(0)}
-              goToEnd={() => curMoveHandler.set(totalMoves)}
-              goToNext={curMoveHandler.increment}
-              goToPrevious={curMoveHandler.decrement}
-            />
-          </>
-        )}
-      </Container>
-    </>
+    <TreeStateContext.Provider value={treeState}>
+      <TreeDispatchContext.Provider value={dispatch}>
+        {" "}
+        <Container sx={{ width: "100%" }} onClick={() => goToGame()}>
+          <AspectRatio ratio={1} mx="15%">
+            <PreviewBoard />
+          </AspectRatio>
+          {!hideControls && (
+            <>
+              <GameNotation boardSize={400} />
+              <MoveControls
+                goToStart={() => dispatch({ type: "GO_TO_START" })}
+                goToEnd={() => dispatch({ type: "GO_TO_END" })}
+                goToNext={() => dispatch({ type: "GO_TO_NEXT" })}
+                goToPrevious={() => dispatch({ type: "GO_TO_PREVIOUS" })}
+              />
+            </>
+          )}
+        </Container>
+      </TreeDispatchContext.Provider>
+    </TreeStateContext.Provider>
+  );
+}
+
+function PreviewBoard() {
+  const tree = useContext(TreeStateContext);
+  const node = getNodeAtPath(tree.root, tree.position);
+  const fen = node.fen;
+
+  return (
+    <Chessground
+      coordinates={false}
+      animation={{
+        enabled: false,
+      }}
+      style={{ justifyContent: "start" }}
+      width={"100%"}
+      height={"100%"}
+      viewOnly={true}
+      fen={fen}
+    />
   );
 }
 

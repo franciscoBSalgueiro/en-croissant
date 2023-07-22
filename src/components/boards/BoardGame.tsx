@@ -321,6 +321,7 @@ function BoardGame() {
             boardSize={notationExpanded ? 1750 : 600}
             notationExpanded={notationExpanded}
             setNotationExpanded={setNotationExpanded}
+            topBar
           />
           <MoveControls />
         </>

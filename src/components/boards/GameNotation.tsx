@@ -47,12 +47,14 @@ const useStyles = createStyles((theme) => ({
 
 function GameNotation({
   boardSize,
+  topBar,
   setNotationExpanded,
   notationExpanded,
 }: {
   boardSize: number;
-  setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  notationExpanded: boolean;
+  topBar?: boolean;
+  setNotationExpanded?: React.Dispatch<React.SetStateAction<boolean>>;
+  notationExpanded?: boolean;
 }) {
   const { headers, position, root } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
@@ -92,16 +94,18 @@ function GameNotation({
         viewportRef={viewport}
       >
         <Stack>
-          <NotationHeader
-            setNotationExpanded={setNotationExpanded}
-            notationExpanded={notationExpanded}
-            invisible={invisible}
-            toggleVisible={toggleVisible}
-            showComments={showComments}
-            toggleComments={toggleComments}
-            showVariations={showVariations}
-            toggleVariations={toggleVariations}
-          />
+          {topBar && (
+            <NotationHeader
+              setNotationExpanded={setNotationExpanded}
+              notationExpanded={notationExpanded}
+              invisible={invisible}
+              toggleVisible={toggleVisible}
+              showComments={showComments}
+              toggleComments={toggleComments}
+              showVariations={showVariations}
+              toggleVariations={toggleVariations}
+            />
+          )}
           <Box>
             {invisible && (
               <Overlay
@@ -166,8 +170,8 @@ const NotationHeader = memo(function NotationHeader({
   showVariations,
   toggleVariations,
 }: {
-  setNotationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  notationExpanded: boolean;
+  setNotationExpanded?: React.Dispatch<React.SetStateAction<boolean>>;
+  notationExpanded?: boolean;
   invisible: boolean;
   toggleVisible: () => void;
   showComments: boolean;
@@ -181,13 +185,15 @@ const NotationHeader = memo(function NotationHeader({
       <Group style={{ justifyContent: "space-between" }}>
         <OpeningName />
         <Group spacing="sm">
-          <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
-            {notationExpanded ? (
-              <IconArrowsDiagonalMinimize2 size={15} />
-            ) : (
-              <IconArrowsDiagonal size={15} />
-            )}
-          </ActionIcon>
+          {setNotationExpanded && (
+            <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
+              {notationExpanded ? (
+                <IconArrowsDiagonalMinimize2 size={15} />
+              ) : (
+                <IconArrowsDiagonal size={15} />
+              )}
+            </ActionIcon>
+          )}
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
             <ActionIcon onClick={() => toggleVisible()}>
               {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}

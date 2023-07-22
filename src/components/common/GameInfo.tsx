@@ -77,7 +77,7 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
   const { classes } = useStyles();
   return (
     <div>
-      <Stack align="center" spacing={0} mx="md">
+      <Stack align="center" spacing={0} mx="md" mt="sm">
         <Group>
           <TextInput
             variant="unstyled"

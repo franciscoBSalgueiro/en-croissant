@@ -189,6 +189,7 @@ function BoardAnalysis() {
               }
               setNotationExpanded={setNotationExpanded}
               notationExpanded={notationExpanded}
+              topBar
             />
             <MoveControls />
           </Stack>
