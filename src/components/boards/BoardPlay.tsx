@@ -83,8 +83,6 @@ interface ChessboardProps {
   addGame?: () => void;
 }
 
-const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
-
 function BoardPlay({
   currentNode,
   headers,
@@ -389,6 +387,11 @@ const PromotionModal = memo(function PromotionModal({
   const file = fileToNumber[pendingMove?.to[0] ?? "a"];
   const rank = parseInt(pendingMove?.to[1] ?? "1");
   const ref = useClickOutside(() => setPendingMove(null));
+
+  const promotionPieces: PieceSymbol[] = [QUEEN, KNIGHT, ROOK, BISHOP];
+  if (turn === "black") {
+    promotionPieces.reverse();
+  }
 
   return (
     <>
