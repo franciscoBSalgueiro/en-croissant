@@ -5,13 +5,16 @@ import {
   createStyles,
   Group,
   Input,
-  Modal,
-  SimpleGrid,
   Stack,
   Text,
   Tooltip,
 } from "@mantine/core";
-import { useHotkeys, useToggle, useViewportSize } from "@mantine/hooks";
+import {
+  useClickOutside,
+  useHotkeys,
+  useToggle,
+  useViewportSize,
+} from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconDeviceFloppy,
@@ -208,11 +211,6 @@ function BoardPlay({
       )}
 
       <Stack justify="center">
-        <PromotionModal
-          pendingMove={pendingMove}
-          setPendingMove={setPendingMove}
-          turn={turn}
-        />
         {error && (
           <Alert
             icon={<IconAlertCircle size="1rem" />}
@@ -223,6 +221,11 @@ function BoardPlay({
           </Alert>
         )}
         <Box className={classes.chessboard} ref={boardRef}>
+          <PromotionModal
+            pendingMove={pendingMove}
+            setPendingMove={setPendingMove}
+            turn={turn}
+          />
           <Chessground
             width={boardSize}
             height={boardSize}
@@ -362,6 +365,17 @@ function MoveInput({ currentNode }: { currentNode: TreeNode }) {
   );
 }
 
+const fileToNumber: Record<string, number> = {
+  a: 1,
+  b: 2,
+  c: 3,
+  d: 4,
+  e: 5,
+  f: 6,
+  g: 7,
+  h: 8,
+};
+
 const PromotionModal = memo(function PromotionModal({
   pendingMove,
   setPendingMove,
@@ -372,40 +386,65 @@ const PromotionModal = memo(function PromotionModal({
   turn?: Color;
 }) {
   const dispatch = useContext(TreeDispatchContext);
+  const file = fileToNumber[pendingMove?.to[0] ?? "a"];
+  const rank = parseInt(pendingMove?.to[1] ?? "1");
+  const ref = useClickOutside(() => setPendingMove(null));
+
   return (
-    <Modal
-      opened={pendingMove !== null}
-      onClose={() => setPendingMove(null)}
-      withCloseButton={false}
-      size={375}
-    >
-      <SimpleGrid cols={2}>
-        {promotionPieces.map((p) => (
-          <ActionIcon
-            key={p}
-            sx={{ width: "100%", height: "100%", position: "relative" }}
-            onClick={() => {
-              dispatch({
-                type: "MAKE_MOVE",
-                payload: {
-                  from: pendingMove!.from,
-                  to: pendingMove!.to,
-                  promotion: p,
-                },
-              });
-              setPendingMove(null);
+    <>
+      {pendingMove && (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              zIndex: 100,
+              width: "100%",
+              height: "100%",
+              background: "rgba(0,0,0,0.5)",
+            }}
+          />
+          <div
+            ref={ref}
+            style={{
+              position: "absolute",
+              zIndex: 100,
+              left: `${(file - 1) * 12.5}%`,
+              top: rank === 1 ? "50%" : "0%",
+              background: "rgba(255,255,255,0.8)",
             }}
           >
-            <Piece
-              piece={{
-                type: p,
-                color: turn === "white" ? "w" : "b",
-              }}
-            />
-          </ActionIcon>
-        ))}
-      </SimpleGrid>
-    </Modal>
+            <Stack spacing={0}>
+              {promotionPieces.map((p) => (
+                <ActionIcon
+                  key={p}
+                  w="100%"
+                  h="100%"
+                  pos="relative"
+                  onClick={() => {
+                    dispatch({
+                      type: "MAKE_MOVE",
+                      payload: {
+                        from: pendingMove!.from,
+                        to: pendingMove!.to,
+                        promotion: p,
+                      },
+                    });
+                    setPendingMove(null);
+                  }}
+                >
+                  <Piece
+                    piece={{
+                      type: p,
+                      color: turn === "white" ? "w" : "b",
+                    }}
+                  />
+                </ActionIcon>
+              ))}
+            </Stack>
+          </div>
+        </>
+      )}
+    </>
   );
 });
 
