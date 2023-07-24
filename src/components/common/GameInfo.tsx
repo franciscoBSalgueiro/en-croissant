@@ -82,6 +82,7 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
           <TextInput
             variant="unstyled"
             size="lg"
+            w={headers.round !== "?" ? "100%" : 600}
             placeholder="Unknown Event"
             className={classes.eventInput}
             value={headers.event === "?" ? "" : headers.event}
@@ -96,31 +97,33 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
             }
             disabled={disabled}
           />
-          <Group spacing={0} className={classes.eventInput}>
-            <Text color="dimmed" size="sm">
-              ( Round
-            </Text>
-            <TextInput
-              size="sm"
-              variant="unstyled"
-              w={30}
-              placeholder="?"
-              value={headers.round}
-              onChange={(e) =>
-                dispatch({
-                  type: "SET_HEADERS",
-                  payload: {
-                    ...headers,
-                    round: e.currentTarget.value,
-                  },
-                })
-              }
-              disabled={disabled}
-            />
-            <Text color="dimmed" size="sm">
-              )
-            </Text>
-          </Group>
+          {headers.round !== "?" && (
+            <Group spacing={0} className={classes.eventInput}>
+              <Text color="dimmed" size="sm">
+                ( Round
+              </Text>
+              <TextInput
+                size="sm"
+                variant="unstyled"
+                w={30}
+                placeholder="?"
+                value={headers.round}
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_HEADERS",
+                    payload: {
+                      ...headers,
+                      round: e.currentTarget.value,
+                    },
+                  })
+                }
+                disabled={disabled}
+              />
+              <Text color="dimmed" size="sm">
+                )
+              </Text>
+            </Group>
+          )}
         </Group>
       </Stack>
       <Group align="apart" mx="md" grow>

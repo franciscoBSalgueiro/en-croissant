@@ -36,6 +36,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import PiecesGrid from "@/components/boards/PiecesGrid";
 import Chessground from "react-chessground";
 import { getNodeAtPath } from "@/utils/treeReducer";
+import { EMPTY_BOARD } from "@/utils/chess";
 
 const useStyles = createStyles(() => ({
   clickable: {
@@ -123,23 +124,28 @@ function SearchPanel() {
   const boardRef = useRef(null);
   const tree = useContext(TreeStateContext);
   const node = getNodeAtPath(tree.root, tree.position);
-  const [fen, setFen] = useState("");
+  const [fen, setFen] = useState(EMPTY_BOARD);
   const [games, setGames] = useState<NormalizedGame[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchSimilarStructure = async () => {
-      const fenResult = await similarStructure(node.fen);
-      setFen(fenResult);
-    };
+  const fetchSimilarStructure = async (fen: string) => {
+    const fenResult = await similarStructure(fen);
+    setFen(fenResult);
+  };
 
-    fetchSimilarStructure();
-  }, [node.fen]);
   const referenceDb = useAtomValue(referenceDbAtom);
   console.log(fen);
 
   return (
     <ScrollArea h={600}>
       <Stack>
+        <Group>
+          <Button onClick={() => setFen(node.fen)}>Game</Button>
+          <Button onClick={() => fetchSimilarStructure(node.fen)}>
+            Similar Structure
+          </Button>
+          <Button onClick={() => setFen(EMPTY_BOARD)}>Empty</Button>
+        </Group>
         <Group>
           <Box ref={boardRef}>
             <Chessground
@@ -174,11 +180,12 @@ function SearchPanel() {
           />
         </Group>
         <Button
-          onClick={() => {
-            searchPosition(referenceDb, "partial", fen).then((openings) => {
-              console.log(openings);
-              setGames(openings[1]);
-            });
+          loading={loading}
+          onClick={async () => {
+            setLoading(true);
+            const openings = await searchPosition(referenceDb, "partial", fen);
+            setGames(openings[1]);
+            setLoading(false);
           }}
         >
           Search

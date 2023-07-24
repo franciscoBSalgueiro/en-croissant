@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import GenericCard from "../common/GenericCard";
 import {
   Button,
+  Center,
   Group,
   Input,
   Modal,
@@ -112,7 +113,7 @@ function FilesPage() {
           </ScrollArea>
         </Stack>
 
-        {selected && (
+        {selected ? (
           <>
             <ConfirmModal
               title={"Delete file"}
@@ -166,6 +167,10 @@ function FilesPage() {
               </Group>
             </Stack>
           </>
+        ) : (
+          <Center h="100%">
+            <Text>No file selected</Text>
+          </Center>
         )}
       </Group>
     </div>

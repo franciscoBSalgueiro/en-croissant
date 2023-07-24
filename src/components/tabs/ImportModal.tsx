@@ -17,6 +17,7 @@ import { FileInfo } from "@/utils/tabs";
 import FileInput from "../common/FileInput";
 import { useAtom } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
+import { getGameName } from "@/utils/treeReducer";
 
 export default function ImportModal({
   openModal,
@@ -119,7 +120,7 @@ export default function ImportModal({
                 sessionStorage.setItem(prev.value, JSON.stringify(tree));
                 return {
                   ...prev,
-                  name: `${tree.headers.white} - ${tree.headers.black} (Imported)`,
+                  name: `${getGameName(tree.headers)} (Imported)`,
                   file: fileInfo,
                   gameNumber: 0,
                   type: "analysis",
@@ -141,7 +142,7 @@ export default function ImportModal({
               sessionStorage.setItem(prev.value, JSON.stringify(tree));
               return {
                 ...prev,
-                name: `${tree.headers.white} - ${tree.headers.black} (Imported)`,
+                name: `${getGameName(tree.headers)} (Imported)`,
                 type: "analysis",
               };
             });

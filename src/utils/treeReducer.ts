@@ -105,6 +105,19 @@ export function headersToPGN(game: GameHeaders): string {
     return headers;
 }
 
+export function getGameName(headers: GameHeaders) {
+    if (
+        (headers.white && headers.white !== "?") ||
+        (headers.black && headers.black !== "?")
+    ) {
+        return `${headers.white} - ${headers.black}`;
+    }
+    if (headers.event) {
+        return headers.event;
+    }
+    return "Unknown";
+}
+
 export type TreeAction =
     | { type: "SET_STATE"; payload: TreeState }
     | { type: "RESET" }

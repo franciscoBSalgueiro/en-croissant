@@ -5,7 +5,7 @@ import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
-import { GameHeaders } from "@/utils/treeReducer";
+import { GameHeaders, getGameName } from "@/utils/treeReducer";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { invoke } from "@/utils/misc";
 import { useAtom, useAtomValue } from "jotai";
@@ -45,10 +45,7 @@ export default function GameSelector({
         const newGames = new Map(prev);
         data.forEach(async (game, index) => {
           const { headers } = await parsePGN(game);
-          newGames.set(
-            startIndex + index,
-            `${headers.white} - ${headers.black}`
-          );
+          newGames.set(startIndex + index, getGameName(headers));
         });
         return newGames;
       });
@@ -68,7 +65,7 @@ export default function GameSelector({
       <Accordion>
         <Accordion.Item value="customization">
           <Accordion.Control>
-            {formatNumber(activePage + 1)}. {headers.white} - {headers.black}
+            {formatNumber(activePage + 1)}. {getGameName(headers)}
           </Accordion.Control>
           <Accordion.Panel h={200} mb={20}>
             <InfiniteLoader
