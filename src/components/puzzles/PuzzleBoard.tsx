@@ -34,7 +34,7 @@ const useStyles = createStyles(() => ({
   },
 }));
 
-const promotionPieces: PieceSymbol[] = [QUEEN, ROOK, KNIGHT, BISHOP];
+const promotionPieces: PieceSymbol[] = [QUEEN, KNIGHT, ROOK, BISHOP];
 
 function PuzzleBoard({
   puzzles,

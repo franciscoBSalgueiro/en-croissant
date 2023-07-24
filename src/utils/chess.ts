@@ -31,6 +31,8 @@ import {
     TreeState,
 } from "./treeReducer";
 
+export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
+
 function parseCsl(csl: string): DrawShape[] {
     const shapes = csl.split(",").map((square) => {
         if (square.length === 2) {

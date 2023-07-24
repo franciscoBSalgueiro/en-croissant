@@ -18,7 +18,7 @@ use std::{fs::create_dir_all, path::Path};
 
 use chess::{AnalysisCacheKey, BestMoves};
 use dashmap::DashMap;
-use db::{NormalizedGame, PositionStats};
+use db::{NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
 use reqwest::Url;
 use tauri::{
@@ -28,7 +28,7 @@ use tauri::{
 
 use crate::chess::{
     analyze_game, get_engine_name, get_single_best_move, make_move, make_random_move, put_piece,
-    validate_fen,
+    similar_structure, validate_fen,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
@@ -107,7 +107,7 @@ pub struct AppState {
         String,
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
-    line_cache: DashMap<(String, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
+    line_cache: DashMap<(PositionQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     db_cache: Mutex<Vec<(i32, Option<String>, Vec<u8>, i32, i32, i32)>>,
     analysis_cache: DashMap<AnalysisCacheKey, Vec<BestMoves>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
@@ -194,7 +194,8 @@ fn main() {
             delete_indexes,
             create_indexes,
             lex_pgn,
-            parse_players_list
+            parse_players_list,
+            similar_structure
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

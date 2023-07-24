@@ -1,18 +1,8 @@
-import {
-  Card,
-  CloseButton,
-  Divider,
-  SimpleGrid,
-  createStyles,
-} from "@mantine/core";
-import { invoke } from "@tauri-apps/api";
-import { useContext } from "react";
-import Piece from "../common/Piece";
-import { TreeDispatchContext } from "../common/TreeStateContext";
+import { Card, CloseButton, Divider, createStyles } from "@mantine/core";
 import FenInput from "../panels/info/FenInput";
-
-const pieces = ["p", "n", "b", "r", "q", "k"] as const;
-const colors = ["w", "b"] as const;
+import PiecesGrid from "./PiecesGrid";
+import { TreeDispatchContext } from "../common/TreeStateContext";
+import { useContext } from "react";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -33,8 +23,8 @@ function EditingCard({
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
   const { classes } = useStyles();
+  const dispatch = useContext(TreeDispatchContext);
 
   return (
     <Card
@@ -48,33 +38,16 @@ function EditingCard({
       />
       <FenInput currentFen={fen} />
       <Divider my="md" />
-      <SimpleGrid cols={6}>
-        {colors.map((color) =>
-          pieces.map((piece) => (
-            <Piece
-              key={piece + color}
-              putPiece={(to, piece) => {
-                invoke<string>("put_piece", {
-                  fen,
-                  piece: piece.type,
-                  square: to,
-                  color: piece.color,
-                }).then((newFen) => {
-                  dispatch({
-                    type: "SET_FEN",
-                    payload: newFen,
-                  });
-                });
-              }}
-              boardRef={boardRef}
-              piece={{
-                type: piece,
-                color,
-              }}
-            />
-          ))
-        )}
-      </SimpleGrid>
+      <PiecesGrid
+        fen={fen}
+        boardRef={boardRef}
+        onPut={(newFen) => {
+          dispatch({
+            type: "SET_FEN",
+            payload: newFen,
+          });
+        }}
+      />
     </Card>
   );
 }

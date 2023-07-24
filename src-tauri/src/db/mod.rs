@@ -2,18 +2,14 @@ mod encoding;
 mod models;
 mod ops;
 mod schema;
+mod search;
+
 use crate::{
-    db::{
-        encoding::{decode_moves, position_search},
-        models::*,
-        ops::*,
-        schema::*,
-    },
+    db::{encoding::decode_moves, models::*, ops::*, schema::*},
     opening::get_opening_from_eco,
     AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
-use dashmap::{mapref::entry::Entry, DashMap};
 use diesel::{
     connection::SimpleConnection,
     insert_into,
@@ -23,14 +19,12 @@ use diesel::{
     sql_types::Text,
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, Board, ByColor, Chess, Piece, Position};
 
 use std::{
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::Mutex,
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -44,16 +38,7 @@ use self::encoding::encode_move;
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
 pub use self::schema::puzzles;
-
-fn get_material_count(board: &Board) -> ByColor<u8> {
-    board.material().map(|material| {
-        material.pawn
-            + material.knight * 3
-            + material.bishop * 3
-            + material.rook * 5
-            + material.queen * 9
-    })
-}
+pub use self::search::{is_position_in_db, search_position, PositionQuery, PositionStats};
 
 const DATABASE_VERSION: &str = "1.0.0";
 
@@ -73,21 +58,24 @@ const BLACK_PAWN: Piece = Piece {
     role: shakmaty::Role::Pawn,
 };
 
+type MaterialCount = ByColor<u8>;
+
+fn get_material_count(board: &Board) -> MaterialCount {
+    board.material().map(|material| {
+        material.pawn
+            + material.knight * 3
+            + material.bishop * 3
+            + material.rook * 5
+            + material.queen * 9
+    })
+}
+
 fn get_pawn_home(board: &Board) -> u16 {
     let white_pawns = board.by_piece(WHITE_PAWN);
     let black_pawns = board.by_piece(BLACK_PAWN);
     let second_rank_pawns = (white_pawns.0 >> 8) as u8;
     let seventh_rank_pawns = (black_pawns.0 >> 48) as u8;
     (second_rank_pawns as u16) | ((seventh_rank_pawns as u16) << 8)
-}
-
-/// Returns true if the end pawn structure is reachable
-fn is_end_reachable(end: u16, pos: u16) -> bool {
-    end & !pos == 0
-}
-
-fn is_material_reachable(end: &ByColor<u8>, pos: &ByColor<u8>) -> bool {
-    end.white <= pos.white && end.black <= pos.black
 }
 
 #[derive(Debug)]
@@ -1205,209 +1193,4 @@ pub async fn delete_database(
 pub fn clear_games(state: tauri::State<'_, AppState>) {
     let mut state = state.db_cache.lock().unwrap();
     state.clear();
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PositionStats {
-    #[serde(rename = "move")]
-    pub move_: String,
-    pub white: i32,
-    pub draw: i32,
-    pub black: i32,
-}
-
-#[tauri::command]
-pub async fn search_position(
-    file: PathBuf,
-    fen: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), String> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    if let Some(pos) = state.line_cache.get(&(fen.clone(), file.clone())) {
-        return Ok(pos.clone());
-    }
-
-    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
-    let processed_position: Chess = processed_fen
-        .into_position(shakmaty::CastlingMode::Standard)
-        .or(Err("Invalid fen"))?;
-
-    let material = get_material_count(processed_position.board());
-    let pawn_home = get_pawn_home(processed_position.board());
-
-    // start counting the time
-    let start = Instant::now();
-    println!("start: {:?}", start.elapsed());
-
-    let permit = state.new_request.acquire().await.unwrap();
-    let mut games = state.db_cache.lock().unwrap();
-
-    if games.is_empty() {
-        *games = games::table
-            .select((
-                games::id,
-                games::result,
-                games::moves,
-                games::pawn_home,
-                games::white_material,
-                games::black_material,
-            ))
-            .load(db)
-            .expect("load games");
-
-        println!("got {} games: {:?}", games.len(), start.elapsed());
-    }
-
-    let openings: DashMap<String, PositionStats> = DashMap::new();
-    let sample_games: Mutex<Vec<i32>> = Mutex::new(Vec::new());
-
-    games.par_iter().for_each(
-        |(id, result, game, end_pawn_home, white_material, black_material)| {
-            if state.new_request.available_permits() == 0 {
-                return;
-            }
-            let end_material: ByColor<u8> = ByColor {
-                white: *white_material as u8,
-                black: *black_material as u8,
-            };
-            if is_end_reachable(*end_pawn_home as u16, pawn_home)
-                && is_material_reachable(&end_material, &material)
-            {
-                if let Ok(Some(m)) =
-                    position_search(game, &processed_position, &end_material, pawn_home)
-                {
-                    if sample_games.lock().unwrap().len() < 10 {
-                        sample_games.lock().unwrap().push(*id);
-                    }
-                    let entry = openings.entry(m);
-                    match entry {
-                        Entry::Occupied(mut e) => {
-                            let opening = e.get_mut();
-                            match result.as_deref() {
-                                Some("1-0") => opening.white += 1,
-                                Some("0-1") => opening.black += 1,
-                                Some("1/2-1/2") => opening.draw += 1,
-                                _ => (),
-                            }
-                        }
-                        Entry::Vacant(e) => {
-                            let mut opening = PositionStats {
-                                black: 0,
-                                white: 0,
-                                draw: 0,
-                                move_: e.key().to_string(),
-                            };
-                            match result.as_deref() {
-                                Some("1-0") => opening.white = 1,
-                                Some("0-1") => opening.black = 1,
-                                Some("1/2-1/2") => opening.draw = 1,
-                                _ => (),
-                            }
-                            e.insert(opening);
-                        }
-                    }
-                }
-            }
-        },
-    );
-    println!("done: {:?}", start.elapsed());
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err("Search stopped".to_string());
-    }
-
-    let ids: Vec<i32> = sample_games.lock().unwrap().clone();
-
-    let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .filter(games::id.eq_any(ids))
-        .load(db)
-        .expect("load games");
-    let normalized_games = normalize_games(games);
-
-    let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
-
-    state
-        .line_cache
-        .insert((fen, file), (openings.clone(), normalized_games.clone()));
-
-    drop(permit);
-    Ok((openings, normalized_games))
-}
-
-pub async fn is_position_in_db(
-    file: PathBuf,
-    fen: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<bool, String> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    if let Some(pos) = state.line_cache.get(&(fen.clone(), file.clone())) {
-        return Ok(!pos.0.is_empty());
-    }
-
-    let processed_fen = Fen::from_ascii(fen.as_bytes()).or(Err("Invalid fen"))?;
-    let processed_position: Chess = processed_fen
-        .into_position(shakmaty::CastlingMode::Standard)
-        .or(Err("Invalid fen"))?;
-
-    let material = get_material_count(processed_position.board());
-    let pawn_home = get_pawn_home(processed_position.board());
-
-    // start counting the time
-    let start = Instant::now();
-    println!("start: {:?}", start.elapsed());
-
-    let permit = state.new_request.acquire().await.unwrap();
-    let mut games = state.db_cache.lock().unwrap();
-
-    if games.is_empty() {
-        *games = games::table
-            .select((
-                games::id,
-                games::result,
-                games::moves,
-                games::pawn_home,
-                games::white_material,
-                games::black_material,
-            ))
-            .load(db)
-            .expect("load games");
-
-        println!("got {} games: {:?}", games.len(), start.elapsed());
-    }
-
-    let exists = games.par_iter().any(
-        |(_id, _result, game, end_pawn_home, white_material, black_material)| {
-            if state.new_request.available_permits() == 0 {
-                return false;
-            }
-            let end_material: ByColor<u8> = ByColor {
-                white: *white_material as u8,
-                black: *black_material as u8,
-            };
-            is_end_reachable(*end_pawn_home as u16, pawn_home)
-                && is_material_reachable(&end_material, &material)
-                && position_search(game, &processed_position, &end_material, pawn_home)
-                    .unwrap_or(None)
-                    .is_some()
-        },
-    );
-    println!("done: {:?}", start.elapsed());
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err("Search stopped".to_string());
-    }
-
-    if !exists {
-        state.line_cache.insert((fen, file), (vec![], vec![]));
-    }
-
-    drop(permit);
-    Ok(exists)
 }

@@ -1,7 +1,12 @@
 import {
   ActionIcon,
+  Box,
+  Button,
   createStyles,
+  Group,
   Progress,
+  ScrollArea,
+  Stack,
   Tabs,
   Text,
   useMantineTheme,
@@ -10,14 +15,27 @@ import { IconEye } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { memo, startTransition, useContext, useState } from "react";
+import {
+  memo,
+  startTransition,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { NormalizedGame, Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
-import { useThrottledEffect } from "@/utils/misc";
+import { invoke, useThrottledEffect } from "@/utils/misc";
 import { createTab } from "@/utils/tabs";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
 import { activeTabAtom, referenceDbAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import PiecesGrid from "@/components/boards/PiecesGrid";
+import Chessground from "react-chessground";
+import { getNodeAtPath } from "@/utils/treeReducer";
 
 const useStyles = createStyles(() => ({
   clickable: {
@@ -49,7 +67,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
 
       setLoading(true);
 
-      searchPosition(referenceDatabase, fen).then((openings) => {
+      searchPosition(referenceDatabase, "exact", fen).then((openings) => {
         if (!ignore) {
           startTransition(() => {
             setOpenings(sortOpenings(openings[0]));
@@ -77,6 +95,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
       <Tabs.List>
         <Tabs.Tab value="stats">Stats</Tabs.Tab>
         <Tabs.Tab value="games">Games</Tabs.Tab>
+        <Tabs.Tab value="search">Search</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="stats" pt="xs" mr="xs">
         <OpeningsTable
@@ -89,7 +108,86 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
       <Tabs.Panel value="games" pt="xs" mr="xs">
         <GamesTable games={games} height={height} loading={loading} />
       </Tabs.Panel>
+      <Tabs.Panel value="search" pt="xs" mr="xs">
+        <SearchPanel />
+      </Tabs.Panel>
     </Tabs>
+  );
+}
+
+async function similarStructure(fen: string) {
+  return await invoke<string>("similar_structure", { fen });
+}
+
+function SearchPanel() {
+  const boardRef = useRef(null);
+  const tree = useContext(TreeStateContext);
+  const node = getNodeAtPath(tree.root, tree.position);
+  const [fen, setFen] = useState("");
+  const [games, setGames] = useState<NormalizedGame[]>([]);
+
+  useEffect(() => {
+    const fetchSimilarStructure = async () => {
+      const fenResult = await similarStructure(node.fen);
+      setFen(fenResult);
+    };
+
+    fetchSimilarStructure();
+  }, [node.fen]);
+  const referenceDb = useAtomValue(referenceDbAtom);
+  console.log(fen);
+
+  return (
+    <ScrollArea h={600}>
+      <Stack>
+        <Group>
+          <Box ref={boardRef}>
+            <Chessground
+              width={450}
+              height={450}
+              fen={fen}
+              coordinates={false}
+              movable={{
+                free: true,
+                color: "both",
+                events: {
+                  after: (orig, dest) => {
+                    invoke<string>("make_move", {
+                      fen,
+                      from: orig,
+                      to: dest,
+                    }).then((newFen) => {
+                      setFen(newFen);
+                    });
+                  },
+                },
+              }}
+            />
+          </Box>
+          <PiecesGrid
+            boardRef={boardRef}
+            fen={fen}
+            vertical
+            onPut={(newFen) => {
+              setFen(newFen);
+            }}
+          />
+        </Group>
+        <Button
+          onClick={() => {
+            searchPosition(referenceDb, "partial", fen).then((openings) => {
+              console.log(openings);
+              setGames(openings[1]);
+            });
+          }}
+        >
+          Search
+        </Button>
+        {games.length > 0 && (
+          <GamesTable games={games} height={300} loading={false} />
+        )}
+      </Stack>
+    </ScrollArea>
   );
 }
 

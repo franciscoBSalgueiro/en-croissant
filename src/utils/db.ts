@@ -279,13 +279,17 @@ export async function getPlayersGameInfo(file: string, id: number) {
 
 export async function searchPosition(
     referenceDatabase: string | null,
+    type: "exact" | "partial",
     fen: string
 ) {
     const openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
             file: referenceDatabase,
-            fen,
+            query: {
+                type,
+                value: fen,
+            },
         },
         (s) => s === "Search stopped"
     );

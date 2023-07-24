@@ -17,7 +17,11 @@ use tokio::{
 };
 use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage};
 
-use crate::{db::is_position_in_db, fs::ProgressPayload, AppState};
+use crate::{
+    db::{is_position_in_db, PositionQuery},
+    fs::ProgressPayload,
+    AppState,
+};
 
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -92,7 +96,7 @@ fn parse_uci_attrs(
 
     let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
         Ok(p) => p,
-        Err(e) => e.ignore_impossible_material()?,
+        Err(e) => e.ignore_too_much_material()?,
     };
     let turn = pos.turn();
 
@@ -198,7 +202,7 @@ pub async fn get_best_moves(
     let parsed_fen: Fen = fen.parse().or(Err("Invalid fen"))?;
     let pos: Chess = match parsed_fen.clone().into_position(CastlingMode::Standard) {
         Ok(p) => p,
-        Err(e) => e.ignore_impossible_material().map_err(|e| e.to_string())?,
+        Err(e) => e.ignore_too_much_material().map_err(|e| e.to_string())?,
     };
 
     let mut options = options.clone();
@@ -370,6 +374,7 @@ pub async fn analyze_game(
             break;
         }
         let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
+        let query = PositionQuery::from_fen(&fen.to_string())?;
 
         send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
         send_command(&mut stdin, format!("go movetime {}\n", &move_time)).await;
@@ -391,7 +396,7 @@ pub async fn analyze_game(
 
         if annotate_novelties && !novelty_found {
             current_analysis.novelty =
-                !is_position_in_db(reference_db.clone(), fen.to_string(), state.clone()).await?;
+                !is_position_in_db(reference_db.clone(), query, state.clone()).await?;
             if current_analysis.novelty {
                 novelty_found = true;
             }
@@ -553,4 +558,21 @@ pub async fn validate_fen(fen: String) -> Result<FenValidation, ()> {
             error: Some(err.to_string()),
         }),
     }
+}
+
+#[tauri::command]
+pub async fn similar_structure(fen: String) -> Result<String, ()> {
+    let fen: Fen = fen.parse().unwrap();
+    let mut setup = fen.as_setup().clone();
+
+    // remove all pieces except pawns
+    for square in Square::ALL.iter() {
+        if let Some(piece) = setup.board.piece_at(*square) {
+            if piece.role != Role::Pawn {
+                setup.board.remove_piece_at(*square).unwrap();
+            }
+        }
+    }
+
+    Ok(Fen::from_setup(setup).to_string())
 }
