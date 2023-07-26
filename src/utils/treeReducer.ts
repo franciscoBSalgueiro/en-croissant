@@ -18,6 +18,24 @@ export interface TreeNode {
     commentText: string;
 }
 
+type ListNode = {
+    position: number[];
+    node: TreeNode;
+};
+
+export function traverseTree(node: TreeNode): ListNode[] {
+    const nodes: ListNode[] = [];
+    const stack: ListNode[] = [{ position: [], node }];
+    while (stack.length > 0) {
+        const { position, node } = stack.pop()!;
+        nodes.push({ position, node });
+        for (let i = node.children.length - 1; i >= 0; i--) {
+            stack.push({ position: [...position, i], node: node.children[i] });
+        }
+    }
+    return nodes;
+}
+
 export function defaultTree(fen?: string): TreeState {
     return {
         position: [],

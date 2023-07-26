@@ -1,5 +1,5 @@
 import { Accordion, ActionIcon, Group, createStyles } from "@mantine/core";
-import { IconTrash } from "@tabler/icons-react";
+import { IconX } from "@tabler/icons-react";
 import { useCallback, useContext, useEffect } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
 import { parsePGN } from "@/utils/chess";
@@ -196,7 +196,7 @@ function GameRow({
             variant={"outline"}
             color="red"
           >
-            <IconTrash />
+            <IconX />
           </ActionIcon>
         </Group>
       </Group>

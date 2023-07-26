@@ -1,6 +1,6 @@
 import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
-import { IconChevronUp, IconTrash } from "@tabler/icons-react";
+import { IconChevronUp, IconX } from "@tabler/icons-react";
 import { memo, useContext, useState } from "react";
 import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
@@ -90,7 +90,7 @@ function CompleteMoveCell({
 
                 <Menu.Item
                   color="red"
-                  icon={<IconTrash size={14} />}
+                  icon={<IconX size={14} />}
                   onClick={() =>
                     dispatch({ type: "DELETE_MOVE", payload: movePath })
                   }

@@ -11,13 +11,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
-import {
-  IconCheck,
-  IconDots,
-  IconPlus,
-  IconTrash,
-  IconX,
-} from "@tabler/icons-react";
+import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { invoke } from "@/utils/misc";
@@ -186,7 +180,7 @@ function Puzzles({ id }: { id: string }) {
                   setSelectedDb(null);
                 }}
               >
-                <IconTrash />
+                <IconX />
               </ActionIcon>
             </Tooltip>
             <Button

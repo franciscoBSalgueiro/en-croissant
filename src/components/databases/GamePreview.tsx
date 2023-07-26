@@ -44,6 +44,7 @@ function GamePreview({
   useEffect(() => {
     async function loadPGN() {
       const parsed = await parsePGN(pgn);
+      // parsed.position = [0, 0, 0, 0, 0, 0, 0, 0, 0];
       dispatch({ type: "SET_STATE", payload: parsed });
     }
     loadPGN();

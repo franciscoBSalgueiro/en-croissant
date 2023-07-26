@@ -15,29 +15,17 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconPlus, IconSearch } from "@tabler/icons-react";
-import { createTab } from "@/utils/tabs";
-import { count_pgn_games, read_games } from "@/utils/db";
-import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
-import { useAtom, useSetAtom } from "jotai";
-import router from "next/router";
+import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import OpenFolderButton from "../common/OpenFolderButton";
 import ConfirmModal from "../common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
-
-type FileInfo = {
-  name?: string;
-  path: string;
-  numGames: number;
-};
+import { readFileMetadata, FileMetadata, FileType } from "./file";
+import FileCard from "./FileCard";
 
 function FilesPage() {
-  const [files, setFiles] = useState<FileInfo[]>([]);
+  const [files, setFiles] = useState<FileMetadata[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<FileInfo | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [, setTabs] = useAtom(tabsAtom);
-  const setActiveTab = useSetAtom(activeTabAtom);
+  const [selected, setSelected] = useState<FileMetadata | null>(null);
 
   let filteredFiles = files;
   if (search) {
@@ -51,11 +39,9 @@ function FilesPage() {
       const dir = await resolve(await documentDir(), "EnCroissant");
       readDir(dir).then(async (files) => {
         const filesInfo = await Promise.all(
-          files.map(async (file) => ({
-            name: file.name?.replace(".pgn", ""),
-            path: file.path,
-            numGames: await count_pgn_games(file.path),
-          }))
+          files
+            .filter((f) => f.name?.endsWith(".pgn"))
+            .map((f) => readFileMetadata(f.name || "", f.path))
         );
         setFiles(filesInfo);
       });
@@ -64,7 +50,7 @@ function FilesPage() {
   }, []);
 
   return (
-    <div>
+    <>
       <CreateModal
         opened={createModal}
         setOpened={toggleCreateModal}
@@ -75,7 +61,7 @@ function FilesPage() {
         <OpenFolderButton base="Document" folder="EnCroissant" />
       </Group>
 
-      <Group grow>
+      <Group grow align="baseline">
         <Stack>
           <Group>
             <Input
@@ -87,10 +73,19 @@ function FilesPage() {
             />
             <Button
               size="xs"
-              leftIcon={<IconPlus />}
+              leftIcon={<IconPlus size={16} />}
               onClick={() => toggleCreateModal()}
             >
               Create
+            </Button>
+            <Button
+              size="xs"
+              color="red"
+              disabled={!selected}
+              leftIcon={<IconX size={16} />}
+              onClick={() => toggleDeleteModal()}
+            >
+              Delete
             </Button>
           </Group>
 
@@ -122,50 +117,13 @@ function FilesPage() {
               onClose={toggleDeleteModal}
               onConfirm={async () => {
                 await removeFile(selected.path);
+                await removeFile(selected.path.replace(".pgn", ".info"));
                 setFiles(files.filter((file) => file.name !== selected.name));
                 toggleDeleteModal();
                 setSelected(null);
               }}
             />
-            <Stack>
-              <Text align="center" fz="xl" fw="bold">
-                {selected?.name}
-              </Text>
-              <Text align="center" color="dimmed">
-                {selected?.numGames} Games
-              </Text>
-              <Group>
-                <Button
-                  loading={loading}
-                  onClick={async () => {
-                    setLoading(true);
-                    const pgn = (await read_games(selected.path, 0, 0))[0];
-                    setLoading(false);
-
-                    const fileInfo = {
-                      path: selected.path,
-                      numGames: selected.numGames,
-                    };
-                    createTab({
-                      tab: {
-                        name: selected.name || "Untitled",
-                        type: "analysis",
-                      },
-                      setTabs,
-                      setActiveTab,
-                      pgn,
-                      fileInfo,
-                    });
-                    router.push("/boards");
-                  }}
-                >
-                  Open
-                </Button>
-                <Button color="red" onClick={() => toggleDeleteModal()}>
-                  Delete
-                </Button>
-              </Group>
-            </Stack>
+            <FileCard selected={selected} />
           </>
         ) : (
           <Center h="100%">
@@ -173,11 +131,9 @@ function FilesPage() {
           </Center>
         )}
       </Group>
-    </div>
+    </>
   );
 }
-
-type GamefileType = "repertoire" | "game" | "tournament" | "puzzle" | "other";
 
 function CreateModal({
   opened,
@@ -186,10 +142,10 @@ function CreateModal({
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setFiles: React.Dispatch<React.SetStateAction<FileInfo[]>>;
+  setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
 }) {
   const [filename, setFilename] = useState("");
-  const [filetype, setFiletype] = useState<GamefileType>("game");
+  const [filetype, setFiletype] = useState<FileType>("game");
   const [error, setError] = useState("");
 
   async function addFile() {
@@ -199,13 +155,22 @@ function CreateModal({
       setError("File already exists");
       return;
     }
+    const metadata = {
+      type: filetype,
+      tags: [],
+    };
     await writeTextFile(file, "");
+    await writeTextFile(
+      file.replace(".pgn", ".info"),
+      JSON.stringify(metadata)
+    );
     setFiles((files) => [
       ...files,
       {
         name: filename,
         path: file,
         numGames: 0,
+        metadata,
       },
     ]);
     setError("");
@@ -243,7 +208,7 @@ function CreateModal({
               { label: "Other", value: "other" },
             ]}
             value={filetype}
-            onChange={(v) => setFiletype(v as GamefileType)}
+            onChange={(v) => setFiletype(v as FileType)}
             required
             searchable
           />

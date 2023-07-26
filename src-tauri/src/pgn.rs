@@ -166,7 +166,11 @@ pub async fn read_games(
     let mut games: Vec<String> = Vec::with_capacity(end - start);
 
     for _ in start..=end {
-        games.push(parser.read_game().unwrap());
+        let game = parser.read_game().unwrap();
+        if game.is_empty() {
+            break;
+        }
+        games.push(game);
     }
     Ok(games)
 }

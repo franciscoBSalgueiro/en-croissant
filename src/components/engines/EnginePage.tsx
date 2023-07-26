@@ -8,7 +8,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { IconPlus, IconRobot, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconRobot, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { Engine } from "@/utils/engines";
 import { useLocalFile } from "@/utils/misc";
@@ -108,7 +108,7 @@ function EngineRow({
         <td>{item.elo}</td>
         <td>
           <ActionIcon>
-            <IconTrash size={20} onClick={() => toggleDeleteModal()} />
+            <IconX size={20} onClick={() => toggleDeleteModal()} />
           </ActionIcon>
         </td>
       </tr>
