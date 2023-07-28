@@ -141,14 +141,14 @@ function GameNotation({
               path={[]}
             />
           </Box>
-          {headers.result && headers.result !== Outcome.Unknown && (
+          {headers.result && headers.result !== "*" && (
             <Text align="center">
               {headers.result}
               <br />
               <Text span fs="italic">
-                {headers.result === Outcome.Draw
+                {headers.result === "1/2-1/2"
                   ? "Draw"
-                  : headers.result === Outcome.WhiteWin
+                  : headers.result === "1-0"
                   ? "White wins"
                   : "Black wins"}
               </Text>

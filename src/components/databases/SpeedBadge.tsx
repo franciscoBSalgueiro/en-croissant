@@ -4,22 +4,22 @@ import { Speed } from "@/utils/db";
 function SpeeedBadge({ speed }: { speed: Speed }) {
   let color: DefaultMantineColor;
   switch (speed) {
-    case Speed.UltraBullet:
+    case "UltraBullet":
       color = "pink";
       break;
-    case Speed.Bullet:
+    case "Bullet":
       color = "red";
       break;
-    case Speed.Blitz:
+    case "Blitz":
       color = "yellow";
       break;
-    case Speed.Rapid:
+    case "Rapid":
       color = "green";
       break;
-    case Speed.Classical:
+    case "Classical":
       color = "blue";
       break;
-    case Speed.Correspondence:
+    case "Correspondence":
       color = "violet";
       break;
     default:

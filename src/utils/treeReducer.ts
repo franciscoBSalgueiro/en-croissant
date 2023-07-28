@@ -36,6 +36,16 @@ export function traverseTree(node: TreeNode): ListNode[] {
     return nodes;
 }
 
+export function countMainPly(node: TreeNode): number {
+    let count = 0;
+    let cur = node;
+    while (cur.children.length > 0) {
+        count++;
+        cur = cur.children[0];
+    }
+    return count;
+}
+
 export function defaultTree(fen?: string): TreeState {
     return {
         position: [],
@@ -56,7 +66,7 @@ export function defaultTree(fen?: string): TreeState {
             fen: fen ?? DEFAULT_POSITION,
             black: "",
             white: "",
-            result: Outcome.Unknown,
+            result: "*",
             event: "",
             site: "",
         },

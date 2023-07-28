@@ -298,7 +298,7 @@ function BoardGame() {
                       type: "SET_HEADERS",
                       payload: {
                         ...headers,
-                        result: Outcome.Unknown,
+                        result: "*",
                       },
                     });
                   }}

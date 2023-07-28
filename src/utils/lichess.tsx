@@ -3,6 +3,9 @@ import { IconX } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Color } from "chessground/types";
 import { invoke } from "./misc";
+import { NormalizedGame } from "./db";
+import { parsePGN } from "./chess";
+import { countMainPly } from "./treeReducer";
 const base_url = "https://lichess.org/api";
 const explorer_url = "https://explorer.lichess.ovh";
 
@@ -82,6 +85,62 @@ export type LichessAccount = {
   followsYou: boolean;
 };
 
+type PositionGames = {
+  uci: string;
+  id: string;
+  winner: string | null;
+  speed: string;
+  mode: string;
+  black: {
+    name: string;
+    rating: number;
+  };
+  white: {
+    name: string;
+    rating: number;
+  };
+  year: number;
+  month: string;
+}[];
+
+export async function convertToNormalized(
+  data: PositionGames
+): Promise<NormalizedGame[]> {
+  return await Promise.all(
+    data.map(async (game) => {
+      const pgn = await getLichessGame(game.id);
+      const { headers, root } = await parsePGN(pgn);
+      const normalized: NormalizedGame = {
+        ...headers,
+        white_id: 0,
+        black_id: 0,
+        event_id: 0,
+        site_id: 0,
+        moves: pgn,
+        ply_count: countMainPly(root),
+        // ply_count: root,
+      };
+      return normalized;
+    })
+  );
+}
+
+type PositionData = {
+  white: number;
+  black: number;
+  draws: number;
+  moves: {
+    uci: string;
+    san: string;
+    averageRating: number;
+    white: number;
+    black: number;
+    draws: number;
+  }[];
+  recentGames: PositionGames;
+  topGames: PositionGames;
+};
+
 function base64URLEncode(str: ArrayBuffer) {
   return Buffer.from(str)
     .toString("base64")
@@ -136,12 +195,12 @@ export async function getCloudEvaluation(fen: string, multipv = 1) {
   return getJson(url);
 }
 
-export async function getGames(fen: string) {
+export async function getLichessGames(fen: string): Promise<PositionData> {
   const url = `${explorer_url}/lichess?fen=${fen}`;
   return getJson(url);
 }
 
-export async function getMasterGames(fen: string) {
+export async function getMasterGames(fen: string): Promise<PositionData> {
   const url = `${explorer_url}/masters?fen=${fen}`;
   return getJson(url);
 }
@@ -174,7 +233,7 @@ export async function downloadLichess(
   });
 }
 
-export async function getLichessGame(gameId: string) {
+export async function getLichessGame(gameId: string): Promise<string> {
   const apiData = await fetch(`https://lichess.org/game/export/${gameId}`);
   const pgn = await apiData.text();
   return pgn;

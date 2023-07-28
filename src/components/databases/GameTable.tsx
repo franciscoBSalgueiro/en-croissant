@@ -224,9 +224,9 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                     clearable
                     placeholder="Select result"
                     data={[
-                      { label: "White wins", value: Outcome.WhiteWin },
-                      { label: "Black wins", value: Outcome.BlackWin },
-                      { label: "Draw", value: Outcome.Draw },
+                      { label: "White wins", value: "1-0" },
+                      { label: "Black wins", value: "0-1" },
+                      { label: "Draw", value: "1/2-1/2" },
                     ]}
                   />
                 </Stack>

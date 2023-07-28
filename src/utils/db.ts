@@ -39,22 +39,16 @@ interface QueryResponse<T> {
     count: number;
 }
 
-export const enum Speed {
-    UltraBullet = "UltraBullet",
-    Bullet = "Bullet",
-    Blitz = "Blitz",
-    Rapid = "Rapid",
-    Classical = "Classical",
-    Correspondence = "Correspondence",
-    Unknown = "Unknown",
-}
+export type Speed =
+    | "UltraBullet"
+    | "Bullet"
+    | "Blitz"
+    | "Rapid"
+    | "Classical"
+    | "Correspondence"
+    | "Unknown";
 
-export enum Outcome {
-    Unknown = "*",
-    WhiteWin = "1-0",
-    BlackWin = "0-1",
-    Draw = "1/2-1/2",
-}
+export type Outcome = "*" | "1-0" | "0-1" | "1/2-1/2";
 
 interface GameQuery extends Query {
     player1?: number;

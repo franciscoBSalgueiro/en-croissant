@@ -108,14 +108,10 @@ function BoardPlay({
     }
   }
 
-  if (
-    chess !== null &&
-    chess.isGameOver() &&
-    headers.result === Outcome.Unknown
-  ) {
-    let newOutcome = Outcome.Draw;
+  if (chess !== null && chess.isGameOver() && headers.result === "*") {
+    let newOutcome: Outcome = "1/2-1/2";
     if (chess.isCheckmate()) {
-      newOutcome = chess.turn() === "w" ? Outcome.BlackWin : Outcome.WhiteWin;
+      newOutcome = chess.turn() === "w" ? "0-1" : "1-0";
     }
     dispatch({
       type: "SET_HEADERS",

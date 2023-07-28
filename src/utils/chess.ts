@@ -514,7 +514,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     const headers: GameHeaders = {
         id: 0,
         fen: FEN ?? DEFAULT_POSITION,
-        result: (Result as Outcome) ?? Outcome.Unknown,
+        result: (Result as Outcome) ?? "*",
         black: Black ?? "?",
         white: White ?? "?",
         round: Round ?? "?",
