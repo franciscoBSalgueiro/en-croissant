@@ -2,7 +2,7 @@ import { Group, Code, ActionIcon, Divider, Text, Tooltip } from "@mantine/core";
 import { IconReload } from "@tabler/icons-react";
 import { count_pgn_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
 
 function FileInfo({

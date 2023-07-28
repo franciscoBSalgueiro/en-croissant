@@ -26,6 +26,7 @@ function FilesPage() {
   const [files, setFiles] = useState<FileMetadata[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FileMetadata | null>(null);
+  const [games, setGames] = useState<Map<number, string>>(new Map());
 
   let filteredFiles = files;
   if (search) {
@@ -48,6 +49,10 @@ function FilesPage() {
     }
     loadFiles();
   }, []);
+
+  useEffect(() => {
+    setGames(new Map());
+  }, [selected]);
 
   return (
     <>
@@ -123,7 +128,7 @@ function FilesPage() {
                 setSelected(null);
               }}
             />
-            <FileCard selected={selected} />
+            <FileCard selected={selected} games={games} setGames={setGames} />
           </>
         ) : (
           <Center h="100%">

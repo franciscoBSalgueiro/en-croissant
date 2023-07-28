@@ -1,44 +1,49 @@
-import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   Stack,
   Badge,
   Group,
-  Button,
   Text,
   ActionIcon,
   Tooltip,
+  Box,
 } from "@mantine/core";
-import { exists } from "@tauri-apps/api/fs";
 import router from "next/router";
-import { SM2Algorithm } from "./opening";
 import { FileMetadata } from "./file";
 import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import GamePreview from "../databases/GamePreview";
 import { IconEye } from "@tabler/icons-react";
+import GameSelector from "../panels/info/GameSelector";
+import GamePreview from "../databases/GamePreview";
 
-function FileCard({ selected }: { selected: FileMetadata }) {
-  const [loading, setLoading] = useState(false);
+function FileCard({
+  selected,
+  games,
+  setGames,
+}: {
+  selected: FileMetadata;
+  games: Map<number, string>;
+  setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
+}) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
-  const [games, setGames] = useState<string[]>([]);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     async function loadGames() {
-      const data = await read_games(selected.path, 0, 10);
-      setGames(data);
+      const data = await read_games(selected.path, page, page);
+
+      setSelectedGame(data[0]);
     }
     loadGames();
-  }, [selected]);
+  }, [selected, page]);
 
   async function openGame() {
-    setLoading(true);
     const pgn = (await read_games(selected.path, 0, 0))[0];
-    setLoading(false);
 
     const fileInfo = {
       path: selected.path,
@@ -75,8 +80,24 @@ function FileCard({ selected }: { selected: FileMetadata }) {
       <Text align="center" color="dimmed">
         {selected?.numGames} Games
       </Text>
-      {games.length > 0 && <GamePreview pgn={games[0]} />}
-      <Group>
+
+      {selectedGame && (
+        <>
+          <Box h={150}>
+            <GameSelector
+              height={150}
+              setGames={setGames}
+              games={games}
+              activePage={page}
+              path={selected.path}
+              setPage={setPage}
+              total={selected.numGames}
+            />
+          </Box>
+          <GamePreview pgn={selectedGame} />
+        </>
+      )}
+      {/* <Group>
         <Button
           onClick={async () => {
             const metadataPath = selected.path.replace(".pgn", ".metadata");
@@ -97,7 +118,7 @@ function FileCard({ selected }: { selected: FileMetadata }) {
         >
           Build Deck
         </Button>
-      </Group>
+      </Group> */}
     </Stack>
   );
 }

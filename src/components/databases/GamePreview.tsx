@@ -1,4 +1,4 @@
-import { AspectRatio, Container } from "@mantine/core";
+import { AspectRatio, Group, Stack } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { useRouter } from "next/router";
 import { useContext, useEffect } from "react";
@@ -44,7 +44,6 @@ function GamePreview({
   useEffect(() => {
     async function loadPGN() {
       const parsed = await parsePGN(pgn);
-      // parsed.position = [0, 0, 0, 0, 0, 0, 0, 0, 0];
       dispatch({ type: "SET_STATE", payload: parsed });
     }
     loadPGN();
@@ -58,23 +57,22 @@ function GamePreview({
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
-        {" "}
-        <Container sx={{ width: "100%" }} onClick={() => goToGame()}>
-          <AspectRatio ratio={1} mx="15%">
+        <Group onClick={() => goToGame()} grow>
+          <AspectRatio ratio={1}>
             <PreviewBoard />
           </AspectRatio>
           {!hideControls && (
-            <>
-              <GameNotation boardSize={400} />
+            <Stack>
+              <GameNotation boardSize={700} />
               <MoveControls
                 goToStart={() => dispatch({ type: "GO_TO_START" })}
                 goToEnd={() => dispatch({ type: "GO_TO_END" })}
                 goToNext={() => dispatch({ type: "GO_TO_NEXT" })}
                 goToPrevious={() => dispatch({ type: "GO_TO_PREVIOUS" })}
               />
-            </>
+            </Stack>
           )}
-        </Container>
+        </Group>
       </TreeDispatchContext.Provider>
     </TreeStateContext.Provider>
   );
@@ -88,9 +86,6 @@ function PreviewBoard() {
   return (
     <Chessground
       coordinates={false}
-      animation={{
-        enabled: false,
-      }}
       style={{ justifyContent: "start" }}
       width={"100%"}
       height={"100%"}
