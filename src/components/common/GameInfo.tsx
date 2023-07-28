@@ -172,22 +172,33 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
         </Stack>
         <Stack align="center" justify="end" spacing={0}>
           <Group spacing={0} noWrap>
-            <TextInput
-              variant="unstyled"
-              placeholder="Unknown Site"
-              className={classes.eventInput}
-              value={headers.site === "?" ? "" : headers.site}
-              onChange={(e) =>
-                dispatch({
-                  type: "SET_HEADERS",
-                  payload: {
-                    ...headers,
-                    site: e.currentTarget.value,
-                  },
-                })
-              }
-              disabled={disabled}
-            />
+            {headers.site.startsWith("https://lichess.org") ||
+            headers.site.startsWith("https://www.chess.com") ? (
+              <a href={headers.site} target="_blank" rel="noreferrer">
+                <Text p="sm" w={90}>
+                  {headers.site.startsWith("https://lichess.org")
+                    ? "Lichess"
+                    : "Chess.com"}
+                </Text>
+              </a>
+            ) : (
+              <TextInput
+                variant="unstyled"
+                placeholder="Unknown Site"
+                className={classes.eventInput}
+                value={headers.site === "?" ? "" : headers.site}
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_HEADERS",
+                    payload: {
+                      ...headers,
+                      site: e.currentTarget.value,
+                    },
+                  })
+                }
+                disabled={disabled}
+              />
+            )}
             -
             <DateInput
               variant="unstyled"
