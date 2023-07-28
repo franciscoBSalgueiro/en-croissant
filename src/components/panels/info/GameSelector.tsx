@@ -1,4 +1,4 @@
-import { ActionIcon, Group, createStyles } from "@mantine/core";
+import { ActionIcon, Group, Text, createStyles } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useEffect } from "react";
 import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
@@ -69,7 +69,7 @@ export default function GameSelector({
             <List
               width={width}
               height={height}
-              rowHeight={50}
+              rowHeight={30}
               rowCount={total}
               ref={registerChild}
               onRowsRendered={onRowsRendered}
@@ -99,6 +99,7 @@ const useStyles = createStyles((theme) => ({
   row: {
     padding: "0 10px",
     cursor: "pointer",
+    borderBottom: `1px solid ${theme.colors.gray[7]}`,
     "&:hover": {
       backgroundColor:
         theme.colorScheme === "dark"
@@ -159,13 +160,16 @@ function GameRow({
         }
         onClick={() => setPage(index)}
       >
-        {formatNumber(index + 1)}. {game}
+        <Text fz="sm">
+          {formatNumber(index + 1)}. {game}
+        </Text>
         {deleteGame && (
           <Group>
             <ActionIcon
               onClick={() => toggleDelete()}
               variant={"outline"}
               color="red"
+              size={18}
             >
               <IconX />
             </ActionIcon>

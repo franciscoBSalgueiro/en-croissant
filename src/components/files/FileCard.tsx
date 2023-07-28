@@ -34,6 +34,10 @@ function FileCard({
   const [page, setPage] = useState(0);
 
   useEffect(() => {
+    setPage(0);
+  }, [selected]);
+
+  useEffect(() => {
     async function loadGames() {
       const data = await read_games(selected.path, page, page);
 
