@@ -83,6 +83,7 @@ pub fn get_puzzle(file: String, min_rating: usize, max_rating: usize) -> Result<
 #[derive(Serialize)]
 pub struct PuzzleDatabaseInfo {
     title: String,
+    description: String,
     puzzle_count: usize,
     storage_size: usize,
     path: String,
@@ -117,6 +118,7 @@ pub async fn get_puzzle_db_info(
 
     Ok(PuzzleDatabaseInfo {
         title: filename.to_string(),
+        description: "".to_string(),
         puzzle_count,
         storage_size,
         path: path.to_string_lossy().to_string(),

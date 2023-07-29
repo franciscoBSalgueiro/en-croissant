@@ -1,14 +1,17 @@
 import {
   ActionIcon,
+  Box,
   Button,
   Card,
   Divider,
   Group,
+  Loader,
   RangeSlider,
   SimpleGrid,
   Text,
   Title,
   Tooltip,
+  createStyles,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons-react";
@@ -23,6 +26,23 @@ import {
 } from "@/utils/puzzles";
 import PuzzleBoard from "./PuzzleBoard";
 import { PuzzleDbCard } from "./PuzzleDbCard";
+import AddPuzzle from "./AddPuzzle";
+
+const useStyles = createStyles((theme) => ({
+  card: {
+    cursor: "pointer",
+    border: 0,
+    backgroundColor:
+      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
+
+    "&:hover": {
+      backgroundColor:
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[6]
+          : theme.colors.gray[0],
+    },
+  },
+}));
 
 function Puzzles({ id }: { id: string }) {
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
@@ -85,9 +105,20 @@ function Puzzles({ id }: { id: string }) {
   }
 
   const [tmpSelected, setTmpSelected] = useState<string | null>(null);
+  const [addOpened, setAddOpened] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { classes } = useStyles();
 
   return selectedDb === null || puzzles.length === 0 ? (
     <>
+      <AddPuzzle
+        puzzleDbs={puzzleDbs}
+        opened={addOpened}
+        setOpened={setAddOpened}
+        setLoading={setLoading}
+        setPuzzleDbs={setPuzzleDbs}
+      />
       <Title mb="md">Puzzle Collections</Title>
       <SimpleGrid cols={4} mb="md">
         {puzzleDbs.map((db) => (
@@ -98,6 +129,23 @@ function Puzzles({ id }: { id: string }) {
             setSelected={setTmpSelected}
           />
         ))}
+        <Card
+          withBorder
+          radius="md"
+          className={classes.card}
+          component="button"
+          type="button"
+          onClick={() => setAddOpened(true)}
+        >
+          <Text weight={500} mb={10}>
+            Add New
+          </Text>
+          {loading ? (
+            <Loader variant="dots" size={30} />
+          ) : (
+            <IconPlus size={30} />
+          )}
+        </Card>
       </SimpleGrid>
       <Button
         onClick={() => {

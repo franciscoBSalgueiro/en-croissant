@@ -110,13 +110,13 @@ function AddDatabase({
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
           <Stack>
-            {defaultdatabases.map((engine, i) => (
+            {defaultdatabases.map((db, i) => (
               <DatabaseCard
-                database={engine}
+                database={db}
                 databaseId={i}
                 key={i}
                 setDatabases={setDatabases}
-                initInstalled={databases.some((e) => e.title === engine.title)}
+                initInstalled={databases.some((e) => e.title === db.title)}
               />
             ))}
             {error && (

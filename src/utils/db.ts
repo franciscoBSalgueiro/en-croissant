@@ -1,6 +1,7 @@
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./misc";
+import { PuzzleDatabase } from "./puzzles";
 
 export enum Sides {
     WhiteBlack = "WhiteBlack",
@@ -204,6 +205,19 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
 export async function getDefaultDatabases(): Promise<DatabaseInfo[]> {
     const data = await fetch<DatabaseInfo[]>(
         `https://www.encroissant.org/databases`,
+        {
+            method: "GET",
+        }
+    );
+    if (!data.ok) {
+        throw new Error("Failed to fetch engines");
+    }
+    return data.data;
+}
+
+export async function getDefaultPuzzleDatabases(): Promise<PuzzleDatabase[]> {
+    const data = await fetch<PuzzleDatabase[]>(
+        `https://www.encroissant.org/puzzle_databases`,
         {
             method: "GET",
         }

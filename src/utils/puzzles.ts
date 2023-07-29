@@ -19,9 +19,11 @@ export interface Puzzle {
 
 export interface PuzzleDatabase {
     title: string;
+    description: string;
     puzzle_count: number;
     storage_size: number;
     path: string;
+    downloadLink?: string;
 }
 
 export async function getPuzzleDatabase(path: string): Promise<PuzzleDatabase> {
