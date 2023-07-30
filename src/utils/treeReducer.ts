@@ -328,7 +328,9 @@ function deleteMove(state: TreeState, path: number[]) {
     if (isPrefix(path, state.position)) {
         state.position = path.slice(0, -1);
     } else if (isPrefix(path.slice(0, -1), state.position)) {
-        state.position[path.length - 1] = 0;
+        if (state.position.length === path.length) {
+            state.position[state.position.length - 1] = 0;
+        }
     }
 }
 

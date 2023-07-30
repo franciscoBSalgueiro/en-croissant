@@ -46,27 +46,26 @@ function AccountCards({
                 );
               }}
               setDatabases={setDatabases}
-              reload={() => {
-                getLichessAccount({
+              reload={async () => {
+                const account = await getLichessAccount({
                   token: lichessSession.accessToken,
                   username: lichessSession.username,
-                }).then((account) => {
-                  if (!account) return;
-                  setSessions((sessions) =>
-                    sessions.map((s) =>
-                      s.lichess?.account.id === account.id
-                        ? {
-                            ...s,
-                            lichess: {
-                              account: account,
-                              accessToken: lichessSession.accessToken,
-                            },
-                            updatedAt: Date.now(),
-                          }
-                        : s
-                    )
-                  );
                 });
+                if (!account) return;
+                setSessions((sessions) =>
+                  sessions.map((s) =>
+                    s.lichess?.account.id === account.id
+                      ? {
+                          ...s,
+                          lichess: {
+                            account: account,
+                            accessToken: lichessSession.accessToken,
+                          },
+                          updatedAt: Date.now(),
+                        }
+                      : s
+                  )
+                );
               }}
               stats={[
                 {
@@ -115,24 +114,25 @@ function AccountCards({
                   )
                 );
               }}
-              reload={() => {
-                getChessComAccount(session.chessCom!.username).then((stats) => {
-                  if (!stats) return;
-                  setSessions((sessions) =>
-                    sessions.map((s) =>
-                      s.chessCom?.username === session.chessCom?.username
-                        ? {
-                            ...s,
-                            chessCom: {
-                              username: session.chessCom!.username,
-                              stats,
-                            },
-                            updatedAt: Date.now(),
-                          }
-                        : s
-                    )
-                  );
-                });
+              reload={async () => {
+                const stats = await getChessComAccount(
+                  session.chessCom!.username
+                );
+                if (!stats) return;
+                setSessions((sessions) =>
+                  sessions.map((s) =>
+                    s.chessCom?.username === session.chessCom?.username
+                      ? {
+                          ...s,
+                          chessCom: {
+                            username: session.chessCom!.username,
+                            stats,
+                          },
+                          updatedAt: Date.now(),
+                        }
+                      : s
+                  )
+                );
               }}
               setDatabases={setDatabases}
             />

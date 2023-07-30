@@ -97,7 +97,7 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
             }
             disabled={disabled}
           />
-          {headers.round !== "?" && (
+          {headers.round && headers.round !== "?" && (
             <Group spacing={0} className={classes.eventInput}>
               <Text color="dimmed" size="sm">
                 ( Round

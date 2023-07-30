@@ -22,7 +22,6 @@ import { parseUci } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
 import { Engine, getEngines } from "@/utils/engines";
 import { invoke } from "@/utils/misc";
-import { Tab } from "@/utils/tabs";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "../common/GameInfo";
 import GenericCard from "../common/GenericCard";
@@ -33,8 +32,8 @@ import {
 } from "../common/TreeStateContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-import { activeTabAtom } from "@/atoms/atoms";
-import { useAtomValue } from "jotai";
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { useAtom, useAtomValue } from "jotai";
 
 enum Opponent {
   Random = "Random Bot",
@@ -83,7 +82,7 @@ function BoardGame() {
   const { headers, root, position } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
   const currentNode = getNodeAtPath(root, position);
-  const [, setTabs] = useState<Tab[]>([]);
+  const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
 
