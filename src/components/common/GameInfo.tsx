@@ -78,7 +78,7 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
   return (
     <div>
       <Stack align="center" spacing={0} mx="md" mt="sm">
-        <Group>
+        <Group noWrap>
           <TextInput
             variant="unstyled"
             size="lg"
@@ -98,31 +98,31 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
             disabled={disabled}
           />
           {headers.round && headers.round !== "?" && (
-            <Group spacing={0} className={classes.eventInput}>
-              <Text color="dimmed" size="sm">
-                ( Round
-              </Text>
-              <TextInput
-                size="sm"
-                variant="unstyled"
-                w={30}
-                placeholder="?"
-                value={headers.round}
-                onChange={(e) =>
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      round: e.currentTarget.value,
-                    },
-                  })
-                }
-                disabled={disabled}
-              />
-              <Text color="dimmed" size="sm">
-                )
-              </Text>
-            </Group>
+            <>
+              {"-"}
+              <Group spacing={0} className={classes.eventInput} noWrap>
+                <Text color="dimmed" size="sm">
+                  Round
+                </Text>
+                <TextInput
+                  size="sm"
+                  variant="unstyled"
+                  w={30}
+                  placeholder="?"
+                  value={headers.round}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        round: e.currentTarget.value,
+                      },
+                    })
+                  }
+                  disabled={disabled}
+                />
+              </Group>
+            </>
           )}
         </Group>
       </Stack>
