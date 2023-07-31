@@ -14,7 +14,7 @@ import { FileMetadata } from "./file";
 import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { IconEye } from "@tabler/icons-react";
+import { IconEdit, IconEye } from "@tabler/icons-react";
 import GameSelector from "../panels/info/GameSelector";
 import GamePreview from "../databases/GamePreview";
 
@@ -22,10 +22,12 @@ function FileCard({
   selected,
   games,
   setGames,
+  toggleEditModal,
 }: {
   selected: FileMetadata;
   games: Map<number, string>;
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
+  toggleEditModal: () => void;
 }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -69,21 +71,30 @@ function FileCard({
   return (
     <Stack>
       <Stack align="center">
+        <Text align="center" fz="xl" fw="bold">
+          {selected?.name}
+        </Text>
+        <Badge>{selected.metadata.type}</Badge>
+      </Stack>
+
+      <Group align="center" grow>
         <Group>
-          <Text align="center" fz="xl" fw="bold">
-            {selected?.name}
-          </Text>
           <Tooltip label="Open">
             <ActionIcon onClick={openGame}>
               <IconEye />
             </ActionIcon>
           </Tooltip>
+          <Tooltip label="Edit Metadata">
+            <ActionIcon onClick={() => toggleEditModal()}>
+              <IconEdit />
+            </ActionIcon>
+          </Tooltip>
         </Group>
-        <Badge>{selected.metadata.type}</Badge>
-      </Stack>
-      <Text align="center" color="dimmed">
-        {selected?.numGames} Games
-      </Text>
+        <Text align="center" color="dimmed">
+          {selected?.numGames} Games
+        </Text>
+        <div />
+      </Group>
 
       {selectedGame && (
         <>

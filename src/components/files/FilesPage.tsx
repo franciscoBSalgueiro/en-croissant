@@ -1,4 +1,4 @@
-import { exists, readDir, removeFile, writeTextFile } from "@tauri-apps/api/fs";
+import { readDir, removeFile } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
 import React, { useEffect, useState } from "react";
 import GenericCard from "../common/GenericCard";
@@ -7,20 +7,18 @@ import {
   Center,
   Group,
   Input,
-  Modal,
   ScrollArea,
-  Select,
   Stack,
   Text,
-  TextInput,
   Title,
 } from "@mantine/core";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import OpenFolderButton from "../common/OpenFolderButton";
 import ConfirmModal from "../common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
-import { readFileMetadata, FileMetadata, FileType } from "./file";
+import { readFileMetadata, FileMetadata } from "./file";
 import FileCard from "./FileCard";
+import { CreateModal, EditModal } from "./Modals";
 
 function FilesPage() {
   const [files, setFiles] = useState<FileMetadata[]>([]);
@@ -34,6 +32,7 @@ function FilesPage() {
   }
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
+  const [editModal, toggleEditModal] = useToggle();
 
   useEffect(() => {
     async function loadFiles() {
@@ -61,6 +60,15 @@ function FilesPage() {
         setOpened={toggleCreateModal}
         setFiles={setFiles}
       />
+      {selected && (
+        <EditModal
+          key={selected.name}
+          opened={editModal}
+          setOpened={toggleEditModal}
+          setFiles={setFiles}
+          metadata={selected}
+        />
+      )}
       <Group align="baseline" ml="lg" my="xl">
         <Title>Files</Title>
         <OpenFolderButton base="Document" folder="EnCroissant" />
@@ -128,7 +136,12 @@ function FilesPage() {
                 setSelected(null);
               }}
             />
-            <FileCard selected={selected} games={games} setGames={setGames} />
+            <FileCard
+              selected={selected}
+              games={games}
+              setGames={setGames}
+              toggleEditModal={toggleEditModal}
+            />
           </>
         ) : (
           <Center h="100%">
@@ -139,91 +152,4 @@ function FilesPage() {
     </>
   );
 }
-
-function CreateModal({
-  opened,
-  setOpened,
-  setFiles,
-}: {
-  opened: boolean;
-  setOpened: (opened: boolean) => void;
-  setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
-}) {
-  const [filename, setFilename] = useState("");
-  const [filetype, setFiletype] = useState<FileType>("game");
-  const [error, setError] = useState("");
-
-  async function addFile() {
-    const dir = await resolve(await documentDir(), "EnCroissant");
-    const file = await resolve(dir, filename + ".pgn");
-    if (await exists(file)) {
-      setError("File already exists");
-      return;
-    }
-    const metadata = {
-      type: filetype,
-      tags: [],
-    };
-    await writeTextFile(file, "");
-    await writeTextFile(
-      file.replace(".pgn", ".info"),
-      JSON.stringify(metadata)
-    );
-    setFiles((files) => [
-      ...files,
-      {
-        name: filename,
-        path: file,
-        numGames: 0,
-        metadata,
-      },
-    ]);
-    setError("");
-    setOpened(false);
-    setFilename("");
-    setFiletype("game");
-  }
-
-  return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title="Create file">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          addFile();
-        }}
-      >
-        <Stack>
-          <TextInput
-            label="Name"
-            placeholder="Enter your filename"
-            required
-            value={filename}
-            onChange={(e) => setFilename(e.currentTarget.value)}
-            error={error}
-          />
-
-          <Select
-            label="Type"
-            placeholder="Select the type of file"
-            data={[
-              { label: "Game", value: "game" },
-              { label: "Repertoire", value: "repertoire" },
-              { label: "Tournament", value: "tournament" },
-              { label: "Puzzle", value: "puzzle" },
-              { label: "Other", value: "other" },
-            ]}
-            value={filetype}
-            onChange={(v) => setFiletype(v as FileType)}
-            required
-            searchable
-          />
-          <Button sx={{ marginTop: "1rem" }} type="submit">
-            Create
-          </Button>
-        </Stack>
-      </form>
-    </Modal>
-  );
-}
-
 export default FilesPage;
