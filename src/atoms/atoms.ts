@@ -3,6 +3,7 @@ import { Tab, genID } from "../utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
 import { atom } from "jotai";
+import { DatabaseInfo } from "@/utils/db";
 
 // Tabs
 
@@ -66,4 +67,10 @@ export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const referenceDbAtom = atomWithStorage<string | null>(
     "reference-database",
     null
+);
+
+export const selectedDatabaseAtom = atomWithStorage<DatabaseInfo | null>(
+    "database-view",
+    null,
+    createJSONStorage(() => sessionStorage)
 );

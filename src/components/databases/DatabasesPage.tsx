@@ -29,26 +29,31 @@ import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
 import ConvertButton from "./ConvertButton";
 import { useAtom } from "jotai";
-import { referenceDbAtom } from "@/atoms/atoms";
+import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
 import ConfirmModal from "../common/ConfirmModal";
+import { useRouter } from "next/router";
 
 export default function DatabasesPage() {
-  const [selected, setSelected] = useState<number | null>(null);
+  const router = useRouter();
+  useEffect(() => {
+    const db = sessionStorage.getItem("database-view");
+    if (db !== null && db !== "null") {
+      router.push("/db/view/");
+    }
+  }, [router]);
+
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedDatabase, setSelectedDatabase] =
-    useSessionStorage<DatabaseInfo | null>({
-      key: "database-view",
-      defaultValue: null,
-    });
+  const [selectedDatabase, setSelectedDatabase] = useAtom(selectedDatabaseAtom);
+  console.log(selectedDatabase);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
-  const database = selected !== null ? databases[selected] : null;
-
-  const [title, setTitle] = useState(database?.title ?? null);
+  const [title, setTitle] = useState(selectedDatabase?.title ?? null);
   const [debouncedTitle] = useDebouncedValue(title, 100);
-  const [description, setDescription] = useState(database?.description ?? null);
+  const [description, setDescription] = useState(
+    selectedDatabase?.description ?? null
+  );
   const [debouncedDescription] = useDebouncedValue(description, 100);
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [loading, setLoading] = useState(false);
@@ -58,9 +63,9 @@ export default function DatabasesPage() {
   }, []);
 
   useEffect(() => {
-    if ((debouncedTitle || debouncedDescription) && database !== null) {
+    if ((debouncedTitle || debouncedDescription) && selectedDatabase !== null) {
       invoke("edit_db_info", {
-        file: database.file,
+        file: selectedDatabase.file,
         title: debouncedTitle,
         description: debouncedDescription,
       }).then(() => {
@@ -70,16 +75,12 @@ export default function DatabasesPage() {
   }, [debouncedTitle, debouncedDescription]);
 
   useEffect(() => {
-    setTitle(database?.title ?? null);
-  }, [database]);
+    setTitle(selectedDatabase?.title ?? null);
+  }, [selectedDatabase]);
 
   useEffect(() => {
-    setDescription(database?.description ?? null);
-  }, [database]);
-
-  useEffect(() => {
-    setSelectedDatabase(database);
-  }, [database, setSelectedDatabase]);
+    setDescription(selectedDatabase?.description ?? null);
+  }, [selectedDatabase]);
 
   return (
     <>
@@ -89,12 +90,14 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          invoke("delete_database", { file: database!.file }).then(() => {
-            getDatabases().then((dbs) => {
-              setDatabases(dbs);
-              setSelected(null);
-            });
-          });
+          invoke("delete_database", { file: selectedDatabase!.file }).then(
+            () => {
+              getDatabases().then((dbs) => {
+                setDatabases(dbs);
+                setSelectedDatabase(null);
+              });
+            }
+          );
           toggleDeleteModal();
         }}
       />
@@ -119,12 +122,12 @@ export default function DatabasesPage() {
           { maxWidth: 800, cols: 1, spacing: "sm" },
         ]}
       >
-        {databases.map((item, i) => (
+        {databases.map((item) => (
           <GenericCard
-            id={i}
+            id={item}
             key={item.filename}
-            isSelected={selected === i}
-            setSelected={setSelected}
+            isSelected={selectedDatabase?.filename === item.filename}
+            setSelected={setSelectedDatabase}
             error={item.error}
             Header={
               <Group noWrap position="apart">
@@ -155,11 +158,11 @@ export default function DatabasesPage() {
         <ConvertButton setOpen={setOpen} loading={loading} />
       </SimpleGrid>
 
-      {database !== null && (
+      {selectedDatabase !== null && (
         <Box mx={30}>
           <Divider my="md" />
           <Stack>
-            {database.error ? (
+            {selectedDatabase.error ? (
               <>
                 <Text fz="lg" fw="bold">
                   There was an error loading this database
@@ -169,7 +172,7 @@ export default function DatabasesPage() {
                   <Text underline span>
                     Reason:
                   </Text>
-                  {" " + database.error}
+                  {" " + selectedDatabase.error}
                 </Text>
 
                 <Text>
@@ -179,7 +182,7 @@ export default function DatabasesPage() {
             ) : (
               <>
                 <Group>
-                  {database.indexed && <Badge>Indexed</Badge>}
+                  {selectedDatabase.indexed && <Badge>Indexed</Badge>}
                   {isReference && <Badge>Reference</Badge>}
                 </Group>
                 <TextInput
@@ -201,24 +204,24 @@ export default function DatabasesPage() {
                       setReferenceDatabase(null);
                       invoke("clear_games");
                     } else {
-                      if (database.file !== referenceDatabase) {
+                      if (selectedDatabase.file !== referenceDatabase) {
                         invoke("clear_games");
                       }
-                      setReferenceDatabase(database.file);
+                      setReferenceDatabase(selectedDatabase.file);
                     }
                   }}
                 />
               </>
             )}
             <Group>
-              {!database.error && (
+              {!selectedDatabase.error && (
                 <>
                   <Link href={`/db/view`}>
                     <Button>Explore</Button>
                   </Link>
                   <IndexButton
-                    indexed={database.indexed}
-                    file={database.file}
+                    indexed={selectedDatabase.indexed}
+                    file={selectedDatabase.file}
                     setDatabases={setDatabases}
                   />
                 </>

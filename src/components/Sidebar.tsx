@@ -76,11 +76,11 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
 }
 
 const linksdata = [
-  { icon: IconUser, label: "User", url: "/" },
-  { icon: IconChess, label: "Board", url: "/boards" },
-  { icon: IconFiles, label: "Files", url: "/files" },
-  { icon: IconDatabase, label: "Databases", url: "/databases" },
-  { icon: IconRobot, label: "Engines", url: "/engines" },
+  { icon: IconUser, label: "User", url: ["/"] },
+  { icon: IconChess, label: "Board", url: ["/boards"] },
+  { icon: IconFiles, label: "Files", url: ["/files"] },
+  { icon: IconDatabase, label: "Databases", url: ["/databases", "/db/view"] },
+  { icon: IconRobot, label: "Engines", url: ["/engines"] },
 ];
 
 export function SideBar() {
@@ -89,9 +89,9 @@ export function SideBar() {
   const links = linksdata.map((link) => (
     <NavbarLink
       {...link}
-      url={link.url}
+      url={link.url[0]}
       key={link.label}
-      active={router.pathname === link.url}
+      active={link.url.includes(router.pathname)}
     />
   ));
 

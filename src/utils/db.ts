@@ -266,6 +266,8 @@ export async function getTournamentGames(file: string, id: number) {
         sort: "id",
         tournament_id: id,
         skip_count: true,
+        pageSize: 200,
+        page: 1,
     });
 }
 

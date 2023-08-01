@@ -1,5 +1,4 @@
 import { Button, Tabs, Title } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
 import {
   IconArrowBackUp,
   IconChess,
@@ -9,20 +8,18 @@ import {
 import Link from "next/link";
 import GameTable from "@/components/databases/GameTable";
 import PlayerTable from "@/components/databases/PlayerTable";
-import { DatabaseInfo } from "@/utils/db";
 import TournamentTable from "./TournamentTable";
+import { useAtom } from "jotai";
+import { selectedDatabaseAtom } from "@/atoms/atoms";
 
 function DatabaseView() {
-  const [database] = useSessionStorage<DatabaseInfo | null>({
-    key: "database-view",
-    defaultValue: null,
-  });
+  const [database, setDatabase] = useAtom(selectedDatabaseAtom);
 
   return (
     <>
       {database && (
         <>
-          <Link href={`/databases`} passHref>
+          <Link onClick={() => setDatabase(null)} href={`/databases`} passHref>
             <Button
               mt="md"
               compact
