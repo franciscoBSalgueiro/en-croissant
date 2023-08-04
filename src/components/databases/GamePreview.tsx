@@ -91,6 +91,7 @@ function PreviewBoard() {
       height={"100%"}
       viewOnly={true}
       fen={fen}
+      orientation={tree.headers.orientation || "white"}
     />
   );
 }

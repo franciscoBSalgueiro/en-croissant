@@ -8,7 +8,7 @@ export type FileType =
     | "puzzle"
     | "other";
 
-type FileInfoMetadata = {
+export type FileInfoMetadata = {
     type: FileType;
     tags: string[];
 };

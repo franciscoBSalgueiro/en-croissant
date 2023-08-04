@@ -288,7 +288,7 @@ export async function getPlayersGameInfo(file: string, id: number) {
 }
 
 export async function searchPosition(
-    referenceDatabase: string | null,
+    referenceDatabase: string,
     type: "exact" | "partial",
     fen: string
 ) {

@@ -73,8 +73,13 @@ function BoardAnalysis() {
         return {
           ...prev,
           file: {
+            name: userChoice,
             path: userChoice,
             numGames: 1,
+            metadata: {
+              tags: [],
+              type: "game",
+            },
           },
         };
       });
@@ -136,6 +141,7 @@ function BoardAnalysis() {
         <>
           <Tabs
             keepMounted={false}
+            activateTabWithKeyboard={false}
             defaultValue="info"
             sx={{
               display: notationExpanded || editingMode ? "none" : undefined,

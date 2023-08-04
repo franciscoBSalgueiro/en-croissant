@@ -1,4 +1,4 @@
-import { TreeNode, traverseTree } from "@/utils/treeReducer";
+import { TreeNode, treeIterator } from "@/utils/treeReducer";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 
 interface Card {
@@ -26,8 +26,8 @@ export class SM2Algorithm {
 
     public buildFromTree(tree: TreeNode, color: "w" | "b") {
         const cards: Card[] = [];
-        const list = traverseTree(tree);
-        for (const item of list) {
+        const iterator = treeIterator(tree);
+        for (const item of iterator) {
             if (item.node.children.length === 0) {
                 continue;
             }

@@ -68,12 +68,12 @@ export function getBoardSize(height: number, width: number) {
   return initial;
 }
 
-export function isPrefix<T>(arr1: T[], arr2: T[]): boolean {
-  if (arr1.length > arr2.length) {
+export function isPrefix<T>(shorter: T[], longer: T[]): boolean {
+  if (shorter.length > longer.length) {
     return false;
   }
-  for (let i = 0; i < arr1.length; i++) {
-    if (arr1[i] !== arr2[i]) {
+  for (let i = 0; i < shorter.length; i++) {
+    if (shorter[i] !== longer[i]) {
       return false;
     }
   }

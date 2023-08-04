@@ -65,9 +65,14 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-function GameInfo({ headers }: { headers: GameHeaders }) {
+function GameInfo({
+  headers,
+  simplified,
+}: {
+  headers: GameHeaders;
+  simplified?: boolean;
+}) {
   const dispatch = useContext(TreeDispatchContext);
-  // check if dispatch has default value of () => {}
   const disabled = dispatch.length === 0;
   const date = headers.date
     ? dayjs(headers.date, "YYYY.MM.DD").isValid()
@@ -126,165 +131,167 @@ function GameInfo({ headers }: { headers: GameHeaders }) {
           )}
         </Group>
       </Stack>
-      <Group align="apart" mx="md" grow>
-        <Stack align="start" spacing={0}>
-          <Group noWrap>
-            <div>
-              <Text c="dimmed" tt="uppercase" fw="bold">
-                White
-              </Text>
-              <TextInput
-                variant="unstyled"
-                className={classes.nameInput}
-                size="lg"
-                placeholder="?"
-                value={headers.white}
-                onChange={(e) =>
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      white: e.currentTarget.value,
-                    },
-                  })
-                }
-                disabled={disabled}
-              />
-              <NumberInput
-                variant="unstyled"
-                size="md"
-                className={classes.eloInput}
-                placeholder="Unknown ELO"
-                value={headers.white_elo || ""}
-                onChange={(n) =>
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      white_elo: n === "" ? null : n,
-                    },
-                  })
-                }
-                disabled={disabled}
-              />
-            </div>
-          </Group>
-        </Stack>
-        <Stack align="center" justify="end" spacing={0}>
-          <Group spacing={0} noWrap>
-            {headers.site.startsWith("https://lichess.org") ||
-            headers.site.startsWith("https://www.chess.com") ? (
-              <a href={headers.site} target="_blank" rel="noreferrer">
-                <Text p="sm" w={90}>
-                  {headers.site.startsWith("https://lichess.org")
-                    ? "Lichess"
-                    : "Chess.com"}
+      {!simplified && (
+        <Group align="apart" mx="md" grow>
+          <Stack align="start" spacing={0}>
+            <Group noWrap>
+              <div>
+                <Text c="dimmed" tt="uppercase" fw="bold">
+                  White
                 </Text>
-              </a>
-            ) : (
-              <TextInput
+                <TextInput
+                  variant="unstyled"
+                  className={classes.nameInput}
+                  size="lg"
+                  placeholder="?"
+                  value={headers.white}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        white: e.currentTarget.value,
+                      },
+                    })
+                  }
+                  disabled={disabled}
+                />
+                <NumberInput
+                  variant="unstyled"
+                  size="md"
+                  className={classes.eloInput}
+                  placeholder="Unknown ELO"
+                  value={headers.white_elo || ""}
+                  onChange={(n) =>
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        white_elo: n === "" ? null : n,
+                      },
+                    })
+                  }
+                  disabled={disabled}
+                />
+              </div>
+            </Group>
+          </Stack>
+          <Stack align="center" justify="end" spacing={0}>
+            <Group spacing={0} noWrap>
+              {headers.site.startsWith("https://lichess.org") ||
+              headers.site.startsWith("https://www.chess.com") ? (
+                <a href={headers.site} target="_blank" rel="noreferrer">
+                  <Text p="sm" w={90}>
+                    {headers.site.startsWith("https://lichess.org")
+                      ? "Lichess"
+                      : "Chess.com"}
+                  </Text>
+                </a>
+              ) : (
+                <TextInput
+                  variant="unstyled"
+                  placeholder="Unknown Site"
+                  className={classes.eventInput}
+                  value={headers.site === "?" ? "" : headers.site}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        site: e.currentTarget.value,
+                      },
+                    })
+                  }
+                  disabled={disabled}
+                />
+              )}
+              -
+              <DateInput
                 variant="unstyled"
-                placeholder="Unknown Site"
-                className={classes.eventInput}
-                value={headers.site === "?" ? "" : headers.site}
-                onChange={(e) =>
+                valueFormat="YYYY.MM.DD"
+                placeholder="????.??.??"
+                value={date}
+                allowDeselect
+                onChange={(date) => {
                   dispatch({
                     type: "SET_HEADERS",
                     payload: {
                       ...headers,
-                      site: e.currentTarget.value,
+                      date: dayjs(date, "YYYY.MM.DD").isValid()
+                        ? dayjs(date, "YYYY.MM.DD").format("YYYY.MM.DD")
+                        : undefined,
                     },
-                  })
-                }
+                  });
+                }}
                 disabled={disabled}
+                className={classes.dateInput}
               />
-            )}
-            -
-            <DateInput
+            </Group>
+            <Select
+              data={["1-0", "0-1", "1/2-1/2", "*"]}
+              value={headers.result}
               variant="unstyled"
-              valueFormat="YYYY.MM.DD"
-              placeholder="????.??.??"
-              value={date}
-              allowDeselect
-              onChange={(date) => {
+              rightSection={<></>}
+              rightSectionWidth={0}
+              className={classes.resultInput}
+              onChange={(result) =>
                 dispatch({
                   type: "SET_HEADERS",
                   payload: {
                     ...headers,
-                    date: dayjs(date, "YYYY.MM.DD").isValid()
-                      ? dayjs(date, "YYYY.MM.DD").format("YYYY.MM.DD")
-                      : undefined,
+                    result: result as Outcome,
                   },
-                });
-              }}
-              disabled={disabled}
-              className={classes.dateInput}
+                })
+              }
             />
-          </Group>
-          <Select
-            data={["1-0", "0-1", "1/2-1/2", "*"]}
-            value={headers.result}
-            variant="unstyled"
-            rightSection={<></>}
-            rightSectionWidth={0}
-            className={classes.resultInput}
-            onChange={(result) =>
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  result: result as Outcome,
-                },
-              })
-            }
-          />
-        </Stack>
-        <Stack align="end" spacing={0}>
-          <Group noWrap>
-            <div>
-              <Text c="dimmed" align="right" tt="uppercase" fw="bold">
-                Black
-              </Text>
-              <TextInput
-                variant="unstyled"
-                className={classes.nameInput}
-                size="lg"
-                placeholder="?"
-                sx={{ "& input": { textAlign: "right" } }}
-                value={headers.black}
-                onChange={(e) =>
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      black: e.currentTarget.value,
-                    },
-                  })
-                }
-                disabled={disabled}
-              />
-              <NumberInput
-                variant="unstyled"
-                size="md"
-                className={classes.eloInput}
-                sx={{ "& input": { textAlign: "right" } }}
-                placeholder="Unknown ELO"
-                value={headers.black_elo || ""}
-                onChange={(n) =>
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      black_elo: n === "" ? null : n,
-                    },
-                  })
-                }
-                disabled={disabled}
-              />
-            </div>
-          </Group>
-        </Stack>
-      </Group>
+          </Stack>
+          <Stack align="end" spacing={0}>
+            <Group noWrap>
+              <div>
+                <Text c="dimmed" align="right" tt="uppercase" fw="bold">
+                  Black
+                </Text>
+                <TextInput
+                  variant="unstyled"
+                  className={classes.nameInput}
+                  size="lg"
+                  placeholder="?"
+                  sx={{ "& input": { textAlign: "right" } }}
+                  value={headers.black}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        black: e.currentTarget.value,
+                      },
+                    })
+                  }
+                  disabled={disabled}
+                />
+                <NumberInput
+                  variant="unstyled"
+                  size="md"
+                  className={classes.eloInput}
+                  sx={{ "& input": { textAlign: "right" } }}
+                  placeholder="Unknown ELO"
+                  value={headers.black_elo || ""}
+                  onChange={(n) =>
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        black_elo: n === "" ? null : n,
+                      },
+                    })
+                  }
+                  disabled={disabled}
+                />
+              </div>
+            </Group>
+          </Stack>
+        </Group>
+      )}
     </div>
   );
 }

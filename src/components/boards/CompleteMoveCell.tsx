@@ -1,10 +1,12 @@
 import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
-import { IconChevronUp, IconX } from "@tabler/icons-react";
+import { IconChevronUp, IconStar, IconX } from "@tabler/icons-react";
 import { memo, useContext, useState } from "react";
 import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
+import { useAtomValue } from "jotai";
+import { currentTabAtom } from "@/atoms/atoms";
 
 function CompleteMoveCell({
   movePath,
@@ -35,6 +37,7 @@ function CompleteMoveCell({
     setOpen(false);
   });
   const [open, setOpen] = useState(false);
+  const currentTab = useAtomValue(currentTabAtom);
 
   const multipleLine =
     commentHTML.split("</p>").length - 1 > 1 ||
@@ -79,6 +82,20 @@ function CompleteMoveCell({
 
             <Portal>
               <Menu.Dropdown>
+                {currentTab?.file?.metadata.type === "repertoire" && (
+                  <Menu.Item
+                    icon={<IconStar size={14} />}
+                    onClick={() => {
+                      dispatch({
+                        type: "SET_START",
+                        payload: movePath,
+                      });
+                    }}
+                  >
+                    Mark as start
+                  </Menu.Item>
+                )}
+
                 <Menu.Item
                   icon={<IconChevronUp size={14} />}
                   onClick={() =>

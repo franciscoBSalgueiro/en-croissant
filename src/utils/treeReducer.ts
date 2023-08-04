@@ -23,17 +23,15 @@ type ListNode = {
     node: TreeNode;
 };
 
-export function traverseTree(node: TreeNode): ListNode[] {
-    const nodes: ListNode[] = [];
+export function* treeIterator(node: TreeNode): Generator<ListNode> {
     const stack: ListNode[] = [{ position: [], node }];
     while (stack.length > 0) {
         const { position, node } = stack.pop()!;
-        nodes.push({ position, node });
+        yield { position, node };
         for (let i = node.children.length - 1; i >= 0; i--) {
             stack.push({ position: [...position, i], node: node.children[i] });
         }
     }
-    return nodes;
 }
 
 export function countMainPly(node: TreeNode): number {
@@ -113,6 +111,9 @@ export type GameHeaders = {
     eco?: string;
     white_material?: number;
     black_material?: number;
+    // Repertoire headers
+    start?: number[];
+    orientation?: "white" | "black";
 };
 
 export function headersToPGN(game: GameHeaders): string {
@@ -129,6 +130,12 @@ export function headersToPGN(game: GameHeaders): string {
     }
     if (game.black_elo) {
         headers += `[BlackElo "${game.black_elo}"]\n`;
+    }
+    if (game.start && game.start.length > 0) {
+        headers += `[Start "${JSON.stringify(game.start)}"]\n`;
+    }
+    if (game.orientation) {
+        headers += `[Orientation "${game.orientation}"]\n`;
     }
     return headers;
 }
@@ -150,6 +157,7 @@ export type TreeAction =
     | { type: "SET_STATE"; payload: TreeState }
     | { type: "RESET" }
     | { type: "SET_HEADERS"; payload: GameHeaders }
+    | { type: "SET_START"; payload: number[] }
     | {
           type: "MAKE_MOVE";
           payload:
@@ -192,6 +200,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
         }
         case "SET_HEADERS": {
             state.headers = action.payload;
+            break;
+        }
+        case "SET_START": {
+            state.headers.start = action.payload;
             break;
         }
         case "MAKE_MOVE": {
@@ -353,7 +365,9 @@ function promoteVariation(state: TreeState, path: number[]) {
 export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     if (path.length === 0) return node;
     const index = path[0];
-    if (index >= node.children.length) throw new Error("Invalid path");
+    // if (index >= node.children.length) throw new Error("Invalid path");
+    // Just return the root in case of invalid path as handling this is annoying
+    if (index >= node.children.length) return node;
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 

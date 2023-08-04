@@ -77,7 +77,7 @@ function SearchPanel() {
           loading={loading}
           onClick={async () => {
             setLoading(true);
-            const openings = await searchPosition(referenceDb, "partial", fen);
+            const openings = await searchPosition(referenceDb!, "partial", fen);
             setGames(openings[1]);
             setLoading(false);
           }}

@@ -11,15 +11,18 @@ import PgnInput from "./PgnInput";
 import FileInfo from "./FileInfo";
 import { read_games } from "@/utils/db";
 import { parsePGN } from "@/utils/chess";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
 import { invoke } from "@tauri-apps/api";
 import { formatNumber } from "@/utils/format";
+import RepertoireInfo from "./RepertoireInfo";
 
 function InfoPanel({ boardSize }: { boardSize: number }) {
   const tree = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(tree.root, tree.position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
+  const currentTab = useAtomValue(currentTabAtom);
+  const isReportoire = currentTab?.file?.metadata.type === "repertoire";
 
   return (
     <Box
@@ -33,7 +36,8 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
       <ScrollArea offsetScrollbars>
         <FileInfo setGames={setGames} />
         <Stack>
-          <GameInfo headers={tree.headers} />
+          <GameInfo headers={tree.headers} simplified={isReportoire} />
+          {isReportoire && <RepertoireInfo />}
           {currentNode && (
             <TextInput
               readOnly

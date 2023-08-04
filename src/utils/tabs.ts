@@ -1,19 +1,15 @@
+import { FileMetadata } from "@/components/files/file";
 import { parsePGN } from "./chess";
 import { GameHeaders } from "./treeReducer";
 
-type TabType = "new" | "play" | "analysis" | "puzzles";
+type TabType = "new" | "play" | "analysis" | "puzzles" | "repertoire";
 
 export type Tab = {
     name: string;
     value: string;
     type: TabType;
     gameNumber?: number;
-    file?: FileInfo;
-};
-
-export type FileInfo = {
-    path: string;
-    numGames: number;
+    file?: FileMetadata;
 };
 
 export function genID() {
@@ -36,7 +32,7 @@ export async function createTab({
     setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
     pgn?: string;
     headers?: GameHeaders;
-    fileInfo?: FileInfo;
+    fileInfo?: FileMetadata;
 }) {
     const id = genID();
 

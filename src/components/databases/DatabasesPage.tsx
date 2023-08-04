@@ -45,7 +45,6 @@ export default function DatabasesPage() {
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useAtom(selectedDatabaseAtom);
-  console.log(selectedDatabase);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 

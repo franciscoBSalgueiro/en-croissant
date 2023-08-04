@@ -483,6 +483,7 @@ export async function parsePGN(pgn: string, halfMoves = 0): Promise<TreeState> {
     const headers = getPgnHeaders(tokens);
     const tree = innerParsePGN(tokens, headers.fen, halfMoves);
     tree.headers = headers;
+    tree.position = headers.start ?? [];
     return tree;
 }
 
@@ -509,6 +510,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         Result,
         FEN,
         Round,
+        Start,
+        Orientation,
     } = Object.fromEntries(headersN);
 
     const headers: GameHeaders = {
@@ -523,6 +526,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         date: Date ?? "",
         site: Site ?? "",
         event: Event ?? "",
+        start: JSON.parse(Start ?? "[]"),
+        orientation: (Orientation as "white" | "black") ?? "white",
     };
     return headers;
 }

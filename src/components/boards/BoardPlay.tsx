@@ -9,12 +9,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import {
-  useClickOutside,
-  useHotkeys,
-  useToggle,
-  useViewportSize,
-} from "@mantine/hooks";
+import { useClickOutside, useHotkeys, useViewportSize } from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconDeviceFloppy,
@@ -136,7 +131,15 @@ function BoardPlay({
     from: Square;
     to: Square;
   } | null>(null);
-  const [orientation, toggleOrientation] = useToggle<Color>(["white", "black"]);
+  const orientation = headers.orientation || "white";
+  const toggleOrientation = () =>
+    dispatch({
+      type: "SET_HEADERS",
+      payload: {
+        ...headers,
+        orientation: headers.orientation === "white" ? "black" : "white",
+      },
+    });
   const { classes } = useStyles();
   const { height, width } = useViewportSize();
 
@@ -342,7 +345,6 @@ function MoveInput({ currentNode }: { currentNode: TreeNode }) {
           const m = move.trim();
           if (m.length > 0) {
             const parsed = parseKeyboardMove(m, currentNode.fen);
-            console.log(parsed);
             if (parsed) {
               dispatch({
                 type: "MAKE_MOVE",

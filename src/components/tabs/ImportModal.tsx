@@ -13,11 +13,11 @@ import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
 import { count_pgn_games, read_games } from "@/utils/db";
 import { getLichessGame } from "@/utils/lichess";
-import { FileInfo } from "@/utils/tabs";
 import FileInput from "../common/FileInput";
 import { useAtom } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
 import { getGameName } from "@/utils/treeReducer";
+import { FileMetadata } from "../files/file";
 
 export default function ImportModal({
   openModal,
@@ -102,7 +102,7 @@ export default function ImportModal({
         onClick={async () => {
           if (importType === "PGN") {
             if (file || pgn) {
-              let fileInfo: FileInfo | undefined;
+              let fileInfo: FileMetadata | undefined;
               let input = pgn;
               if (file) {
                 setLoading(true);
@@ -111,6 +111,11 @@ export default function ImportModal({
                 setLoading(false);
 
                 fileInfo = {
+                  metadata: {
+                    tags: [],
+                    type: "game",
+                  },
+                  name: file,
                   path: file,
                   numGames: count,
                 };

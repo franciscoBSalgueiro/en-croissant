@@ -51,10 +51,6 @@ function FileCard({
   async function openGame() {
     const pgn = (await read_games(selected.path, 0, 0))[0];
 
-    const fileInfo = {
-      path: selected.path,
-      numGames: selected.numGames,
-    };
     createTab({
       tab: {
         name: selected.name || "Untitled",
@@ -63,7 +59,7 @@ function FileCard({
       setTabs,
       setActiveTab,
       pgn,
-      fileInfo,
+      fileInfo: selected,
     });
     router.push("/boards");
   }
@@ -112,28 +108,6 @@ function FileCard({
           <GamePreview pgn={selectedGame} />
         </>
       )}
-      {/* <Group>
-        <Button
-          onClick={async () => {
-            const metadataPath = selected.path.replace(".pgn", ".metadata");
-            const deck = new SM2Algorithm(metadataPath);
-            const fileExists = await exists(metadataPath);
-            if (!fileExists) {
-              deck.buildFromTree(
-                (await parsePGN((await read_games(selected.path, 0, 0))[0]))
-                  .root,
-                "w"
-              );
-              await deck.saveData();
-            } else {
-              await deck.loadData();
-            }
-            router.push("/boards");
-          }}
-        >
-          Build Deck
-        </Button>
-      </Group> */}
     </Stack>
   );
 }
