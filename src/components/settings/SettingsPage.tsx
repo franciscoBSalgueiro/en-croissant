@@ -2,6 +2,7 @@ import {
   Card,
   createStyles,
   Group,
+  NumberInput,
   Select,
   Stack,
   Switch,
@@ -18,6 +19,8 @@ import {
   showDestsAtom,
   primaryColorAtom,
   moveInputAtom,
+  percentageCoverageAtom,
+  minimumGamesAtom,
 } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
@@ -90,6 +93,10 @@ function SettingsPage() {
   const [forcedEP, setForcedEP] = useAtom(forcedEnPassantAtom);
   const [primaryColor, setPrimaryColor] = useAtom(primaryColorAtom);
   const [pieceSet, setPieceSet] = useAtom(pieceSetAtom);
+  const [percentageCoverage, setPercentageCoverage] = useAtom(
+    percentageCoverageAtom
+  );
+  const [minimumGames, setMinimumGames] = useAtom(minimumGamesAtom);
   const { classes } = useStyles();
 
   return (
@@ -171,6 +178,44 @@ function SettingsPage() {
             checked={autoPromote}
             onChange={(event) => setAutoPromote(event.currentTarget.checked)}
             className={classes.switch}
+          />
+        </Group>
+      </Card>
+      <Card withBorder radius="md" p="xl" className={classes.card}>
+        <Text size="lg" weight={500} className={classes.title}>
+          Opening Report
+        </Text>
+        <Text size="xs" color="dimmed" mt={3} mb="xl">
+          Customize the opening report settings
+        </Text>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Percentage Coverage</Text>
+            <Text size="xs" color="dimmed">
+              Percentage of moves covered in each position
+            </Text>
+          </div>
+          <NumberInput
+            value={percentageCoverage}
+            onChange={(value) => setPercentageCoverage(value || 50)}
+            min={50}
+            max={100}
+            step={1}
+          />
+        </Group>
+
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Minimum Games</Text>
+            <Text size="xs" color="dimmed">
+              Minimum number of games in each position for it to be considered
+            </Text>
+          </div>
+          <NumberInput
+            value={minimumGames}
+            onChange={(value) => setMinimumGames(value || 0)}
+            min={0}
+            step={1}
           />
         </Group>
       </Card>

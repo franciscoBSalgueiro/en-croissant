@@ -13,12 +13,16 @@ export async function openingReport({
     root,
     referenceDb,
     setProgress,
+    minimumGames,
+    percentageCoverage,
 }: {
     color: "white" | "black";
     start: number[];
     root: TreeNode;
     referenceDb: string;
     setProgress: React.Dispatch<React.SetStateAction<number>>;
+    minimumGames: number;
+    percentageCoverage: number;
 }): Promise<MissingMove[]> {
     const iterator = treeIterator(root);
     const tree = Array.from(iterator);
@@ -53,14 +57,15 @@ export async function openingReport({
             0
         );
 
-        if (total < 5) {
+        if (total < minimumGames) {
             ignoredPositions.add(item.position);
             continue;
         }
 
         const filteredOpenings = openings.filter(
             (opening) =>
-                (opening.black + opening.white + opening.draw) / total > 0.05
+                (opening.black + opening.white + opening.draw) / total >
+                1 - percentageCoverage / 100
         );
 
         // Check if there's any opening with a 5% or more frequency that isn't a child of item.node

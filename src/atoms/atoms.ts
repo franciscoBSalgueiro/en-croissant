@@ -74,3 +74,12 @@ export const selectedDatabaseAtom = atomWithStorage<DatabaseInfo | null>(
     null,
     createJSONStorage(() => sessionStorage)
 );
+
+// Opening Report
+
+export const percentageCoverageAtom = atomWithStorage<number>(
+    "percentage-coverage",
+    95
+);
+
+export const minimumGamesAtom = atomWithStorage<number>("minimum-games", 5);

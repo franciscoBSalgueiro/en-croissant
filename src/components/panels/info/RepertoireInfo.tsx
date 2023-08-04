@@ -1,4 +1,8 @@
-import { referenceDbAtom } from "@/atoms/atoms";
+import {
+  minimumGamesAtom,
+  percentageCoverageAtom,
+  referenceDbAtom,
+} from "@/atoms/atoms";
 import MoveCell from "@/components/boards/MoveCell";
 import {
   TreeDispatchContext,
@@ -18,6 +22,8 @@ function RepertoireInfo() {
   const [loading, setLoading] = useState(false);
   const dispatch = useContext(TreeDispatchContext);
   const [progress, setProgress] = useState(0);
+  const percentageCoverage = useAtomValue(percentageCoverageAtom);
+  const minimumGames = useAtomValue(minimumGamesAtom);
 
   useEffect(() => {
     if (!referenceDb) {
@@ -30,6 +36,8 @@ function RepertoireInfo() {
       referenceDb,
       root,
       setProgress,
+      percentageCoverage,
+      minimumGames,
     }).then((missingMoves) => {
       setMissingMoves(missingMoves);
       setLoading(false);
