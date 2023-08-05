@@ -166,6 +166,7 @@ export type TreeAction =
     | { type: "SET_STATE"; payload: TreeState }
     | { type: "RESET" }
     | { type: "SET_HEADERS"; payload: GameHeaders }
+    | { type: "SET_ORIENTATION"; payload: "white" | "black" }
     | { type: "SET_START"; payload: number[] }
     | {
           type: "MAKE_MOVE";
@@ -210,6 +211,11 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
         case "SET_HEADERS": {
             state.dirty = true;
             state.headers = action.payload;
+            break;
+        }
+        case "SET_ORIENTATION": {
+            state.dirty = true;
+            state.headers.orientation = action.payload;
             break;
         }
         case "SET_START": {

@@ -1,4 +1,5 @@
 import {
+  currentTabAtom,
   minimumGamesAtom,
   percentageCoverageAtom,
   referenceDbAtom,
@@ -9,23 +10,31 @@ import {
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
 import { Annotation } from "@/utils/chess";
-import { MissingMove, openingReport } from "@/utils/repertoire";
-import { Progress, Text } from "@mantine/core";
+import { MissingMove, getTreeStats, openingReport } from "@/utils/repertoire";
+import { Button, Divider, Group, Progress, Select, Text } from "@mantine/core";
+import { useSessionStorage } from "@mantine/hooks";
 import { useAtomValue } from "jotai";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 
 function RepertoireInfo() {
   const { headers, root } = useContext(TreeStateContext);
   const referenceDb = useAtomValue(referenceDbAtom);
 
-  const [missingMoves, setMissingMoves] = useState<MissingMove[]>([]);
+  const currentTab = useAtomValue(currentTabAtom);
+
+  const [missingMoves, setMissingMoves] = useSessionStorage<MissingMove[]>({
+    key: currentTab!.value + "-missing-moves",
+    defaultValue: [],
+  });
   const [loading, setLoading] = useState(false);
   const dispatch = useContext(TreeDispatchContext);
   const [progress, setProgress] = useState(0);
   const percentageCoverage = useAtomValue(percentageCoverageAtom);
   const minimumGames = useAtomValue(minimumGamesAtom);
 
-  useEffect(() => {
+  const stats = useMemo(() => getTreeStats(root), [root]);
+
+  function searchForMissingMoves() {
     if (!referenceDb) {
       return;
     }
@@ -42,10 +51,50 @@ function RepertoireInfo() {
       setMissingMoves(missingMoves);
       setLoading(false);
     });
-  }, [headers.orientation, headers.start, referenceDb, root]);
+  }
 
   return (
     <>
+      <Group mx="auto" spacing={4}>
+        <Text>An opening for</Text>
+
+        <Select
+          value={headers.orientation || "white"}
+          variant="unstyled"
+          rightSection={<></>}
+          rightSectionWidth={0}
+          sx={{
+            width: 80,
+            "& input": { paddingRight: 0, fontWeight: 500, fontSize: "1rem" },
+          }}
+          onChange={(value) =>
+            dispatch({
+              type: "SET_ORIENTATION",
+              payload: value === "white" ? "white" : "black",
+            })
+          }
+          data={[
+            {
+              value: "white",
+              label: "White",
+            },
+            {
+              value: "black",
+              label: "Black",
+            },
+          ]}
+        />
+      </Group>
+
+      <Text>Variations: {stats.leafs}</Text>
+      <Text>Max Depth: {stats.depth}</Text>
+      <Text>Total moves: {stats.total}</Text>
+      <Divider />
+      {!loading && !missingMoves.length && (
+        <Button onClick={() => searchForMissingMoves()}>
+          Look for missing moves
+        </Button>
+      )}
       {loading ? (
         <>
           <Text>Analyzing Repertoire</Text>

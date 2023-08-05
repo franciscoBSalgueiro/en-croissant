@@ -7,6 +7,20 @@ export type MissingMove = {
     move: string;
 };
 
+export function getTreeStats(root: TreeNode) {
+    const iterator = treeIterator(root);
+    const tree = Array.from(iterator);
+    const total = tree.length;
+    const leafs = tree.filter((item) => item.node.children.length === 0).length;
+    const depth = tree.reduce((acc, item) => {
+        if (item.position.length > acc) {
+            return item.position.length;
+        }
+        return acc;
+    }, 0);
+    return { total, leafs, depth };
+}
+
 export async function openingReport({
     color,
     start,
