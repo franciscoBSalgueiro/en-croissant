@@ -6,7 +6,6 @@ import {
   IconNotes,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { save } from "@tauri-apps/api/dialog";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { getPGN } from "@/utils/chess";
@@ -53,25 +52,15 @@ function BoardAnalysis() {
     setArrows([]);
   }, [position]);
 
-  useEffect(() => {
-    if (!autoSave && currentTab) {
-      setCurrentTab((prev) => {
-        if (prev?.file) {
-          prev.saved = false;
-        }
-        return prev;
-      });
-    }
-  }, [root, autoSave]);
-
   const saveFile = useCallback(async () => {
     saveToFile({
       headers,
       root,
       setCurrentTab,
       tab: currentTab,
+      markAsSaved: () => dispatch({ type: "SAVE" }),
     });
-  }, [headers, root, setCurrentTab, currentTab]);
+  }, [headers, root, setCurrentTab, currentTab, dispatch]);
 
   useEffect(() => {
     if (currentTab?.file && autoSave) {

@@ -11,7 +11,6 @@ export type Tab = {
     name: string;
     value: string;
     type: TabType;
-    saved?: boolean;
     gameNumber?: number;
     file?: FileMetadata;
 };
@@ -65,11 +64,13 @@ export async function saveToFile({
     root,
     headers,
     setCurrentTab,
+    markAsSaved,
 }: {
     tab: Tab | undefined;
     root: TreeNode;
     headers: GameHeaders;
     setCurrentTab: React.Dispatch<React.SetStateAction<Tab>>;
+    markAsSaved: () => void;
 }) {
     let filePath: string;
     if (tab?.file) {
@@ -110,9 +111,5 @@ export async function saveToFile({
                 headers,
             }) + "\n\n",
     });
-    setCurrentTab((prev) => {
-        if (!prev?.file) return prev;
-        prev.saved = true;
-        return { ...prev };
-    });
+    markAsSaved();
 }

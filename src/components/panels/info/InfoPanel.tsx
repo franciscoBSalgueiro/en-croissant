@@ -16,6 +16,8 @@ import { currentTabAtom } from "@/atoms/atoms";
 import { invoke } from "@tauri-apps/api";
 import { formatNumber } from "@/utils/format";
 import RepertoireInfo from "./RepertoireInfo";
+import { useToggle } from "@mantine/hooks";
+import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 
 function InfoPanel({ boardSize }: { boardSize: number }) {
   const tree = useContext(TreeStateContext);
@@ -66,22 +68,24 @@ function GameSelectorAccordion({
   games: Map<number, string>;
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
 }) {
+  const { dirty } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+
+  const [confirmChanges, toggleConfirmChanges] = useToggle();
+  const [tempPage, setTempPage] = useState(0);
 
   if (!currentTab?.file) return null;
 
   const gameNumber = currentTab.gameNumber || 0;
   const currentName = games.get(gameNumber) || "Untitled";
 
-  async function setPage(page: number) {
-    setCurrentTab((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        gameNumber: page,
-      };
-    });
+  async function setPage(page: number, forced?: boolean) {
+    if (!forced && dirty) {
+      setTempPage(page);
+      toggleConfirmChanges();
+      return;
+    }
 
     const data = await read_games(currentTab!.file!.path, page, page);
     const tree = await parsePGN(data[0]);
@@ -105,25 +109,34 @@ function GameSelectorAccordion({
   }
 
   return (
-    <Accordion>
-      <Accordion.Item value="game">
-        <Accordion.Control>
-          {formatNumber(gameNumber + 1)}. {currentName}
-        </Accordion.Control>
-        <Accordion.Panel h={200} mb={20}>
-          <GameSelector
-            height={200}
-            games={games}
-            setGames={setGames}
-            setPage={setPage}
-            deleteGame={deleteGame}
-            path={currentTab.file.path}
-            activePage={gameNumber || 0}
-            total={currentTab.file.numGames}
-          />
-        </Accordion.Panel>
-      </Accordion.Item>
-    </Accordion>
+    <>
+      <ConfirmChangesModal
+        opened={confirmChanges}
+        toggle={toggleConfirmChanges}
+        closeTab={() => {
+          setPage(tempPage, true);
+        }}
+      />
+      <Accordion>
+        <Accordion.Item value="game">
+          <Accordion.Control>
+            {formatNumber(gameNumber + 1)}. {currentName}
+          </Accordion.Control>
+          <Accordion.Panel h={200} mb={20}>
+            <GameSelector
+              height={200}
+              games={games}
+              setGames={setGames}
+              setPage={setPage}
+              deleteGame={deleteGame}
+              path={currentTab.file.path}
+              activePage={gameNumber || 0}
+              total={currentTab.file.numGames}
+            />
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
+    </>
   );
 }
 export default InfoPanel;

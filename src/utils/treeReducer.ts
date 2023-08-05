@@ -5,6 +5,13 @@ import { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { Score, getAnnotation } from "./score";
 
+export interface TreeState {
+    root: TreeNode;
+    headers: GameHeaders;
+    position: number[];
+    dirty: boolean;
+}
+
 export interface TreeNode {
     fen: string;
     move: Move | null;
@@ -46,6 +53,7 @@ export function countMainPly(node: TreeNode): number {
 
 export function defaultTree(fen?: string): TreeState {
     return {
+        dirty: false,
         position: [],
         root: {
             fen: fen ?? DEFAULT_POSITION,
@@ -154,6 +162,7 @@ export function getGameName(headers: GameHeaders) {
 }
 
 export type TreeAction =
+    | { type: "SAVE" }
     | { type: "SET_STATE"; payload: TreeState }
     | { type: "RESET" }
     | { type: "SET_HEADERS"; payload: GameHeaders }
@@ -184,33 +193,37 @@ export type TreeAction =
     | { type: "ADD_ANALYSIS"; payload: MoveAnalysis[] }
     | { type: "PROMOTE_VARIATION"; payload: number[] };
 
-export interface TreeState {
-    root: TreeNode;
-    headers: GameHeaders;
-    position: number[];
-}
-
 const treeReducer = (state: TreeState, action: TreeAction) => {
     switch (action.type) {
         case "SET_STATE": {
+            state.dirty = false;
             return action.payload;
         }
+        case "SAVE": {
+            state.dirty = false;
+            break;
+        }
         case "RESET": {
+            state.dirty = true;
             return defaultTree();
         }
         case "SET_HEADERS": {
+            state.dirty = true;
             state.headers = action.payload;
             break;
         }
         case "SET_START": {
+            state.dirty = true;
             state.headers.start = action.payload;
             break;
         }
         case "MAKE_MOVE": {
+            state.dirty = true;
             makeMove(state, action.payload);
             break;
         }
         case "MAKE_MOVES": {
+            state.dirty = true;
             for (const move of action.payload) {
                 makeMove(state, move);
             }
@@ -248,10 +261,12 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             break;
         }
         case "DELETE_MOVE": {
+            state.dirty = true;
             deleteMove(state, action.payload || state.position);
             break;
         }
         case "SET_ANNOTATION": {
+            state.dirty = true;
             {
                 const node = getNodeAtPath(state.root, state.position);
                 if (node) {
@@ -265,6 +280,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             break;
         }
         case "SET_COMMENT": {
+            state.dirty = true;
             {
                 const node = getNodeAtPath(state.root, state.position);
                 if (node) {
@@ -275,11 +291,13 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             break;
         }
         case "SET_FEN": {
+            state.dirty = true;
             state.root = defaultTree(action.payload).root;
             state.position = [];
             break;
         }
         case "SET_SCORE": {
+            state.dirty = true;
             {
                 const node = getNodeAtPath(state.root, state.position);
                 if (node) {
@@ -289,14 +307,17 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             break;
         }
         case "ADD_ANALYSIS": {
+            state.dirty = true;
             addAnalysis(state, action.payload);
             break;
         }
         case "SET_SHAPES": {
+            state.dirty = true;
             setShapes(state, action.payload);
             break;
         }
         case "PROMOTE_VARIATION": {
+            state.dirty = true;
             promoteVariation(state, action.payload);
             break;
         }
