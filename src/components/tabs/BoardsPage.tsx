@@ -6,7 +6,7 @@ import {
   Stack,
   Tabs,
 } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { createTab, genID, Tab } from "@/utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
@@ -18,6 +18,7 @@ import NewTabHome from "./NewTabHome";
 import { useCallback } from "react";
 import { useAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import ConfirmChangesModal from "./ConfirmChangesModal";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -40,9 +41,13 @@ export default function BoardsPage() {
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
 
   const closeTab = useCallback(
-    (value: string | null) => {
+    (value: string | null, forced?: boolean) => {
       if (value !== null) {
-        if (value === activeTab) {
+        const closedTab = tabs.find((tab) => tab.value === value);
+        if (closedTab?.file && !closedTab.saved && !forced) {
+          toggleSaveModal();
+          return;
+        } else if (value === activeTab) {
           const index = tabs.findIndex((tab) => tab.value === value);
           if (tabs.length > 1) {
             if (index === tabs.length - 1) {
@@ -157,54 +162,63 @@ export default function BoardsPage() {
     ["ctrl+9", () => selectTab(tabs.length - 1)],
   ]);
 
-  return (
-    <Tabs
-      value={activeTab}
-      onTabChange={(v) => setActiveTab(v)}
-      variant="outline"
-      my="md"
-      keepMounted={false}
-    >
-      <Stack pos="relative">
-        <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
-          <Group spacing={0} sx={{ flexWrap: "nowrap" }}>
-            <Tabs.List sx={{ flexWrap: "nowrap" }}>
-              {tabs.map((tab) => (
-                <BoardTab
-                  key={tab.value}
-                  tab={tab}
-                  closeTab={closeTab}
-                  renameTab={renameTab}
-                  duplicateTab={duplicateTab}
-                  selected={activeTab === tab.value}
-                />
-              ))}
-            </Tabs.List>
-            <ActionIcon
-              onClick={() =>
-                createTab({
-                  tab: {
-                    name: "New tab",
-                    type: "new",
-                  },
-                  setTabs,
-                  setActiveTab,
-                })
-              }
-              className={classes.newTab}
-            >
-              <IconPlus size={16} />
-            </ActionIcon>
-          </Group>
-        </ScrollArea>
+  const [saveModalOpened, toggleSaveModal] = useToggle();
 
-        {tabs.map((tab) => (
-          <Tabs.Panel key={tab.value} value={tab.value}>
-            <TabSwitch tab={tab} />
-          </Tabs.Panel>
-        ))}
-      </Stack>
-    </Tabs>
+  return (
+    <>
+      <ConfirmChangesModal
+        opened={saveModalOpened}
+        toggle={toggleSaveModal}
+        closeTab={() => closeTab(activeTab, true)}
+      />
+      <Tabs
+        value={activeTab}
+        onTabChange={(v) => setActiveTab(v)}
+        variant="outline"
+        my="md"
+        keepMounted={false}
+      >
+        <Stack pos="relative">
+          <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
+            <Group spacing={0} sx={{ flexWrap: "nowrap" }}>
+              <Tabs.List sx={{ flexWrap: "nowrap" }}>
+                {tabs.map((tab) => (
+                  <BoardTab
+                    key={tab.value}
+                    tab={tab}
+                    closeTab={closeTab}
+                    renameTab={renameTab}
+                    duplicateTab={duplicateTab}
+                    selected={activeTab === tab.value}
+                  />
+                ))}
+              </Tabs.List>
+              <ActionIcon
+                onClick={() =>
+                  createTab({
+                    tab: {
+                      name: "New tab",
+                      type: "new",
+                    },
+                    setTabs,
+                    setActiveTab,
+                  })
+                }
+                className={classes.newTab}
+              >
+                <IconPlus size={16} />
+              </ActionIcon>
+            </Group>
+          </ScrollArea>
+
+          {tabs.map((tab) => (
+            <Tabs.Panel key={tab.value} value={tab.value}>
+              <TabSwitch tab={tab} />
+            </Tabs.Panel>
+          ))}
+        </Stack>
+      </Tabs>
+    </>
   );
 }
 

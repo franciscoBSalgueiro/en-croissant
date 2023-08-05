@@ -66,6 +66,7 @@ function FilesPage() {
           opened={editModal}
           setOpened={toggleEditModal}
           setFiles={setFiles}
+          setSelected={setSelected}
           metadata={selected}
         />
       )}

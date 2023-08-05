@@ -25,15 +25,16 @@ import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
-import { useAtom } from "jotai";
-import { currentTabAtom } from "@/atoms/atoms";
-import { documentDir, resolve } from "@tauri-apps/api/path";
+import { useAtom, useAtomValue } from "jotai";
+import { autoSaveAtom, currentTabAtom } from "@/atoms/atoms";
+import { saveToFile } from "@/utils/tabs";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
   const [arrows, setArrows] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useAtom(currentTabAtom);
+  const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
 
   const boardRef = useRef(null);
@@ -52,50 +53,34 @@ function BoardAnalysis() {
     setArrows([]);
   }, [position]);
 
-  const saveFile = useCallback(async () => {
-    let filePath: string;
-    if (activeTab?.file) {
-      filePath = activeTab.file.path;
-    } else {
-      const defaultPath = await resolve(await documentDir(), "EnCroissant");
-      const userChoice = await save({
-        defaultPath,
-        filters: [
-          {
-            name: "PGN",
-            extensions: ["pgn"],
-          },
-        ],
-      });
-      if (userChoice === null) return;
-      filePath = userChoice;
-      setActiveTab((prev) => {
-        return {
-          ...prev,
-          file: {
-            name: userChoice,
-            path: userChoice,
-            numGames: 1,
-            metadata: {
-              tags: [],
-              type: "game",
-            },
-          },
-        };
+  useEffect(() => {
+    if (!autoSave && currentTab) {
+      setCurrentTab((prev) => {
+        if (prev?.file) {
+          prev.saved = false;
+        }
+        return prev;
       });
     }
-    await invoke("write_game", {
-      file: filePath,
-      n: activeTab?.gameNumber || 0,
-      pgn:
-        getPGN(root, {
-          headers,
-        }) + "\n\n",
+  }, [root, autoSave]);
+
+  const saveFile = useCallback(async () => {
+    saveToFile({
+      headers,
+      root,
+      setCurrentTab,
+      tab: currentTab,
     });
-  }, [activeTab?.file, activeTab?.gameNumber, root, headers, setActiveTab]);
+  }, [headers, root, setCurrentTab, currentTab]);
+
+  useEffect(() => {
+    if (currentTab?.file && autoSave) {
+      saveFile();
+    }
+  }, [currentTab?.file, saveFile, autoSave]);
 
   const addGame = useCallback(() => {
-    setActiveTab((prev) => {
+    setCurrentTab((prev) => {
       if (!prev?.file) return prev;
       prev.gameNumber = prev.file.numGames;
       prev.file.numGames += 1;
@@ -103,10 +88,10 @@ function BoardAnalysis() {
     });
     dispatch({ type: "RESET" });
     invoke("append_to_file", {
-      path: activeTab?.file?.path,
+      path: currentTab?.file?.path,
       text: "\n\n",
     });
-  }, [setActiveTab, dispatch, activeTab?.file?.path, root, headers]);
+  }, [setCurrentTab, dispatch, currentTab?.file?.path, root, headers]);
 
   useHotkeys([["Ctrl+S", () => saveFile()]]);
 

@@ -67,15 +67,15 @@ function GameSelectorAccordion({
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
 }) {
   const dispatch = useContext(TreeDispatchContext);
-  const [activeTab, setActiveTab] = useAtom(currentTabAtom);
+  const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
 
-  if (!activeTab?.file) return null;
+  if (!currentTab?.file) return null;
 
-  const gameNumber = activeTab.gameNumber || 0;
+  const gameNumber = currentTab.gameNumber || 0;
   const currentName = games.get(gameNumber) || "Untitled";
 
   async function setPage(page: number) {
-    setActiveTab((prev) => {
+    setCurrentTab((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
@@ -83,7 +83,7 @@ function GameSelectorAccordion({
       };
     });
 
-    const data = await read_games(activeTab!.file!.path, page, page);
+    const data = await read_games(currentTab!.file!.path, page, page);
     const tree = await parsePGN(data[0]);
     dispatch({
       type: "SET_STATE",
@@ -93,10 +93,10 @@ function GameSelectorAccordion({
 
   async function deleteGame(index: number) {
     await invoke("delete_game", {
-      file: activeTab!.file!.path,
+      file: currentTab!.file!.path,
       n: index,
     });
-    setActiveTab((prev) => {
+    setCurrentTab((prev) => {
       if (!prev.file) return prev;
       prev.file.numGames -= 1;
       return { ...prev };
@@ -117,9 +117,9 @@ function GameSelectorAccordion({
             setGames={setGames}
             setPage={setPage}
             deleteGame={deleteGame}
-            path={activeTab.file.path}
+            path={currentTab.file.path}
             activePage={gameNumber || 0}
-            total={activeTab.file.numGames}
+            total={currentTab.file.numGames}
           />
         </Accordion.Panel>
       </Accordion.Item>

@@ -104,6 +104,7 @@ export function BoardTab({
               e.preventDefault();
             }}
           >
+            {!tab.saved && tab.file && "* "}
             <input
               ref={ref}
               value={tab.name}

@@ -21,6 +21,7 @@ import {
   moveInputAtom,
   percentageCoverageAtom,
   minimumGamesAtom,
+  autoSaveAtom,
 } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
@@ -90,6 +91,7 @@ function SettingsPage() {
   const [showDests, setShowDests] = useAtom(showDestsAtom);
   const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
   const [autoPromote, setAutoPromote] = useAtom(autoPromoteAtom);
+  const [autoSave, setAutoSave] = useAtom(autoSaveAtom);
   const [forcedEP, setForcedEP] = useAtom(forcedEnPassantAtom);
   const [primaryColor, setPrimaryColor] = useAtom(primaryColorAtom);
   const [pieceSet, setPieceSet] = useAtom(pieceSetAtom);
@@ -106,7 +108,7 @@ function SettingsPage() {
           Board
         </Text>
         <Text size="xs" color="dimmed" mt={3} mb="xl">
-          Customize the analysis board
+          Customize the analysis board and game controls
         </Text>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
@@ -156,14 +158,6 @@ function SettingsPage() {
             className={classes.switch}
           />
         </Group>
-      </Card>
-      <Card withBorder radius="md" p="xl" className={classes.card}>
-        <Text size="lg" weight={500} className={classes.title}>
-          Game
-        </Text>
-        <Text size="xs" color="dimmed" mt={3} mb="xl">
-          Customize the game controls
-        </Text>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
             <Text>Auto Promotion</Text>
@@ -177,6 +171,22 @@ function SettingsPage() {
             size="lg"
             checked={autoPromote}
             onChange={(event) => setAutoPromote(event.currentTarget.checked)}
+            className={classes.switch}
+          />
+        </Group>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Auto Save</Text>
+            <Text size="xs" color="dimmed">
+              Auto save to file after each move
+            </Text>
+          </div>
+          <Switch
+            onLabel="ON"
+            offLabel="OFF"
+            size="lg"
+            checked={autoSave}
+            onChange={(event) => setAutoSave(event.currentTarget.checked)}
             className={classes.switch}
           />
         </Group>

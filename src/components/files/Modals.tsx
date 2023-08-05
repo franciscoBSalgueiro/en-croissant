@@ -116,11 +116,13 @@ export function EditModal({
   opened,
   setOpened,
   setFiles,
+  setSelected,
   metadata,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
   setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
   metadata: FileMetadata;
 }) {
   const [filename, setFilename] = useState(metadata.name);
@@ -157,22 +159,34 @@ export function EditModal({
       }
     );
 
-    setFiles((files) => [
-      ...files.filter(
-        (v) => v.path !== metadata.path && v.path !== metadataPath
-      ),
-      {
-        ...metadata,
-        name: filename,
-        path: newPGNPath,
-        numGames: metadata.numGames,
-        metadata: newMetadata,
-      },
-    ]);
+    setFiles((files) =>
+      [
+        ...files.filter(
+          (v) => v.path !== metadata.path && v.path !== metadataPath
+        ),
+        {
+          ...metadata,
+          name: filename,
+          path: newPGNPath,
+          numGames: metadata.numGames,
+          metadata: newMetadata,
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setSelected((selected) =>
+      selected?.path === metadata.path
+        ? {
+            ...metadata,
+            name: filename,
+            path: newPGNPath,
+            numGames: metadata.numGames,
+            metadata: newMetadata,
+          }
+        : selected
+    );
+
     setError("");
     setOpened(false);
-    setFilename("");
-    setFiletype("game");
   }
 
   return (
