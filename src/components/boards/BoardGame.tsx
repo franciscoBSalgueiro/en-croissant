@@ -163,6 +163,7 @@ function BoardGame() {
     <BoardLayout
       board={
         <BoardPlay
+          dirty={false}
           currentNode={currentNode}
           arrows={[]}
           headers={headers}

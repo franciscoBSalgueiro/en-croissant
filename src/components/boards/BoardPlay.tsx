@@ -48,6 +48,7 @@ import { formatScore } from "@/utils/score";
 import { useAtomValue } from "jotai";
 import {
   autoPromoteAtom,
+  autoSaveAtom,
   currentTabAtom,
   forcedEnPassantAtom,
   moveInputAtom,
@@ -65,6 +66,7 @@ const useStyles = createStyles(() => ({
 }));
 
 interface ChessboardProps {
+  dirty: boolean;
   currentNode: TreeNode;
   arrows: string[];
   headers: GameHeaders;
@@ -79,6 +81,7 @@ interface ChessboardProps {
 }
 
 function BoardPlay({
+  dirty,
   currentNode,
   headers,
   arrows,
@@ -122,6 +125,7 @@ function BoardPlay({
   const showArrows = useAtomValue(showArrowsAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
+  const autoSave = useAtomValue(autoSaveAtom);
 
   const activeTab = useAtomValue(currentTabAtom);
 
@@ -175,7 +179,10 @@ function BoardPlay({
         )}
         {saveFile && (
           <Tooltip label={"Save PGN"}>
-            <ActionIcon onClick={() => saveFile()}>
+            <ActionIcon
+              onClick={() => saveFile()}
+              variant={dirty && !autoSave ? "outline" : "subtle"}
+            >
               <IconDeviceFloppy />
             </ActionIcon>
           </Tooltip>

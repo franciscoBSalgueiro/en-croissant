@@ -45,7 +45,7 @@ function BoardAnalysis() {
 
   const [notationExpanded, setNotationExpanded] = useState(false);
 
-  const { root, position, headers } = useContext(TreeStateContext);
+  const { dirty, root, position, headers } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
 
   useEffect(() => {
@@ -101,6 +101,7 @@ function BoardAnalysis() {
       <BoardLayout
         board={
           <BoardPlay
+            dirty={dirty}
             currentNode={currentNode}
             arrows={arrows}
             headers={headers}
