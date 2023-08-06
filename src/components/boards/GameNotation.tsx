@@ -330,7 +330,7 @@ const RenderVariationTree = memo(
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   const [invisible, toggleVisible] = useToggle();
-  if (moveNodes.length > 1)
+  if (moveNodes.length >= 1)
     return (
       <>
         <Box
@@ -365,16 +365,16 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
         </Box>
       </>
     );
-  else if (moveNodes.length === 1)
-    return (
-      <Box sx={{ fontStyle: "italic" }}>
-        {"("}
-        {moveNodes.map((node, i) => (
-          <span key={i}>{node}</span>
-        ))}
-        {")"}
-      </Box>
-    );
+  // else if (moveNodes.length === 1)
+  //   return (
+  //     <Box sx={{ fontStyle: "italic" }}>
+  //       {"("}
+  //       {moveNodes.map((node, i) => (
+  //         <span key={i}>{node}</span>
+  //       ))}
+  //       {")"}
+  //     </Box>
+  //   );
   else return <></>;
 }
 
