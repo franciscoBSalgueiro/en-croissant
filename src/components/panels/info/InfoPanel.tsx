@@ -87,6 +87,14 @@ function GameSelectorAccordion({
       return;
     }
 
+    setCurrentTab((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        gameNumber: page,
+      };
+    });
+
     const data = await read_games(currentTab!.file!.path, page, page);
     const tree = await parsePGN(data[0]);
     dispatch({

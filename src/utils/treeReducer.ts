@@ -197,7 +197,6 @@ export type TreeAction =
 const treeReducer = (state: TreeState, action: TreeAction) => {
     switch (action.type) {
         case "SET_STATE": {
-            state.dirty = false;
             return action.payload;
         }
         case "SAVE": {
@@ -205,8 +204,9 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             break;
         }
         case "RESET": {
-            state.dirty = true;
-            return defaultTree();
+            const dt = defaultTree();
+            dt.dirty = true;
+            return dt;
         }
         case "SET_HEADERS": {
             state.dirty = true;
