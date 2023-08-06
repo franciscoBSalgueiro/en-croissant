@@ -36,6 +36,7 @@ import { Chess } from "chess.js";
 import AnalysisRow from "./AnalysisRow";
 import { useAtomValue } from "jotai";
 import { activeTabAtom } from "@/atoms/atoms";
+import { formatScore } from "@/utils/score";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -180,19 +181,36 @@ function BestMoves({ id, engine, setArrows, fen, halfMoves }: BestMovesProps) {
                   </Tooltip>
                 )}
               </Group>
-              <Stack align="center" spacing={0}>
-                <Text
-                  size="xs"
-                  transform="uppercase"
-                  weight={700}
-                  className={classes.subtitle}
-                >
-                  Depth
-                </Text>
-                <Text fw="bold" fz="xl">
-                  {depth}
-                </Text>
-              </Stack>
+              <Group spacing="lg">
+                {engineVariations.length > 0 && (
+                  <Stack align="center" spacing={0}>
+                    <Text
+                      size="xs"
+                      transform="uppercase"
+                      weight={700}
+                      className={classes.subtitle}
+                    >
+                      Eval
+                    </Text>
+                    <Text fw="bold" fz="xl">
+                      {formatScore(engineVariations[0].score, 1) ?? 0}
+                    </Text>
+                  </Stack>
+                )}
+                <Stack align="center" spacing={0}>
+                  <Text
+                    size="xs"
+                    transform="uppercase"
+                    weight={700}
+                    className={classes.subtitle}
+                  >
+                    Depth
+                  </Text>
+                  <Text fw="bold" fz="xl">
+                    {depth}
+                  </Text>
+                </Stack>
+              </Group>
             </Group>
           </Accordion.Control>
           <Tooltip label="Check the opponent's threat">

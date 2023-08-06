@@ -22,10 +22,10 @@ export function parseScore(score: string): Score {
     }
 }
 
-export function formatScore(score: Score): string {
+export function formatScore(score: Score, precision = 2): string {
     let scoreText = "";
     if (score.type === "cp") {
-        scoreText = Math.abs(score.value / 100).toFixed(2);
+        scoreText = Math.abs(score.value / 100).toFixed(precision);
     } else {
         scoreText = "M" + Math.abs(score.value);
     }

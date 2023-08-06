@@ -6,7 +6,6 @@ import {
   Group,
   Input,
   Stack,
-  Text,
   Tooltip,
 } from "@mantine/core";
 import { useClickOutside, useHotkeys, useViewportSize } from "@mantine/hooks";
@@ -320,10 +319,7 @@ function BoardPlay({
         </Box>
 
         <Group position={"apart"} h={20}>
-          <Group>
-            {moveInput && <MoveInput currentNode={currentNode} />}
-            {currentNode.score && <Text>{formatScore(currentNode.score)}</Text>}
-          </Group>
+          <Group>{moveInput && <MoveInput currentNode={currentNode} />}</Group>
 
           {controls}
         </Group>

@@ -1,6 +1,6 @@
-import { Box, useMantineTheme } from "@mantine/core";
+import { Box, useMantineTheme, Tooltip } from "@mantine/core";
 import { Color } from "chessground/types";
-import { Score, getWinChance } from "@/utils/score";
+import { Score, formatScore, getWinChance } from "@/utils/score";
 
 function EvalBar({
   score,
@@ -41,16 +41,23 @@ function EvalBar({
   }
 
   return (
-    <Box
-      sx={{
-        width: 25,
-        height: boardSize,
-        rotate: orientation === "white" ? "0deg" : "180deg",
-        borderRadius: 10,
-      }}
+    <Tooltip
+      position="right"
+      color={score && score.value < 0 ? "dark" : undefined}
+      label={score ? formatScore(score) : undefined}
+      disabled={!score}
     >
-      {ScoreBars}
-    </Box>
+      <Box
+        sx={{
+          width: 25,
+          height: boardSize,
+          rotate: orientation === "white" ? "0deg" : "180deg",
+          borderRadius: 10,
+        }}
+      >
+        {ScoreBars}
+      </Box>
+    </Tooltip>
   );
 }
 
