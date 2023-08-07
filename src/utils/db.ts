@@ -3,11 +3,7 @@ import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./invoke";
 import { PuzzleDatabase } from "./puzzles";
 
-export enum Sides {
-    WhiteBlack = "WhiteBlack",
-    BlackWhite = "BlackWhite",
-    Any = "Any",
-}
+export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
 export interface CompleteGame {
     game: NormalizedGame;

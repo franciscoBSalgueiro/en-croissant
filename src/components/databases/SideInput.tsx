@@ -58,10 +58,10 @@ export function SideInput({
   const [opened, setOpened] = useState(false);
   const { classes } = useStyles({ opened });
   const [selected, setSelected] = useState(
-    (sides === Sides.WhiteBlack && label === "Player") ||
-      (sides === Sides.BlackWhite && label === "Opponent")
+    (sides === "WhiteBlack" && label === "Player") ||
+      (sides === "BlackWhite" && label === "Opponent")
       ? data[0]
-      : sides === Sides.Any
+      : sides === "Any"
       ? data[2]
       : data[1]
   );
@@ -90,20 +90,20 @@ export function SideInput({
       (selected.label === "White" && label === "Player") ||
       (selected.label === "Black" && label === "Opponent")
     ) {
-      setSides(Sides.WhiteBlack);
+      setSides("WhiteBlack");
     } else if (selected.label === "Any") {
-      setSides(Sides.Any);
+      setSides("Any");
     } else {
-      setSides(Sides.BlackWhite);
+      setSides("BlackWhite");
     }
   }, [selected]);
 
   useEffect(() => {
     const newSelected =
-      (sides === Sides.WhiteBlack && label === "Player") ||
-      (sides === Sides.BlackWhite && label === "Opponent")
+      (sides === "WhiteBlack" && label === "Player") ||
+      (sides === "BlackWhite" && label === "Opponent")
         ? data[0]
-        : sides === Sides.Any
+        : sides === "Any"
         ? data[2]
         : data[1];
     setSelected(newSelected);

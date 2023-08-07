@@ -46,7 +46,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const [tempRangePlayer2, setTempRangePlayer2] = useState<[number, number]>([
     0, 3000,
   ]);
-  const [sides, setSides] = useState(Sides.WhiteBlack);
+  const [sides, setSides] = useState<Sides>("WhiteBlack");
   const [outcome, setOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   // const [skip, toggleSkip] = useToggle([true, false]);
