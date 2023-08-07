@@ -75,23 +75,15 @@ function parseCal(csl: string): DrawShape[] {
     return shapes;
 }
 
-export const enum Annotation {
-    None = "",
-    Good = "!",
-    Brilliant = "!!",
-    Mistake = "?",
-    Blunder = "??",
-    Dubious = "?!",
-    Interesting = "!?",
-}
+export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
 
-const NAG_INFO = new Map([
-    ["$1", Annotation.Good],
-    ["$2", Annotation.Mistake],
-    ["$3", Annotation.Brilliant],
-    ["$4", Annotation.Blunder],
-    ["$5", Annotation.Interesting],
-    ["$6", Annotation.Dubious],
+const NAG_INFO = new Map<string, Annotation>([
+    ["$1", "!"],
+    ["$2", "??"],
+    ["$3", "!!"],
+    ["$4", "??"],
+    ["$5", "!?"],
+    ["$6", "?!"],
 ]);
 
 type AnnotationInfo = {
@@ -100,13 +92,13 @@ type AnnotationInfo = {
 };
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
-    [Annotation.None]: { name: "None", color: "gray" },
-    [Annotation.Brilliant]: { name: "Brilliant", color: "cyan" },
-    [Annotation.Good]: { name: "Good", color: "teal" },
-    [Annotation.Interesting]: { name: "Interesting", color: "lime" },
-    [Annotation.Dubious]: { name: "Dubious", color: "yellow" },
-    [Annotation.Mistake]: { name: "Mistake", color: "orange" },
-    [Annotation.Blunder]: { name: "Blunder", color: "red" },
+    "": { name: "None", color: "gray" },
+    "!!": { name: "Brilliant", color: "cyan" },
+    "!": { name: "Good", color: "teal" },
+    "!?": { name: "Interesting", color: "lime" },
+    "?!": { name: "Dubious", color: "yellow" },
+    "?": { name: "Mistake", color: "orange" },
+    "??": { name: "Blunder", color: "red" },
 };
 
 export interface BestMoves {
@@ -451,7 +443,7 @@ function innerParsePGN(
         } else if (token.type === "ParenClose") {
             continue;
         } else if (token.type === "Nag") {
-            root.annotation = NAG_INFO.get(token.value) || Annotation.None;
+            root.annotation = NAG_INFO.get(token.value) || "";
         } else if (token.type === "San") {
             const chess = new Chess(root.fen);
             let m: Move;
@@ -564,21 +556,21 @@ type ColorMap<T> = {
 /* traverse the main line and get the average centipawn loss for each player*/
 export function getGameStats(tree: TreeNode) {
     const whiteAnnotations = {
-        [Annotation.Blunder]: 0,
-        [Annotation.Mistake]: 0,
-        [Annotation.Dubious]: 0,
-        [Annotation.Brilliant]: 0,
-        [Annotation.Good]: 0,
-        [Annotation.Interesting]: 0,
+        "??": 0,
+        "?": 0,
+        "?!": 0,
+        "!!": 0,
+        "!": 0,
+        "!?": 0,
     };
 
     const blackAnnotations = {
-        [Annotation.Blunder]: 0,
-        [Annotation.Mistake]: 0,
-        [Annotation.Dubious]: 0,
-        [Annotation.Brilliant]: 0,
-        [Annotation.Good]: 0,
-        [Annotation.Interesting]: 0,
+        "??": 0,
+        "?": 0,
+        "?!": 0,
+        "!!": 0,
+        "!": 0,
+        "!?": 0,
     };
 
     if (tree.children.length === 0) {

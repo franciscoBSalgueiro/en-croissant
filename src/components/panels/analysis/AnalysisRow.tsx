@@ -53,7 +53,7 @@ function AnalysisRow({
                   key={index + move}
                   move={move}
                   isCurrentVariation={false}
-                  annotation={Annotation.None}
+                  annotation={""}
                   onContextMenu={() => undefined}
                   onClick={() => {
                     if (!threat) {

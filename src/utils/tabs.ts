@@ -1,11 +1,11 @@
 import { FileMetadata } from "@/components/files/file";
 import { getPGN, parsePGN } from "./chess";
 import { GameHeaders, TreeNode } from "./treeReducer";
-import { invoke } from "./misc";
+import { invoke } from "./invoke";
 import { documentDir, resolve } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/api/dialog";
 
-type TabType = "new" | "play" | "analysis" | "puzzles" | "repertoire";
+type TabType = "new" | "play" | "analysis" | "puzzles";
 
 export type Tab = {
     name: string;

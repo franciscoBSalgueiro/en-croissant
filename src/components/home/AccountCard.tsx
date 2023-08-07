@@ -21,7 +21,7 @@ import { useEffect, useState } from "react";
 import { downloadChessCom } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { downloadLichess } from "@/utils/lichess";
-import { invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
 import ChessComLogo from "./ChessComLogo";
 import LichessLogo from "./LichessLogo";
 import useStyles from "./styles";
@@ -60,15 +60,13 @@ export function AccountCard({
     let color = "gray.5";
     let DiffIcon: React.FC<TablerIconsProps> = IconArrowRight;
     if (stat.diff) {
-      switch (Math.sign(stat.diff)) {
-        case 1:
-          DiffIcon = IconArrowUpRight;
-          color = "green";
-          break;
-        case -1:
-          DiffIcon = IconArrowDownRight;
-          color = "red";
-          break;
+      const sign = Math.sign(stat.diff);
+      if (sign === 1) {
+        DiffIcon = IconArrowUpRight;
+        color = "green";
+      } else {
+        DiffIcon = IconArrowDownRight;
+        color = "red";
       }
     }
     return (

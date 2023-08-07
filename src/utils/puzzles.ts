@@ -1,11 +1,7 @@
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
-import { invoke } from "./misc";
+import { invoke } from "./invoke";
 
-export enum Completion {
-    CORRECT,
-    INCORRECT,
-    INCOMPLETE,
-}
+export type Completion = "correct" | "incorrect" | "incomplete";
 
 export interface Puzzle {
     fen: string;

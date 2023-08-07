@@ -1,6 +1,6 @@
 import { BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
-import { invoke } from "./misc";
+import { invoke } from "./invoke";
 
 export interface Engine {
     name: string;

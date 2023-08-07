@@ -38,12 +38,12 @@ import {
 } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
 import { formatMove } from "@/utils/format";
-import { getBoardSize, invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
+import { getBoardSize } from "@/utils/misc";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import Piece from "../common/Piece";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import EvalBar from "./EvalBar";
-import { formatScore } from "@/utils/score";
 import { useAtomValue } from "jotai";
 import {
   autoPromoteAtom,

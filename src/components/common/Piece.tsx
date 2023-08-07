@@ -1,6 +1,7 @@
 import { Piece, Square } from "chess.js";
 import { useRef } from "react";
 import Draggable from "react-draggable";
+import { match } from "ts-pattern";
 
 function Piece({
   piece,
@@ -70,20 +71,14 @@ function Piece({
 
 function getPieceName(piece: Piece) {
   const colorText = piece.color === "w" ? "white" : "black";
-  switch (piece.type) {
-    case "p":
-      return `${colorText} pawn`;
-    case "r":
-      return `${colorText} rook`;
-    case "n":
-      return `${colorText} knight`;
-    case "b":
-      return `${colorText} bishop`;
-    case "q":
-      return `${colorText} queen`;
-    case "k":
-      return `${colorText} king`;
-  }
+  return match(piece.type)
+    .with("p", () => `${colorText} pawn`)
+    .with("r", () => `${colorText} rook`)
+    .with("n", () => `${colorText} knight`)
+    .with("b", () => `${colorText} bishop`)
+    .with("q", () => `${colorText} queen`)
+    .with("k", () => `${colorText} king`)
+    .exhaustive();
 }
 
 export default Piece;

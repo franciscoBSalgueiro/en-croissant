@@ -2,7 +2,7 @@ import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Color } from "chessground/types";
-import { invoke } from "./misc";
+import { invoke } from "./invoke";
 import { NormalizedGame } from "./db";
 import { parsePGN } from "./chess";
 import { countMainPly } from "./treeReducer";

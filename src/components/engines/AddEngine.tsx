@@ -26,7 +26,7 @@ import {
 } from "react";
 import { Engine, getDefaultEngines } from "@/utils/engines";
 import { formatBytes } from "@/utils/format";
-import { invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
@@ -230,33 +230,36 @@ function EngineCard({
   initInstalled: boolean;
 }) {
   const [inProgress, setInProgress] = useState<boolean>(false);
-  const downloadEngine = useCallback(async (id: number, url: string) => {
-    setInProgress(true);
-    const path = await resolve(await appDataDir(), "engines");
-    await invoke("download_file", {
-      id,
-      url,
-      zip: true,
-      path,
-    });
-    let appDataDirPath = await appDataDir();
-    if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
-      appDataDirPath = appDataDirPath.slice(0, -1);
-    }
-    const enginePath = await join(
-      appDataDirPath,
-      "engines",
-      ...engine.path.split("/")
-    );
-    await invoke("set_file_as_executable", { path: enginePath });
-    setEngines((prev) => [
-      ...prev,
-      {
-        ...engine,
-        path: enginePath,
-      },
-    ]);
-  }, [engine, setEngines]);
+  const downloadEngine = useCallback(
+    async (id: number, url: string) => {
+      setInProgress(true);
+      const path = await resolve(await appDataDir(), "engines");
+      await invoke("download_file", {
+        id,
+        url,
+        zip: true,
+        path,
+      });
+      let appDataDirPath = await appDataDir();
+      if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
+        appDataDirPath = appDataDirPath.slice(0, -1);
+      }
+      const enginePath = await join(
+        appDataDirPath,
+        "engines",
+        ...engine.path.split("/")
+      );
+      await invoke("set_file_as_executable", { path: enginePath });
+      setEngines((prev) => [
+        ...prev,
+        {
+          ...engine,
+          path: enginePath,
+        },
+      ]);
+    },
+    [engine, setEngines]
+  );
 
   const { classes } = useStyles();
 

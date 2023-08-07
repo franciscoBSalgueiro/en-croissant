@@ -9,7 +9,9 @@ import {
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { getPGN } from "@/utils/chess";
-import { getBoardSize, invoke } from "@/utils/misc";
+import { getBoardSize } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
+
 import { getNodeAtPath } from "@/utils/treeReducer";
 import MoveControls from "../common/MoveControls";
 import {

@@ -19,6 +19,7 @@ import { useCallback } from "react";
 import { useAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
+import { match } from "ts-pattern";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -224,24 +225,18 @@ export default function BoardsPage() {
 }
 
 function TabSwitch({ tab }: { tab: Tab }) {
-  switch (tab.type) {
-    case "new":
-      return <NewTabHome id={tab.value} />;
-
-    case "play":
-      return (
-        <TreeStateProvider id={tab.value}>
-          <BoardGame />
-        </TreeStateProvider>
-      );
-
-    case "analysis":
-      return (
-        <TreeStateProvider id={tab.value}>
-          <BoardAnalysis />
-        </TreeStateProvider>
-      );
-    case "puzzles":
-      return <Puzzles id={tab.value} />;
-  }
+  return match(tab.type)
+    .with("new", () => <NewTabHome id={tab.value} />)
+    .with("play", () => (
+      <TreeStateProvider id={tab.value}>
+        <BoardGame />
+      </TreeStateProvider>
+    ))
+    .with("analysis", () => (
+      <TreeStateProvider id={tab.value}>
+        <BoardAnalysis />
+      </TreeStateProvider>
+    ))
+    .with("puzzles", () => <Puzzles id={tab.value} />)
+    .exhaustive();
 }

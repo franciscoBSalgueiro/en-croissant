@@ -29,7 +29,8 @@ import {
 } from "react";
 import { BestMoves, BestMovesPayload, swapMove } from "@/utils/chess";
 import { Engine } from "@/utils/engines";
-import { invoke, useThrottledEffect } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
+import { useThrottledEffect } from "@/utils/misc";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
 import { Chess } from "chess.js";

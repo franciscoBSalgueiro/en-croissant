@@ -104,8 +104,8 @@ function PuzzleBoard({
                     promotion: p,
                   });
                   if (currentMove === puzzle.moves.length) {
-                    if (puzzle.completion !== Completion.INCORRECT) {
-                      changeCompletion(Completion.CORRECT);
+                    if (puzzle.completion !== "incorrect") {
+                      changeCompletion("correct");
                     }
                     setCurrentMove(1);
                     setEnded(false);
@@ -115,7 +115,7 @@ function PuzzleBoard({
                   setCurrentMove(currentMove + 2);
                 } else {
                   if (!ended) {
-                    changeCompletion(Completion.INCORRECT);
+                    changeCompletion("incorrect");
                   }
                   setEnded(true);
                 }
@@ -158,8 +158,8 @@ function PuzzleBoard({
                 } else {
                   if (puzzle.moves[currentMove] === `${orig}${newDest}`) {
                     if (currentMove === puzzle.moves.length - 1) {
-                      if (puzzle.completion !== Completion.INCORRECT) {
-                        changeCompletion(Completion.CORRECT);
+                      if (puzzle.completion !== "incorrect") {
+                        changeCompletion("correct");
                       }
                       setEnded(false);
 
@@ -168,7 +168,7 @@ function PuzzleBoard({
                     setCurrentMove(currentMove + 2);
                   } else {
                     if (!ended) {
-                      changeCompletion(Completion.INCORRECT);
+                      changeCompletion("incorrect");
                     }
                     setEnded(true);
                   }

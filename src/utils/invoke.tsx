@@ -1,0 +1,26 @@
+import { notifications } from "@mantine/notifications";
+import { IconX } from "@tabler/icons-react";
+import { invoke as invokeTauri } from "@tauri-apps/api";
+
+export async function invoke<T>(
+  name: string,
+  payload?: Record<string, unknown>,
+  allowedErrors?: (s: string) => boolean
+): Promise<T> {
+  try {
+    return await invokeTauri<T>(name, payload);
+  } catch (e) {
+    if (typeof e === "string") {
+      if (allowedErrors && allowedErrors(e)) {
+        return Promise.reject(e);
+      }
+      notifications.show({
+        title: "Error",
+        message: e,
+        color: "red",
+        icon: <IconX />,
+      });
+    }
+    return Promise.reject(e);
+  }
+}

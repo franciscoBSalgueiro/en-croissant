@@ -14,7 +14,7 @@ import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { MoveAnalysis } from "@/utils/chess";
 import { Engine, getEngines } from "@/utils/engines";
 import { formatDuration } from "@/utils/format";
-import { invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
 import { referenceDbAtom } from "@/atoms/atoms";

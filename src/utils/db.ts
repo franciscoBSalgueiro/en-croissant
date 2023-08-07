@@ -1,6 +1,6 @@
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
-import { invoke } from "./misc";
+import { invoke } from "./invoke";
 import { PuzzleDatabase } from "./puzzles";
 
 export enum Sides {

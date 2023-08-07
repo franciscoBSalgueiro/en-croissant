@@ -17,7 +17,7 @@ import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
-import { invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
 import {
   Completion,
   Puzzle,
@@ -27,6 +27,7 @@ import {
 import PuzzleBoard from "./PuzzleBoard";
 import { PuzzleDbCard } from "./PuzzleDbCard";
 import AddPuzzle from "./AddPuzzle";
+import { match } from "ts-pattern";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -69,10 +70,10 @@ function Puzzles({ id }: { id: string }) {
   });
 
   const wonPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === Completion.CORRECT
+    (puzzle) => puzzle.completion === "correct"
   );
   const lostPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === Completion.INCORRECT
+    (puzzle) => puzzle.completion === "incorrect"
   );
   const averageWonRating =
     wonPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
@@ -88,7 +89,7 @@ function Puzzles({ id }: { id: string }) {
       maxRating: ratingRange[1],
     }).then((res) => {
       res.moves = res.moves.split(" ");
-      res.completion = Completion.INCOMPLETE;
+      res.completion = "incomplete";
       setPuzzles((puzzles) => {
         return [...puzzles, res];
       });
@@ -234,8 +235,8 @@ function Puzzles({ id }: { id: string }) {
             <Button
               onClick={async () => {
                 const curPuzzle = puzzles[currentPuzzle];
-                if (curPuzzle.completion === Completion.INCOMPLETE) {
-                  changeCompletion(Completion.INCORRECT);
+                if (curPuzzle.completion === "incomplete") {
+                  changeCompletion("incorrect");
                 }
                 for (let i = currentMove; i < curPuzzle.moves.length; i++) {
                   setCurrentMove((currentMove) => currentMove + 1);
@@ -253,47 +254,44 @@ function Puzzles({ id }: { id: string }) {
           <Group>
             {puzzles.map((p, i) => {
               const current = i === currentPuzzle;
-              switch (p.completion) {
-                case Completion.CORRECT:
-                  return (
-                    <ActionIcon
-                      onClick={() => {
-                        setCurrentPuzzle(i);
-                        setCurrentMove(1);
-                      }}
-                      variant="light"
-                      key={i}
-                      color="green"
-                      sx={{ border: current ? "2px solid green" : "none" }}
-                    >
-                      <IconCheck color="green" />
-                    </ActionIcon>
-                  );
-                case Completion.INCORRECT:
-                  return (
-                    <ActionIcon
-                      onClick={() => setCurrentPuzzle(i)}
-                      variant="light"
-                      key={i}
-                      color="red"
-                      sx={{ border: current ? "2px solid red" : "none" }}
-                    >
-                      <IconX color="red" />
-                    </ActionIcon>
-                  );
-                case Completion.INCOMPLETE:
-                  return (
-                    <ActionIcon
-                      onClick={() => setCurrentPuzzle(i)}
-                      variant="light"
-                      key={i}
-                      color="yellow"
-                      sx={{ border: current ? "2px solid yellow" : "none" }}
-                    >
-                      <IconDots color="yellow" />
-                    </ActionIcon>
-                  );
-              }
+              return match(p.completion)
+                .with("correct", () => (
+                  <ActionIcon
+                    onClick={() => {
+                      setCurrentPuzzle(i);
+                      setCurrentMove(1);
+                    }}
+                    variant="light"
+                    key={i}
+                    color="green"
+                    sx={{ border: current ? "2px solid green" : "none" }}
+                  >
+                    <IconCheck color="green" />
+                  </ActionIcon>
+                ))
+                .with("incorrect", () => (
+                  <ActionIcon
+                    onClick={() => setCurrentPuzzle(i)}
+                    variant="light"
+                    key={i}
+                    color="red"
+                    sx={{ border: current ? "2px solid red" : "none" }}
+                  >
+                    <IconX color="red" />
+                  </ActionIcon>
+                ))
+                .with("incomplete", () => (
+                  <ActionIcon
+                    onClick={() => setCurrentPuzzle(i)}
+                    variant="light"
+                    key={i}
+                    color="yellow"
+                    sx={{ border: current ? "2px solid yellow" : "none" }}
+                  >
+                    <IconDots color="yellow" />
+                  </ActionIcon>
+                ))
+                .exhaustive();
             })}
           </Group>
         </Card>

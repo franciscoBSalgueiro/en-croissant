@@ -96,11 +96,11 @@ export function getAnnotation(
     const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
 
     if (winChanceDiff > 20) {
-        return Annotation.Blunder;
+        return "??";
     } else if (winChanceDiff > 10) {
-        return Annotation.Mistake;
+        return "?";
     } else if (winChanceDiff > 5) {
-        return Annotation.Dubious;
+        return "?!";
     }
-    return Annotation.None;
+    return "";
 }

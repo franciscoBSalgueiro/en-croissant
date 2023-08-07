@@ -1,30 +1,17 @@
 import { Badge, DefaultMantineColor } from "@mantine/core";
 import { Speed } from "@/utils/db";
+import { match } from "ts-pattern";
 
 function SpeeedBadge({ speed }: { speed: Speed }) {
-  let color: DefaultMantineColor;
-  switch (speed) {
-    case "UltraBullet":
-      color = "pink";
-      break;
-    case "Bullet":
-      color = "red";
-      break;
-    case "Blitz":
-      color = "yellow";
-      break;
-    case "Rapid":
-      color = "green";
-      break;
-    case "Classical":
-      color = "blue";
-      break;
-    case "Correspondence":
-      color = "violet";
-      break;
-    default:
-      color = "gray";
-  }
+  const color: DefaultMantineColor = match(speed)
+    .with("UltraBullet", () => "pink")
+    .with("Bullet", () => "red")
+    .with("Blitz", () => "yellow")
+    .with("Rapid", () => "green")
+    .with("Classical", () => "blue")
+    .with("Correspondence", () => "violet")
+    .with("Unknown", () => "gray")
+    .exhaustive();
   return <Badge color={color}>{speed}</Badge>;
 }
 

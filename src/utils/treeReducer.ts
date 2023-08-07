@@ -4,6 +4,7 @@ import { Annotation, MoveAnalysis } from "./chess";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { Score, getAnnotation } from "./score";
+import { match } from "ts-pattern";
 
 export interface TreeState {
     root: TreeNode;
@@ -63,7 +64,7 @@ export function defaultTree(fen?: string): TreeState {
             depth: null,
             halfMoves: 0,
             shapes: [],
-            annotation: Annotation.None,
+            annotation: "",
             commentHTML: "",
             commentText: "",
         },
@@ -96,7 +97,7 @@ export function createNode({
         depth: null,
         halfMoves,
         shapes: [],
-        annotation: Annotation.None,
+        annotation: "",
         commentHTML: "",
         commentText: "",
     };
@@ -189,57 +190,47 @@ export type TreeAction =
     | { type: "SET_COMMENT"; payload: { html: string; text: string } }
     | { type: "SET_FEN"; payload: string }
     | { type: "SET_SCORE"; payload: Score }
-    | { type: "SET_OUTCOME"; payload: Outcome }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
     | { type: "ADD_ANALYSIS"; payload: MoveAnalysis[] }
     | { type: "PROMOTE_VARIATION"; payload: number[] };
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
-    switch (action.type) {
-        case "SET_STATE": {
-            return action.payload;
-        }
-        case "SAVE": {
+    const res = match(action)
+        .with({ type: "SET_STATE" }, ({ payload }) => {
+            return payload;
+        })
+        .with({ type: "SAVE" }, () => {
             state.dirty = false;
-            break;
-        }
-        case "RESET": {
-            const dt = defaultTree();
-            dt.dirty = true;
-            return dt;
-        }
-        case "SET_HEADERS": {
+        })
+        .with({ type: "RESET" }, () => {
+            return defaultTree();
+        })
+        .with({ type: "SET_HEADERS" }, ({ payload }) => {
             state.dirty = true;
-            state.headers = action.payload;
-            break;
-        }
-        case "SET_ORIENTATION": {
+            state.headers = payload;
+        })
+        .with({ type: "SET_ORIENTATION" }, ({ payload }) => {
             state.dirty = true;
-            state.headers.orientation = action.payload;
-            break;
-        }
-        case "SET_START": {
+            state.headers.orientation = payload;
+        })
+        .with({ type: "SET_START" }, ({ payload }) => {
             state.dirty = true;
-            state.headers.start = action.payload;
-            break;
-        }
-        case "MAKE_MOVE": {
+            state.headers.start = payload;
+        })
+        .with({ type: "MAKE_MOVE" }, ({ payload }) => {
             state.dirty = true;
-            makeMove(state, action.payload);
-            break;
-        }
-        case "MAKE_MOVES": {
+            makeMove(state, payload);
+        })
+        .with({ type: "MAKE_MOVES" }, ({ payload }) => {
             state.dirty = true;
-            for (const move of action.payload) {
+            for (const move of payload) {
                 makeMove(state, move);
             }
-            break;
-        }
-        case "GO_TO_START": {
+        })
+        .with({ type: "GO_TO_START" }, () => {
             state.position = [];
-            break;
-        }
-        case "GO_TO_END": {
+        })
+        .with({ type: "GO_TO_END" }, () => {
             const endPosition: number[] = [];
             let currentNode = state.root;
             while (currentNode.children.length > 0) {
@@ -247,87 +238,71 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
                 currentNode = currentNode.children[0];
             }
             state.position = endPosition;
-            break;
-        }
-        case "GO_TO_NEXT": {
+        })
+        .with({ type: "GO_TO_NEXT" }, () => {
             const node = getNodeAtPath(state.root, state.position);
             if (node && node.children.length > 0) {
                 state.position.push(0);
             }
-            break;
-        }
-        case "GO_TO_PREVIOUS": {
+        })
+        .with({ type: "GO_TO_PREVIOUS" }, () => {
             if (state.position.length !== 0) {
                 state.position.pop();
             }
-            break;
-        }
-        case "GO_TO_MOVE": {
-            state.position = action.payload;
-            break;
-        }
-        case "DELETE_MOVE": {
+        })
+        .with({ type: "GO_TO_MOVE" }, ({ payload }) => {
+            state.position = payload;
+        })
+        .with({ type: "DELETE_MOVE" }, (action) => {
             state.dirty = true;
             deleteMove(state, action.payload || state.position);
-            break;
-        }
-        case "SET_ANNOTATION": {
+        })
+        .with({ type: "SET_ANNOTATION" }, ({ payload }) => {
             state.dirty = true;
-            {
-                const node = getNodeAtPath(state.root, state.position);
-                if (node) {
-                    if (node.annotation === action.payload) {
-                        node.annotation = Annotation.None;
-                    } else {
-                        node.annotation = action.payload;
-                    }
+            const node = getNodeAtPath(state.root, state.position);
+            if (node) {
+                if (node.annotation === payload) {
+                    node.annotation = "";
+                } else {
+                    node.annotation = payload;
                 }
             }
-            break;
-        }
-        case "SET_COMMENT": {
+        })
+        .with({ type: "SET_COMMENT" }, ({ payload }) => {
             state.dirty = true;
-            {
-                const node = getNodeAtPath(state.root, state.position);
-                if (node) {
-                    node.commentHTML = action.payload.html;
-                    node.commentText = action.payload.text;
-                }
+            const node = getNodeAtPath(state.root, state.position);
+            if (node) {
+                node.commentHTML = payload.html;
+                node.commentText = payload.text;
             }
-            break;
-        }
-        case "SET_FEN": {
+        })
+        .with({ type: "SET_FEN" }, ({ payload }) => {
             state.dirty = true;
-            state.root = defaultTree(action.payload).root;
+            state.root = defaultTree(payload).root;
             state.position = [];
-            break;
-        }
-        case "SET_SCORE": {
+        })
+        .with({ type: "SET_SCORE" }, ({ payload }) => {
             state.dirty = true;
-            {
-                const node = getNodeAtPath(state.root, state.position);
-                if (node) {
-                    node.score = action.payload;
-                }
+            const node = getNodeAtPath(state.root, state.position);
+            if (node) {
+                node.score = payload;
             }
-            break;
-        }
-        case "ADD_ANALYSIS": {
+        })
+        .with({ type: "ADD_ANALYSIS" }, ({ payload }) => {
             state.dirty = true;
-            addAnalysis(state, action.payload);
-            break;
-        }
-        case "SET_SHAPES": {
+            addAnalysis(state, payload);
+        })
+        .with({ type: "SET_SHAPES" }, ({ payload }) => {
             state.dirty = true;
-            setShapes(state, action.payload);
-            break;
-        }
-        case "PROMOTE_VARIATION": {
+            setShapes(state, payload);
+        })
+        .with({ type: "PROMOTE_VARIATION" }, ({ payload }) => {
             state.dirty = true;
-            promoteVariation(state, action.payload);
-            break;
-        }
-    }
+            promoteVariation(state, payload);
+        })
+        .exhaustive();
+
+    return res;
 };
 
 function makeMove(
@@ -375,18 +350,16 @@ function deleteMove(state: TreeState, path: number[]) {
 
 function promoteVariation(state: TreeState, path: number[]) {
     // get last element different from 0
-    const [v, i] = path.reduceRight(
-        (acc, v, i) => (v === 0 ? acc : [v, i]),
-        [0, 0]
-    );
-    if (i === 0) return state;
+    const i = path.findLastIndex((v) => v !== 0);
+    if (i === -1) return state;
+
+    const v = path[i];
     const promotablePath = path.slice(0, i);
-    path[i] = 0;
-    if (promotablePath.length === 0) return state;
     const node = getNodeAtPath(state.root, promotablePath);
     if (!node) return state;
     node.children.unshift(node.children.splice(v, 1)[0]);
     state.position = path;
+    state.position[i] = 0;
 }
 
 export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {

@@ -3,7 +3,7 @@ import { Chess } from "chess.js";
 import { forwardRef, memo, useContext, useState } from "react";
 import { swapMove } from "@/utils/chess";
 import { capitalize } from "@/utils/format";
-import { invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 
 type ItemProps = {

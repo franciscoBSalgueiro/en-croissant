@@ -112,7 +112,7 @@ function RepertoireInfo() {
                 <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
 
                 <MoveCell
-                  annotation={Annotation.None}
+                  annotation={""}
                   isCurrentVariation={false}
                   move={missingMove.move}
                   onClick={() =>

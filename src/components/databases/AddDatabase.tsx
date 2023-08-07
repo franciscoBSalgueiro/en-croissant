@@ -19,7 +19,7 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { DatabaseInfo, getDatabases, getDefaultDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/misc";
+import { invoke } from "@/utils/invoke";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
