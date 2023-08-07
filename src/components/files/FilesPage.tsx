@@ -5,6 +5,7 @@ import GenericCard from "../common/GenericCard";
 import {
   Button,
   Center,
+  Chip,
   Group,
   Input,
   ScrollArea,
@@ -16,16 +17,25 @@ import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import OpenFolderButton from "../common/OpenFolderButton";
 import ConfirmModal from "../common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
-import { readFileMetadata, FileMetadata } from "./file";
+import { readFileMetadata, FileMetadata, FileType } from "./file";
 import FileCard from "./FileCard";
 import Fuse from "fuse.js";
 import { CreateModal, EditModal } from "./Modals";
+
+const FILE_TYPES: FileType[] = [
+  "game",
+  "repertoire",
+  "tournament",
+  "puzzle",
+  "other",
+];
 
 function FilesPage() {
   const [files, setFiles] = useState<FileMetadata[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FileMetadata | null>(null);
   const [games, setGames] = useState<Map<number, string>>(new Map());
+  const [filter, setFilter] = useState<FileType | null>(null);
 
   const fuse = useMemo(
     () =>
@@ -39,6 +49,10 @@ function FilesPage() {
   if (search) {
     filteredFiles = fuse.search(search).map((r) => r.item);
   }
+  if (filter) {
+    filteredFiles = filteredFiles.filter((f) => f.metadata.type === filter);
+  }
+
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
@@ -110,6 +124,21 @@ function FilesPage() {
             >
               Delete
             </Button>
+          </Group>
+          <Group>
+            {FILE_TYPES.map((type) => (
+              <Chip
+                key={type}
+                onChange={(v) =>
+                  setFilter((filter) =>
+                    v ? type : filter === type ? null : filter
+                  )
+                }
+                checked={filter === type}
+              >
+                {type}
+              </Chip>
+            ))}
           </Group>
 
           <ScrollArea h={500} offsetScrollbars>
