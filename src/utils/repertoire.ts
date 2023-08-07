@@ -4,6 +4,8 @@ import { TreeNode, treeIterator } from "./treeReducer";
 
 export type MissingMove = {
     position: number[];
+    games: number;
+    percentage: number;
     move: string;
 };
 
@@ -56,7 +58,8 @@ export async function openingReport({
         if (
             (color === "white" && item.node.halfMoves % 2 === 0) ||
             (color === "black" && item.node.halfMoves % 2 === 1) ||
-            isPrefix(item.position, start)
+            (isPrefix(item.position, start) &&
+                item.position.length < start.length)
         ) {
             continue;
         }
@@ -91,6 +94,9 @@ export async function openingReport({
                 missingMoves.push({
                     position: item.position,
                     move: opening.move,
+                    games: opening.black + opening.white + opening.draw,
+                    percentage:
+                        (opening.black + opening.white + opening.draw) / total,
                 });
             }
         }

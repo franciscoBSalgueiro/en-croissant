@@ -106,13 +106,6 @@ function CompleteMoveCell({
                 </Menu.Item>
 
                 <Menu.Item
-                  icon={<IconChevronUp size={14} />}
-                  onClick={() => console.log("MoveCell", movePath, move)}
-                >
-                  Debug
-                </Menu.Item>
-
-                <Menu.Item
                   color="red"
                   icon={<IconX size={14} />}
                   onClick={() =>

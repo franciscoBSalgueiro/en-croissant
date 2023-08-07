@@ -1,5 +1,13 @@
-import { Accordion, Box, ScrollArea, Stack, TextInput } from "@mantine/core";
-import { useContext, useState } from "react";
+import {
+  Accordion,
+  Box,
+  ScrollArea,
+  Stack,
+  TextInput,
+  Text,
+  Group,
+} from "@mantine/core";
+import { useContext, useMemo, useState } from "react";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "@/components/common/GameInfo";
 import {
@@ -11,13 +19,14 @@ import PgnInput from "./PgnInput";
 import FileInfo from "./FileInfo";
 import { read_games } from "@/utils/db";
 import { parsePGN } from "@/utils/chess";
-import { useAtom, useAtomValue } from "jotai";
-import { currentTabAtom } from "@/atoms/atoms";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { currentTabAtom, missingMovesAtom } from "@/atoms/atoms";
 import { invoke } from "@tauri-apps/api";
 import { formatNumber } from "@/utils/format";
 import RepertoireInfo from "./RepertoireInfo";
 import { useToggle } from "@mantine/hooks";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
+import { getTreeStats } from "@/utils/repertoire";
 
 function InfoPanel({ boardSize }: { boardSize: number }) {
   const tree = useContext(TreeStateContext);
@@ -25,6 +34,8 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
   const isReportoire = currentTab?.file?.metadata.type === "repertoire";
+
+  const stats = useMemo(() => getTreeStats(tree.root), [tree.root]);
 
   return (
     <Box
@@ -55,6 +66,12 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
             />
           )}
           <PgnInput headers={tree.headers} root={tree.root} />
+
+          <Group>
+            <Text>Variations: {stats.leafs}</Text>
+            <Text>Max Depth: {stats.depth}</Text>
+            <Text>Total moves: {stats.total}</Text>
+          </Group>
         </Stack>
       </ScrollArea>
     </Box>
@@ -71,6 +88,7 @@ function GameSelectorAccordion({
   const { dirty } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const setMissingMoves = useSetAtom(missingMovesAtom);
 
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
@@ -94,6 +112,11 @@ function GameSelectorAccordion({
         gameNumber: page,
       };
     });
+
+    setMissingMoves((prev) => ({
+      ...prev,
+      [currentTab!.value]: null,
+    }));
 
     const data = await read_games(currentTab!.file!.path, page, page);
     const tree = await parsePGN(data[0]);

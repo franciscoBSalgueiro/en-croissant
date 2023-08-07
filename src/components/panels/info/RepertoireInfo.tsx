@@ -1,38 +1,32 @@
 import {
   currentTabAtom,
   minimumGamesAtom,
+  missingMovesAtom,
   percentageCoverageAtom,
   referenceDbAtom,
 } from "@/atoms/atoms";
-import MoveCell from "@/components/boards/MoveCell";
 import {
   TreeDispatchContext,
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
-import { Annotation } from "@/utils/chess";
-import { MissingMove, getTreeStats, openingReport } from "@/utils/repertoire";
+import { MissingMove, openingReport } from "@/utils/repertoire";
 import { Button, Divider, Group, Progress, Select, Text } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
-import { useAtomValue } from "jotai";
-import { useContext, useMemo, useState } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { DataTable } from "mantine-datatable";
+import { useContext, useState } from "react";
 
 function RepertoireInfo() {
   const { headers, root } = useContext(TreeStateContext);
   const referenceDb = useAtomValue(referenceDbAtom);
-
   const currentTab = useAtomValue(currentTabAtom);
 
-  const [missingMoves, setMissingMoves] = useSessionStorage<MissingMove[]>({
-    key: currentTab!.value + "-missing-moves",
-    defaultValue: [],
-  });
+  const [allMissingMoves, setMissingMoves] = useAtom(missingMovesAtom);
+  const missingMoves = allMissingMoves[currentTab!.value];
   const [loading, setLoading] = useState(false);
   const dispatch = useContext(TreeDispatchContext);
   const [progress, setProgress] = useState(0);
   const percentageCoverage = useAtomValue(percentageCoverageAtom);
   const minimumGames = useAtomValue(minimumGamesAtom);
-
-  const stats = useMemo(() => getTreeStats(root), [root]);
 
   function searchForMissingMoves() {
     if (!referenceDb) {
@@ -48,7 +42,10 @@ function RepertoireInfo() {
       percentageCoverage,
       minimumGames,
     }).then((missingMoves) => {
-      setMissingMoves(missingMoves);
+      setMissingMoves((prev) => ({
+        ...prev,
+        [currentTab!.value]: missingMoves,
+      }));
       setLoading(false);
     });
   }
@@ -86,11 +83,8 @@ function RepertoireInfo() {
         />
       </Group>
 
-      <Text>Variations: {stats.leafs}</Text>
-      <Text>Max Depth: {stats.depth}</Text>
-      <Text>Total moves: {stats.total}</Text>
       <Divider />
-      {!loading && !missingMoves.length && (
+      {!loading && !missingMoves && (
         <Button onClick={() => searchForMissingMoves()}>
           Look for missing moves
         </Button>
@@ -101,34 +95,67 @@ function RepertoireInfo() {
           <Progress value={progress} />
         </>
       ) : (
-        <div>
-          <Text>Missing moves</Text>
-          {missingMoves.map((missingMove) => {
-            const total_moves = missingMove.position.length + 1;
-            const is_white = total_moves % 2 === 1;
-            const move_number = Math.ceil(total_moves / 2);
-            return (
-              <div key={missingMove.move}>
-                <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
-
-                <MoveCell
-                  annotation={""}
-                  isCurrentVariation={false}
-                  move={missingMove.move}
-                  onClick={() =>
-                    dispatch({
-                      type: "GO_TO_MOVE",
-                      payload: missingMove.position,
-                    })
-                  }
-                  onContextMenu={() => undefined}
-                />
-              </div>
-            );
-          })}
-        </div>
+        missingMoves && <MissingMoves missingMoves={missingMoves} />
       )}
     </>
+  );
+}
+
+function MissingMoves({ missingMoves }: { missingMoves: MissingMove[] }) {
+  const dispatch = useContext(TreeDispatchContext);
+
+  return (
+    <div>
+      <DataTable
+        withBorder
+        h={200}
+        emptyState={<Text py={200}>No missing moves found</Text>}
+        highlightOnHover
+        records={missingMoves}
+        onRowClick={(row) =>
+          dispatch({
+            type: "GO_TO_MOVE",
+            payload: row.position,
+          })
+        }
+        groups={[
+          {
+            id: "Missing Moves",
+            columns: [
+              {
+                accessor: "move",
+                render: ({ move, position }) => {
+                  const total_moves = position.length + 1;
+                  const is_white = total_moves % 2 === 1;
+                  const move_number = Math.ceil(total_moves / 2);
+                  return (
+                    <div>
+                      <Text>
+                        {move_number.toString()}
+                        {is_white ? ". " : "... "}
+                        <Text span fw="bold">
+                          {move}
+                        </Text>
+                      </Text>
+                    </div>
+                  );
+                },
+              },
+              {
+                accessor: "games",
+              },
+              {
+                accessor: "percentage",
+                render: ({ percentage }) => (
+                  <Text>{(percentage * 100).toFixed(1)}%</Text>
+                ),
+              },
+            ],
+          },
+        ]}
+        noRecordsText="No games found"
+      />
+    </div>
   );
 }
 

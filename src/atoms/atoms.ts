@@ -4,6 +4,7 @@ import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
 import { atom } from "jotai";
 import { DatabaseInfo } from "@/utils/db";
+import { MissingMove } from "@/utils/repertoire";
 
 // Tabs
 
@@ -83,4 +84,12 @@ export const percentageCoverageAtom = atomWithStorage<number>(
     95
 );
 
+type TabMap<T> = Record<string, T>;
+
 export const minimumGamesAtom = atomWithStorage<number>("minimum-games", 5);
+
+export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
+    "missing-moves",
+    {},
+    createJSONStorage(() => sessionStorage)
+);
