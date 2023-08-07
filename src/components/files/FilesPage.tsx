@@ -1,6 +1,6 @@
 import { readDir, removeFile } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GenericCard from "../common/GenericCard";
 import {
   Button,
@@ -18,6 +18,7 @@ import ConfirmModal from "../common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
 import { readFileMetadata, FileMetadata } from "./file";
 import FileCard from "./FileCard";
+import Fuse from "fuse.js";
 import { CreateModal, EditModal } from "./Modals";
 
 function FilesPage() {
@@ -26,9 +27,17 @@ function FilesPage() {
   const [selected, setSelected] = useState<FileMetadata | null>(null);
   const [games, setGames] = useState<Map<number, string>>(new Map());
 
+  const fuse = useMemo(
+    () =>
+      new Fuse(files, {
+        keys: ["name"],
+      }),
+    [files]
+  );
+
   let filteredFiles = files;
   if (search) {
-    filteredFiles = files.filter((file) => file.name?.includes(search));
+    filteredFiles = fuse.search(search).map((r) => r.item);
   }
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
