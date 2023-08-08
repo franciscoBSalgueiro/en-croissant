@@ -17,18 +17,15 @@ import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
-import {
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-import { Engine, getDefaultEngines } from "@/utils/engines";
+import { Dispatch, SetStateAction, useCallback, useState } from "react";
+import { Engine } from "@/utils/engines";
 import { formatBytes } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
+import useSWR from "swr";
+import { match } from "ts-pattern";
+import { fetch } from "@tauri-apps/api/http";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -47,6 +44,8 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+type OS = "windows" | "linux" | "macos";
+
 function AddEngine({
   engines,
   opened,
@@ -58,26 +57,40 @@ function AddEngine({
   setOpened: (opened: boolean) => void;
   setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
-  const [os, setOs] = useState<"windows" | "linux" | "macos" | null>(null);
-
-  useEffect(() => {
-    platform().then((platform) => {
-      if (platform === "win32") setOs("windows");
-      else if (platform === "linux") setOs("linux");
-      else if (platform === "darwin") setOs("macos");
-    });
-  }, []);
+  const { data: os } = useSWR("os", async () => {
+    const p = await platform();
+    const os: OS = match(p)
+      .with("win32", () => "windows" as const)
+      .with("linux", () => "linux" as const)
+      .with("darwin", () => "macos" as const)
+      .otherwise(() => {
+        throw Error("OS not supported");
+      });
+    return os;
+  });
 
   let filters: {
     name: string;
     extensions: string[];
   }[] = [];
-  if (os == "windows") {
+  if (os === "windows") {
     filters = [{ name: "Executable Files", extensions: ["exe"] }];
   }
 
-  const [defaultEngines, setDefaultEngines] = useState<Engine[]>([]);
-  const [error, setError] = useState<boolean>(false);
+  const { data: defaultEngines, error } = useSWR(os, async (os: OS) => {
+    const bmi2: boolean = await invoke("is_bmi2_compatible");
+    const data = await fetch<Engine[]>(
+      `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!data.ok) {
+      throw new Error("Failed to fetch engines");
+    }
+    return data.data;
+  });
+
   const form = useForm<Engine>({
     initialValues: {
       version: "",
@@ -98,17 +111,6 @@ function AddEngine({
     },
   });
 
-  useEffect(() => {
-    if (!os) return;
-    getDefaultEngines(os)
-      .then((engines) => {
-        setDefaultEngines(engines);
-      })
-      .catch(() => {
-        setError(true);
-      });
-  }, [os]);
-
   return (
     <Modal
       opened={opened}
@@ -123,15 +125,16 @@ function AddEngine({
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
           <Stack>
-            {defaultEngines.map((engine, i) => (
-              <EngineCard
-                engine={engine}
-                engineId={i}
-                key={i}
-                setEngines={setEngines}
-                initInstalled={engines.some((e) => e.name === engine.name)}
-              />
-            ))}
+            {defaultEngines &&
+              defaultEngines.map((engine, i) => (
+                <EngineCard
+                  engine={engine}
+                  engineId={i}
+                  key={i}
+                  setEngines={setEngines}
+                  initInstalled={engines.some((e) => e.name === engine.name)}
+                />
+              ))}
             {error && (
               <Alert
                 icon={<IconAlertCircle size="1rem" />}

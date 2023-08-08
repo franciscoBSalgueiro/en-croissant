@@ -16,8 +16,8 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { DatabaseInfo, getDatabases, getDefaultDatabases } from "@/utils/db";
+import { Dispatch, SetStateAction, useState } from "react";
+import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import FileInput from "../common/FileInput";
@@ -53,8 +53,7 @@ function AddDatabase({
   setLoading: Dispatch<SetStateAction<boolean>>;
   setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
 }) {
-  const [defaultdatabases, setDefaultDatabases] = useState<DatabaseInfo[]>([]);
-  const [error, setError] = useState(false);
+  const { defaultDatabases, error } = useDefaultDatabases();
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
@@ -88,14 +87,6 @@ function AddDatabase({
     },
   });
 
-  useEffect(() => {
-    getDefaultDatabases()
-      .then((dbs) => {
-        setDefaultDatabases(dbs);
-      })
-      .catch(() => setError(true));
-  }, []);
-
   return (
     <Modal
       opened={opened}
@@ -110,15 +101,16 @@ function AddDatabase({
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
           <Stack>
-            {defaultdatabases.map((db, i) => (
-              <DatabaseCard
-                database={db}
-                databaseId={i}
-                key={i}
-                setDatabases={setDatabases}
-                initInstalled={databases.some((e) => e.title === db.title)}
-              />
-            ))}
+            {defaultDatabases &&
+              defaultDatabases.map((db, i) => (
+                <DatabaseCard
+                  database={db}
+                  databaseId={i}
+                  key={i}
+                  setDatabases={setDatabases}
+                  initInstalled={databases.some((e) => e.title === db.title)}
+                />
+              ))}
             {error && (
               <Alert
                 icon={<IconAlertCircle size="1rem" />}

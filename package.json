@@ -56,7 +56,8 @@
     "react-virtualized": "^9.22.5",
     "recharts": "^2.7.1",
     "ts-pattern": "^5.0.4",
-    "use-immer": "^0.9.0"
+    "use-immer": "^0.9.0",
+    "swr": "^2.2.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.4.0",

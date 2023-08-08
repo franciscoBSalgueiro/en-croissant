@@ -1,3 +1,4 @@
+import useSWR from "swr";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./invoke";
@@ -198,17 +199,23 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
     return db;
 }
 
-export async function getDefaultDatabases(): Promise<DatabaseInfo[]> {
-    const data = await fetch<DatabaseInfo[]>(
-        `https://www.encroissant.org/databases`,
-        {
-            method: "GET",
+export function useDefaultDatabases() {
+    const { data, error } = useSWR("default-dbs", async () => {
+        const data = await fetch<DatabaseInfo[]>(
+            `https://www.encroissant.org/databases`,
+            {
+                method: "GET",
+            }
+        );
+        if (!data.ok) {
+            throw new Error("Failed to fetch engines");
         }
-    );
-    if (!data.ok) {
-        throw new Error("Failed to fetch engines");
-    }
-    return data.data;
+        return data.data;
+    });
+    return {
+        defaultDatabases: data,
+        error,
+    };
 }
 
 export async function getDefaultPuzzleDatabases(): Promise<PuzzleDatabase[]> {

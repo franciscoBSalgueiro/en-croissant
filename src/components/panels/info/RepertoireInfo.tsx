@@ -10,7 +10,16 @@ import {
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
 import { MissingMove, openingReport } from "@/utils/repertoire";
-import { Button, Divider, Group, Progress, Select, Text } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Divider,
+  Group,
+  Progress,
+  Select,
+  Text,
+} from "@mantine/core";
+import { IconReload } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useContext, useState } from "react";
@@ -30,7 +39,7 @@ function RepertoireInfo() {
 
   function searchForMissingMoves() {
     if (!referenceDb) {
-      return;
+      throw Error("No refernce database selected");
     }
     setLoading(true);
     openingReport({
@@ -106,6 +115,9 @@ function MissingMoves({ missingMoves }: { missingMoves: MissingMove[] }) {
 
   return (
     <div>
+      <ActionIcon>
+        <IconReload />
+      </ActionIcon>
       <DataTable
         withBorder
         h={200}
