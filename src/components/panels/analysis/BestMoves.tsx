@@ -176,7 +176,10 @@ function BestMoves({ id, engine, setArrows, fen, halfMoves }: BestMovesProps) {
                 <Text fw="bold" fz="xl">
                   {engine.name}
                 </Text>
-                {progress < 100 && enabled && (
+                {enabled && engineVariations.length === 0 && (
+                  <Text>Loading...</Text>
+                )}
+                {progress < 100 && enabled && engineVariations.length > 0 && (
                   <Tooltip label={"How fast the engine is running"}>
                     <Text>{nps}k nodes/s</Text>
                   </Tooltip>
