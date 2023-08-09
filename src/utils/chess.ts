@@ -623,3 +623,40 @@ export function getGameStats(tree: TreeNode) {
         blackAnnotations,
     };
 }
+
+export type PiecesCount = {
+    p: number;
+    n: number;
+    b: number;
+    r: number;
+    q: number;
+};
+
+export function getMaterialDiff(fen: string) {
+    const chess = new Chess(fen);
+
+    const pieces: PiecesCount = {
+        p: 0,
+        n: 0,
+        b: 0,
+        r: 0,
+        q: 0,
+    };
+
+    const board = chess.board();
+    for (const row of board) {
+        for (const square of row) {
+            if (square === null || square.type === "k") continue;
+            pieces[square.type] += square.color === "w" ? 1 : -1;
+        }
+    }
+
+    const diff =
+        pieces.p * 1 +
+        pieces.n * 3 +
+        pieces.b * 3 +
+        pieces.r * 5 +
+        pieces.q * 8;
+
+    return { pieces, diff };
+}

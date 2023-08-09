@@ -48,6 +48,7 @@ function EvalBar({
       disabled={!score}
     >
       <Box
+        mt={10}
         sx={{
           width: 25,
           height: boardSize,

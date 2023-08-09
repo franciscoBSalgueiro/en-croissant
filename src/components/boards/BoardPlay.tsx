@@ -11,6 +11,11 @@ import {
 import { useClickOutside, useHotkeys, useViewportSize } from "@mantine/hooks";
 import {
   IconAlertCircle,
+  IconChessBishopFilled,
+  IconChessFilled,
+  IconChessKnightFilled,
+  IconChessQueenFilled,
+  IconChessRookFilled,
   IconDeviceFloppy,
   IconEdit,
   IconPlus,
@@ -30,10 +35,12 @@ import { Color } from "chessground/types";
 import { memo, useContext, useMemo, useState } from "react";
 import Chessground from "react-chessground";
 import {
+  getMaterialDiff,
   handleMove,
   moveToKey,
   parseKeyboardMove,
   parseUci,
+  PiecesCount,
   toDests,
 } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
@@ -203,6 +210,8 @@ function BoardPlay({
     [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
   );
 
+  const { pieces, diff } = getMaterialDiff(currentNode.fen);
+
   return (
     <>
       {width > 800 && (
@@ -223,12 +232,22 @@ function BoardPlay({
             {error}
           </Alert>
         )}
-        <Box className={classes.chessboard} ref={boardRef}>
+        <Box className={classes.chessboard} ref={boardRef} mt={10}>
           <PromotionModal
             pendingMove={pendingMove}
             setPendingMove={setPendingMove}
             turn={turn}
           />
+          <Box sx={{ position: "absolute", top: -30 }}>
+            <ShowMaterial
+              diff={diff}
+              pieces={pieces}
+              color={orientation === "white" ? "black" : "white"}
+            />
+          </Box>
+          <Box sx={{ position: "absolute", bottom: -30 }}>
+            <ShowMaterial diff={diff} pieces={pieces} color={orientation} />
+          </Box>
           <Chessground
             width={boardSize}
             height={boardSize}
@@ -451,5 +470,48 @@ const PromotionModal = memo(function PromotionModal({
     </>
   );
 });
+
+function ShowMaterial({
+  pieces,
+  diff,
+  color,
+}: {
+  pieces: PiecesCount;
+  color: Color;
+  diff: number;
+}) {
+  let compare;
+  if (color === "white") compare = (v: number) => v > 0;
+  else compare = (v: number) => v < 0;
+
+  const pawns = [...Array(Math.abs(pieces.p)).keys()].map((i) => (
+    <IconChessFilled key={i} />
+  ));
+  const knights = [...Array(Math.abs(pieces.n)).keys()].map((i) => (
+    <IconChessKnightFilled key={i} />
+  ));
+  const bishops = [...Array(Math.abs(pieces.b)).keys()].map((i) => (
+    <IconChessBishopFilled key={i} />
+  ));
+  const rooks = [...Array(Math.abs(pieces.r)).keys()].map((i) => (
+    <IconChessRookFilled key={i} />
+  ));
+  const queens = [...Array(Math.abs(pieces.q)).keys()].map((i) => (
+    <IconChessQueenFilled key={i} />
+  ));
+
+  return (
+    <Group spacing="xs">
+      <Group spacing={0}>
+        {compare(pieces.p) && pawns}
+        {compare(pieces.n) && knights}
+        {compare(pieces.b) && bishops}
+        {compare(pieces.r) && rooks}
+        {compare(pieces.q) && queens}
+      </Group>
+      {compare(diff) && (diff > 0 ? "+" + diff : diff)}
+    </Group>
+  );
+}
 
 export default memo(BoardPlay);

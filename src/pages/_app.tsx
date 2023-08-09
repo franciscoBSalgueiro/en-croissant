@@ -110,7 +110,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           navbar={<SideBar />}
           styles={(theme) => ({
             main: {
-              overflow: "hidden",
               paddingRight: 10,
               userSelect: "none",
               backgroundColor:
