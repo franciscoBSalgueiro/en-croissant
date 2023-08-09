@@ -33,6 +33,7 @@ import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
+import { match } from "ts-pattern";
 
 enum Opponent {
   Random = "Random Bot",
@@ -109,12 +110,10 @@ function BoardGame() {
   }, []);
 
   useEffect(() => {
-    let isBotTurn = false;
-    if (playingColor === "black") {
-      isBotTurn = chess.turn() === "w";
-    } else if (playingColor === "white") {
-      isBotTurn = chess.turn() === "b";
-    }
+    const isBotTurn = match(playingColor)
+      .with("black", () => chess.turn() === "w")
+      .with("white", () => chess.turn() === "b")
+      .exhaustive();
     if (
       currentNode.children.length === 0 &&
       opponent &&
@@ -122,7 +121,6 @@ function BoardGame() {
       isBotTurn &&
       !chess.isGameOver()
     ) {
-      let engineLevel;
       if (opponent === Opponent.Random) {
         invoke<string>("make_random_move", {
           fen: currentNode.fen,
@@ -133,15 +131,12 @@ function BoardGame() {
           });
         });
       } else if (engine) {
-        if (opponent === Opponent.Easy) {
-          engineLevel = 2;
-        } else if (opponent === Opponent.Medium) {
-          engineLevel = 4;
-        } else if (opponent === Opponent.Hard) {
-          engineLevel = 6;
-        } else if (opponent === Opponent.Impossible) {
-          engineLevel = 8;
-        }
+        const engineLevel = match(opponent)
+          .with(Opponent.Easy, () => 2)
+          .with(Opponent.Medium, () => 4)
+          .with(Opponent.Hard, () => 6)
+          .with(Opponent.Impossible, () => 8)
+          .exhaustive();
         invoke<string>("get_single_best_move", {
           difficulty: engineLevel,
           engine,

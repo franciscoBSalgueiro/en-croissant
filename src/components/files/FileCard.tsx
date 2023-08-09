@@ -49,8 +49,6 @@ function FileCard({
   }, [selected, page]);
 
   async function openGame() {
-    const pgn = (await read_games(selected.path, 0, 0))[0];
-
     createTab({
       tab: {
         name: selected.name || "Untitled",
@@ -58,8 +56,9 @@ function FileCard({
       },
       setTabs,
       setActiveTab,
-      pgn,
+      pgn: selectedGame || "",
       fileInfo: selected,
+      gameNumber: page,
     });
     router.push("/boards");
   }

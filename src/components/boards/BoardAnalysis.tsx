@@ -65,10 +65,10 @@ function BoardAnalysis() {
   }, [headers, root, setCurrentTab, currentTab, dispatch]);
 
   useEffect(() => {
-    if (currentTab?.file && autoSave) {
+    if (currentTab?.file && autoSave && dirty) {
       saveFile();
     }
-  }, [currentTab?.file, saveFile, autoSave]);
+  }, [currentTab?.file, saveFile, autoSave, headers, dirty]);
 
   const addGame = useCallback(() => {
     setCurrentTab((prev) => {
