@@ -62,7 +62,7 @@ function RepertoireInfo() {
   return (
     <>
       <Group mx="auto" spacing={4}>
-        <Text>An opening for</Text>
+        <Text>opening for</Text>
 
         <Select
           value={headers.orientation || "white"}
@@ -104,20 +104,28 @@ function RepertoireInfo() {
           <Progress value={progress} />
         </>
       ) : (
-        missingMoves && <MissingMoves missingMoves={missingMoves} />
+        missingMoves && (
+          <MissingMoves
+            missingMoves={missingMoves}
+            search={searchForMissingMoves}
+          />
+        )
       )}
     </>
   );
 }
 
-function MissingMoves({ missingMoves }: { missingMoves: MissingMove[] }) {
+function MissingMoves({
+  missingMoves,
+  search,
+}: {
+  missingMoves: MissingMove[];
+  search: () => void;
+}) {
   const dispatch = useContext(TreeDispatchContext);
 
   return (
     <div>
-      <ActionIcon>
-        <IconReload />
-      </ActionIcon>
       <DataTable
         withBorder
         h={200}
@@ -167,6 +175,10 @@ function MissingMoves({ missingMoves }: { missingMoves: MissingMove[] }) {
         ]}
         noRecordsText="No games found"
       />
+
+      <Button mt={20} rightIcon={<IconReload />} onClick={search}>
+        Reload missing moves
+      </Button>
     </div>
   );
 }
