@@ -20,7 +20,9 @@
         "scope": [
           "https://www.encroissant.org/**",
           "https://api.chess.com/**",
-          "https://www.chess.com/**"
+          "https://www.chess.com/**",
+          "https://lichess.org/**",
+          "https://explorer.lichess.ovh/**"
         ]
       }
     },

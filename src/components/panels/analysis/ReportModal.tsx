@@ -60,6 +60,10 @@ function ReportModal({
       millisecondsPerMove: (value) => {
         if (!value) return "Milliseconds per move is required";
       },
+      novelty: (value) => {
+        if (value && !referenceDb)
+          return "No reference database selected. Select one first in the databases page";
+      },
     },
   });
 

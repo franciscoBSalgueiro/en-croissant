@@ -12,7 +12,7 @@ export type MissingMove = {
 export function getTreeStats(root: TreeNode) {
     const iterator = treeIterator(root);
     const tree = Array.from(iterator);
-    const total = tree.length;
+    const total = tree.length - 1;
     const leafs = tree.filter((item) => item.node.children.length === 0).length;
     const depth = tree.reduce((acc, item) => {
         if (item.position.length > acc) {

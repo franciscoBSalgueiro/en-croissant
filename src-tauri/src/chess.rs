@@ -327,7 +327,7 @@ pub async fn analyze_game(
     annotate_novelties: bool,
     engine: String,
     move_time: usize,
-    reference_db: PathBuf,
+    reference_db: Option<PathBuf>,
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, String> {
@@ -395,10 +395,14 @@ pub async fn analyze_game(
         }
 
         if annotate_novelties && !novelty_found {
-            current_analysis.novelty =
-                !is_position_in_db(reference_db.clone(), query, state.clone()).await?;
-            if current_analysis.novelty {
-                novelty_found = true;
+            if let Some(reference) = reference_db.clone() {
+                current_analysis.novelty =
+                    !is_position_in_db(reference, query, state.clone()).await?;
+                if current_analysis.novelty {
+                    novelty_found = true;
+                }
+            } else {
+                return Err("Missing reference database".to_string());
             }
         }
         analysis.push(current_analysis);

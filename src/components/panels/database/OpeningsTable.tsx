@@ -3,7 +3,6 @@ import { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { Group, Progress, Text, createStyles } from "@mantine/core";
 import { DataTable } from "mantine-datatable";
-import Link from "next/link";
 import { useContext, memo } from "react";
 
 const useStyles = createStyles(() => ({
@@ -21,12 +20,10 @@ function OpeningsTable({
   openings,
   height,
   loading,
-  referenceDatabase,
 }: {
   openings: Opening[];
   height: number;
   loading: boolean;
-  referenceDatabase: string | null;
 }) {
   const { classes } = useStyles();
   const dispatch = useContext(TreeDispatchContext);
@@ -104,20 +101,7 @@ function OpeningsTable({
         },
       ]}
       idAccessor="move"
-      emptyState={
-        referenceDatabase ? (
-          "No games found"
-        ) : (
-          <Text
-            sx={{
-              pointerEvents: "all",
-            }}
-          >
-            No reference database selected. Please{" "}
-            <Link href="/databases">Add a database</Link> first.
-          </Text>
-        )
-      }
+      emptyState={"No games found"}
       onRowClick={({ move }) => {
         dispatch({
           type: "MAKE_MOVE",
