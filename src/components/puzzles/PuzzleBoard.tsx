@@ -1,29 +1,13 @@
-import {
-  ActionIcon,
-  Box,
-  Modal,
-  SimpleGrid,
-  Stack,
-  createStyles,
-} from "@mantine/core";
+import { Box, Stack, createStyles } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import {
-  BISHOP,
-  Chess,
-  KNIGHT,
-  Move,
-  PieceSymbol,
-  QUEEN,
-  ROOK,
-  Square,
-} from "chess.js";
+import { Chess, Move, Square } from "chess.js";
 import { useState } from "react";
 import Chessground from "react-chessground";
 import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
 import { formatMove } from "@/utils/format";
 import { getBoardSize } from "@/utils/misc";
 import { Completion, Puzzle } from "@/utils/puzzles";
-import Piece from "../common/Piece";
+import PromotionModal from "../boards/PromotionModal";
 
 const useStyles = createStyles(() => ({
   chessboard: {
@@ -33,8 +17,6 @@ const useStyles = createStyles(() => ({
     zIndex: 1,
   },
 }));
-
-const promotionPieces: PieceSymbol[] = [QUEEN, KNIGHT, ROOK, BISHOP];
 
 function PuzzleBoard({
   puzzles,
@@ -68,6 +50,7 @@ function PuzzleBoard({
     from: Square;
     to: Square;
   } | null>(null);
+
   const dests = toDests(chess, false);
   const fen = chess.fen();
   const turn = formatMove(chess.turn());
@@ -78,61 +61,40 @@ function PuzzleBoard({
 
   const { classes } = useStyles();
 
+  function checkMove(move: string) {
+    if (puzzle.moves[currentMove] === move) {
+      if (currentMove === puzzle.moves.length - 1) {
+        if (puzzle.completion !== "incorrect") {
+          changeCompletion("correct");
+        }
+        setEnded(false);
+
+        generatePuzzle(db);
+      }
+      setCurrentMove(currentMove + 2);
+    } else {
+      if (!ended) {
+        changeCompletion("incorrect");
+      }
+      setEnded(true);
+    }
+  }
+
   if (!lastMove) return null;
 
   return (
     <Stack justify="center">
-      <Modal
-        opened={pendingMove !== null}
-        onClose={() => setPendingMove(null)}
-        withCloseButton={false}
-        size={375}
-      >
-        <SimpleGrid cols={2}>
-          {promotionPieces.map((p) => (
-            <ActionIcon
-              key={p}
-              sx={{ width: "100%", height: "100%", position: "relative" }}
-              onClick={() => {
-                if (
-                  puzzle.moves[currentMove] ===
-                  `${pendingMove?.from}${pendingMove?.to}${p}`
-                ) {
-                  chess.move({
-                    from: pendingMove!.from,
-                    to: pendingMove!.to,
-                    promotion: p,
-                  });
-                  if (currentMove === puzzle.moves.length) {
-                    if (puzzle.completion !== "incorrect") {
-                      changeCompletion("correct");
-                    }
-                    setCurrentMove(1);
-                    setEnded(false);
-
-                    generatePuzzle(db);
-                  }
-                  setCurrentMove(currentMove + 2);
-                } else {
-                  if (!ended) {
-                    changeCompletion("incorrect");
-                  }
-                  setEnded(true);
-                }
-                setPendingMove(null);
-              }}
-            >
-              <Piece
-                piece={{
-                  type: p,
-                  color: turn === "white" ? "w" : "b",
-                }}
-              />
-            </ActionIcon>
-          ))}
-        </SimpleGrid>
-      </Modal>
       <Box className={classes.chessboard}>
+        <PromotionModal
+          pendingMove={pendingMove}
+          cancelMove={() => setPendingMove(null)}
+          confirmMove={(p) => {
+            checkMove(`${pendingMove?.from}${pendingMove?.to}${p}`);
+            setPendingMove(null);
+          }}
+          turn={turn}
+          orientation={orientation}
+        />
         <Chessground
           animation={{
             enabled: true,
@@ -148,7 +110,6 @@ function PuzzleBoard({
             events: {
               after: (orig, dest) => {
                 const newDest = handleMove(chess, orig, dest);
-                // handle promotions
                 if (
                   chess.get(orig as Square).type === "p" &&
                   ((newDest[1] === "8" && turn === "white") ||
@@ -156,26 +117,7 @@ function PuzzleBoard({
                 ) {
                   setPendingMove({ from: orig as Square, to: newDest });
                 } else {
-                  if (puzzle.moves[currentMove] === `${orig}${newDest}`) {
-                    if (currentMove === puzzle.moves.length - 1) {
-                      if (puzzle.completion !== "incorrect") {
-                        changeCompletion("correct");
-                      }
-                      setEnded(false);
-
-                      generatePuzzle(db);
-                    }
-                    setCurrentMove(currentMove + 2);
-                  } else {
-                    if (!ended) {
-                      changeCompletion("incorrect");
-                    }
-                    setEnded(true);
-                  }
-                  // makeMove({
-                  //   from: orig as Square,
-                  //   to: newDest,
-                  // });
+                  checkMove(`${orig}${newDest}`);
                 }
               },
             },

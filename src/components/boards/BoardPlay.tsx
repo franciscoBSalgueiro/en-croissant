@@ -61,6 +61,7 @@ import {
   showArrowsAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
+import PromotionModal from "./PromotionModal";
 
 const useStyles = createStyles(() => ({
   chessboard: {
@@ -235,8 +236,20 @@ function BoardPlay({
         <Box className={classes.chessboard} ref={boardRef} mt={10}>
           <PromotionModal
             pendingMove={pendingMove}
-            setPendingMove={setPendingMove}
+            cancelMove={() => setPendingMove(null)}
+            confirmMove={(p) => {
+              dispatch({
+                type: "MAKE_MOVE",
+                payload: {
+                  from: pendingMove!.from,
+                  to: pendingMove!.to,
+                  promotion: p,
+                },
+              });
+              setPendingMove(null);
+            }}
             turn={turn}
+            orientation={orientation}
           />
           <Box sx={{ position: "absolute", top: -30 }}>
             <ShowMaterial
@@ -382,94 +395,6 @@ function MoveInput({ currentNode }: { currentNode: TreeNode }) {
     />
   );
 }
-
-const fileToNumber: Record<string, number> = {
-  a: 1,
-  b: 2,
-  c: 3,
-  d: 4,
-  e: 5,
-  f: 6,
-  g: 7,
-  h: 8,
-};
-
-const PromotionModal = memo(function PromotionModal({
-  pendingMove,
-  setPendingMove,
-  turn,
-}: {
-  pendingMove: { from: Square; to: Square } | null;
-  setPendingMove: (move: { from: Square; to: Square } | null) => void;
-  turn?: Color;
-}) {
-  const dispatch = useContext(TreeDispatchContext);
-  const file = fileToNumber[pendingMove?.to[0] ?? "a"];
-  const rank = parseInt(pendingMove?.to[1] ?? "1");
-  const ref = useClickOutside(() => setPendingMove(null));
-
-  const promotionPieces: PieceSymbol[] = [QUEEN, KNIGHT, ROOK, BISHOP];
-  if (turn === "black") {
-    promotionPieces.reverse();
-  }
-
-  return (
-    <>
-      {pendingMove && (
-        <>
-          <div
-            style={{
-              position: "absolute",
-              zIndex: 100,
-              width: "100%",
-              height: "100%",
-              background: "rgba(0,0,0,0.5)",
-            }}
-          />
-          <div
-            ref={ref}
-            style={{
-              position: "absolute",
-              zIndex: 100,
-              left: `${(file - 1) * 12.5}%`,
-              top: rank === 1 ? "50%" : "0%",
-              background: "rgba(255,255,255,0.8)",
-            }}
-          >
-            <Stack spacing={0}>
-              {promotionPieces.map((p) => (
-                <ActionIcon
-                  key={p}
-                  w="100%"
-                  h="100%"
-                  pos="relative"
-                  onClick={() => {
-                    dispatch({
-                      type: "MAKE_MOVE",
-                      payload: {
-                        from: pendingMove!.from,
-                        to: pendingMove!.to,
-                        promotion: p,
-                      },
-                    });
-                    setPendingMove(null);
-                  }}
-                >
-                  <Piece
-                    piece={{
-                      type: p,
-                      color: turn === "white" ? "w" : "b",
-                    }}
-                  />
-                </ActionIcon>
-              ))}
-            </Stack>
-          </div>
-        </>
-      )}
-    </>
-  );
-});
 
 function ShowMaterial({
   pieces,
