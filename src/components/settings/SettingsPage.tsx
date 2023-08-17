@@ -256,7 +256,7 @@ function SettingsPage() {
 
       <Card withBorder radius="md" p="xl" className={classes.card}>
         <Text size="lg" weight={500} className={classes.title}>
-          Personalization
+          Appearance
         </Text>
         <Text size="xs" color="dimmed" mt={3} mb="xl">
           Customize the look of the app
@@ -274,7 +274,7 @@ function SettingsPage() {
           <div>
             <Text>Piece Set</Text>
             <Text size="xs" color="dimmed">
-              Overall color scheme
+              Pieces used on the boards
             </Text>
           </div>
           <Select

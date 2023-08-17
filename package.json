@@ -38,6 +38,7 @@
     "fuse.js": "^6.6.2",
     "jotai": "^2.2.1",
     "mantine-datatable": "^2.6.3",
+    "mantine-flagpack": "^2.0.0",
     "next": "^13.4.10",
     "prosemirror-commands": "^1.5.2",
     "prosemirror-dropcursor": "^1.8.1",
@@ -55,9 +56,9 @@
     "react-draggable": "^4.4.5",
     "react-virtualized": "^9.22.5",
     "recharts": "^2.7.1",
+    "swr": "^2.2.0",
     "ts-pattern": "^5.0.4",
-    "use-immer": "^0.9.0",
-    "swr": "^2.2.0"
+    "use-immer": "^0.9.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.4.0",

@@ -20,6 +20,7 @@ use chess::{AnalysisCacheKey, BestMoves};
 use dashmap::DashMap;
 use db::{NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
+use fide::FidePlayer;
 use reqwest::Url;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -34,7 +35,7 @@ use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
     get_players_game_info, get_tournaments, search_position,
 };
-use crate::fide::parse_players_list;
+use crate::fide::find_fide_player;
 use crate::fs::{append_to_file, set_file_as_executable};
 use crate::lexer::lex_pgn;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -45,7 +46,10 @@ use crate::{
     fs::download_file,
     opening::get_opening_from_fen,
 };
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, RwLock};
+
+use specta::collect_types;
+use tauri_specta::ts;
 
 use tauri_plugin_oauth::start;
 
@@ -113,6 +117,7 @@ pub struct AppState {
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     pgn_offsets: DashMap<String, Vec<u64>>,
+    fide_players: RwLock<Vec<FidePlayer>>,
 }
 
 const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
@@ -126,6 +131,9 @@ const REQUIRED_FILES: &[(BaseDirectory, &str)] =
     &[(BaseDirectory::AppData, "engines/engines.json")];
 
 fn main() {
+    #[cfg(debug_assertions)]
+    ts::export(collect_types![find_fide_player,], "../src/bindings.ts").unwrap();
+
     tauri::Builder::default()
         .setup(|app| {
             // Check if all the required directories exist, and create them if they don't
@@ -194,7 +202,7 @@ fn main() {
             delete_indexes,
             create_indexes,
             lex_pgn,
-            parse_players_list,
+            find_fide_player,
             similar_structure
         ])
         .run(tauri::generate_context!())

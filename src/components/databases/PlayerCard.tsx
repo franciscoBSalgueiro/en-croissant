@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Button,
   ChevronIcon,
   createStyles,
@@ -21,6 +22,8 @@ import {
   YAxis,
 } from "recharts";
 import { getPlayersGameInfo, Player, PlayerGameInfo } from "@/utils/db";
+import FideInfo from "./FideInfo";
+import { IconInfoCircle } from "@tabler/icons-react";
 
 const useStyles = createStyles((theme) => ({
   progressLabel: {
@@ -130,88 +133,101 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
     black_openings = black_openings.slice(0, 3);
   }
 
+  const [opened, setOpened] = useState(false);
+
   return (
-    <Paper shadow="sm" p="sm" withBorder>
-      <Stack align="center">
-        <Text fz="lg" weight={500}>
-          {player.name}
-        </Text>
-      </Stack>
-
-      <Text align="center">{total} Games</Text>
-
-      <Group grow mt="lg">
-        <Stack>
-          <Text fw="bold">White</Text>
-          {white_openings.map(([opening, games]) => (
-            <Text key={opening}>
-              {opening}: {games}
-            </Text>
-          ))}
-        </Stack>
-        <Stack>
-          <Text fw="bold">Black</Text>
-          {black_openings.map(([opening, games]) => (
-            <Text key={opening}>
-              {opening}: {games}
-            </Text>
-          ))}
-        </Stack>
-      </Group>
-      <Divider
-        my="xs"
-        variant="dashed"
-        labelPosition="center"
-        onClick={() => setExpanded((v) => !v)}
-        label={
-          <Button
-            size="sm"
-            variant="subtle"
-            leftIcon={
-              <ChevronIcon
-                style={{
-                  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-                }}
-              />
-            }
-          >
-            {expanded ? "Show Less" : "Show More"}
-          </Button>
-        }
+    <>
+      <FideInfo
+        key={player.name}
+        opened={opened}
+        setOpened={setOpened}
+        name={player.name}
       />
+      <Paper shadow="sm" p="sm" withBorder>
+        <ActionIcon onClick={() => setOpened(true)}>
+          <IconInfoCircle />
+        </ActionIcon>
+        <Stack align="center">
+          <Text fz="lg" weight={500}>
+            {player.name}
+          </Text>
+        </Stack>
 
-      <Stack>
-        <Progress
-          sections={sections}
-          size={34}
-          classNames={{ label: classes.progressLabel }}
-          mt={40}
+        <Text align="center">{total} Games</Text>
+
+        <Group grow mt="lg">
+          <Stack>
+            <Text fw="bold">White</Text>
+            {white_openings.map(([opening, games]) => (
+              <Text key={opening}>
+                {opening}: {games}
+              </Text>
+            ))}
+          </Stack>
+          <Stack>
+            <Text fw="bold">Black</Text>
+            {black_openings.map(([opening, games]) => (
+              <Text key={opening}>
+                {opening}: {games}
+              </Text>
+            ))}
+          </Stack>
+        </Group>
+        <Divider
+          my="xs"
+          variant="dashed"
+          labelPosition="center"
+          onClick={() => setExpanded((v) => !v)}
+          label={
+            <Button
+              size="sm"
+              variant="subtle"
+              leftIcon={
+                <ChevronIcon
+                  style={{
+                    transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              }
+            >
+              {expanded ? "Show Less" : "Show More"}
+            </Button>
+          }
         />
 
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={fillMissingMonths(data)}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />3
-            <YAxis />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "rgb(0, 0, 0)",
+        <Stack>
+          <Progress
+            sections={sections}
+            size={34}
+            classNames={{ label: classes.progressLabel }}
+            mt={40}
+          />
+
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={fillMissingMonths(data)}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
               }}
-            />
-            <Legend />
-            <Bar dataKey="games" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Stack>
-    </Paper>
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />3
+              <YAxis />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgb(0, 0, 0)",
+                }}
+              />
+              <Legend />
+              <Bar dataKey="games" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Stack>
+      </Paper>
+    </>
   );
 }
 
