@@ -21,6 +21,7 @@ import { readFileMetadata, FileMetadata, FileType } from "./file";
 import FileCard from "./FileCard";
 import Fuse from "fuse.js";
 import { CreateModal, EditModal } from "./Modals";
+import { capitalize } from "@/utils/format";
 
 const FILE_TYPES: FileType[] = [
   "game",
@@ -136,7 +137,7 @@ function FilesPage() {
                 }
                 checked={filter === type}
               >
-                {type}
+                {capitalize(type)}
               </Chip>
             ))}
           </Group>
