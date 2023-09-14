@@ -122,6 +122,8 @@ function tabValue<T extends object | string | boolean>(family: AtomFamily<string
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
+const tabFamily = atomFamily((tab: string) => atom("info"));
+export const currentTabSelectedAtom = tabValue(tabFamily);
 
 // Practice
 

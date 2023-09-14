@@ -27,7 +27,7 @@ import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
 import { useAtom, useAtomValue } from "jotai";
-import { autoSaveAtom, currentTabAtom } from "@/atoms/atoms";
+import { autoSaveAtom, currentTabAtom, currentTabSelectedAtom } from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
 
 function BoardAnalysis() {
@@ -86,6 +86,8 @@ function BoardAnalysis() {
 
   useHotkeys([["Ctrl+S", () => saveFile()]]);
 
+  const [currentTabSelected, setCurrentTabSelected] = useAtom(currentTabSelectedAtom);
+
   if (!currentNode) return null;
   return (
     <>
@@ -118,9 +120,10 @@ function BoardAnalysis() {
       >
         <>
           <Tabs
+            value={currentTabSelected}
+            onTabChange={(v) => setCurrentTabSelected(v || "info")}
             keepMounted={false}
             activateTabWithKeyboard={false}
-            defaultValue="info"
             sx={{
               display: notationExpanded || editingMode ? "none" : undefined,
             }}
