@@ -112,6 +112,7 @@ function BoardAnalysis() {
             boardRef={boardRef}
             saveFile={saveFile}
             addGame={addGame}
+            root={root}
           />
         }
       >

@@ -167,6 +167,7 @@ function BoardGame() {
           disableVariations
           boardRef={boardRef}
           side={playingColor}
+          root={root}
         />
       }
     >

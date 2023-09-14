@@ -1,6 +1,6 @@
 import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
-import { IconChevronUp, IconStar, IconX } from "@tabler/icons-react";
+import { IconChevronUp, IconFlag, IconX } from "@tabler/icons-react";
 import { memo, useContext, useState } from "react";
 import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
@@ -17,6 +17,7 @@ function CompleteMoveCell({
   showComments,
   first,
   isCurrentVariation,
+  isStart,
   targetRef,
 }: {
   halfMoves: number;
@@ -26,13 +27,14 @@ function CompleteMoveCell({
   move?: string;
   first?: boolean;
   isCurrentVariation: boolean;
+  isStart: boolean;
   movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement>;
 }) {
   const dispatch = useContext(TreeDispatchContext);
-  const move_number = Math.ceil(halfMoves / 2);
-  const is_white = halfMoves % 2 === 1;
-  const hasNumber = halfMoves > 0 && (first || is_white);
+  const moveNumber = Math.ceil(halfMoves / 2);
+  const isWhite = halfMoves % 2 === 1;
+  const hasNumber = halfMoves > 0 && (first || isWhite);
   const ref = useClickOutside(() => {
     setOpen(false);
   });
@@ -56,9 +58,7 @@ function CompleteMoveCell({
           fontSize: 14,
         }}
       >
-        {hasNumber && (
-          <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
-        )}
+        {hasNumber && <>{`${moveNumber.toString()}${isWhite ? "." : "..."}`}</>}
         {move && (
           <Menu opened={open} width={200}>
             <Menu.Target>
@@ -66,6 +66,7 @@ function CompleteMoveCell({
                 ref={ref}
                 move={move}
                 annotation={annotation}
+                isStart={isStart}
                 isCurrentVariation={isCurrentVariation}
                 onClick={() =>
                   dispatch({
@@ -84,7 +85,7 @@ function CompleteMoveCell({
               <Menu.Dropdown>
                 {currentTab?.file?.metadata.type === "repertoire" && (
                   <Menu.Item
-                    icon={<IconStar size={14} />}
+                    icon={<IconFlag size={14} />}
                     onClick={() => {
                       dispatch({
                         type: "SET_START",
@@ -146,6 +147,7 @@ export default memo(CompleteMoveCell, (prev, next) => {
     prev.showComments === next.showComments &&
     prev.first === next.first &&
     prev.isCurrentVariation === next.isCurrentVariation &&
+    prev.isStart === next.isStart &&
     shallowEqual(prev.movePath, next.movePath) &&
     prev.halfMoves === next.halfMoves
   );

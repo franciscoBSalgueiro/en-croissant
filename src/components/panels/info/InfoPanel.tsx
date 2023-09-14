@@ -20,13 +20,14 @@ import FileInfo from "./FileInfo";
 import { read_games } from "@/utils/db";
 import { parsePGN } from "@/utils/chess";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { currentTabAtom, missingMovesAtom } from "@/atoms/atoms";
+import { currentPracticingAtom, currentTabAtom, missingMovesAtom } from "@/atoms/atoms";
 import { invoke } from "@tauri-apps/api";
 import { formatNumber } from "@/utils/format";
 import RepertoireInfo from "./RepertoireInfo";
 import { useToggle } from "@mantine/hooks";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 import { getTreeStats } from "@/utils/repertoire";
+import PracticePanel from "./PracticePanel";
 
 function InfoPanel({ boardSize }: { boardSize: number }) {
   const tree = useContext(TreeStateContext);
@@ -36,6 +37,7 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
   const isReportoire = currentTab?.file?.metadata.type === "repertoire";
 
   const stats = useMemo(() => getTreeStats(tree.root), [tree.root]);
+  const practicing = useAtomValue(currentPracticingAtom);
 
   return (
     <Box
@@ -45,35 +47,41 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
         height: `${boardSize / 2}px`,
       }}
     >
-      <GameSelectorAccordion games={games} setGames={setGames} />
-      <ScrollArea offsetScrollbars>
-        <FileInfo setGames={setGames} />
-        <Stack>
-          <GameInfo headers={tree.headers} simplified={isReportoire} />
-          {isReportoire && <RepertoireInfo />}
-          {currentNode && (
-            <TextInput
-              readOnly
-              value={currentNode.fen}
-              label="FEN"
-              labelProps={{
-                sx: {
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  marginBottom: "0.5rem",
-                },
-              }}
-            />
-          )}
-          <PgnInput headers={tree.headers} root={tree.root} />
+      {practicing ? (
+        <PracticePanel />
+      ) : (
+        <>
+          <GameSelectorAccordion games={games} setGames={setGames} />
+          <ScrollArea offsetScrollbars>
+            <FileInfo setGames={setGames} />
+            <Stack>
+              <GameInfo headers={tree.headers} simplified={isReportoire} />
+              {isReportoire && <RepertoireInfo />}
+              {currentNode && (
+                <TextInput
+                  readOnly
+                  value={currentNode.fen}
+                  label="FEN"
+                  labelProps={{
+                    sx: {
+                      fontWeight: "bold",
+                      fontSize: "1rem",
+                      marginBottom: "0.5rem",
+                    },
+                  }}
+                />
+              )}
+              <PgnInput headers={tree.headers} root={tree.root} />
 
-          <Group>
-            <Text>Variations: {stats.leafs}</Text>
-            <Text>Max Depth: {stats.depth}</Text>
-            <Text>Total moves: {stats.total}</Text>
-          </Group>
-        </Stack>
-      </ScrollArea>
+              <Group>
+                <Text>Variations: {stats.leafs}</Text>
+                <Text>Max Depth: {stats.depth}</Text>
+                <Text>Total moves: {stats.total}</Text>
+              </Group>
+            </Stack>
+          </ScrollArea>
+        </>
+      )}
     </Box>
   );
 }

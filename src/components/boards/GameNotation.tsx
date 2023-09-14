@@ -28,12 +28,13 @@ import {
 } from "@tabler/icons-react";
 import { DEFAULT_POSITION } from "chess.js";
 import { memo, useContext, useEffect, useRef } from "react";
-import { Outcome } from "@/utils/db";
 import { isPrefix } from "@/utils/misc";
 import { getNodeAtPath, TreeNode } from "@/utils/treeReducer";
 import { TreeStateContext } from "../common/TreeStateContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
+import { useAtom, useAtomValue } from "jotai";
+import { currentInvisibleAtom } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   scroller: {
@@ -76,7 +77,7 @@ function GameNotation({
   }, [currentNode.fen]);
 
   const theme = useMantineTheme();
-  const [invisible, toggleVisible] = useToggle();
+  const invisible = useAtomValue(currentInvisibleAtom);
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
 
@@ -98,8 +99,6 @@ function GameNotation({
             <NotationHeader
               setNotationExpanded={setNotationExpanded}
               notationExpanded={notationExpanded}
-              invisible={invisible}
-              toggleVisible={toggleVisible}
               showComments={showComments}
               toggleComments={toggleComments}
               showVariations={showVariations}
@@ -136,6 +135,7 @@ function GameNotation({
               tree={root}
               depth={0}
               first
+              start={headers.start}
               showVariations={showVariations}
               showComments={showComments}
               path={[]}
@@ -149,8 +149,8 @@ function GameNotation({
                 {headers.result === "1/2-1/2"
                   ? "Draw"
                   : headers.result === "1-0"
-                  ? "White wins"
-                  : "Black wins"}
+                    ? "White wins"
+                    : "Black wins"}
               </Text>
             </Text>
           )}
@@ -163,8 +163,6 @@ function GameNotation({
 const NotationHeader = memo(function NotationHeader({
   setNotationExpanded,
   notationExpanded,
-  invisible,
-  toggleVisible,
   showComments,
   toggleComments,
   showVariations,
@@ -172,14 +170,13 @@ const NotationHeader = memo(function NotationHeader({
 }: {
   setNotationExpanded?: React.Dispatch<React.SetStateAction<boolean>>;
   notationExpanded?: boolean;
-  invisible: boolean;
-  toggleVisible: () => void;
   showComments: boolean;
   toggleComments: () => void;
   showVariations: boolean;
   toggleVariations: () => void;
 }) {
   const { classes } = useStyles();
+  const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   return (
     <Stack className={classes.scroller}>
       <Group style={{ justifyContent: "space-between" }}>
@@ -195,7 +192,7 @@ const NotationHeader = memo(function NotationHeader({
             </ActionIcon>
           )}
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
-            <ActionIcon onClick={() => toggleVisible()}>
+            <ActionIcon onClick={() => setInvisible((v) => !v)}>
               {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
             </ActionIcon>
           </Tooltip>
@@ -229,6 +226,7 @@ const RenderVariationTree = memo(
     tree,
     depth,
     currentPath,
+    start,
     first,
     showVariations,
     showComments,
@@ -236,6 +234,7 @@ const RenderVariationTree = memo(
     path,
   }: {
     currentPath: number[];
+    start?: number[];
     tree: TreeNode;
     depth: number;
     first?: boolean;
@@ -247,33 +246,38 @@ const RenderVariationTree = memo(
     const variations = tree.children;
     const moveNodes = showVariations
       ? variations.slice(1).map((variation) => (
-          <>
-            <CompleteMoveCell
-              targetRef={targetRef}
-              annotation={variation.annotation}
-              commentHTML={variation.commentHTML}
-              halfMoves={variation.halfMoves}
-              move={variation.move?.san}
-              movePath={[...path, variations.indexOf(variation)]}
-              showComments={showComments}
-              isCurrentVariation={shallowEqual(
-                [...path, variations.indexOf(variation)],
-                currentPath
-              )}
-              first
-            />
-            <RenderVariationTree
-              currentPath={currentPath}
-              targetRef={targetRef}
-              tree={variation}
-              depth={depth + 2}
-              first
-              showVariations={showVariations}
-              showComments={showComments}
-              path={[...path, variations.indexOf(variation)]}
-            />
-          </>
-        ))
+        <>
+          <CompleteMoveCell
+            targetRef={targetRef}
+            annotation={variation.annotation}
+            commentHTML={variation.commentHTML}
+            halfMoves={variation.halfMoves}
+            move={variation.move?.san}
+            movePath={[...path, variations.indexOf(variation)]}
+            showComments={showComments}
+            isCurrentVariation={shallowEqual(
+              [...path, variations.indexOf(variation)],
+              currentPath
+            )}
+            isStart={shallowEqual(
+              [...path, variations.indexOf(variation)],
+              start
+            )}
+            first
+          />
+          <RenderVariationTree
+            currentPath={currentPath}
+            targetRef={targetRef}
+            tree={variation}
+            depth={depth + 2}
+            first
+            showVariations={showVariations}
+            showComments={showComments}
+            start={start}
+            path={[...path, variations.indexOf(variation)]}
+          />
+        </>
+      ))
       : [];
 
     return (
@@ -288,6 +292,7 @@ const RenderVariationTree = memo(
             movePath={[...path, 0]}
             showComments={showComments}
             isCurrentVariation={shallowEqual([...path, 0], currentPath)}
+            isStart={shallowEqual([...path, 0], start)}
             first={first}
           />
         )}
@@ -301,6 +306,7 @@ const RenderVariationTree = memo(
             tree={tree.children[0]}
             depth={depth + 1}
             showVariations={showVariations}
+            start={start}
             showComments={showComments}
             path={[...path, 0]}
           />
@@ -329,7 +335,7 @@ const RenderVariationTree = memo(
 );
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
-  const [invisible, toggleVisible] = useToggle();
+  const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   if (moveNodes.length >= 1)
     return (
       <>
@@ -340,7 +346,7 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
             marginLeft: 12,
           }}
         >
-          <ActionIcon size="xs" onClick={() => toggleVisible()}>
+          <ActionIcon size="xs" onClick={() => setInvisible((v) => !v)}>
             {invisible ? <IconPlus size={8} /> : <IconMinus size={8} />}
           </ActionIcon>
           {!invisible &&

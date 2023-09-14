@@ -1,6 +1,5 @@
 import { Flex, ActionIcon, ChevronIcon } from "@mantine/core";
 import { useState, useContext } from "react";
-import { Annotation } from "@/utils/chess";
 import { Score } from "@/utils/score";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
@@ -55,6 +54,7 @@ function AnalysisRow({
                   isCurrentVariation={false}
                   annotation={""}
                   onContextMenu={() => undefined}
+                  isStart={false}
                   onClick={() => {
                     if (!threat) {
                       dispatch({

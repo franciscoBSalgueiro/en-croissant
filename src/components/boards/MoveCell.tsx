@@ -1,9 +1,11 @@
 import { Box, createStyles } from "@mantine/core";
 import { ForwardedRef, forwardRef } from "react";
 import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
+import { IconFlag } from "@tabler/icons-react";
 
 interface MoveCellProps {
   annotation: Annotation;
+  isStart: boolean;
   isCurrentVariation: boolean;
   move: string;
   onClick: () => void;
@@ -63,6 +65,7 @@ const MoveCell = forwardRef(function MoveCell(
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >
+      {props.isStart && <IconFlag style={{ marginRight: 5 }} size={14} />}
       {props.move + props.annotation}
     </Box>
   );

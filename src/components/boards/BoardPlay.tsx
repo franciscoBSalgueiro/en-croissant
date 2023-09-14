@@ -8,7 +8,7 @@ import {
   Stack,
   Tooltip,
 } from "@mantine/core";
-import { useClickOutside, useHotkeys, useViewportSize } from "@mantine/hooks";
+import { useHotkeys, useViewportSize } from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconChessBishopFilled,
@@ -22,12 +22,8 @@ import {
   IconSwitchVertical,
 } from "@tabler/icons-react";
 import {
-  BISHOP,
   Chess,
-  KNIGHT,
   PieceSymbol,
-  QUEEN,
-  ROOK,
   Square,
 } from "chess.js";
 import { DrawShape } from "chessground/draw";
@@ -48,20 +44,23 @@ import { formatMove } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import { getBoardSize } from "@/utils/misc";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
-import Piece from "../common/Piece";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import EvalBar from "./EvalBar";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  currentInvisibleAtom,
+  currentPracticingAtom,
   currentTabAtom,
+  deckAtomFamily,
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
 import PromotionModal from "./PromotionModal";
+import { updateCardPerformance } from "../files/opening";
 
 const useStyles = createStyles(() => ({
   chessboard: {
@@ -77,6 +76,7 @@ interface ChessboardProps {
   currentNode: TreeNode;
   arrows: string[];
   headers: GameHeaders;
+  root: TreeNode;
   editingMode: boolean;
   toggleEditingMode: () => void;
   viewOnly?: boolean;
@@ -100,6 +100,7 @@ function BoardPlay({
   boardRef,
   saveFile,
   addGame,
+  root,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
   let chess: Chess | null;
@@ -135,7 +136,6 @@ function BoardPlay({
   const autoSave = useAtomValue(autoSaveAtom);
 
   const activeTab = useAtomValue(currentTabAtom);
-
   const dests = toDests(chess, forcedEP);
   const turn = chess ? formatMove(chess.turn()) : undefined;
   const [pendingMove, setPendingMove] = useState<{
@@ -157,17 +157,70 @@ function BoardPlay({
   const boardSize = getBoardSize(height, width);
 
   useHotkeys([["f", () => toggleOrientation()]]);
+  const currentTab = useAtomValue(currentTabAtom);
+  const practicing = useAtomValue(currentPracticingAtom);
+
+  const [deck, setDeck] = useAtom(deckAtomFamily({ id: currentTab?.file?.path || "", root, headers }));
+  const setInvisible = useSetAtom(currentInvisibleAtom)
+
+  async function makeMove({
+    from,
+    to,
+    promotion,
+  }: {
+    from: Square;
+    to: Square;
+    promotion?: PieceSymbol;
+  }) {
+    if (practicing) {
+      const c = deck.find((c) => c.fen === currentNode.fen);
+      if (!c) {
+        return;
+      }
+
+      const m = chess?.move({ from, to, promotion });
+      let isRecalled = true;
+      if (m?.san !== c?.answer) {
+        isRecalled = false;
+      }
+      const i = deck.indexOf(c);
+      updateCardPerformance(setDeck, i, isRecalled);
+
+      if (isRecalled) {
+        setInvisible(false);
+        dispatch({
+          type: "MAKE_MOVE",
+          payload: {
+            from,
+            to,
+            promotion,
+          },
+        });
+        setPendingMove(null);
+      }
+    } else {
+      dispatch({
+        type: "MAKE_MOVE",
+        payload: {
+          from,
+          to,
+          promotion,
+        },
+      });
+      setPendingMove(null);
+    }
+  }
 
   let shapes: DrawShape[] =
     showArrows && arrows.length > 0
       ? arrows.map((move, i) => {
-          const { from, to } = parseUci(move);
-          return {
-            orig: from,
-            dest: to,
-            brush: i === 0 ? "paleBlue" : "paleGrey",
-          };
-        })
+        const { from, to } = parseUci(move);
+        return {
+          orig: from,
+          dest: to,
+          brush: i === 0 ? "paleBlue" : "paleGrey",
+        };
+      })
       : [];
 
   if (currentNode.shapes.length > 0) {
@@ -213,6 +266,8 @@ function BoardPlay({
 
   const { pieces, diff } = getMaterialDiff(currentNode.fen);
 
+  const practiceLock = practicing && !deck.find((c) => c.fen === currentNode.fen);
+
   return (
     <>
       {width > 800 && (
@@ -238,15 +293,11 @@ function BoardPlay({
             pendingMove={pendingMove}
             cancelMove={() => setPendingMove(null)}
             confirmMove={(p) => {
-              dispatch({
-                type: "MAKE_MOVE",
-                payload: {
-                  from: pendingMove!.from,
-                  to: pendingMove!.to,
-                  promotion: p,
-                },
+              makeMove({
+                from: pendingMove!.from,
+                to: pendingMove!.to,
+                promotion: p,
               });
-              setPendingMove(null);
             }}
             turn={turn}
             orientation={orientation}
@@ -269,13 +320,13 @@ function BoardPlay({
             coordinates={false}
             movable={{
               free: editingMode,
-              color: editingMode ? "both" : turn,
+              color: practiceLock ? undefined : editingMode ? "both" : side || turn,
               dests:
                 editingMode || viewOnly
                   ? undefined
                   : disableVariations && currentNode.children.length > 0
-                  ? undefined
-                  : dests,
+                    ? undefined
+                    : dests,
               showDests,
               events: {
                 after: (orig, dest, metadata) => {
@@ -290,13 +341,6 @@ function BoardPlay({
                         payload: newFen,
                       });
                     });
-                    // dispatch({
-                    //   type: "MAKE_MOVE",
-                    //   payload: {
-                    //     from: orig as Square,
-                    //     to: dest as Square,
-                    //   },
-                    // });
                   } else {
                     if (chess) {
                       const newDest = handleMove(chess, orig, dest);
@@ -306,24 +350,18 @@ function BoardPlay({
                           (newDest[1] === "1" && turn === "black"))
                       ) {
                         if (autoPromote && !metadata.ctrlKey) {
-                          dispatch({
-                            type: "MAKE_MOVE",
-                            payload: {
-                              from: orig as Square,
-                              to: newDest,
-                              promotion: QUEEN,
-                            },
+                          makeMove({
+                            from: orig as Square,
+                            to: newDest,
+                            promotion: "q",
                           });
                         } else {
                           setPendingMove({ from: orig as Square, to: newDest });
                         }
                       } else {
-                        dispatch({
-                          type: "MAKE_MOVE",
-                          payload: {
-                            from: orig as Square,
-                            to: newDest,
-                          },
+                        makeMove({
+                          from: orig as Square,
+                          to: newDest,
                         });
                       }
                     }

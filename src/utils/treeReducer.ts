@@ -228,7 +228,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             }
         })
         .with({ type: "GO_TO_START" }, () => {
-            state.position = [];
+            state.position = state.headers.start || [];
         })
         .with({ type: "GO_TO_END" }, () => {
             const endPosition: number[] = [];

@@ -1,10 +1,13 @@
-import { atomWithStorage, createJSONStorage } from "jotai/utils";
+import { atomFamily, atomWithStorage, createJSONStorage } from "jotai/utils";
 import { Tab, genID } from "../utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
-import { atom } from "jotai";
+import { PrimitiveAtom, atom } from "jotai";
 import { DatabaseInfo } from "@/utils/db";
 import { MissingMove } from "@/utils/repertoire";
+import { Card, buildFromTree } from "@/components/files/opening";
+import { GameHeaders, TreeNode } from "@/utils/treeReducer";
+import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
 
 // Tabs
 
@@ -30,14 +33,14 @@ export const currentTabAtom = atom(
     (get) => {
         const tabs = get(tabsAtom);
         const activeTab = get(activeTabAtom);
-        return tabs.find((tab) => tab.value === activeTab);
+        return tabs.find((tab) => tab.value === activeTab)!;
     },
     (get, set, newValue: Tab | ((currentTab: Tab) => Tab)) => {
         const tabs = get(tabsAtom);
         const activeTab = get(activeTabAtom);
         const nextValue =
             typeof newValue === "function"
-                ? newValue(get(currentTabAtom)!)
+                ? newValue(get(currentTabAtom))
                 : newValue;
         const newTabs = tabs.map((tab) => {
             if (tab.value === activeTab) {
@@ -92,4 +95,53 @@ export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
     "missing-moves",
     {},
     createJSONStorage(() => sessionStorage)
+);
+
+
+function tabValue<T extends object | string | boolean>(family: AtomFamily<string, PrimitiveAtom<T>>) {
+    return atom(
+        (get) => {
+            const tab = get(currentTabAtom);
+            const atom = family(tab.value);
+            return get(atom);
+        },
+        (get, set, newValue: T | ((currentValue: T) => T)) => {
+            const tab = get(currentTabAtom);
+            const nextValue =
+                typeof newValue === "function"
+                    ? newValue(get(tabValue(family)))
+                    : newValue;
+            const atom = family(tab.value);
+            set(atom, nextValue);
+        }
+    )
+}
+
+// Board Options
+
+const invisibleFamily = atomFamily((tab: string) => atom(false));
+export const currentInvisibleAtom = tabValue(invisibleFamily);
+
+
+// Practice
+
+const practicingFamily = atomFamily((tab: string) => atom(false));
+export const currentPracticingAtom = tabValue(practicingFamily);
+
+export const deckAtomFamily = atomFamily(
+    ({ id, root, headers }: { id: string, root: TreeNode, headers: GameHeaders }) => {
+        const a = atomWithStorage<Card[]>(`deck-${id}`, []);
+        a.onMount = (set) => {
+            if (localStorage.getItem(`deck-${id}`) === null) {
+                const cards = buildFromTree(
+                    root,
+                    headers.orientation || "white",
+                    headers.start || []
+                );
+                set(cards);
+            }
+        };
+        return a;
+    },
+    (a, b) => a.id === b.id
 );

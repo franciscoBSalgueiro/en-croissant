@@ -1,4 +1,6 @@
 import {
+  currentInvisibleAtom,
+  currentPracticingAtom,
   currentTabAtom,
   minimumGamesAtom,
   missingMovesAtom,
@@ -10,17 +12,9 @@ import {
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
 import { MissingMove, openingReport } from "@/utils/repertoire";
-import {
-  ActionIcon,
-  Button,
-  Divider,
-  Group,
-  Progress,
-  Select,
-  Text,
-} from "@mantine/core";
-import { IconReload } from "@tabler/icons-react";
-import { useAtom, useAtomValue } from "jotai";
+import { Button, Group, Progress, Select, Text } from "@mantine/core";
+import { IconReload, IconTargetArrow } from "@tabler/icons-react";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useContext, useState } from "react";
 
@@ -36,6 +30,7 @@ function RepertoireInfo() {
   const [progress, setProgress] = useState(0);
   const percentageCoverage = useAtomValue(percentageCoverageAtom);
   const minimumGames = useAtomValue(minimumGamesAtom);
+  const setPracticing = useSetAtom(currentPracticingAtom);
 
   function searchForMissingMoves() {
     if (!referenceDb) {
@@ -92,7 +87,13 @@ function RepertoireInfo() {
         />
       </Group>
 
-      <Divider />
+      <Button
+        onClick={() => setPracticing(true)}
+        leftIcon={<IconTargetArrow />}
+      >
+        Practice
+      </Button>
+
       {!loading && !missingMoves && (
         <Button onClick={() => searchForMissingMoves()}>
           Look for missing moves

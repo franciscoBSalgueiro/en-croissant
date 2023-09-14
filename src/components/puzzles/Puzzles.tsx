@@ -27,7 +27,7 @@ import {
 import PuzzleBoard from "./PuzzleBoard";
 import { PuzzleDbCard } from "./PuzzleDbCard";
 import AddPuzzle from "./AddPuzzle";
-import { match } from "ts-pattern";
+import ChallengeHistory from "../common/ChallengeHistory";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -251,49 +251,14 @@ function Puzzles({ id }: { id: string }) {
         </Card>
         <Card>
           <Text mb="md">Puzzles</Text>
-          <Group>
-            {puzzles.map((p, i) => {
-              const current = i === currentPuzzle;
-              return match(p.completion)
-                .with("correct", () => (
-                  <ActionIcon
-                    onClick={() => {
-                      setCurrentPuzzle(i);
-                      setCurrentMove(1);
-                    }}
-                    variant="light"
-                    key={i}
-                    color="green"
-                    sx={{ border: current ? "2px solid green" : "none" }}
-                  >
-                    <IconCheck color="green" />
-                  </ActionIcon>
-                ))
-                .with("incorrect", () => (
-                  <ActionIcon
-                    onClick={() => setCurrentPuzzle(i)}
-                    variant="light"
-                    key={i}
-                    color="red"
-                    sx={{ border: current ? "2px solid red" : "none" }}
-                  >
-                    <IconX color="red" />
-                  </ActionIcon>
-                ))
-                .with("incomplete", () => (
-                  <ActionIcon
-                    onClick={() => setCurrentPuzzle(i)}
-                    variant="light"
-                    key={i}
-                    color="yellow"
-                    sx={{ border: current ? "2px solid yellow" : "none" }}
-                  >
-                    <IconDots color="yellow" />
-                  </ActionIcon>
-                ))
-                .exhaustive();
-            })}
-          </Group>
+          <ChallengeHistory
+            challenges={puzzles}
+            current={currentPuzzle}
+            select={(i) => {
+              setCurrentPuzzle(i);
+              setCurrentMove(1);
+            }}
+          />
         </Card>
       </div>
     </BoardLayout>

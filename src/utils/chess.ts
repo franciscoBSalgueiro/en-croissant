@@ -30,6 +30,7 @@ import {
     TreeNode,
     TreeState,
 } from "./treeReducer";
+import { MantineColor } from "@mantine/core";
 
 export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
 
@@ -88,7 +89,7 @@ const NAG_INFO = new Map<string, Annotation>([
 
 type AnnotationInfo = {
     name: string;
-    color: string;
+    color: MantineColor;
 };
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
