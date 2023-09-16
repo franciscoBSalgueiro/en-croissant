@@ -18,7 +18,7 @@ import {
   RingProgress,
 } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useContext } from "react";
 import { match } from "ts-pattern";
 
@@ -27,8 +27,8 @@ function PracticePanel() {
   const { root, headers } = useContext(TreeStateContext);
   const currentTab = useAtomValue(currentTabAtom);
 
-  const [deck, setDeck] = useAtom(
-    deckAtomFamily({ id: currentTab?.file?.path || "", root, headers })
+  const deck = useAtomValue(
+    deckAtomFamily({ id: currentTab?.file?.name || "", root, headers, game: currentTab?.gameNumber || 0 }),
   );
 
   const stats = getStats(deck);
@@ -54,7 +54,7 @@ function PracticePanel() {
     <Stack>
       <Group position="apart" m={12}>
         <Text fw="bold">Practicing</Text>
-        <ActionIcon onClick={() => setPracticing(false)}>
+        <ActionIcon onClick={() => { setPracticing(false); setInvisible(false) }}>
           <IconX />
         </ActionIcon>
       </Group>

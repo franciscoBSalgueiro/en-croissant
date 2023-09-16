@@ -160,7 +160,7 @@ function BoardPlay({
   const currentTab = useAtomValue(currentTabAtom);
   const practicing = useAtomValue(currentPracticingAtom);
 
-  const [deck, setDeck] = useAtom(deckAtomFamily({ id: currentTab?.file?.path || "", root, headers }));
+  const [deck, setDeck] = useAtom(deckAtomFamily({ id: currentTab?.file?.name || "", root, headers, game: currentTab?.gameNumber || 0 }));
   const setInvisible = useSetAtom(currentInvisibleAtom)
 
   async function makeMove({

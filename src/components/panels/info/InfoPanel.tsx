@@ -113,6 +113,13 @@ function GameSelectorAccordion({
       return;
     }
 
+    const data = await read_games(currentTab!.file!.path, page, page);
+    const tree = await parsePGN(data[0]);
+    dispatch({
+      type: "SET_STATE",
+      payload: tree,
+    });
+
     setCurrentTab((prev) => {
       if (!prev) return prev;
       return {
@@ -125,13 +132,6 @@ function GameSelectorAccordion({
       ...prev,
       [currentTab!.value]: null,
     }));
-
-    const data = await read_games(currentTab!.file!.path, page, page);
-    const tree = await parsePGN(data[0]);
-    dispatch({
-      type: "SET_STATE",
-      payload: tree,
-    });
   }
 
   async function deleteGame(index: number) {

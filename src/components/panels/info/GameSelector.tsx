@@ -8,6 +8,8 @@ import { formatNumber } from "@/utils/format";
 import { getGameName } from "@/utils/treeReducer";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
+import { useSetAtom } from "jotai";
+import { currentPracticingAtom } from "@/atoms/atoms";
 
 export default function GameSelector({
   height,
@@ -136,6 +138,7 @@ function GameRow({
 }) {
   const [deleteModal, toggleDelete] = useToggle();
   const { classes } = useStyles();
+  const setPracticing = useSetAtom(currentPracticingAtom);
 
   return (
     <>
@@ -158,7 +161,7 @@ function GameRow({
         className={
           classes.row + (index === activePage ? " " + classes.active : "")
         }
-        onClick={() => setPage(index)}
+        onClick={() => {setPracticing(false); setPage(index)}}
       >
         <Text fz="sm">
           {formatNumber(index + 1)}. {game}

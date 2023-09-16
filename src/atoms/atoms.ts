@@ -33,14 +33,14 @@ export const currentTabAtom = atom(
     (get) => {
         const tabs = get(tabsAtom);
         const activeTab = get(activeTabAtom);
-        return tabs.find((tab) => tab.value === activeTab)!;
+        return tabs.find((tab) => tab.value === activeTab);
     },
     (get, set, newValue: Tab | ((currentTab: Tab) => Tab)) => {
         const tabs = get(tabsAtom);
         const activeTab = get(activeTabAtom);
         const nextValue =
             typeof newValue === "function"
-                ? newValue(get(currentTabAtom))
+                ? newValue(get(currentTabAtom)!)
                 : newValue;
         const newTabs = tabs.map((tab) => {
             if (tab.value === activeTab) {
@@ -102,14 +102,16 @@ function tabValue<T extends object | string | boolean>(family: AtomFamily<string
     return atom(
         (get) => {
             const tab = get(currentTabAtom);
+            if (!tab) return null;
             const atom = family(tab.value);
             return get(atom);
         },
         (get, set, newValue: T | ((currentValue: T) => T)) => {
             const tab = get(currentTabAtom);
+            if (!tab) return null;
             const nextValue =
                 typeof newValue === "function"
-                    ? newValue(get(tabValue(family)))
+                    ? newValue(get(tabValue(family))!)
                     : newValue;
             const atom = family(tab.value);
             set(atom, nextValue);
@@ -131,10 +133,10 @@ const practicingFamily = atomFamily((tab: string) => atom(false));
 export const currentPracticingAtom = tabValue(practicingFamily);
 
 export const deckAtomFamily = atomFamily(
-    ({ id, root, headers }: { id: string, root: TreeNode, headers: GameHeaders }) => {
-        const a = atomWithStorage<Card[]>(`deck-${id}`, []);
+    ({ id, game, root, headers }: { id: string, game: number, root: TreeNode, headers: GameHeaders }) => {
+        const a = atomWithStorage<Card[]>(`deck-${id}-${game}`, []);
         a.onMount = (set) => {
-            if (localStorage.getItem(`deck-${id}`) === null) {
+            if (localStorage.getItem(`deck-${id}-${game}`) === null) {
                 const cards = buildFromTree(
                     root,
                     headers.orientation || "white",
@@ -145,5 +147,5 @@ export const deckAtomFamily = atomFamily(
         };
         return a;
     },
-    (a, b) => a.id === b.id
+    (a, b) => a.id === b.id && a.game === b.game
 );
