@@ -69,13 +69,9 @@ function AddEngine({
     return os;
   });
 
-  let filters: {
-    name: string;
-    extensions: string[];
-  }[] = [];
-  if (os === "windows") {
-    filters = [{ name: "Executable Files", extensions: ["exe"] }];
-  }
+  const filters = match(os)
+    .with("windows", () => [{ name: "Executable Files", extensions: ["exe"] }])
+    .otherwise(() => []);
 
   const { data: defaultEngines, error } = useSWR(os, async (os: OS) => {
     const bmi2: boolean = await invoke("is_bmi2_compatible");

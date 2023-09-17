@@ -8,14 +8,16 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { IconPlus, IconRobot, IconX } from "@tabler/icons-react";
-import { useState } from "react";
+import { IconEdit, IconPlus, IconRobot, IconX } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import { Engine } from "@/utils/engines";
 import { useLocalFile } from "@/utils/misc";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 import { useToggle } from "@mantine/hooks";
 import ConfirmModal from "../common/ConfirmModal";
+import EditEngine from "./EditEngine";
+import { exists } from "@tauri-apps/api/fs";
 
 export default function EnginePage() {
   const [engines, setEngines] = useLocalFile<Engine[]>(
@@ -52,6 +54,7 @@ export default function EnginePage() {
                   key={item.path}
                   item={item}
                   setEngines={setEngines}
+                  engines={engines}
                 />
               ))}
             <tr>
@@ -74,12 +77,23 @@ export default function EnginePage() {
 
 function EngineRow({
   item,
+  engines,
   setEngines,
 }: {
   item: Engine;
+  engines: Engine[];
   setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
 }) {
   const [deleteModal, toggleDeleteModal] = useToggle();
+  const [editModal, toggleEditModal] = useToggle();
+
+  const [fileExists, setFileExists] = useState<boolean>(false);
+
+  useEffect(() => {
+    (async () => {
+      setFileExists(await exists(item.path));
+    })();
+  }, [item.path]);
 
   return (
     <>
@@ -92,6 +106,14 @@ function EngineRow({
           setEngines((prev) => prev.filter((e) => e.name !== item.name))
         }
       />
+      <EditEngine
+        opened={editModal}
+        setOpened={toggleEditModal}
+        engines={engines}
+        setEngines={setEngines}
+        initialEngine={item}
+      />
+
       <tr>
         <td>
           <Group spacing="sm">
@@ -100,16 +122,21 @@ function EngineRow({
             ) : (
               <IconRobot size={60} />
             )}
-            <Text size="md" weight={500}>
-              {item.name}
+            <Text size="md" weight={500} color={fileExists ? undefined : "red"}>
+              {item.name} {fileExists ? "" : "(file missing)"}
             </Text>
           </Group>
         </td>
         <td>{item.elo}</td>
         <td>
-          <ActionIcon>
-            <IconX size={20} onClick={() => toggleDeleteModal()} />
-          </ActionIcon>
+          <Group>
+            <ActionIcon>
+              <IconEdit size={20} onClick={() => toggleEditModal()} />
+            </ActionIcon>
+            <ActionIcon>
+              <IconX size={20} onClick={() => toggleDeleteModal()} />
+            </ActionIcon>
+          </Group>
         </td>
       </tr>
     </>
