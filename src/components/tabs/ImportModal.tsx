@@ -16,8 +16,11 @@ import { getLichessGame } from "@/utils/lichess";
 import FileInput from "../common/FileInput";
 import { useAtom } from "jotai";
 import { currentTabAtom } from "@/atoms/atoms";
-import { getGameName } from "@/utils/treeReducer";
+import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { FileMetadata } from "../files/file";
+import { match } from "ts-pattern";
+
+type ImportType = "PGN" | "Link" | "FEN";
 
 export default function ImportModal({
   openModal,
@@ -27,11 +30,69 @@ export default function ImportModal({
   setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [pgn, setPgn] = useState("");
+  const [fen, setFen] = useState("");
   const [file, setFile] = useState<string | null>(null);
   const [link, setLink] = useState("");
-  const [importType, setImportType] = useState<string>("PGN");
+  const [importType, setImportType] = useState<ImportType>("PGN");
   const [loading, setLoading] = useState(false);
   const [, setCurrentTab] = useAtom(currentTabAtom);
+
+  const Input = match(importType)
+    .with("PGN", () => (
+      <>
+        <FileInput
+          label="PGN file"
+          description={"Click to select a PGN file."}
+          onClick={async () => {
+            const selected = (await open({
+              multiple: false,
+
+              filters: [
+                {
+                  name: "PGN file",
+                  extensions: ["pgn"],
+                },
+              ],
+            })) as string;
+            setFile(selected);
+          }}
+          disabled={pgn !== ""}
+          filename={file}
+        />
+        <Divider label="OR" labelPosition="center" />
+        <Textarea
+          value={pgn}
+          disabled={file !== null}
+          onChange={(event) => setPgn(event.currentTarget.value)}
+          label="PGN game"
+          data-autofocus
+          minRows={10}
+        />
+      </>
+    ))
+    .with("Link", () => (
+      <TextInput
+        value={link}
+        onChange={(event) => setLink(event.currentTarget.value)}
+        label="Game URL (lichess or chess.com)"
+        data-autofocus
+      />
+    ))
+    .with("FEN", () => (
+      <TextInput
+        value={fen}
+        onChange={(event) => setFen(event.currentTarget.value)}
+        label="FEN"
+        data-autofocus
+      />
+    ))
+    .exhaustive();
+
+  const disabled = match(importType)
+    .with("PGN", () => !pgn && !file)
+    .with("Link", () => !link)
+    .with("FEN", () => !fen)
+    .exhaustive();
 
   return (
     <Modal
@@ -43,62 +104,19 @@ export default function ImportModal({
         label="Type of import"
         placeholder="Pick one"
         mb="lg"
-        data={[
-          { value: "PGN", label: "PGN" },
-          { value: "Link", label: "Link" },
-        ]}
+        data={["PGN", "Link", "FEN"]}
         value={importType}
-        onChange={(v) => setImportType(v as string)}
+        onChange={(v) => setImportType(v as ImportType)}
       />
 
-      {importType === "PGN" && (
-        <>
-          <FileInput
-            label="PGN file"
-            description={"Click to select a PGN file."}
-            onClick={async () => {
-              const selected = (await open({
-                multiple: false,
-
-                filters: [
-                  {
-                    name: "PGN file",
-                    extensions: ["pgn"],
-                  },
-                ],
-              })) as string;
-              setFile(selected);
-            }}
-            disabled={pgn !== ""}
-            filename={file}
-          />
-          <Divider label="OR" labelPosition="center" />
-          <Textarea
-            value={pgn}
-            disabled={file !== null}
-            onChange={(event) => setPgn(event.currentTarget.value)}
-            label="PGN game"
-            data-autofocus
-            minRows={10}
-          />
-        </>
-      )}
-
-      {importType === "Link" && (
-        <TextInput
-          value={link}
-          onChange={(event) => setLink(event.currentTarget.value)}
-          label="Game URL (lichess or chess.com)"
-          data-autofocus
-        />
-      )}
+      {Input}
 
       <Button
         fullWidth
         mt="md"
         radius="md"
         loading={loading}
-        disabled={importType === "PGN" ? !pgn && !file : !link}
+        disabled={disabled}
         onClick={async () => {
           if (importType === "PGN") {
             if (file || pgn) {
@@ -148,6 +166,18 @@ export default function ImportModal({
               return {
                 ...prev,
                 name: `${getGameName(tree.headers)} (Imported)`,
+                type: "analysis",
+              };
+            });
+          } else if (importType === "FEN") {
+            setCurrentTab((prev) => {
+              const tree = defaultTree();
+              tree.root.fen = fen;
+              tree.headers.fen = fen;
+              sessionStorage.setItem(prev.value, JSON.stringify(tree));
+              return {
+                ...prev,
+                name: "Analysis Board",
                 type: "analysis",
               };
             });
