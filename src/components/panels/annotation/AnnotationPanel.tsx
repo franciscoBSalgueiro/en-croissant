@@ -39,9 +39,6 @@ const SymbolButton = memo(function SymbolButton({
 function AnnotationPanel() {
   const { root, position } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
-  if (!currentNode) {
-    return null;
-  }
   return (
     <Stack>
       <Group grow>

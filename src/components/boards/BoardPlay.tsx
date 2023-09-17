@@ -8,7 +8,7 @@ import {
   Stack,
   Tooltip,
 } from "@mantine/core";
-import { useHotkeys, useViewportSize } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconChessBishopFilled,
@@ -152,9 +152,8 @@ function BoardPlay({
       },
     });
   const { classes } = useStyles();
-  const { height, width } = useViewportSize();
 
-  const boardSize = getBoardSize(height, width);
+  const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
 
   useHotkeys([["f", () => toggleOrientation()]]);
   const currentTab = useAtomValue(currentTabAtom);
@@ -270,7 +269,7 @@ function BoardPlay({
 
   return (
     <>
-      {width > 800 && (
+      {window.innerWidth > 800 && (
         <EvalBar
           score={currentNode.score}
           boardSize={boardSize}

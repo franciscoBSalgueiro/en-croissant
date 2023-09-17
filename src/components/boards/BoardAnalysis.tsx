@@ -1,5 +1,5 @@
 import { Stack, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle, useViewportSize } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
@@ -40,9 +40,7 @@ function BoardAnalysis() {
 
   const boardRef = useRef(null);
 
-  const { height, width } = useViewportSize();
-
-  const boardSize = getBoardSize(height, width);
+  const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
   const [inProgress, setInProgress] = useState(false);
 
   const [notationExpanded, setNotationExpanded] = useState(false);
@@ -88,7 +86,6 @@ function BoardAnalysis() {
 
   const [currentTabSelected, setCurrentTabSelected] = useAtom(currentTabSelectedAtom);
 
-  if (!currentNode) return null;
   return (
     <>
       <ReportModal
@@ -172,7 +169,7 @@ function BoardAnalysis() {
           <Stack>
             <GameNotation
               boardSize={
-                notationExpanded ? 1750 : width > 1000 ? boardSize : 600
+                notationExpanded ? 1750 : window.innerWidth > 1000 ? boardSize : 600
               }
               setNotationExpanded={setNotationExpanded}
               notationExpanded={notationExpanded}

@@ -1,5 +1,4 @@
 import { Box, Stack, createStyles } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
 import { Chess, Move, Square } from "chess.js";
 import { useState } from "react";
 import Chessground from "react-chessground";
@@ -55,9 +54,7 @@ function PuzzleBoard({
   const fen = chess.fen();
   const turn = formatMove(chess.turn());
 
-  const { height, width } = useViewportSize();
-
-  const boardSize = getBoardSize(height, width);
+  const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
 
   const { classes } = useStyles();
 
