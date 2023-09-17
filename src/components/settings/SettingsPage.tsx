@@ -1,28 +1,16 @@
+import { showArrowsAtom, moveInputAtom, autoPromoteAtom, autoSaveAtom, percentageCoverageAtom, minimumGamesAtom, forcedEnPassantAtom, pieceSetAtom, showDestsAtom } from "@/atoms/atoms";
 import {
   Card,
   createStyles,
   Group,
-  NumberInput,
-  Select,
   Stack,
-  Switch,
   Text,
 } from "@mantine/core";
-import { ColorControl } from "./ColorControl";
-import { ThemeButton } from "./ThemeButton";
-import { useAtom } from "jotai";
-import {
-  autoPromoteAtom,
-  forcedEnPassantAtom,
-  pieceSetAtom,
-  showArrowsAtom,
-  showDestsAtom,
-  primaryColorAtom,
-  moveInputAtom,
-  percentageCoverageAtom,
-  minimumGamesAtom,
-  autoSaveAtom,
-} from "@/atoms/atoms";
+import ColorControl from "./ColorControl";
+import SettingsNumberInput from "./SettingsNumberInput";
+import SettingsSelect from "./SettingsSelect";
+import SettingsSwitch from "./SettingsSwitch";
+import ThemeButton from "./ThemeButton";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -34,17 +22,10 @@ const useStyles = createStyles((theme) => ({
     "& + &": {
       paddingTop: theme.spacing.sm,
       marginTop: theme.spacing.sm,
-      borderTop: `1px solid ${
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[4]
-          : theme.colors.gray[2]
-      }`,
-    },
-  },
-
-  switch: {
-    "& *": {
-      cursor: "pointer",
+      borderTop: `1px solid ${theme.colorScheme === "dark"
+        ? theme.colors.dark[4]
+        : theme.colors.gray[2]
+        }`,
     },
   },
 
@@ -86,19 +67,7 @@ const pieceSets = [
   { label: "Tatiana", value: "tatiana" },
 ];
 
-function SettingsPage() {
-  const [moveInput, setMoveInput] = useAtom(moveInputAtom);
-  const [showDests, setShowDests] = useAtom(showDestsAtom);
-  const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
-  const [autoPromote, setAutoPromote] = useAtom(autoPromoteAtom);
-  const [autoSave, setAutoSave] = useAtom(autoSaveAtom);
-  const [forcedEP, setForcedEP] = useAtom(forcedEnPassantAtom);
-  const [primaryColor, setPrimaryColor] = useAtom(primaryColorAtom);
-  const [pieceSet, setPieceSet] = useAtom(pieceSetAtom);
-  const [percentageCoverage, setPercentageCoverage] = useAtom(
-    percentageCoverageAtom
-  );
-  const [minimumGames, setMinimumGames] = useAtom(minimumGamesAtom);
+export default function Page() {
   const { classes } = useStyles();
 
   return (
@@ -117,14 +86,7 @@ function SettingsPage() {
               Show possible moves for each piece
             </Text>
           </div>
-          <Switch
-            onLabel="ON"
-            offLabel="OFF"
-            size="lg"
-            checked={showDests}
-            onChange={(event) => setShowDests(event.currentTarget.checked)}
-            className={classes.switch}
-          />
+          <SettingsSwitch atom={showDestsAtom} />
         </Group>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
@@ -133,14 +95,7 @@ function SettingsPage() {
               Show best move arrows
             </Text>
           </div>
-          <Switch
-            onLabel="ON"
-            offLabel="OFF"
-            size="lg"
-            checked={showArrows}
-            onChange={(event) => setShowArrows(event.currentTarget.checked)}
-            className={classes.switch}
-          />
+          <SettingsSwitch atom={showArrowsAtom} />
         </Group>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
@@ -149,14 +104,7 @@ function SettingsPage() {
               Enter moves in text format
             </Text>
           </div>
-          <Switch
-            onLabel="ON"
-            offLabel="OFF"
-            size="lg"
-            checked={moveInput}
-            onChange={(event) => setMoveInput(event.currentTarget.checked)}
-            className={classes.switch}
-          />
+          <SettingsSwitch atom={moveInputAtom} />
         </Group>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
@@ -165,14 +113,7 @@ function SettingsPage() {
               Automatically promote to a queen when a pawn reaches the last rank
             </Text>
           </div>
-          <Switch
-            onLabel="ON"
-            offLabel="OFF"
-            size="lg"
-            checked={autoPromote}
-            onChange={(event) => setAutoPromote(event.currentTarget.checked)}
-            className={classes.switch}
-          />
+          <SettingsSwitch atom={autoPromoteAtom} />
         </Group>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
@@ -181,14 +122,7 @@ function SettingsPage() {
               Auto save to file after each move
             </Text>
           </div>
-          <Switch
-            onLabel="ON"
-            offLabel="OFF"
-            size="lg"
-            checked={autoSave}
-            onChange={(event) => setAutoSave(event.currentTarget.checked)}
-            className={classes.switch}
-          />
+          <SettingsSwitch atom={autoSaveAtom} />
         </Group>
       </Card>
       <Card withBorder radius="md" p="xl" className={classes.card}>
@@ -205,9 +139,8 @@ function SettingsPage() {
               Percentage of moves covered in each position
             </Text>
           </div>
-          <NumberInput
-            value={percentageCoverage}
-            onChange={(value) => setPercentageCoverage(value || 50)}
+          <SettingsNumberInput
+            atom={percentageCoverageAtom}
             min={50}
             max={100}
             step={1}
@@ -221,9 +154,8 @@ function SettingsPage() {
               Minimum number of games in each position for it to be considered
             </Text>
           </div>
-          <NumberInput
-            value={minimumGames}
-            onChange={(value) => setMinimumGames(value || 0)}
+          <SettingsNumberInput
+            atom={minimumGamesAtom}
             min={0}
             step={1}
           />
@@ -243,14 +175,7 @@ function SettingsPage() {
               {"Forces you to play en-passant, if it's a legal move."}
             </Text>
           </div>
-          <Switch
-            onLabel="ON"
-            offLabel="OFF"
-            size="lg"
-            checked={forcedEP}
-            onChange={(event) => setForcedEP(event.currentTarget.checked)}
-            className={classes.switch}
-          />
+          <SettingsSwitch atom={forcedEnPassantAtom} />
         </Group>
       </Card>
 
@@ -277,10 +202,9 @@ function SettingsPage() {
               Pieces used on the boards
             </Text>
           </div>
-          <Select
+          <SettingsSelect
             data={pieceSets}
-            value={pieceSet}
-            onChange={(v) => setPieceSet(v!)}
+            atom={pieceSetAtom}
             placeholder="Select piece set"
           />
         </Group>
@@ -292,16 +216,10 @@ function SettingsPage() {
             </Text>
           </div>
           <div style={{ width: 200 }}>
-            <ColorControl
-              value={primaryColor}
-              label={""}
-              onChange={(color) => setPrimaryColor(color)}
-            />
+            <ColorControl />
           </div>
         </Group>
       </Card>
     </Stack>
   );
 }
-
-export default SettingsPage;

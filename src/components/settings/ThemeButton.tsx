@@ -7,7 +7,7 @@ import {
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 
-export function ThemeButton() {
+export default function ThemeButton() {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   return (
