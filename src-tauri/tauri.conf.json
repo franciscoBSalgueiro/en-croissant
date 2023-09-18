@@ -3,7 +3,7 @@
     "productName": "en-croissant"
   },
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm start",
     "beforeBuildCommand": "pnpm build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist",
@@ -14,7 +14,10 @@
       "all": true,
       "fs": {
         "all": true,
-        "scope": ["$APPDATA/**", "$DOCUMENT/**"]
+        "scope": [
+          "$APPDATA/**",
+          "$DOCUMENT/**"
+        ]
       },
       "http": {
         "scope": [
@@ -64,7 +67,9 @@
     },
     "updater": {
       "active": true,
-      "endpoints": ["https://www.encroissant.org/updates"],
+      "endpoints": [
+        "https://www.encroissant.org/updates"
+      ],
       "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGOTBFNjg2MzFGM0RDODUKUldTRjNQTXhodWFRZjc2MTNVeXRONGJkRjdGUXlCeW1MSlZESUczT0U4eE5hKzBmY3M2S0U2L0oK"
     },

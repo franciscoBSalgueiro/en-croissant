@@ -5,8 +5,8 @@ import { useMantineTheme, ActionIcon, Text } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { useRouter } from "next/router";
 import { memo } from "react";
+import { useNavigate } from "react-router-dom";
 
 function GamesTable({
   games,
@@ -21,7 +21,7 @@ function GamesTable({
   const setActiveTab = useSetAtom(activeTabAtom);
 
   const theme = useMantineTheme();
-  const router = useRouter();
+  const navigate = useNavigate();
   return (
     <DataTable
       withBorder
@@ -48,7 +48,7 @@ function GamesTable({
                   pgn: game.moves,
                   headers: game,
                 });
-                router.push("/boards");
+                navigate("/boards");
               }}
             >
               <IconEye size={16} stroke={1.5} />

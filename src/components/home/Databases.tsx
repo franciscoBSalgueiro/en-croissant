@@ -1,4 +1,4 @@
-import { Card, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import { ScrollArea, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import {
   DatabaseInfo as PlainDatabaseInfo,
@@ -8,7 +8,6 @@ import {
   getPlayersGameInfo,
   query_players,
 } from "@/utils/db";
-import useStyles from "./styles";
 import { useAtomValue } from "jotai";
 import { sessionsAtom } from "@/atoms/atoms";
 import { Session } from "@/utils/session";

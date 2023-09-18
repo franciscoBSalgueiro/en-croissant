@@ -1,5 +1,5 @@
 import { atomFamily, atomWithStorage, createJSONStorage } from "jotai/utils";
-import { Tab, genID } from "../utils/tabs";
+import { Tab, genID } from "@/utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
 import { PrimitiveAtom, atom } from "jotai";

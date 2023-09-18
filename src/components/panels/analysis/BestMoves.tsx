@@ -56,7 +56,13 @@ interface BestMovesProps {
   halfMoves: number;
 }
 
-function BestMoves({ id, engine, setArrows, fen, halfMoves }: BestMovesProps) {
+export default function BestMovesComponent({
+  id,
+  engine,
+  setArrows,
+  fen,
+  halfMoves,
+}: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
@@ -300,5 +306,3 @@ function BestMoves({ id, engine, setArrows, fen, halfMoves }: BestMovesProps) {
     ]
   );
 }
-
-export default BestMoves;

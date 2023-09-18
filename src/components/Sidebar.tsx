@@ -14,7 +14,7 @@ import {
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
-import { useRouter } from "next/router";
+import { Link, useLocation } from "react-router-dom";
 
 const useStyles = createStyles((theme) => ({
   link: {
@@ -62,7 +62,7 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
   const { classes, cx } = useStyles();
   return (
     <Tooltip label={label} position="right">
-      <a href={url}>
+      <Link to={url}>
         <UnstyledButton
           className={cx(classes.link, {
             [classes.active]: active,
@@ -70,7 +70,7 @@ function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
         >
           <Icon stroke={1.5} />
         </UnstyledButton>
-      </a>
+      </Link>
     </Tooltip>
   );
 }
@@ -84,14 +84,14 @@ const linksdata = [
 ];
 
 export function SideBar() {
-  const router = useRouter();
+  const { pathname } = useLocation();
 
   const links = linksdata.map((link) => (
     <NavbarLink
       {...link}
       url={link.url[0]}
       key={link.label}
-      active={link.url.includes(router.pathname)}
+      active={link.url.includes(pathname)}
     />
   ));
 
@@ -108,7 +108,7 @@ export function SideBar() {
             icon={IconSettings}
             label="Settings"
             url="/settings"
-            active={router.pathname === "/settings"}
+            active={pathname === "/settings"}
           />
         </Stack>
       </Navbar.Section>

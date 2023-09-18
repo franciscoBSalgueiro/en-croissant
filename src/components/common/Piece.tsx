@@ -3,7 +3,7 @@ import { useRef } from "react";
 import Draggable from "react-draggable";
 import { match } from "ts-pattern";
 
-function Piece({
+export default function PieceComponent({
   piece,
   boardRef,
   putPiece,
@@ -80,5 +80,3 @@ function getPieceName(piece: Piece) {
     .with("k", () => `${colorText} king`)
     .exhaustive();
 }
-
-export default Piece;

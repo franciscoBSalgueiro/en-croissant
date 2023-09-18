@@ -1,15 +1,14 @@
 declare module "react-chessground" {
     import { Config } from "chessground/config";
-    interface ReactChessGroundProps
-        extends Config,
-            React.HTMLAttributes<HTMLElement> {
+    interface ReactChessGroundProps extends Config {
         width?: number | string;
         height?: number | string;
+        style?: React.CSSProperties;
     }
 
-    declare class Chessground extends React.Component<
+    class Chessground extends React.Component<
         ReactChessGroundProps,
         unknown
-    > {}
+    > { }
     export default Chessground;
 }

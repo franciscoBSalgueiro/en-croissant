@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons-react";
-import Link from "next/link";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { DatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
@@ -27,16 +27,15 @@ import ConvertButton from "./ConvertButton";
 import { useAtom } from "jotai";
 import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
 import ConfirmModal from "../common/ConfirmModal";
-import { useRouter } from "next/router";
 
 export default function DatabasesPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
   useEffect(() => {
     const db = sessionStorage.getItem("database-view");
     if (db !== null && db !== "null") {
-      router.push("/db/view/");
+      navigate("/db/view/");
     }
-  }, [router]);
+  }, [navigate]);
 
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
@@ -211,7 +210,7 @@ export default function DatabasesPage() {
             <Group>
               {!selectedDatabase.error && (
                 <>
-                  <Link href={`/db/view`}>
+                  <Link to={`/db/view`}>
                     <Button>Explore</Button>
                   </Link>
                   <IndexButton

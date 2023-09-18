@@ -9,7 +9,6 @@ import {
   Tooltip,
   Box,
 } from "@mantine/core";
-import router from "next/router";
 import { FileMetadata } from "./file";
 import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
 import { useAtom, useSetAtom } from "jotai";
@@ -17,6 +16,7 @@ import { useEffect, useState } from "react";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import GameSelector from "../panels/info/GameSelector";
 import GamePreview from "../databases/GamePreview";
+import { useNavigate } from "react-router-dom";
 
 function FileCard({
   selected,
@@ -31,6 +31,7 @@ function FileCard({
 }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
+  const navigate = useNavigate();
 
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -60,7 +61,7 @@ function FileCard({
       fileInfo: selected,
       gameNumber: page,
     });
-    router.push("/boards");
+    navigate("/boards");
   }
 
   return (

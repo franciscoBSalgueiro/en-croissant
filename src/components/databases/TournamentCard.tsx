@@ -1,12 +1,12 @@
 import { ActionIcon, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { NormalizedGame, Tournament, getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { useAtom, useSetAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { useNavigate } from "react-router-dom";
 
 function PlayerCard({
   tournament,
@@ -17,7 +17,7 @@ function PlayerCard({
 }) {
   const [games, setGames] = useState<NormalizedGame[]>([]);
   const theme = useMantineTheme();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
@@ -65,7 +65,7 @@ function PlayerCard({
                       pgn: game.moves,
                       headers: game,
                     });
-                    router.push("/boards");
+                    navigate("/boards");
                   }}
                 >
                   <IconEye size={16} stroke={1.5} />

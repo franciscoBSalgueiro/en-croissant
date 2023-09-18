@@ -1,6 +1,5 @@
 import { AspectRatio, Group, Stack } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
-import { useRouter } from "next/router";
 import { useContext, useEffect } from "react";
 import Chessground from "react-chessground";
 import MoveControls from "../common/MoveControls";
@@ -14,6 +13,7 @@ import {
 import { useImmerReducer } from "use-immer";
 import { parsePGN } from "@/utils/chess";
 import treeReducer, { defaultTree, getNodeAtPath } from "@/utils/treeReducer";
+import { useNavigate } from "react-router-dom";
 
 function GamePreview({
   id,
@@ -24,14 +24,14 @@ function GamePreview({
   pgn: string;
   hideControls?: boolean;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const setActiveTab = useSetAtom(activeTabAtom);
 
   function goToGame() {
     if (id) {
       setActiveTab(id);
-      router.push("/boards");
+      navigate("/boards");
     }
   }
 

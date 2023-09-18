@@ -5,19 +5,30 @@ import {
   MantineColor,
   MantineProvider,
 } from "@mantine/core";
-import type { AppProps } from "next/app";
-import { SideBar } from "../components/Sidebar";
+import { SideBar } from "./components/Sidebar";
 
 // Chessground styles
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
-import Head from "next/head";
 import "react-virtualized/styles.css";
-import "../styles/chessgroundBaseOverride.css";
-import "../styles/chessgroundColorsOverride.css";
+import "./styles/chessgroundBaseOverride.css";
+import "./styles/chessgroundColorsOverride.css";
 
-// This default export is required in a new `pages/_app.js` file.
-export default function MyApp({ Component, pageProps }: AppProps) {
+import Home from "./routes/index";
+import Settings from "./routes/settings";
+import Files from "./routes/files";
+import Databases from "./routes/databases";
+import Engines from "./routes/engines";
+import Boards from "./routes/boards";
+import DBView from "./routes/db/view";
+import {
+  BrowserRouter,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
+
+export default function App() {
   const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
     key: "mantine-color-scheme",
     defaultValue: "dark",
@@ -38,14 +49,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       colorScheme={colorScheme}
       toggleColorScheme={toggleColorScheme}
     >
-      <Head>
-        <title>Page title</title>
+      <head>
         <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
-        <meta
-          name="viewport"
-          content="minimum-scale=1, initial-scale=1, width=device-width"
-        />
-      </Head>
+      </head>
       <MantineProvider
         withGlobalStyles
         withNormalizeCSS
@@ -106,21 +112,39 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         }}
       >
         <Notifications />
-        <AppShell
-          navbar={<SideBar />}
-          styles={(theme) => ({
-            main: {
-              paddingRight: 10,
-              userSelect: "none",
-              backgroundColor:
-                theme.colorScheme === "dark"
-                  ? theme.colors.dark[8]
-                  : theme.colors.gray[0],
-            },
-          })}
-        >
-          <Component {...pageProps} />
-        </AppShell>
+
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <AppShell
+                  navbar={<SideBar />}
+                  styles={(theme) => ({
+                    main: {
+                      paddingRight: 10,
+                      userSelect: "none",
+                      backgroundColor:
+                        theme.colorScheme === "dark"
+                          ? theme.colors.dark[8]
+                          : theme.colors.gray[0],
+                    },
+                  })}
+                >
+                  <Outlet />
+                </AppShell>
+              }
+            >
+              <Route index element={<Home />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/files" element={<Files />} />
+              <Route path="/databases" element={<Databases />} />
+              <Route path="/engines" element={<Engines />} />
+              <Route path="/boards" element={<Boards />} />
+              <Route path="/db/view" element={<DBView />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
       </MantineProvider>
     </ColorSchemeProvider>
   );

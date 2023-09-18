@@ -21,11 +21,7 @@ import {
   IconPlus,
   IconSwitchVertical,
 } from "@tabler/icons-react";
-import {
-  Chess,
-  PieceSymbol,
-  Square,
-} from "chess.js";
+import { Chess, PieceSymbol, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { memo, useContext, useMemo, useState } from "react";
@@ -159,8 +155,15 @@ function BoardPlay({
   const currentTab = useAtomValue(currentTabAtom);
   const practicing = useAtomValue(currentPracticingAtom);
 
-  const [deck, setDeck] = useAtom(deckAtomFamily({ id: currentTab?.file?.name || "", root, headers, game: currentTab?.gameNumber || 0 }));
-  const setInvisible = useSetAtom(currentInvisibleAtom)
+  const [deck, setDeck] = useAtom(
+    deckAtomFamily({
+      id: currentTab?.file?.name || "",
+      root,
+      headers,
+      game: currentTab?.gameNumber || 0,
+    })
+  );
+  const setInvisible = useSetAtom(currentInvisibleAtom);
 
   async function makeMove({
     from,
@@ -213,13 +216,13 @@ function BoardPlay({
   let shapes: DrawShape[] =
     showArrows && arrows.length > 0
       ? arrows.map((move, i) => {
-        const { from, to } = parseUci(move);
-        return {
-          orig: from,
-          dest: to,
-          brush: i === 0 ? "paleBlue" : "paleGrey",
-        };
-      })
+          const { from, to } = parseUci(move);
+          return {
+            orig: from,
+            dest: to,
+            brush: i === 0 ? "paleBlue" : "paleGrey",
+          };
+        })
       : [];
 
   if (currentNode.shapes.length > 0) {
@@ -265,7 +268,8 @@ function BoardPlay({
 
   const { pieces, diff } = getMaterialDiff(currentNode.fen);
 
-  const practiceLock = practicing && !deck.find((c) => c.fen === currentNode.fen);
+  const practiceLock =
+    practicing && !deck.find((c) => c.fen === currentNode.fen);
 
   return (
     <>
@@ -319,13 +323,17 @@ function BoardPlay({
             coordinates={false}
             movable={{
               free: editingMode,
-              color: practiceLock ? undefined : editingMode ? "both" : side || turn,
+              color: practiceLock
+                ? undefined
+                : editingMode
+                ? "both"
+                : side || turn,
               dests:
                 editingMode || viewOnly
                   ? undefined
                   : disableVariations && currentNode.children.length > 0
-                    ? undefined
-                    : dests,
+                  ? undefined
+                  : dests,
               showDests,
               events: {
                 after: (orig, dest, metadata) => {

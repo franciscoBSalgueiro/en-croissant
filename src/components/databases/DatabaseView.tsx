@@ -5,7 +5,7 @@ import {
   IconTrophy,
   IconUser,
 } from "@tabler/icons-react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import GameTable from "@/components/databases/GameTable";
 import PlayerTable from "@/components/databases/PlayerTable";
 import TournamentTable from "./TournamentTable";
@@ -19,7 +19,7 @@ function DatabaseView() {
     <>
       {database && (
         <>
-          <Link onClick={() => setDatabase(null)} href={`/databases`} passHref>
+          <Link onClick={() => setDatabase(null)} to={`/databases`}>
             <Button
               mt="md"
               compact

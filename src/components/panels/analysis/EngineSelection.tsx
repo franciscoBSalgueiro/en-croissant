@@ -1,7 +1,7 @@
 import { Button, Center, Collapse, Grid, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { memo } from "react";
 import { Engine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
@@ -32,7 +32,7 @@ function EngineSelection({
             <Center>
               <Text>
                 No engines installed. Please{" "}
-                <Link href="/engines">Add an engine</Link> first.
+                <Link to="/engines">Add an engine</Link> first.
               </Text>
             </Center>
           )}

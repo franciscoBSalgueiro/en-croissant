@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Text } from "@mantine/core";
+import { Link } from "react-router-dom";
 
 function NoDatabaseWarning() {
   return (
@@ -9,7 +9,7 @@ function NoDatabaseWarning() {
       }}
     >
       No reference database selected. Please{" "}
-      <Link href="/databases">Add a database</Link> first.
+      <Link to="/databases">Add a database</Link> first.
     </Text>
   );
 }

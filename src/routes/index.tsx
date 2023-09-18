@@ -1,13 +1,6 @@
+import Accounts from "@/components/home/Accounts";
+import Databases from "@/components/home/Databases";
 import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
-import dynamic from "next/dynamic";
-
-const Accounts = dynamic(() => import("../components/home/Accounts"), {
-  ssr: false,
-});
-
-const Databases = dynamic(() => import("../components/home/Databases"), {
-  ssr: false,
-});
 
 function Page() {
   return (

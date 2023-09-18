@@ -15,7 +15,6 @@ import {
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
   DatabaseInfo,
@@ -30,6 +29,7 @@ import { SearchInput } from "./SearchInput";
 import useStyles from "./styles";
 import { useAtom, useSetAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { useNavigate } from "react-router-dom";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -62,7 +62,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const theme = useMantineTheme();
   const { classes } = useStyles();
 
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -265,7 +265,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                       pgn: game.moves,
                       headers: game,
                     });
-                    router.push("/boards");
+                    navigate("/boards");
                   }}
                 >
                   <IconEye size={16} stroke={1.5} />
