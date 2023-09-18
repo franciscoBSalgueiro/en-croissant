@@ -27,6 +27,8 @@ import {
   Route,
   Routes,
 } from "react-router-dom";
+import { useEffect } from "react";
+import { invoke } from "./utils/invoke";
 
 export default function App() {
   const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
@@ -43,6 +45,9 @@ export default function App() {
     key: "piece-set",
     defaultValue: "staunty",
   });
+  useEffect(() => {
+    invoke("close_splashscreen");
+  })
 
   return (
     <ColorSchemeProvider
