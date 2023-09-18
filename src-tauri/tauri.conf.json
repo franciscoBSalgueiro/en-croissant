@@ -75,8 +75,10 @@
     },
     "windows": [
       {
-        "maximized": true,
-        "title": "En Croissant"
+        "title": "En Croissant",
+        "width": 1920,
+        "height": 1080,
+        "visible": false
       }
     ]
   }

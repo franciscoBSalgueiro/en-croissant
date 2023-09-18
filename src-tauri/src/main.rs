@@ -46,7 +46,7 @@ use crate::{
     fs::download_file,
     opening::get_opening_from_fen,
 };
-use tokio::sync::{Semaphore, RwLock};
+use tokio::sync::{RwLock, Semaphore};
 
 use specta::collect_types;
 use tauri_specta::ts;
@@ -130,6 +130,21 @@ const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
 const REQUIRED_FILES: &[(BaseDirectory, &str)] =
     &[(BaseDirectory::AppData, "engines/engines.json")];
 
+#[tauri::command]
+async fn close_splashscreen(window: Window) {
+    // Show main window
+    window
+        .get_window("main")
+        .expect("no window labeled 'main' found")
+        .maximize()
+        .unwrap();
+    window
+        .get_window("main")
+        .expect("no window labeled 'main' found")
+        .show()
+        .unwrap();
+}
+
 fn main() {
     #[cfg(debug_assertions)]
     ts::export(collect_types![find_fide_player,], "../src/bindings.ts").unwrap();
@@ -169,6 +184,7 @@ fn main() {
         })
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
+            close_splashscreen,
             download_file,
             get_best_moves,
             get_opening_from_fen,
