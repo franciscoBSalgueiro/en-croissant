@@ -22,7 +22,6 @@ import { downloadChessCom } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { downloadLichess } from "@/utils/lichess";
 import { invoke } from "@/utils/invoke";
-import ChessComLogo from "./ChessComLogo";
 import LichessLogo from "./LichessLogo";
 import useStyles from "./styles";
 
@@ -128,7 +127,11 @@ export function AccountCard({
       <Group grow>
         <div>
           <Group>
-            {type === "lichess" ? <LichessLogo /> : <ChessComLogo />}
+            {type === "lichess" ? (
+              <LichessLogo />
+            ) : (
+              <img width={35} height={35} src="/chesscom.png" />
+            )}
             <div>
               <Text size="xl" className={classes.label}>
                 {title}

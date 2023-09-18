@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Alert,
   Box,
-  createStyles,
   Group,
   Input,
   Stack,
@@ -57,15 +56,7 @@ import {
 } from "@/atoms/atoms";
 import PromotionModal from "./PromotionModal";
 import { updateCardPerformance } from "../files/opening";
-
-const useStyles = createStyles(() => ({
-  chessboard: {
-    position: "relative",
-    marginRight: "auto",
-    marginLeft: "auto",
-    zIndex: 1,
-  },
-}));
+import { chessboard } from "@/styles/Chessboard.css";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -147,7 +138,6 @@ function BoardPlay({
         orientation: headers.orientation === "white" ? "black" : "white",
       },
     });
-  const { classes } = useStyles();
 
   const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
 
@@ -291,7 +281,7 @@ function BoardPlay({
             {error}
           </Alert>
         )}
-        <Box className={classes.chessboard} ref={boardRef} mt={10}>
+        <Box className={chessboard} ref={boardRef} mt={10}>
           <PromotionModal
             pendingMove={pendingMove}
             cancelMove={() => setPendingMove(null)}

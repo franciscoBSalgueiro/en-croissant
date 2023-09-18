@@ -1,4 +1,4 @@
-import { Box, Stack, createStyles } from "@mantine/core";
+import { Box, Stack } from "@mantine/core";
 import { Chess, Move, Square } from "chess.js";
 import { useState } from "react";
 import Chessground from "react-chessground";
@@ -7,15 +7,7 @@ import { formatMove } from "@/utils/format";
 import { getBoardSize } from "@/utils/misc";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
-
-const useStyles = createStyles(() => ({
-  chessboard: {
-    position: "relative",
-    marginRight: "auto",
-    marginLeft: "auto",
-    zIndex: 1,
-  },
-}));
+import { chessboard } from "@/styles/Chessboard.css";
 
 function PuzzleBoard({
   puzzles,
@@ -56,8 +48,6 @@ function PuzzleBoard({
 
   const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
 
-  const { classes } = useStyles();
-
   function checkMove(move: string) {
     if (puzzle.moves[currentMove] === move) {
       if (currentMove === puzzle.moves.length - 1) {
@@ -81,7 +71,7 @@ function PuzzleBoard({
 
   return (
     <Stack justify="center">
-      <Box className={classes.chessboard}>
+      <Box className={chessboard}>
         <PromotionModal
           pendingMove={pendingMove}
           cancelMove={() => setPendingMove(null)}

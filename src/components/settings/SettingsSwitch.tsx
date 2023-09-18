@@ -1,30 +1,29 @@
-import {
-    Switch,
-    createStyles,
-} from "@mantine/core";
+import { Switch, createStyles } from "@mantine/core";
 import { PrimitiveAtom, useAtom } from "jotai";
 
 const useStyles = createStyles(() => ({
-    switch: {
-        "& *": {
-            cursor: "pointer",
-        },
-    },
+  switch: {
+    cursor: "pointer",
+  },
 }));
 
 export default function SettingsSwitch({
-    atom,
+  atom,
 }: {
-    atom: PrimitiveAtom<boolean>;
+  atom: PrimitiveAtom<boolean>;
 }) {
-    const { classes } = useStyles();
-    const [checked, setChecked] = useAtom(atom);
-    return <Switch
-        onLabel="ON"
-        offLabel="OFF"
-        size="lg"
-        checked={checked}
-        onChange={(event) => setChecked(event.currentTarget.checked)}
-        className={classes.switch}
+  const { classes } = useStyles();
+  const [checked, setChecked] = useAtom(atom);
+  return (
+    <Switch
+      onLabel="ON"
+      offLabel="OFF"
+      size="lg"
+      checked={checked}
+      onChange={(event) => setChecked(event.currentTarget.checked)}
+      classNames={{
+        input: classes.switch,
+      }}
     />
+  );
 }
