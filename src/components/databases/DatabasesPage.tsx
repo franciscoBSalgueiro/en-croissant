@@ -33,7 +33,7 @@ export default function DatabasesPage() {
   useEffect(() => {
     const db = sessionStorage.getItem("database-view");
     if (db !== null && db !== "null") {
-      navigate("/db/view/");
+      navigate("/databases/view/");
     }
   }, [navigate]);
 
@@ -210,7 +210,7 @@ export default function DatabasesPage() {
             <Group>
               {!selectedDatabase.error && (
                 <>
-                  <Link to={`/db/view`}>
+                  <Link to={`/databases/view`}>
                     <Button>Explore</Button>
                   </Link>
                   <IndexButton

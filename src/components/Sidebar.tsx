@@ -1,10 +1,4 @@
-import {
-  createStyles,
-  Navbar,
-  Stack,
-  Tooltip,
-  UnstyledButton,
-} from "@mantine/core";
+import { createStyles, Navbar, Stack, Tooltip } from "@mantine/core";
 import {
   Icon,
   IconChess,
@@ -14,7 +8,7 @@ import {
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
-import { Link, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 const useStyles = createStyles((theme) => ({
   link: {
@@ -58,41 +52,39 @@ interface NavbarLinkProps {
   active?: boolean;
 }
 
-function NavbarLink({ url, icon: Icon, label, active }: NavbarLinkProps) {
+function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
   const { classes, cx } = useStyles();
   return (
     <Tooltip label={label} position="right">
-      <Link to={url}>
-        <UnstyledButton
-          className={cx(classes.link, {
-            [classes.active]: active,
-          })}
-        >
-          <Icon stroke={1.5} />
-        </UnstyledButton>
-      </Link>
+      <NavLink
+        to={url}
+        className={({ isActive }) => {
+          return cx(classes.link, {
+            [classes.active]: isActive,
+          });
+        }}
+      >
+        <Icon stroke={1.5} />
+      </NavLink>
     </Tooltip>
   );
 }
 
 const linksdata = [
-  { icon: IconUser, label: "User", url: ["/"] },
-  { icon: IconChess, label: "Board", url: ["/boards"] },
-  { icon: IconFiles, label: "Files", url: ["/files"] },
-  { icon: IconDatabase, label: "Databases", url: ["/databases", "/db/view"] },
-  { icon: IconRobot, label: "Engines", url: ["/engines"] },
+  { icon: IconUser, label: "User", url: "/" },
+  { icon: IconChess, label: "Board", url: "/boards" },
+  { icon: IconFiles, label: "Files", url: "/files" },
+  {
+    icon: IconDatabase,
+    label: "Databases",
+    url: "/databases",
+  },
+  { icon: IconRobot, label: "Engines", url: "/engines" },
 ];
 
 export function SideBar() {
-  const { pathname } = useLocation();
-
   const links = linksdata.map((link) => (
-    <NavbarLink
-      {...link}
-      url={link.url[0]}
-      key={link.label}
-      active={link.url.includes(pathname)}
-    />
+    <NavbarLink {...link} key={link.label} />
   ));
 
   return (
@@ -104,12 +96,7 @@ export function SideBar() {
       </Navbar.Section>
       <Navbar.Section>
         <Stack justify="center" spacing={0}>
-          <NavbarLink
-            icon={IconSettings}
-            label="Settings"
-            url="/settings"
-            active={pathname === "/settings"}
-          />
+          <NavbarLink icon={IconSettings} label="Settings" url="/settings" />
         </Stack>
       </Navbar.Section>
     </Navbar>

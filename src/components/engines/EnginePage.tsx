@@ -87,7 +87,7 @@ function EngineRow({
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
 
-  const [fileExists, setFileExists] = useState<boolean>(false);
+  const [fileExists, setFileExists] = useState<boolean>(true);
 
   useEffect(() => {
     (async () => {

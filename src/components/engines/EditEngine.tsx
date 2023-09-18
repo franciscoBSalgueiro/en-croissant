@@ -28,7 +28,6 @@ export default function EditEngine({
   setOpened: (opened: boolean) => void;
   setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
-  console.log(initialEngine);
   const { data: os } = useSWR("os", async () => {
     const p = await platform();
     const os = match(p)
