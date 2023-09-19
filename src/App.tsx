@@ -2,17 +2,12 @@ import {
   AppShell,
   ColorScheme,
   ColorSchemeProvider,
-  MantineColor,
   MantineProvider,
 } from "@mantine/core";
 import { SideBar } from "./components/Sidebar";
-
-// Chessground styles
+import { Helmet } from "react-helmet";
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
-import "react-virtualized/styles.css";
-import "./styles/chessgroundBaseOverride.css";
-import "./styles/chessgroundColorsOverride.css";
 
 import Home from "./routes/index";
 import Settings from "./routes/settings";
@@ -31,7 +26,11 @@ import { useEffect } from "react";
 import { invoke } from "./utils/invoke";
 import DatabasesPage from "./components/databases/DatabasesPage";
 import { useAtomValue } from "jotai";
-import { pieceSetAtom } from "./atoms/atoms";
+import { pieceSetAtom, primaryColorAtom } from "./atoms/atoms";
+
+import "react-virtualized/styles.css";
+import "./styles/chessgroundBaseOverride.css";
+import "./styles/chessgroundColorsOverride.css";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -71,10 +70,7 @@ export default function App() {
     key: "mantine-color-scheme",
     defaultValue: "dark",
   });
-  const [primaryColor] = useLocalStorage<MantineColor>({
-    key: "mantine-primary-color",
-    defaultValue: "blue",
-  });
+  const primaryColor = useAtomValue(primaryColorAtom);
   const toggleColorScheme = (value?: ColorScheme) =>
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
   const pieceSet = useAtomValue(pieceSetAtom);
@@ -87,9 +83,9 @@ export default function App() {
       colorScheme={colorScheme}
       toggleColorScheme={toggleColorScheme}
     >
-      <head>
+      <Helmet>
         <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
-      </head>
+      </Helmet>
       <MantineProvider
         withGlobalStyles
         withNormalizeCSS
