@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use log::info;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen,
@@ -54,7 +55,7 @@ pub fn get_opening_from_eco(eco: &str) -> Result<&str, &str> {
 
 lazy_static! {
     static ref OPENINGS: HashMap<Zobrist64, Opening> = {
-        println!("Initializing openings table...");
+        info!("Initializing openings table...");
         let mut map = HashMap::new();
         for tsv in TSV_DATA {
             let mut rdr = csv::ReaderBuilder::new().delimiter(b'\t').from_reader(tsv);

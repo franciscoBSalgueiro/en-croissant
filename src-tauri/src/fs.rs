@@ -4,6 +4,7 @@ use std::{
     path::Path,
 };
 
+use log::info;
 use reqwest::{header::HeaderMap, Client};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -29,7 +30,7 @@ pub async fn download_file(
     app: tauri::AppHandle,
     token: Option<String>,
 ) -> Result<String, Error> {
-    println!("Downloading file from {}", url);
+    info!("Downloading file from {}", url);
     let client = Client::new();
 
     let mut req = client.get(&url);
@@ -52,8 +53,7 @@ pub async fn download_file(
         downloaded += chunk.len() as u64;
         if let Some(total_size) = total_size {
             let progress = (downloaded as f64 / total_size as f64) * 100.0;
-            println!("Downloaded {}%", progress);
-            // emit object with progress and id
+            // println!("Downloaded {}%", progress);
             app.emit_all(
                 "download_progress",
                 ProgressPayload {
@@ -67,7 +67,7 @@ pub async fn download_file(
 
     let path = Path::new(&path);
 
-    println!("Downloaded file to {}", path.display());
+    info!("Downloaded file to {}", path.display());
 
     if zip {
         unzip_file(path, file).await?;
@@ -92,14 +92,14 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {
         let mut file = archive.by_index(i)?;
         let outpath = path.join(file.mangled_name());
         if (*file.name()).ends_with('/') {
-            println!(
+            info!(
                 "File {} extracted to \"{}\"",
                 i,
                 outpath.as_path().display()
             );
             create_dir_all(&outpath)?;
         } else {
-            println!(
+            info!(
                 "File {} extracted to \"{}\" ({} bytes)",
                 i,
                 outpath.as_path().display(),

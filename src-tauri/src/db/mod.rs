@@ -850,11 +850,10 @@ pub async fn get_games(
         );
     }
 
-    // debug query
-    println!(
-        "{:?}\n",
-        diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
-    );
+    // println!(
+    //     "{:?}\n",
+    //     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
+    // );
 
     let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db).expect("load games");
     let normalized_games = normalize_games(games);

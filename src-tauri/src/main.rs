@@ -22,11 +22,13 @@ use dashmap::DashMap;
 use db::{NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
+use log::info;
 use reqwest::Url;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
 };
+use tauri_plugin_log::LogTarget;
 
 use crate::chess::{
     analyze_game, get_engine_name, get_single_best_move, make_move, make_random_move, put_piece,
@@ -57,7 +59,7 @@ use tauri_plugin_oauth::start;
 
 #[tauri::command]
 async fn start_server(username: String, verifier: String, window: Window) -> Result<u16, Error> {
-    println!("Starting server");
+    info!("Starting server");
 
     Ok(start(move |url| {
         // Because of the unprotected localhost port, you must verify the URL here.
@@ -98,9 +100,9 @@ async fn start_server(username: String, verifier: String, window: Window) -> Res
         let token = json["access_token"].as_str().unwrap();
 
         if window.emit("redirect_uri", token).is_ok() {
-            println!("Sent redirect_uri event");
+            info!("Sent redirect_uri event");
         } else {
-            println!("Failed to send redirect_uri event");
+            info!("Failed to send redirect_uri event");
         }
     })?)
 }
@@ -146,11 +148,22 @@ async fn close_splashscreen(window: Window) {
         .unwrap();
 }
 
+#[cfg(debug_assertions)]
+const LOG_TARGETS: [LogTarget; 2] = [LogTarget::Stdout, LogTarget::Webview];
+
+#[cfg(not(debug_assertions))]
+const LOG_TARGETS: [LogTarget; 2] = [LogTarget::Stdout, LogTarget::LogDir];
+
 fn main() {
     #[cfg(debug_assertions)]
     ts::export(collect_types![find_fide_player,], "../src/bindings.ts").unwrap();
 
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .targets(LOG_TARGETS)
+                .build(),
+        )
         .setup(|app| {
             // Check if all the required directories exist, and create them if they don't
             for (dir, path) in REQUIRED_DIRS.iter() {

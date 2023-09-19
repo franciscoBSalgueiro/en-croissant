@@ -1,6 +1,7 @@
 use std::{path::PathBuf, process::Stdio};
 
 use derivative::Derivative;
+use log::{info, error};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -244,7 +245,7 @@ pub async fn get_best_moves(
             .wait()
             .await
             .expect("engine process encountered an error");
-        println!("engine process exit status : {}", status);
+        info!("engine process exit status : {}", status);
     });
 
     let mut best_moves_payload = BestMovesPayload {
@@ -269,7 +270,7 @@ pub async fn get_best_moves(
     loop {
         tokio::select! {
             _ = rx.recv() => {
-                println!("Killing engine");
+                info!("Killing engine");
                 send_command(&mut stdin, "stop\n").await;
                 app.unlisten(id);
                 break
@@ -296,7 +297,7 @@ pub async fn get_best_moves(
                         }
                     }
                     Err(err) => {
-                        println!("engine read error {:?}", err);
+                        error!("engine read error {:?}", err);
                         break;
                     }
                 }
@@ -446,7 +447,7 @@ pub async fn get_single_best_move(
         if let Some(line) = stdout.next_line().await? {
             if line.starts_with("bestmove") {
                 let m = line.split_whitespace().nth(1).unwrap();
-                println!("bestmove {}", m);
+                info!("bestmove {}", m);
                 return Ok(m.to_string());
             }
         }

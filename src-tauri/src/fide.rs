@@ -103,7 +103,6 @@ async fn download_fide_db() -> Result<PlayersList, Error> {
     let reader = BufReader::new(archive.by_index(0)?);
 
     let players_list: PlayersList = from_reader(reader)?;
-    println!("Players: {}", players_list.players.len());
     Ok(players_list)
 }
 
@@ -162,8 +161,6 @@ pub async fn find_fide_player(
             best_match_score = score;
         }
     }
-
-    println!("Best match: {}", best_match_score);
 
     if best_match_score > 0.8 {
         Ok(best_match.cloned())

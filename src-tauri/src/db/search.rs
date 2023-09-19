@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, Position, Setup};
 use std::{path::PathBuf, sync::Mutex, time::Instant};
+use log::info;
 
 use crate::{
     db::{
@@ -188,7 +189,6 @@ pub async fn search_position(
     query: PositionQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
-    dbg!(&query);
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
@@ -197,7 +197,7 @@ pub async fn search_position(
 
     // start counting the time
     let start = Instant::now();
-    println!("start: {:?}", start.elapsed());
+    info!("start loading games");
 
     let permit = state.new_request.acquire().await.unwrap();
     let mut games = state.db_cache.lock().unwrap();
@@ -215,7 +215,7 @@ pub async fn search_position(
             .load(db)
             .expect("load games");
 
-        println!("got {} games: {:?}", games.len(), start.elapsed());
+        info!("got {} games: {:?}", games.len(), start.elapsed());
     }
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
@@ -266,7 +266,7 @@ pub async fn search_position(
             }
         },
     );
-    println!("done: {:?}", start.elapsed());
+    info!("finished search in {:?}", start.elapsed());
     if state.new_request.available_permits() == 0 {
         drop(permit);
         return Err(Error::SearchStopped);
@@ -307,7 +307,7 @@ pub async fn is_position_in_db(
 
     // start counting the time
     let start = Instant::now();
-    println!("start: {:?}", start.elapsed());
+    info!("start loading games");
 
     let permit = state.new_request.acquire().await.unwrap();
     let mut games = state.db_cache.lock().unwrap();
@@ -325,7 +325,7 @@ pub async fn is_position_in_db(
             .load(db)
             .expect("load games");
 
-        println!("got {} games: {:?}", games.len(), start.elapsed());
+        info!("got {} games: {:?}", games.len(), start.elapsed());
     }
 
     let exists = games.par_iter().any(
@@ -341,7 +341,7 @@ pub async fn is_position_in_db(
                 && get_move_after_match(game, &query).unwrap_or(None).is_some()
         },
     );
-    println!("done: {:?}", start.elapsed());
+    info!("finished search in {:?}", start.elapsed());
     if state.new_request.available_permits() == 0 {
         drop(permit);
         return Err(Error::SearchStopped);
