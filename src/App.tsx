@@ -9,12 +9,13 @@ import { Helmet } from "react-helmet";
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
 
-import Home from "./routes/index";
-import Settings from "./routes/settings";
-import Files from "./routes/files";
-import Engines from "./routes/engines";
-import Boards from "./routes/boards";
-import DBView from "./routes/db/view";
+import SettingsPage from "@/components/settings/SettingsPage";
+import FilesPage from "@/components/files/FilesPage";
+import EnginesPage from "@/components/engines/EnginesPage";
+import BoardsPage from "@/components/tabs/BoardsPage";
+import DatabaseView from "@/components/databases/DatabaseView";
+import HomePage from "@/components/home/HomePage";
+
 import {
   Outlet,
   Route,
@@ -54,13 +55,13 @@ const router = createBrowserRouter(
         </AppShell>
       }
     >
-      <Route index element={<Home />} />
-      <Route path="settings" element={<Settings />} />
-      <Route path="files" element={<Files />} />
+      <Route index element={<HomePage />} />
+      <Route path="settings" element={<SettingsPage />} />
+      <Route path="files" element={<FilesPage />} />
       <Route path="databases" element={<DatabasesPage />} />
-      <Route path="databases/view" element={<DBView />} />
-      <Route path="engines" element={<Engines />} />
-      <Route path="boards" element={<Boards />} />
+      <Route path="databases/view" element={<DatabaseView />} />
+      <Route path="engines" element={<EnginesPage />} />
+      <Route path="boards" element={<BoardsPage />} />
     </Route>
   )
 );

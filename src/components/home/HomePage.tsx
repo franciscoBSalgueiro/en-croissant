@@ -1,8 +1,8 @@
-import Accounts from "@/components/home/Accounts";
-import Databases from "@/components/home/Databases";
+import Accounts from "./Accounts";
+import Databases from "./Databases";
 import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
 
-function Page() {
+function HomePage() {
   return (
     <SimpleGrid cols={2} my="md" spacing="md">
       <Card>
@@ -20,4 +20,4 @@ function Page() {
   );
 }
 
-export default Page;
+export default HomePage;
