@@ -44,6 +44,7 @@ specta = "1.0.5"
 tauri-specta = { version = "1.0.2", features = ["typescript"] }
 strsim = "0.10.0"
 bincode = "2.0.0-rc.3"
+thiserror = "1.0.48"
 
 [features]
 # by default Tauri runs in production mode

@@ -10,6 +10,7 @@ use crate::{
         encoding::decode_move, get_db_or_create, get_material_count, get_pawn_home, models::*,
         normalize_games, schema::*, ConnectionOptions, MaterialCount,
     },
+    error::Error,
     AppState,
 };
 
@@ -34,11 +35,9 @@ pub enum PositionQuery {
 }
 
 impl PositionQuery {
-    pub fn from_fen(fen: &str) -> Result<PositionQuery, String> {
-        let position: Chess = Fen::from_ascii(fen.as_bytes())
-            .or(Err("Invalid fen"))?
-            .into_position(shakmaty::CastlingMode::Standard)
-            .or(Err("Invalid fen"))?;
+    pub fn from_fen(fen: &str) -> Result<PositionQuery, Error> {
+        let position: Chess =
+            Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Standard)?;
         let pawn_home = get_pawn_home(position.board());
         let material = get_material_count(position.board());
         Ok(PositionQuery::Exact(ExactData {
@@ -152,7 +151,7 @@ pub struct PositionStats {
 fn get_move_after_match(
     move_blob: &Vec<u8>,
     query: &PositionQuery,
-) -> Result<Option<String>, String> {
+) -> Result<Option<String>, Error> {
     let mut chess = Chess::default();
 
     if query.matches(&chess) {
@@ -188,7 +187,7 @@ pub async fn search_position(
     file: PathBuf,
     query: PositionQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), String> {
+) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     dbg!(&query);
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -270,7 +269,7 @@ pub async fn search_position(
     println!("done: {:?}", start.elapsed());
     if state.new_request.available_permits() == 0 {
         drop(permit);
-        return Err("Search stopped".to_string());
+        return Err(Error::SearchStopped);
     }
 
     let ids: Vec<i32> = sample_games.lock().unwrap().clone();
@@ -299,7 +298,7 @@ pub async fn is_position_in_db(
     file: PathBuf,
     query: PositionQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<bool, String> {
+) -> Result<bool, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
@@ -345,7 +344,7 @@ pub async fn is_position_in_db(
     println!("done: {:?}", start.elapsed());
     if state.new_request.available_permits() == 0 {
         drop(permit);
-        return Err("Search stopped".to_string());
+        return Err(Error::SearchStopped);
     }
 
     if !exists {

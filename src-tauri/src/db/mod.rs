@@ -6,6 +6,7 @@ mod search;
 
 use crate::{
     db::{encoding::decode_moves, models::*, ops::*, schema::*},
+    error::Error,
     opening::get_opening_from_eco,
     AppState,
 };
@@ -128,7 +129,7 @@ fn get_db_or_create(
     options: ConnectionOptions,
 ) -> Result<
     diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
-    String,
+    Error,
 > {
     let pool = match state.connection_pool.get(db_path) {
         Some(pool) => pool.clone(),
@@ -136,8 +137,7 @@ fn get_db_or_create(
             let pool = Pool::builder()
                 .max_size(16)
                 .connection_customizer(Box::new(options))
-                .build(ConnectionManager::<SqliteConnection>::new(db_path))
-                .map_err(|e| e.to_string())?;
+                .build(ConnectionManager::<SqliteConnection>::new(db_path))?;
             state
                 .connection_pool
                 .insert(db_path.to_string(), pool.clone());
@@ -145,7 +145,7 @@ fn get_db_or_create(
         }
     };
 
-    pool.get().map_err(|e| e.to_string())
+    Ok(pool.get()?)
 }
 
 #[derive(Debug)]
@@ -384,7 +384,7 @@ pub async fn convert_pgn(
     title: String,
     description: Option<String>,
     state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     // get the name of the file without the extension
     let description = description.unwrap_or_default();
     let filename = file.file_stem().expect("file name");
@@ -398,8 +398,7 @@ pub async fn convert_pgn(
         &app.env(),
         &db_filename,
         Some(BaseDirectory::AppData),
-    )
-    .or(Err("Failed to resolve path"))?;
+    )?;
 
     let db_exists = destination.exists();
 
@@ -415,8 +414,7 @@ pub async fn convert_pgn(
     )?;
 
     if !db_exists {
-        db.batch_execute(CREATE_TABLES_SQL)
-            .or(Err("Failed to create tables"))?;
+        db.batch_execute(CREATE_TABLES_SQL)?;
         db.batch_execute(
             format!(
                 "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
@@ -424,14 +422,10 @@ pub async fn convert_pgn(
                 INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
             )
             .as_str(),
-        )
-        .or(Err("Failed to insert default data"))?;
+        )?;
     }
 
-    let file = File::open(&file).or(Err(format!(
-        "Failed to open pgn file: {}",
-        file.to_str().unwrap()
-    )))?;
+    let file = File::open(&file)?;
 
     let uncompressed: Box<dyn std::io::Read + Send> = if extension == "bz2" {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
@@ -460,26 +454,18 @@ pub async fn convert_pgn(
             }
         }
         Ok(())
-    })
-    .map_err(|e| e.to_string())?;
+    })?;
 
     if !db_exists {
         // Create all the necessary indexes
-        db.batch_execute(INDEXES_SQL)
-            .or(Err("Failed to create indexes"))?;
+        db.batch_execute(INDEXES_SQL)?;
     }
 
     // get game, player, event and site counts and to the info table
-    let game_count: i64 = games::table.count().get_result(db).expect("get game count");
-    let player_count: i64 = players::table
-        .count()
-        .get_result(db)
-        .or(Err("Failed to get player count"))?;
-    let event_count: i64 = events::table
-        .count()
-        .get_result(db)
-        .or(Err("Failed to get event count"))?;
-    let site_count: i64 = sites::table.count().get_result(db).expect("get site count");
+    let game_count: i64 = games::table.count().get_result(db)?;
+    let player_count: i64 = players::table.count().get_result(db)?;
+    let event_count: i64 = events::table.count().get_result(db)?;
+    let site_count: i64 = sites::table.count().get_result(db)?;
 
     let counts = vec![
         ("GameCount", game_count),
@@ -494,8 +480,7 @@ pub async fn convert_pgn(
             .on_conflict(info::name)
             .do_update()
             .set(info::value.eq(c.1.to_string()))
-            .execute(db)
-            .or(Err("Failed to insert counts"))?;
+            .execute(db)?;
     }
 
     Ok(())
@@ -518,9 +503,9 @@ struct IndexInfo {
     _name: String,
 }
 
-fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, String> {
+fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
     let query = sql_query("SELECT name FROM pragma_index_list('Games');");
-    let indexes: Vec<IndexInfo> = query.load(conn).map_err(|e| e.to_string())?;
+    let indexes: Vec<IndexInfo> = query.load(conn)?;
     Ok(!indexes.is_empty())
 }
 
@@ -529,7 +514,7 @@ pub async fn get_db_info(
     file: PathBuf,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-) -> Result<DatabaseInfo, String> {
+) -> Result<DatabaseInfo, Error> {
     let db_path = PathBuf::from("db").join(file);
 
     let path = resolve_path(
@@ -538,30 +523,15 @@ pub async fn get_db_info(
         &app.env(),
         db_path,
         Some(BaseDirectory::AppData),
-    )
-    .or(Err("resolve path"))?;
+    )?;
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let player_count_info: Info = info::table
-        .filter(info::name.eq("PlayerCount"))
-        .first(db)
-        .or(Err("Failed to get player count"))?;
-    let player_count = player_count_info
-        .value
-        .unwrap()
-        .parse::<usize>()
-        .or(Err("Failed to parse player count"))?;
+    let player_count_info: Info = info::table.filter(info::name.eq("PlayerCount")).first(db)?;
+    let player_count = player_count_info.value.unwrap().parse::<usize>()?;
 
-    let game_count_info: Info = info::table
-        .filter(info::name.eq("GameCount"))
-        .first(db)
-        .or(Err("Failed to get game count"))?;
-    let game_count = game_count_info
-        .value
-        .unwrap()
-        .parse::<usize>()
-        .or(Err("Failed to parse game count"))?;
+    let game_count_info: Info = info::table.filter(info::name.eq("GameCount")).first(db)?;
+    let game_count = game_count_info.value.unwrap().parse::<usize>()?;
 
     let title = match info::table
         .filter(info::name.eq("Title"))
@@ -597,26 +567,19 @@ pub async fn get_db_info(
 }
 
 #[tauri::command]
-pub async fn create_indexes(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    db.batch_execute(INDEXES_SQL).map_err(|e| e.to_string())?;
+    db.batch_execute(INDEXES_SQL)?;
 
     Ok(())
 }
 
 #[tauri::command]
-pub async fn delete_indexes(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    db.batch_execute(DELETE_INDEXES_SQL)
-        .map_err(|e| e.to_string())?;
+    db.batch_execute(DELETE_INDEXES_SQL)?;
 
     Ok(())
 }
@@ -627,7 +590,7 @@ pub async fn edit_db_info(
     title: Option<String>,
     description: Option<String>,
     state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(title) = title {
@@ -636,8 +599,7 @@ pub async fn edit_db_info(
             .on_conflict(info::name)
             .do_update()
             .set(info::value.eq(title))
-            .execute(db)
-            .or(Err("Failed to update title"))?;
+            .execute(db)?;
     }
 
     if let Some(description) = description {
@@ -649,8 +611,7 @@ pub async fn edit_db_info(
             .on_conflict(info::name)
             .do_update()
             .set(info::value.eq(description))
-            .execute(db)
-            .or(Err("Failed to update description"))?;
+            .execute(db)?;
     }
 
     Ok(())
@@ -717,7 +678,7 @@ pub async fn get_games(
     file: PathBuf,
     query: GameQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<QueryResponse<Vec<NormalizedGame>>, String> {
+) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut count: Option<i64> = None;
@@ -956,7 +917,7 @@ pub async fn get_players(
     file: PathBuf,
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<QueryResponse<Vec<Player>>, String> {
+) -> Result<QueryResponse<Vec<Player>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count = None;
 
@@ -1027,7 +988,7 @@ pub async fn get_tournaments(
     file: PathBuf,
     query: TournamentQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<QueryResponse<Vec<Event>>, String> {
+) -> Result<QueryResponse<Vec<Event>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count = None;
 
@@ -1085,7 +1046,7 @@ pub async fn get_players_game_info(
     file: PathBuf,
     id: i32,
     state: tauri::State<'_, AppState>,
-) -> Result<PlayerGameInfo, String> {
+) -> Result<PlayerGameInfo, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let sql_query = games::table
@@ -1179,13 +1140,13 @@ pub async fn get_players_game_info(
 pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let pool = &state.connection_pool;
     let path_str = file.to_str().unwrap();
     pool.remove(path_str);
 
     // delete file
-    remove_file(path_str).map_err(|_| format!("Could not delete file {}", path_str))?;
+    remove_file(path_str)?;
     Ok(())
 }
 

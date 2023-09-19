@@ -30,6 +30,8 @@ import {
 import { useEffect } from "react";
 import { invoke } from "./utils/invoke";
 import DatabasesPage from "./components/databases/DatabasesPage";
+import { useAtomValue } from "jotai";
+import { pieceSetAtom } from "./atoms/atoms";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -75,10 +77,7 @@ export default function App() {
   });
   const toggleColorScheme = (value?: ColorScheme) =>
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
-  const [pieceSet] = useLocalStorage({
-    key: "piece-set",
-    defaultValue: "staunty",
-  });
+  const pieceSet = useAtomValue(pieceSetAtom);
   useEffect(() => {
     invoke("close_splashscreen");
   });

@@ -5,6 +5,7 @@
 
 mod chess;
 mod db;
+mod error;
 mod fide;
 mod fs;
 mod lexer;
@@ -51,13 +52,14 @@ use tokio::sync::{RwLock, Semaphore};
 use specta::collect_types;
 use tauri_specta::ts;
 
+use crate::error::Error;
 use tauri_plugin_oauth::start;
 
 #[tauri::command]
-async fn start_server(username: String, verifier: String, window: Window) -> Result<u16, String> {
+async fn start_server(username: String, verifier: String, window: Window) -> Result<u16, Error> {
     println!("Starting server");
 
-    start(move |url| {
+    Ok(start(move |url| {
         // Because of the unprotected localhost port, you must verify the URL here.
         // Preferebly send back only the token, or nothing at all if you can handle everything else in Rust.
 
@@ -100,8 +102,7 @@ async fn start_server(username: String, verifier: String, window: Window) -> Res
         } else {
             println!("Failed to send redirect_uri event");
         }
-    })
-    .map_err(|err| err.to_string())
+    })?)
 }
 
 #[derive(Derivative)]

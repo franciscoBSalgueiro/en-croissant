@@ -1,6 +1,8 @@
 use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use serde::Serialize;
 
+use crate::error::Error;
+
 struct Lexer {
     tokens: Vec<Token>,
 }
@@ -61,12 +63,12 @@ impl Visitor for Lexer {
 }
 
 #[tauri::command]
-pub async fn lex_pgn(pgn: String) -> Result<Vec<Token>, String> {
+pub async fn lex_pgn(pgn: String) -> Result<Vec<Token>, Error> {
     let mut reader = BufferedReader::new(pgn.as_bytes());
 
     let mut lexer = Lexer { tokens: Vec::new() };
 
-    reader.read_game(&mut lexer).map_err(|e| e.to_string())?;
+    reader.read_game(&mut lexer)?;
 
     Ok(lexer.tokens)
 }

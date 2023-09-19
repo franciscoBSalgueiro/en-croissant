@@ -8,7 +8,10 @@ use tauri::{
     Manager,
 };
 
-use crate::db::{puzzles, Puzzle};
+use crate::{
+    db::{puzzles, Puzzle},
+    error::Error,
+};
 
 #[derive(Debug)]
 struct PuzzleCache {
@@ -33,7 +36,7 @@ impl PuzzleCache {
         file: &str,
         min_rating: usize,
         max_rating: usize,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         if self.cache.is_empty()
             || self.min_rating != min_rating
             || self.max_rating != max_rating
@@ -48,8 +51,7 @@ impl PuzzleCache {
                 .filter(puzzles::rating.ge(min_rating as i32))
                 .order(sql::<Bool>("RANDOM()"))
                 .limit(20)
-                .load::<Puzzle>(&mut db)
-                .map_err(|e| e.to_string())?;
+                .load::<Puzzle>(&mut db)?;
 
             self.cache = new_puzzles.into_iter().collect();
             self.min_rating = min_rating;
@@ -70,14 +72,12 @@ impl PuzzleCache {
 }
 
 #[tauri::command]
-pub fn get_puzzle(file: String, min_rating: usize, max_rating: usize) -> Result<Puzzle, String> {
+pub fn get_puzzle(file: String, min_rating: usize, max_rating: usize) -> Result<Puzzle, Error> {
     static PUZZLE_CACHE: Lazy<Mutex<PuzzleCache>> = Lazy::new(|| Mutex::new(PuzzleCache::new()));
 
     let mut cache = PUZZLE_CACHE.lock().unwrap();
     cache.get_puzzles(&file, min_rating, max_rating)?;
-    cache
-        .get_next_puzzle()
-        .ok_or_else(|| "No more puzzles in cache".to_string())
+    cache.get_next_puzzle().ok_or(Error::NoPuzzles)
 }
 
 #[derive(Serialize)]

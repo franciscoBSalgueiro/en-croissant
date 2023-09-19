@@ -19,6 +19,7 @@ use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage};
 
 use crate::{
     db::{is_position_in_db, PositionQuery},
+    error::Error,
     fs::ProgressPayload,
     AppState,
 };
@@ -88,10 +89,7 @@ pub struct BestMovesPayload {
     pub tab: String,
 }
 
-fn parse_uci_attrs(
-    attrs: Vec<UciInfoAttribute>,
-    fen: &Fen,
-) -> Result<BestMoves, Box<dyn std::error::Error>> {
+fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves, Error> {
     let mut best_moves = BestMoves::default();
 
     let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
@@ -132,7 +130,7 @@ fn parse_uci_attrs(
     }
 
     if best_moves.san_moves.is_empty() {
-        return Err("No moves found".into());
+        return Err(Error::NoMovesFound);
     }
 
     if turn == Color::Black {
@@ -145,7 +143,7 @@ fn parse_uci_attrs(
     Ok(best_moves)
 }
 
-fn start_engine(path: PathBuf) -> Result<Child, String> {
+fn start_engine(path: PathBuf) -> Result<Child, Error> {
     let mut command = Command::new(&path);
     command.current_dir(path.parent().unwrap());
     command
@@ -156,22 +154,16 @@ fn start_engine(path: PathBuf) -> Result<Child, String> {
     #[cfg(target_os = "windows")]
     command.creation_flags(CREATE_NO_WINDOW);
 
-    let child = command.spawn().or(Err("Failed to start engine"))?;
+    let child = command.spawn()?;
 
     Ok(child)
 }
 
-fn get_handles(child: &mut Child) -> (ChildStdin, Lines<BufReader<ChildStdout>>) {
-    let stdin = child
-        .stdin
-        .take()
-        .expect("child did not have a handle to stdin");
-    let stdout = child
-        .stdout
-        .take()
-        .expect("child did not have a handle to stdout");
+fn get_handles(child: &mut Child) -> Result<(ChildStdin, Lines<BufReader<ChildStdout>>), Error> {
+    let stdin = child.stdin.take().ok_or(Error::NoStdin)?;
+    let stdout = child.stdout.take().ok_or(Error::NoStdout)?;
     let stdout = BufReader::new(stdout).lines();
-    (stdin, stdout)
+    Ok((stdin, stdout))
 }
 
 async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
@@ -196,13 +188,13 @@ pub async fn get_best_moves(
     options: EngineOptions,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let path = PathBuf::from(&engine);
 
-    let parsed_fen: Fen = fen.parse().or(Err("Invalid fen"))?;
+    let parsed_fen: Fen = fen.parse()?;
     let pos: Chess = match parsed_fen.clone().into_position(CastlingMode::Standard) {
         Ok(p) => p,
-        Err(e) => e.ignore_too_much_material().map_err(|e| e.to_string())?,
+        Err(e) => e.ignore_too_much_material()?,
     };
 
     let mut options = options.clone();
@@ -224,8 +216,7 @@ pub async fn get_best_moves(
             engine: engine.clone(),
             tab: tab.clone(),
         };
-        app.emit_all("best_moves", &Some(best_moves_payload))
-            .unwrap();
+        app.emit_all("best_moves", &Some(best_moves_payload))?;
         let cached_depth = payload[0].depth;
         if cached_depth >= options.depth {
             return Ok(());
@@ -234,7 +225,7 @@ pub async fn get_best_moves(
     }
 
     let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child);
+    let (mut stdin, mut stdout) = get_handles(&mut child)?;
 
     let (tx, mut rx) = tokio::sync::broadcast::channel(16);
 
@@ -294,7 +285,7 @@ pub async fn get_best_moves(
                                     best_moves_payload.best_lines.push(best_moves);
                                     if multipv == options.multipv {
                                         if best_moves_payload.best_lines.iter().all(|x| x.depth == cur_depth) && cur_depth >= last_depth {
-                                            app.emit_all("best_moves", &best_moves_payload).unwrap();
+                                            app.emit_all("best_moves", &best_moves_payload)?;
                                             state.analysis_cache.insert(key.clone(), best_moves_payload.best_lines.clone());
                                             last_depth = cur_depth;
                                         }
@@ -330,14 +321,14 @@ pub async fn analyze_game(
     reference_db: Option<PathBuf>,
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
-) -> Result<Vec<MoveAnalysis>, String> {
+) -> Result<Vec<MoveAnalysis>, Error> {
     let path = PathBuf::from(&engine);
     let number_lines = 1;
     let number_threads = 4;
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
     let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child);
+    let (mut stdin, mut stdout) = get_handles(&mut child)?;
 
     let mut chess = Chess::default();
 
@@ -365,10 +356,9 @@ pub async fn analyze_game(
                 id: 0,
                 finished: false,
             },
-        )
-        .unwrap();
-        let san = San::from_ascii(m.as_bytes()).unwrap();
-        let m = san.to_move(&chess).unwrap();
+        )?;
+        let san = San::from_ascii(m.as_bytes())?;
+        let m = san.to_move(&chess)?;
         chess.play_unchecked(&m);
         if chess.is_game_over() {
             break;
@@ -402,7 +392,7 @@ pub async fn analyze_game(
                     novelty_found = true;
                 }
             } else {
-                return Err("Missing reference database".to_string());
+                return Err(Error::MissingReferenceDatabase);
             }
         }
         analysis.push(current_analysis);
@@ -414,8 +404,7 @@ pub async fn analyze_game(
             id: 0,
             finished: true,
         },
-    )
-    .unwrap();
+    )?;
     Ok(analysis)
 }
 
@@ -425,7 +414,7 @@ pub async fn get_single_best_move(
     fen: String,
     engine: String,
     app: tauri::AppHandle,
-) -> Result<String, String> {
+) -> Result<String, Error> {
     let mut path = PathBuf::from(&engine);
     path = resolve_path(
         &app.config(),
@@ -433,13 +422,12 @@ pub async fn get_single_best_move(
         &app.env(),
         path,
         Some(BaseDirectory::AppData),
-    )
-    .or(Err("Engine file doesn't exists"))?;
+    )?;
     let number_threads = 4;
     let depth = 8 + difficulty;
 
     let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child);
+    let (mut stdin, mut stdout) = get_handles(&mut child)?;
 
     send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
     send_command(
@@ -455,42 +443,28 @@ pub async fn get_single_best_move(
     send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
 
     loop {
-        match stdout.next_line().await {
-            Ok(line_opt) => {
-                if let Some(line) = line_opt {
-                    if line.starts_with("bestmove") {
-                        let m = line.split_whitespace().nth(1).unwrap();
-                        println!("bestmove {}", m);
-                        return Ok(m.to_string());
-                    }
-                }
-            }
-            Err(err) => {
-                return Err(format!("engine read error {:?}", err));
+        if let Some(line) = stdout.next_line().await? {
+            if line.starts_with("bestmove") {
+                let m = line.split_whitespace().nth(1).unwrap();
+                println!("bestmove {}", m);
+                return Ok(m.to_string());
             }
         }
     }
 }
 
 #[tauri::command]
-pub async fn get_engine_name(path: PathBuf) -> Result<String, String> {
+pub async fn get_engine_name(path: PathBuf) -> Result<String, Error> {
     let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child);
+    let (mut stdin, mut stdout) = get_handles(&mut child)?;
 
     send_command(&mut stdin, "uci\n").await;
 
     loop {
-        match stdout.next_line().await {
-            Ok(line_opt) => {
-                if let Some(line) = line_opt {
-                    if line.starts_with("id name") {
-                        let name = &line[8..];
-                        return Ok(name.to_string());
-                    }
-                }
-            }
-            Err(err) => {
-                return Err(format!("engine read error {:?}", err));
+        if let Some(line) = stdout.next_line().await? {
+            if line.starts_with("id name") {
+                let name = &line[8..];
+                return Ok(name.to_string());
             }
         }
     }
@@ -534,12 +508,12 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
 }
 
 #[tauri::command]
-pub fn make_random_move(fen: String) -> Result<String, String> {
-    let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
-    let pos: Chess = fen.into_position(CastlingMode::Standard).unwrap();
+pub fn make_random_move(fen: String) -> Result<String, Error> {
+    let fen: Fen = fen.parse()?;
+    let pos: Chess = fen.into_position(CastlingMode::Standard)?;
     let legal_moves = pos.legal_moves();
     let mut rng = rand::thread_rng();
-    let random_move = legal_moves.choose(&mut rng).ok_or("No legal moves")?;
+    let random_move = legal_moves.choose(&mut rng).ok_or(Error::NoLegalMoves)?;
     let uci = Uci::from_move(random_move, CastlingMode::Standard);
     Ok(uci.to_string())
 }
@@ -565,8 +539,8 @@ pub async fn validate_fen(fen: String) -> Result<FenValidation, ()> {
 }
 
 #[tauri::command]
-pub async fn similar_structure(fen: String) -> Result<String, ()> {
-    let fen: Fen = fen.parse().unwrap();
+pub async fn similar_structure(fen: String) -> Result<String, Error> {
+    let fen: Fen = fen.parse()?;
     let mut setup = fen.as_setup().clone();
 
     // remove all pieces except pawns

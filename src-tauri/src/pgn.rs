@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::AppState;
+use crate::{error::Error, AppState};
 
 const GAME_OFFSET_FREQ: usize = 100;
 
@@ -119,15 +119,12 @@ fn ignore_bom(reader: &mut BufReader<File>) -> std::io::Result<u64> {
 pub async fn count_pgn_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<usize, String> {
+) -> Result<usize, Error> {
     let files_string = file.to_string_lossy().to_string();
 
-    let file = File::open(&file).or(Err(format!(
-        "Failed to open pgn file: {}",
-        file.to_str().unwrap()
-    )))?;
+    let file = File::open(&file)?;
 
-    let mut parser = PgnParser::new(file.try_clone().unwrap());
+    let mut parser = PgnParser::new(file.try_clone()?);
 
     let mut offsets = Vec::new();
 
@@ -139,7 +136,7 @@ pub async fn count_pgn_games(
         }
         count += 1;
         if count % GAME_OFFSET_FREQ == 0 {
-            let cur_pos = parser.position().unwrap();
+            let cur_pos = parser.position()?;
             offsets.push(cur_pos);
         }
     }
@@ -154,19 +151,17 @@ pub async fn read_games(
     start: usize,
     end: usize,
     state: tauri::State<'_, AppState>,
-) -> Result<Vec<String>, String> {
-    let file_r = File::open(&file).unwrap();
+) -> Result<Vec<String>, Error> {
+    let file_r = File::open(&file)?;
 
-    let mut parser = PgnParser::new(file_r.try_clone().unwrap());
+    let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser
-        .offset_by_index(start, &state, &file.to_string_lossy().to_string())
-        .unwrap();
+    parser.offset_by_index(start, &state, &file.to_string_lossy().to_string())?;
 
     let mut games: Vec<String> = Vec::with_capacity(end - start);
 
     for _ in start..=end {
-        let game = parser.read_game().unwrap();
+        let game = parser.read_game()?;
         if game.is_empty() {
             break;
         }
@@ -180,27 +175,22 @@ pub async fn delete_game(
     file: PathBuf,
     n: usize,
     state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
-    let file_r = File::open(&file).or(Err(format!(
-        "Failed to open pgn file: {}",
-        file.to_str().unwrap()
-    )))?;
+) -> Result<(), Error> {
+    let file_r = File::open(&file)?;
 
-    let mut parser = PgnParser::new(file_r.try_clone().unwrap());
+    let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser
-        .offset_by_index(n, &state, &file.to_string_lossy().to_string())
-        .unwrap();
+    parser.offset_by_index(n, &state, &file.to_string_lossy().to_string())?;
 
-    let starting_bytes = parser.position().unwrap();
+    let starting_bytes = parser.position()?;
 
-    parser.skip_games(1).unwrap();
+    parser.skip_games(1)?;
 
-    let mut file_w = OpenOptions::new().write(true).open(file).unwrap();
+    let mut file_w = OpenOptions::new().write(true).open(file)?;
 
-    file_w.seek(SeekFrom::Start(starting_bytes)).unwrap();
+    file_w.seek(SeekFrom::Start(starting_bytes))?;
 
-    write_to_end(&mut parser.reader, &mut file_w).unwrap();
+    write_to_end(&mut parser.reader, &mut file_w)?;
     Ok(())
 }
 
@@ -217,37 +207,31 @@ pub async fn write_game(
     n: usize,
     pgn: String,
     state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     if !file.exists() {
-        File::create(&file).unwrap();
+        File::create(&file)?;
     }
 
-    let file_r = File::open(&file).or(Err(format!(
-        "Failed to open pgn file: {}",
-        file.to_str().unwrap()
-    )))?;
-    let mut file_w = OpenOptions::new().write(true).open(&file).unwrap();
+    let file_r = File::open(&file)?;
+    let mut file_w = OpenOptions::new().write(true).open(&file)?;
 
-    let mut tmpf = tempfile::tempfile().unwrap();
-    io::copy(&mut file_r.try_clone().unwrap(), &mut tmpf).unwrap();
+    let mut tmpf = tempfile::tempfile()?;
+    io::copy(&mut file_r.try_clone()?, &mut tmpf)?;
 
-    let mut parser = PgnParser::new(file_r.try_clone().unwrap());
+    let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser
-        .offset_by_index(n, &state, &file.to_string_lossy().to_string())
-        .unwrap();
+    parser.offset_by_index(n, &state, &file.to_string_lossy().to_string())?;
 
-    tmpf.seek(SeekFrom::Start(parser.position().unwrap()))
-        .unwrap();
-    tmpf.write_all(pgn.as_bytes()).unwrap();
+    tmpf.seek(SeekFrom::Start(parser.position()?))?;
+    tmpf.write_all(pgn.as_bytes())?;
 
-    parser.skip_games(1).unwrap();
+    parser.skip_games(1)?;
 
-    write_to_end(&mut parser.reader, &mut tmpf).unwrap();
+    write_to_end(&mut parser.reader, &mut tmpf)?;
 
-    tmpf.seek(SeekFrom::Start(0)).unwrap();
+    tmpf.seek(SeekFrom::Start(0))?;
 
-    write_to_end(&mut tmpf, &mut file_w).unwrap();
+    write_to_end(&mut tmpf, &mut file_w)?;
 
     Ok(())
 }
