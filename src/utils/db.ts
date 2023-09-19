@@ -199,8 +199,8 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
     return db;
 }
 
-export function useDefaultDatabases() {
-    const { data, error } = useSWR("default-dbs", async () => {
+export function useDefaultDatabases(opened: boolean) {
+    const { data, error, isLoading } = useSWR(opened ? "default-dbs" : null, async () => {
         const data = await fetch<DatabaseInfo[]>(
             `https://www.encroissant.org/databases`,
             {
@@ -215,6 +215,7 @@ export function useDefaultDatabases() {
     return {
         defaultDatabases: data,
         error,
+        isLoading,
     };
 }
 

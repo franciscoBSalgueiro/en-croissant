@@ -2,9 +2,11 @@ import {
   Alert,
   Button,
   Card,
+  Center,
   createStyles,
   Divider,
   Group,
+  Loader,
   Modal,
   ScrollArea,
   Stack,
@@ -53,7 +55,7 @@ function AddDatabase({
   setLoading: Dispatch<SetStateAction<boolean>>;
   setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
 }) {
-  const { defaultDatabases, error } = useDefaultDatabases();
+  const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
@@ -100,6 +102,11 @@ function AddDatabase({
           <Tabs.Tab value="local">Local</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
+          {isLoading && (
+            <Center>
+              <Loader />
+            </Center>
+          )}
           <Stack>
             {defaultDatabases &&
               defaultDatabases.map((db, i) => (

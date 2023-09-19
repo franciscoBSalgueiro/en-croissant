@@ -2,8 +2,10 @@ import {
   Alert,
   Button,
   Card,
+  Center,
   createStyles,
   Group,
+  Loader,
   Modal,
   NumberInput,
   ScrollArea,
@@ -73,7 +75,11 @@ function AddEngine({
     .with("windows", () => [{ name: "Executable Files", extensions: ["exe"] }])
     .otherwise(() => []);
 
-  const { data: defaultEngines, error } = useSWR(os, async (os: OS) => {
+  const {
+    data: defaultEngines,
+    error,
+    isLoading,
+  } = useSWR(opened ? os : null, async (os: OS) => {
     const bmi2: boolean = await invoke("is_bmi2_compatible");
     const data = await fetch<Engine[]>(
       `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
@@ -120,6 +126,11 @@ function AddEngine({
           <Tabs.Tab value="local">Local</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
+          {isLoading && (
+            <Center>
+              <Loader />
+            </Center>
+          )}
           <Stack>
             {defaultEngines &&
               defaultEngines.map((engine, i) => (
