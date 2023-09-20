@@ -27,7 +27,7 @@ impl PgnParser {
         }
     }
 
-    fn position(&mut self) -> std::io::Result<u64> {
+    fn position(&mut self) -> io::Result<u64> {
         self.reader.stream_position()
     }
 
@@ -36,7 +36,7 @@ impl PgnParser {
         n: usize,
         state: &AppState,
         file: &String,
-    ) -> std::io::Result<()> {
+    ) -> io::Result<()> {
         let offset_index = n / GAME_OFFSET_FREQ;
         let n_left = n % GAME_OFFSET_FREQ;
 
@@ -52,7 +52,7 @@ impl PgnParser {
     }
 
     /// Skip n games, and return the number of bytes read
-    fn skip_games(&mut self, n: usize) -> std::io::Result<usize> {
+    fn skip_games(&mut self, n: usize) -> io::Result<usize> {
         let mut new_game = false;
         let mut skipped = 0;
         let mut count = 0;
@@ -84,7 +84,7 @@ impl PgnParser {
         Ok(skipped)
     }
 
-    fn read_game(&mut self) -> std::io::Result<String> {
+    fn read_game(&mut self) -> io::Result<String> {
         let mut new_game = false;
         self.game.clear();
         while let Ok(bytes) = self.reader.read_line(&mut self.line) {
@@ -105,7 +105,7 @@ impl PgnParser {
     }
 }
 
-fn ignore_bom(reader: &mut BufReader<File>) -> std::io::Result<u64> {
+fn ignore_bom(reader: &mut BufReader<File>) -> io::Result<u64> {
     let mut bom = [0; 3];
     reader.read_exact(&mut bom)?;
     if bom != [0xEF, 0xBB, 0xBF] {

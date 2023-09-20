@@ -3,10 +3,9 @@ name = "en-croissant"
 version = "0.4.0"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
-license = ""
-repository = ""
+license = "GPL-3.0-only"
+repository = "https://github.com/franciscoBSalgueiro/en-croissant"
 edition = "2021"
-rust-version = "1.57"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -1,16 +1,21 @@
-import { showArrowsAtom, moveInputAtom, autoPromoteAtom, autoSaveAtom, percentageCoverageAtom, minimumGamesAtom, forcedEnPassantAtom, pieceSetAtom, showDestsAtom } from "@/atoms/atoms";
 import {
-  Card,
-  createStyles,
-  Group,
-  Stack,
-  Text,
-} from "@mantine/core";
+  showArrowsAtom,
+  moveInputAtom,
+  autoPromoteAtom,
+  autoSaveAtom,
+  percentageCoverageAtom,
+  minimumGamesAtom,
+  forcedEnPassantAtom,
+  pieceSetAtom,
+  showDestsAtom,
+} from "@/atoms/atoms";
+import { Card, createStyles, Group, Stack, Text } from "@mantine/core";
 import ColorControl from "./ColorControl";
 import SettingsNumberInput from "./SettingsNumberInput";
 import SettingsSelect from "./SettingsSelect";
 import SettingsSwitch from "./SettingsSwitch";
 import ThemeButton from "./ThemeButton";
+import { useLoaderData } from "react-router-dom";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -22,10 +27,11 @@ const useStyles = createStyles((theme) => ({
     "& + &": {
       paddingTop: theme.spacing.sm,
       marginTop: theme.spacing.sm,
-      borderTop: `1px solid ${theme.colorScheme === "dark"
-        ? theme.colors.dark[4]
-        : theme.colors.gray[2]
-        }`,
+      borderTop: `1px solid ${
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[4]
+          : theme.colors.gray[2]
+      }`,
     },
   },
 
@@ -69,6 +75,7 @@ const pieceSets = [
 
 export default function Page() {
   const { classes } = useStyles();
+  const version = useLoaderData() as string;
 
   return (
     <Stack my="md" mx="md">
@@ -154,11 +161,7 @@ export default function Page() {
               Minimum number of games in each position for it to be considered
             </Text>
           </div>
-          <SettingsNumberInput
-            atom={minimumGamesAtom}
-            min={0}
-            step={1}
-          />
+          <SettingsNumberInput atom={minimumGamesAtom} min={0} step={1} />
         </Group>
       </Card>
       <Card withBorder radius="md" p="xl" className={classes.card}>
@@ -178,7 +181,6 @@ export default function Page() {
           <SettingsSwitch atom={forcedEnPassantAtom} />
         </Group>
       </Card>
-
       <Card withBorder radius="md" p="xl" className={classes.card}>
         <Text size="lg" weight={500} className={classes.title}>
           Appearance
@@ -220,6 +222,9 @@ export default function Page() {
           </div>
         </Group>
       </Card>
+      <Text size="xs" color="dimmed" align="right">
+        En Croissant v{version}
+      </Text>
     </Stack>
   );
 }

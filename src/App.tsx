@@ -15,6 +15,7 @@ import EnginesPage from "@/components/engines/EnginesPage";
 import BoardsPage from "@/components/tabs/BoardsPage";
 import DatabaseView from "@/components/databases/DatabaseView";
 import HomePage from "@/components/home/HomePage";
+import { getVersion } from "@tauri-apps/api/app";
 
 import {
   Outlet,
@@ -56,7 +57,13 @@ const router = createBrowserRouter(
       }
     >
       <Route index element={<HomePage />} />
-      <Route path="settings" element={<SettingsPage />} />
+      <Route
+        path="settings"
+        element={<SettingsPage />}
+        loader={async () => {
+          return getVersion();
+        }}
+      />
       <Route path="files" element={<FilesPage />} />
       <Route path="databases" element={<DatabasesPage />} />
       <Route path="databases/view" element={<DatabaseView />} />
