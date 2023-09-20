@@ -1,34 +1,28 @@
 import {
   Alert,
-  Button,
   Card,
   Center,
   createStyles,
   Group,
-  Input,
   Loader,
   Modal,
-  NumberInput,
   ScrollArea,
   Stack,
   Tabs,
   Text,
-  TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
-import { open } from "@tauri-apps/api/dialog";
 import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useCallback, useState } from "react";
-import { Engine } from "@/utils/engines";
+import { Engine, useDefaultEngines } from "@/utils/engines";
 import { formatBytes } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
-import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 import useSWR from "swr";
 import { match } from "ts-pattern";
-import { fetch } from "@tauri-apps/api/http";
+import EngineForm from "./EngineForm";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -47,8 +41,6 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-type OS = "windows" | "linux" | "macos";
-
 function AddEngine({
   engines,
   opened,
@@ -62,7 +54,7 @@ function AddEngine({
 }) {
   const { data: os } = useSWR("os", async () => {
     const p = await platform();
-    const os: OS = match(p)
+    const os = match(p)
       .with("win32", () => "windows" as const)
       .with("linux", () => "linux" as const)
       .with("darwin", () => "macos" as const)
@@ -72,27 +64,7 @@ function AddEngine({
     return os;
   });
 
-  const filters = match(os)
-    .with("windows", () => [{ name: "Executable Files", extensions: ["exe"] }])
-    .otherwise(() => []);
-
-  const {
-    data: defaultEngines,
-    error,
-    isLoading,
-  } = useSWR(opened ? os : null, async (os: OS) => {
-    const bmi2: boolean = await invoke("is_bmi2_compatible");
-    const data = await fetch<Engine[]>(
-      `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
-      {
-        method: "GET",
-      }
-    );
-    if (!data.ok) {
-      throw new Error("Failed to fetch engines");
-    }
-    return data.data;
-  });
+  const { defaultEngines, error, isLoading } = useDefaultEngines(os, opened);
 
   const form = useForm<Engine>({
     initialValues: {
@@ -155,74 +127,14 @@ function AddEngine({
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
-          <form
-            onSubmit={form.onSubmit(async (values) => {
+          <EngineForm
+            submitLabel="Add"
+            form={form}
+            onSubmit={(values: Engine) => {
               setEngines((prev) => [...prev, values]);
               setOpened(false);
-            })}
-          >
-            <FileInput
-              label="Binary file"
-              description="Click to select the binary file"
-              filename={form.values.path}
-              withAsterisk
-              onClick={async () => {
-                const selected = await open({
-                  multiple: false,
-                  filters,
-                });
-                if (!selected) return;
-                const name: string = await invoke("get_engine_name", {
-                  path: selected as string,
-                });
-                form.setFieldValue("path", selected as string);
-                form.setFieldValue("name", name);
-              }}
-            />
-
-            <TextInput
-              label="Name"
-              placeholder="Auto"
-              withAsterisk
-              {...form.getInputProps("name")}
-            />
-
-            <NumberInput
-              label="Elo"
-              placeholder="Engine's Elo"
-              {...form.getInputProps("elo")}
-            />
-
-            <Input.Wrapper
-              label="Image file"
-              description="Click to select the image file"
-              {...form.getInputProps("image")}
-            >
-              <Input
-                component="button"
-                type="button"
-                // accept="application/octet-stream"
-                onClick={async () => {
-                  const selected = await open({
-                    multiple: false,
-                    filters: [
-                      {
-                        name: "Image",
-                        extensions: ["png", "jpeg"],
-                      },
-                    ],
-                  });
-                  form.setFieldValue("image", selected as string);
-                }}
-              >
-                <Text lineClamp={1}>{form.values.image}</Text>
-              </Input>
-            </Input.Wrapper>
-
-            <Button fullWidth mt="xl" type="submit">
-              Add
-            </Button>
-          </form>
+            }}
+          />
         </Tabs.Panel>
       </Tabs>
     </Modal>
