@@ -1,7 +1,6 @@
 import { Chess } from "chess.js";
 import treeReducer, { TreeState, defaultTree } from "../treeReducer";
-import { test } from "uvu";
-import assert from "./assert";
+import { test, expect } from "vitest";
 import { MoveAnalysis } from "../chess";
 
 const chess = new Chess();
@@ -72,9 +71,9 @@ function expectState({
     expectedState: TreeState;
 }) {
     if (res === undefined) {
-        assert.equal(initialState, expectedState);
+        expect(initialState).toStrictEqual(expectedState);
     } else {
-        assert.equal(res, expectedState);
+        expect(res).toStrictEqual(expectedState);
     }
 }
 
@@ -733,5 +732,3 @@ test("promote 2", () => {
         expectedState,
     });
 });
-
-test.run();

@@ -1,4 +1,4 @@
-import { FidePlayer, findFidePlayer } from "@/bindings";
+import { findFidePlayer } from "@/bindings";
 import {
   Badge,
   Group,
@@ -10,7 +10,6 @@ import {
   ActionIcon,
   Center,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
 import * as Flags from "mantine-flagpack";
 import { IconCloud } from "@tabler/icons-react";
 

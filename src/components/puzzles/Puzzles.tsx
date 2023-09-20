@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  Box,
   Button,
   Card,
   Divider,
@@ -14,7 +13,7 @@ import {
   createStyles,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
-import { IconCheck, IconDots, IconPlus, IconX } from "@tabler/icons-react";
+import { IconCheck, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { invoke } from "@/utils/invoke";

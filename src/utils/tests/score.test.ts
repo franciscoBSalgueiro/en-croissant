@@ -5,58 +5,43 @@ import {
     getWinChance,
     parseScore,
 } from "../score";
-import { test } from "uvu";
-import assert from "./assert";
+import { test, expect } from "vitest";
 
 test("should parse a cp score correctly", () => {
-    assert.equal(parseScore("0.50"), { type: "cp", value: 50 });
-    assert.equal(parseScore("-0.50"), { type: "cp", value: -50 });
+    expect(parseScore("0.50")).toStrictEqual({ type: "cp", value: 50 });
+    expect(parseScore("-0.50")).toStrictEqual({ type: "cp", value: -50 });
 });
 
 test("should parse a mate score correctly", () => {
-    assert.equal(parseScore("M5"), { type: "mate", value: 5 });
-    assert.equal(parseScore("-M5"), { type: "mate", value: -5 });
+    expect(parseScore("M5")).toStrictEqual({ type: "mate", value: 5 });
+    expect(parseScore("-M5")).toStrictEqual({ type: "mate", value: -5 });
 });
 
 test("should format a positive cp score correctly", () => {
-    assert.equal(formatScore({ type: "cp", value: 50 }), "+0.50");
+    expect(formatScore({ type: "cp", value: 50 })).toBe("+0.50");
 });
 
 test("should format a negative cp score correctly", () => {
-    assert.equal(formatScore({ type: "cp", value: -50 }), "-0.50");
+    expect(formatScore({ type: "cp", value: -50 })).toBe("-0.50");
 });
 
 test("should format a mate score correctly", () => {
-    assert.equal(formatScore({ type: "mate", value: 5 }), "+M5");
-    assert.equal(formatScore({ type: "mate", value: -5 }), "-M5");
+    expect(formatScore({ type: "mate", value: 5 })).toBe("+M5");
+    expect(formatScore({ type: "mate", value: -5 })).toBe("-M5");
 });
 
 test("should calculate the win chance correctly", () => {
-    assert.equal(getWinChance(0), 50);
-    assert.close(getWinChance(100), 59.1);
-    assert.close(getWinChance(-500), 13.69);
+    expect(getWinChance(0)).toBe(50);
+    expect(getWinChance(100)).toBeCloseTo(59.1);
+    expect(getWinChance(-500)).toBeCloseTo(13.69);
 });
 
 test("should calculate the accuracy correctly", () => {
-    assert.equal(
-        getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: 0 }, "w"),
-        100
-    );
-    assert.close(
-        getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: -500 }, "w"),
-        19.06
-    );
+    expect(getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: 0 }, "w")).toBe(100);
+    expect(getAccuracy({ type: "cp", value: 0 }, { type: "cp", value: -500 }, "w")).toBeCloseTo(19.07);
 });
 
 test("should calculate the cp loss correctly", () => {
-    assert.equal(
-        getCPLoss({ type: "cp", value: 0 }, { type: "cp", value: 50 }, "b"),
-        50
-    );
-    assert.equal(
-        getCPLoss({ type: "mate", value: -1 }, { type: "cp", value: 0 }, "b"),
-        1000
-    );
+    expect(getCPLoss({ type: "cp", value: 0 }, { type: "cp", value: 50 }, "b")).toBe(50);
+    expect(getCPLoss({ type: "mate", value: -1 }, { type: "cp", value: 0 }, "b")).toBe(1000);
 });
-
-test.run();

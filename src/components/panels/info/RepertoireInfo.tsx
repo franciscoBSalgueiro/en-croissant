@@ -1,5 +1,4 @@
 import {
-  currentInvisibleAtom,
   currentPracticingAtom,
   currentTabAtom,
   minimumGamesAtom,

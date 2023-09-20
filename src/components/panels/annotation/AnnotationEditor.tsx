@@ -7,7 +7,6 @@ import { memo, useContext } from "react";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 
 function AnnotationEditor({
-  path,
   commentHTML,
 }: {
   path: number[];

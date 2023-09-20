@@ -91,10 +91,12 @@ function EngineRow({
 
   useEffect(() => {
     (async () => {
-      if (item.image.startsWith("http")) {
-        setImageSrc(item.image);
-      } else if (item.image) {
-        setImageSrc(await convertFileSrc(item.image));
+      if (item.image) {
+        if (item.image.startsWith("http")) {
+          setImageSrc(item.image);
+        } else {
+          setImageSrc(await convertFileSrc(item.image));
+        }
       }
     })();
   }, [item.image]);
