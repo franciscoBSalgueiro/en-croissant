@@ -7,7 +7,10 @@ import { Engine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 
-function EngineBox(props: {
+function EngineBox({
+  engine,
+  setEngines,
+}: {
   engine: Engine;
   setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
 }) {
@@ -15,30 +18,28 @@ function EngineBox(props: {
 
   useEffect(() => {
     (async () => {
-      if (props.engine.image.startsWith("http")) {
-        setImageSrc(props.engine.image);
-      } else if (props.engine.image) {
-        setImageSrc(await convertFileSrc(props.engine.image));
+      if (engine.image && engine.image.startsWith("http")) {
+        setImageSrc(engine.image);
+      } else if (engine.image) {
+        setImageSrc(await convertFileSrc(engine.image));
       }
     })();
-  }, [props.engine.image]);
+  }, [engine.image]);
 
   return (
     <Grid.Col span={4}>
-      {imageSrc && (
-        <ImageCheckbox
-          title={props.engine.name}
-          image={imageSrc}
-          checked={props.engine.loaded}
-          onChange={(checked) =>
-            props.setEngines((engines) =>
-              engines.map((e) =>
-                e.name === props.engine.name ? { ...e, loaded: checked } : e
-              )
+      <ImageCheckbox
+        title={engine.name}
+        image={imageSrc}
+        checked={engine.loaded}
+        onChange={(checked) =>
+          setEngines((engines) =>
+            engines.map((e) =>
+              e.name === engine.name ? { ...e, loaded: checked } : e
             )
-          }
-        />
-      )}
+          )
+        }
+      />
     </Grid.Col>
   );
 }

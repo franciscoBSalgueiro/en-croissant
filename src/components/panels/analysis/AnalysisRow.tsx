@@ -4,6 +4,7 @@ import { Score } from "@/utils/score";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import ScoreBubble from "./ScoreBubble";
+import React from "react";
 
 function AnalysisRow({
   score,
@@ -42,14 +43,12 @@ function AnalysisRow({
             const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
             const is_white = total_moves % 2 === 1;
             const move_number = Math.ceil(total_moves / 2);
-
             return (
-              <>
+              <React.Fragment key={index + move}>
                 {(index === 0 || is_white) && (
                   <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
                 )}
                 <MoveCell
-                  key={index + move}
                   move={move}
                   isCurrentVariation={false}
                   annotation={""}
@@ -64,7 +63,7 @@ function AnalysisRow({
                     }
                   }}
                 />
-              </>
+              </React.Fragment>
             );
           })}
         </Flex>

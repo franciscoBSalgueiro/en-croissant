@@ -467,7 +467,7 @@ pub async fn convert_pgn(
     let event_count: i64 = events::table.count().get_result(db)?;
     let site_count: i64 = sites::table.count().get_result(db)?;
 
-    let counts = vec![
+    let counts = [
         ("GameCount", game_count),
         ("PlayerCount", player_count),
         ("EventCount", event_count),

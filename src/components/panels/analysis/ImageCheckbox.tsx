@@ -45,7 +45,7 @@ interface ImageCheckboxProps {
   onChange?(checked: boolean): void;
   title: string;
   description?: string;
-  image: string;
+  image?: string;
 }
 
 export default function ImageCheckbox({

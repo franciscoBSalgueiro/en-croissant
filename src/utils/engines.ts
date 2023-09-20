@@ -7,7 +7,7 @@ export interface Engine {
     name: string;
     version: string;
     path: string;
-    image: string;
+    image?: string;
     elo: number | "";
     downloadSize?: number;
     downloadLink?: string;

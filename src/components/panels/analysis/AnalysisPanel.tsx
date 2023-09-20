@@ -19,6 +19,7 @@ import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
+import React from "react";
 
 const labels = {
   action: "Generate report",
@@ -137,14 +138,14 @@ const GameStats = memo(
             .map((annotation) => {
               const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
               return (
-                <>
+                <React.Fragment key={annotation}>
                   <Grid.Col span={4} sx={{ textAlign: "center" }}>
                     {whiteAnnotations[s]}
                   </Grid.Col>
                   <Grid.Col span={1}>{annotation}</Grid.Col>
                   <Grid.Col span={4}>{ANNOTATION_INFO[s].name}</Grid.Col>
                   <Grid.Col span={2}>{blackAnnotations[s]}</Grid.Col>
-                </>
+                </React.Fragment>
               );
             })}
         </Grid>
