@@ -93,7 +93,7 @@ pub struct PuzzleDatabaseInfo {
 pub async fn get_puzzle_db_info(
     file: PathBuf,
     app: tauri::AppHandle,
-) -> Result<PuzzleDatabaseInfo, String> {
+) -> Result<PuzzleDatabaseInfo, Error> {
     let db_path = PathBuf::from("puzzles").join(file);
 
     let path = resolve_path(
@@ -102,18 +102,14 @@ pub async fn get_puzzle_db_info(
         &app.env(),
         db_path,
         Some(BaseDirectory::AppData),
-    )
-    .or(Err("resolve path"))?;
+    )?;
 
     let mut db =
         diesel::SqliteConnection::establish(&path.to_string_lossy()).expect("open database");
 
-    let puzzle_count = puzzles::table
-        .count()
-        .get_result::<i64>(&mut db)
-        .expect("get puzzle count") as usize;
+    let puzzle_count = puzzles::table.count().get_result::<i64>(&mut db)? as usize;
 
-    let storage_size = path.metadata().expect("get metadata").len() as usize;
+    let storage_size = path.metadata()?.len() as usize;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     Ok(PuzzleDatabaseInfo {

@@ -430,7 +430,7 @@ pub async fn convert_pgn(
     let uncompressed: Box<dyn std::io::Read + Send> = if extension == "bz2" {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
     } else if extension == "zst" {
-        Box::new(zstd::Decoder::new(file).expect("zstd decoder"))
+        Box::new(zstd::Decoder::new(file)?)
     } else {
         Box::new(file)
     };
@@ -551,7 +551,7 @@ pub async fn get_db_info(
         _ => "".to_string(),
     };
 
-    let storage_size = path.metadata().expect("get metadata").len() as usize;
+    let storage_size = path.metadata()?.len() as usize;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     let is_indexed = check_index_exists(db)?;
@@ -845,8 +845,7 @@ pub async fn get_games(
         count = Some(
             count_query
                 .select(diesel::dsl::count(games::id))
-                .first(db)
-                .expect("count games"),
+                .first(db)?,
         );
     }
 
@@ -855,7 +854,7 @@ pub async fn get_games(
     //     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
     // );
 
-    let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db).expect("load games");
+    let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
     let normalized_games = normalize_games(games);
 
     Ok(QueryResponse {
@@ -934,7 +933,7 @@ pub async fn get_players(
     }
 
     if !query.options.skip_count {
-        count = Some(count_query.count().get_result(db).expect("count players"));
+        count = Some(count_query.count().get_result(db)?);
     }
 
     if let Some(limit) = query.options.page_size {
@@ -960,7 +959,7 @@ pub async fn get_players(
         },
     };
 
-    let players = sql_query.load::<Player>(db).expect("load players");
+    let players = sql_query.load::<Player>(db)?;
 
     Ok(QueryResponse {
         data: players,
@@ -1000,7 +999,7 @@ pub async fn get_tournaments(
     }
 
     if !query.options.skip_count {
-        count = Some(count_query.count().get_result(db).expect("count players"));
+        count = Some(count_query.count().get_result(db)?);
     }
 
     if let Some(limit) = query.options.page_size {
@@ -1022,7 +1021,7 @@ pub async fn get_tournaments(
         },
     };
 
-    let events = sql_query.load::<Event>(db).expect("load events");
+    let events = sql_query.load::<Event>(db)?;
 
     Ok(QueryResponse {
         data: events,
@@ -1059,7 +1058,7 @@ pub async fn get_players_game_info(
         .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
 
     let info: Vec<(i32, i32, Option<String>, Option<String>, Option<String>)> =
-        sql_query.load(db).expect("load games");
+        sql_query.load(db)?;
 
     let mut game_info = PlayerGameInfo::default();
 

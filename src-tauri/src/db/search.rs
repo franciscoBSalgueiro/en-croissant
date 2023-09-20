@@ -212,8 +212,7 @@ pub async fn search_position(
                 games::white_material,
                 games::black_material,
             ))
-            .load(db)
-            .expect("load games");
+            .load(db)?;
 
         info!("got {} games: {:?}", games.len(), start.elapsed());
     }
@@ -281,8 +280,7 @@ pub async fn search_position(
         .inner_join(events::table.on(games::event_id.eq(events::id)))
         .inner_join(sites::table.on(games::site_id.eq(sites::id)))
         .filter(games::id.eq_any(ids))
-        .load(db)
-        .expect("load games");
+        .load(db)?;
     let normalized_games = normalize_games(games);
 
     let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
@@ -322,8 +320,7 @@ pub async fn is_position_in_db(
                 games::white_material,
                 games::black_material,
             ))
-            .load(db)
-            .expect("load games");
+            .load(db)?;
 
         info!("got {} games: {:?}", games.len(), start.elapsed());
     }
