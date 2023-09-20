@@ -1,13 +1,13 @@
 import { Box, Stack } from "@mantine/core";
 import { Chess, Move, Square } from "chess.js";
 import { useState } from "react";
-import Chessground from "react-chessground";
 import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
 import { formatMove } from "@/utils/format";
 import { getBoardSize } from "@/utils/misc";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
 import { chessboard } from "@/styles/Chessboard.css";
+import { Chessground } from "@/chessground/Chessground";
 
 function PuzzleBoard({
   puzzles,
@@ -86,7 +86,6 @@ function PuzzleBoard({
           animation={{
             enabled: true,
           }}
-          style={{ justifyContent: "start" }}
           width={boardSize}
           height={boardSize}
           orientation={orientation}

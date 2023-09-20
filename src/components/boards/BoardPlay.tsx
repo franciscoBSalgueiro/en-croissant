@@ -24,7 +24,6 @@ import { Chess, PieceSymbol, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { memo, useContext, useMemo, useState } from "react";
-import Chessground from "react-chessground";
 import {
   getMaterialDiff,
   handleMove,
@@ -57,6 +56,7 @@ import {
 import PromotionModal from "./PromotionModal";
 import { updateCardPerformance } from "../files/opening";
 import { chessboard } from "@/styles/Chessboard.css";
+import { Chessground } from "@/chessground/Chessground";
 
 interface ChessboardProps {
   dirty: boolean;

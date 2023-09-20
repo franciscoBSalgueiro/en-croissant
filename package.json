@@ -52,7 +52,6 @@
     "prosemirror-transform": "^1.7.3",
     "prosemirror-view": "^1.31.4",
     "react": "^18.2.0",
-    "react-chessground": "^1.5.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.5",
     "react-helmet": "^6.1.0",

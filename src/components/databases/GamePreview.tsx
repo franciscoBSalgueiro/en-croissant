@@ -1,7 +1,7 @@
 import { AspectRatio, Group, Stack } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { useContext, useEffect } from "react";
-import Chessground from "react-chessground";
+import { Chessground } from "@/chessground/Chessground";
 import MoveControls from "../common/MoveControls";
 import { useSetAtom } from "jotai";
 import { activeTabAtom } from "@/atoms/atoms";
@@ -86,7 +86,6 @@ function PreviewBoard() {
   return (
     <Chessground
       coordinates={false}
-      style={{ justifyContent: "start" }}
       width={"100%"}
       height={"100%"}
       viewOnly={true}

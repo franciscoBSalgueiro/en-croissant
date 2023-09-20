@@ -8,8 +8,8 @@ import { ScrollArea, Stack, Group, Button, Box } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
 import { useAtomValue } from "jotai";
 import { useRef, useContext, useState } from "react";
-import Chessground from "react-chessground";
 import GamesTable from "./GamesTable";
+import { Chessground } from "@/chessground/Chessground";
 
 async function similarStructure(fen: string) {
   return await invoke<string>("similar_structure", { fen });
