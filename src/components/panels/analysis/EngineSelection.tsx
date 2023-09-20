@@ -2,9 +2,46 @@ import { Button, Center, Collapse, Grid, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Engine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
+import { convertFileSrc } from "@tauri-apps/api/tauri";
+
+function EngineBox(props: {
+  engine: Engine;
+  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
+}) {
+  const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      if (props.engine.image.startsWith("http")) {
+        setImageSrc(props.engine.image);
+      } else if (props.engine.image) {
+        setImageSrc(await convertFileSrc(props.engine.image));
+      }
+    })();
+  }, [props.engine.image]);
+
+  return (
+    <Grid.Col span={4}>
+      {imageSrc && (
+        <ImageCheckbox
+          title={props.engine.name}
+          image={imageSrc}
+          checked={props.engine.loaded}
+          onChange={(checked) =>
+            props.setEngines((engines) =>
+              engines.map((e) =>
+                e.name === props.engine.name ? { ...e, loaded: checked } : e
+              )
+            )
+          }
+        />
+      )}
+    </Grid.Col>
+  );
+}
 
 function EngineSelection({
   engines,
@@ -38,20 +75,11 @@ function EngineSelection({
           )}
           <Grid grow>
             {engines.map((engine) => (
-              <Grid.Col span={4} key={engine.name}>
-                <ImageCheckbox
-                  title={engine.name}
-                  image={engine.image}
-                  checked={engine.loaded}
-                  onChange={(checked) =>
-                    setEngines((engines) =>
-                      engines.map((e) =>
-                        e.name === engine.name ? { ...e, loaded: checked } : e
-                      )
-                    )
-                  }
-                />
-              </Grid.Col>
+              <EngineBox
+                key={engine.name}
+                setEngines={setEngines}
+                engine={engine}
+              />
             ))}
           </Grid>
         </Stack>

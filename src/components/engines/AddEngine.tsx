@@ -5,6 +5,7 @@ import {
   Center,
   createStyles,
   Group,
+  Input,
   Loader,
   Modal,
   NumberInput,
@@ -192,7 +193,7 @@ function AddEngine({
               {...form.getInputProps("elo")}
             />
 
-            {/* <Input.Wrapper
+            <Input.Wrapper
               label="Image file"
               description="Click to select the image file"
               {...form.getInputProps("image")}
@@ -216,7 +217,7 @@ function AddEngine({
               >
                 <Text lineClamp={1}>{form.values.image}</Text>
               </Input>
-            </Input.Wrapper> */}
+            </Input.Wrapper>
 
             <Button fullWidth mt="xl" type="submit">
               Add

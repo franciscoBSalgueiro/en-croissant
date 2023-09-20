@@ -18,6 +18,7 @@ import { useToggle } from "@mantine/hooks";
 import ConfirmModal from "../common/ConfirmModal";
 import EditEngine from "./EditEngine";
 import { exists } from "@tauri-apps/api/fs";
+import { convertFileSrc } from "@tauri-apps/api/tauri";
 
 export default function EnginePage() {
   const [engines, setEngines] = useLocalFile<Engine[]>(
@@ -86,6 +87,17 @@ function EngineRow({
 }) {
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
+  const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      if (item.image.startsWith("http")) {
+        setImageSrc(item.image);
+      } else if (item.image) {
+        setImageSrc(await convertFileSrc(item.image));
+      }
+    })();
+  }, [item.image]);
 
   const [fileExists, setFileExists] = useState<boolean>(true);
 
@@ -117,8 +129,8 @@ function EngineRow({
       <tr>
         <td>
           <Group spacing="sm">
-            {item.image ? (
-              <Image width={60} height={60} src={item.image} />
+            {imageSrc ? (
+              <Image width={60} height={60} src={imageSrc} />
             ) : (
               <IconRobot size={60} />
             )}

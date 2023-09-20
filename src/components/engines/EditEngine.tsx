@@ -1,9 +1,11 @@
 import {
   Button,
+  Input,
   Modal,
   NumberInput,
   ScrollArea,
   TextInput,
+  Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { open } from "@tauri-apps/api/dialog";
@@ -50,7 +52,8 @@ export default function EditEngine({
     validate: {
       name: (value) => {
         if (!value) return "Name is required";
-        if (engines.find((e) => e.name === value && e !== initialEngine)) return "Name already used";
+        if (engines.find((e) => e.name === value && e !== initialEngine))
+          return "Name already used";
       },
       path: (value) => {
         if (!value) return "Path is required";
@@ -67,7 +70,9 @@ export default function EditEngine({
     >
       <form
         onSubmit={form.onSubmit(async (values) => {
-          setEngines((prev) => prev.map((e) => (e === initialEngine ? values : e)));
+          setEngines((prev) =>
+            prev.map((e) => (e === initialEngine ? values : e))
+          );
           setOpened(false);
         })}
       >
@@ -103,31 +108,31 @@ export default function EditEngine({
           {...form.getInputProps("elo")}
         />
 
-        {/* <Input.Wrapper
-              label="Image file"
-              description="Click to select the image file"
-              {...form.getInputProps("image")}
-            >
-              <Input
-                component="button"
-                type="button"
-                // accept="application/octet-stream"
-                onClick={async () => {
-                  const selected = await open({
-                    multiple: false,
-                    filters: [
-                      {
-                        name: "Image",
-                        extensions: ["png", "jpeg"],
-                      },
-                    ],
-                  });
-                  form.setFieldValue("image", selected as string);
-                }}
-              >
-                <Text lineClamp={1}>{form.values.image}</Text>
-              </Input>
-            </Input.Wrapper> */}
+        <Input.Wrapper
+          label="Image file"
+          description="Click to select the image file"
+          {...form.getInputProps("image")}
+        >
+          <Input
+            component="button"
+            type="button"
+            // accept="application/octet-stream"
+            onClick={async () => {
+              const selected = await open({
+                multiple: false,
+                filters: [
+                  {
+                    name: "Image",
+                    extensions: ["png", "jpeg"],
+                  },
+                ],
+              });
+              form.setFieldValue("image", selected as string);
+            }}
+          >
+            <Text lineClamp={1}>{form.values.image}</Text>
+          </Input>
+        </Input.Wrapper>
 
         <Button fullWidth mt="xl" type="submit">
           Edit
