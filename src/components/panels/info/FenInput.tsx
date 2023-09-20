@@ -5,6 +5,7 @@ import { swapMove } from "@/utils/chess";
 import { capitalize } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { warn } from "tauri-plugin-log-api";
 
 type ItemProps = {
   label: string;
@@ -66,7 +67,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
     whiteCastling = chess.getCastlingRights("w");
     blackCastling = chess.getCastlingRights("b");
   } catch (e) {
-    console.log(e);
+    warn(e as string);
     chess = null;
     whiteCastling = { k: false, q: false };
     blackCastling = { k: false, q: false };

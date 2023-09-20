@@ -18,6 +18,7 @@ import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
 import { referenceDbAtom } from "@/atoms/atoms";
+import { error } from "tauri-plugin-log-api";
 
 function ReportModal({
   moves,
@@ -41,7 +42,7 @@ function ReportModal({
       chess.loadPgn(moves);
       uciMoves = chess.history();
     } catch (e) {
-      console.error(e);
+      error(e as string);
     }
     return uciMoves;
   }, [moves]);

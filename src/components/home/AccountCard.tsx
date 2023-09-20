@@ -24,6 +24,7 @@ import { downloadLichess } from "@/utils/lichess";
 import { invoke } from "@/utils/invoke";
 import LichessLogo from "./LichessLogo";
 import useStyles from "./styles";
+import { info } from "tauri-plugin-log-api";
 
 interface AccountCardProps {
   type: "lichess" | "chesscom";
@@ -92,7 +93,7 @@ export function AccountCard({
   const timestamp = lastGameDate?.getTime() ?? null;
 
   async function convert(filepath: string, timestamp: number | null) {
-    console.log("converting", filepath);
+    info("converting " + filepath);
     await invoke("convert_pgn", {
       file: filepath,
       timestamp,
@@ -184,9 +185,8 @@ export function AccountCard({
                   "db",
                   `${title}_${type}.pgn`
                 );
-                convert(p, timestamp).catch((err) => {
+                convert(p, timestamp).catch(() => {
                   setLoading(false);
-                  console.error(err);
                 });
               }}
             >

@@ -1,3 +1,4 @@
+import { warn } from 'tauri-plugin-log-api';
 import { invoke } from "@tauri-apps/api";
 import {
     Chess,
@@ -216,21 +217,21 @@ export function getPGN(
     pgn += "\n";
     const variationsPGN = variations
         ? tree.children.slice(1).map(
-              (variation) =>
-                  `${getMoveText(variation, {
-                      symbols,
-                      comments,
-                      specialSymbols,
-                      isFirst: true,
-                  })} ${getPGN(variation, {
-                      headers: null,
-                      symbols,
-                      comments,
-                      variations,
-                      specialSymbols,
-                      root: false,
-                  })}`
-          )
+            (variation) =>
+                `${getMoveText(variation, {
+                    symbols,
+                    comments,
+                    specialSymbols,
+                    isFirst: true,
+                })} ${getPGN(variation, {
+                    headers: null,
+                    symbols,
+                    comments,
+                    variations,
+                    specialSymbols,
+                    root: false,
+                })}`
+        )
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
@@ -303,7 +304,6 @@ export function parseUci(move: string) {
 }
 
 export function parseKeyboardMove(san: string, fen: string) {
-    console.log(san);
     function cleanSan(san: string) {
         if (san.length > 2) {
             const cleanedSan = san
@@ -330,11 +330,10 @@ export function parseKeyboardMove(san: string, fen: string) {
     try {
         return makeMove(fen, san);
     } catch (e) {
-        console.log(e);
         try {
             return makeMove(fen, cleanSan(san));
         } catch (e) {
-            console.log(e);
+            warn(e as string);
             return null;
         }
     }

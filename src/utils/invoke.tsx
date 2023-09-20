@@ -1,6 +1,7 @@
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { invoke as invokeTauri } from "@tauri-apps/api";
+import { error } from "tauri-plugin-log-api";
 
 export async function invoke<T>(
   name: string,
@@ -14,6 +15,7 @@ export async function invoke<T>(
       if (allowedErrors && allowedErrors(e)) {
         return Promise.reject(e);
       }
+      error(e);
       notifications.show({
         title: "Error",
         message: e,

@@ -16,6 +16,7 @@ import BoardsPage from "@/components/tabs/BoardsPage";
 import DatabaseView from "@/components/databases/DatabaseView";
 import HomePage from "@/components/home/HomePage";
 import { getVersion } from "@tauri-apps/api/app";
+import { attachConsole } from "tauri-plugin-log-api";
 
 import {
   Outlet,
@@ -84,6 +85,12 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   useEffect(() => {
     invoke("close_splashscreen");
+    (async () => {
+      const detach = await attachConsole();
+      return () => {
+        detach();
+      };
+    })();
   });
 
   return (
