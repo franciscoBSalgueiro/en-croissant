@@ -31,7 +31,6 @@ import DatabasesPage from "./components/databases/DatabasesPage";
 import { useAtomValue } from "jotai";
 import { pieceSetAtom, primaryColorAtom } from "./atoms/atoms";
 
-import "react-virtualized/styles.css";
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
 

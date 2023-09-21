@@ -1,7 +1,9 @@
-import { ActionIcon, Group, Text, createStyles } from "@mantine/core";
+import { ActionIcon, Group, Text, clsx, createStyles } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useEffect } from "react";
-import { AutoSizer, InfiniteLoader, List } from "react-virtualized";
+import InfiniteLoader from "react-window-infinite-loader";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList } from "react-window";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
@@ -30,18 +32,12 @@ export default function GameSelector({
   activePage: number;
   deleteGame?: (index: number) => void;
 }) {
-  function isRowLoaded({ index }: { index: number }) {
+  function isRowLoaded(index: number) {
     return games.has(index);
   }
 
   const loadMoreRows = useCallback(
-    async ({
-      startIndex,
-      stopIndex,
-    }: {
-      startIndex: number;
-      stopIndex: number;
-    }) => {
+    async (startIndex: number, stopIndex: number) => {
       const data = await read_games(path, startIndex, stopIndex);
       const newGames = new Map(games);
       data.forEach(async (game, index) => {
@@ -55,29 +51,29 @@ export default function GameSelector({
 
   useEffect(() => {
     if (games.size === 0) {
-      loadMoreRows({ startIndex: 0, stopIndex: 10 });
+      loadMoreRows(0, 10);
     }
   }, [games.size, loadMoreRows]);
 
   return (
-    <InfiniteLoader
-      isRowLoaded={isRowLoaded}
-      loadMoreRows={loadMoreRows}
-      rowCount={total}
-    >
-      {({ onRowsRendered, registerChild }) => (
-        <AutoSizer>
-          {({ width }) => (
-            <List
+    <AutoSizer disableHeight>
+      {({ width }) => (
+        <InfiniteLoader
+          loadMoreItems={loadMoreRows}
+          itemCount={total}
+          isItemLoaded={isRowLoaded}
+        >
+          {({ onItemsRendered, ref }) => (
+            <FixedSizeList
               width={width}
               height={height}
-              rowHeight={30}
-              rowCount={total}
-              ref={registerChild}
-              onRowsRendered={onRowsRendered}
-              rowRenderer={({ index, key, style }) => (
+              itemSize={30}
+              itemCount={total}
+              ref={ref}
+              onItemsRendered={onItemsRendered}
+            >
+              {({ index, style }) => (
                 <GameRow
-                  key={key}
                   index={index}
                   game={games.get(index)}
                   style={style}
@@ -89,11 +85,11 @@ export default function GameSelector({
                   total={total}
                 />
               )}
-            />
+            </FixedSizeList>
           )}
-        </AutoSizer>
+        </InfiniteLoader>
       )}
-    </InfiniteLoader>
+    </AutoSizer>
   );
 }
 
@@ -158,12 +154,15 @@ function GameRow({
         style={style}
         position="apart"
         pr="xl"
-        className={
-          classes.row + (index === activePage ? " " + classes.active : "")
-        }
-        onClick={() => {setPracticing(false); setPage(index)}}
+        className={clsx(classes.row, {
+          [classes.active]: index === activePage,
+        })}
+        onClick={() => {
+          setPracticing(false);
+          setPage(index);
+        }}
       >
-        <Text fz="sm">
+        <Text fz="sm" truncate maw={600}>
           {formatNumber(index + 1)}. {game}
         </Text>
         {deleteGame && (
