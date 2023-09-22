@@ -218,7 +218,6 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             state.headers.start = payload;
         })
         .with({ type: "MAKE_MOVE" }, ({ payload }) => {
-            state.dirty = true;
             makeMove(state, payload);
         })
         .with({ type: "MAKE_MOVES" }, ({ payload }) => {
@@ -322,6 +321,7 @@ function makeMove(
     if (i !== -1) {
         state.position.push(i);
     } else {
+        state.dirty = true;
         const newMoveNode = createNode({
             fen: chess.fen(),
             move: m,

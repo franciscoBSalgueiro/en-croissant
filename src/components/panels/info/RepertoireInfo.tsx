@@ -87,6 +87,7 @@ function RepertoireInfo() {
       </Group>
 
       <Button
+        variant="default"
         onClick={() => setPracticing(true)}
         leftIcon={<IconTargetArrow />}
       >
@@ -94,7 +95,7 @@ function RepertoireInfo() {
       </Button>
 
       {!loading && !missingMoves && (
-        <Button onClick={() => searchForMissingMoves()}>
+        <Button variant="default" onClick={() => searchForMissingMoves()}>
           Look for missing moves
         </Button>
       )}
@@ -176,7 +177,12 @@ function MissingMoves({
         noRecordsText="No games found"
       />
 
-      <Button mt={20} rightIcon={<IconReload />} onClick={search}>
+      <Button
+        variant="default"
+        mt={20}
+        rightIcon={<IconReload />}
+        onClick={search}
+      >
         Reload missing moves
       </Button>
     </div>

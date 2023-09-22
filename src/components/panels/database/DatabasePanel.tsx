@@ -98,7 +98,6 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
     isLoading,
     error,
   } = useSWR([dbType, query], async ([dbType, query]) => {
-    console.log("fetching opening", query);
     return fetchOpening(query, dbType);
   });
 

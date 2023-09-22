@@ -6,12 +6,14 @@ function ConfirmModal({
   opened,
   onClose,
   onConfirm,
+  confirmLabel,
 }: {
   title: string;
   description: string;
   opened: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  confirmLabel?: string;
 }) {
   return (
     <Modal withCloseButton={false} opened={opened} onClose={onClose}>
@@ -29,7 +31,7 @@ function ConfirmModal({
             Cancel
           </Button>
           <Button color="red" onClick={() => onConfirm()}>
-            Delete
+            {confirmLabel || "Delete"}
           </Button>
         </Group>
       </Stack>
