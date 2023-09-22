@@ -291,19 +291,20 @@ export async function getPlayersGameInfo(file: string, id: number) {
     });
 }
 
+export type PositionQuery = {
+    type: "exact" | "partial";
+    value: string;
+};
+
 export async function searchPosition(
     referenceDatabase: string,
-    type: "exact" | "partial",
-    fen: string
+    query: PositionQuery
 ) {
     const openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
             file: referenceDatabase,
-            query: {
-                type,
-                value: fen,
-            },
+            query,
         },
         (s) => s === "Search stopped"
     );

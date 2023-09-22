@@ -1,6 +1,13 @@
-import { Alert, SegmentedControl, Tabs } from "@mantine/core";
+import {
+  Alert,
+  Group,
+  Progress,
+  SegmentedControl,
+  Tabs,
+  Text,
+} from "@mantine/core";
 import { memo, useState } from "react";
-import { Opening, searchPosition } from "@/utils/db";
+import { Opening, PositionQuery, searchPosition } from "@/utils/db";
 import { referenceDbAtom } from "@/atoms/atoms";
 import { useAtomValue } from "jotai";
 import {
@@ -15,6 +22,7 @@ import { match } from "ts-pattern";
 import useSWR from "swr";
 import { useDebouncedValue } from "@mantine/hooks";
 import NoDatabaseWarning from "./NoDatabaseWarning";
+import { formatNumber } from "@/utils/format";
 
 type DBType =
   | { type: "local"; db: string | null }
@@ -27,10 +35,10 @@ function sortOpenings(openings: Opening[]) {
   );
 }
 
-async function fetchOpening(fen: string, db: DBType) {
+async function fetchOpening(query: PositionQuery, db: DBType) {
   return match(db)
     .with({ type: "lch_all" }, async () => {
-      const data = await getLichessGames(fen);
+      const data = await getLichessGames(query.value);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -42,7 +50,7 @@ async function fetchOpening(fen: string, db: DBType) {
       };
     })
     .with({ type: "lch_master" }, async () => {
-      const data = await getMasterGames(fen);
+      const data = await getMasterGames(query.value);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -55,7 +63,7 @@ async function fetchOpening(fen: string, db: DBType) {
     })
     .with({ type: "local" }, async ({ db }) => {
       if (!db) throw Error("Missing reference database");
-      const positionData = await searchPosition(db, "exact", fen);
+      const positionData = await searchPosition(db, query);
       return {
         openings: sortOpenings(positionData[0]),
         games: positionData[1],
@@ -80,48 +88,77 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
       type: v,
     }));
 
+  const [query, setQuery] = useState<PositionQuery>({
+    value: fen,
+    type: "exact",
+  });
+
   const {
     data: openingData,
     isLoading,
     error,
-  } = useSWR([debouncedFen, dbType], async ([debouncedFen, dbType]) =>
-    fetchOpening(debouncedFen, dbType)
-  );
+  } = useSWR([dbType, query], async ([dbType, query]) => {
+    console.log("fetching opening", query);
+    return fetchOpening(query, dbType);
+  });
 
   const [tab, setTab] = useState<string | null>("stats");
+  const grandTotal = openingData?.openings?.reduce(
+    (acc, curr) => acc + curr.black + curr.white + curr.draw,
+    0
+  );
 
   return (
     <>
-      <SegmentedControl
-        data={[
-          { label: "Local", value: "local" },
-          {
-            label: "Lichess All",
-            value: "lch_all",
-            disabled: tab === "search",
-          },
-          {
-            label: "Lichess Masters",
-            value: "lch_master",
-            disabled: tab === "search",
-          },
-        ]}
-        value={db}
-        onChange={(value) => setDb(value as "local" | "lch_all" | "lch_master")}
+      <Group position="apart">
+        <SegmentedControl
+          data={[
+            { label: "Local", value: "local" },
+            {
+              label: "Lichess All",
+              value: "lch_all",
+              disabled: tab === "options",
+            },
+            {
+              label: "Lichess Masters",
+              value: "lch_master",
+              disabled: tab === "options",
+            },
+          ]}
+          value={db}
+          onChange={(value) =>
+            setDb(value as "local" | "lch_all" | "lch_master")
+          }
+        />
+        <Text>
+          {formatNumber(
+            Math.max(grandTotal || 0, openingData?.games.length || 0)
+          )}{" "}
+          matches
+        </Text>
+      </Group>
+
+      <Progress
+        animate={isLoading}
+        value={isLoading ? 100 : 0}
+        size="xs"
+        mt="xs"
       />
+
       <Tabs
         defaultValue="stats"
         orientation="vertical"
         placement="right"
-        keepMounted={false}
         value={tab}
         onTabChange={setTab}
       >
         <Tabs.List>
-          <Tabs.Tab value="stats">Stats</Tabs.Tab>
+          <Tabs.Tab value="stats" disabled={query.type === "partial"}>
+            Stats
+          </Tabs.Tab>
           <Tabs.Tab value="games">Games</Tabs.Tab>
-          <Tabs.Tab value="search" disabled={db !== "local"}>
-            Search
+          <Tabs.Tab value="options" disabled={db !== "local"}>
+            Options
           </Tabs.Tab>
         </Tabs.List>
 
@@ -139,8 +176,13 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
             loading={isLoading}
           />
         </PanelWithError>
-        <PanelWithError value="search" error={error} db={db}>
-          <SearchPanel />
+        <PanelWithError value="options" error={error} db={db}>
+          <SearchPanel
+            boardFen={debouncedFen}
+            disabled={db !== "local"}
+            query={query}
+            setQuery={setQuery}
+          />
         </PanelWithError>
       </Tabs>
     </>
@@ -149,14 +191,17 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
 
 function PanelWithError(props: {
   value: string;
-  error: any;
+  error: string;
   db: "local" | string;
   children: React.ReactNode;
 }) {
+  const referenceDatabase = useAtomValue(referenceDbAtom);
   let children = props.children;
-  if (props.error) {
-    if (props.db === "local") children = <NoDatabaseWarning />;
-    else children = <Alert color="red">{props.error.toString()}</Alert>;
+  if (props.db === "local" && !referenceDatabase) {
+    children = <NoDatabaseWarning />;
+  }
+  if (props.error && props.db !== "local") {
+    children = <Alert color="red">{props.error.toString()}</Alert>;
   }
 
   return (

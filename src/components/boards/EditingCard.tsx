@@ -39,6 +39,7 @@ function EditingCard({
       <FenInput currentFen={fen} />
       <Divider my="md" />
       <PiecesGrid
+        size={75}
         fen={fen}
         boardRef={boardRef}
         onPut={(newFen) => {

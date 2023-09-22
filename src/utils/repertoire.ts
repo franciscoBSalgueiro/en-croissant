@@ -65,8 +65,10 @@ export async function openingReport({
         }
         const [openings] = await searchPosition(
             referenceDb!,
-            "exact",
-            item.node.fen
+            {
+                type: "exact",
+                value: item.node.fen
+            }
         );
         const total = openings.reduce(
             (acc, opening) =>

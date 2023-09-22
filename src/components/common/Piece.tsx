@@ -7,10 +7,12 @@ export default function PieceComponent({
   piece,
   boardRef,
   putPiece,
+  size,
 }: {
   piece: Piece;
   boardRef?: React.RefObject<HTMLDivElement>;
   putPiece?: (square: Square, piece: Piece) => void;
+  size: number;
 }) {
   const pieceRef = useRef<HTMLDivElement>(null);
   if (!boardRef || !putPiece) {
@@ -19,8 +21,8 @@ export default function PieceComponent({
         ref={pieceRef}
         className={getPieceName(piece)}
         style={{
-          width: 75,
-          height: 75,
+          width: size,
+          height: size,
           backgroundSize: "cover",
         }}
       />
@@ -59,8 +61,8 @@ export default function PieceComponent({
         ref={pieceRef}
         className={getPieceName(piece)}
         style={{
-          width: 75,
-          height: 75,
+          width: size,
+          height: size,
           backgroundSize: "cover",
           zIndex: 100,
         }}

@@ -1,94 +1,134 @@
-import { referenceDbAtom } from "@/atoms/atoms";
 import PiecesGrid from "@/components/boards/PiecesGrid";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { EMPTY_BOARD } from "@/utils/chess";
-import { NormalizedGame, searchPosition } from "@/utils/db";
-import { getNodeAtPath } from "@/utils/treeReducer";
-import { ScrollArea, Stack, Group, Button, Box } from "@mantine/core";
+import { PositionQuery } from "@/utils/db";
+import {
+  Text,
+  Stack,
+  Group,
+  Button,
+  Box,
+  SegmentedControl,
+} from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
-import { useAtomValue } from "jotai";
-import { useRef, useContext, useState } from "react";
-import GamesTable from "./GamesTable";
+import { useEffect, useRef } from "react";
 import { Chessground } from "@/chessground/Chessground";
 
 async function similarStructure(fen: string) {
   return await invoke<string>("similar_structure", { fen });
 }
 
-function SearchPanel() {
+function SearchPanel({
+  boardFen,
+  disabled,
+  query,
+  setQuery,
+}: {
+  boardFen: string;
+  disabled: boolean;
+  query: PositionQuery;
+  setQuery: React.Dispatch<React.SetStateAction<PositionQuery>>;
+}) {
   const boardRef = useRef(null);
-  const tree = useContext(TreeStateContext);
-  const node = getNodeAtPath(tree.root, tree.position);
-  const [fen, setFen] = useState(EMPTY_BOARD);
-  const [games, setGames] = useState<NormalizedGame[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setQuery((q) => ({ ...q, value: boardFen }));
+  }, [boardFen, setQuery]);
 
   const fetchSimilarStructure = async (fen: string) => {
     const fenResult = await similarStructure(fen);
-    setFen(fenResult);
+    setQuery({ type: "partial", value: fenResult });
   };
 
-  const referenceDb = useAtomValue(referenceDbAtom);
-
   return (
-    <ScrollArea h={600}>
-      <Stack>
-        <Group>
-          <Button onClick={() => setFen(node.fen)}>Game</Button>
-          <Button onClick={() => fetchSimilarStructure(node.fen)}>
-            Similar Structure
-          </Button>
-          <Button onClick={() => setFen(EMPTY_BOARD)}>Empty</Button>
-        </Group>
-        <Group>
+    <Stack>
+      <Group>
+        <Text fw="bold">Position:</Text>
+        <SegmentedControl
+          disabled={disabled}
+          data={[
+            { value: "exact", label: "Exact" },
+            { value: "partial", label: "Partial" },
+          ]}
+          value={query.type}
+          onChange={(v) =>
+            setQuery({ ...query, type: v as "exact" | "partial" })
+          }
+        />
+      </Group>
+
+      <Group>
+        <Stack>
           <Box ref={boardRef}>
             <Chessground
-              width={450}
-              height={450}
-              fen={fen}
+              width={400}
+              height={400}
+              fen={query.value}
               coordinates={false}
+              lastMove={[]}
               movable={{
                 free: true,
                 color: "both",
                 events: {
                   after: (orig, dest) => {
                     invoke<string>("make_move", {
-                      fen,
+                      fen: query.value,
                       from: orig,
                       to: dest,
                     }).then((newFen) => {
-                      setFen(newFen);
+                      setQuery((q) => ({ ...q, value: newFen }));
                     });
                   },
                 },
               }}
             />
           </Box>
-          <PiecesGrid
-            boardRef={boardRef}
-            fen={fen}
-            vertical
-            onPut={(newFen) => {
-              setFen(newFen);
-            }}
-          />
-        </Group>
-        <Button
-          loading={loading}
-          onClick={async () => {
-            setLoading(true);
-            const openings = await searchPosition(referenceDb!, "partial", fen);
-            setGames(openings[1]);
-            setLoading(false);
+
+          <Group>
+            <Button
+              variant="default"
+              onClick={() => {
+                setQuery(() => ({ type: "exact", value: boardFen }));
+              }}
+            >
+              Current Position
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                fetchSimilarStructure(boardFen);
+              }}
+            >
+              Similar Structure
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                setQuery(() => ({
+                  type: "partial",
+                  value: EMPTY_BOARD,
+                }));
+              }}
+            >
+              Empty
+            </Button>
+          </Group>
+        </Stack>
+
+        <PiecesGrid
+          size={60}
+          boardRef={boardRef}
+          fen={query.value}
+          vertical
+          onPut={(newFen) => {
+            setQuery((q) => ({ ...q, value: newFen }));
           }}
-        >
-          Search
-        </Button>
-        {games.length > 0 && (
-          <GamesTable games={games} height={300} loading={false} />
-        )}
-      </Stack>
-    </ScrollArea>
+        />
+      </Group>
+
+      {/* <Group>
+        <Text fw="bold">Material:</Text>
+      </Group> */}
+    </Stack>
   );
 }
 

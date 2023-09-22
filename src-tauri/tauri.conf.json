@@ -81,8 +81,7 @@
     "windows": [
       {
         "title": "En Croissant",
-        "width": 1920,
-        "height": 1080,
+        "maximized": true,
         "visible": false
       }
     ]

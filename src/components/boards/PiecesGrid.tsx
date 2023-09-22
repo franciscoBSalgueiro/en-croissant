@@ -10,10 +10,12 @@ function PiecesGrid({
   boardRef,
   vertical,
   onPut,
+  size
 }: {
   fen: string;
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   onPut: (newFen: string) => void;
+  size: number;
   vertical?: boolean;
 }) {
   return (
@@ -21,6 +23,7 @@ function PiecesGrid({
       {colors.map((color) =>
         pieces.map((piece) => (
           <Piece
+            size={size}
             key={piece + color}
             putPiece={(to, piece) => {
               invoke<string>("put_piece", {

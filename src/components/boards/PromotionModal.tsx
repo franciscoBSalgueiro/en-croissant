@@ -79,6 +79,7 @@ const PromotionModal = memo(function PromotionModal({
                   }}
                 >
                   <Piece
+                    size={75}
                     piece={{
                       type: p,
                       color: turn === "white" ? "w" : "b",
