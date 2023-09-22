@@ -365,7 +365,7 @@ pub async fn analyze_game(
             break;
         }
         let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
-        let query = PositionQuery::from_fen(&fen.to_string())?;
+        let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
         send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
         send_command(&mut stdin, format!("go movetime {}\n", &move_time)).await;

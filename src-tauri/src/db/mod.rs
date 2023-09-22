@@ -71,6 +71,8 @@ fn get_material_count(board: &Board) -> MaterialCount {
     })
 }
 
+/// Returns the bit representation of the pawns on the second and seventh rank
+/// of the given board.
 fn get_pawn_home(board: &Board) -> u16 {
     let white_pawns = board.by_piece(WHITE_PAWN);
     let black_pawns = board.by_piece(BLACK_PAWN);
@@ -1152,4 +1154,25 @@ pub async fn delete_database(
 pub fn clear_games(state: tauri::State<'_, AppState>) {
     let mut state = state.db_cache.lock().unwrap();
     state.clear();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn home_row() {
+        use shakmaty::Board;
+
+        let pawn_home = get_pawn_home(&Board::default());
+        assert_eq!(pawn_home, 0b1111111111111111);
+
+        let pawn_home = get_pawn_home(
+            &Board::from_ascii_board_fen(b"8/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/8").unwrap(),
+        );
+        assert_eq!(pawn_home, 0b1110111111101111);
+
+        let pawn_home = get_pawn_home(&Board::from_ascii_board_fen(b"8/8/8/8/8/8/8/8").unwrap());
+        assert_eq!(pawn_home, 0b0000000000000000);
+    }
 }

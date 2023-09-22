@@ -1,10 +1,10 @@
 use dashmap::{mapref::entry::Entry, DashMap};
 use diesel::prelude::*;
+use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, Position, Setup};
 use std::{path::PathBuf, sync::Mutex, time::Instant};
-use log::info;
 
 use crate::{
     db::{
@@ -36,7 +36,7 @@ pub enum PositionQuery {
 }
 
 impl PositionQuery {
-    pub fn from_fen(fen: &str) -> Result<PositionQuery, Error> {
+    pub fn exact_from_fen(fen: &str) -> Result<PositionQuery, Error> {
         let position: Chess =
             Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Standard)?;
         let pawn_home = get_pawn_home(position.board());
@@ -45,6 +45,16 @@ impl PositionQuery {
             pawn_home,
             material,
             position,
+        }))
+    }
+
+    pub fn partial_from_fen(fen: &str) -> Result<PositionQuery, Error> {
+        let fen = Fen::from_ascii(fen.as_bytes())?;
+        let setup = fen.into_setup();
+        let material = get_material_count(&setup.board);
+        Ok(PositionQuery::Partial(PartialData {
+            piece_positions: setup,
+            material,
         }))
     }
 }
@@ -66,16 +76,11 @@ impl<'de> Deserialize<'de> for PositionQuery {
                 match type_.as_str().unwrap() {
                     "exact" => {
                         let fen = value.as_str().unwrap();
-                        PositionQuery::from_fen(fen).map_err(serde::de::Error::custom)
+                        PositionQuery::exact_from_fen(fen).map_err(serde::de::Error::custom)
                     }
                     "partial" => {
-                        let fen = Fen::from_ascii(value.as_str().unwrap().as_bytes()).unwrap();
-                        let setup = fen.into_setup();
-                        let material = get_material_count(&setup.board);
-                        Ok(PositionQuery::Partial(PartialData {
-                            piece_positions: setup,
-                            material,
-                        }))
+                        let fen = value.as_str().unwrap();
+                        PositionQuery::partial_from_fen(fen).map_err(serde::de::Error::custom)
                     }
                     _ => Err(serde::de::Error::custom("Invalid key")),
                 }
@@ -350,4 +355,62 @@ pub async fn is_position_in_db(
 
     drop(permit);
     Ok(exists)
+}
+
+#[cfg(test)]
+mod tests {
+    use shakmaty::FromSetup;
+
+    use super::*;
+
+    fn assert_partial_match(fen1: &str, fen2: &str) {
+        let query = PositionQuery::partial_from_fen(fen1).unwrap();
+        let fen = Fen::from_ascii(fen2.as_bytes()).unwrap();
+        let chess = Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard).unwrap();
+        assert!(query.matches(&chess));
+    }
+
+    #[test]
+    fn exact_matches() {
+        let query = PositionQuery::exact_from_fen(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        )
+        .unwrap();
+        let chess = Chess::default();
+        assert!(query.matches(&chess));
+    }
+
+    #[test]
+    fn empty_matches_anything() {
+        assert_partial_match(
+            "8/8/8/8/8/8/8/8 w - - 0 1",
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        );
+    }
+
+    #[test]
+    fn correct_partial_match() {
+        assert_partial_match(
+            "8/8/8/8/8/8/8/6N1 w - - 0 1",
+            "3k4/8/8/8/8/4P3/3PKP2/6N1 w - - 0 1",
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn fail_partial_match_1() {
+        assert_partial_match(
+            "8/8/8/8/8/8/8/6N1 w - - 0 1",
+            "3k4/8/8/8/8/4P3/3PKP2/7N w - - 0 1",
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn fail_partial_match_2() {
+        assert_partial_match(
+            "8/8/8/8/8/8/8/6N1 w - - 0 1",
+            "3k4/8/8/8/8/4P3/3PKP2/6n1 w - - 0 1",
+        );
+    }
 }
