@@ -93,7 +93,7 @@ impl<'de> Deserialize<'de> for PositionQuery {
 impl PositionQuery {
     fn matches(&self, position: &Chess) -> bool {
         match self {
-            PositionQuery::Exact(ref data) => data.position == *position,
+            PositionQuery::Exact(ref data) => data.position.board() == position.board(),
             PositionQuery::Partial(ref data) => {
                 let query_board = &data.piece_positions.board;
                 let tested_board = position.board();
@@ -412,5 +412,25 @@ mod tests {
             "8/8/8/8/8/8/8/6N1 w - - 0 1",
             "3k4/8/8/8/8/4P3/3PKP2/6n1 w - - 0 1",
         );
+    }
+
+    #[test]
+    fn get_move_after_match_test() {
+        let game = vec![12, 12]; // 1. e4 e5
+
+        let query =
+            PositionQuery::exact_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR").unwrap();
+        let result = get_move_after_match(&game, &query).unwrap();
+        assert_eq!(result, Some("e4".to_string()));
+
+        let query =
+            PositionQuery::exact_from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR").unwrap();
+        let result = get_move_after_match(&game, &query).unwrap();
+        assert_eq!(result, Some("e5".to_string()));
+
+        let query =
+            PositionQuery::exact_from_fen("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR").unwrap();
+        let result = get_move_after_match(&game, &query).unwrap();
+        assert_eq!(result, Some("*".to_string()));
     }
 }

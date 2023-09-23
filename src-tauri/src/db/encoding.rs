@@ -1,5 +1,5 @@
-use shakmaty::{san::SanPlus, Chess, Move, Position};
 use crate::error::Error;
+use shakmaty::{san::SanPlus, Chess, Move, Position};
 
 pub fn encode_move(m: &Move, chess: &Chess) -> Result<u8, Error> {
     let moves = chess.legal_moves();
@@ -20,4 +20,40 @@ pub fn decode_moves(moves_bytes: Vec<u8>) -> Result<String, Error> {
         moves.push(san.to_string());
     }
     Ok(moves.join(" "))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use shakmaty::{Move, Role, Square};
+
+    #[test]
+    fn test_encoding() {
+        let mut chess = Chess::default();
+        let m = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E2,
+            to: Square::E4,
+            capture: None,
+            promotion: None,
+        };
+
+        let byte = encode_move(&m, &chess).unwrap();
+        let m2 = decode_move(byte, &chess).unwrap();
+        assert_eq!(m, m2);
+
+        chess.play_unchecked(&m);
+
+        let m = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E7,
+            to: Square::E5,
+            capture: None,
+            promotion: None,
+        };
+        let byte = encode_move(&m, &chess).unwrap();
+        let m2 = decode_move(byte, &chess).unwrap();
+        assert_eq!(m, m2);
+    }
 }
