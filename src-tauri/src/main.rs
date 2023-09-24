@@ -107,6 +107,8 @@ async fn start_server(username: String, verifier: String, window: Window) -> Res
     })?)
 }
 
+pub type GameData = (i32, Option<String>, Vec<u8>, i32, i32, i32);
+
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct AppState {
@@ -115,7 +117,7 @@ pub struct AppState {
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
     line_cache: DashMap<(PositionQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    db_cache: Mutex<Vec<(i32, Option<String>, Vec<u8>, i32, i32, i32)>>,
+    db_cache: Mutex<Vec<GameData>>,
     analysis_cache: DashMap<AnalysisCacheKey, Vec<BestMoves>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
