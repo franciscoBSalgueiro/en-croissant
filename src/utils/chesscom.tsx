@@ -6,7 +6,11 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Chess } from "chess.js";
 import { handleMove } from "./chess";
 import { decodeTCN } from "./tcn";
-const base_url = "https://api.chess.com";
+import { error } from "tauri-plugin-log-api";
+const baseURL = "https://api.chess.com";
+const headers = {
+  "User-Agent": "EnCroissant",
+};
 
 type ChessComPerf = {
   last: {
@@ -56,9 +60,12 @@ type ChessComGames = {
 export async function getChessComAccount(
   player: string
 ): Promise<ChessComStats | null> {
-  const url = `${base_url}/pub/player/${player}/stats`;
-  const response = await fetch<ChessComStats>(url);
+  const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
+  const response = await fetch<ChessComStats>(url, { headers, method: "GET" });
   if (!response.ok) {
+    error(
+      `Failed to fetch Chess.com account: ${response.status} ${response.url}`
+    );
     notifications.show({
       title: "Failed to fetch Chess.com account",
       message: 'Could not find account "' + player + '" on chess.com',
@@ -71,8 +78,8 @@ export async function getChessComAccount(
 }
 
 async function getGameArchives(player: string) {
-  const url = `${base_url}/pub/player/${player}/games/archives`;
-  const response = await fetch<Archive>(url);
+  const url = `${baseURL}/pub/player/${player}/games/archives`;
+  const response = await fetch<Archive>(url, { headers, method: "GET" });
   return response.data;
 }
 

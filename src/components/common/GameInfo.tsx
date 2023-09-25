@@ -9,12 +9,19 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import dayjs from "dayjs";
-import { memo, useContext } from "react";
+import { memo, useContext, useState } from "react";
 import { GameHeaders } from "@/utils/treeReducer";
 import { TreeDispatchContext } from "./TreeStateContext";
 import { Outcome } from "@/utils/db";
+import FideInfo from "../databases/FideInfo";
 
 const useStyles = createStyles((theme) => ({
+  colorHover: {
+    "&:hover": {
+      textDecoration: "underline",
+      cursor: "pointer",
+    },
+  },
   nameInput: {
     "& input": {
       padding: 0,
@@ -80,6 +87,9 @@ function GameInfo({
       : null
     : null;
   const { classes } = useStyles();
+  const [whiteOpened, setWhiteOpened] = useState(false);
+  const [blackOpened, setBlackOpened] = useState(false);
+
   return (
     <div>
       <Stack align="center" spacing={0} mx="md" mt="sm">
@@ -136,7 +146,18 @@ function GameInfo({
           <Stack align="start" spacing={0}>
             <Group noWrap>
               <div>
-                <Text c="dimmed" tt="uppercase" fw="bold">
+                <FideInfo
+                  opened={whiteOpened}
+                  setOpened={setWhiteOpened}
+                  name={headers.white}
+                />
+                <Text
+                  c="dimmed"
+                  tt="uppercase"
+                  fw="bold"
+                  className={classes.colorHover}
+                  onClick={() => setWhiteOpened(true)}
+                >
                   White
                 </Text>
                 <TextInput
@@ -248,7 +269,19 @@ function GameInfo({
           <Stack align="end" spacing={0}>
             <Group noWrap>
               <div>
-                <Text c="dimmed" align="right" tt="uppercase" fw="bold">
+                <FideInfo
+                  opened={blackOpened}
+                  setOpened={setBlackOpened}
+                  name={headers.black}
+                />
+                <Text
+                  c="dimmed"
+                  tt="uppercase"
+                  fw="bold"
+                  align="right"
+                  onClick={() => setBlackOpened(true)}
+                  className={classes.colorHover}
+                >
                   Black
                 </Text>
                 <TextInput

@@ -7,9 +7,10 @@ import { NormalizedGame } from "./db";
 import { parsePGN } from "./chess";
 import { countMainPly } from "./treeReducer";
 import { fetch, Response, ResponseType } from "@tauri-apps/api/http";
+import { error } from "tauri-plugin-log-api";
 
-const base_url = "https://lichess.org/api";
-const explorer_url = "https://explorer.lichess.ovh";
+const baseURL = "https://lichess.org/api";
+const explorerURL = "https://explorer.lichess.ovh";
 
 type LichessPerf = {
   games: number;
@@ -168,15 +169,18 @@ export async function getLichessAccount({
 }): Promise<LichessAccount | null> {
   let response: Response<LichessAccount>;
   if (token) {
-    response = await fetch<LichessAccount>(`${base_url}/account`, {
+    response = await fetch<LichessAccount>(`${baseURL}/account`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
   } else {
-    const url = `${base_url}/user/${username}`;
+    const url = `${baseURL}/user/${username}`;
     response = await fetch<LichessAccount>(url);
   }
   if (!response.ok) {
+    error(
+      `Failed to fetch Lichess account: ${response.status} ${response.url}`
+    );
     notifications.show({
       title: "Failed to fetch Lichess account",
       message: 'Could not find account "' + username + '" on lichess.org',
@@ -189,16 +193,16 @@ export async function getLichessAccount({
 }
 
 export async function getCloudEvaluation(fen: string, multipv = 1) {
-  const url = `${base_url}/cloud-eval?fen=${fen}&multipv=${multipv}`;
+  const url = `${baseURL}/cloud-eval?fen=${fen}&multipv=${multipv}`;
   return fetch(url);
 }
 
 export async function getLichessGames(fen: string): Promise<PositionData> {
-  return (await fetch<PositionData>(`${explorer_url}/lichess?fen=${fen}`)).data;
+  return (await fetch<PositionData>(`${explorerURL}/lichess?fen=${fen}`)).data;
 }
 
 export async function getMasterGames(fen: string): Promise<PositionData> {
-  return (await fetch<PositionData>(`${explorer_url}/masters?fen=${fen}`)).data;
+  return (await fetch<PositionData>(`${explorerURL}/masters?fen=${fen}`)).data;
 }
 
 export async function getPlayerGames(
@@ -208,7 +212,7 @@ export async function getPlayerGames(
 ) {
   return (
     await fetch(
-      `${explorer_url}/player?fen=${fen}&player=${player}&color=${color}`
+      `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`
     )
   ).data;
 }
@@ -218,7 +222,7 @@ export async function downloadLichess(
   timestamp: number | null,
   token?: string
 ) {
-  let url = `${base_url}/games/user/${player}`;
+  let url = `${baseURL}/games/user/${player}`;
   if (timestamp) {
     url += `?since=${timestamp}`;
   }
