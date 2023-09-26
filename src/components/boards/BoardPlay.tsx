@@ -369,6 +369,9 @@ function BoardPlay({
             turnColor={turn}
             check={chess?.inCheck()}
             lastMove={moveToKey(currentNode.move)}
+            premovable={{
+              enabled: false,
+            }}
             drawable={{
               enabled: true,
               visible: true,

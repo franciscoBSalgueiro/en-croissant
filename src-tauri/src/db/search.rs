@@ -4,8 +4,16 @@ use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, Position, Setup};
-use std::{path::PathBuf, sync::Mutex, time::Instant};
-use tokio::sync::Semaphore;
+use std::{
+    path::PathBuf,
+    rc::Rc,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    },
+    time::Instant,
+};
+use tauri::Manager;
 
 use crate::{
     db::{
@@ -13,7 +21,7 @@ use crate::{
         normalize_games, schema::*, ConnectionOptions, MaterialCount,
     },
     error::Error,
-    AppState, GameData,
+    AppState,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -190,10 +198,19 @@ fn get_move_after_match(
     Ok(None)
 }
 
+#[derive(Clone, serde::Serialize)]
+pub struct ProgressPayload {
+    pub progress: f64,
+    pub id: String,
+    pub finished: bool,
+}
+
 #[tauri::command]
 pub async fn search_position(
     file: PathBuf,
     query: PositionQuery,
+    app: tauri::AppHandle,
+    tabId: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
@@ -224,50 +241,38 @@ pub async fn search_position(
         info!("got {} games: {:?}", games.len(), start.elapsed());
     }
 
-    let (openings, ids) = execute_query(&query, &games, &state.new_request);
-    info!("finished search in {:?}", start.elapsed());
-
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err(Error::SearchStopped);
-    }
-
-    let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .filter(games::id.eq_any(ids))
-        .load(db)?;
-    let normalized_games = normalize_games(games);
-
-    state
-        .line_cache
-        .insert((query, file), (openings.clone(), normalized_games.clone()));
-
-    Ok((openings, normalized_games))
-}
-
-fn execute_query(
-    query: &PositionQuery,
-    games: &[GameData],
-    new_request: &Semaphore,
-) -> (Vec<PositionStats>, Vec<i32>) {
     let openings: DashMap<String, PositionStats> = DashMap::new();
     let sample_games: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
+    let processed = AtomicUsize::new(0);
+
+    println!("start search on {tabId}");
+
     games.par_iter().for_each(
         |(id, result, game, end_pawn_home, white_material, black_material)| {
-            if new_request.available_permits() == 0 {
+            if state.new_request.available_permits() == 0 {
                 return;
             }
             let end_material: MaterialCount = ByColor {
                 white: *white_material as u8,
                 black: *black_material as u8,
             };
+            processed.fetch_add(1, Ordering::Relaxed);
+            let index = processed.load(Ordering::Relaxed);
+            if (index + 1) % 10000 == 0 {
+                info!("{} games processed: {:?}", index + 1, start.elapsed());
+                app.emit_all(
+                    "download_progress",
+                    ProgressPayload {
+                        progress: (index as f64 / games.len() as f64) * 100.0,
+                        id: tabId.clone(),
+                        finished: false,
+                    },
+                )
+                .unwrap();
+            }
             if query.can_reach(&end_material, *end_pawn_home as u16) {
-                if let Ok(Some(m)) = get_move_after_match(game, query) {
+                if let Ok(Some(m)) = get_move_after_match(game, &query) {
                     if sample_games.lock().unwrap().len() < 10 {
                         sample_games.lock().unwrap().push(*id);
                     }
@@ -304,9 +309,30 @@ fn execute_query(
     );
 
     let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
-    let sample_games_ids: Vec<i32> = sample_games.lock().unwrap().clone();
+    let ids: Vec<i32> = sample_games.lock().unwrap().clone();
 
-    (openings, sample_games_ids)
+    info!("finished search in {:?}", start.elapsed());
+
+    if state.new_request.available_permits() == 0 {
+        drop(permit);
+        return Err(Error::SearchStopped);
+    }
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .filter(games::id.eq_any(ids))
+        .load(db)?;
+    let normalized_games = normalize_games(games);
+
+    state
+        .line_cache
+        .insert((query, file), (openings.clone(), normalized_games.clone()));
+
+    Ok((openings, normalized_games))
 }
 
 pub async fn is_position_in_db(

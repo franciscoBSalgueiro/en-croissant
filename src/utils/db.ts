@@ -298,13 +298,15 @@ export type PositionQuery = {
 
 export async function searchPosition(
     referenceDatabase: string,
-    query: PositionQuery
+    query: PositionQuery,
+    tab: string,
 ) {
     const openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
             file: referenceDatabase,
             query,
+            tabId: tab
         },
         (s) => s === "Search stopped"
     );

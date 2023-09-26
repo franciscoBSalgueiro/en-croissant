@@ -67,8 +67,9 @@ export async function openingReport({
             referenceDb!,
             {
                 type: "exact",
-                value: item.node.fen
-            }
+                value: item.node.fen,
+            },
+            "opening"
         );
         const total = openings.reduce(
             (acc, opening) =>

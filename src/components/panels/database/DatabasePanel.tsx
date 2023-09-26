@@ -1,14 +1,7 @@
-import {
-  Alert,
-  Group,
-  Progress,
-  SegmentedControl,
-  Tabs,
-  Text,
-} from "@mantine/core";
+import { Alert, Group, SegmentedControl, Tabs, Text } from "@mantine/core";
 import { memo, useState } from "react";
 import { Opening, PositionQuery, searchPosition } from "@/utils/db";
-import { referenceDbAtom } from "@/atoms/atoms";
+import { currentTabAtom, referenceDbAtom } from "@/atoms/atoms";
 import { useAtomValue } from "jotai";
 import {
   convertToNormalized,
@@ -23,6 +16,7 @@ import useSWR from "swr";
 import { useDebouncedValue } from "@mantine/hooks";
 import NoDatabaseWarning from "./NoDatabaseWarning";
 import { formatNumber } from "@/utils/format";
+import DatabaseLoader from "./DatabaseLoader";
 
 type DBType =
   | { type: "local"; db: string | null }
@@ -35,7 +29,7 @@ function sortOpenings(openings: Opening[]) {
   );
 }
 
-async function fetchOpening(query: PositionQuery, db: DBType) {
+async function fetchOpening(query: PositionQuery, db: DBType, tab: string) {
   return match(db)
     .with({ type: "lch_all" }, async () => {
       const data = await getLichessGames(query.value);
@@ -63,7 +57,7 @@ async function fetchOpening(query: PositionQuery, db: DBType) {
     })
     .with({ type: "local" }, async ({ db }) => {
       if (!db) throw Error("Missing reference database");
-      const positionData = await searchPosition(db, query);
+      const positionData = await searchPosition(db, query, tab);
       return {
         openings: sortOpenings(positionData[0]),
         games: positionData[1],
@@ -93,15 +87,16 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
     type: "exact",
   });
 
+  const tab = useAtomValue(currentTabAtom);
   const {
     data: openingData,
     isLoading,
     error,
   } = useSWR([dbType, query], async ([dbType, query]) => {
-    return fetchOpening(query, dbType);
+    return fetchOpening(query, dbType, tab?.value || "");
   });
 
-  const [tab, setTab] = useState<string | null>("stats");
+  const [tabType, setTabType] = useState<string | null>("stats");
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0
@@ -116,12 +111,12 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
             {
               label: "Lichess All",
               value: "lch_all",
-              disabled: tab === "options",
+              disabled: tabType === "options",
             },
             {
               label: "Lichess Masters",
               value: "lch_master",
-              disabled: tab === "options",
+              disabled: tabType === "options",
             },
           ]}
           value={db}
@@ -137,19 +132,14 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
         </Text>
       </Group>
 
-      <Progress
-        animate={isLoading}
-        value={isLoading ? 100 : 0}
-        size="xs"
-        mt="xs"
-      />
+      <DatabaseLoader isLoading={isLoading} tab={tab?.value ?? null} />
 
       <Tabs
         defaultValue="stats"
         orientation="vertical"
         placement="right"
-        value={tab}
-        onTabChange={setTab}
+        value={tabType}
+        onTabChange={setTabType}
       >
         <Tabs.List>
           <Tabs.Tab value="stats" disabled={query.type === "partial"}>
