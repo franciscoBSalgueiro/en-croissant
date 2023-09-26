@@ -196,35 +196,28 @@ impl TempGame {
     pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
         let pawn_home = get_pawn_home(self.position.board());
 
-        let white;
-        let black;
-        let site_id;
-        let event_id;
+        let white_id = if let Some(name) = &self.white_name {
+            create_player(db, name)?.id
+        } else {
+            0
+        };
+        let black_id = if let Some(name) = &self.black_name {
+            create_player(db, name)?.id
+        } else {
+            0
+        };
 
-        if let Some(name) = &self.white_name {
-            white = create_player(db, name)?;
+        let event_id = if let Some(name) = &self.event_name {
+            create_event(db, name)?.id
         } else {
-            white = Player::default();
-        }
-        if let Some(name) = &self.black_name {
-            black = create_player(db, name)?;
-        } else {
-            black = Player::default();
-        }
+            0
+        };
 
-        if let Some(name) = &self.event_name {
-            let event = create_event(db, name)?;
-            event_id = event.id;
+        let site_id = if let Some(name) = &self.site_name {
+            create_site(db, name)?.id
         } else {
-            event_id = 1;
-        }
-
-        if let Some(name) = &self.site_name {
-            let site = create_site(db, name)?;
-            site_id = site.id;
-        } else {
-            site_id = 1;
-        }
+            0
+        };
 
         let ply_count = (self.moves.len()) as i32;
         let final_material = get_material_count(self.position.board());
@@ -232,8 +225,8 @@ impl TempGame {
         let minimal_black_material = self.material_count.black.min(final_material.black) as i32;
 
         let new_game = NewGame {
-            white_id: Some(white.id),
-            black_id: Some(black.id),
+            white_id,
+            black_id,
             ply_count,
             eco: self.eco.as_deref(),
             round: self.round.as_deref(),

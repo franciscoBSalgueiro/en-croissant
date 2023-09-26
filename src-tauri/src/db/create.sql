@@ -44,3 +44,7 @@ CREATE TABLE Games (
     FOREIGN KEY(WhiteID) REFERENCES Players,
     FOREIGN KEY(BlackID) REFERENCES Players
 );
+
+INSERT INTO Players (ID, Name, Elo) VALUES (0, 'Unknown', NULL);
+INSERT INTO Events (ID, Name) VALUES (0, 'Unknown');
+INSERT INTO Sites (ID, Name) VALUES (0, 'Unknown');
