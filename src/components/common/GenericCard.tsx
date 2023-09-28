@@ -53,7 +53,7 @@ const useStyles = createStyles(
 type Props<T> = {
   id: T;
   isSelected: boolean;
-  setSelected: (id: T | ((prevId: T) => T)) => void;
+  setSelected: (id: T) => void;
   error?: string;
   stats?: {
     label: string;

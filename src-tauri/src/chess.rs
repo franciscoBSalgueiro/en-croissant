@@ -1,7 +1,7 @@
 use std::{path::PathBuf, process::Stdio};
 
 use derivative::Derivative;
-use log::{info, error};
+use log::{error, info};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -411,7 +411,8 @@ pub async fn analyze_game(
 
 #[tauri::command]
 pub async fn get_single_best_move(
-    difficulty: usize,
+    skill_level: usize,
+    depth: usize,
     fen: String,
     engine: String,
     app: tauri::AppHandle,
@@ -425,7 +426,6 @@ pub async fn get_single_best_move(
         Some(BaseDirectory::AppData),
     )?;
     let number_threads = 4;
-    let depth = 8 + difficulty;
 
     let mut child = start_engine(path)?;
     let (mut stdin, mut stdout) = get_handles(&mut child)?;
@@ -433,7 +433,7 @@ pub async fn get_single_best_move(
     send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
     send_command(
         &mut stdin,
-        format!("setoption name Skill Level value {}\n", &difficulty),
+        format!("setoption name Skill Level value {}\n", &skill_level),
     )
     .await;
     send_command(

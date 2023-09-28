@@ -14,7 +14,7 @@ export interface Engine {
     loaded?: boolean;
 }
 
-export async function getEngines() {
+async function getEngines() {
     const text = await readTextFile("engines/engines.json", {
         dir: BaseDirectory.AppData,
     });
@@ -23,6 +23,22 @@ export async function getEngines() {
     }
     const data = JSON.parse(text);
     return data as Engine[];
+}
+
+export function useEngines() {
+    const {
+        data,
+        error,
+        isLoading,
+    } = useSWR("engines", async () => {
+        const engines = await getEngines();
+        return engines;
+    });
+    return {
+        engines: data,
+        error,
+        isLoading,
+    };
 }
 
 type OS = "windows" | "linux" | "macos";

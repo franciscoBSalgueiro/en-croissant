@@ -1052,8 +1052,8 @@ pub async fn get_players_game_info(
         ))
         .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
 
-    let info: Vec<(i32, i32, Option<String>, Option<String>, Option<String>)> =
-        sql_query.load(db)?;
+    type GameInfo = (i32, i32, Option<String>, Option<String>, Option<String>);
+    let info: Vec<GameInfo> = sql_query.load(db)?;
 
     let mut game_info = PlayerGameInfo::default();
 

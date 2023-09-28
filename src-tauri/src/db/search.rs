@@ -6,10 +6,9 @@ use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, Position, Setup};
 use std::{
     path::PathBuf,
-    rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex,
+        Mutex,
     },
     time::Instant,
 };
@@ -210,7 +209,7 @@ pub async fn search_position(
     file: PathBuf,
     query: PositionQuery,
     app: tauri::AppHandle,
-    tabId: String,
+    tab_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
@@ -246,7 +245,7 @@ pub async fn search_position(
 
     let processed = AtomicUsize::new(0);
 
-    println!("start search on {tabId}");
+    println!("start search on {tab_id}");
 
     games.par_iter().for_each(
         |(id, result, game, end_pawn_home, white_material, black_material)| {
@@ -265,7 +264,7 @@ pub async fn search_position(
                     "download_progress",
                     ProgressPayload {
                         progress: (index as f64 / games.len() as f64) * 100.0,
-                        id: tabId.clone(),
+                        id: tab_id.clone(),
                         finished: false,
                     },
                 )

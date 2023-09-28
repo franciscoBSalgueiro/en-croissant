@@ -3,6 +3,7 @@ import {
   Card,
   Divider,
   Group,
+  NumberInput,
   Select,
   SimpleGrid,
   Text,
@@ -19,7 +20,7 @@ import { Chess, DEFAULT_POSITION } from "chess.js";
 import { useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { parseUci } from "@/utils/chess";
-import { Engine, getEngines } from "@/utils/engines";
+import { useEngines } from "@/utils/engines";
 import { invoke } from "@/utils/invoke";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "../common/GameInfo";
@@ -35,20 +36,72 @@ import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 
-enum Opponent {
-  Random = "Random Bot",
-  Easy = "Easy Bot",
-  Medium = "Medium Bot",
-  Hard = "Hard Bot",
-  Impossible = "Impossible Bot",
-  Human = "Human",
-}
+type Opponent = {
+  id: string;
+  name: string;
+  settings?: {
+    skillLevel: number;
+    depth: number;
+  };
+  icon: React.FC;
+};
+
+const opponentPresets: Opponent[] = [
+  {
+    id: "random",
+    name: "Random Bot",
+    icon: IconDice,
+  },
+  {
+    id: "easy",
+    name: "Easy Bot",
+    settings: {
+      skillLevel: 2,
+      depth: 12,
+    },
+    icon: IconRobot,
+  },
+  {
+    id: "medium",
+    name: "Medium Bot",
+    settings: {
+      skillLevel: 4,
+      depth: 16,
+    },
+    icon: IconRobot,
+  },
+  {
+    id: "hard",
+    name: "Hard Bot",
+    settings: {
+      skillLevel: 6,
+      depth: 20,
+    },
+    icon: IconRobot,
+  },
+  {
+    id: "impossible",
+    name: "Impossible Bot",
+    settings: {
+      skillLevel: 8,
+      depth: 24,
+    },
+    icon: IconRobot,
+  },
+  {
+    id: "human",
+    name: "Human",
+    icon: IconUsers,
+  },
+];
 
 interface OpponentCardProps {
   Icon: React.FC;
   opponent: Opponent;
   isSelected: boolean;
   setSelected: React.Dispatch<React.SetStateAction<Opponent | null>>;
+  setSkillLevel: React.Dispatch<React.SetStateAction<number | null>>;
+  setDepth: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
 function OpponentCard({
@@ -56,16 +109,24 @@ function OpponentCard({
   isSelected,
   Icon,
   setSelected,
+  setSkillLevel,
+  setDepth,
 }: OpponentCardProps) {
+  const updateSettings = (opponent: Opponent) => {
+    setSkillLevel(opponent.settings?.skillLevel ?? null);
+    setDepth(opponent.settings?.depth ?? null);
+    setSelected(opponent);
+  };
+
   return (
     <GenericCard
       id={opponent}
       isSelected={isSelected}
-      setSelected={setSelected}
+      setSelected={updateSettings}
       Header={
         <Group noWrap>
           <Icon />
-          <Text weight={500}>{opponent}</Text>
+          <Text weight={500}>{opponent.name}</Text>
         </Group>
       }
     />
@@ -74,7 +135,7 @@ function OpponentCard({
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
-  const [opponent, setOpponent] = useSessionStorage<Opponent | null>({
+  const [opponent, setOpponent] = useSessionStorage<string | null>({
     key: activeTab + "-opponent",
     defaultValue: null,
   });
@@ -86,12 +147,14 @@ function BoardGame() {
 
   const boardRef = useRef(null);
 
-  const [engines, setEngines] = useState<Engine[]>([]);
+  const { engines } = useEngines();
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white"
   );
   const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
   const [engine, setEngine] = useState<string | null>(null);
+  const [skillLevel, setSkillLevel] = useState<number | null>(null);
+  const [depth, setDepth] = useState<number | null>(null);
 
   const chess = new Chess(currentNode.fen);
 
@@ -104,12 +167,6 @@ function BoardGame() {
   }
 
   useEffect(() => {
-    getEngines().then((engines) => {
-      setEngines(engines);
-    });
-  }, []);
-
-  useEffect(() => {
     const isBotTurn = match(playingColor)
       .with("black", () => chess.turn() === "w")
       .with("white", () => chess.turn() === "b")
@@ -117,11 +174,11 @@ function BoardGame() {
     if (
       currentNode.children.length === 0 &&
       opponent &&
-      opponent !== Opponent.Human &&
+      opponent !== "human" &&
       isBotTurn &&
       !chess.isGameOver()
     ) {
-      if (opponent === Opponent.Random) {
+      if (opponent === "random") {
         invoke<string>("make_random_move", {
           fen: currentNode.fen,
         }).then((move) => {
@@ -131,14 +188,9 @@ function BoardGame() {
           });
         });
       } else if (engine) {
-        const engineLevel = match(opponent)
-          .with(Opponent.Easy, () => 2)
-          .with(Opponent.Medium, () => 4)
-          .with(Opponent.Hard, () => 6)
-          .with(Opponent.Impossible, () => 8)
-          .exhaustive();
         invoke<string>("get_single_best_move", {
-          difficulty: engineLevel,
+          skillLevel,
+          depth,
           engine,
           fen: currentNode.fen,
         }).then((move) => {
@@ -177,60 +229,46 @@ function BoardGame() {
             Choose an opponent
           </Text>
           <SimpleGrid cols={3} spacing="md">
-            <OpponentCard
-              opponent={Opponent.Random}
-              isSelected={selected === Opponent.Random}
-              setSelected={setSelected}
-              Icon={IconDice}
-            />
-            <OpponentCard
-              opponent={Opponent.Easy}
-              isSelected={selected === Opponent.Easy}
-              setSelected={setSelected}
-              Icon={IconRobot}
-            />
-            <OpponentCard
-              opponent={Opponent.Medium}
-              isSelected={selected === Opponent.Medium}
-              setSelected={setSelected}
-              Icon={IconRobot}
-            />
-            <OpponentCard
-              opponent={Opponent.Hard}
-              isSelected={selected === Opponent.Hard}
-              setSelected={setSelected}
-              Icon={IconRobot}
-            />
-            <OpponentCard
-              opponent={Opponent.Impossible}
-              isSelected={selected === Opponent.Impossible}
-              setSelected={setSelected}
-              Icon={IconRobot}
-            />
-            <OpponentCard
-              opponent={Opponent.Human}
-              isSelected={selected === Opponent.Human}
-              setSelected={setSelected}
-              Icon={IconUsers}
-            />
+            {opponentPresets.map((opponent) => (
+              <OpponentCard
+                key={opponent.id}
+                opponent={opponent}
+                isSelected={selected?.id === opponent.id}
+                setSelected={setSelected}
+                setSkillLevel={setSkillLevel}
+                setDepth={setDepth}
+                Icon={opponent.icon}
+              />
+            ))}
           </SimpleGrid>
-          {(selected === Opponent.Easy ||
-            selected === Opponent.Medium ||
-            selected === Opponent.Hard ||
-            selected === Opponent.Impossible) && (
-            <Select
-              mt="md"
-              w={200}
-              label="Engine"
-              data={engines.map((engine) => ({
-                label: engine.name,
-                value: engine.path,
-              }))}
-              value={engine}
-              onChange={(e) => {
-                setEngine(e);
-              }}
-            />
+          {selected?.settings && (
+            <Group align="baseline">
+              <Select
+                mt="md"
+                w={200}
+                label="Engine"
+                data={engines!.map((engine) => ({
+                  label: engine.name,
+                  value: engine.path,
+                }))}
+                value={engine}
+                onChange={(e) => {
+                  setEngine(e);
+                }}
+              />
+
+              <NumberInput
+                label="Skill Level"
+                value={skillLevel ?? 0}
+                onChange={(e) => setSkillLevel(e as number)}
+              />
+
+              <NumberInput
+                label="Depth"
+                value={depth ?? 0}
+                onChange={(e) => setDepth(e as number)}
+              />
+            </Group>
           )}
 
           <Select
@@ -251,12 +289,7 @@ function BoardGame() {
           <Divider my="md" />
           <Button
             disabled={
-              selected === null ||
-              ((selected === Opponent.Easy ||
-                selected === Opponent.Medium ||
-                selected === Opponent.Hard ||
-                selected === Opponent.Impossible) &&
-                engine === null)
+              selected === null || (selected.settings && engine === null)
             }
             onClick={() => {
               setPlayingColor(
@@ -266,7 +299,7 @@ function BoardGame() {
                     : "black"
                   : inputColor
               );
-              setOpponent(selected);
+              setOpponent(selected!.id);
               dispatch({
                 type: "SET_FEN",
                 payload: DEFAULT_POSITION,

@@ -10,9 +10,9 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Chess } from "chess.js";
-import { memo, useContext, useEffect, useMemo, useState } from "react";
+import { memo, useContext, useMemo } from "react";
 import { MoveAnalysis } from "@/utils/chess";
-import { Engine, getEngines } from "@/utils/engines";
+import { useEngines } from "@/utils/engines";
 import { formatDuration } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
@@ -32,7 +32,7 @@ function ReportModal({
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const referenceDb = useAtomValue(referenceDbAtom);
-  const [engines, setEngines] = useState<Engine[]>([]);
+  const { engines } = useEngines();
   const dispatch = useContext(TreeDispatchContext);
 
   const uciMoves = useMemo(() => {
@@ -68,12 +68,6 @@ function ReportModal({
     },
   });
 
-  useEffect(() => {
-    getEngines().then((engines) => {
-      setEngines(engines);
-    });
-  }, []);
-
   function analyze() {
     setInProgress(true);
     toggleReportingMode();
@@ -103,7 +97,7 @@ function ReportModal({
             withAsterisk
             label="Engine"
             placeholder="Pick one"
-            data={engines.map((engine) => {
+            data={engines!.map((engine) => {
               return {
                 value: engine.path,
                 label: engine.name,
