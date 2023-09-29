@@ -83,7 +83,7 @@ fn get_pawn_home(board: &Board) -> u16 {
 
 #[derive(Debug)]
 pub enum JournalMode {
-    Wal,
+    Delete,
     Off,
 }
 
@@ -97,7 +97,7 @@ pub struct ConnectionOptions {
 impl Default for ConnectionOptions {
     fn default() -> Self {
         Self {
-            journal_mode: JournalMode::Wal,
+            journal_mode: JournalMode::Delete,
             enable_foreign_keys: true,
             busy_timeout: Some(Duration::from_secs(30)),
         }
@@ -110,7 +110,7 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
     fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
         (|| {
             match self.journal_mode {
-                JournalMode::Wal => conn.batch_execute("PRAGMA journal_mode = WAL;")?,
+                JournalMode::Delete => conn.batch_execute("PRAGMA journal_mode = DELETE;")?,
                 JournalMode::Off => conn.batch_execute("PRAGMA journal_mode = OFF;")?,
             }
             if self.enable_foreign_keys {
