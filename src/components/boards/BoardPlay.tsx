@@ -259,7 +259,7 @@ function BoardPlay({
   const { pieces, diff } = getMaterialDiff(currentNode.fen);
 
   const practiceLock =
-    practicing && !deck.find((c) => c.fen === currentNode.fen);
+    !!practicing && !deck.find((c) => c.fen === currentNode.fen);
 
   return (
     <>

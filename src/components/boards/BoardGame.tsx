@@ -218,7 +218,7 @@ function BoardGame() {
           viewOnly={opponent === null}
           disableVariations
           boardRef={boardRef}
-          side={playingColor}
+          side={opponent === "human" ? undefined : playingColor}
           root={root}
         />
       }
