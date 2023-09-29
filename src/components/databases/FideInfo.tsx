@@ -15,6 +15,10 @@ import { IconCloud } from "@tabler/icons-react";
 
 import COUNTRIES from "./countries.json";
 import useSWR from "swr";
+import { useEffect, useState } from "react";
+import { BaseDirectory, exists } from "@tauri-apps/api/fs";
+import ProgressButton from "../common/ProgressButton";
+import { invoke } from "@tauri-apps/api";
 
 const flags = Object.entries(Flags).map(([key, value]) => ({
   key: key.replace("Flag", ""),
@@ -30,10 +34,17 @@ function FideInfo({
   setOpened: (opened: boolean) => void;
   name: string;
 }) {
-  const { data, error, isLoading } = useSWR(name, async (name: string) => {
-    return await findFidePlayer(name);
+  const [fileExists, setFileExists] = useState<boolean>(false);
+  const {
+    data: player,
+    error,
+    isLoading,
+  } = useSWR(fileExists ? name : null, async (name) => {
+    return await findFidePlayer(name).catch((e) => {
+      console.error(e);
+      return null;
+    });
   });
-  const player = data;
 
   const country = COUNTRIES.find((c) => c.ioc === player?.country);
 
@@ -41,9 +52,33 @@ function FideInfo({
     ? flags.find((f) => f.key === country?.a2)?.component
     : undefined;
 
+  useEffect(() => {
+    exists("fide.bin", { dir: BaseDirectory.AppData }).then((exists) => {
+      setFileExists(exists);
+    });
+  }, []);
+
   return (
     <Modal opened={opened} onClose={() => setOpened(false)}>
-      {isLoading ? (
+      {!fileExists ? (
+        <Stack>
+          No FIDE database installed
+          <ProgressButton
+            id={0}
+            initInstalled={false}
+            progressEvent={"download_progress"}
+            onClick={() => invoke("download_fide_db")}
+            labels={{
+              completed: "Downloaded",
+              action: "Download",
+              inProgress: "Downloading...",
+              finalizing: "Processing...",
+            }}
+            inProgress={false}
+            setInProgress={(v) => setFileExists(!v)}
+          />
+        </Stack>
+      ) : isLoading ? (
         <Center>Loading...</Center>
       ) : player ? (
         <Stack>

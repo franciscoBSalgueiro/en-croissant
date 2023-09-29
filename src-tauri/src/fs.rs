@@ -1,7 +1,7 @@
 use std::{
     fs::create_dir_all,
     io::{Cursor, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use log::info;
@@ -25,11 +25,13 @@ pub struct ProgressPayload {
 pub async fn download_file(
     id: u64,
     url: String,
-    path: String,
+    path: PathBuf,
     zip: bool,
     app: tauri::AppHandle,
     token: Option<String>,
-) -> Result<String, Error> {
+    finalize: Option<bool>,
+) -> Result<(), Error> {
+    let finalize = finalize.unwrap_or(true);
     info!("Downloading file from {}", url);
     let client = Client::new();
 
@@ -74,16 +76,18 @@ pub async fn download_file(
     } else {
         std::fs::write(path, file)?;
     }
-    app.emit_all(
-        "download_progress",
-        ProgressPayload {
-            progress: 100.0,
-            id,
-            finished: true,
-        },
-    )?;
+    if finalize {
+        app.emit_all(
+            "download_progress",
+            ProgressPayload {
+                progress: 100.0,
+                id,
+                finished: true,
+            },
+        )?;
+    }
     // remove_file(&path).await;
-    Ok("downloaded_file".to_string())
+    Ok(())
 }
 
 pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {

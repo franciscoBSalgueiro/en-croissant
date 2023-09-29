@@ -22,7 +22,7 @@ function DatabaseLoader({
     async function getProgress() {
       console.log("listening for progress on tab", tab);
       const unlisten = await listen<ProgressPayload>(
-        "download_progress",
+        "search_progress",
         async ({ payload }) => {
           if (payload.id !== tab) return;
           if (payload.finished) {

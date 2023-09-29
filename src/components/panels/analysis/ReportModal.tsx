@@ -97,12 +97,14 @@ function ReportModal({
             withAsterisk
             label="Engine"
             placeholder="Pick one"
-            data={engines!.map((engine) => {
-              return {
-                value: engine.path,
-                label: engine.name,
-              };
-            })}
+            data={
+              engines?.map((engine) => {
+                return {
+                  value: engine.path,
+                  label: engine.name,
+                };
+              }) ?? []
+            }
             {...form.getInputProps("engine")}
           />
           <NumberInput

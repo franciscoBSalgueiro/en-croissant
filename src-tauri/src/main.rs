@@ -38,7 +38,7 @@ use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
     get_players_game_info, get_tournaments, search_position,
 };
-use crate::fide::find_fide_player;
+use crate::fide::{find_fide_player, download_fide_db};
 use crate::fs::{append_to_file, set_file_as_executable};
 use crate::lexer::lex_pgn;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -235,6 +235,7 @@ fn main() {
             create_indexes,
             lex_pgn,
             find_fide_player,
+            download_fide_db,
             similar_structure
         ])
         .run(tauri::generate_context!())

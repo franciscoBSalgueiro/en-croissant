@@ -261,7 +261,7 @@ pub async fn search_position(
             if (index + 1) % 10000 == 0 {
                 info!("{} games processed: {:?}", index + 1, start.elapsed());
                 app.emit_all(
-                    "download_progress",
+                    "search_progress",
                     ProgressPayload {
                         progress: (index as f64 / games.len() as f64) * 100.0,
                         id: tab_id.clone(),

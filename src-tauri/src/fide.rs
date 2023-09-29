@@ -1,6 +1,6 @@
 use std::{
-    fs::File,
-    io::{BufReader, BufWriter, Cursor},
+    fs::{remove_file, File},
+    io::{BufReader, BufWriter},
 };
 
 use bincode::{config, Decode, Encode};
@@ -9,16 +9,12 @@ use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use strsim::jaro_winkler;
 use tauri::{
-    api::{
-        http::{ClientBuilder, HttpRequestBuilder, ResponseType},
-        path::{resolve_path, BaseDirectory},
-    },
+    api::path::{app_config_dir, resolve_path, BaseDirectory},
     Manager,
 };
-use zip::ZipArchive;
 
 use crate::error::Error;
-use crate::AppState;
+use crate::{fs::download_file, AppState};
 
 #[derive(Debug, Deserialize, Serialize, Type, Clone, Decode, Encode)]
 pub struct FidePlayer {
@@ -83,27 +79,59 @@ pub struct PlayersList {
     pub players: Vec<FidePlayer>,
 }
 
-async fn download_fide_db() -> Result<PlayersList, Error> {
-    let client = ClientBuilder::new().build()?;
-    let res = client
-        .send(
-            HttpRequestBuilder::new(
-                "GET",
-                "http://ratings.fide.com/download/players_list_xml.zip",
-            )?
-            .response_type(ResponseType::Binary),
-        )
-        .await?;
+#[tauri::command]
+pub async fn download_fide_db(
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<(), Error> {
+    let fide_path = resolve_path(
+        &app.config(),
+        app.package_info(),
+        &app.env(),
+        "fide.bin",
+        Some(BaseDirectory::AppData),
+    )?;
 
-    let data = res.bytes().await?.data;
+    download_file(
+        0,
+        "http://ratings.fide.com/download/players_list_xml.zip".to_string(),
+        app_config_dir(&app.config()).unwrap(),
+        true,
+        app.clone(),
+        None,
+        Some(false),
+    )
+    .await?;
 
-    let cursor = Cursor::new(data);
+    let xml_path = resolve_path(
+        &app.config(),
+        app.package_info(),
+        &app.env(),
+        "players_list_xml_foa.xml",
+        Some(BaseDirectory::AppData),
+    )?;
 
-    let mut archive = ZipArchive::new(cursor)?;
-    let reader = BufReader::new(archive.by_index(0)?);
-
+    let reader = BufReader::new(File::open(&xml_path)?);
     let players_list: PlayersList = from_reader(reader)?;
-    Ok(players_list)
+
+    let mut out_file = BufWriter::new(File::create(&fide_path)?);
+    bincode::encode_into_std_write(&players_list.players, &mut out_file, config::standard())?;
+
+    let mut fide_players = state.fide_players.write().await;
+    *fide_players = players_list.players;
+
+    app.emit_all(
+        "download_progress",
+        crate::fs::ProgressPayload {
+            progress: 100.0,
+            id: 0,
+            finished: true,
+        },
+    )?;
+
+    remove_file(&xml_path)?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -126,27 +154,9 @@ pub async fn find_fide_player(
             Some(BaseDirectory::AppData),
         )?;
 
-        let mut should_download = false;
-
         if let Ok(f) = File::open(&fide_path) {
-            let modified = f.metadata()?.modified()?;
-            if modified.elapsed().unwrap().as_secs() > 60 * 60 * 24 * 30 {
-                should_download = true;
-            } else {
-                let mut fide_players = state.fide_players.write().await;
-                *fide_players = bincode::decode_from_reader(BufReader::new(f), config)?;
-            }
-        } else {
-            should_download = true;
-        }
-        if should_download {
-            let players_list = download_fide_db().await?;
-
-            let mut out_file = BufWriter::new(File::create(&fide_path)?);
-            bincode::encode_into_std_write(&players_list.players, &mut out_file, config)?;
-
             let mut fide_players = state.fide_players.write().await;
-            *fide_players = players_list.players;
+            *fide_players = bincode::decode_from_reader(BufReader::new(f), config)?;
         }
     }
 
