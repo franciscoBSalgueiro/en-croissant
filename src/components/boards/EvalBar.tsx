@@ -28,12 +28,14 @@ function EvalBar({
           sx={{
             height: `${100 - progress}%`,
             backgroundColor: theme.colors.dark[4],
+            transition: "height 0.2s ease",
           }}
         />
         <Box
           sx={{
             height: `${progress}%`,
             backgroundColor: theme.colors.gray[2],
+            transition: "height 0.2s ease",
           }}
         />
       </>
