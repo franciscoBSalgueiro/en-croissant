@@ -343,9 +343,6 @@ export async function getOpening(
     root: TreeNode,
     position: number[]
 ): Promise<string> {
-    if (position.length === 0) {
-        return "";
-    }
     const tree = getNodeAtPath(root, position);
     if (tree === null) {
         return "";

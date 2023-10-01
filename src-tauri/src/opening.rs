@@ -1,20 +1,17 @@
-use std::collections::HashMap;
-
 use log::info;
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen,
-    san::San,
-    zobrist::{Zobrist64, ZobristHash},
-    CastlingMode, Chess, EnPassantMode, Position,
-};
+use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position};
 
 use lazy_static::lazy_static;
+use strsim::jaro_winkler;
 
-#[derive(Serialize, Debug)]
+use crate::error::Error;
+
+#[derive(Serialize, Debug, Clone)]
 pub struct Opening {
     eco: String,
     name: String,
+    fen: String,
 }
 
 #[derive(Deserialize)]
@@ -33,30 +30,70 @@ const TSV_DATA: [&[u8]; 5] = [
 ];
 
 #[tauri::command]
-pub fn get_opening_from_fen(fen: &str) -> Result<&str, &str> {
-    let fen: Fen = fen.parse().or(Err("Invalid FEN"))?;
-    let pos: Chess = fen
-        .into_position(CastlingMode::Standard)
-        .or(Err("Invalid Position"))?;
-    let hash: Zobrist64 = pos.zobrist_hash(EnPassantMode::Legal);
+pub fn get_opening_from_fen(fen: &str) -> Result<&str, Error> {
     OPENINGS
-        .get(&hash)
+        .iter()
+        .find(|o| o.fen == fen)
         .map(|o| o.name.as_str())
-        .ok_or("No opening found")
+        .ok_or(Error::NoOpeningFound)
 }
 
-pub fn get_opening_from_eco(eco: &str) -> Result<&str, &str> {
+pub fn get_opening_from_eco(eco: &str) -> Result<&str, Error> {
     OPENINGS
-        .values()
+        .iter()
         .find(|o| o.eco == eco)
         .map(|o| o.name.as_str())
-        .ok_or("No opening found")
+        .ok_or(Error::NoOpeningFound)
+}
+
+#[tauri::command]
+pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
+    let mut best_matches: Vec<(Opening, f64)> = Vec::new();
+
+    for opening in OPENINGS.iter() {
+        if best_matches.iter().any(|(m, _)| m.name == opening.name) {
+            continue;
+        }
+
+        let score = jaro_winkler(&query, &opening.name);
+
+        if best_matches.len() < 15 {
+            best_matches.push((opening.clone(), score));
+            best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        } else if let Some(min_score) = best_matches.last().map(|(_, s)| *s) {
+            if score > min_score {
+                best_matches.pop();
+                best_matches.push((opening.clone(), score));
+                best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            }
+        }
+    }
+
+    if !best_matches.is_empty() {
+        let best_matches_names = best_matches.iter().map(|(o, _)| o.clone()).collect();
+        Ok(best_matches_names)
+    } else {
+        Err(Error::NoMatchFound)
+    }
 }
 
 lazy_static! {
-    static ref OPENINGS: HashMap<Zobrist64, Opening> = {
+    static ref OPENINGS: Vec<Opening> = {
         info!("Initializing openings table...");
-        let mut map = HashMap::new();
+
+        let mut positions = vec![
+            Opening {
+                eco: "Extra".to_string(),
+                name: "Starting Position".to_string(),
+                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+            },
+            Opening {
+                eco: "Extra".to_string(),
+                name: "Empty Board".to_string(),
+                fen: "8/8/8/8/8/8/8/8 w - - 0 1".to_string(),
+            },
+        ];
+
         for tsv in TSV_DATA {
             let mut rdr = csv::ReaderBuilder::new().delimiter(b'\t').from_reader(tsv);
             for result in rdr.deserialize() {
@@ -67,16 +104,15 @@ lazy_static! {
                         pos.play_unchecked(&san.to_move(&pos).expect("legal move"));
                     }
                 }
-                map.insert(
-                    pos.zobrist_hash(EnPassantMode::Legal),
-                    Opening {
-                        eco: record.eco,
-                        name: record.name,
-                    },
-                );
+                let fen = Fen::from_position(pos.clone(), EnPassantMode::Legal);
+                positions.push(Opening {
+                    eco: record.eco,
+                    name: record.name,
+                    fen: fen.to_string(),
+                });
             }
         }
-        map
+        positions
     };
 }
 
