@@ -10,11 +10,15 @@ use shakmaty::{
 };
 
 use lazy_static::lazy_static;
+use strsim::jaro_winkler;
 
-#[derive(Serialize, Debug)]
+use crate::error::Error;
+
+#[derive(Serialize, Debug, Clone)]
 pub struct Opening {
     eco: String,
     name: String,
+    fen: String,
 }
 
 #[derive(Deserialize)]
@@ -45,6 +49,37 @@ pub fn get_opening_from_fen(fen: &str) -> Result<&str, &str> {
         .ok_or("No opening found")
 }
 
+#[tauri::command]
+pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
+    let mut best_matches: Vec<(Opening, f64)> = Vec::new();
+
+    for opening in OPENINGS.values() {
+        if best_matches.iter().any(|(m, _)| m.name == opening.name) {
+            continue;
+        }
+
+        let score = jaro_winkler(&query, &opening.name);
+
+        if best_matches.len() < 15 {
+            best_matches.push((opening.clone(), score));
+            best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        } else if let Some(min_score) = best_matches.last().map(|(_, s)| *s) {
+            if score > min_score {
+                best_matches.pop();
+                best_matches.push((opening.clone(), score));
+                best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            }
+        }
+    }
+
+    if !best_matches.is_empty() {
+        let best_matches_names = best_matches.iter().map(|(o, _)| o.clone()).collect();
+        Ok(best_matches_names)
+    } else {
+        Err(Error::NoMatchFound)
+    }
+}
+
 pub fn get_opening_from_eco(eco: &str) -> Result<&str, &str> {
     OPENINGS
         .values()
@@ -67,11 +102,13 @@ lazy_static! {
                         pos.play_unchecked(&san.to_move(&pos).expect("legal move"));
                     }
                 }
+                let fen = Fen::from_position(pos.clone(), EnPassantMode::Legal);
                 map.insert(
                     pos.zobrist_hash(EnPassantMode::Legal),
                     Opening {
                         eco: record.eco,
                         name: record.name,
+                        fen: fen.to_string(),
                     },
                 );
             }

@@ -47,7 +47,7 @@ use crate::{
     chess::get_best_moves,
     db::{edit_db_info, get_db_info, get_games, get_players},
     fs::download_file,
-    opening::get_opening_from_fen,
+    opening::{get_opening_from_fen, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
 
@@ -204,6 +204,7 @@ fn main() {
             download_file,
             get_best_moves,
             get_opening_from_fen,
+            search_opening_name,
             get_puzzle,
             get_games,
             get_players,
