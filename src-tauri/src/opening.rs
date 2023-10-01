@@ -1,13 +1,6 @@
-use std::collections::HashMap;
-
 use log::info;
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen,
-    san::San,
-    zobrist::{Zobrist64, ZobristHash},
-    CastlingMode, Chess, EnPassantMode, Position,
-};
+use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position};
 
 use lazy_static::lazy_static;
 use strsim::jaro_winkler;
@@ -37,23 +30,27 @@ const TSV_DATA: [&[u8]; 5] = [
 ];
 
 #[tauri::command]
-pub fn get_opening_from_fen(fen: &str) -> Result<&str, &str> {
-    let fen: Fen = fen.parse().or(Err("Invalid FEN"))?;
-    let pos: Chess = fen
-        .into_position(CastlingMode::Standard)
-        .or(Err("Invalid Position"))?;
-    let hash: Zobrist64 = pos.zobrist_hash(EnPassantMode::Legal);
+pub fn get_opening_from_fen(fen: &str) -> Result<&str, Error> {
     OPENINGS
-        .get(&hash)
+        .iter()
+        .find(|o| o.fen == fen)
         .map(|o| o.name.as_str())
-        .ok_or("No opening found")
+        .ok_or(Error::NoOpeningFound)
+}
+
+pub fn get_opening_from_eco(eco: &str) -> Result<&str, Error> {
+    OPENINGS
+        .iter()
+        .find(|o| o.eco == eco)
+        .map(|o| o.name.as_str())
+        .ok_or(Error::NoOpeningFound)
 }
 
 #[tauri::command]
 pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
     let mut best_matches: Vec<(Opening, f64)> = Vec::new();
 
-    for opening in OPENINGS.values() {
+    for opening in OPENINGS.iter() {
         if best_matches.iter().any(|(m, _)| m.name == opening.name) {
             continue;
         }
@@ -80,18 +77,23 @@ pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
     }
 }
 
-pub fn get_opening_from_eco(eco: &str) -> Result<&str, &str> {
-    OPENINGS
-        .values()
-        .find(|o| o.eco == eco)
-        .map(|o| o.name.as_str())
-        .ok_or("No opening found")
-}
-
 lazy_static! {
-    static ref OPENINGS: HashMap<Zobrist64, Opening> = {
+    static ref OPENINGS: Vec<Opening> = {
         info!("Initializing openings table...");
-        let mut map = HashMap::new();
+
+        let mut positions = vec![
+            Opening {
+                eco: "Extra".to_string(),
+                name: "Starting Position".to_string(),
+                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+            },
+            Opening {
+                eco: "Extra".to_string(),
+                name: "Empty Board".to_string(),
+                fen: "8/8/8/8/8/8/8/8 w - - 0 1".to_string(),
+            },
+        ];
+
         for tsv in TSV_DATA {
             let mut rdr = csv::ReaderBuilder::new().delimiter(b'\t').from_reader(tsv);
             for result in rdr.deserialize() {
@@ -103,17 +105,14 @@ lazy_static! {
                     }
                 }
                 let fen = Fen::from_position(pos.clone(), EnPassantMode::Legal);
-                map.insert(
-                    pos.zobrist_hash(EnPassantMode::Legal),
-                    Opening {
-                        eco: record.eco,
-                        name: record.name,
-                        fen: fen.to_string(),
-                    },
-                );
+                positions.push(Opening {
+                    eco: record.eco,
+                    name: record.name,
+                    fen: fen.to_string(),
+                });
             }
         }
-        map
+        positions
     };
 }
 

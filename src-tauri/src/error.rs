@@ -68,6 +68,9 @@ pub enum Error {
     #[error("Missing reference database")]
     MissingReferenceDatabase,
 
+    #[error("No opening found")]
+    NoOpeningFound,
+
     #[error("No match found")]
     NoMatchFound,
 
