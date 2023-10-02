@@ -9,8 +9,7 @@ import {
   Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Chess } from "chess.js";
-import { memo, useContext, useMemo } from "react";
+import { memo, useContext } from "react";
 import { MoveAnalysis } from "@/utils/chess";
 import { useEngines } from "@/utils/engines";
 import { formatDuration } from "@/utils/format";
@@ -18,15 +17,16 @@ import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
 import { referenceDbAtom } from "@/atoms/atoms";
-import { error } from "tauri-plugin-log-api";
 
 function ReportModal({
+  initialFen,
   moves,
   reportingMode,
   toggleReportingMode,
   setInProgress,
 }: {
-  moves: string;
+  initialFen: string;
+  moves: string[];
   reportingMode: boolean;
   toggleReportingMode: () => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
@@ -34,18 +34,6 @@ function ReportModal({
   const referenceDb = useAtomValue(referenceDbAtom);
   const { engines } = useEngines();
   const dispatch = useContext(TreeDispatchContext);
-
-  const uciMoves = useMemo(() => {
-    const chess = new Chess();
-    let uciMoves: string[] = [];
-    try {
-      chess.loadPgn(moves);
-      uciMoves = chess.history();
-    } catch (e) {
-      error(e as string);
-    }
-    return uciMoves;
-  }, [moves]);
 
   const form = useForm({
     initialValues: {
@@ -72,7 +60,8 @@ function ReportModal({
     setInProgress(true);
     toggleReportingMode();
     invoke<MoveAnalysis[]>("analyze_game", {
-      moves: uciMoves.join(" "),
+      fen: initialFen,
+      moves,
       engine: form.values.engine,
       annotateNovelties: form.values.novelty,
       moveTime: form.values.millisecondsPerMove,
@@ -123,7 +112,7 @@ function ReportModal({
 
           <Text size="sm">
             Estimated time:{" "}
-            {formatDuration(uciMoves.length * form.values.millisecondsPerMove)}
+            {formatDuration(moves.length * form.values.millisecondsPerMove)}
           </Text>
 
           <Group position="right">

@@ -190,6 +190,18 @@ export function getMoveText(
     return moveText;
 }
 
+export function getMainLine(root: TreeNode): string[] {
+    const moves = [];
+    let node = root;
+    while (node.children.length > 0) {
+        node = node.children[0];
+        if (node.move) {
+            moves.push(node.move.san);
+        }
+    }
+    return moves;
+}
+
 export function getPGN(
     tree: TreeNode,
     {

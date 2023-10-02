@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
-import { getPGN } from "@/utils/chess";
+import { getMainLine } from "@/utils/chess";
 import { getBoardSize } from "@/utils/misc";
 import { invoke } from "@/utils/invoke";
 
@@ -27,7 +27,11 @@ import BoardPlay from "./BoardPlay";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
 import { useAtom, useAtomValue } from "jotai";
-import { autoSaveAtom, currentTabAtom, currentTabSelectedAtom } from "@/atoms/atoms";
+import {
+  autoSaveAtom,
+  currentTabAtom,
+  currentTabSelectedAtom,
+} from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
 
 function BoardAnalysis() {
@@ -84,17 +88,15 @@ function BoardAnalysis() {
 
   useHotkeys([["Ctrl+S", () => saveFile()]]);
 
-  const [currentTabSelected, setCurrentTabSelected] = useAtom(currentTabSelectedAtom);
+  const [currentTabSelected, setCurrentTabSelected] = useAtom(
+    currentTabSelectedAtom
+  );
 
   return (
     <>
       <ReportModal
-        moves={getPGN(root, {
-          headers: null,
-          comments: false,
-          specialSymbols: false,
-          symbols: false,
-        })}
+        initialFen={root.fen}
+        moves={getMainLine(root)}
         reportingMode={reportingMode}
         toggleReportingMode={toggleReportingMode}
         setInProgress={setInProgress}
@@ -169,7 +171,11 @@ function BoardAnalysis() {
           <Stack>
             <GameNotation
               boardSize={
-                notationExpanded ? 1750 : window.innerWidth > 1000 ? boardSize : 600
+                notationExpanded
+                  ? 1750
+                  : window.innerWidth > 1000
+                  ? boardSize
+                  : 600
               }
               setNotationExpanded={setNotationExpanded}
               notationExpanded={notationExpanded}

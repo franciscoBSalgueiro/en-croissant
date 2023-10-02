@@ -315,7 +315,8 @@ pub struct MoveAnalysis {
 
 #[tauri::command]
 pub async fn analyze_game(
-    moves: String,
+    fen: String,
+    moves: Vec<String>,
     annotate_novelties: bool,
     engine: String,
     move_time: usize,
@@ -330,8 +331,9 @@ pub async fn analyze_game(
 
     let mut child = start_engine(path)?;
     let (mut stdin, mut stdout) = get_handles(&mut child)?;
+    let fen = Fen::from_ascii(fen.as_bytes())?;
 
-    let mut chess = Chess::default();
+    let mut chess: Chess = fen.into_position(CastlingMode::Standard)?;
 
     send_command(
         &mut stdin,
@@ -344,12 +346,11 @@ pub async fn analyze_game(
     )
     .await;
 
-    let splitted_moves: Vec<&str> = moves.split_whitespace().collect();
-    let len_moves = splitted_moves.len();
+    let len_moves = moves.len();
 
     let mut novelty_found = false;
 
-    for (i, m) in splitted_moves.iter().enumerate() {
+    for (i, m) in moves.iter().enumerate() {
         app.emit_all(
             "report_progress",
             ProgressPayload {
