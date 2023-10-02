@@ -32,7 +32,7 @@ use tauri_plugin_log::LogTarget;
 
 use crate::chess::{
     analyze_game, get_engine_name, get_single_best_move, make_move, make_random_move, put_piece,
-    similar_structure, validate_fen,
+    similar_structure, validate_fen, get_pieces_count,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
@@ -225,6 +225,7 @@ fn main() {
             put_piece,
             make_move,
             make_random_move,
+            get_pieces_count,
             set_file_as_executable,
             validate_fen,
             count_pgn_games,

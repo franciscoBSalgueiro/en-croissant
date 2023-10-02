@@ -32,6 +32,7 @@ import {
     TreeState,
 } from "./treeReducer";
 import { MantineColor } from "@mantine/core";
+import useSWR from 'swr';
 
 export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
 
@@ -629,31 +630,17 @@ export type PiecesCount = {
     q: number;
 };
 
-export function getMaterialDiff(fen: string) {
-    const chess = new Chess(fen);
+export function useMaterialDiff(fen: string) {
+    return useSWR(["material-diff", fen], async () => {
+        const pieces = await invoke<PiecesCount>("get_pieces_count", { fen: fen });
 
-    const pieces: PiecesCount = {
-        p: 0,
-        n: 0,
-        b: 0,
-        r: 0,
-        q: 0,
-    };
+        const diff =
+            pieces.p * 1 +
+            pieces.n * 3 +
+            pieces.b * 3 +
+            pieces.r * 5 +
+            pieces.q * 8;
 
-    const board = chess.board();
-    for (const row of board) {
-        for (const square of row) {
-            if (square === null || square.type === "k") continue;
-            pieces[square.type] += square.color === "w" ? 1 : -1;
-        }
-    }
-
-    const diff =
-        pieces.p * 1 +
-        pieces.n * 3 +
-        pieces.b * 3 +
-        pieces.r * 5 +
-        pieces.q * 8;
-
-    return { pieces, diff };
+        return { pieces, diff };
+    });
 }
