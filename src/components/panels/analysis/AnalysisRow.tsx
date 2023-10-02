@@ -26,7 +26,7 @@ function AnalysisRow({
 
   return (
     <tr style={{ verticalAlign: "top" }}>
-      <td>
+      <td width={70}>
         <ScoreBubble score={score} />
       </td>
       <td>
@@ -68,7 +68,7 @@ function AnalysisRow({
           })}
         </Flex>
       </td>
-      <td>
+      <td width={10}>
         <ActionIcon
           style={{
             transition: "transform 200ms ease",
