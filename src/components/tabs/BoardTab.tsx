@@ -44,12 +44,14 @@ const useStyles = createStyles(
 
 export function BoardTab({
   tab,
+  setActiveTab,
   closeTab,
   renameTab,
   duplicateTab,
   selected,
 }: {
   tab: Tab;
+  setActiveTab: (v: string) => void;
   closeTab: (v: string) => void;
   renameTab: (v: string, n: string) => void;
   duplicateTab: (v: string) => void;
@@ -92,6 +94,11 @@ export function BoardTab({
                 }}
               />
             }
+            onPointerDown={(e) => {
+              if (e.button == 0) {
+                setActiveTab(tab.value);
+              }
+            }}
             onDoubleClick={() => toggleRenaming(true)}
             onAuxClick={(e) => {
               // middle button click
