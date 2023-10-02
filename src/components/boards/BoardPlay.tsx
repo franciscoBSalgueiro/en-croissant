@@ -135,7 +135,7 @@ function BoardPlay({
       type: "SET_HEADERS",
       payload: {
         ...headers,
-        orientation: headers.orientation === "white" ? "black" : "white",
+        orientation: headers.orientation === "black" ? "white" : "black",
       },
     });
 
