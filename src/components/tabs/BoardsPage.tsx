@@ -20,6 +20,7 @@ import { useAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import { match } from "ts-pattern";
+import { Reorder } from "framer-motion";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -180,21 +181,38 @@ export default function BoardsPage() {
         my="md"
         keepMounted={false}
       >
-        <Stack pos="relative">
+        <Stack>
           <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
-            <Group spacing={0} sx={{ flexWrap: "nowrap" }}>
-              <Tabs.List sx={{ flexWrap: "nowrap" }}>
-                {tabs.map((tab) => (
+            <Reorder.Group
+              axis="x"
+              as="div"
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                overflow: "hidden",
+                marginBlockStart: 0,
+              }}
+              layoutScroll
+              values={tabs}
+              onReorder={setTabs}
+            >
+              {tabs.map((tab) => (
+                <Reorder.Item
+                  key={tab.value}
+                  value={tab}
+                  as="div"
+                  onClick={() => setActiveTab(tab.value)}
+                >
                   <BoardTab
-                    key={tab.value}
                     tab={tab}
+                    setActiveTab={setActiveTab}
                     closeTab={closeTab}
                     renameTab={renameTab}
                     duplicateTab={duplicateTab}
                     selected={activeTab === tab.value}
                   />
-                ))}
-              </Tabs.List>
+                </Reorder.Item>
+              ))}
               <ActionIcon
                 onClick={() =>
                   createTab({
@@ -210,7 +228,7 @@ export default function BoardsPage() {
               >
                 <IconPlus size={16} />
               </ActionIcon>
-            </Group>
+            </Reorder.Group>
           </ScrollArea>
 
           {tabs.map((tab) => (
