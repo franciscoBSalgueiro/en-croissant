@@ -362,7 +362,7 @@ export async function getOpening(
     }
     return invoke<string>("get_opening_from_fen", { fen: tree.fen })
         .then((v) => v)
-        .catch(() => getOpening(root, position.slice(0, -1)));
+        .catch(() => position.length === 0 ? "" : getOpening(root, position.slice(0, -1)));
 }
 
 export function swapMove(fen: string, color?: Color) {
