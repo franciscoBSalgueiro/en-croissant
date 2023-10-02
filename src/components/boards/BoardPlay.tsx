@@ -25,13 +25,13 @@ import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { memo, useContext, useMemo, useState } from "react";
 import {
-  getMaterialDiff,
   handleMove,
   moveToKey,
   parseKeyboardMove,
   parseUci,
   PiecesCount,
   toDests,
+  useMaterialDiff,
 } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
 import { formatMove } from "@/utils/format";
@@ -256,7 +256,7 @@ function BoardPlay({
     [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
   );
 
-  const { pieces, diff } = getMaterialDiff(currentNode.fen);
+  const { data } = useMaterialDiff(currentNode.fen);
 
   const practiceLock =
     !!practicing && !deck.find((c) => c.fen === currentNode.fen);
@@ -296,14 +296,22 @@ function BoardPlay({
             orientation={orientation}
           />
           <Box sx={{ position: "absolute", top: -30 }}>
-            <ShowMaterial
-              diff={diff}
-              pieces={pieces}
-              color={orientation === "white" ? "black" : "white"}
-            />
+            {data && (
+              <ShowMaterial
+                diff={data?.diff}
+                pieces={data?.pieces}
+                color={orientation === "white" ? "black" : "white"}
+              />
+            )}
           </Box>
           <Box sx={{ position: "absolute", bottom: -30 }}>
-            <ShowMaterial diff={diff} pieces={pieces} color={orientation} />
+            {data && (
+              <ShowMaterial
+                diff={data.diff}
+                pieces={data.pieces}
+                color={orientation}
+              />
+            )}
           </Box>
           <Chessground
             width={boardSize}

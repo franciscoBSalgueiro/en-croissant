@@ -555,3 +555,45 @@ pub async fn similar_structure(fen: String) -> Result<String, Error> {
 
     Ok(Fen::from_setup(setup).to_string())
 }
+
+#[derive(Serialize, Debug)]
+pub struct PieceCount {
+    pub p: i64,
+    pub n: i64,
+    pub b: i64,
+    pub r: i64,
+    pub q: i64,
+}
+
+#[tauri::command]
+pub async fn get_pieces_count(fen: String) -> Result<PieceCount, Error> {
+    let fen: Fen = fen.parse()?;
+    let setup = fen.as_setup().clone();
+
+    let mut counts = PieceCount {
+        p: 0,
+        n: 0,
+        b: 0,
+        r: 0,
+        q: 0,
+    };
+
+    for square in Square::ALL.iter() {
+        if let Some(piece) = setup.board.piece_at(*square) {
+            let color = match piece.color {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+            match piece.role {
+                Role::Pawn => counts.p += color,
+                Role::Knight => counts.n += color,
+                Role::Bishop => counts.b += color,
+                Role::Rook => counts.r += color,
+                Role::Queen => counts.q += color,
+                _ => (),
+            }
+        }
+    }
+
+    Ok(counts)
+}
