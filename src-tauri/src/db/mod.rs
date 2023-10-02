@@ -1062,8 +1062,14 @@ pub async fn get_players_game_info(
         assert!(is_white || black_id == id);
 
         match outcome.unwrap_or_default().as_str() {
-            "1-0" => game_info.won += 1,
-            "0-1" => game_info.lost += 1,
+            "1-0" => match is_white {
+                true => game_info.won += 1,
+                false => game_info.lost += 1,
+            },
+            "0-1" => match is_white {
+                true => game_info.lost += 1,
+                false => game_info.won += 1,
+            },
             "1/2-1/2" => game_info.draw += 1,
             _ => (),
         }
