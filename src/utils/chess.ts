@@ -651,7 +651,7 @@ export function useMaterialDiff(fen: string) {
             pieces.n * 3 +
             pieces.b * 3 +
             pieces.r * 5 +
-            pieces.q * 8;
+            pieces.q * 9;
 
         return { pieces, diff };
     });
