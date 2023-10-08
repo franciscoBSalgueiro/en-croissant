@@ -23,7 +23,7 @@ export default function CoresSlide({
     <>
       <Slider
         min={0}
-        max={6}
+        max={Math.log2(navigator.hardwareConcurrency)}
         value={tempValue}
         onChange={setTempValue}
         onChangeEnd={setValue}
