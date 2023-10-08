@@ -37,7 +37,6 @@ export default function EditEngine({
       opened={opened}
       onClose={() => setOpened(false)}
       title="Edit Engine"
-      scrollAreaComponent={ScrollArea.Autosize}
     >
       <EngineForm
         submitLabel="Save"

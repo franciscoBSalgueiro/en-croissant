@@ -87,12 +87,7 @@ function AddEngine({
   });
 
   return (
-    <Modal
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title="Add Engine"
-      scrollAreaComponent={ScrollArea.Autosize}
-    >
+    <Modal opened={opened} onClose={() => setOpened(false)} title="Add Engine">
       <Tabs defaultValue="web">
         <Tabs.List>
           <Tabs.Tab value="web">Web</Tabs.Tab>
@@ -104,27 +99,29 @@ function AddEngine({
               <Loader />
             </Center>
           )}
-          <Stack>
-            {defaultEngines &&
-              defaultEngines.map((engine, i) => (
-                <EngineCard
-                  engine={engine}
-                  engineId={i}
-                  key={i}
-                  setEngines={setEngines}
-                  initInstalled={engines.some((e) => e.name === engine.name)}
-                />
-              ))}
-            {error && (
-              <Alert
-                icon={<IconAlertCircle size="1rem" />}
-                title="Error"
-                color="red"
-              >
-                {"Failed to fetch the engine's info from the server."}
-              </Alert>
-            )}
-          </Stack>
+          <ScrollArea.Autosize mah={500} offsetScrollbars>
+            <Stack>
+              {defaultEngines &&
+                defaultEngines.map((engine, i) => (
+                  <EngineCard
+                    engine={engine}
+                    engineId={i}
+                    key={i}
+                    setEngines={setEngines}
+                    initInstalled={engines.some((e) => e.name === engine.name)}
+                  />
+                ))}
+              {error && (
+                <Alert
+                  icon={<IconAlertCircle size="1rem" />}
+                  title="Error"
+                  color="red"
+                >
+                  {"Failed to fetch the engine's info from the server."}
+                </Alert>
+              )}
+            </Stack>
+          </ScrollArea.Autosize>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm

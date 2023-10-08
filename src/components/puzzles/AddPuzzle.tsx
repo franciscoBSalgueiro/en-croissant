@@ -66,28 +66,29 @@ function AddPuzzle({
       opened={opened}
       onClose={() => setOpened(false)}
       title="Add Database"
-      scrollAreaComponent={ScrollArea.Autosize}
     >
-      <Stack>
-        {defaultdatabases.map((db, i) => (
-          <PuzzleDbCard
-            puzzleDb={db}
-            databaseId={i}
-            key={i}
-            setPuzzleDbs={setPuzzleDbs}
-            initInstalled={puzzleDbs.some((e) => e.title === db.title)}
-          />
-        ))}
-        {error && (
-          <Alert
-            icon={<IconAlertCircle size="1rem" />}
-            title="Error"
-            color="red"
-          >
-            {"Failed to fetch the database's info from the server."}
-          </Alert>
-        )}
-      </Stack>
+      <ScrollArea.Autosize mah={500} offsetScrollbars>
+        <Stack>
+          {defaultdatabases.map((db, i) => (
+            <PuzzleDbCard
+              puzzleDb={db}
+              databaseId={i}
+              key={i}
+              setPuzzleDbs={setPuzzleDbs}
+              initInstalled={puzzleDbs.some((e) => e.title === db.title)}
+            />
+          ))}
+          {error && (
+            <Alert
+              icon={<IconAlertCircle size="1rem" />}
+              title="Error"
+              color="red"
+            >
+              {"Failed to fetch the database's info from the server."}
+            </Alert>
+          )}
+        </Stack>
+      </ScrollArea.Autosize>
     </Modal>
   );
 }
