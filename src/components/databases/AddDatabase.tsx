@@ -94,7 +94,6 @@ function AddDatabase({
       opened={opened}
       onClose={() => setOpened(false)}
       title="Add Database"
-      scrollAreaComponent={ScrollArea.Autosize}
     >
       <Tabs defaultValue="web">
         <Tabs.List>
@@ -107,27 +106,29 @@ function AddDatabase({
               <Loader />
             </Center>
           )}
-          <Stack>
-            {defaultDatabases &&
-              defaultDatabases.map((db, i) => (
-                <DatabaseCard
-                  database={db}
-                  databaseId={i}
-                  key={i}
-                  setDatabases={setDatabases}
-                  initInstalled={databases.some((e) => e.title === db.title)}
-                />
-              ))}
-            {error && (
-              <Alert
-                icon={<IconAlertCircle size="1rem" />}
-                title="Error"
-                color="red"
-              >
-                {"Failed to fetch the database's info from the server."}
-              </Alert>
-            )}
-          </Stack>
+          <ScrollArea.Autosize h={500} offsetScrollbars>
+            <Stack>
+              {defaultDatabases &&
+                defaultDatabases.map((db, i) => (
+                  <DatabaseCard
+                    database={db}
+                    databaseId={i}
+                    key={i}
+                    setDatabases={setDatabases}
+                    initInstalled={databases.some((e) => e.title === db.title)}
+                  />
+                ))}
+              {error && (
+                <Alert
+                  icon={<IconAlertCircle size="1rem" />}
+                  title="Error"
+                  color="red"
+                >
+                  {"Failed to fetch the database's info from the server."}
+                </Alert>
+              )}
+            </Stack>
+          </ScrollArea.Autosize>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <form
