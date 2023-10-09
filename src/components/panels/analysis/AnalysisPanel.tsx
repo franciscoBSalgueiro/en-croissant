@@ -137,14 +137,27 @@ const GameStats = memo(
             .filter((a) => a !== "")
             .map((annotation) => {
               const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
+              const { name, color } = ANNOTATION_INFO[s];
+              const w = whiteAnnotations[s];
+              const b = blackAnnotations[s];
               return (
                 <React.Fragment key={annotation}>
-                  <Grid.Col span={4} sx={{ textAlign: "center" }}>
-                    {whiteAnnotations[s]}
+                  <Grid.Col
+                    span={4}
+                    sx={{ textAlign: "center" }}
+                    c={w > 0 ? color : undefined}
+                  >
+                    {w}
                   </Grid.Col>
-                  <Grid.Col span={1}>{annotation}</Grid.Col>
-                  <Grid.Col span={4}>{ANNOTATION_INFO[s].name}</Grid.Col>
-                  <Grid.Col span={2}>{blackAnnotations[s]}</Grid.Col>
+                  <Grid.Col span={1} c={w + b > 0 ? color : undefined}>
+                    {annotation}
+                  </Grid.Col>
+                  <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
+                    {name}
+                  </Grid.Col>
+                  <Grid.Col span={2} c={b > 0 ? color : undefined}>
+                    {b}
+                  </Grid.Col>
                 </React.Fragment>
               );
             })}
