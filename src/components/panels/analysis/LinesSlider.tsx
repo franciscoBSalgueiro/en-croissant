@@ -6,7 +6,7 @@ export default function DepthSlider({
   setValue,
 }: {
   value: number;
-  setValue: React.Dispatch<React.SetStateAction<number>>;
+  setValue: (v: number) => void;
 }) {
   const [tempValue, setTempValue] = useState(value);
   const MARKS = [

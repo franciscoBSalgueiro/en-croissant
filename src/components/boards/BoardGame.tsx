@@ -20,7 +20,6 @@ import { Chess, DEFAULT_POSITION } from "chess.js";
 import { useContext, useEffect, useRef, useState } from "react";
 import BoardLayout from "@/layouts/BoardLayout";
 import { parseUci } from "@/utils/chess";
-import { useEngines } from "@/utils/engines";
 import { invoke } from "@/utils/invoke";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "../common/GameInfo";
@@ -32,7 +31,7 @@ import {
 } from "../common/TreeStateContext";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, enginesAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 
@@ -147,7 +146,7 @@ function BoardGame() {
 
   const boardRef = useRef(null);
 
-  const { engines } = useEngines();
+  const engines = useAtomValue(enginesAtom);
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white"
   );

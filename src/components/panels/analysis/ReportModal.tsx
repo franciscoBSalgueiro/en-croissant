@@ -11,12 +11,11 @@ import {
 import { useForm } from "@mantine/form";
 import { memo, useContext } from "react";
 import { MoveAnalysis } from "@/utils/chess";
-import { useEngines } from "@/utils/engines";
 import { formatDuration } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
-import { referenceDbAtom } from "@/atoms/atoms";
+import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
 
 function ReportModal({
   initialFen,
@@ -32,7 +31,7 @@ function ReportModal({
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const referenceDb = useAtomValue(referenceDbAtom);
-  const { engines } = useEngines();
+  const engines = useAtomValue(enginesAtom);
   const dispatch = useContext(TreeDispatchContext);
 
   const form = useForm({
@@ -87,7 +86,7 @@ function ReportModal({
             label="Engine"
             placeholder="Pick one"
             data={
-              engines?.map((engine) => {
+              engines.map((engine) => {
                 return {
                   value: engine.path,
                   label: engine.name,

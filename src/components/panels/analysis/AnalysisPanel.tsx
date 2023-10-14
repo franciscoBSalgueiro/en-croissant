@@ -1,5 +1,6 @@
 import {
   Accordion,
+  Button,
   Grid,
   Group,
   Paper,
@@ -9,24 +10,33 @@ import {
   Text,
 } from "@mantine/core";
 import { shallowEqual } from "@mantine/hooks";
-import { IconZoomCheck } from "@tabler/icons-react";
-import { memo, useContext } from "react";
+import {
+  IconChevronsRight,
+  IconPlayerPause,
+  IconZoomCheck,
+} from "@tabler/icons-react";
+import { memo, useContext, useMemo } from "react";
 import { ANNOTATION_INFO, getGameStats } from "@/utils/chess";
-import { Engine } from "@/utils/engines";
-import { useLocalFile } from "@/utils/misc";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import React from "react";
+import {
+  activeTabAtom,
+  allEnabledAtom,
+  enableAllAtom,
+  enginesAtom,
+  tabEngineSettingsFamily,
+} from "@/atoms/atoms";
+import { atom, useAtom, useAtomValue } from "jotai";
 
 const labels = {
   action: "Generate report",
   completed: "Report generated",
   inProgress: "Generating report",
 };
-const icon = <IconZoomCheck size={14} />;
 
 function AnalysisPanel({
   boardSize,
@@ -44,10 +54,16 @@ function AnalysisPanel({
   const { root, position } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
 
-  const [engines, setEngines] = useLocalFile<Engine[]>(
-    "engines/engines.json",
-    []
+  const engines = useAtomValue(enginesAtom);
+  const loadedEngines = useMemo(
+    () => engines.filter((e) => e.loaded),
+    [engines]
   );
+
+  const [, enable] = useAtom(enableAllAtom);
+  const allEnabledLoader = useAtomValue(allEnabledAtom);
+  const allEnabled =
+    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
   return (
     <Tabs defaultValue="engines" orientation="vertical" placement="right">
@@ -57,30 +73,39 @@ function AnalysisPanel({
       </Tabs.List>
       <Tabs.Panel value="engines" pt="xs">
         <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
-          <Stack>
+          <Group>
+            <Button
+              rightIcon={
+                allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
+              }
+              variant={allEnabled ? "filled" : "default"}
+              onClick={() => enable(!allEnabled)}
+            >
+              {allEnabled ? "Stop All" : "Run All"}
+            </Button>
+          </Group>
+          <Stack mt="sm">
             <Accordion
               variant="separated"
               multiple
               chevronSize={0}
-              defaultValue={engines.map((e) => e.path)}
+              defaultValue={loadedEngines.map((e) => e.path)}
             >
-              {engines
-                .filter((e) => e.loaded)
-                .map((engine, i) => {
-                  return (
-                    <Accordion.Item key={engine.path} value={engine.path}>
-                      <BestMoves
-                        id={i}
-                        engine={engine}
-                        setArrows={setArrows}
-                        fen={currentNode.fen}
-                        halfMoves={currentNode.halfMoves}
-                      />
-                    </Accordion.Item>
-                  );
-                })}
+              {loadedEngines.map((engine, i) => {
+                return (
+                  <Accordion.Item key={engine.path} value={engine.path}>
+                    <BestMoves
+                      id={i}
+                      engine={engine}
+                      setArrows={setArrows}
+                      fen={currentNode.fen}
+                      halfMoves={currentNode.halfMoves}
+                    />
+                  </Accordion.Item>
+                );
+              })}
             </Accordion>
-            <EngineSelection engines={engines} setEngines={setEngines} />
+            <EngineSelection />
           </Stack>
         </ScrollArea>
       </Tabs.Panel>
@@ -90,7 +115,7 @@ function AnalysisPanel({
           id={0}
           redoable
           disabled={root.children.length === 0}
-          leftIcon={icon}
+          leftIcon={<IconZoomCheck size={14} />}
           onClick={toggleReportingMode}
           initInstalled={false}
           progressEvent="report_progress"

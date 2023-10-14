@@ -1,22 +1,20 @@
-import { Modal, ScrollArea } from "@mantine/core";
+import { Modal } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Dispatch, SetStateAction } from "react";
 import { Engine } from "@/utils/engines";
 import EngineForm from "./EngineForm";
+import { enginesAtom } from "@/atoms/atoms";
+import { useAtom } from "jotai";
 
 export default function EditEngine({
   initialEngine,
-  engines,
   opened,
   setOpened,
-  setEngines,
 }: {
   initialEngine: Engine;
-  engines: Engine[];
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
+  const [engines, setEngines] = useAtom(enginesAtom);
   const form = useForm<Engine>({
     initialValues: initialEngine,
 
@@ -33,17 +31,13 @@ export default function EditEngine({
   });
 
   return (
-    <Modal
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title="Edit Engine"
-    >
+    <Modal opened={opened} onClose={() => setOpened(false)} title="Edit Engine">
       <EngineForm
         submitLabel="Save"
         form={form}
         onSubmit={(values) => {
-          setEngines((prev) =>
-            prev.map((e) => (e === initialEngine ? values : e))
+          setEngines(async (prev) =>
+            (await prev).map((e) => (e === initialEngine ? values : e))
           );
           setOpened(false);
         }}

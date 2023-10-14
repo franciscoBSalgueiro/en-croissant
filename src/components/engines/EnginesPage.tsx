@@ -11,7 +11,6 @@ import {
 import { IconEdit, IconPlus, IconRobot, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { Engine } from "@/utils/engines";
-import { useLocalFile } from "@/utils/misc";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 import { useToggle } from "@mantine/hooks";
@@ -19,22 +18,16 @@ import ConfirmModal from "../common/ConfirmModal";
 import EditEngine from "./EditEngine";
 import { exists } from "@tauri-apps/api/fs";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
+import { useAtom, useAtomValue } from "jotai";
+import { enginesAtom } from "@/atoms/atoms";
 
 export default function EnginePage() {
-  const [engines, setEngines] = useLocalFile<Engine[]>(
-    "engines/engines.json",
-    []
-  );
+  const engines = useAtomValue(enginesAtom);
   const [opened, setOpened] = useState(false);
 
   return (
     <>
-      <AddEngine
-        engines={engines}
-        opened={opened}
-        setOpened={setOpened}
-        setEngines={setEngines}
-      />
+      <AddEngine opened={opened} setOpened={setOpened} />
       <Group align="baseline" ml="lg" mt="xl">
         <Title>Your Engines</Title>
         <OpenFolderButton base="AppDir" folder="engines" />
@@ -50,14 +43,7 @@ export default function EnginePage() {
           </thead>
           <tbody>
             {engines &&
-              engines.map((item) => (
-                <EngineRow
-                  key={item.path}
-                  item={item}
-                  setEngines={setEngines}
-                  engines={engines}
-                />
-              ))}
+              engines.map((item) => <EngineRow key={item.path} item={item} />)}
             <tr>
               <td>
                 <Button
@@ -76,15 +62,8 @@ export default function EnginePage() {
   );
 }
 
-function EngineRow({
-  item,
-  engines,
-  setEngines,
-}: {
-  item: Engine;
-  engines: Engine[];
-  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
-}) {
+function EngineRow({ item }: { item: Engine }) {
+  const [, setEngines] = useAtom(enginesAtom);
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
   const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
@@ -117,14 +96,14 @@ function EngineRow({
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() =>
-          setEngines((prev) => prev.filter((e) => e.name !== item.name))
+          setEngines(async (prev) =>
+            (await prev).filter((e) => e.name !== item.name)
+          )
         }
       />
       <EditEngine
         opened={editModal}
         setOpened={toggleEditModal}
-        engines={engines}
-        setEngines={setEngines}
         initialEngine={item}
       />
 

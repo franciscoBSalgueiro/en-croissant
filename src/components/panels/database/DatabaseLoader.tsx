@@ -20,7 +20,6 @@ function DatabaseLoader({
 
   useEffect(() => {
     async function getProgress() {
-      console.log("listening for progress on tab", tab);
       const unlisten = await listen<ProgressPayload>(
         "search_progress",
         async ({ payload }) => {

@@ -12,7 +12,7 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
-import { useSessionStorage, useToggle } from "@mantine/hooks";
+import { useToggle } from "@mantine/hooks";
 import {
   IconPlayerPause,
   IconPlayerPlay,
@@ -35,8 +35,8 @@ import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
 import { Chess } from "chess.js";
 import AnalysisRow from "./AnalysisRow";
-import { useAtomValue } from "jotai";
-import { activeTabAtom } from "@/atoms/atoms";
+import { useAtom, useAtomValue } from "jotai";
+import { activeTabAtom, tabEngineSettingsFamily } from "@/atoms/atoms";
 import { formatScore } from "@/utils/score";
 
 const useStyles = createStyles((theme) => ({
@@ -66,28 +66,16 @@ export default function BestMovesComponent({
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
   const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
-  const [numberLines, setNumberLines] = useSessionStorage<number>({
-    key: `${activeTab}-${engine.name}-numberLines`,
-    defaultValue: 3,
-  });
-  const [maxDepth, setMaxDepth] = useSessionStorage<number>({
-    key: `${activeTab}-${engine.name}-maxDepth`,
-    defaultValue: 24,
-  });
-  const [cores, setCores] = useSessionStorage<number>({
-    key: `${activeTab}-${engine.name}-cores`,
-    defaultValue: 2,
-  });
-  const [enabled, setEnabled] = useSessionStorage({
-    key: `${activeTab}-${engine.name}-enabled`,
-    defaultValue: false,
-  });
+  const [settings, setSettings] = useAtom(
+    tabEngineSettingsFamily({ engine: engine.name, tab: activeTab! })
+  );
+
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
-  const progress = (depth / maxDepth) * 100;
+  const progress = (depth / settings.maxDepth) * 100;
   const theme = useMantineTheme();
 
   useEffect(() => {
@@ -119,10 +107,10 @@ export default function BestMovesComponent({
 
   useThrottledEffect(
     () => {
-      if (enabled) {
+      if (settings.enabled) {
         const chess = new Chess(fen);
         if (chess.isGameOver()) {
-          setEnabled(false);
+          setSettings((prev) => ({ ...prev, enabled: false }));
           setEngineVariation([]);
         } else {
           emit("stop_engine", engine.path);
@@ -131,9 +119,9 @@ export default function BestMovesComponent({
             tab: activeTab,
             fen: threat ? swapMove(fen) : fen,
             options: {
-              depth: maxDepth,
-              multipv: numberLines,
-              threads: 2 ** cores,
+              depth: settings.maxDepth,
+              multipv: settings.numberLines,
+              threads: 2 ** settings.cores,
             },
           });
         }
@@ -142,16 +130,23 @@ export default function BestMovesComponent({
       }
     },
     50,
-    [enabled, numberLines, maxDepth, cores, threat, fen]
+    [
+      settings.enabled,
+      settings.cores,
+      settings.maxDepth,
+      settings.numberLines,
+      threat,
+      fen,
+    ]
   );
 
   useEffect(() => {
     startTransition(() => {
-      if (!enabled) {
+      if (!settings.enabled) {
         setEngineVariation([]);
       }
     });
-  }, [fen]);
+  }, [settings.enabled]);
 
   return useMemo(
     () => (
@@ -160,15 +155,15 @@ export default function BestMovesComponent({
           <Stack spacing={0}>
             <ActionIcon
               size="lg"
-              variant={enabled ? "filled" : "transparent"}
+              variant={settings.enabled ? "filled" : "transparent"}
               color={theme.primaryColor}
               onClick={() => {
-                setEnabled((v) => !v);
+                setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
               }}
               disabled={chess.isGameOver()}
               ml={12}
             >
-              {enabled ? (
+              {settings.enabled ? (
                 <IconPlayerPause size={16} />
               ) : (
                 <IconPlayerPlay size={16} />
@@ -182,14 +177,16 @@ export default function BestMovesComponent({
                 <Text fw="bold" fz="xl">
                   {engine.name}
                 </Text>
-                {enabled && engineVariations.length === 0 && (
+                {settings.enabled && engineVariations.length === 0 && (
                   <Text>Loading...</Text>
                 )}
-                {progress < 100 && enabled && engineVariations.length > 0 && (
-                  <Tooltip label={"How fast the engine is running"}>
-                    <Text>{nps}k nodes/s</Text>
-                  </Tooltip>
-                )}
+                {progress < 100 &&
+                  settings.enabled &&
+                  engineVariations.length > 0 && (
+                    <Tooltip label={"How fast the engine is running"}>
+                      <Text>{nps}k nodes/s</Text>
+                    </Tooltip>
+                  )}
               </Group>
               <Group spacing="lg">
                 {engineVariations.length > 0 && (
@@ -227,7 +224,7 @@ export default function BestMovesComponent({
             <ActionIcon
               size="lg"
               onClick={() => toggleThreat()}
-              disabled={!enabled}
+              disabled={!settings.enabled}
               variant="transparent"
             >
               <IconTargetArrow color={threat ? "red" : undefined} size={16} />
@@ -239,19 +236,17 @@ export default function BestMovesComponent({
         </Box>
         <EngineSettings
           settingsOn={settingsOn}
-          numberLines={numberLines}
-          setNumberLines={setNumberLines}
-          maxDepth={maxDepth}
-          setMaxDepth={setMaxDepth}
-          cores={cores}
-          setCores={setCores}
+          cores={settings.cores}
+          maxDepth={settings.maxDepth}
+          numberLines={settings.numberLines}
+          setSettings={setSettings}
         />
 
         <Progress
           value={progress}
-          animate={progress < 100 && enabled}
+          animate={progress < 100 && settings.enabled}
           size="xs"
-          striped={progress < 100 && !enabled}
+          striped={progress < 100 && !settings.enabled}
           // color={threat ? "red" : "blue"}
           color={threat ? "red" : theme.primaryColor}
         />
@@ -259,8 +254,8 @@ export default function BestMovesComponent({
           <Table>
             <tbody>
               {engineVariations.length === 0 &&
-                (enabled ? (
-                  [...Array(numberLines)].map((_, i) => (
+                (settings.enabled ? (
+                  [...Array(settings.numberLines)].map((_, i) => (
                     <tr key={i}>
                       <td>
                         <Skeleton height={35} radius="xl" p={5} />
@@ -293,13 +288,13 @@ export default function BestMovesComponent({
       </>
     ),
     [
-      enabled,
+      settings.enabled,
+      settings.numberLines,
+      settings.maxDepth,
+      settings.cores,
       engineVariations,
       threat,
       settingsOn,
-      numberLines,
-      maxDepth,
-      cores,
       progress,
       nps,
       depth,

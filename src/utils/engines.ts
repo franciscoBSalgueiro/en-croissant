@@ -1,4 +1,3 @@
-import { BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
 import useSWR from "swr";
 import { invoke } from "./invoke";
 import { fetch } from "@tauri-apps/api/http";
@@ -12,33 +11,6 @@ export interface Engine {
     downloadSize?: number;
     downloadLink?: string;
     loaded?: boolean;
-}
-
-async function getEngines() {
-    const text = await readTextFile("engines/engines.json", {
-        dir: BaseDirectory.AppData,
-    });
-    if (text === "") {
-        return [];
-    }
-    const data = JSON.parse(text);
-    return data as Engine[];
-}
-
-export function useEngines() {
-    const {
-        data,
-        error,
-        isLoading,
-    } = useSWR("engines", async () => {
-        const engines = await getEngines();
-        return engines;
-    });
-    return {
-        engines: data,
-        error,
-        isLoading,
-    };
 }
 
 type OS = "windows" | "linux" | "macos";

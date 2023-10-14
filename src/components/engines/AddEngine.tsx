@@ -15,7 +15,7 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { Engine, useDefaultEngines } from "@/utils/engines";
 import { formatBytes } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
@@ -23,6 +23,8 @@ import ProgressButton from "../common/ProgressButton";
 import useSWR from "swr";
 import { match } from "ts-pattern";
 import EngineForm from "./EngineForm";
+import { useAtom } from "jotai";
+import { enginesAtom } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -42,16 +44,13 @@ const useStyles = createStyles((theme) => ({
 }));
 
 function AddEngine({
-  engines,
   opened,
   setOpened,
-  setEngines,
 }: {
-  engines: Engine[];
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setEngines: Dispatch<SetStateAction<Engine[]>>;
 }) {
+  const [engines, setEngines] = useAtom(enginesAtom);
   const { data: os } = useSWR("os", async () => {
     const p = await platform();
     const os = match(p)
@@ -107,7 +106,6 @@ function AddEngine({
                     engine={engine}
                     engineId={i}
                     key={i}
-                    setEngines={setEngines}
                     initInstalled={engines.some((e) => e.name === engine.name)}
                   />
                 ))}
@@ -128,7 +126,7 @@ function AddEngine({
             submitLabel="Add"
             form={form}
             onSubmit={(values: Engine) => {
-              setEngines((prev) => [...prev, values]);
+              setEngines(async (prev) => [...(await prev), values]);
               setOpened(false);
             }}
           />
@@ -139,17 +137,16 @@ function AddEngine({
 }
 
 function EngineCard({
-  setEngines,
   engine,
   engineId,
   initInstalled,
 }: {
-  setEngines: Dispatch<SetStateAction<Engine[]>>;
   engine: Engine;
   engineId: number;
   initInstalled: boolean;
 }) {
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [, setEngines] = useAtom(enginesAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
@@ -170,8 +167,8 @@ function EngineCard({
         ...engine.path.split("/")
       );
       await invoke("set_file_as_executable", { path: enginePath });
-      setEngines((prev) => [
-        ...prev,
+      setEngines(async (prev) => [
+        ...(await prev),
         {
           ...engine,
           path: enginePath,

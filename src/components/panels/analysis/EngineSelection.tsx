@@ -6,15 +6,12 @@ import { memo, useEffect, useState } from "react";
 import { Engine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
+import { useAtom, useAtomValue } from "jotai";
+import { enginesAtom } from "@/atoms/atoms";
 
-function EngineBox({
-  engine,
-  setEngines,
-}: {
-  engine: Engine;
-  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
-}) {
+function EngineBox({ engine }: { engine: Engine }) {
   const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
+  const [, setEngines] = useAtom(enginesAtom);
 
   useEffect(() => {
     (async () => {
@@ -33,8 +30,8 @@ function EngineBox({
         image={imageSrc}
         checked={engine.loaded}
         onChange={(checked) =>
-          setEngines((engines) =>
-            engines.map((e) =>
+          setEngines(async (engines) =>
+            (await engines).map((e) =>
               e.name === engine.name ? { ...e, loaded: checked } : e
             )
           )
@@ -44,14 +41,9 @@ function EngineBox({
   );
 }
 
-function EngineSelection({
-  engines,
-  setEngines,
-}: {
-  engines: Engine[];
-  setEngines: React.Dispatch<React.SetStateAction<Engine[]>>;
-}) {
+function EngineSelection() {
   const [showSettings, toggleShowSettings] = useToggle();
+  const engines = useAtomValue(enginesAtom);
 
   return (
     <>
@@ -76,11 +68,7 @@ function EngineSelection({
           )}
           <Grid grow>
             {engines.map((engine) => (
-              <EngineBox
-                key={engine.name}
-                setEngines={setEngines}
-                engine={engine}
-              />
+              <EngineBox key={engine.name} engine={engine} />
             ))}
           </Grid>
         </Stack>

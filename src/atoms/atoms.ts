@@ -1,4 +1,4 @@
-import { atomFamily, atomWithStorage, createJSONStorage } from "jotai/utils";
+import { atomFamily, atomWithStorage, createJSONStorage, loadable } from "jotai/utils";
 import { Tab, genID } from "@/utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
@@ -8,6 +8,44 @@ import { MissingMove } from "@/utils/repertoire";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import EngineSettings from "@/components/panels/analysis/EngineSettings";
+import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
+import { BaseDirectory, readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
+import { Engine } from "@/utils/engines";
+
+
+const options = { dir: BaseDirectory.AppData };
+const fileStorage: AsyncStringStorage = {
+    async getItem(key) {
+        try {
+            return await readTextFile(key, options);
+        } catch (error) {
+            return null;
+        }
+    },
+    async setItem(key, newValue) {
+        try {
+            await writeTextFile(key, newValue, options);
+        } catch (error) {
+            throw new Error('Unable to set item.');
+        }
+    },
+    async removeItem(key) {
+        try {
+            await removeFile(key, options);
+        } catch (error) {
+            throw new Error('Unable to remove item.');
+        }
+    }
+}
+
+export const enginesAtom = atomWithStorage<Engine[]>(
+    "engines/engines.json",
+    [],
+    createJSONStorage(() => fileStorage),
+);
+
+const loadableEnginesAtom = loadable(enginesAtom);
 
 // Tabs
 
@@ -97,8 +135,9 @@ export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
     createJSONStorage(() => sessionStorage)
 );
 
-
-function tabValue<T extends object | string | boolean>(family: AtomFamily<string, PrimitiveAtom<T>>) {
+function tabValue<T extends object | string | boolean>(
+    family: AtomFamily<string, PrimitiveAtom<T>>
+) {
     return atom(
         (get) => {
             const tab = get(currentTabAtom);
@@ -116,7 +155,7 @@ function tabValue<T extends object | string | boolean>(family: AtomFamily<string
             const atom = family(tab.value);
             set(atom, nextValue);
         }
-    )
+    );
 }
 
 // Board Options
@@ -133,7 +172,17 @@ const practicingFamily = atomFamily((tab: string) => atom(false));
 export const currentPracticingAtom = tabValue(practicingFamily);
 
 export const deckAtomFamily = atomFamily(
-    ({ id, game, root, headers }: { id: string, game: number, root: TreeNode, headers: GameHeaders }) => {
+    ({
+        id,
+        game,
+        root,
+        headers,
+    }: {
+        id: string;
+        game: number;
+        root: TreeNode;
+        headers: GameHeaders;
+    }) => {
         const a = atomWithStorage<Card[]>(`deck-${id}-${game}`, []);
         a.onMount = (set) => {
             if (localStorage.getItem(`deck-${id}-${game}`) === null) {
@@ -148,4 +197,58 @@ export const deckAtomFamily = atomFamily(
         return a;
     },
     (a, b) => a.id === b.id && a.game === b.game
+);
+
+export type EngineSettings = {
+    enabled: boolean;
+    maxDepth: number;
+    cores: number;
+    numberLines: number;
+};
+
+export const tabEngineSettingsFamily = atomFamily(
+    ({ tab, engine }: { tab: string; engine: string }) =>
+        atom<EngineSettings>({
+            enabled: false,
+            maxDepth: 24,
+            cores: 2,
+            numberLines: 3,
+        }),
+    (a, b) => a.tab === b.tab && a.engine === b.engine
+);
+
+export const allEnabledAtom = loadable(atom(
+    async (get) => {
+        const engines = await get(enginesAtom);
+
+        const v = engines
+            .filter((e) => e.loaded)
+            .every((engine) => {
+                const atom = tabEngineSettingsFamily({
+                    tab: get(activeTabAtom)!,
+                    engine: engine.name,
+                });
+                return get(atom).enabled;
+            });
+
+        return v;
+    },
+));
+
+export const enableAllAtom = atom(
+    null,
+    (get, set, value: boolean) => {
+        const engines = get(loadableEnginesAtom);
+        if (!(engines.state === "hasData")) return;
+
+        for (const engine of engines.data.filter((e) => e.loaded)) {
+            const atom = tabEngineSettingsFamily({
+                tab: get(activeTabAtom)!,
+                engine: engine.name,
+            });
+            set(atom, { ...get(atom), enabled: value });
+        }
+
+    }
+
 );
