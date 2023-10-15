@@ -1,20 +1,23 @@
-use std::{path::PathBuf, process::Stdio};
+use std::{path::PathBuf, process::Stdio, sync::Arc};
 
 use derivative::Derivative;
-use log::{error, info};
+use log::info;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode,
     FromSetup, Piece, Position, PositionErrorKinds, Role, Setup, Square,
 };
+use specta::Type;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
 };
+use tauri_specta::Event;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
     process::{Child, ChildStdin, ChildStdout, Command},
+    sync::Mutex,
 };
 use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage};
 
@@ -25,39 +28,89 @@ use crate::{
     AppState,
 };
 
+pub struct EngineProcess {
+    stdin: ChildStdin,
+    last_depth: u8,
+    best_moves: Vec<BestMoves>,
+    fen: Fen,
+}
+
+impl EngineProcess {
+    fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
+        let mut command = Command::new(&path);
+        command.current_dir(path.parent().unwrap());
+        command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        #[cfg(target_os = "windows")]
+        command.creation_flags(CREATE_NO_WINDOW);
+
+        let mut child = command.spawn()?;
+
+        Ok((
+            Self {
+                stdin: child.stdin.take().ok_or(Error::NoStdin)?,
+                last_depth: 0,
+                best_moves: Vec::new(),
+                fen: Fen::default(),
+            },
+            BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines(),
+        ))
+    }
+
+    async fn set_option(&mut self, name: &str, value: &str) -> Result<(), Error> {
+        self.stdin
+            .write_all(format!("setoption name {} value {}\n", name, value).as_bytes())
+            .await?;
+        Ok(())
+    }
+
+    async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
+        self.set_option("Threads", &options.threads.to_string())
+            .await?;
+        self.set_option("MultiPV", &options.multipv.to_string())
+            .await?;
+        self.set_position(&options.fen).await?;
+        self.last_depth = 0;
+        self.best_moves.clear();
+        Ok(())
+    }
+
+    async fn set_position(&mut self, fen: &str) -> Result<(), Error> {
+        self.stdin
+            .write_all(format!("position fen {}\n", fen).as_bytes())
+            .await?;
+        self.fen = fen.parse()?;
+        Ok(())
+    }
+
+    async fn go(&mut self, mode: &GoMode) -> Result<(), Error> {
+        let msg = match mode {
+            GoMode::Depth(depth) => format!("go depth {}\n", depth),
+            GoMode::Time(time) => format!("go movetime {}\n", time),
+            GoMode::Nodes(nodes) => format!("go nodes {}\n", nodes),
+            GoMode::Infinite => "go infinite\n".to_string(),
+        };
+        self.stdin.write_all(msg.as_bytes()).await?;
+        Ok(())
+    }
+
+    async fn stop(&mut self) -> Result<(), Error> {
+        self.stdin.write_all(b"stop\n").await?;
+        Ok(())
+    }
+}
+
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Type, Serialize)]
+#[serde(tag = "type", content = "value", rename_all = "camelCase")]
 pub enum Score {
-    Cp(i64),
-    Mate(i64),
-}
-
-#[derive(serde::Serialize)]
-struct ScoreJson {
-    #[serde(rename = "type")]
-    score_type: &'static str,
-    value: i64,
-}
-
-impl serde::Serialize for Score {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let score_json = match self {
-            Score::Cp(value) => ScoreJson {
-                score_type: "cp",
-                value: *value,
-            },
-            Score::Mate(value) => ScoreJson {
-                score_type: "mate",
-                value: *value,
-            },
-        };
-        score_json.serialize(serializer)
-    }
+    Cp(i32),
+    Mate(i8),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -68,7 +121,7 @@ pub struct AnalysisCacheKey {
     pub multipv: u16,
 }
 
-#[derive(Clone, Serialize, Debug, Derivative)]
+#[derive(Clone, Serialize, Debug, Derivative, Type)]
 #[derivative(Default)]
 pub struct BestMoves {
     depth: u8,
@@ -79,12 +132,12 @@ pub struct BestMoves {
     #[serde(rename = "sanMoves")]
     san_moves: Vec<String>,
     multipv: u16,
-    nps: u64,
+    nps: u32,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone, Type, Event)]
+#[serde(rename_all = "camelCase")]
 pub struct BestMovesPayload {
-    #[serde(rename = "bestLines")]
     pub best_lines: Vec<BestMoves>,
     pub engine: String,
     pub tab: String,
@@ -111,7 +164,7 @@ fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves,
                 }
             }
             UciInfoAttribute::Nps(nps) => {
-                best_moves.nps = nps;
+                best_moves.nps = nps as u32;
             }
             UciInfoAttribute::Depth(depth) => {
                 best_moves.depth = depth;
@@ -121,9 +174,9 @@ fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves,
             }
             UciInfoAttribute::Score { cp, mate, .. } => {
                 if let Some(cp) = cp {
-                    best_moves.score = Score::Cp(cp as i64);
+                    best_moves.score = Score::Cp(cp);
                 } else if let Some(mate) = mate {
-                    best_moves.score = Score::Mate(mate as i64);
+                    best_moves.score = Score::Mate(mate);
                 }
             }
             _ => (),
@@ -174,25 +227,50 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
         .expect("Failed to write command");
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Type)]
 pub struct EngineOptions {
-    pub depth: u8,
     pub multipv: u16,
-    pub threads: usize,
+    pub threads: u16,
+    pub fen: String,
+}
+
+#[derive(Deserialize, Debug, Clone, Type)]
+#[serde(tag = "t", content = "c")]
+pub enum GoMode {
+    Depth(u8),
+    Time(u32),
+    Nodes(u32),
+    Infinite,
 }
 
 #[tauri::command]
+#[specta::specta]
+pub async fn stop_engine(
+    engine: String,
+    tab: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let key = (tab, engine);
+    if let Some(process) = state.engine_processes.get(&key) {
+        let mut process = process.lock().await;
+        process.stop().await?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn get_best_moves(
     engine: String,
     tab: String,
-    fen: String,
+    go_mode: GoMode,
     options: EngineOptions,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let path = PathBuf::from(&engine);
 
-    let parsed_fen: Fen = fen.parse()?;
+    let parsed_fen: Fen = options.fen.parse()?;
     let pos: Chess = match parsed_fen.clone().into_position(CastlingMode::Standard) {
         Ok(p) => p,
         Err(e) => e.ignore_too_much_material()?,
@@ -201,150 +279,93 @@ pub async fn get_best_moves(
     let mut options = options.clone();
     options.multipv = options.multipv.min(pos.legal_moves().len() as u16);
 
-    let key = AnalysisCacheKey {
-        fen: fen.clone(),
-        engine: engine.clone(),
-        tab: tab.clone(),
-        multipv: options.multipv,
-    };
+    let key = (tab.clone(), engine.clone());
 
-    let mut last_depth = 0;
-
-    if state.analysis_cache.contains_key(&key) {
-        let payload = state.analysis_cache.get(&key).unwrap();
-        let best_moves_payload = BestMovesPayload {
-            best_lines: payload.to_vec(),
-            engine: engine.clone(),
-            tab: tab.clone(),
-        };
-        app.emit_all("best_moves", &Some(best_moves_payload))?;
-        let cached_depth = payload[0].depth;
-        if cached_depth >= options.depth {
-            return Ok(());
-        }
-        last_depth = cached_depth;
+    if state.engine_processes.contains_key(&key) {
+        let process = state.engine_processes.get_mut(&key).unwrap();
+        let mut process = process.lock().await;
+        process.stop().await?;
+        process.set_options(options.clone()).await?;
+        process.go(&go_mode).await?;
+        return Ok(());
     }
 
-    let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child)?;
+    let (mut process, mut reader) = EngineProcess::new(path)?;
+    process.set_options(options.clone()).await?;
+    process.go(&go_mode).await?;
 
-    let (tx, mut rx) = tokio::sync::broadcast::channel(16);
+    let process = Arc::new(Mutex::new(process));
 
-    let eng_id = engine.clone();
-    let id = app.listen_global("stop_engine", move |event| {
-        let payload = event.payload().unwrap();
-        let payload = payload[1..payload.len() - 1].replace("\\\\", "\\");
-        if payload == eng_id {
-            tx.send(()).unwrap();
-        }
-    });
-
-    tokio::spawn(async move {
-        // run engine process and wait for exit code
-        let status = child
-            .wait()
-            .await
-            .expect("engine process encountered an error");
-        info!("engine process exit status : {}", status);
-    });
-
-    let mut best_moves_payload = BestMovesPayload {
-        best_lines: Vec::new(),
-        engine,
-        tab,
-    };
-
-    send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
-    send_command(
-        &mut stdin,
-        format!("setoption name Threads value {}\n", options.threads),
-    )
-    .await;
-    send_command(
-        &mut stdin,
-        format!("setoption name MultiPV value {}\n", options.multipv),
-    )
-    .await;
-    send_command(&mut stdin, format!("go depth {}\n", options.depth)).await;
+    state.engine_processes.insert(key, process.clone());
 
     loop {
-        tokio::select! {
-            _ = rx.recv() => {
-                info!("Killing engine");
-                send_command(&mut stdin, "stop\n").await;
-                app.unlisten(id);
-                break
-            }
-            result = stdout.next_line() => {
-                match result {
-                    Ok(line_opt) => {
-                        if let Some(line) = line_opt {
-                            if let UciMessage::Info(attrs) = parse_one(&line) {
-                                if let Ok(best_moves) = parse_uci_attrs(attrs, &parsed_fen) {
-                                    let multipv = best_moves.multipv;
-                                    let cur_depth = best_moves.depth;
-                                    best_moves_payload.best_lines.push(best_moves);
-                                    if multipv == options.multipv {
-                                        if best_moves_payload.best_lines.iter().all(|x| x.depth == cur_depth) && cur_depth >= last_depth {
-                                            app.emit_all("best_moves", &best_moves_payload)?;
-                                            state.analysis_cache.insert(key.clone(), best_moves_payload.best_lines.clone());
-                                            last_depth = cur_depth;
-                                        }
-                                        best_moves_payload.best_lines.clear();
-                                    }
-                                }
+        let line_opt = reader.next_line().await?;
+        let mut proc = process.lock().await;
+        if let Some(line) = line_opt {
+            if let UciMessage::Info(attrs) = parse_one(&line) {
+                if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.fen) {
+                    let multipv = best_moves.multipv;
+                    let cur_depth = best_moves.depth;
+                    proc.best_moves.push(best_moves);
+                    if multipv == options.multipv {
+                        if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                            && cur_depth >= proc.last_depth
+                        {
+                            BestMovesPayload {
+                                best_lines: proc.best_moves.clone(),
+                                engine: engine.clone(),
+                                tab: tab.clone(),
                             }
+                            .emit_all(&app)?;
+                            proc.last_depth = cur_depth;
                         }
-                    }
-                    Err(err) => {
-                        error!("engine read error {:?}", err);
-                        break;
+                        proc.best_moves.clear();
                     }
                 }
             }
         }
     }
-    Ok(())
 }
 
-#[derive(Serialize, Debug, Default)]
+#[derive(Serialize, Debug, Default, Type)]
 pub struct MoveAnalysis {
     best: BestMoves,
     novelty: bool,
 }
 
+#[derive(Deserialize, Debug, Default, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalysisOptions {
+    pub fen: String,
+    pub annotate_novelties: bool,
+    pub reference_db: Option<PathBuf>,
+}
+
 #[tauri::command]
+#[specta::specta]
 pub async fn analyze_game(
-    fen: String,
     moves: Vec<String>,
-    annotate_novelties: bool,
     engine: String,
-    move_time: usize,
-    reference_db: Option<PathBuf>,
+    go_mode: GoMode,
+    options: AnalysisOptions,
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, Error> {
     let path = PathBuf::from(&engine);
-    let number_lines = 1;
-    let number_threads = 4;
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
-    let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child)?;
-    let fen = Fen::from_ascii(fen.as_bytes())?;
+    let (mut process, mut reader) = EngineProcess::new(path)?;
+    let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
     let mut chess: Chess = fen.into_position(CastlingMode::Standard)?;
 
-    send_command(
-        &mut stdin,
-        format!("setoption name Threads value {}\n", &number_threads),
-    )
-    .await;
-    send_command(
-        &mut stdin,
-        format!("setoption name multipv value {}\n", &number_lines),
-    )
-    .await;
+    process
+        .set_options(EngineOptions {
+            threads: 4,
+            multipv: 1,
+            fen: options.fen.to_string(),
+        })
+        .await?;
 
     let len_moves = moves.len();
 
@@ -368,11 +389,10 @@ pub async fn analyze_game(
         let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
         let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
-        send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
-        send_command(&mut stdin, format!("go movetime {}\n", &move_time)).await;
+        process.go(&go_mode).await?;
 
         let mut current_analysis = MoveAnalysis::default();
-        while let Ok(Some(line)) = stdout.next_line().await {
+        while let Ok(Some(line)) = reader.next_line().await {
             match parse_one(&line) {
                 UciMessage::Info(attrs) => {
                     if let Ok(best_moves) = parse_uci_attrs(attrs, &fen) {
@@ -386,8 +406,8 @@ pub async fn analyze_game(
             }
         }
 
-        if annotate_novelties && !novelty_found {
-            if let Some(reference) = reference_db.clone() {
+        if options.annotate_novelties && !novelty_found {
+            if let Some(reference) = options.reference_db.clone() {
                 current_analysis.novelty =
                     !is_position_in_db(reference, query, state.clone()).await?;
                 if current_analysis.novelty {
@@ -464,9 +484,8 @@ pub async fn get_engine_name(path: PathBuf) -> Result<String, Error> {
 
     loop {
         if let Some(line) = stdout.next_line().await? {
-            if line.starts_with("id name") {
-                let name = &line[8..];
-                return Ok(name.to_string());
+            if let UciMessage::Id { name, author: _ } = parse_one(&line) {
+                return Ok(name.unwrap_or_default());
             }
         }
     }
@@ -559,11 +578,11 @@ pub async fn similar_structure(fen: String) -> Result<String, Error> {
 
 #[derive(Serialize, Debug)]
 pub struct PieceCount {
-    pub p: i64,
-    pub n: i64,
-    pub b: i64,
-    pub r: i64,
-    pub q: i64,
+    pub p: i8,
+    pub n: i8,
+    pub b: i8,
+    pub r: i8,
+    pub q: i8,
 }
 
 #[tauri::command]

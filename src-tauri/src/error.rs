@@ -1,4 +1,5 @@
 use shakmaty::Chess;
+use specta::Type;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -87,5 +88,23 @@ impl serde::Serialize for Error {
         S: serde::ser::Serializer,
     {
         serializer.serialize_str(self.to_string().as_ref())
+    }
+}
+
+impl Type for Error {
+    fn definition(_opts: specta::DefOpts) -> specta::DataType {
+        specta::DataType::Primitive(specta::PrimitiveType::String)
+    }
+    fn definition_generics() -> Vec<specta::GenericType> {
+        vec![]
+    }
+    fn reference(
+        opts: specta::DefOpts,
+        generics: &[specta::DataType],
+    ) -> specta::reference::Reference {
+        specta::reference::inline::<Error>(opts, generics)
+    }
+    fn inline(_opts: specta::DefOpts, _generics: &[specta::DataType]) -> specta::DataType {
+        specta::DataType::Primitive(specta::PrimitiveType::String)
     }
 }

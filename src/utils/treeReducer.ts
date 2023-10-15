@@ -1,10 +1,11 @@
 import { Chess, DEFAULT_POSITION, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
-import { Annotation, MoveAnalysis } from "./chess";
+import { Annotation } from "./chess";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
-import { Score, getAnnotation } from "./score";
+import { getAnnotation } from "./score";
 import { match } from "ts-pattern";
+import { BestMoves, Score } from "@/bindings";
 
 export interface TreeState {
     root: TreeNode;
@@ -170,15 +171,15 @@ export type TreeAction =
     | { type: "SET_ORIENTATION"; payload: "white" | "black" }
     | { type: "SET_START"; payload: number[] }
     | {
-          type: "MAKE_MOVE";
-          payload:
-              | {
-                    from: Square;
-                    to: Square;
-                    promotion?: string;
-                }
-              | string;
-      }
+        type: "MAKE_MOVE";
+        payload:
+        | {
+            from: Square;
+            to: Square;
+            promotion?: string;
+        }
+        | string;
+    }
     | { type: "MAKE_MOVES"; payload: string[] }
     | { type: "GO_TO_START" }
     | { type: "GO_TO_END" }
@@ -191,7 +192,7 @@ export type TreeAction =
     | { type: "SET_FEN"; payload: string }
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
-    | { type: "ADD_ANALYSIS"; payload: MoveAnalysis[] }
+    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves, novelty: boolean }[] }
     | { type: "PROMOTE_VARIATION"; payload: number[] };
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
@@ -371,7 +372,7 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 
-function addAnalysis(state: TreeState, analysis: MoveAnalysis[]) {
+function addAnalysis(state: TreeState, analysis: { best: BestMoves, novelty: boolean }[]) {
     let cur = state.root.children[0];
     let i = 0;
     while (cur !== undefined && i < analysis.length) {

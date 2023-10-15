@@ -1,6 +1,6 @@
 import { Flex, ActionIcon, ChevronIcon } from "@mantine/core";
 import { useState, useContext } from "react";
-import { Score } from "@/utils/score";
+import { Score } from "@/bindings";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import ScoreBubble from "./ScoreBubble";

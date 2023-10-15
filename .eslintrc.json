@@ -31,7 +31,8 @@
   },
   "overrides": [
     {
-      "files": ["src/**/*.ts", "src/**/*.tsx"]
+      "files": ["src/**/*.ts", "src/**/*.tsx"],
+      "excludedFiles": ["src/bindings.ts"]
     }
   ]
 }

@@ -20,7 +20,6 @@ import {
     getCPLoss,
     INITIAL_SCORE,
     parseScore,
-    Score,
 } from "./score";
 import {
     createNode,
@@ -33,6 +32,7 @@ import {
 } from "./treeReducer";
 import { MantineColor } from "@mantine/core";
 import useSWR from 'swr';
+import { Score } from '@/bindings';
 
 export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
 
@@ -116,12 +116,6 @@ export interface BestMoves {
 export interface MoveAnalysis {
     best: BestMoves;
     novelty: boolean;
-}
-
-export interface BestMovesPayload {
-    bestLines: BestMoves[];
-    engine: string;
-    tab: string;
 }
 
 export function getMoveText(

@@ -26,3 +26,20 @@ export async function invoke<T>(
     return Promise.reject(e);
   }
 }
+
+type Result<T, E> = { status: "ok"; data: T } | { status: "error"; error: E };
+
+export function unwrap<T>(result: Result<T, string>): T {
+  if (result.status === "ok") {
+    return result.data;
+  } else {
+    error(result.error);
+    notifications.show({
+      title: "Error",
+      message: result.error,
+      color: "red",
+      icon: <IconX />,
+    });
+    throw result.error;
+  }
+}
