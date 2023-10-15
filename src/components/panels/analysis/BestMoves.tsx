@@ -85,9 +85,7 @@ export default function BestMovesComponent({
 
   useEffect(() => {
     async function waitForMove() {
-      console.log("waiting for move");
       const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
-        console.log("got move", payload);
         const ev = payload.bestLines;
         if (payload.engine === engine.path && payload.tab === activeTab) {
           startTransition(() => {

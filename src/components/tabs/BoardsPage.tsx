@@ -21,6 +21,8 @@ import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import { match } from "ts-pattern";
 import { Reorder } from "framer-motion";
+import { commands } from "@/bindings";
+import { unwrap } from "@/utils/invoke";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -41,9 +43,10 @@ export default function BoardsPage() {
   const { classes } = useStyles();
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
+  const [saveModalOpened, toggleSaveModal] = useToggle();
 
   const closeTab = useCallback(
-    (value: string | null, forced?: boolean) => {
+    async (value: string | null, forced?: boolean) => {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
@@ -63,9 +66,10 @@ export default function BoardsPage() {
           }
         }
         setTabs((prev) => prev.filter((tab) => tab.value !== value));
+        unwrap(await commands.killEngines(value));
       }
     },
-    [tabs, activeTab, setTabs, setActiveTab]
+    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab]
   );
 
   function selectTab(index: number) {
@@ -164,8 +168,6 @@ export default function BoardsPage() {
     ["alt+9", () => selectTab(tabs.length - 1)],
     ["ctrl+9", () => selectTab(tabs.length - 1)],
   ]);
-
-  const [saveModalOpened, toggleSaveModal] = useToggle();
 
   return (
     <>
