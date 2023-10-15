@@ -12,8 +12,9 @@ export default function PieceComponent({
   piece: Piece;
   boardRef?: React.RefObject<HTMLDivElement>;
   putPiece?: (square: Square, piece: Piece) => void;
-  size: number;
+  size?: number | string;
 }) {
+  size = size ?? "100%";
   const pieceRef = useRef<HTMLDivElement>(null);
   if (!boardRef || !putPiece) {
     return (
