@@ -308,12 +308,16 @@ pub async fn get_best_moves(
     let key = (tab.clone(), engine.clone());
 
     if state.engine_processes.contains_key(&key) {
-        let process = state.engine_processes.get_mut(&key).unwrap();
-        let mut process = process.lock().await;
-        process.stop().await?;
-        process.set_options(options.clone()).await?;
-        process.go(&go_mode).await?;
-        return Ok(());
+        {
+            let process = state.engine_processes.get_mut(&key).unwrap();
+            let mut process = process.lock().await;
+            if process.stop().await.is_ok() {
+                process.set_options(options.clone()).await?;
+                process.go(&go_mode).await?;
+                return Ok(());
+            }
+        }
+        state.engine_processes.remove(&key).unwrap();
     }
 
     let (mut process, mut reader) = EngineProcess::new(path)?;
