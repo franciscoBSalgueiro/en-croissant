@@ -10,12 +10,12 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { memo, useContext } from "react";
-import { MoveAnalysis } from "@/utils/chess";
 import { formatDuration } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { unwrap } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
 import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
+import { commands } from "@/bindings";
 
 function ReportModal({
   initialFen,
@@ -58,19 +58,27 @@ function ReportModal({
   function analyze() {
     setInProgress(true);
     toggleReportingMode();
-    invoke<MoveAnalysis[]>("analyze_game", {
-      fen: initialFen,
-      moves,
-      engine: form.values.engine,
-      annotateNovelties: form.values.novelty,
-      moveTime: form.values.millisecondsPerMove,
-      referenceDb,
-    }).then((analysis) => {
-      dispatch({
-        type: "ADD_ANALYSIS",
-        payload: analysis,
+    commands
+      .analyzeGame(
+        moves,
+        form.values.engine,
+        {
+          t: "Time",
+          c: form.values.millisecondsPerMove,
+        },
+        {
+          annotateNovelties: form.values.novelty,
+          fen: initialFen,
+          referenceDb,
+        }
+      )
+      .then((analysis) => {
+        const analysisData = unwrap(analysis);
+        dispatch({
+          type: "ADD_ANALYSIS",
+          payload: analysisData,
+        });
       });
-    });
   }
 
   return (

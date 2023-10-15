@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::{fs::create_dir_all, path::Path};
 
-use chess::{AnalysisCacheKey, BestMoves};
+use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
 use db::{NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
@@ -31,14 +31,14 @@ use tauri::{
 use tauri_plugin_log::LogTarget;
 
 use crate::chess::{
-    analyze_game, get_engine_name, get_single_best_move, make_move, make_random_move, put_piece,
-    similar_structure, validate_fen, get_pieces_count,
+    analyze_game, get_engine_name, get_pieces_count, get_single_best_move, make_move,
+    make_random_move, put_piece, similar_structure, stop_engine, validate_fen,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
     get_players_game_info, get_tournaments, search_position,
 };
-use crate::fide::{find_fide_player, download_fide_db};
+use crate::fide::{download_fide_db, find_fide_player};
 use crate::fs::{append_to_file, set_file_as_executable};
 use crate::lexer::lex_pgn;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -50,9 +50,6 @@ use crate::{
     opening::{get_opening_from_fen, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
-
-use specta::collect_types;
-use tauri_specta::ts;
 
 use crate::error::Error;
 use tauri_plugin_oauth::start;
@@ -118,11 +115,11 @@ pub struct AppState {
     >,
     line_cache: DashMap<(PositionQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     db_cache: Mutex<Vec<GameData>>,
-    analysis_cache: DashMap<AnalysisCacheKey, Vec<BestMoves>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     pgn_offsets: DashMap<String, Vec<u64>>,
     fide_players: RwLock<Vec<FidePlayer>>,
+    engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
 }
 
 const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
@@ -136,7 +133,8 @@ const REQUIRED_FILES: &[(BaseDirectory, &str)] =
     &[(BaseDirectory::AppData, "engines/engines.json")];
 
 #[tauri::command]
-async fn close_splashscreen(window: Window) {
+#[specta::specta]
+fn close_splashscreen(window: Window) {
     // Show main window
     window
         .get_window("main")
@@ -157,8 +155,21 @@ const LOG_TARGETS: [LogTarget; 2] = [LogTarget::Stdout, LogTarget::Webview];
 const LOG_TARGETS: [LogTarget; 2] = [LogTarget::Stdout, LogTarget::LogDir];
 
 fn main() {
-    #[cfg(debug_assertions)]
-    ts::export(collect_types![find_fide_player,], "../src/bindings.ts").unwrap();
+    let specta_builder = {
+        let specta_builder = tauri_specta::ts::builder()
+            .commands(tauri_specta::collect_commands!(
+                close_splashscreen,
+                find_fide_player,
+                get_best_moves,
+                analyze_game,
+                stop_engine,
+            ))
+            .events(tauri_specta::collect_events!(BestMovesPayload));
+
+        #[cfg(debug_assertions)]
+        let specta_builder = specta_builder.path("../src/bindings.ts");
+        specta_builder.into_plugin()
+    };
 
     tauri::Builder::default()
         .plugin(
@@ -166,6 +177,7 @@ fn main() {
                 .targets(LOG_TARGETS)
                 .build(),
         )
+        .plugin(specta_builder)
         .setup(|app| {
             // Check if all the required directories exist, and create them if they don't
             for (dir, path) in REQUIRED_DIRS.iter() {
@@ -200,9 +212,7 @@ fn main() {
         })
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
-            close_splashscreen,
             download_file,
-            get_best_moves,
             get_opening_from_fen,
             search_opening_name,
             get_puzzle,
@@ -214,7 +224,6 @@ fn main() {
             edit_db_info,
             get_players_game_info,
             start_server,
-            analyze_game,
             delete_database,
             convert_pgn,
             search_position,
@@ -236,7 +245,6 @@ fn main() {
             delete_indexes,
             create_indexes,
             lex_pgn,
-            find_fide_player,
             download_fide_db,
             similar_structure
         ])

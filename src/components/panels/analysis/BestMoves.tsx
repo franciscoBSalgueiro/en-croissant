@@ -19,7 +19,6 @@ import {
   IconSettings,
   IconTargetArrow,
 } from "@tabler/icons-react";
-import { emit, listen } from "@tauri-apps/api/event";
 import {
   startTransition,
   useContext,
@@ -27,9 +26,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { BestMoves, BestMovesPayload, swapMove } from "@/utils/chess";
+import { BestMoves, swapMove } from "@/utils/chess";
 import { Engine } from "@/utils/engines";
-import { invoke } from "@/utils/invoke";
+import { invoke, unwrap } from "@/utils/invoke";
 import { useThrottledEffect } from "@/utils/misc";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import EngineSettings from "./EngineSettings";
@@ -38,6 +37,7 @@ import AnalysisRow from "./AnalysisRow";
 import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, tabEngineSettingsFamily } from "@/atoms/atoms";
 import { formatScore } from "@/utils/score";
+import { commands, events } from "@/bindings";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -65,9 +65,14 @@ export default function BestMovesComponent({
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
-  const [engineVariations, setEngineVariation] = useState<BestMoves[]>([]);
+  const [ev, setEngineVariation] = useState<BestMoves[]>([]);
   const [settings, setSettings] = useAtom(
     tabEngineSettingsFamily({ engine: engine.name, tab: activeTab! })
+  );
+
+  const engineVariations = useMemo(
+    () => (settings.enabled ? ev : []),
+    [settings.enabled, ev]
   );
 
   const [settingsOn, toggleSettingsOn] = useToggle();
@@ -80,7 +85,9 @@ export default function BestMovesComponent({
 
   useEffect(() => {
     async function waitForMove() {
-      await listen<BestMovesPayload>("best_moves", ({ payload }) => {
+      console.log("waiting for move");
+      const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
+        console.log("got move", payload);
         const ev = payload.bestLines;
         if (payload.engine === engine.path && payload.tab === activeTab) {
           startTransition(() => {
@@ -99,6 +106,9 @@ export default function BestMovesComponent({
           });
         }
       });
+      return () => {
+        unlisten();
+      };
     }
     waitForMove();
   }, []);
@@ -113,20 +123,26 @@ export default function BestMovesComponent({
           setSettings((prev) => ({ ...prev, enabled: false }));
           setEngineVariation([]);
         } else {
-          emit("stop_engine", engine.path);
-          invoke("get_best_moves", {
-            engine: engine.path,
-            tab: activeTab,
-            fen: threat ? swapMove(fen) : fen,
-            options: {
-              depth: settings.maxDepth,
-              multipv: settings.numberLines,
-              threads: 2 ** settings.cores,
-            },
-          });
+          commands
+            .getBestMoves(
+              engine.path,
+              activeTab!,
+              {
+                t: "Depth",
+                c: settings.maxDepth,
+              },
+              {
+                fen: threat ? swapMove(fen) : fen,
+                multipv: settings.numberLines,
+                threads: 2 ** settings.cores,
+              }
+            )
+            .then((res) => {
+              unwrap(res);
+            });
         }
       } else {
-        emit("stop_engine", engine.path);
+        commands.stopEngine(engine.path, activeTab!).then((r) => unwrap(r));
       }
     },
     50,
@@ -139,14 +155,6 @@ export default function BestMovesComponent({
       fen,
     ]
   );
-
-  useEffect(() => {
-    startTransition(() => {
-      if (!settings.enabled) {
-        setEngineVariation([]);
-      }
-    });
-  }, [settings.enabled]);
 
   return useMemo(
     () => (

@@ -1,11 +1,7 @@
 import { minMax } from "@tiptap/react";
 import { Color } from "chess.js";
 import { Annotation } from "./chess";
-
-export type Score = {
-    type: "cp" | "mate";
-    value: number;
-};
+import { Score } from "@/bindings";
 
 export const INITIAL_SCORE: Score = {
     type: "cp",

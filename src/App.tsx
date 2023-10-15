@@ -26,13 +26,13 @@ import {
   createRoutesFromElements,
 } from "react-router-dom";
 import { useEffect } from "react";
-import { invoke } from "./utils/invoke";
 import DatabasesPage from "./components/databases/DatabasesPage";
 import { useAtomValue } from "jotai";
 import { pieceSetAtom, primaryColorAtom } from "./atoms/atoms";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
+import { commands } from "./bindings";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -83,8 +83,8 @@ export default function App() {
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
   const pieceSet = useAtomValue(pieceSetAtom);
   useEffect(() => {
-    invoke("close_splashscreen");
     (async () => {
+      await commands.closeSplashscreen();
       const detach = await attachConsole();
       return () => {
         detach();

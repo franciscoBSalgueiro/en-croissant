@@ -1,4 +1,3 @@
-import { findFidePlayer } from "@/bindings";
 import {
   Badge,
   Group,
@@ -19,6 +18,7 @@ import { useEffect, useState } from "react";
 import { BaseDirectory, exists } from "@tauri-apps/api/fs";
 import ProgressButton from "../common/ProgressButton";
 import { invoke } from "@tauri-apps/api";
+import { commands } from "@/bindings";
 
 const flags = Object.entries(Flags).map(([key, value]) => ({
   key: key.replace("Flag", ""),
@@ -40,10 +40,12 @@ function FideInfo({
     error,
     isLoading,
   } = useSWR(fileExists ? name : null, async (name) => {
-    return await findFidePlayer(name).catch((e) => {
-      console.error(e);
-      return null;
-    });
+    const res = await commands.findFidePlayer(name);
+    if (res.status === "ok") {
+      return res.data;
+    } else {
+      throw new Error(res.error);
+    }
   });
 
   const country = COUNTRIES.find((c) => c.ioc === player?.country);
