@@ -1,4 +1,4 @@
-import { Stack, ActionIcon } from "@mantine/core";
+import { ActionIcon, SimpleGrid } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import { BISHOP, KNIGHT, PieceSymbol, QUEEN, ROOK, Square } from "chess.js";
 import { memo } from "react";
@@ -62,24 +62,25 @@ const PromotionModal = memo(function PromotionModal({
             style={{
               position: "absolute",
               zIndex: 100,
+              width: "12.5%",
+              height: "50%",
               left: `${(file - 1) * 12.5}%`,
               top: rank === 1 ? "50%" : "0%",
               background: "rgba(255,255,255,0.8)",
             }}
           >
-            <Stack spacing={0}>
+            <SimpleGrid cols={1} spacing={0} verticalSpacing={0} h={"100%"}>
               {promotionPieces.map((p) => (
                 <ActionIcon
                   key={p}
                   w="100%"
                   h="100%"
-                  pos="relative"
+                  // pos="relative"
                   onClick={() => {
                     confirmMove(p);
                   }}
                 >
                   <Piece
-                    size={75}
                     piece={{
                       type: p,
                       color: turn === "white" ? "w" : "b",
@@ -87,7 +88,7 @@ const PromotionModal = memo(function PromotionModal({
                   />
                 </ActionIcon>
               ))}
-            </Stack>
+            </SimpleGrid>
           </div>
         </>
       )}
