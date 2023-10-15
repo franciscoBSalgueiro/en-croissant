@@ -101,6 +101,11 @@ impl EngineProcess {
         self.stdin.write_all(b"stop\n").await?;
         Ok(())
     }
+
+    async fn kill(&mut self) -> Result<(), Error> {
+        self.stdin.write_all(b"quit\n").await?;
+        Ok(())
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -241,6 +246,27 @@ pub enum GoMode {
     Time(u32),
     Nodes(u32),
     Infinite,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+    let keys: Vec<_> = state
+        .engine_processes
+        .iter()
+        .map(|x| x.key().clone())
+        .collect();
+    for key in keys.clone() {
+        if key.0 == tab {
+            {
+                let process = state.engine_processes.get_mut(&key).unwrap();
+                let mut process = process.lock().await;
+                process.kill().await?;
+            }
+            state.engine_processes.remove(&key).unwrap();
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
