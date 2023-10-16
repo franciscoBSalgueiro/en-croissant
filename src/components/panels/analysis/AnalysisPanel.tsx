@@ -23,14 +23,9 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import React from "react";
-import {
-  activeTabAtom,
-  allEnabledAtom,
-  enableAllAtom,
-  enginesAtom,
-  tabEngineSettingsFamily,
-} from "@/atoms/atoms";
-import { atom, useAtom, useAtomValue } from "jotai";
+import { allEnabledAtom, enableAllAtom, enginesAtom } from "@/atoms/atoms";
+import { useAtom, useAtomValue } from "jotai";
+import LogsPanel from "./LogsPanel";
 
 const labels = {
   action: "Generate report",
@@ -70,6 +65,7 @@ function AnalysisPanel({
       <Tabs.List>
         <Tabs.Tab value="engines">Engines</Tabs.Tab>
         <Tabs.Tab value="report">Report</Tabs.Tab>
+        <Tabs.Tab value="logs">Logs</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="engines" pt="xs">
         <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
@@ -123,6 +119,11 @@ function AnalysisPanel({
           inProgress={inProgress}
           setInProgress={setInProgress}
         />
+      </Tabs.Panel>
+      <Tabs.Panel value="logs" pt="xs">
+        <Stack>
+          <LogsPanel />
+        </Stack>
       </Tabs.Panel>
     </Tabs>
   );

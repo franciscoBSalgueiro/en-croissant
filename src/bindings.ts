@@ -43,6 +43,14 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getEngineLogs(engine: string, tab: string) : Promise<__Result__<({ type: "gui"; value: string } | { type: "engine"; value: string })[], string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_engine_logs", { engine, tab }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
