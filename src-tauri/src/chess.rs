@@ -28,11 +28,19 @@ use crate::{
     AppState,
 };
 
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(tag = "type", content = "value", rename_all = "camelCase")]
+pub enum EngineLog {
+    Gui(String),
+    Engine(String),
+}
+
 pub struct EngineProcess {
     stdin: ChildStdin,
     last_depth: u8,
     best_moves: Vec<BestMoves>,
     fen: Fen,
+    logs: Vec<EngineLog>,
 }
 
 impl EngineProcess {
@@ -55,15 +63,17 @@ impl EngineProcess {
                 last_depth: 0,
                 best_moves: Vec::new(),
                 fen: Fen::default(),
+                logs: Vec::new(),
             },
             BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines(),
         ))
     }
 
     async fn set_option(&mut self, name: &str, value: &str) -> Result<(), Error> {
-        self.stdin
-            .write_all(format!("setoption name {} value {}\n", name, value).as_bytes())
-            .await?;
+        let msg = format!("setoption name {} value {}\n", name, value);
+        self.stdin.write_all(msg.as_bytes()).await?;
+        self.logs.push(EngineLog::Gui(msg));
+
         Ok(())
     }
 
@@ -79,10 +89,10 @@ impl EngineProcess {
     }
 
     async fn set_position(&mut self, fen: &str) -> Result<(), Error> {
-        self.stdin
-            .write_all(format!("position fen {}\n", fen).as_bytes())
-            .await?;
+        let msg = format!("position fen {}\n", fen);
+        self.stdin.write_all(msg.as_bytes()).await?;
         self.fen = fen.parse()?;
+        self.logs.push(EngineLog::Gui(msg));
         Ok(())
     }
 
@@ -94,16 +104,19 @@ impl EngineProcess {
             GoMode::Infinite => "go infinite\n".to_string(),
         };
         self.stdin.write_all(msg.as_bytes()).await?;
+        self.logs.push(EngineLog::Gui(msg));
         Ok(())
     }
 
     async fn stop(&mut self) -> Result<(), Error> {
         self.stdin.write_all(b"stop\n").await?;
+        self.logs.push(EngineLog::Gui("stop\n".to_string()));
         Ok(())
     }
 
     async fn kill(&mut self) -> Result<(), Error> {
         self.stdin.write_all(b"quit\n").await?;
+        self.logs.push(EngineLog::Gui("quit\n".to_string()));
         Ok(())
     }
 }
@@ -286,6 +299,22 @@ pub async fn stop_engine(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn get_engine_logs(
+    engine: String,
+    tab: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<EngineLog>, Error> {
+    let key = (tab, engine);
+    if let Some(process) = state.engine_processes.get(&key) {
+        let process = process.lock().await;
+        Ok(process.logs.clone())
+    } else {
+        Ok(Vec::new())
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn get_best_moves(
     engine: String,
     tab: String,
@@ -353,6 +382,7 @@ pub async fn get_best_moves(
                     }
                 }
             }
+            proc.logs.push(EngineLog::Engine(line));
         }
     }
 }
