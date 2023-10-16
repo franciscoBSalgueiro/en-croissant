@@ -24,7 +24,6 @@ export default function LogsPanel() {
   const { data, mutate } = useSWR(
     ["logs", engine.path, activeTab],
     async () => {
-      console.log("fetching logs");
       return unwrap(await commands.getEngineLogs(engine.path, activeTab!));
     }
   );
