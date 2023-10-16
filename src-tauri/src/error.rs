@@ -63,6 +63,9 @@ pub enum Error {
     #[error("No moves found")]
     NoMovesFound,
 
+    #[error("Lower or upper bound")]
+    LowerOrUpperBound,
+
     #[error("Search stopped")]
     SearchStopped,
 

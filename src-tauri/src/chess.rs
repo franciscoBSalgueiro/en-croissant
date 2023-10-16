@@ -40,6 +40,7 @@ pub struct EngineProcess {
     last_depth: u8,
     best_moves: Vec<BestMoves>,
     fen: Fen,
+    multipv: u16,
     logs: Vec<EngineLog>,
 }
 
@@ -64,6 +65,7 @@ impl EngineProcess {
                 best_moves: Vec::new(),
                 fen: Fen::default(),
                 logs: Vec::new(),
+                multipv: 1,
             },
             BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines(),
         ))
@@ -78,6 +80,12 @@ impl EngineProcess {
     }
 
     async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
+        let fen: Fen = options.fen.parse()?;
+        let pos: Chess = match fen.into_position(CastlingMode::Standard) {
+            Ok(p) => p,
+            Err(e) => e.ignore_too_much_material()?,
+        };
+        self.multipv = options.multipv.min(pos.legal_moves().len() as u16);
         self.set_option("Threads", &options.threads.to_string())
             .await?;
         self.set_option("MultiPV", &options.multipv.to_string())
@@ -190,11 +198,19 @@ fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves,
             UciInfoAttribute::MultiPv(multipv) => {
                 best_moves.multipv = multipv;
             }
-            UciInfoAttribute::Score { cp, mate, .. } => {
+            UciInfoAttribute::Score {
+                cp,
+                mate,
+                lower_bound,
+                upper_bound,
+            } => {
                 if let Some(cp) = cp {
                     best_moves.score = Score::Cp(cp);
                 } else if let Some(mate) = mate {
                     best_moves.score = Score::Mate(mate);
+                }
+                if lower_bound.unwrap_or(false) || upper_bound.unwrap_or(false) {
+                    return Err(Error::LowerOrUpperBound);
                 }
             }
             _ => (),
@@ -325,28 +341,23 @@ pub async fn get_best_moves(
 ) -> Result<(), Error> {
     let path = PathBuf::from(&engine);
 
-    let parsed_fen: Fen = options.fen.parse()?;
-    let pos: Chess = match parsed_fen.clone().into_position(CastlingMode::Standard) {
-        Ok(p) => p,
-        Err(e) => e.ignore_too_much_material()?,
-    };
-
-    let mut options = options.clone();
-    options.multipv = options.multipv.min(pos.legal_moves().len() as u16);
-
     let key = (tab.clone(), engine.clone());
 
     if state.engine_processes.contains_key(&key) {
         {
             let process = state.engine_processes.get_mut(&key).unwrap();
             let mut process = process.lock().await;
-            if process.stop().await.is_ok() {
-                process.set_options(options.clone()).await?;
-                process.go(&go_mode).await?;
-                return Ok(());
-            }
+            process.stop().await?;
         }
-        state.engine_processes.remove(&key).unwrap();
+        // give time for engine to stop and process previous lines
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        {
+            let process = state.engine_processes.get_mut(&key).unwrap();
+            let mut process = process.lock().await;
+            process.set_options(options.clone()).await?;
+            process.go(&go_mode).await?;
+        }
+        return Ok(());
     }
 
     let (mut process, mut reader) = EngineProcess::new(path)?;
@@ -355,36 +366,36 @@ pub async fn get_best_moves(
 
     let process = Arc::new(Mutex::new(process));
 
-    state.engine_processes.insert(key, process.clone());
+    state.engine_processes.insert(key.clone(), process.clone());
 
-    loop {
-        let line_opt = reader.next_line().await?;
+    while let Some(line) = reader.next_line().await? {
         let mut proc = process.lock().await;
-        if let Some(line) = line_opt {
-            if let UciMessage::Info(attrs) = parse_one(&line) {
-                if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.fen) {
-                    let multipv = best_moves.multipv;
-                    let cur_depth = best_moves.depth;
-                    proc.best_moves.push(best_moves);
-                    if multipv == options.multipv {
-                        if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                            && cur_depth >= proc.last_depth
-                        {
-                            BestMovesPayload {
-                                best_lines: proc.best_moves.clone(),
-                                engine: engine.clone(),
-                                tab: tab.clone(),
-                            }
-                            .emit_all(&app)?;
-                            proc.last_depth = cur_depth;
+        if let UciMessage::Info(attrs) = parse_one(&line) {
+            if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.fen) {
+                let multipv = best_moves.multipv;
+                let cur_depth = best_moves.depth;
+                proc.best_moves.push(best_moves);
+                if multipv == proc.multipv {
+                    if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                        && cur_depth >= proc.last_depth
+                    {
+                        BestMovesPayload {
+                            best_lines: proc.best_moves.clone(),
+                            engine: engine.clone(),
+                            tab: tab.clone(),
                         }
-                        proc.best_moves.clear();
+                        .emit_all(&app)?;
+                        proc.last_depth = cur_depth;
                     }
+                    proc.best_moves.clear();
                 }
             }
-            proc.logs.push(EngineLog::Engine(line));
         }
+        proc.logs.push(EngineLog::Engine(line));
     }
+    info!("Engine process finished: tab: {}, engine: {}", tab, engine);
+    state.engine_processes.remove(&key).unwrap();
+    Ok(())
 }
 
 #[derive(Serialize, Debug, Default, Type)]

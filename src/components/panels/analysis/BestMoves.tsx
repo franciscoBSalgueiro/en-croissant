@@ -109,9 +109,12 @@ export default function BestMovesComponent({
       };
     }
     waitForMove();
-  }, []);
+  }, [activeTab, dispatch, engine.path, id, setArrows]);
 
-  const chess = new Chess(fen);
+  const isGameOver = useMemo(() => {
+    const chess = new Chess(fen);
+    return chess.isGameOver();
+  }, [fen]);
 
   useThrottledEffect(
     () => {
@@ -166,7 +169,7 @@ export default function BestMovesComponent({
               onClick={() => {
                 setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
               }}
-              disabled={chess.isGameOver()}
+              disabled={isGameOver}
               ml={12}
             >
               {settings.enabled ? (
@@ -295,15 +298,23 @@ export default function BestMovesComponent({
     ),
     [
       settings.enabled,
-      settings.numberLines,
-      settings.maxDepth,
       settings.cores,
+      settings.maxDepth,
+      settings.numberLines,
+      theme.primaryColor,
+      isGameOver,
+      engine.name,
       engineVariations,
-      threat,
-      settingsOn,
       progress,
       nps,
+      classes.subtitle,
       depth,
+      threat,
+      settingsOn,
+      setSettings,
+      toggleThreat,
+      toggleSettingsOn,
+      halfMoves,
     ]
   );
 }
