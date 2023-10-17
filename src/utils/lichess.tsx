@@ -8,6 +8,7 @@ import { parsePGN } from "./chess";
 import { countMainPly } from "./treeReducer";
 import { fetch, Response, ResponseType } from "@tauri-apps/api/http";
 import { error } from "tauri-plugin-log-api";
+import { LichessGamesOptions, MasterGamesOptions, getLichessGamesQueryParams, getMasterGamesQueryParams } from "./lichess/lichessexplorer";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
@@ -198,11 +199,21 @@ export async function getCloudEvaluation(fen: string, multipv = 1) {
   return fetch(url);
 }
 
-export async function getLichessGames(fen: string): Promise<PositionData> {
-  return (await fetch<PositionData>(`${explorerURL}/lichess?fen=${fen}`)).data;
+export async function getLichessGames(fen: string, options?: LichessGamesOptions): Promise<PositionData> {
+  let url = `${explorerURL}/lichess?fen=${fen}`;
+  const queryParams = getLichessGamesQueryParams(options);
+  if (queryParams.length > 0) {
+    url += `&${queryParams.join('&')}`;
+  }
+  return (await fetch<PositionData>(url)).data;
 }
 
-export async function getMasterGames(fen: string): Promise<PositionData> {
+export async function getMasterGames(fen: string, options?: MasterGamesOptions): Promise<PositionData> {
+  let url = `${explorerURL}/masters?fen=${fen}`;
+  const queryParams = getMasterGamesQueryParams(options);
+  if (queryParams.length > 0) {
+      url += `&${queryParams.join('&')}`;
+  }
   return (await fetch<PositionData>(`${explorerURL}/masters?fen=${fen}`)).data;
 }
 
