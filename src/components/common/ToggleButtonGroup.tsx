@@ -1,7 +1,7 @@
 import { Button, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { ReactNode } from "react";
 
-interface ToggleButtonGridProps<T> {
+interface ToggleButtonGroupProps<T> {
     label: string;
     options: { content: ReactNode, name: string, value: T, isToggled: boolean }[];
     includeTooltips?: boolean;
@@ -9,7 +9,7 @@ interface ToggleButtonGridProps<T> {
     toggleOption(option: T): void;
 }
 
-function ToggleButtonGroup<T>(props: ToggleButtonGridProps<T>) {
+function ToggleButtonGroup<T>(props: ToggleButtonGroupProps<T>) {
     return (
         //this could use <InputWrapper> for the label instead if updating mantine to 7
         <Stack justify="flex-start" spacing={0}>
