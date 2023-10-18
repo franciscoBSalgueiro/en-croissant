@@ -70,10 +70,13 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
         <Stack justify="flex-start">
             <ToggleButtonGroup label="Time control"
                 options={timeControls.map(mapTimeControl)}
-                toggleOption={toggleTimeControl} includeTooltips />
+                toggleOption={toggleTimeControl}
+                minButtonWidth="9ch"
+                includeTooltips />
             <ToggleButtonGroup label="Average rating"
                 options={ratings.map(mapRatingOption)}
-                toggleOption={toggleRating} />
+                toggleOption={toggleRating}
+                minButtonWidth="9ch" />
             <MonthPickerInput label="Since"
                 placeholder="Pick date"
                 value={props.options.since ?? null}
