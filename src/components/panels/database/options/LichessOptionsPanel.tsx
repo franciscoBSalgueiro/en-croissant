@@ -1,5 +1,5 @@
 import { Stack } from "@mantine/core";
-import ToggleButtonGroup from "@/components/common/ToggleButtonGroup";
+import ToggleButtonGroup, { ToggleButtonGroupOption } from "@/components/common/ToggleButtonGroup";
 import { LichessGameSpeed, LichessGamesOptions, LichessRating } from "@/utils/lichess/lichessexplorer";
 import { match } from "ts-pattern";
 import { IconChevronRight, IconChevronsRight, IconClockHour4, IconFlame, IconHourglassHigh, IconSend } from "@tabler/icons-react";
@@ -14,7 +14,7 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
     const timeControls: LichessGameSpeed[] = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
     const ratings: LichessRating[] = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500];
 
-    function mapTimeControl(speed: LichessGameSpeed) {
+    function mapTimeControl(speed: LichessGameSpeed): ToggleButtonGroupOption<LichessGameSpeed> {
         const name = `${speed.charAt(0).toUpperCase()}${speed.slice(1)}`;
         const icon = match(speed)
             .with("ultraBullet", () => <IconChevronsRight />)
@@ -32,7 +32,7 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
         };
     }
 
-    function mapRatingOption(rating: LichessRating) {
+    function mapRatingOption(rating: LichessRating): ToggleButtonGroupOption<LichessRating> {
         const name = rating == 0 ? "400" : rating.toString();
         return {
             content: (<span>{name}</span>),
