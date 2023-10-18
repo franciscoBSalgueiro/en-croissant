@@ -19,12 +19,10 @@ async function similarStructure(fen: string) {
 
 function SearchPanel({
   boardFen,
-  disabled,
   query,
   setQuery,
 }: {
   boardFen: string;
-  disabled: boolean;
   query: PositionQuery;
   setQuery: React.Dispatch<React.SetStateAction<PositionQuery>>;
 }) {
@@ -44,7 +42,6 @@ function SearchPanel({
       <Group>
         <Text fw="bold">Position:</Text>
         <SegmentedControl
-          disabled={disabled}
           data={[
             { value: "exact", label: "Exact" },
             { value: "partial", label: "Partial" },
