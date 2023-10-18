@@ -2,7 +2,7 @@ import { Stack } from "@mantine/core";
 import ToggleButtonGroup from "@/components/common/ToggleButtonGroup";
 import { LichessGameSpeed, LichessGamesOptions, LichessRating } from "@/utils/lichess/lichessexplorer";
 import { match } from "ts-pattern";
-import { IconAirBalloon, IconCarrot, IconChevronRight, IconChevronsRight, IconFlame, IconSend } from "@tabler/icons-react";
+import { IconChevronRight, IconChevronsRight, IconClockHour4, IconFlame, IconHourglassHigh, IconSend } from "@tabler/icons-react";
 import { MonthPickerInput } from "@mantine/dates";
 
 interface LichessOptionsPanelProps {
@@ -16,13 +16,12 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
 
     function mapTimeControl(speed: LichessGameSpeed) {
         const name = `${speed.charAt(0).toUpperCase()}${speed.slice(1)}`;
-        //TODO: use lichess icons
         const icon = match(speed)
             .with("ultraBullet", () => <IconChevronsRight />)
             .with("bullet", () => <IconChevronRight />)
             .with("blitz", () => <IconFlame />)
-            .with("rapid", () => <IconCarrot />)
-            .with("classical", () => <IconAirBalloon />)
+            .with("rapid", () => <IconHourglassHigh />)
+            .with("classical", () => <IconClockHour4 />)
             .with("correspondence", () => <IconSend />)
             .exhaustive();
         return {
