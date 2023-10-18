@@ -13,14 +13,14 @@ interface LichessOptionsPanelProps {
 }
 
 const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
-    const timeControls: LichessGameSpeed[] = ["ultrabullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
+    const timeControls: LichessGameSpeed[] = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
     const ratings: LichessRating[] = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500];
 
     function mapTimeControl(speed: LichessGameSpeed) {
         const name = `${speed.charAt(0).toUpperCase()}${speed.slice(1)}`;
         //TODO: use lichess icons
         const icon = match(speed)
-            .with("ultrabullet", () => <IconChevronsRight />)
+            .with("ultraBullet", () => <IconChevronsRight />)
             .with("bullet", () => <IconChevronRight />)
             .with("blitz", () => <IconFlame />)
             .with("rapid", () => <IconCarrot />)

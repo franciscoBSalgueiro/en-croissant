@@ -73,7 +73,7 @@ export type LichessVariant =
     "fromPosition";
 
 export type LichessGameSpeed =
-    "ultrabullet" |
+    "ultraBullet" |
     "bullet" |
     "blitz" |
     "rapid" |
