@@ -13,7 +13,7 @@ interface LichessOptionsPanelProps {
 }
 
 const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
-    const timeControls: LichessGameSpeed[] = ["ultrabullet", "bullet", "blitz", "rapid", "classical", "correspondence"]
+    const timeControls: LichessGameSpeed[] = ["ultrabullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
     const ratings: LichessRating[] = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500];
 
     function mapTimeControl(speed: LichessGameSpeed) {
@@ -26,7 +26,7 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
             .with("rapid", () => <IconCarrot />)
             .with("classical", () => <IconAirBalloon />)
             .with("correspondence", () => <IconSend />)
-            .run();
+            .exhaustive();
         return {
             content: icon,
             name: name,

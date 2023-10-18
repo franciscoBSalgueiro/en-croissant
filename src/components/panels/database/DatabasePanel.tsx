@@ -93,11 +93,17 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   });
 
   const tab = useAtomValue(currentTabAtom);
+
+  const dbOptionsKey = match(db)
+    .with("local", () => "0")
+    .with("lch_all", () => `1_${JSON.stringify(lichessOptions)}`)
+    .with("lch_master", () => `2_${JSON.stringify(masterOptions)}`)
+    .exhaustive();
   const {
     data: openingData,
     isLoading,
     error,
-  } = useSWR([dbType, query], async ([dbType, query]) => {
+  } = useSWR([dbType, query, dbOptionsKey], async ([dbType, query]) => {
     return fetchOpening(query, dbType, tab?.value || "", lichessOptions, masterOptions);
   });
 
@@ -180,7 +186,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
                 options={masterOptions}
                 setOptions={setMasterOptions}
               />
-            ).run()
+            ).exhaustive()
           }
         </PanelWithError>
       </Tabs>
