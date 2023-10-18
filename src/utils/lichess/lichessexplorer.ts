@@ -19,6 +19,9 @@ export type MasterGamesOptions = {
 }
 
 export function getLichessGamesQueryParams(options: LichessGamesOptions | undefined): string[] {
+    const getDateQueryString = (date: Date) => 
+        `${date.getFullYear()}-${date.getMonth() + 1}`;
+
     const queryParams: string[] = [];
     if (options) {
         if (options.variant)
@@ -42,6 +45,8 @@ export function getLichessGamesQueryParams(options: LichessGamesOptions | undefi
 }
 
 export function getMasterGamesQueryParams(options: MasterGamesOptions | undefined): string[] {
+    const getDateQueryString = (date: Date) => date.getFullYear().toString();
+
     const queryParams: string[] = [];
     if (options) {
         if (options.since)
@@ -54,10 +59,6 @@ export function getMasterGamesQueryParams(options: MasterGamesOptions | undefine
             queryParams.push(`topGames=${options.topGames}`);
     }
     return queryParams;
-}
-
-function getDateQueryString(date: Date) {
-    return `${date.getFullYear()}-${date.getMonth() + 1}`;
 }
 
 export type LichessVariant = 
