@@ -17,6 +17,9 @@ import { useDebouncedValue } from "@mantine/hooks";
 import NoDatabaseWarning from "./NoDatabaseWarning";
 import { formatNumber } from "@/utils/format";
 import DatabaseLoader from "./DatabaseLoader";
+import { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/lichessexplorer";
+import LichessOptionsPanel from "./options/LichessOptionsPanel";
+import MasterOptionsPanel from "./options/MastersOptionsPanel";
 
 type DBType =
   | { type: "local"; db: string | null }
@@ -29,10 +32,10 @@ function sortOpenings(openings: Opening[]) {
   );
 }
 
-async function fetchOpening(query: PositionQuery, db: DBType, tab: string) {
+async function fetchOpening(query: PositionQuery, db: DBType, tab: string, lichessOptions: LichessGamesOptions, masterOptions: MasterGamesOptions) {
   return match(db)
     .with({ type: "lch_all" }, async () => {
-      const data = await getLichessGames(query.value);
+      const data = await getLichessGames(query.value, lichessOptions);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -44,7 +47,7 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string) {
       };
     })
     .with({ type: "lch_master" }, async () => {
-      const data = await getMasterGames(query.value);
+      const data = await getMasterGames(query.value, masterOptions);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -69,6 +72,8 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string) {
 function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [db, setDb] = useState<"local" | "lch_all" | "lch_master">("local");
+  const [lichessOptions, setLichessOptions] = useState<LichessGamesOptions>({});
+  const [masterOptions, setMasterOptions] = useState<MasterGamesOptions>({});
   const [debouncedFen] = useDebouncedValue(fen, 50);
 
   const dbType: DBType = match(db)
@@ -93,7 +98,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
     isLoading,
     error,
   } = useSWR([dbType, query], async ([dbType, query]) => {
-    return fetchOpening(query, dbType, tab?.value || "");
+    return fetchOpening(query, dbType, tab?.value || "", lichessOptions, masterOptions);
   });
 
   const [tabType, setTabType] = useState<string | null>("stats");
@@ -146,7 +151,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
             Stats
           </Tabs.Tab>
           <Tabs.Tab value="games">Games</Tabs.Tab>
-          <Tabs.Tab value="options" disabled={db !== "local"}>
+          <Tabs.Tab value="options">
             Options
           </Tabs.Tab>
         </Tabs.List>
@@ -166,12 +171,25 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
           />
         </PanelWithError>
         <PanelWithError value="options" error={error} db={db}>
-          <SearchPanel
-            boardFen={debouncedFen}
-            disabled={db !== "local"}
-            query={query}
-            setQuery={setQuery}
-          />
+          {match(db)
+            .with("local", () => 
+              <SearchPanel
+                boardFen={debouncedFen}
+                query={query}
+                setQuery={setQuery}
+              />
+            ).with("lch_all", () =>
+              <LichessOptionsPanel
+                options={lichessOptions}
+                setOptions={setLichessOptions}
+              />
+            ).with("lch_master", () =>
+              <MasterOptionsPanel
+                options={masterOptions}
+                setOptions={setMasterOptions}
+              />
+            ).run()
+          }
         </PanelWithError>
       </Tabs>
     </>
