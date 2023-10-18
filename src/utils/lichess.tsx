@@ -200,7 +200,7 @@ export async function getCloudEvaluation(fen: string, multipv = 1) {
 }
 
 export async function getLichessGames(fen: string, options?: LichessGamesOptions): Promise<PositionData> {
-  let url = `${explorerURL}/lichess?fen=${fen}`;
+  let url = `${explorerURL}/lichess?fen=${encodeURIComponent(fen)}`;
   const queryParams = getLichessGamesQueryParams(options);
   if (queryParams.length > 0) {
     url += `&${queryParams.join('&')}`;
@@ -209,12 +209,12 @@ export async function getLichessGames(fen: string, options?: LichessGamesOptions
 }
 
 export async function getMasterGames(fen: string, options?: MasterGamesOptions): Promise<PositionData> {
-  let url = `${explorerURL}/masters?fen=${fen}`;
+  let url = `${explorerURL}/masters?fen=${encodeURIComponent(fen)}`;
   const queryParams = getMasterGamesQueryParams(options);
   if (queryParams.length > 0) {
       url += `&${queryParams.join('&')}`;
   }
-  return (await fetch<PositionData>(`${explorerURL}/masters?fen=${fen}`)).data;
+  return (await fetch<PositionData>(url)).data;
 }
 
 export async function getPlayerGames(
