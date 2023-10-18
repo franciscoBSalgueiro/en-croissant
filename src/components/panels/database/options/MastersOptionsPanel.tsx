@@ -8,21 +8,18 @@ interface MasterOptionsPanelProps {
 }
 
 const MasterOptionsPanel = (props: MasterOptionsPanelProps) => {
-
-    const setSince = (date: Date | null | undefined) => props.setOptions({...props.options, since: date ?? undefined});
-    const setUntil = (date: Date | null | undefined) => props.setOptions({...props.options, until: date ?? undefined});
-
+    
     return (
         <Stack justify="flex-start">
             <MonthPickerInput label="Since"
                 placeholder="Pick date"
-                value={props.options.since}
-                onChange={setSince}
+                value={props.options.since ?? null}
+                onChange={value => props.setOptions({...props.options, since: value ?? undefined})}
                 clearable />
             <MonthPickerInput label="Until"
                 placeholder="Pick date"
-                value={props.options.until}
-                onChange={setUntil}
+                value={props.options.until ?? null}
+                onChange={value => props.setOptions({...props.options, until: value ?? undefined})}
                 clearable />
         </Stack>
     );
