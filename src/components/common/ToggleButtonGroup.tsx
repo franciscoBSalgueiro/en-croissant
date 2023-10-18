@@ -11,7 +11,7 @@ interface ToggleButtonGridProps<T> {
 function ToggleButtonGroup<T>(props: ToggleButtonGridProps<T>) {
     return (
         //this could use <InputWrapper> for the label instead if updating mantine to 7
-        <Stack justify="flex-start" spacing="xs">
+        <Stack justify="flex-start" spacing={0}>
             <Text weight={500} size="sm">{props.label}</Text>
             <Button.Group>
                 {props.options.map(option => {
