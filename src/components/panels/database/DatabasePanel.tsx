@@ -113,16 +113,8 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
         <SegmentedControl
           data={[
             { label: "Local", value: "local" },
-            {
-              label: "Lichess All",
-              value: "lch_all",
-              disabled: tabType === "options",
-            },
-            {
-              label: "Lichess Masters",
-              value: "lch_master",
-              disabled: tabType === "options",
-            },
+            { label: "Lichess All", value: "lch_all" },
+            { label: "Lichess Masters", value: "lch_master" },
           ]}
           value={db}
           onChange={(value) =>
