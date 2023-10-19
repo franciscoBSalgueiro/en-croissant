@@ -10,7 +10,7 @@ import {
   SegmentedControl,
 } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Chessground } from "@/chessground/Chessground";
 
 async function similarStructure(fen: string) {
@@ -27,10 +27,6 @@ function SearchPanel({
   setQuery: React.Dispatch<React.SetStateAction<PositionQuery>>;
 }) {
   const boardRef = useRef(null);
-
-  useEffect(() => {
-    setQuery((q) => ({ ...q, value: boardFen }));
-  }, [boardFen, setQuery]);
 
   const fetchSimilarStructure = async (fen: string) => {
     const fenResult = await similarStructure(fen);

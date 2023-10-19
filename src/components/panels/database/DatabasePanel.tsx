@@ -1,5 +1,5 @@
 import { Alert, Group, SegmentedControl, Tabs, Text } from "@mantine/core";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Opening, PositionQuery, searchPosition } from "@/utils/db";
 import { currentTabAtom, referenceDbAtom } from "@/atoms/atoms";
 import { useAtomValue } from "jotai";
@@ -74,7 +74,12 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const [db, setDb] = useState<"local" | "lch_all" | "lch_master">("local");
   const [lichessOptions, setLichessOptions] = useState<LichessGamesOptions>({});
   const [masterOptions, setMasterOptions] = useState<MasterGamesOptions>({});
+  const [query, setQuery] = useState<PositionQuery>({ value: fen, type: "exact" });
   const [debouncedFen] = useDebouncedValue(fen, 50);
+
+  useEffect(() => {
+    setQuery((q) => ({ ...q, value: debouncedFen }));
+  }, [debouncedFen, setQuery]);
 
   const dbType: DBType = match(db)
     .with("local", (v) => {
@@ -86,11 +91,6 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
     .otherwise((v) => ({
       type: v,
     }));
-
-  const [query, setQuery] = useState<PositionQuery>({
-    value: fen,
-    type: "exact",
-  });
 
   const tab = useAtomValue(currentTabAtom);
 
