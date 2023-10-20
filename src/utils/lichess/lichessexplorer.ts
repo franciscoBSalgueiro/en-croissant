@@ -1,5 +1,6 @@
 export type LichessGamesOptions = {
     //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerLichess
+    fen: string;
     variant?: LichessVariant;
     speeds?: LichessGameSpeed[];
     ratings?: LichessRating[];
@@ -12,18 +13,20 @@ export type LichessGamesOptions = {
 
 export type MasterGamesOptions = {
     //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerMaster
+    fen: string;
     since?: Date;
     until?: Date;
     moves?: number;
     topGames?: number;
 }
 
-export function getLichessGamesQueryParams(options: LichessGamesOptions | undefined): string[] {
+export function getLichessGamesQueryParams(options: LichessGamesOptions | undefined): string {
     const getDateQueryString = (date: Date) => 
         `${date.getFullYear()}-${date.getMonth() + 1}`;
 
     const queryParams: string[] = [];
     if (options) {
+        queryParams.push(`fen=${options.fen}`);
         if (options.variant)
             queryParams.push(`variant=${options.variant}`);
         if (options.speeds && options.speeds.length > 0)
@@ -41,14 +44,15 @@ export function getLichessGamesQueryParams(options: LichessGamesOptions | undefi
         if (options.recentGames != undefined && 0 <= options.recentGames && options.recentGames <= 4)
             queryParams.push(`recentGames=${options.recentGames}`)
     }
-    return queryParams;
+    return queryParams.join('&');
 }
 
-export function getMasterGamesQueryParams(options: MasterGamesOptions | undefined): string[] {
+export function getMasterGamesQueryParams(options: MasterGamesOptions | undefined): string {
     const getDateQueryString = (date: Date) => date.getFullYear().toString();
 
     const queryParams: string[] = [];
     if (options) {
+        queryParams.push(`fen=${options.fen}`);
         if (options.since)
             queryParams.push(`since=${getDateQueryString(options.since)}`);
         if (options.until)
@@ -58,7 +62,7 @@ export function getMasterGamesQueryParams(options: MasterGamesOptions | undefine
         if (options.topGames != undefined && 0 <= options.topGames && options.topGames <= 15)
             queryParams.push(`topGames=${options.topGames}`);
     }
-    return queryParams;
+    return queryParams.join('&');
 }
 
 export type LichessVariant = 

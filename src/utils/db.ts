@@ -3,6 +3,7 @@ import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./invoke";
 import { PuzzleDatabase } from "./puzzles";
+import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
@@ -291,21 +292,15 @@ export async function getPlayersGameInfo(file: string, id: number) {
     });
 }
 
-export type PositionQuery = {
-    type: "exact" | "partial";
-    value: string;
-};
-
 export async function searchPosition(
-    referenceDatabase: string,
-    query: PositionQuery,
+    options: LocalOptions,
     tab: string,
 ) {
     const openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
-            file: referenceDatabase,
-            query,
+            file: options.path,
+            query: options,
             tabId: tab
         },
         (s) => s === "Search stopped"

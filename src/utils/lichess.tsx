@@ -199,21 +199,13 @@ export async function getCloudEvaluation(fen: string, multipv = 1) {
   return fetch(url);
 }
 
-export async function getLichessGames(fen: string, options?: LichessGamesOptions): Promise<PositionData> {
-  let url = `${explorerURL}/lichess?fen=${encodeURIComponent(fen)}`;
-  const queryParams = getLichessGamesQueryParams(options);
-  if (queryParams.length > 0) {
-    url += `&${queryParams.join('&')}`;
-  }
+export async function getLichessGames(options: LichessGamesOptions): Promise<PositionData> {
+  const url = `${explorerURL}/lichess?${getLichessGamesQueryParams(options)}`;
   return (await fetch<PositionData>(url)).data;
 }
 
-export async function getMasterGames(fen: string, options?: MasterGamesOptions): Promise<PositionData> {
-  let url = `${explorerURL}/masters?fen=${encodeURIComponent(fen)}`;
-  const queryParams = getMasterGamesQueryParams(options);
-  if (queryParams.length > 0) {
-      url += `&${queryParams.join('&')}`;
-  }
+export async function getMasterGames(options: MasterGamesOptions): Promise<PositionData> {
+  const url = `${explorerURL}/masters?${getMasterGamesQueryParams(options)}`;
   return (await fetch<PositionData>(url)).data;
 }
 

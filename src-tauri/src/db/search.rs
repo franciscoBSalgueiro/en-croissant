@@ -77,10 +77,10 @@ impl<'de> Deserialize<'de> for PositionQuery {
             serde_json::Value::Object(map) => {
                 let type_ = map
                     .get("type")
-                    .ok_or(serde::de::Error::custom("Missing key"))?;
+                    .ok_or(serde::de::Error::custom("Missing type"))?;
                 let value = map
-                    .get("value")
-                    .ok_or(serde::de::Error::custom("Missing key"))?;
+                    .get("fen")
+                    .ok_or(serde::de::Error::custom("Missing fen"))?;
                 match type_.as_str().unwrap() {
                     "exact" => {
                         let fen = value.as_str().unwrap();

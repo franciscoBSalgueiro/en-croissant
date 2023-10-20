@@ -1,6 +1,5 @@
 import PiecesGrid from "@/components/boards/PiecesGrid";
 import { EMPTY_BOARD } from "@/utils/chess";
-import { PositionQuery } from "@/utils/db";
 import {
   Text,
   Stack,
@@ -12,25 +11,20 @@ import {
 import { invoke } from "@tauri-apps/api";
 import { useRef } from "react";
 import { Chessground } from "@/chessground/Chessground";
+import { useAtom } from "jotai";
+import { currentLocalOptionsAtom } from "@/atoms/atoms";
 
 async function similarStructure(fen: string) {
   return await invoke<string>("similar_structure", { fen });
 }
 
-function SearchPanel({
-  boardFen,
-  query,
-  setQuery,
-}: {
-  boardFen: string;
-  query: PositionQuery;
-  setQuery: React.Dispatch<React.SetStateAction<PositionQuery>>;
-}) {
+function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
   const boardRef = useRef(null);
+  const [options, setOptions] = useAtom(currentLocalOptionsAtom);
 
   const fetchSimilarStructure = async (fen: string) => {
     const fenResult = await similarStructure(fen);
-    setQuery({ type: "partial", value: fenResult });
+    setOptions((q) => ({ ...q, type: "partial", fen: fenResult }));
   };
 
   return (
@@ -42,9 +36,9 @@ function SearchPanel({
             { value: "exact", label: "Exact" },
             { value: "partial", label: "Partial" },
           ]}
-          value={query.type}
+          value={options.type}
           onChange={(v) =>
-            setQuery({ ...query, type: v as "exact" | "partial" })
+            setOptions({ ...options, type: v as "exact" | "partial" })
           }
         />
       </Group>
@@ -55,7 +49,7 @@ function SearchPanel({
             <Chessground
               width={400}
               height={400}
-              fen={query.value}
+              fen={options.fen}
               coordinates={false}
               lastMove={[]}
               movable={{
@@ -64,11 +58,11 @@ function SearchPanel({
                 events: {
                   after: (orig, dest) => {
                     invoke<string>("make_move", {
-                      fen: query.value,
+                      fen: options.fen,
                       from: orig,
                       to: dest,
                     }).then((newFen) => {
-                      setQuery((q) => ({ ...q, value: newFen }));
+                      setOptions((q) => ({ ...q, fen: newFen }));
                     });
                   },
                 },
@@ -80,7 +74,7 @@ function SearchPanel({
             <Button
               variant="default"
               onClick={() => {
-                setQuery(() => ({ type: "exact", value: boardFen }));
+                setOptions((q) => ({ ...q, type: "exact", fen: boardFen }));
               }}
             >
               Current Position
@@ -96,9 +90,10 @@ function SearchPanel({
             <Button
               variant="default"
               onClick={() => {
-                setQuery(() => ({
+                setOptions((q) => ({
+                  ...q,
                   type: "partial",
-                  value: EMPTY_BOARD,
+                  fen: EMPTY_BOARD,
                 }));
               }}
             >
@@ -110,10 +105,10 @@ function SearchPanel({
         <PiecesGrid
           size={60}
           boardRef={boardRef}
-          fen={query.value}
+          fen={options.fen}
           vertical
           onPut={(newFen) => {
-            setQuery((q) => ({ ...q, value: newFen }));
+            setOptions((q) => ({ ...q, fen: newFen }));
           }}
         />
       </Group>
@@ -125,4 +120,4 @@ function SearchPanel({
   );
 }
 
-export default SearchPanel;
+export default LocalOptionsPanel;

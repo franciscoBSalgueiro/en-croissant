@@ -64,10 +64,10 @@ export async function openingReport({
             continue;
         }
         const [openings] = await searchPosition(
-            referenceDb!,
             {
+                path: referenceDb,
                 type: "exact",
-                value: item.node.fen,
+                fen: item.node.fen,
             },
             "opening"
         );

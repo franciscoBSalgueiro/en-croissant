@@ -3,7 +3,7 @@ import { Tab, genID } from "@/utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
 import { PrimitiveAtom, atom } from "jotai";
-import { DatabaseInfo, PositionQuery } from "@/utils/db";
+import { DatabaseInfo } from "@/utils/db";
 import { MissingMove } from "@/utils/repertoire";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
@@ -13,6 +13,7 @@ import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
 import { BaseDirectory, readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
 import { Engine } from "@/utils/engines";
 import { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/lichessexplorer";
+import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 
 
 const options = { dir: BaseDirectory.AppData };
@@ -167,13 +168,23 @@ export const currentInvisibleAtom = tabValue(invisibleFamily);
 const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 
+const localOptionsFamily = atomFamily((tab: string) => atom<LocalOptions>({
+    path: null,
+    type: "exact",
+    fen: ""
+}));
+export const currentLocalOptionsAtom = tabValue(localOptionsFamily);
+
 const lichessOptionsFamily = atomFamily((tab: string) => atom<LichessGamesOptions>({
+    fen: "",
     ratings: [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
     speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
 }));
 export const currentLichessOptionsAtom = tabValue(lichessOptionsFamily);
 
-const masterOptionsFamily = atomFamily((tab: string) => atom<MasterGamesOptions>({}));
+const masterOptionsFamily = atomFamily((tab: string) => atom<MasterGamesOptions>({
+    fen: ""
+}));
 export const currentMasterOptionsAtom = tabValue(masterOptionsFamily);
 
 const dbTypeFamily = atomFamily((tab: string) => atom<"local" | "lch_all" | "lch_master">("local"));
@@ -184,9 +195,6 @@ export const currentDbTabAtom = tabValue(dbTabFamily);
 
 const analysisTabFamily = atomFamily((tab: string) => atom("engines"));
 export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
-
-const positionQueryFamily = atomFamily((tab: string) => atom<PositionQuery>({ value: "", type: "exact" }));
-export const currentPositionQueryAtom = tabValue(positionQueryFamily);
 
 const pgnOptionsFamily = atomFamily((tab: string) => atom({
     comments: true,

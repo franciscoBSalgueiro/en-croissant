@@ -1,12 +1,12 @@
 import { Alert, Group, SegmentedControl, Tabs, Text } from "@mantine/core";
 import { memo, useEffect } from "react";
-import { Opening, PositionQuery, searchPosition } from "@/utils/db";
+import { Opening, searchPosition } from "@/utils/db";
 import {
   currentDbTabAtom,
   currentDbTypeAtom,
   currentLichessOptionsAtom,
+  currentLocalOptionsAtom,
   currentMasterOptionsAtom,
-  currentPositionQueryAtom,
   currentTabAtom,
   referenceDbAtom,
 } from "@/atoms/atoms";
@@ -18,21 +18,30 @@ import {
 } from "@/utils/lichess";
 import GamesTable from "./GamesTable";
 import OpeningsTable from "./OpeningsTable";
-import SearchPanel from "./SearchPanel";
 import { match } from "ts-pattern";
-import useSWR from "swr";
+import useSWR from "swr/immutable";
 import { useDebouncedValue } from "@mantine/hooks";
 import NoDatabaseWarning from "./NoDatabaseWarning";
 import { formatNumber } from "@/utils/format";
 import DatabaseLoader from "./DatabaseLoader";
-import { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/lichessexplorer";
+import {
+  LichessGamesOptions,
+  MasterGamesOptions,
+} from "@/utils/lichess/lichessexplorer";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
 import MasterOptionsPanel from "./options/MastersOptionsPanel";
+import LocalOptionsPanel from "./options/LocalOptionsPanel";
 
 type DBType =
-  | { type: "local"; db: string | null }
-  | { type: "lch_all" }
-  | { type: "lch_master" };
+  | { type: "local"; options: LocalOptions }
+  | { type: "lch_all"; options: LichessGamesOptions }
+  | { type: "lch_master"; options: MasterGamesOptions };
+
+export type LocalOptions = {
+  path: string | null;
+  fen: string;
+  type: "exact" | "partial";
+};
 
 function sortOpenings(openings: Opening[]) {
   return openings.sort(
@@ -40,11 +49,11 @@ function sortOpenings(openings: Opening[]) {
   );
 }
 
-async function fetchOpening(query: PositionQuery, db: DBType, tab: string, lichessOptions: LichessGamesOptions, masterOptions: MasterGamesOptions) {
-  if (query.value === "") return { openings: [], games: [] };
+async function fetchOpening(db: DBType, tab: string) {
+  if (db.options.fen === "") return { openings: [], games: [] };
   return match(db)
-    .with({ type: "lch_all" }, async () => {
-      const data = await getLichessGames(query.value, lichessOptions);
+    .with({ type: "lch_all" }, async ({ options }) => {
+      const data = await getLichessGames(options);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -55,8 +64,8 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string, liche
         games: await convertToNormalized(data.topGames),
       };
     })
-    .with({ type: "lch_master" }, async () => {
-      const data = await getMasterGames(query.value, masterOptions);
+    .with({ type: "lch_master" }, async ({ options }) => {
+      const data = await getMasterGames(options);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -67,9 +76,9 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string, liche
         games: await convertToNormalized(data.topGames),
       };
     })
-    .with({ type: "local" }, async ({ db }) => {
-      if (!db) throw Error("Missing reference database");
-      const positionData = await searchPosition(db, query, tab);
+    .with({ type: "local" }, async ({ options }) => {
+      if (!options.path) throw Error("Missing reference database");
+      const positionData = await searchPosition(options, tab);
       return {
         openings: sortOpenings(positionData[0]),
         games: positionData[1],
@@ -81,26 +90,37 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string, liche
 function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
-  const [lichessOptions, setLichessOptions] = useAtom(currentLichessOptionsAtom);
+  const [lichessOptions, setLichessOptions] = useAtom(
+    currentLichessOptionsAtom
+  );
   const [masterOptions, setMasterOptions] = useAtom(currentMasterOptionsAtom);
-  const [debouncedLichessOptions] = useDebouncedValue(lichessOptions, 500);
-  const [query, setQuery] = useAtom(currentPositionQueryAtom);
+  const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
   const [db, setDb] = useAtom(currentDbTypeAtom);
 
   useEffect(() => {
-    setQuery((q) => (q.type === "exact" && q.value != debouncedFen) ? ({ type: "exact", value: debouncedFen }): q);
-  }, [debouncedFen, setQuery]);
+    if (db === "local") {
+      setLocalOptions((q) => ({ ...q, fen: debouncedFen }));
+    } else if (db === "lch_all") {
+      setLichessOptions((q) => ({ ...q, fen: debouncedFen }));
+    } else if (db === "lch_master") {
+      setMasterOptions((q) => ({ ...q, fen: debouncedFen }));
+    }
+  }, [debouncedFen, setLocalOptions, setMasterOptions, setLichessOptions, db]);
+
+  useEffect(() => {
+    if (db === "local") {
+      setLocalOptions((q) => ({ ...q, path: referenceDatabase }));
+    }
+  }, [referenceDatabase, setLocalOptions, db]);
 
   const dbType: DBType = match(db)
-    .with("local", (v) => {
-      return {
-        type: v,
-        db: referenceDatabase,
-      };
-    })
-    .otherwise((v) => ({
+    .with("local", (v) => ({
       type: v,
-    }));
+      options: localOptions,
+    }))
+    .with("lch_all", (v) => ({ type: v, options: lichessOptions }))
+    .with("lch_master", (v) => ({ type: v, options: masterOptions }))
+    .exhaustive();
 
   const tab = useAtomValue(currentTabAtom);
 
@@ -108,8 +128,8 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
     data: openingData,
     isLoading,
     error,
-  } = useSWR([dbType, query, debouncedLichessOptions, masterOptions], async ([dbType, query, lichessOptions, masterOptions]) => {
-    return fetchOpening(query, dbType, tab?.value || "", lichessOptions, masterOptions);
+  } = useSWR([dbType], async ([dbType]) => {
+    return fetchOpening(dbType, tab?.value || "");
   });
 
   const [tabType, setTabType] = useAtom(currentDbTabAtom);
@@ -150,49 +170,38 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
         onTabChange={(v) => setTabType(v!)}
       >
         <Tabs.List>
-          <Tabs.Tab value="stats" disabled={query.type === "partial"}>
+          <Tabs.Tab
+            value="stats"
+            disabled={
+              dbType.type === "local" && dbType.options.type === "partial"
+            }
+          >
             Stats
           </Tabs.Tab>
           <Tabs.Tab value="games">Games</Tabs.Tab>
-          <Tabs.Tab value="options">
-            Options
-          </Tabs.Tab>
+          <Tabs.Tab value="options">Options</Tabs.Tab>
         </Tabs.List>
 
-        <PanelWithError value="stats" error={error} db={db}>
+        <PanelWithError value="stats" error={error} type={db}>
           <OpeningsTable
             openings={openingData?.openings || []}
             height={height}
             loading={isLoading}
           />
         </PanelWithError>
-        <PanelWithError value="games" error={error} db={db}>
+        <PanelWithError value="games" error={error} type={db}>
           <GamesTable
             games={openingData?.games || []}
             height={height}
             loading={isLoading}
           />
         </PanelWithError>
-        <PanelWithError value="options" error={error} db={db}>
+        <PanelWithError value="options" error={error} type={db}>
           {match(db)
-            .with("local", () => 
-              <SearchPanel
-                boardFen={debouncedFen}
-                query={query}
-                setQuery={setQuery}
-              />
-            ).with("lch_all", () =>
-              <LichessOptionsPanel
-                options={lichessOptions}
-                setOptions={setLichessOptions}
-              />
-            ).with("lch_master", () =>
-              <MasterOptionsPanel
-                options={masterOptions}
-                setOptions={setMasterOptions}
-              />
-            ).exhaustive()
-          }
+            .with("local", () => <LocalOptionsPanel boardFen={debouncedFen} />)
+            .with("lch_all", () => <LichessOptionsPanel />)
+            .with("lch_master", () => <MasterOptionsPanel />)
+            .exhaustive()}
         </PanelWithError>
       </Tabs>
     </>
@@ -202,21 +211,20 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
 function PanelWithError(props: {
   value: string;
   error: string;
-  db: "local" | string;
+  type: string;
   children: React.ReactNode;
 }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
-  let children = props.children;
-  if (props.db === "local" && !referenceDatabase) {
-    children = <NoDatabaseWarning />;
+  if (props.type === "local" && !referenceDatabase) {
+    props.children = <NoDatabaseWarning />;
   }
-  if (props.error && props.db !== "local") {
-    children = <Alert color="red">{props.error.toString()}</Alert>;
+  if (props.error && props.type !== "local") {
+    props.children = <Alert color="red">{props.error.toString()}</Alert>;
   }
 
   return (
     <Tabs.Panel pt="xs" mr="xs" value={props.value}>
-      {children}
+      {props.children}
     </Tabs.Panel>
   );
 }

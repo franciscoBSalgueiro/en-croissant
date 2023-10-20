@@ -1,16 +1,27 @@
 import { Stack } from "@mantine/core";
 import ToggleButtonGroup, { ToggleButtonGroupOption } from "@/components/common/ToggleButtonGroup";
-import { LichessGameSpeed, LichessGamesOptions, LichessRating } from "@/utils/lichess/lichessexplorer";
+import { LichessGameSpeed, LichessRating } from "@/utils/lichess/lichessexplorer";
 import { match } from "ts-pattern";
 import { IconChevronRight, IconChevronsRight, IconClockHour4, IconFlame, IconHourglassHigh, IconSend } from "@tabler/icons-react";
 import { MonthPickerInput } from "@mantine/dates";
+import { currentLichessOptionsAtom } from "@/atoms/atoms";
+import { useAtom } from "jotai";
+import { useDebouncedValue } from "@mantine/hooks";
+import { useEffect, useState } from "react";
 
-interface LichessOptionsPanelProps {
-    options: LichessGamesOptions;
-    setOptions(options: LichessGamesOptions): void;
-}
+const LichessOptionsPanel = () => {
+    const [originalOptions, setOriginalOptions] = useAtom(currentLichessOptionsAtom);
+    const [options, setOptions] = useState(originalOptions);
+    const [debouncedOptions] = useDebouncedValue(options, 500);
 
-const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
+    useEffect(() => {
+        setOptions(originalOptions);
+    }, [originalOptions]);
+    
+    useEffect(() => {
+        setOriginalOptions(debouncedOptions);
+    }, [debouncedOptions, setOriginalOptions]);
+
     const timeControls: LichessGameSpeed[] = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
     const ratings: LichessRating[] = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500];
 
@@ -28,7 +39,7 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
             content: icon,
             name: name,
             value: speed,
-            isToggled: (props.options.speeds ?? []).some(s => s === speed)
+            isToggled: (options.speeds ?? []).some(s => s === speed)
         };
     }
 
@@ -38,12 +49,12 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
             content: (<span>{name}</span>),
             name: name,
             value: rating,
-            isToggled: (props.options.ratings ?? []).some(r => r === rating)
+            isToggled: (options.ratings ?? []).some(r => r === rating)
         };
     }
 
     function toggleTimeControl(speed: LichessGameSpeed) {
-        const selected = props.options.speeds ?? [];
+        const selected = options.speeds ?? [];
         const newSelected = [...selected];
         const index = newSelected.indexOf(speed);
         if (index >= 0) {
@@ -53,11 +64,11 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
         } else {
             newSelected.push(speed);
         }
-        props.setOptions({...props.options, speeds: newSelected});
+        setOptions({...options, speeds: newSelected});
     }
 
     function toggleRating(rating: LichessRating) {
-        const selected = props.options.ratings ?? [];
+        const selected = options.ratings ?? [];
         const newSelected = [...selected];
         const index = newSelected.indexOf(rating);
         if (index >= 0) {
@@ -67,7 +78,7 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
         } else {
             newSelected.push(rating);
         }
-        props.setOptions({...props.options, ratings: newSelected});
+        setOptions({...options, ratings: newSelected});
     }
 
     return (
@@ -83,13 +94,13 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
                 minButtonWidth="9ch" />
             <MonthPickerInput label="Since"
                 placeholder="Pick date"
-                value={props.options.since ?? null}
-                onChange={value => props.setOptions({...props.options, since: value ?? undefined})}
+                value={options.since ?? null}
+                onChange={value => setOptions({...options, since: value ?? undefined})}
                 clearable />
             <MonthPickerInput label="Until"
                 placeholder="Pick date"
-                value={props.options.until ?? null}
-                onChange={value => props.setOptions({...props.options, until: value ?? undefined})}
+                value={options.until ?? null}
+                onChange={value => setOptions({...options, until: value ?? undefined})}
                 clearable />
         </Stack>
     );
