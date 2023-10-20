@@ -66,7 +66,7 @@ export default function LogsPanel() {
           ]}
         />
         <Select
-          value={engine?.name ?? "No engines installed"}
+          value={engine?.name ?? "No engines loaded"}
           onChange={(name: string) =>
             setEngine(engines.find((e) => e.name === name)!)
           }
