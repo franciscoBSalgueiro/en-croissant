@@ -1,8 +1,8 @@
 import { Alert, Group, SegmentedControl, Tabs, Text } from "@mantine/core";
 import { memo, useEffect, useState } from "react";
 import { Opening, PositionQuery, searchPosition } from "@/utils/db";
-import { currentTabAtom, referenceDbAtom } from "@/atoms/atoms";
-import { useAtomValue } from "jotai";
+import { currentLichessOptionsAtom, currentTabAtom, referenceDbAtom } from "@/atoms/atoms";
+import { useAtom, useAtomValue } from "jotai";
 import {
   convertToNormalized,
   getLichessGames,
@@ -72,10 +72,8 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string, liche
 function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [db, setDb] = useState<"local" | "lch_all" | "lch_master">("local");
-  const [lichessOptions, setLichessOptions] = useState<LichessGamesOptions>({
-    ratings: [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
-    speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
-  });
+  const [lichessOptions, setLichessOptions] = useAtom(currentLichessOptionsAtom);
+  const [debouncedLichessOptions] = useDebouncedValue(lichessOptions, 500);
   const [masterOptions, setMasterOptions] = useState<MasterGamesOptions>({});
   const [query, setQuery] = useState<PositionQuery>({ value: fen, type: "exact" });
   const [debouncedFen] = useDebouncedValue(fen, 50);
@@ -97,17 +95,12 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
 
   const tab = useAtomValue(currentTabAtom);
 
-  const dbOptionsKey = match(db)
-    .with("local", () => "0")
-    .with("lch_all", () => `1_${JSON.stringify(lichessOptions)}`)
-    .with("lch_master", () => `2_${JSON.stringify(masterOptions)}`)
-    .exhaustive();
   const {
     data: openingData,
     isLoading,
     error,
-  } = useSWR([dbType, query, dbOptionsKey], async ([dbType, query]) => {
-    return fetchOpening(query, dbType, tab?.value || "", lichessOptions, masterOptions);
+  } = useSWR([dbType, query, debouncedLichessOptions, masterOptions], async ([dbType, query, lichessOptions, masterOptions]) => {
+    return fetchOpening(query, dbType, tab?.value || "", lichessOptions!, masterOptions);
   });
 
   const [tabType, setTabType] = useState<string | null>("stats");
@@ -181,7 +174,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
               />
             ).with("lch_all", () =>
               <LichessOptionsPanel
-                options={lichessOptions}
+                options={lichessOptions!}
                 setOptions={setLichessOptions}
               />
             ).with("lch_master", () =>

@@ -12,6 +12,7 @@ import EngineSettings from "@/components/panels/analysis/EngineSettings";
 import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
 import { BaseDirectory, readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
 import { Engine } from "@/utils/engines";
+import { LichessGamesOptions } from "@/utils/lichess/lichessexplorer";
 
 
 const options = { dir: BaseDirectory.AppData };
@@ -158,13 +159,19 @@ function tabValue<T extends object | string | boolean>(
     );
 }
 
-// Board Options
+// Per tab settings
 
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
 const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
+
+const lichessOptionsFamily = atomFamily((tab: string) => atom<LichessGamesOptions>({
+    ratings: [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
+    speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
+}));
+export const currentLichessOptionsAtom = tabValue(lichessOptionsFamily);
 
 // Practice
 
