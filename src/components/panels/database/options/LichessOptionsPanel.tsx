@@ -46,8 +46,10 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
         const selected = props.options.speeds ?? [];
         const newSelected = [...selected];
         const index = newSelected.indexOf(speed);
-        if (index >= 0 && newSelected.length > 1) {
-            newSelected.splice(index, 1);
+        if (index >= 0) {
+            if (newSelected.length > 1) {
+                newSelected.splice(index, 1);
+            }
         } else {
             newSelected.push(speed);
         }
@@ -58,8 +60,10 @@ const LichessOptionsPanel = (props: LichessOptionsPanelProps) => {
         const selected = props.options.ratings ?? [];
         const newSelected = [...selected];
         const index = newSelected.indexOf(rating);
-        if (index >= 0 && newSelected.length > 1) {
-            newSelected.splice(index, 1);
+        if (index >= 0) {
+            if (newSelected.length > 1) {
+                newSelected.splice(index, 1);
+            }
         } else {
             newSelected.push(rating);
         }
