@@ -78,21 +78,23 @@ function AnalysisPanel({
       <Tabs.List>
         <Tabs.Tab value="engines">Engines</Tabs.Tab>
         <Tabs.Tab value="report">Report</Tabs.Tab>
-        <Tabs.Tab value="logs">Logs</Tabs.Tab>
+        <Tabs.Tab value="logs" disabled={loadedEngines.length == 0}>Logs</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="engines" pt="xs">
         <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
-          <Group>
-            <Button
-              rightIcon={
-                allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
-              }
-              variant={allEnabled ? "filled" : "default"}
-              onClick={() => enable(!allEnabled)}
-            >
-              {allEnabled ? "Stop All" : "Run All"}
-            </Button>
-          </Group>
+          {loadedEngines.length > 0 &&
+            <Group>
+              <Button
+                rightIcon={
+                    allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
+                }
+                variant={allEnabled ? "filled" : "default"}
+                onClick={() => enable(!allEnabled)}
+                >
+                {allEnabled ? "Stop All" : "Run All"}
+              </Button>
+            </Group>
+          }
           <Stack mt="sm">
             <Accordion
               variant="separated"
