@@ -110,11 +110,12 @@ export async function convertToNormalized(
   data: PositionGames
 ): Promise<NormalizedGame[]> {
   return await Promise.all(
-    data.map(async (game) => {
+    data.map(async (game, i) => {
       const pgn = await getLichessGame(game.id);
       const { headers, root } = await parsePGN(pgn);
       const normalized: NormalizedGame = {
         ...headers,
+        id: i,
         white_id: 0,
         black_id: 0,
         event_id: 0,
