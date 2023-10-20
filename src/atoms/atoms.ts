@@ -3,7 +3,7 @@ import { Tab, genID } from "@/utils/tabs";
 import { MantineColor } from "@mantine/core";
 import { Session } from "../utils/session";
 import { PrimitiveAtom, atom } from "jotai";
-import { DatabaseInfo } from "@/utils/db";
+import { DatabaseInfo, PositionQuery } from "@/utils/db";
 import { MissingMove } from "@/utils/repertoire";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
@@ -12,7 +12,7 @@ import EngineSettings from "@/components/panels/analysis/EngineSettings";
 import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
 import { BaseDirectory, readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
 import { Engine } from "@/utils/engines";
-import { LichessGamesOptions } from "@/utils/lichess/lichessexplorer";
+import { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/lichessexplorer";
 
 
 const options = { dir: BaseDirectory.AppData };
@@ -142,16 +142,16 @@ function tabValue<T extends object | string | boolean>(
     return atom(
         (get) => {
             const tab = get(currentTabAtom);
-            if (!tab) return null;
+            if (!tab) throw new Error("No tab selected");
             const atom = family(tab.value);
             return get(atom);
         },
         (get, set, newValue: T | ((currentValue: T) => T)) => {
             const tab = get(currentTabAtom);
-            if (!tab) return null;
+            if (!tab) throw new Error("No tab selected");
             const nextValue =
                 typeof newValue === "function"
-                    ? newValue(get(tabValue(family))!)
+                    ? newValue(get(tabValue(family)))
                     : newValue;
             const atom = family(tab.value);
             set(atom, nextValue);
@@ -172,6 +172,29 @@ const lichessOptionsFamily = atomFamily((tab: string) => atom<LichessGamesOption
     speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
 }));
 export const currentLichessOptionsAtom = tabValue(lichessOptionsFamily);
+
+const masterOptionsFamily = atomFamily((tab: string) => atom<MasterGamesOptions>({}));
+export const currentMasterOptionsAtom = tabValue(masterOptionsFamily);
+
+const dbTypeFamily = atomFamily((tab: string) => atom<"local" | "lch_all" | "lch_master">("local"));
+export const currentDbTypeAtom = tabValue(dbTypeFamily);
+
+const dbTabFamily = atomFamily((tab: string) => atom("stats"));
+export const currentDbTabAtom = tabValue(dbTabFamily);
+
+const analysisTabFamily = atomFamily((tab: string) => atom("engines"));
+export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
+
+const positionQueryFamily = atomFamily((tab: string) => atom<PositionQuery>({ value: "", type: "exact" }));
+export const currentPositionQueryAtom = tabValue(positionQueryFamily);
+
+const pgnOptionsFamily = atomFamily((tab: string) => atom({
+    comments: true,
+    annotations: true,
+    variations: true,
+    symbols: false,
+}));
+export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);
 
 // Practice
 

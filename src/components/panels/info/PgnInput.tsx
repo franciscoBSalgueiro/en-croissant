@@ -1,21 +1,19 @@
 import { Checkbox, Group, Stack, Text, Textarea } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
 import { memo, useMemo } from "react";
 import { getPGN } from "@/utils/chess";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
+import { useAtom } from "jotai";
+import { currentPgnOptionsAtom } from "@/atoms/atoms";
 
 function PgnInput({ root, headers }: { root: TreeNode; headers: GameHeaders }) {
-  const [comments, toggleComments] = useToggle([true, false]);
-  const [annotations, toggleAnnotations] = useToggle([true, false]);
-  const [variations, toggleVariations] = useToggle([true, false]);
-  const [symbols, toggleSymbols] = useToggle();
+  const [options, setOptions] = useAtom(currentPgnOptionsAtom)
 
   const pgn = getPGN(root, {
     headers: headers,
-    symbols: annotations,
-    comments,
-    variations,
-    specialSymbols: symbols,
+    symbols: options.annotations,
+    comments: options.comments,
+    variations: options.variations,
+    specialSymbols: options.symbols,
   });
 
   const controls = useMemo(
@@ -26,40 +24,31 @@ function PgnInput({ root, headers }: { root: TreeNode; headers: GameHeaders }) {
           <Checkbox
             label="Comments"
             size="xs"
-            checked={comments}
-            onChange={() => toggleComments()}
+            checked={options.comments}
+            onChange={() => setOptions({ ...options, comments: !options.comments })}
           />
           <Checkbox
             label="Symbols"
             size="xs"
-            checked={annotations}
-            onChange={() => toggleAnnotations()}
+            checked={options.annotations}
+            onChange={() => setOptions({ ...options, annotations: !options.annotations })}
           />
           <Checkbox
             label="Variations"
             size="xs"
-            checked={variations}
-            onChange={() => toggleVariations()}
+            checked={options.variations}
+            onChange={() => setOptions({ ...options, variations: !options.variations })}
           />
           <Checkbox
             label="Special Symbols"
             size="xs"
-            checked={symbols}
-            onChange={() => toggleSymbols()}
+            checked={options.symbols}
+            onChange={() => setOptions({ ...options, symbols: !options.symbols })}
           />
         </Group>
       </>
     ),
-    [
-      comments,
-      annotations,
-      variations,
-      symbols,
-      toggleComments,
-      toggleAnnotations,
-      toggleVariations,
-      toggleSymbols,
-    ]
+    [options, setOptions]
   );
 
   const pgnArea = useMemo(

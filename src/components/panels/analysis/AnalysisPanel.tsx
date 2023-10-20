@@ -23,7 +23,12 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import React from "react";
-import { allEnabledAtom, enableAllAtom, enginesAtom } from "@/atoms/atoms";
+import {
+  allEnabledAtom,
+  currentAnalysisTabAtom,
+  enableAllAtom,
+  enginesAtom,
+} from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import LogsPanel from "./LogsPanel";
 
@@ -60,8 +65,16 @@ function AnalysisPanel({
   const allEnabled =
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
+  const [tab, setTab] = useAtom(currentAnalysisTabAtom);
+
   return (
-    <Tabs defaultValue="engines" orientation="vertical" placement="right">
+    <Tabs
+      defaultValue="engines"
+      orientation="vertical"
+      placement="right"
+      value={tab}
+      onTabChange={(v) => setTab(v!)}
+    >
       <Tabs.List>
         <Tabs.Tab value="engines">Engines</Tabs.Tab>
         <Tabs.Tab value="report">Report</Tabs.Tab>

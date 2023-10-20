@@ -1,7 +1,15 @@
 import { Alert, Group, SegmentedControl, Tabs, Text } from "@mantine/core";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect } from "react";
 import { Opening, PositionQuery, searchPosition } from "@/utils/db";
-import { currentLichessOptionsAtom, currentTabAtom, referenceDbAtom } from "@/atoms/atoms";
+import {
+  currentDbTabAtom,
+  currentDbTypeAtom,
+  currentLichessOptionsAtom,
+  currentMasterOptionsAtom,
+  currentPositionQueryAtom,
+  currentTabAtom,
+  referenceDbAtom,
+} from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import {
   convertToNormalized,
@@ -33,6 +41,7 @@ function sortOpenings(openings: Opening[]) {
 }
 
 async function fetchOpening(query: PositionQuery, db: DBType, tab: string, lichessOptions: LichessGamesOptions, masterOptions: MasterGamesOptions) {
+  if (query.value === "") return { openings: [], games: [] };
   return match(db)
     .with({ type: "lch_all" }, async () => {
       const data = await getLichessGames(query.value, lichessOptions);
@@ -71,15 +80,15 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string, liche
 
 function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
-  const [db, setDb] = useState<"local" | "lch_all" | "lch_master">("local");
-  const [lichessOptions, setLichessOptions] = useAtom(currentLichessOptionsAtom);
-  const [debouncedLichessOptions] = useDebouncedValue(lichessOptions, 500);
-  const [masterOptions, setMasterOptions] = useState<MasterGamesOptions>({});
-  const [query, setQuery] = useState<PositionQuery>({ value: fen, type: "exact" });
   const [debouncedFen] = useDebouncedValue(fen, 50);
+  const [lichessOptions, setLichessOptions] = useAtom(currentLichessOptionsAtom);
+  const [masterOptions, setMasterOptions] = useAtom(currentMasterOptionsAtom);
+  const [debouncedLichessOptions] = useDebouncedValue(lichessOptions, 500);
+  const [query, setQuery] = useAtom(currentPositionQueryAtom);
+  const [db, setDb] = useAtom(currentDbTypeAtom);
 
   useEffect(() => {
-    setQuery((q) => ({ ...q, value: debouncedFen }));
+    setQuery((q) => (q.type === "exact" && q.value != debouncedFen) ? ({ type: "exact", value: debouncedFen }): q);
   }, [debouncedFen, setQuery]);
 
   const dbType: DBType = match(db)
@@ -100,10 +109,10 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
     isLoading,
     error,
   } = useSWR([dbType, query, debouncedLichessOptions, masterOptions], async ([dbType, query, lichessOptions, masterOptions]) => {
-    return fetchOpening(query, dbType, tab?.value || "", lichessOptions!, masterOptions);
+    return fetchOpening(query, dbType, tab?.value || "", lichessOptions, masterOptions);
   });
 
-  const [tabType, setTabType] = useState<string | null>("stats");
+  const [tabType, setTabType] = useAtom(currentDbTabAtom);
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0
@@ -138,7 +147,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
         orientation="vertical"
         placement="right"
         value={tabType}
-        onTabChange={setTabType}
+        onTabChange={(v) => setTabType(v!)}
       >
         <Tabs.List>
           <Tabs.Tab value="stats" disabled={query.type === "partial"}>
@@ -174,7 +183,7 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
               />
             ).with("lch_all", () =>
               <LichessOptionsPanel
-                options={lichessOptions!}
+                options={lichessOptions}
                 setOptions={setLichessOptions}
               />
             ).with("lch_master", () =>
