@@ -14,17 +14,18 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { FixedSizeList } from "react-window";
 import { commands } from "@/bindings";
+import { Engine } from "@/utils/engines";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
-  const [engine, setEngine] = useState(engines.filter((e) => e.loaded)[0]);
+  const [engine, setEngine] = useState<Engine | undefined>(engines.filter((e) => e.loaded)[0]);
 
   const viewport = useRef<HTMLDivElement>(null);
   const activeTab = useAtomValue(activeTabAtom);
   const { data, mutate } = useSWR(
-    ["logs", engine.path, activeTab],
+    ["logs", engine?.path, activeTab],
     async () => {
-      return unwrap(await commands.getEngineLogs(engine.path, activeTab!));
+      return engine ? unwrap(await commands.getEngineLogs(engine.path, activeTab!)) : undefined;
     }
   );
 
@@ -65,7 +66,7 @@ export default function LogsPanel() {
           ]}
         />
         <Select
-          value={engine.name}
+          value={engine?.name ?? "No engines installed"}
           onChange={(name: string) =>
             setEngine(engines.find((e) => e.name === name)!)
           }
@@ -75,7 +76,7 @@ export default function LogsPanel() {
 
       {filteredData?.length === 0 && (
         <Text align="center" mt="lg">
-          No logs for {engine.name}
+          No logs for {engine?.name ?? "engine"}
         </Text>
       )}
       <FixedSizeList
