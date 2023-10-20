@@ -72,7 +72,10 @@ async function fetchOpening(query: PositionQuery, db: DBType, tab: string, liche
 function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [db, setDb] = useState<"local" | "lch_all" | "lch_master">("local");
-  const [lichessOptions, setLichessOptions] = useState<LichessGamesOptions>({});
+  const [lichessOptions, setLichessOptions] = useState<LichessGamesOptions>({
+    ratings: [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
+    speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
+  });
   const [masterOptions, setMasterOptions] = useState<MasterGamesOptions>({});
   const [query, setQuery] = useState<PositionQuery>({ value: fen, type: "exact" });
   const [debouncedFen] = useDebouncedValue(fen, 50);
