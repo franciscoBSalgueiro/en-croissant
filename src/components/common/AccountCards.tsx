@@ -27,6 +27,27 @@ function AccountCards({
         if (session.lichess && session.lichess.account) {
           const account = session.lichess.account;
           const lichessSession = session.lichess;
+          const totalGames =
+            (account.perfs.ultraBullet?.games ?? 0) +
+            (account.perfs.bullet?.games ?? 0) +
+            (account.perfs.blitz?.games ?? 0) +
+            (account.perfs.rapid?.games ?? 0) +
+            (account.perfs.classical?.games ?? 0);
+
+          const stats = [];
+          const speeds = ["bullet", "blitz", "rapid", "classical"] as const;
+
+          for (const speed of speeds) {
+            const perf = account.perfs[speed];
+            if (perf) {
+              stats.push({
+                value: perf.rating,
+                label: speed,
+                diff: perf.prog,
+              });
+            }
+          }
+
           return (
             <AccountCard
               key={account.id}
@@ -39,7 +60,7 @@ function AccountCards({
               }
               title={account.username}
               updatedAt={session.updatedAt}
-              total={account.count.all - account.count.ai}
+              total={totalGames}
               logout={() => {
                 setSessions((sessions) =>
                   sessions.filter((s) => s.lichess?.account.id !== account.id)
@@ -67,28 +88,7 @@ function AccountCards({
                   )
                 );
               }}
-              stats={[
-                {
-                  value: account.perfs.bullet.rating,
-                  label: "Bullet",
-                  diff: account.perfs.bullet.prog,
-                },
-                {
-                  value: account.perfs.blitz.rating,
-                  label: "Blitz",
-                  diff: account.perfs.blitz.prog,
-                },
-                {
-                  value: account.perfs.rapid.rating,
-                  label: "Rapid",
-                  diff: account.perfs.rapid.prog,
-                },
-                {
-                  value: account.perfs.classical.rating,
-                  label: "Classical",
-                  diff: account.perfs.classical.prog,
-                },
-              ]}
+              stats={stats}
             />
           );
         }

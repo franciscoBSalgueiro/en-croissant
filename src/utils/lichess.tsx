@@ -30,19 +30,19 @@ export type LichessAccount = {
   id: string;
   username: string;
   perfs: {
-    chess960: LichessPerf;
-    atomic: LichessPerf;
-    racingKings: LichessPerf;
-    ultraBullet: LichessPerf;
-    blitz: LichessPerf;
-    kingOfTheHill: LichessPerf;
-    bullet: LichessPerf;
-    correspondence: LichessPerf;
-    horde: LichessPerf;
-    puzzle: LichessPerf;
-    classical: LichessPerf;
-    rapid: LichessPerf;
-    storm: {
+    chess960?: LichessPerf;
+    atomic?: LichessPerf;
+    racingKings?: LichessPerf;
+    ultraBullet?: LichessPerf;
+    blitz?: LichessPerf;
+    kingOfTheHill?: LichessPerf;
+    bullet?: LichessPerf;
+    correspondence?: LichessPerf;
+    horde?: LichessPerf;
+    puzzle?: LichessPerf;
+    classical?: LichessPerf;
+    rapid?: LichessPerf;
+    storm?: {
       runs: number;
       score: number;
     };
@@ -219,7 +219,7 @@ export async function downloadLichess(
   timestamp: number | null,
   token?: string
 ) {
-  let url = `${baseURL}/games/user/${player}`;
+  let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true`;
   if (timestamp) {
     url += `?since=${timestamp}`;
   }
