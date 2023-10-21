@@ -101,7 +101,7 @@ export async function downloadChessCom(
     if (archiveDate < approximateDate) {
       continue;
     }
-    const response = await fetch<ChessComGames>(archive);
+    const response = await fetch<ChessComGames>(archive, { headers, method: "GET" });
     const games = await response.data;
     for (const game of games.games) {
       totalPGN += "\n" + game.pgn;
@@ -126,17 +126,17 @@ export async function getChesscomGame(gameURL: string) {
 
   const apiData = await fetch<{
     game: { moveList: string; pgnHeaders: Record<string, string> };
-  }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`);
+  }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`, { headers, method: "GET" });
   const apiDataJson = await apiData.data;
   const moveList = apiDataJson.game.moveList;
-  const headers = apiDataJson.game.pgnHeaders;
+  const pgnHeaders = apiDataJson.game.pgnHeaders;
   const moves = moveList.match(/.{1,2}/g);
   if (!moves) {
     return "";
   }
   const chess = new Chess();
-  for (const header of Object.keys(headers)) {
-    chess.header(header, headers[header]);
+  for (const header of Object.keys(pgnHeaders)) {
+    chess.header(header, pgnHeaders[header]);
   }
   moves.forEach((move) => {
     const m = decodeTCN(move);
