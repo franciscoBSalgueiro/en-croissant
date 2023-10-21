@@ -15,7 +15,7 @@ import { TreeStateProvider } from "../common/TreeStateContext";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
@@ -44,6 +44,16 @@ export default function BoardsPage() {
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
   const [saveModalOpened, toggleSaveModal] = useToggle();
+
+  useEffect(() => {
+    if (tabs.length == 0) {
+      createTab({
+        tab: { name: "New Tab", type: "new" },
+        setTabs,
+        setActiveTab,
+      });
+    }
+  }, [tabs]);
 
   const closeTab = useCallback(
     async (value: string | null, forced?: boolean) => {
