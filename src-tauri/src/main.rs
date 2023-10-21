@@ -23,6 +23,7 @@ use dashmap::DashMap;
 use db::{NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
+use log::LevelFilter;
 use oauth::AuthState;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -127,6 +128,7 @@ fn main() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets(LOG_TARGETS)
+                .level(LevelFilter::Info)
                 .build(),
         )
         .plugin(specta_builder)
