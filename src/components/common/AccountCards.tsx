@@ -39,7 +39,7 @@ function AccountCards({
               }
               title={account.username}
               updatedAt={session.updatedAt}
-              total={account.count.all}
+              total={account.count.all - account.count.ai}
               logout={() => {
                 setSessions((sessions) =>
                   sessions.filter((s) => s.lichess?.account.id !== account.id)

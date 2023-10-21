@@ -8,7 +8,12 @@ import { parsePGN } from "./chess";
 import { countMainPly } from "./treeReducer";
 import { fetch, Response, ResponseType } from "@tauri-apps/api/http";
 import { error } from "tauri-plugin-log-api";
-import { LichessGamesOptions, MasterGamesOptions, getLichessGamesQueryParams, getMasterGamesQueryParams } from "./lichess/lichessexplorer";
+import {
+  LichessGamesOptions,
+  MasterGamesOptions,
+  getLichessGamesQueryParams,
+  getMasterGamesQueryParams,
+} from "./lichess/lichessexplorer";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
@@ -146,22 +151,6 @@ type PositionData = {
   topGames: PositionGames;
 };
 
-function base64URLEncode(str: ArrayBuffer) {
-  return Buffer.from(str)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-}
-
-export async function createCodes() {
-  const verifier = base64URLEncode(crypto.getRandomValues(new Uint8Array(32)));
-  const challenge = base64URLEncode(
-    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))
-  );
-  return { verifier, challenge };
-}
-
 export async function getLichessAccount({
   token,
   username,
@@ -199,12 +188,16 @@ export async function getCloudEvaluation(fen: string, multipv = 1) {
   return fetch(url);
 }
 
-export async function getLichessGames(options: LichessGamesOptions): Promise<PositionData> {
+export async function getLichessGames(
+  options: LichessGamesOptions
+): Promise<PositionData> {
   const url = `${explorerURL}/lichess?${getLichessGamesQueryParams(options)}`;
   return (await fetch<PositionData>(url)).data;
 }
 
-export async function getMasterGames(options: MasterGamesOptions): Promise<PositionData> {
+export async function getMasterGames(
+  options: MasterGamesOptions
+): Promise<PositionData> {
   const url = `${explorerURL}/masters?${getMasterGamesQueryParams(options)}`;
   return (await fetch<PositionData>(url)).data;
 }

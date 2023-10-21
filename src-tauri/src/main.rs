@@ -12,6 +12,7 @@ mod lexer;
 mod opening;
 mod pgn;
 mod puzzle;
+mod oauth;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -22,8 +23,7 @@ use dashmap::DashMap;
 use db::{NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
-use log::info;
-use reqwest::Url;
+use oauth::AuthState;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
@@ -42,6 +42,7 @@ use crate::db::{
 use crate::fide::{download_fide_db, find_fide_player};
 use crate::fs::{append_to_file, set_file_as_executable};
 use crate::lexer::lex_pgn;
+use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
@@ -51,59 +52,6 @@ use crate::{
     opening::{get_opening_from_fen, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
-
-use crate::error::Error;
-use tauri_plugin_oauth::start;
-
-#[tauri::command]
-async fn start_server(username: String, verifier: String, window: Window) -> Result<u16, Error> {
-    info!("Starting server");
-
-    Ok(start(move |url| {
-        // Because of the unprotected localhost port, you must verify the URL here.
-        // Preferebly send back only the token, or nothing at all if you can handle everything else in Rust.
-
-        // convert the string to a url
-        let url = Url::parse(&url).unwrap();
-        let url_string = url.to_string();
-        let base_url = url_string.split('?').collect::<Vec<&str>>()[0];
-
-        // get the code query parameter
-        let code = url
-            .query_pairs()
-            .find(|(k, _)| k == "code")
-            .unwrap_or_default()
-            .1;
-
-        let client = reqwest::blocking::Client::new();
-
-        let res = client
-            .post("https://lichess.org/api/token")
-            .header("Content-Type", "application/json")
-            .body(
-                serde_json::json!({
-                    "grant_type": "authorization_code",
-                    "redirect_uri": base_url,
-                    "username": username,
-                    "client_id": "org.encroissant.app",
-                    "code": code,
-                    "code_verifier": verifier
-                })
-                .to_string(),
-            )
-            .send()
-            .unwrap();
-
-        let json = res.json::<serde_json::Value>().unwrap();
-        let token = json["access_token"].as_str().unwrap();
-
-        if window.emit("redirect_uri", token).is_ok() {
-            info!("Sent redirect_uri event");
-        } else {
-            info!("Failed to send redirect_uri event");
-        }
-    })?)
-}
 
 pub type GameData = (i32, Option<String>, Vec<u8>, i32, i32, i32);
 
@@ -121,6 +69,7 @@ pub struct AppState {
     pgn_offsets: DashMap<String, Vec<u64>>,
     fide_players: RwLock<Vec<FidePlayer>>,
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
+    auth: AuthState,
 }
 
 const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
@@ -226,7 +175,7 @@ fn main() {
             get_puzzle_db_info,
             edit_db_info,
             get_players_game_info,
-            start_server,
+            authenticate,
             delete_database,
             convert_pgn,
             search_position,

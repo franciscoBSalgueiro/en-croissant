@@ -11,7 +11,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { getChessComAccount } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases } from "@/utils/db";
-import { createCodes, getLichessAccount } from "@/utils/lichess";
+import { getLichessAccount } from "@/utils/lichess";
 import { invoke } from "@/utils/invoke";
 import AccountCards from "../common/AccountCards";
 import { useAtom } from "jotai";
@@ -19,7 +19,6 @@ import { sessionsAtom } from "@/atoms/atoms";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);
-  const authWindow = useRef<Window | null>(null);
   const isListesning = useRef(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   useEffect(() => {
@@ -28,25 +27,7 @@ function Accounts() {
   const [open, setOpen] = useState(false);
 
   async function login(username: string) {
-    const { verifier, challenge } = await createCodes();
-    const port = await invoke("start_server", {
-      username,
-      verifier,
-    });
-
-    authWindow.current = window.open(
-      "https://lichess.org/oauth?" +
-        new URLSearchParams({
-          response_type: "code",
-          client_id: "org.encroissant.app",
-          username,
-          redirect_uri: `http://localhost:${port}`,
-          scope: "preference:read",
-          code_challenge_method: "S256",
-          code_challenge: challenge,
-        }),
-      "_blank"
-    );
+    await invoke("authenticate", { username });
   }
 
   async function addLichess(username: string, withLogin: boolean) {
@@ -68,8 +49,7 @@ function Accounts() {
     async function listen_for_code() {
       if (isListesning.current) return;
       isListesning.current = true;
-      await listen<string>("redirect_uri", async (event) => {
-        if (authWindow.current) authWindow.current.close();
+      await listen<string>("access_token", async (event) => {
         const token = event.payload;
         const account = await getLichessAccount({ token });
         if (!account) return;
