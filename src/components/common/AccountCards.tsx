@@ -13,14 +13,6 @@ function AccountCards({
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
 }) {
   const [sessions, setSessions] = useAtom(sessionsAtom);
-  function countGames(stats: ChessComStats) {
-    let total = 0;
-    Object.values(stats).forEach((stat) => {
-      if (stat.record)
-        total += stat.record.win + stat.record.loss + stat.record.draw;
-    });
-    return total;
-  }
   return (
     <>
       {sessions.map((session) => {
@@ -93,6 +85,11 @@ function AccountCards({
           );
         }
         if (session.chessCom && session.chessCom.stats) {
+          let totalGames = 0;
+          Object.values(session.chessCom.stats).forEach((stat) => {
+            if (stat.record)
+              totalGames += stat.record.win + stat.record.loss + stat.record.draw;
+          });
           return (
             <AccountCard
               key={session.chessCom.username}
@@ -105,7 +102,7 @@ function AccountCards({
                 ) ?? null
               }
               updatedAt={session.updatedAt}
-              total={countGames(session.chessCom.stats)}
+              total={totalGames}
               stats={getStats(session.chessCom.stats)}
               logout={() => {
                 setSessions((sessions) =>

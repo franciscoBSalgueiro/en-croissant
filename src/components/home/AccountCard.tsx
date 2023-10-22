@@ -89,11 +89,10 @@ export function AccountCard({
     );
   });
   const [loading, setLoading] = useState(false);
-  const [lastGameDate, setLastGameDate] = useState<Date | null>(null);
-  const timestamp = lastGameDate?.getTime() ?? null;
+  const [lastGameDate, setLastGameDate] = useState<number | null>(null);
 
   async function convert(filepath: string, timestamp: number | null) {
-    info("converting " + filepath);
+    info("converting " + filepath + " " + timestamp);
     await invoke("convert_pgn", {
       file: filepath,
       timestamp,
@@ -114,10 +113,13 @@ export function AccountCard({
         sort: "date",
         direction: "desc",
       }).then((games) => {
-        if (games.count > 0) {
-          setLastGameDate(
-            new Date(games.data[0].date + " " + games.data[0].time)
-          );
+        if (games.count > 0 && games.data[0].date && games.data[0].time) {
+          const [year, month, day] = games.data[0].date.split(".").map(Number);
+          const [hour, minute, second] = games.data[0].time
+            .split(":")
+            .map(Number);
+          const d = Date.UTC(year, month - 1, day, hour, minute, second);
+          setLastGameDate(d);
         }
       });
     }
@@ -176,16 +178,16 @@ export function AccountCard({
               onClick={async () => {
                 setLoading(true);
                 if (type === "lichess") {
-                  await downloadLichess(title, timestamp, token);
+                  await downloadLichess(title, lastGameDate, token);
                 } else {
-                  await downloadChessCom(title, timestamp);
+                  await downloadChessCom(title, lastGameDate);
                 }
                 const p = await resolve(
                   await appDataDir(),
                   "db",
                   `${title}_${type}.pgn`
                 );
-                convert(p, timestamp).catch(() => {
+                convert(p, lastGameDate).catch(() => {
                   setLoading(false);
                 });
               }}
