@@ -234,10 +234,9 @@ export async function downloadLichess(
 }
 
 export async function getLichessGame(gameId: string): Promise<string> {
-  return (
-    await fetch<string>(`https://lichess.org/game/export/${gameId}`, {
-      method: "GET",
-      responseType: ResponseType.Text,
-    })
-  ).data;
+  const response = await window.fetch(`https://lichess.org/game/export/${gameId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load lichess game ${gameId} - ${response.statusText}`);
+  }
+  return await response.text();
 }
