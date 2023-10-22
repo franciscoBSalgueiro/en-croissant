@@ -460,6 +460,14 @@ pub async fn analyze_game(
         let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
         let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
+        process
+            .set_options(EngineOptions {
+                threads: 4,
+                multipv: 1,
+                fen: fen.to_string(),
+            })
+            .await?;
+
         process.go(&go_mode).await?;
 
         let mut current_analysis = MoveAnalysis::default();
