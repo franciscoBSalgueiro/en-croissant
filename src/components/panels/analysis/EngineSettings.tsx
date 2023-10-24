@@ -1,23 +1,19 @@
+import { EngineSettings } from "@/atoms/atoms";
 import { Collapse, Group, Text } from "@mantine/core";
 import React, { memo } from "react";
 import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";
-import { EngineSettings } from "@/atoms/atoms";
 
 interface EngineSettingsProps {
   settingsOn: boolean;
-  numberLines: number;
-  maxDepth: number;
-  cores: number;
+  settings: EngineSettings;
   setSettings: React.Dispatch<React.SetStateAction<EngineSettings>>;
 }
 
 function EngineSettings({
   settingsOn,
-  numberLines,
-  maxDepth,
-  cores,
+  settings,
   setSettings,
 }: EngineSettingsProps) {
   return (
@@ -27,7 +23,7 @@ function EngineSettings({
           Number of Lines
         </Text>
         <LinesSlider
-          value={numberLines}
+          value={settings.numberLines}
           setValue={(v) => setSettings((prev) => ({ ...prev, numberLines: v }))}
         />
       </Group>
@@ -36,8 +32,8 @@ function EngineSettings({
           Engine Depth
         </Text>
         <DepthSlider
-          value={maxDepth}
-          setValue={(v) => setSettings((prev) => ({ ...prev, maxDepth: v }))}
+          value={settings.go}
+          setValue={(v) => setSettings((prev) => ({ ...prev, go: v }))}
         />
       </Group>
       <Group grow>
@@ -45,7 +41,7 @@ function EngineSettings({
           Number of cores
         </Text>
         <CoresSlide
-          value={cores}
+          value={settings.cores}
           setValue={(v) => setSettings((prev) => ({ ...prev, cores: v }))}
         />
       </Group>
