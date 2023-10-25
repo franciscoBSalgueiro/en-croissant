@@ -27,7 +27,7 @@ export interface TreeNode {
     commentText: string;
 }
 
-type ListNode = {
+export type ListNode = {
     position: number[];
     node: TreeNode;
 };
@@ -40,6 +40,14 @@ export function* treeIterator(node: TreeNode): Generator<ListNode> {
         for (let i = node.children.length - 1; i >= 0; i--) {
             stack.push({ position: [...position, i], node: node.children[i] });
         }
+    }
+}
+
+export function* treeIteratorMainLine(node: TreeNode): Generator<ListNode> {
+    let current: ListNode | undefined = { position: [], node };
+    while (current?.node) {
+        yield current;
+        current = { position: [...current.position, 0], node: current.node.children[0] };
     }
 }
 

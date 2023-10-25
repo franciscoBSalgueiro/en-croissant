@@ -1,29 +1,24 @@
 import { useContext } from "react";
 import { TreeStateContext } from "./TreeStateContext";
 import { ResponsiveContainer, AreaChart, Tooltip, Area, XAxis, YAxis } from "recharts";
-import { TreeNode } from "@/utils/treeReducer";
+import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { ANNOTATION_INFO } from "@/utils/chess";
 import { formatScore } from "@/utils/score";
 import { Score } from "@/bindings";
 import { Stack, useMantineColorScheme } from "@mantine/core";
+import { skipWhile, takeWhile } from "@/utils/helperFunctions";
 
 type DataPoint = {
     name: string;
     evalText: string;
     yValue: number | undefined;
     altValue: number | undefined;
+    movePath: number[];
 }
 
 const EvalChart = () => {
     const { root, position } = useContext(TreeStateContext);
     const { colorScheme } = useMantineColorScheme();
-
-    function* flatPath(node: TreeNode): Iterable<TreeNode> {
-        if (node.children.length > 0 && node.children[0].move) {
-            yield node.children[0];
-            yield* flatPath(node.children[0]);
-        }
-    }
 
     function getYValue(score: Score | null): number | undefined {
         if (score) {
@@ -35,12 +30,20 @@ const EvalChart = () => {
         }
     }
 
+    function getNodes(): ListNode[] {
+        const allNodes = treeIteratorMainLine(root);
+        const withoutRoot = skipWhile(allNodes, (node: ListNode) => node.position.length == 0);
+        const withMoves = takeWhile(withoutRoot, (node: ListNode) => node.node.move != undefined);
+        return [...withMoves];
+    }
+
     function* getData(): Iterable<DataPoint> {
-        const nodes = [...flatPath(root)];
+        const nodes = getNodes();
         for (let i = 0; i < nodes.length; i++) {
-            const prevNode = i > 0 ? nodes[i-1] : undefined;
-            const node = nodes[i];
-            const nextNode = i < nodes.length - 1 ? nodes[i+1] : undefined;
+            const prevNode = nodes[i-1]?.node;
+            const currentNode = nodes[i];
+            const nextNode = nodes[i+1]?.node;
+            const node = currentNode.node;
 
             const move = node.move!;
             const annotation = node.annotation ? ANNOTATION_INFO[node.annotation].name.toLowerCase() : undefined;
@@ -51,10 +54,11 @@ const EvalChart = () => {
                 (prevNode && !prevNode.score) ||
                 (nextNode && !nextNode.score);
             yield {
-                name: `${Math.floor(i / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
+                name: `${Math.floor(node.halfMoves / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
                 evalText: isAnalysed ? `Advantage: ${formatScore(node.score!)}` : "Not analysed",
                 yValue: yValue,
-                altValue: needsAltValue ? 0 : undefined
+                altValue: needsAltValue ? 0 : undefined,
+                movePath: currentNode.position
             }
         }
     }
