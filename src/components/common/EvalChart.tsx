@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { TreeStateContext } from "./TreeStateContext";
+import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
 import { ResponsiveContainer, AreaChart, Tooltip, Area, XAxis, YAxis } from "recharts";
 import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { ANNOTATION_INFO } from "@/utils/chess";
@@ -18,6 +18,7 @@ type DataPoint = {
 
 const EvalChart = () => {
     const { root, position } = useContext(TreeStateContext);
+    const dispatch = useContext(TreeDispatchContext);
     const { colorScheme } = useMantineColorScheme();
 
     function getYValue(score: Score | null): number | undefined {
@@ -96,11 +97,23 @@ const EvalChart = () => {
         }
         return null;
     };
+
+    const onChartClick = (data: any) => {
+        if (data && data.activePayload && data.activePayload.length && data.activePayload[0].payload) {
+            const dataPoint: DataPoint = data.activePayload[0].payload;
+            dispatch({
+                type: "GO_TO_MOVE",
+                payload: dataPoint.movePath,
+            });
+        }
+    }
+
+    const areaChartPropsHack = { cursor: "pointer" } as any;
     
     return (
         <Stack>
             <ResponsiveContainer width="99%" height={220}>
-                <AreaChart data={data}>
+                <AreaChart data={data} onClick={onChartClick} {...areaChartPropsHack}>
                     <Tooltip content={<CustomTooltip />} />
                     <XAxis hide dataKey="name" />
                     <YAxis hide dataKey="yValue" domain={[-1, 1]} />
