@@ -7,6 +7,13 @@ import { formatScore } from "@/utils/score";
 import { Score } from "@/bindings";
 import { Stack, useMantineColorScheme } from "@mantine/core";
 
+type DataPoint = {
+    name: string;
+    evalText: string;
+    yValue: number | undefined;
+    altValue: number | undefined;
+}
+
 const EvalChart = () => {
     const { root, position } = useContext(TreeStateContext);
     const { colorScheme } = useMantineColorScheme();
@@ -28,15 +35,31 @@ const EvalChart = () => {
         }
     }
 
-    const data = [...flatPath(root)].map((node, i) => {
-        const move = node.move!;
-        const annotation = node.annotation ? ANNOTATION_INFO[node.annotation].name.toLowerCase() : undefined;
-        return {
-            name: `${Math.floor(i / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
-            evalText: node.score ? `Advantage: ${formatScore(node.score)}` : undefined,
-            yValue: getYValue(node.score)
+    function* getData(): Iterable<DataPoint> {
+        const nodes = [...flatPath(root)];
+        for (let i = 0; i < nodes.length; i++) {
+            const prevNode = i > 0 ? nodes[i-1] : undefined;
+            const node = nodes[i];
+            const nextNode = i < nodes.length - 1 ? nodes[i+1] : undefined;
+
+            const move = node.move!;
+            const annotation = node.annotation ? ANNOTATION_INFO[node.annotation].name.toLowerCase() : undefined;
+            const yValue = getYValue(node.score);
+            const isAnalysed = yValue != undefined;
+            //hiding gaps in chart areas between analysed and unanalysed positions
+            const needsAltValue = !isAnalysed ||
+                (prevNode && !prevNode.score) ||
+                (nextNode && !nextNode.score);
+            yield {
+                name: `${Math.floor(i / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
+                evalText: isAnalysed ? `Advantage: ${formatScore(node.score!)}` : "Not analysed",
+                yValue: yValue,
+                altValue: needsAltValue ? 0 : undefined
+            }
         }
-    });
+    }
+
+    const data = [...getData()];
 
     const gradientOffset = () => {
         const dataMax = Math.max(...data.map((i) => i.yValue ?? 0));
@@ -52,6 +75,7 @@ const EvalChart = () => {
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length && payload[0].payload) {
+            const dataPoint: DataPoint = payload[0].payload;
             const containerStyle: React.CSSProperties = {
                 margin: 0,
                 padding: 5,
@@ -61,12 +85,11 @@ const EvalChart = () => {
             };
             return (
                 <div style={containerStyle}>
-                    <div style={{"fontWeight": "bold"}}>{payload[0].payload.name}</div>
-                    <div>{payload[0].payload.evalText ?? "Not analysed"}</div>
+                    <div style={{"fontWeight": "bold"}}>{dataPoint.name}</div>
+                    <div>{dataPoint.evalText}</div>
                 </div>
             );
         }
-        console.log('none');
         return null;
     };
     
@@ -84,6 +107,7 @@ const EvalChart = () => {
                         </linearGradient>
                     </defs>
                     <Area type="linear" dataKey="yValue" stroke={'#ff9933'} fill="url(#splitColor)" />
+                    <Area type="linear" dataKey="altValue" stroke="#999999" strokeDasharray="3 3" activeDot={false} />
                 </AreaChart>
             </ResponsiveContainer>
         </Stack>
