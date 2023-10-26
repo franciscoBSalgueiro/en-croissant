@@ -1,12 +1,19 @@
 import { useContext } from "react";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
-import { ResponsiveContainer, AreaChart, Tooltip, Area, XAxis, YAxis, ReferenceLine } from "recharts";
+import { Box, LoadingOverlay, useMantineColorScheme } from "@mantine/core";
+import { ActionIcon, Divider, Group, Stack, Tooltip as MantineTooltip, Text } from "@mantine/core"
+import { ResponsiveContainer, Tooltip as RechartsTooltip, AreaChart, Area, XAxis, YAxis, ReferenceLine } from "recharts";
 import { ListNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { ANNOTATION_INFO } from "@/utils/chess";
 import { formatScore } from "@/utils/score";
 import { Score } from "@/bindings";
-import { Stack, useMantineColorScheme } from "@mantine/core";
 import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
+import { IconRefresh } from "@tabler/icons-react"
+
+interface EvalChartProps {
+    isAnalysing?: boolean;
+    startAnalysis?(): void;
+}
 
 type DataPoint = {
     name: string;
@@ -16,7 +23,7 @@ type DataPoint = {
     movePath: number[];
 }
 
-const EvalChart = () => {
+const EvalChart = (props: EvalChartProps) => {
     const { root, position } = useContext(TreeStateContext);
     const dispatch = useContext(TreeDispatchContext);
     const { colorScheme } = useMantineColorScheme();
@@ -111,24 +118,42 @@ const EvalChart = () => {
     
     return (
         <Stack>
-            <ResponsiveContainer width="99%" height={220}>
-                <AreaChart data={data} onClick={onChartClick} {...areaChartPropsHack}>
-                    <Tooltip content={<CustomTooltip />} />
-                    <XAxis hide dataKey="name" type="category" />
-                    <YAxis hide dataKey="yValue" domain={[-1, 1]} />
-                    <defs>
-                        <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset={colouroffset} stopColor={colorScheme == 'light' ? '#e6e6e6' : '#ccc'} stopOpacity={1} />
-                            <stop offset={colouroffset} stopColor={colorScheme == 'light' ? '#333333' : '#000'} stopOpacity={1} />
-                        </linearGradient>
-                    </defs>
-                    {currentPositionName &&
-                        <ReferenceLine x={currentPositionName} stroke="#ff9933" />
-                    }
-                    <Area type="linear" dataKey="yValue" stroke="#ff9933" fill="url(#splitColor)" />
-                    <Area type="linear" dataKey="altValue" stroke="#999999" strokeDasharray="3 3" activeDot={false} />
-                </AreaChart>
-            </ResponsiveContainer>
+            <Stack>
+                <Group position="apart">
+                    <Text fz="sm">Engine analysis</Text>
+                    <Group spacing="sm">
+                        {props.startAnalysis != undefined &&
+                            <MantineTooltip label="Analyse game">
+                                <ActionIcon onClick={props.startAnalysis} disabled={props.isAnalysing}>
+                                    <IconRefresh size={15} /> 
+                                </ActionIcon>
+                            </MantineTooltip>
+                        }
+                    </Group>
+                </Group>
+                <Divider />
+            </Stack>
+            <Box pos="relative">
+                <LoadingOverlay visible={props.isAnalysing == true} />
+                <ResponsiveContainer width="99%" height={220}>
+                    <AreaChart data={data} onClick={onChartClick} {...areaChartPropsHack}>
+                        <RechartsTooltip content={<CustomTooltip />} />
+                        <XAxis hide dataKey="name" type="category" />
+                        <YAxis hide dataKey="yValue" domain={[-1, 1]} />
+                        <defs>
+                            <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset={colouroffset} stopColor={colorScheme == 'light' ? '#e6e6e6' : '#ccc'} stopOpacity={1} />
+                                <stop offset={colouroffset} stopColor={colorScheme == 'light' ? '#333333' : '#000'} stopOpacity={1} />
+                            </linearGradient>
+                        </defs>
+                        {currentPositionName &&
+                            <ReferenceLine x={currentPositionName} stroke="#ff9933" />
+                        }
+                        <Area type="linear" dataKey="yValue" stroke="#ff9933" fill="url(#splitColor)" />
+                        <Area type="linear" dataKey="altValue" stroke="#999999" strokeDasharray="3 3" activeDot={false} />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </Box>
         </Stack>
     )
 }
