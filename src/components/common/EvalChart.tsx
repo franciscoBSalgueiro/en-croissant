@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
-import { Box, LoadingOverlay, useMantineColorScheme } from "@mantine/core";
+import { Box, LoadingOverlay, createStyles } from "@mantine/core";
 import { ActionIcon, Divider, Group, Stack, Tooltip as MantineTooltip, Text } from "@mantine/core"
 import { ResponsiveContainer, Tooltip as RechartsTooltip, AreaChart, Area, XAxis, YAxis, ReferenceLine } from "recharts";
 import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
@@ -23,10 +23,26 @@ type DataPoint = {
     movePath: number[];
 }
 
+const useStyles = createStyles(theme => ({
+    tooltip: {
+        margin: 0,
+        padding: 5,
+        backgroundColor: theme.colorScheme === 'light' ? 'white' : theme.colors.dark[3],
+        color: theme.colorScheme === 'light' ? 'black': 'white',
+        opacity: 0.8,
+        border: '1px solid #ccc',
+        whiteSpace: 'nowrap',
+    },
+    tooltipTitle: {
+        fontWeight: 'bold'
+    }
+}));
+
 const EvalChart = (props: EvalChartProps) => {
     const { root, position } = useContext(TreeStateContext);
     const dispatch = useContext(TreeDispatchContext);
-    const { colorScheme } = useMantineColorScheme();
+    const { classes, theme } = useStyles();
+    const isLightTheme = theme.colorScheme == 'light';
 
     function getYValue(node: TreeNode): number | undefined {
         if (node.score) {
@@ -105,16 +121,9 @@ const EvalChart = (props: EvalChartProps) => {
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length && payload[0].payload) {
             const dataPoint: DataPoint = payload[0].payload;
-            const containerStyle: React.CSSProperties = {
-                margin: 0,
-                padding: 5,
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                whiteSpace: 'nowrap'
-            };
             return (
-                <div style={containerStyle}>
-                    <div style={{"fontWeight": "bold"}}>{dataPoint.name}</div>
+                <div className={classes.tooltip}>
+                    <div className={classes.tooltipTitle}>{dataPoint.name}</div>
                     <div>{dataPoint.evalText}</div>
                 </div>
             );
@@ -163,8 +172,8 @@ const EvalChart = (props: EvalChartProps) => {
                         <YAxis hide dataKey="yValue" domain={[-1, 1]} />
                         <defs>
                             <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset={colouroffset} stopColor={colorScheme == 'light' ? '#e6e6e6' : '#ccc'} stopOpacity={1} />
-                                <stop offset={colouroffset} stopColor={colorScheme == 'light' ? '#333333' : '#000'} stopOpacity={1} />
+                                <stop offset={colouroffset} stopColor={isLightTheme ? '#e6e6e6' : '#ccc'} stopOpacity={1} />
+                                <stop offset={colouroffset} stopColor={isLightTheme ? '#333333' : '#000'} stopOpacity={1} />
                             </linearGradient>
                         </defs>
                         {currentPositionName &&
