@@ -3,12 +3,12 @@ import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
 import { Box, LoadingOverlay, useMantineColorScheme } from "@mantine/core";
 import { ActionIcon, Divider, Group, Stack, Tooltip as MantineTooltip, Text } from "@mantine/core"
 import { ResponsiveContainer, Tooltip as RechartsTooltip, AreaChart, Area, XAxis, YAxis, ReferenceLine } from "recharts";
-import { ListNode, treeIteratorMainLine } from "@/utils/treeReducer";
+import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { ANNOTATION_INFO } from "@/utils/chess";
 import { formatScore } from "@/utils/score";
-import { Score } from "@/bindings";
 import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
 import { IconRefresh } from "@tabler/icons-react"
+import { Chess } from "chess.js";
 
 interface EvalChartProps {
     isAnalysing?: boolean;
@@ -28,14 +28,37 @@ const EvalChart = (props: EvalChartProps) => {
     const dispatch = useContext(TreeDispatchContext);
     const { colorScheme } = useMantineColorScheme();
 
-    function getYValue(score: Score | null): number | undefined {
-        if (score) {
-            let cp: number = score.value;
-            if (score.type == "mate") {
-                cp = score.value > 0 ? Infinity : -Infinity;
+    function getYValue(node: TreeNode): number | undefined {
+        if (node.score) {
+            let cp: number = node.score.value;
+            if (node.score.type == "mate") {
+                cp = node.score.value > 0 ? Infinity : -Infinity;
             }
             return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
+        } else if (node.children.length == 0) {
+            try {
+                const chess = new Chess(node.fen);
+                if (chess.isCheckmate()) {
+                    return node.move!.color == 'w' ? 1 : -1;
+                } else if (chess.isDraw() || chess.isStalemate()) {
+                    return 0;
+                }
+            } catch (error) {}
         }
+    }
+
+    function getEvalText(node: TreeNode): string {
+        if (node.score) {
+            return `Advantage: ${formatScore(node.score)}`;
+        } else if (node.children.length == 0) {
+            try {
+                const chess = new Chess(node.fen);
+                if (chess.isCheckmate()) return "Checkmate";
+                else if (chess.isStalemate()) return "Stalemate";
+                else if (chess.isDraw()) return "Draw";
+            } catch (error) {}
+        }
+        return 'Not analysed';
     }
 
     function getNodes(): ListNode[] {
@@ -51,19 +74,17 @@ const EvalChart = (props: EvalChartProps) => {
             const prevNode = nodes[i-1]?.node;
             const currentNode = nodes[i];
             const nextNode = nodes[i+1]?.node;
-            const node = currentNode.node;
 
-            const move = node.move!;
-            const annotation = node.annotation ? ANNOTATION_INFO[node.annotation].name.toLowerCase() : undefined;
-            const yValue = getYValue(node.score);
-            const isAnalysed = yValue != undefined;
+            const move = currentNode.node.move!;
+            const annotation = currentNode.node.annotation ? ANNOTATION_INFO[currentNode.node.annotation].name.toLowerCase() : undefined;
+            const yValue = getYValue(currentNode.node);
             //hiding gaps in chart areas between analysed and unanalysed positions
-            const needsAltValue = !isAnalysed ||
+            const needsAltValue = yValue == undefined ||
                 (prevNode && !prevNode.score) ||
                 (nextNode && !nextNode.score);
             yield {
-                name: `${Math.floor(node.halfMoves / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
-                evalText: isAnalysed ? `Advantage: ${formatScore(node.score!)}` : "Not analysed",
+                name: `${Math.floor(currentNode.node.halfMoves / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
+                evalText: getEvalText(currentNode.node),
                 yValue: yValue,
                 altValue: needsAltValue ? 0 : undefined,
                 movePath: currentNode.position
