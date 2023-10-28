@@ -99,7 +99,7 @@ const EvalChart = (props: EvalChartProps) => {
                 (prevNode && !prevNode.score) ||
                 (nextNode && !nextNode.score);
             yield {
-                name: `${Math.floor(currentNode.node.halfMoves / 2) + 1}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
+                name: `${Math.ceil(currentNode.node.halfMoves / 2)}.${move.color === 'w' ? '' : '..'} ${move.san}${annotation ? ` (${annotation})` : ''}`,
                 evalText: getEvalText(currentNode.node),
                 yValue: yValue,
                 altValue: needsAltValue ? 0 : undefined,
