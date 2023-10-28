@@ -83,6 +83,7 @@ export default function BestMovesComponent({
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const progress = match(settings.go)
     .with({ t: "Depth" }, ({ c }) => (depth / c) * 100)
+    .with({ t: "Infinite" }, () => 99.9)
     .otherwise(() => 0);
   const theme = useMantineTheme();
 
