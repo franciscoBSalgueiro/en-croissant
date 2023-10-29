@@ -1,4 +1,10 @@
-import { CloseButton, createStyles, Menu, Tabs, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  createStyles,
+  Menu,
+  Tabs,
+  Tooltip,
+} from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
@@ -85,14 +91,15 @@ export function BoardTab({
             className={classes.tab}
             value={tab.value}
             rightSection={
-              <CloseButton
-                component="div"
-                size={14}
+              <ActionIcon
                 onClick={(e) => {
                   closeTab(tab.value);
                   e.stopPropagation();
                 }}
-              />
+                size={14}
+              >
+                <IconX />
+              </ActionIcon>
             }
             onPointerDown={(e) => {
               if (e.button == 0) {
