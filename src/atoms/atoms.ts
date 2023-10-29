@@ -1,19 +1,19 @@
-import { atomFamily, atomWithStorage, createJSONStorage, loadable } from "jotai/utils";
-import { Tab, genID } from "@/utils/tabs";
-import { MantineColor } from "@mantine/core";
-import { Session } from "../utils/session";
-import { PrimitiveAtom, atom } from "jotai";
-import { DatabaseInfo } from "@/utils/db";
-import { MissingMove } from "@/utils/repertoire";
+import { GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
-import { GameHeaders, TreeNode } from "@/utils/treeReducer";
-import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
-import EngineSettings from "@/components/panels/analysis/EngineSettings";
-import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
-import { BaseDirectory, readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
+import { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import { DatabaseInfo } from "@/utils/db";
 import { Engine } from "@/utils/engines";
 import { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/lichessexplorer";
-import { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import { MissingMove } from "@/utils/repertoire";
+import { Tab, genID } from "@/utils/tabs";
+import { GameHeaders, TreeNode } from "@/utils/treeReducer";
+import { MantineColor } from "@mantine/core";
+import { BaseDirectory, readTextFile, removeFile, writeTextFile } from "@tauri-apps/api/fs";
+import { PrimitiveAtom, atom } from "jotai";
+import { atomFamily, atomWithStorage, createJSONStorage, loadable } from "jotai/utils";
+import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
+import { Session } from "../utils/session";
 
 
 const options = { dir: BaseDirectory.AppData };
@@ -239,18 +239,23 @@ export const deckAtomFamily = atomFamily(
 
 export type EngineSettings = {
     enabled: boolean;
-    maxDepth: number;
+    go: GoMode;
     cores: number;
     numberLines: number;
+    extraOptions: { name: string, value: string }[];
 };
 
 export const tabEngineSettingsFamily = atomFamily(
     ({ tab, engine }: { tab: string; engine: string }) =>
         atom<EngineSettings>({
             enabled: false,
-            maxDepth: 24,
+            go: {
+                t: "Depth",
+                c: 24,
+            },
             cores: 2,
             numberLines: 3,
+            extraOptions: [],
         }),
     (a, b) => a.tab === b.tab && a.engine === b.engine
 );

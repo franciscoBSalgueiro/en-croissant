@@ -1,8 +1,15 @@
+import { activeTabAtom, tabEngineSettingsFamily } from "@/atoms/atoms";
+import { commands, events } from "@/bindings";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { BestMoves, swapMove } from "@/utils/chess";
+import { Engine } from "@/utils/engines";
+import { unwrap } from "@/utils/invoke";
+import { useThrottledEffect } from "@/utils/misc";
+import { formatScore } from "@/utils/score";
 import {
   Accordion,
   ActionIcon,
   Box,
-  createStyles,
   Group,
   Progress,
   Skeleton,
@@ -10,6 +17,7 @@ import {
   Table,
   Text,
   Tooltip,
+  createStyles,
   useMantineTheme,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
@@ -19,6 +27,8 @@ import {
   IconSettings,
   IconTargetArrow,
 } from "@tabler/icons-react";
+import { Chess } from "chess.js";
+import { useAtom, useAtomValue } from "jotai";
 import {
   startTransition,
   useContext,
@@ -26,18 +36,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { BestMoves, swapMove } from "@/utils/chess";
-import { Engine } from "@/utils/engines";
-import { invoke, unwrap } from "@/utils/invoke";
-import { useThrottledEffect } from "@/utils/misc";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import EngineSettings from "./EngineSettings";
-import { Chess } from "chess.js";
+import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
-import { useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, tabEngineSettingsFamily } from "@/atoms/atoms";
-import { formatScore } from "@/utils/score";
-import { commands, events } from "@/bindings";
+import EngineSettings from "./EngineSettings";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -80,7 +81,10 @@ export default function BestMovesComponent({
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
-  const progress = (depth / settings.maxDepth) * 100;
+  const progress = match(settings.go)
+    .with({ t: "Depth" }, ({ c }) => (depth / c) * 100)
+    .with({ t: "Infinite" }, () => 99.9)
+    .otherwise(() => 0);
   const theme = useMantineTheme();
 
   useEffect(() => {
@@ -125,19 +129,12 @@ export default function BestMovesComponent({
           setEngineVariation([]);
         } else {
           commands
-            .getBestMoves(
-              engine.path,
-              activeTab!,
-              {
-                t: "Depth",
-                c: settings.maxDepth,
-              },
-              {
-                fen: threat ? swapMove(fen) : fen,
-                multipv: settings.numberLines,
-                threads: 2 ** settings.cores,
-              }
-            )
+            .getBestMoves(engine.path, activeTab!, settings.go, {
+              fen: threat ? swapMove(fen) : fen,
+              multipv: settings.numberLines,
+              threads: settings.cores,
+              extraOptions: settings.extraOptions,
+            })
             .then((res) => {
               unwrap(res);
             });
@@ -150,7 +147,7 @@ export default function BestMovesComponent({
     [
       settings.enabled,
       settings.cores,
-      settings.maxDepth,
+      settings.go,
       settings.numberLines,
       threat,
       fen,
@@ -245,9 +242,7 @@ export default function BestMovesComponent({
         </Box>
         <EngineSettings
           settingsOn={settingsOn}
-          cores={settings.cores}
-          maxDepth={settings.maxDepth}
-          numberLines={settings.numberLines}
+          settings={settings}
           setSettings={setSettings}
         />
 
@@ -297,10 +292,7 @@ export default function BestMovesComponent({
       </>
     ),
     [
-      settings.enabled,
-      settings.cores,
-      settings.maxDepth,
-      settings.numberLines,
+      settings,
       theme.primaryColor,
       isGameOver,
       engine.name,

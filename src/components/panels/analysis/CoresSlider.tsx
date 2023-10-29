@@ -1,5 +1,5 @@
 import { Slider } from "@mantine/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function CoresSlide({
   value,
@@ -8,7 +8,7 @@ export default function CoresSlide({
   value: number;
   setValue: (v: number) => void;
 }) {
-  const [tempValue, setTempValue] = useState(value);
+  const [tempValue, setTempValue] = useState(Math.log2(value));
   const MARKS = [
     { value: 0 },
     { value: 1 },
@@ -19,6 +19,10 @@ export default function CoresSlide({
     { value: 6 },
   ];
 
+  useEffect(() => {
+    setTempValue(Math.log2(value));
+  }, [value]);
+
   return (
     <>
       <Slider
@@ -26,7 +30,7 @@ export default function CoresSlide({
         max={Math.log2(navigator.hardwareConcurrency)}
         value={tempValue}
         onChange={setTempValue}
-        onChangeEnd={setValue}
+        onChangeEnd={(v) => setValue(2 ** v)}
         marks={MARKS}
         label={(value) => 2 ** value}
       />
