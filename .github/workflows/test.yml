@@ -1,7 +1,8 @@
 name: Test
 on:
   push:
-    branches: [ master ]
+    branches:
+      - "*"
   workflow_dispatch:
 
 jobs:
@@ -24,6 +25,9 @@ jobs:
 
       - name: Install app dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Run linter
+        run: pnpm lint
 
       - name: Run tests
         run: pnpm test
