@@ -27,6 +27,7 @@ const useStyles = createStyles(
       display: "inline-block",
       padding: 6,
       borderRadius: 4,
+      whiteSpace: "nowrap",
       cursor: "pointer",
       color:
         color === "gray"
