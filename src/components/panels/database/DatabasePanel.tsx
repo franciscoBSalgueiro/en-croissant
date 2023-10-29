@@ -215,16 +215,17 @@ function PanelWithError(props: {
   children: React.ReactNode;
 }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
+  let children = props.children;
   if (props.type === "local" && !referenceDatabase) {
-    props.children = <NoDatabaseWarning />;
+    children = <NoDatabaseWarning />;
   }
   if (props.error && props.type !== "local") {
-    props.children = <Alert color="red">{props.error.toString()}</Alert>;
+    children = <Alert color="red">{props.error.toString()}</Alert>;
   }
 
   return (
     <Tabs.Panel pt="xs" mr="xs" value={props.value}>
-      {props.children}
+      {children}
     </Tabs.Panel>
   );
 }
