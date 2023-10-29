@@ -116,7 +116,7 @@ const EvalChart = (props: EvalChartProps) => {
         if (dataMin >= 0) return 1;
         
         return dataMax / (dataMax - dataMin);
-    };
+    }
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length && payload[0].payload) {
@@ -177,9 +177,9 @@ const EvalChart = (props: EvalChartProps) => {
                             </linearGradient>
                         </defs>
                         {currentPositionName &&
-                            <ReferenceLine x={currentPositionName} stroke="#ff9933" />
+                            <ReferenceLine x={currentPositionName} stroke={theme.colors[theme.primaryColor][7]} />
                         }
-                        <Area type="linear" dataKey="yValue" stroke="#ff9933" fill="url(#splitColor)" />
+                        <Area type="linear" dataKey="yValue" stroke={theme.colors[theme.primaryColor][7]} fill="url(#splitColor)" />
                         <Area type="linear" dataKey="altValue" stroke="#999999" strokeDasharray="3 3" activeDot={false} />
                     </AreaChart>
                 </ResponsiveContainer>
