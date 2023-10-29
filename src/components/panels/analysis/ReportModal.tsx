@@ -78,7 +78,7 @@ function ReportModal({
           type: "ADD_ANALYSIS",
           payload: analysisData,
         });
-      });
+      }).finally(() => setInProgress(false));
   }
 
   return (

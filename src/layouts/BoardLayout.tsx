@@ -9,7 +9,7 @@ function BoardLayout({
 }) {
   return (
     <>
-      <Flex gap="md" wrap="wrap" align="start">
+      <Flex gap="md" wrap="nowrap" align="start">
         {board}
         <Stack
           sx={{
