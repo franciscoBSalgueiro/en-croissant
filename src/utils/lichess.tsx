@@ -6,7 +6,7 @@ import { invoke } from "./invoke";
 import { NormalizedGame } from "./db";
 import { parsePGN } from "./chess";
 import { countMainPly } from "./treeReducer";
-import { fetch, Response, ResponseType } from "@tauri-apps/api/http";
+import { fetch, Response } from "@tauri-apps/api/http";
 import { error } from "tauri-plugin-log-api";
 import {
   LichessGamesOptions,

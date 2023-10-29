@@ -22,17 +22,18 @@
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn"
+    "react-hooks/exhaustive-deps": "warn",
+    "no-empty": "warn"
   },
   "settings": {
     "react": {
       "version": "detect"
     }
   },
+  "ignorePatterns": ["src/bindings.ts"],
   "overrides": [
     {
-      "files": ["src/**/*.ts", "src/**/*.tsx"],
-      "excludedFiles": ["src/bindings.ts"]
+      "files": ["src/**/*.ts", "src/**/*.tsx"]
     }
   ]
 }

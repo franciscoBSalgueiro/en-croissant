@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   createStyles,
-  Group,
   ScrollArea,
   Stack,
   Tabs,
