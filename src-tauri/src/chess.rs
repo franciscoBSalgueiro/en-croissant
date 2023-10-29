@@ -90,6 +90,11 @@ impl EngineProcess {
             .await?;
         self.set_option("MultiPV", &options.multipv.to_string())
             .await?;
+
+        for option in options.extra_options {
+            self.set_option(&option.name, &option.value).await?;
+        }
+
         self.set_position(&options.fen).await?;
         self.last_depth = 0;
         self.best_moves.clear();
@@ -262,10 +267,18 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
 }
 
 #[derive(Deserialize, Debug, Clone, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct EngineOptions {
     pub multipv: u16,
     pub threads: u16,
     pub fen: String,
+    pub extra_options: Vec<EngineOption>,
+}
+
+#[derive(Deserialize, Debug, Clone, Type)]
+pub struct EngineOption {
+    name: String,
+    value: String,
 }
 
 #[derive(Deserialize, Debug, Clone, Type)]
@@ -430,14 +443,6 @@ pub async fn analyze_game(
 
     let mut chess: Chess = fen.into_position(CastlingMode::Standard)?;
 
-    process
-        .set_options(EngineOptions {
-            threads: 4,
-            multipv: 1,
-            fen: options.fen.to_string(),
-        })
-        .await?;
-
     let len_moves = moves.len();
 
     let mut novelty_found = false;
@@ -465,6 +470,7 @@ pub async fn analyze_game(
                 threads: 4,
                 multipv: 1,
                 fen: fen.to_string(),
+                extra_options: Vec::new(),
             })
             .await?;
 

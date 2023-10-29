@@ -242,6 +242,7 @@ export type EngineSettings = {
     go: GoMode;
     cores: number;
     numberLines: number;
+    extraOptions: { name: string, value: string }[];
 };
 
 export const tabEngineSettingsFamily = atomFamily(
@@ -254,6 +255,7 @@ export const tabEngineSettingsFamily = atomFamily(
             },
             cores: 2,
             numberLines: 3,
+            extraOptions: [],
         }),
     (a, b) => a.tab === b.tab && a.engine === b.engine
 );

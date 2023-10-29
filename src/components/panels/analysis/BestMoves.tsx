@@ -132,7 +132,8 @@ export default function BestMovesComponent({
             .getBestMoves(engine.path, activeTab!, settings.go, {
               fen: threat ? swapMove(fen) : fen,
               multipv: settings.numberLines,
-              threads: 2 ** settings.cores,
+              threads: settings.cores,
+              extraOptions: settings.extraOptions,
             })
             .then((res) => {
               unwrap(res);

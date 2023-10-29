@@ -1,5 +1,5 @@
 import { Slider } from "@mantine/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DepthSlider({
   value,
@@ -16,6 +16,10 @@ export default function DepthSlider({
     { value: 4 },
     { value: 5 },
   ];
+
+  useEffect(() => {
+    setTempValue(value);
+  }, [value]);
 
   return (
     <>

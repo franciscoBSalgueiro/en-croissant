@@ -1,6 +1,6 @@
 import { GoMode } from "@/bindings";
 import { Slider } from "@mantine/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DepthSlider({
   value,
@@ -18,6 +18,10 @@ export default function DepthSlider({
     { value: 50 },
     { value: 60 },
   ];
+
+  useEffect(() => {
+    setTempValue(value);
+  }, [value]);
 
   const v = tempValue.t === "Infinite" ? 60 : tempValue.c;
   const handleSliderChange = (v: number, setState: (v: GoMode) => void) => {
