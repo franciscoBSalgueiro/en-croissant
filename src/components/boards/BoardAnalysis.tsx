@@ -182,9 +182,6 @@ function BoardAnalysis() {
               notationExpanded={notationExpanded}
               topBar
             />
-            <Paper withBorder p="md">
-              <EvalChart isAnalysing={inProgress} startAnalysis={() => toggleReportingMode()} />
-            </Paper>
             <MoveControls />
           </Stack>
         </>

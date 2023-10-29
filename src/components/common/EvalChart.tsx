@@ -1,18 +1,17 @@
 import { useContext } from "react";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
 import { Box, LoadingOverlay, createStyles } from "@mantine/core";
-import { ActionIcon, Divider, Group, Stack, Tooltip as MantineTooltip, Text } from "@mantine/core"
+import { Stack } from "@mantine/core"
 import { ResponsiveContainer, Tooltip as RechartsTooltip, AreaChart, Area, XAxis, YAxis, ReferenceLine } from "recharts";
 import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { ANNOTATION_INFO } from "@/utils/chess";
 import { formatScore } from "@/utils/score";
 import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
-import { IconRefresh } from "@tabler/icons-react"
 import { Chess } from "chess.js";
 
 interface EvalChartProps {
-    isAnalysing?: boolean;
-    startAnalysis?(): void;
+    isAnalysing: boolean;
+    startAnalysis: () => void;
 }
 
 type DataPoint = {
@@ -148,21 +147,6 @@ const EvalChart = (props: EvalChartProps) => {
     
     return (
         <Stack>
-            <Stack>
-                <Group position="apart">
-                    <Text fz="sm">Engine analysis</Text>
-                    <Group spacing="sm">
-                        {props.startAnalysis != undefined &&
-                            <MantineTooltip label="Analyse game">
-                                <ActionIcon onClick={props.startAnalysis} disabled={props.isAnalysing}>
-                                    <IconRefresh size={15} /> 
-                                </ActionIcon>
-                            </MantineTooltip>
-                        }
-                    </Group>
-                </Group>
-                <Divider />
-            </Stack>
             <Box pos="relative">
                 <LoadingOverlay visible={props.isAnalysing == true} />
                 <ResponsiveContainer width="99%" height={220}>

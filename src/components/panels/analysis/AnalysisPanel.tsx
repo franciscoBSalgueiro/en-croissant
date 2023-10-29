@@ -1,5 +1,6 @@
 import {
   Accordion,
+  Box,
   Button,
   Grid,
   Group,
@@ -31,12 +32,7 @@ import {
 } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import LogsPanel from "./LogsPanel";
-
-const labels = {
-  action: "Generate report",
-  completed: "Report generated",
-  inProgress: "Generating report",
-};
+import EvalChart from "@/components/common/EvalChart";
 
 function AnalysisPanel({
   boardSize,
@@ -67,6 +63,8 @@ function AnalysisPanel({
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
 
+  const stats = useMemo(() => getGameStats(root), [root]);
+
   return (
     <Tabs
       defaultValue="engines"
@@ -78,23 +76,25 @@ function AnalysisPanel({
       <Tabs.List>
         <Tabs.Tab value="engines">Engines</Tabs.Tab>
         <Tabs.Tab value="report">Report</Tabs.Tab>
-        <Tabs.Tab value="logs" disabled={loadedEngines.length == 0}>Logs</Tabs.Tab>
+        <Tabs.Tab value="logs" disabled={loadedEngines.length == 0}>
+          Logs
+        </Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="engines" pt="xs">
         <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
-          {loadedEngines.length > 0 &&
+          {loadedEngines.length > 0 && (
             <Group>
               <Button
                 rightIcon={
-                    allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
+                  allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
                 }
                 variant={allEnabled ? "filled" : "default"}
                 onClick={() => enable(!allEnabled)}
-                >
+              >
                 {allEnabled ? "Stop All" : "Run All"}
               </Button>
             </Group>
-          }
+          )}
           <Stack mt="sm">
             <Accordion
               variant="separated"
@@ -121,19 +121,51 @@ function AnalysisPanel({
         </ScrollArea>
       </Tabs.Panel>
       <Tabs.Panel value="report" pt="xs">
-        <GameStats {...getGameStats(root)} />
-        <ProgressButton
-          id={0}
-          redoable
-          disabled={root.children.length === 0}
-          leftIcon={<IconZoomCheck size={14} />}
-          onClick={toggleReportingMode}
-          initInstalled={false}
-          progressEvent="report_progress"
-          labels={labels}
-          inProgress={inProgress}
-          setInProgress={setInProgress}
-        />
+        <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
+          <Stack mb="lg" spacing="0.4rem" mr="xs">
+            <Group grow sx={{ textAlign: "center" }}>
+              {stats.whiteAccuracy && stats.blackAccuracy && (
+                <>
+                  <AccuracyCard
+                    color="WHITE"
+                    accuracy={stats.whiteAccuracy}
+                    cpl={stats.whiteCPL}
+                  />
+                  <AccuracyCard
+                    color="BLACK"
+                    accuracy={stats.blackAccuracy}
+                    cpl={stats.blackCPL}
+                  />
+                </>
+              )}
+              <Box w={100}>
+                <ProgressButton
+                  id={0}
+                  redoable
+                  disabled={root.children.length === 0}
+                  leftIcon={<IconZoomCheck size={14} />}
+                  onClick={() => toggleReportingMode()}
+                  initInstalled={false}
+                  progressEvent="report_progress"
+                  labels={{
+                    action: "Generate report",
+                    completed: "Report generated",
+                    inProgress: "Generating report",
+                  }}
+                  inProgress={inProgress}
+                  setInProgress={setInProgress}
+                />
+              </Box>
+            </Group>
+            <Paper withBorder p="md">
+              <EvalChart
+                isAnalysing={inProgress}
+                startAnalysis={() => toggleReportingMode()}
+              />
+            </Paper>
+            <GameStats {...stats} />
+          </Stack>
+        </ScrollArea>
       </Tabs.Panel>
       <Tabs.Panel value="logs" pt="xs">
         <Stack>
@@ -147,33 +179,10 @@ function AnalysisPanel({
 type Stats = ReturnType<typeof getGameStats>;
 
 const GameStats = memo(
-  function GameStats({
-    whiteCPL,
-    blackCPL,
-    whiteAccuracy,
-    blackAccuracy,
-    whiteAnnotations,
-    blackAnnotations,
-  }: Stats) {
+  function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
     return (
-      <Stack mb="lg" spacing="0.4rem" mr="xs">
-        <Group grow sx={{ textAlign: "center" }}>
-          {whiteAccuracy && blackAccuracy && (
-            <>
-              <AccuracyCard
-                color="WHITE"
-                accuracy={whiteAccuracy}
-                cpl={whiteCPL}
-              />
-              <AccuracyCard
-                color="BLACK"
-                accuracy={blackAccuracy}
-                cpl={blackCPL}
-              />
-            </>
-          )}
-        </Group>
-        <Grid columns={11} justify="space-between">
+      <Paper withBorder>
+        <Grid columns={11} justify="space-between" p="md">
           {Object.keys(ANNOTATION_INFO)
             .filter((a) => a !== "")
             .map((annotation) => {
@@ -203,15 +212,11 @@ const GameStats = memo(
               );
             })}
         </Grid>
-      </Stack>
+      </Paper>
     );
   },
   (prev, next) => {
     return (
-      prev.whiteCPL === next.whiteCPL &&
-      prev.blackCPL === next.blackCPL &&
-      prev.whiteAccuracy === next.whiteAccuracy &&
-      prev.blackAccuracy === next.blackAccuracy &&
       shallowEqual(prev.whiteAnnotations, next.whiteAnnotations) &&
       shallowEqual(prev.blackAnnotations, next.blackAnnotations)
     );
