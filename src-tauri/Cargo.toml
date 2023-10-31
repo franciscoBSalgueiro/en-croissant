@@ -51,6 +51,7 @@ thiserror = "1.0.48"
 log = "0.4.20"
 oauth2 = "4.4.2"
 axum = "0.6.20"
+tar = "0.4.40"
 
 [features]
 # by default Tauri runs in production mode

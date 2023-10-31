@@ -26,7 +26,6 @@ pub async fn download_file(
     id: u64,
     url: String,
     path: PathBuf,
-    zip: bool,
     app: tauri::AppHandle,
     token: Option<String>,
     finalize: Option<bool>,
@@ -71,11 +70,15 @@ pub async fn download_file(
 
     info!("Downloaded file to {}", path.display());
 
-    if zip {
+    if url.ends_with(".zip") {
         unzip_file(path, file).await?;
+    } else if url.ends_with(".tar") {
+        let mut archive = tar::Archive::new(Cursor::new(file));
+        archive.unpack(path)?;
     } else {
-        std::fs::write(path, file)?;
+        std::fs::write(path, file)?
     }
+
     if finalize {
         app.emit_all(
             "download_progress",

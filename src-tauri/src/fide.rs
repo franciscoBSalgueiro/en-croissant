@@ -96,7 +96,6 @@ pub async fn download_fide_db(
         0,
         "http://ratings.fide.com/download/players_list_xml.zip".to_string(),
         app_config_dir(&app.config()).unwrap(),
-        true,
         app.clone(),
         None,
         Some(false),

@@ -227,7 +227,6 @@ export async function downloadLichess(
   await invoke("download_file", {
     id: 1,
     url,
-    zip: false,
     path,
     token,
   });

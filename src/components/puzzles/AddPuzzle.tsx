@@ -112,7 +112,6 @@ function PuzzleDbCard({
     await invoke("download_file", {
       id,
       url,
-      zip: false,
       path,
     });
     setPuzzleDbs(await getPuzzleDatabases());

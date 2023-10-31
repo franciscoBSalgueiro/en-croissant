@@ -154,7 +154,6 @@ function EngineCard({
       await invoke("download_file", {
         id,
         url,
-        zip: true,
         path,
       });
       let appDataDirPath = await appDataDir();

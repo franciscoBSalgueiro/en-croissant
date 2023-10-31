@@ -201,7 +201,6 @@ function DatabaseCard({
     await invoke("download_file", {
       id,
       url,
-      zip: false,
       path,
     });
     setDatabases(await getDatabases());
