@@ -1,4 +1,4 @@
-import { Paper, Stack, Tabs } from "@mantine/core";
+import { Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconDatabase,
@@ -33,7 +33,6 @@ import {
   currentTabSelectedAtom,
 } from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
-import EvalChart from "../common/EvalChart";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();

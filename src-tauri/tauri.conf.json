@@ -84,6 +84,15 @@
         "maximized": true,
         "visible": false
       }
-    ]
+    ],
+    "cli": {
+      "args": [
+        {
+          "name": "file",
+          "index": 1,
+          "takesValue": true
+        }
+      ]
+    }
   }
 }
