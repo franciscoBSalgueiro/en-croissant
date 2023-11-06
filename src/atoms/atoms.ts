@@ -100,6 +100,7 @@ export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
+export const showCoordinatesAtom = atomWithStorage<boolean>("show-coordinates", false);
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const primaryColorAtom = atomWithStorage<MantineColor>(
     "mantine-primary-color",

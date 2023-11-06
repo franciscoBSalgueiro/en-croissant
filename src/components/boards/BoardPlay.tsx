@@ -51,6 +51,7 @@ import {
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
+  showCoordinatesAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
 import PromotionModal from "./PromotionModal";
@@ -120,6 +121,7 @@ function BoardPlay({
   const showArrows = useAtomValue(showArrowsAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
+  const showCoordinates = useAtomValue(showCoordinatesAtom);
   const autoSave = useAtomValue(autoSaveAtom);
 
   const activeTab = useAtomValue(currentTabAtom);
@@ -318,7 +320,7 @@ function BoardPlay({
             height={boardSize}
             orientation={side ?? orientation}
             fen={currentNode.fen}
-            coordinates={false}
+            coordinates={showCoordinates}
             movable={{
               free: editingMode,
               color: practiceLock

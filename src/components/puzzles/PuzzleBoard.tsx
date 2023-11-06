@@ -8,6 +8,8 @@ import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
 import { chessboard } from "@/styles/Chessboard.css";
 import { Chessground } from "@/chessground/Chessground";
+import { useAtomValue } from "jotai";
+import { showCoordinatesAtom } from "@/atoms/atoms";
 
 function PuzzleBoard({
   puzzles,
@@ -45,6 +47,7 @@ function PuzzleBoard({
   const dests = toDests(chess, false);
   const fen = chess.fen();
   const turn = formatMove(chess.turn());
+  const showCoordinates = useAtomValue(showCoordinatesAtom);
 
   const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
 
@@ -87,6 +90,7 @@ function PuzzleBoard({
             enabled: true,
           }}
           width={boardSize}
+          coordinates={showCoordinates}
           height={boardSize}
           orientation={orientation}
           movable={{
