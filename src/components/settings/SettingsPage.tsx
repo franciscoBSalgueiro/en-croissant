@@ -8,6 +8,7 @@ import {
   forcedEnPassantAtom,
   pieceSetAtom,
   showDestsAtom,
+  showCoordinatesAtom,
 } from "@/atoms/atoms";
 import { Card, createStyles, Group, Stack, Text } from "@mantine/core";
 import ColorControl from "./ColorControl";
@@ -121,6 +122,15 @@ export default function Page() {
             </Text>
           </div>
           <SettingsSwitch atom={autoPromoteAtom} />
+        </Group>
+        <Group position="apart" noWrap spacing="xl" className={classes.item}>
+          <div>
+            <Text>Coordinates</Text>
+            <Text size="xs" color="dimmed">
+              Show coordinates on the board
+            </Text>
+          </div>
+          <SettingsSwitch atom={showCoordinatesAtom} />
         </Group>
         <Group position="apart" noWrap spacing="xl" className={classes.item}>
           <div>
