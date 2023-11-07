@@ -381,7 +381,7 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
 };
 
 function addAnalysis(state: TreeState, analysis: { best: BestMoves, novelty: boolean }[]) {
-    let cur = state.root.children[0];
+    let cur = state.root;
     let i = 0;
     while (cur !== undefined && i < analysis.length) {
         cur.score = analysis[i].best.score;
@@ -394,7 +394,7 @@ function addAnalysis(state: TreeState, analysis: { best: BestMoves, novelty: boo
             prevScore = analysis[i - 1].best.score;
         }
         const curScore = analysis[i].best.score;
-        const color = i % 2 === 0 ? "w" : "b";
+        const color = i % 2 === 1 ? "w" : "b";
         cur.annotation = getAnnotation(prevScore, curScore, color);
         cur = cur.children[0];
         i++;

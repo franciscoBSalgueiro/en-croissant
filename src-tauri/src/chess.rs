@@ -439,30 +439,30 @@ pub async fn analyze_game(
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
     let (mut process, mut reader) = EngineProcess::new(path)?;
+
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
-    let mut chess: Chess = fen.into_position(CastlingMode::Standard)?;
+    let mut chess: Chess = fen.clone().into_position(CastlingMode::Standard)?;
+    let mut fens: Vec<Fen> = vec![fen];
 
-    let len_moves = moves.len();
+    moves.iter().for_each(|m| {
+        let san = San::from_ascii(m.as_bytes()).unwrap();
+        let m = san.to_move(&chess).unwrap();
+        chess.play_unchecked(&m);
+        fens.push(Fen::from_position(chess.clone(), EnPassantMode::Legal));
+    });
 
     let mut novelty_found = false;
 
-    for (i, m) in moves.iter().enumerate() {
+    for (i, fen) in fens.iter().enumerate() {
         app.emit_all(
             "report_progress",
             ProgressPayload {
-                progress: (i as f64 / len_moves as f64) * 100.0,
+                progress: (i as f64 / fens.len() as f64) * 100.0,
                 id: 0,
                 finished: false,
             },
         )?;
-        let san = San::from_ascii(m.as_bytes())?;
-        let m = san.to_move(&chess)?;
-        chess.play_unchecked(&m);
-        if chess.is_game_over() {
-            break;
-        }
-        let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
         let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
         process
@@ -480,7 +480,7 @@ pub async fn analyze_game(
         while let Ok(Some(line)) = reader.next_line().await {
             match parse_one(&line) {
                 UciMessage::Info(attrs) => {
-                    if let Ok(best_moves) = parse_uci_attrs(attrs, &fen) {
+                    if let Ok(best_moves) = parse_uci_attrs(attrs, fen) {
                         current_analysis.best = best_moves;
                     }
                 }
