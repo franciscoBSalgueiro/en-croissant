@@ -540,7 +540,7 @@ function AnnotationHint({
             "square.last-move": {
               background: theme.fn.rgba(
                 theme.colors[color][
-                  theme.colorScheme === "dark" ? 5 : 3
+                  theme.colorScheme === "dark" ? 8 : 6
                 ],
                 0.4
               ),
