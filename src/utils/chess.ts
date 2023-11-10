@@ -25,6 +25,7 @@ import {
     createNode,
     defaultTree,
     GameHeaders,
+    getColorFromFen,
     getNodeAtPath,
     headersToPGN,
     TreeNode,
@@ -389,6 +390,9 @@ function innerParsePGN(
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
+    if (halfMoves === 0 && getColorFromFen(fen) === "b") {
+        root.halfMoves += 1;
+    }
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
