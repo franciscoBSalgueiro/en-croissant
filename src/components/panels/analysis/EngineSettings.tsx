@@ -136,6 +136,10 @@ function AdvancedOptions({
                   setSettings((prev) => {
                     const newGo = prev.go;
                     newGo.t = v as "Depth" | "Time" | "Nodes" | "Infinite";
+                    if (v === "Infinite") {
+                      /// @ts-expect-error idk how to please ts here
+                      delete newGo.c;
+                    }
                     return {
                       ...prev,
                       go: newGo,
