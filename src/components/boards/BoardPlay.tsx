@@ -1,7 +1,39 @@
 import {
+  autoPromoteAtom,
+  autoSaveAtom,
+  currentInvisibleAtom,
+  currentPracticingAtom,
+  currentTabAtom,
+  deckAtomFamily,
+  forcedEnPassantAtom,
+  moveInputAtom,
+  showArrowsAtom,
+  showCoordinatesAtom,
+  showDestsAtom,
+} from "@/atoms/atoms";
+import { Chessground } from "@/chessground/Chessground";
+import { chessboard } from "@/styles/Chessboard.css";
+import {
+  ANNOTATION_INFO,
+  Annotation,
+  PiecesCount,
+  handleMove,
+  moveToCoordinates,
+  moveToKey,
+  parseKeyboardMove,
+  parseUci,
+  toDests,
+  useMaterialDiff,
+} from "@/utils/chess";
+import { Outcome } from "@/utils/db";
+import { formatMove } from "@/utils/format";
+import { invoke } from "@/utils/invoke";
+import { getBoardSize } from "@/utils/misc";
+import { GameHeaders, TreeNode } from "@/utils/treeReducer";
+import {
   ActionIcon,
   Alert,
-  Badge,
+  Avatar,
   Box,
   Group,
   Input,
@@ -24,44 +56,12 @@ import {
 import { Chess, Move, PieceSymbol, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { memo, useContext, useMemo, useState } from "react";
-import {
-  Annotation,
-  ANNOTATION_INFO,
-  handleMove,
-  moveToCoordinates,
-  moveToKey,
-  parseKeyboardMove,
-  parseUci,
-  PiecesCount,
-  toDests,
-  useMaterialDiff,
-} from "@/utils/chess";
-import { Outcome } from "@/utils/db";
-import { formatMove } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
-import { getBoardSize } from "@/utils/misc";
-import { GameHeaders, TreeNode } from "@/utils/treeReducer";
-import { TreeDispatchContext } from "../common/TreeStateContext";
-import EvalBar from "./EvalBar";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import {
-  autoPromoteAtom,
-  autoSaveAtom,
-  currentInvisibleAtom,
-  currentPracticingAtom,
-  currentTabAtom,
-  deckAtomFamily,
-  forcedEnPassantAtom,
-  moveInputAtom,
-  showArrowsAtom,
-  showCoordinatesAtom,
-  showDestsAtom,
-} from "@/atoms/atoms";
-import PromotionModal from "./PromotionModal";
+import { memo, useContext, useMemo, useState } from "react";
+import { TreeDispatchContext } from "../common/TreeStateContext";
 import { updateCardPerformance } from "../files/opening";
-import { chessboard } from "@/styles/Chessboard.css";
-import { Chessground } from "@/chessground/Chessground";
+import EvalBar from "./EvalBar";
+import PromotionModal from "./PromotionModal";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -212,13 +212,13 @@ function BoardPlay({
   let shapes: DrawShape[] =
     showArrows && arrows.length > 0
       ? arrows.map((move, i) => {
-        const { from, to } = parseUci(move);
-        return {
-          orig: from,
-          dest: to,
-          brush: i === 0 ? "paleBlue" : "paleGrey",
-        };
-      })
+          const { from, to } = parseUci(move);
+          return {
+            orig: from,
+            dest: to,
+            brush: i === 0 ? "paleBlue" : "paleGrey",
+          };
+        })
       : [];
 
   if (currentNode.shapes.length > 0) {
@@ -288,7 +288,13 @@ function BoardPlay({
           </Alert>
         )}
         <Box className={chessboard} ref={boardRef} mt={10}>
-          {currentNode.annotation && currentNode.move && <AnnotationHint orientation={orientation} move={currentNode.move} annotation={currentNode.annotation} />}
+          {currentNode.annotation && currentNode.move && (
+            <AnnotationHint
+              orientation={orientation}
+              move={currentNode.move}
+              annotation={currentNode.annotation}
+            />
+          )}
           <PromotionModal
             pendingMove={pendingMove}
             cancelMove={() => setPendingMove(null)}
@@ -331,14 +337,14 @@ function BoardPlay({
               color: practiceLock
                 ? undefined
                 : editingMode
-                  ? "both"
-                  : side || turn,
+                ? "both"
+                : side || turn,
               dests:
                 editingMode || viewOnly
                   ? undefined
                   : disableVariations && currentNode.children.length > 0
-                    ? undefined
-                    : dests,
+                  ? undefined
+                  : dests,
               showDests,
               events: {
                 after: (orig, dest, metadata) => {
@@ -492,25 +498,43 @@ function ShowMaterial({
   );
 }
 
-function AnnotationHint({ move, annotation, orientation }: { move: Move, annotation: Annotation, orientation: Color }) {
-  const { file, rank } = moveToCoordinates(move, orientation)
+function AnnotationHint({
+  move,
+  annotation,
+  orientation,
+}: {
+  move: Move;
+  annotation: Annotation;
+  orientation: Color;
+}) {
+  const { file, rank } = moveToCoordinates(move, orientation);
   const { color } = ANNOTATION_INFO[annotation];
 
-  return <div style={{
-    position: "absolute",
-    zIndex: 100,
-    width: "12.5%",
-    height: "12.5%",
-    left: `${(file - 1) * 12.5}%`,
-    bottom: `${(rank - 1) * 12.5}%`
-  }
-  }>
-    <Badge style={{
-      transform: "translateY(-40%) translateX(-50%)"
-    }} ml="90%" h={40} w={40} color={color} fz="lg" variant="filled">
-      {annotation}
-    </Badge>
-  </div>
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        zIndex: 100,
+        width: "12.5%",
+        height: "12.5%",
+        left: `${(file - 1) * 12.5}%`,
+        bottom: `${(rank - 1) * 12.5}%`,
+      }}
+    >
+      <Avatar
+        sx={{
+          transform: "translateY(-40%) translateX(-50%)",
+        }}
+        ml="90%"
+        radius="xl"
+        color={color}
+        fz="lg"
+        variant="filled"
+      >
+        {annotation}
+      </Avatar>
+    </Box>
+  );
 }
 
 export default memo(BoardPlay);
