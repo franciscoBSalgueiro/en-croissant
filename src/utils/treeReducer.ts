@@ -380,9 +380,18 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 
+export function getColorFromFen(fen: string): "w" | "b" {
+    const parts = fen.split(" ");
+    if (parts[1] === "w") {
+        return "w";
+    }
+    return "b";
+}
+
 function addAnalysis(state: TreeState, analysis: { best: BestMoves, novelty: boolean }[]) {
     let cur = state.root;
     let i = 0;
+    const initialColor = getColorFromFen(state.root.fen);
     while (cur !== undefined && i < analysis.length) {
         cur.score = analysis[i].best.score;
         if (analysis[i].novelty) {
@@ -394,7 +403,7 @@ function addAnalysis(state: TreeState, analysis: { best: BestMoves, novelty: boo
             prevScore = analysis[i - 1].best.score;
         }
         const curScore = analysis[i].best.score;
-        const color = i % 2 === 1 ? "w" : "b";
+        const color = i % 2 === (initialColor === "w" ? 1: 0) ? "w" : "b";
         cur.annotation = getAnnotation(prevScore, curScore, color);
         cur = cur.children[0];
         i++;

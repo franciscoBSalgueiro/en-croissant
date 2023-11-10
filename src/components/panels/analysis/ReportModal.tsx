@@ -36,7 +36,7 @@ function ReportModal({
 
   const form = useForm({
     initialValues: {
-      engine: "",
+      engine: engines[0]?.path ?? "",
       millisecondsPerMove: 500,
       novelty: true,
     },
