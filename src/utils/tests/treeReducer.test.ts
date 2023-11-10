@@ -495,11 +495,11 @@ test("should handle ADD_ANALYSIS", () => {
         position: [0],
         dirty: true,
     };
-    expectedState.root.children[0].score = {
+    expectedState.root.score = {
         type: "cp",
         value: 10,
     };
-    expectedState.root.children[0].children[0].score = {
+    expectedState.root.children[0].score = {
         type: "cp",
         value: 20,
     };
