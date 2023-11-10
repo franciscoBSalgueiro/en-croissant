@@ -35,6 +35,7 @@ import {
   Alert,
   Avatar,
   Box,
+  Global,
   Group,
   Input,
   Stack,
@@ -533,6 +534,20 @@ function AnnotationHint({
       >
         {annotation}
       </Avatar>
+      <Global
+        styles={(theme) => ({
+          "cg-board": {
+            "square.last-move": {
+              background: theme.fn.rgba(
+                theme.colors[color][
+                  theme.colorScheme === "dark" ? 5 : 3
+                ],
+                0.4
+              ),
+            },
+          },
+        })}
+      />
     </Box>
   );
 }
