@@ -423,6 +423,7 @@ pub struct AnalysisOptions {
     pub fen: String,
     pub annotate_novelties: bool,
     pub reference_db: Option<PathBuf>,
+    pub reversed: bool,
 }
 
 #[tauri::command]
@@ -452,6 +453,10 @@ pub async fn analyze_game(
         fens.push(Fen::from_position(chess.clone(), EnPassantMode::Legal));
     });
 
+    if options.reversed {
+        fens.reverse();
+    }
+
     let mut novelty_found = false;
 
     for (i, fen) in fens.iter().enumerate() {
@@ -463,7 +468,6 @@ pub async fn analyze_game(
                 finished: false,
             },
         )?;
-        let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
         process
             .set_options(EngineOptions {
@@ -490,19 +494,28 @@ pub async fn analyze_game(
                 _ => {}
             }
         }
+        analysis.push(current_analysis);
+    }
+
+    if options.reversed {
+        analysis.reverse();
+        fens.reverse();
+    }
+
+    for (i, analysis) in analysis.iter_mut().enumerate() {
+        let fen = &fens[i];
+        let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
-                current_analysis.novelty =
-                    !is_position_in_db(reference, query, state.clone()).await?;
-                if current_analysis.novelty {
+                analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;
+                if analysis.novelty {
                     novelty_found = true;
                 }
             } else {
                 return Err(Error::MissingReferenceDatabase);
             }
         }
-        analysis.push(current_analysis);
     }
     app.emit_all(
         "report_progress",

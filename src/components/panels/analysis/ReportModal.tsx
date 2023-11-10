@@ -39,6 +39,7 @@ function ReportModal({
       engine: engines[0]?.path ?? "",
       millisecondsPerMove: 500,
       novelty: true,
+      reversed: true
     },
 
     validate: {
@@ -70,6 +71,7 @@ function ReportModal({
           annotateNovelties: form.values.novelty,
           fen: initialFen,
           referenceDb,
+          reversed: form.values.reversed
         }
       )
       .then((analysis) => {
@@ -109,6 +111,12 @@ function ReportModal({
             min={1}
             step={200}
             {...form.getInputProps("millisecondsPerMove")}
+          />
+
+          <Checkbox
+            label="Reversed analysis"
+            description="Analyze the game in starting from the last move."
+            {...form.getInputProps("reversed", { type: "checkbox" })}
           />
 
           <Checkbox

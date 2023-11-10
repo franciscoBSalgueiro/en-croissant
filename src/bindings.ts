@@ -62,7 +62,7 @@ bestMovesPayload: "plugin:tauri-specta:best-moves-payload"
 
 /** user-defined types **/
 
-export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null }
+export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string }
 export type EngineOption = { name: string; value: string }
