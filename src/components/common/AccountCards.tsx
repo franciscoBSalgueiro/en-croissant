@@ -24,7 +24,8 @@ function AccountCards({
             (account.perfs.bullet?.games ?? 0) +
             (account.perfs.blitz?.games ?? 0) +
             (account.perfs.rapid?.games ?? 0) +
-            (account.perfs.classical?.games ?? 0);
+            (account.perfs.classical?.games ?? 0) +
+            (account.perfs.correspondence?.games ?? 0) +;
 
           const stats = [];
           const speeds = ["bullet", "blitz", "rapid", "classical"] as const;
