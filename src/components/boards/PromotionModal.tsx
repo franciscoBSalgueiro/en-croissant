@@ -3,17 +3,7 @@ import { useClickOutside } from "@mantine/hooks";
 import { BISHOP, KNIGHT, PieceSymbol, QUEEN, ROOK, Square } from "chess.js";
 import { memo } from "react";
 import Piece from "../common/Piece";
-
-const fileToNumber: Record<string, number> = {
-  a: 1,
-  b: 2,
-  c: 3,
-  d: 4,
-  e: 5,
-  f: 6,
-  g: 7,
-  h: 8,
-};
+import { moveToCoordinates } from "@/utils/chess";
 
 const PromotionModal = memo(function PromotionModal({
   pendingMove,
@@ -28,12 +18,7 @@ const PromotionModal = memo(function PromotionModal({
   turn?: "white" | "black";
   orientation: "white" | "black";
 }) {
-  let file = fileToNumber[pendingMove?.to[0] ?? "a"];
-  let rank = parseInt(pendingMove?.to[1] ?? "1");
-  if (orientation === "black") {
-    file = 9 - file;
-    rank = 9 - rank;
-  }
+  const { file, rank } = moveToCoordinates(pendingMove, orientation)
   const ref = useClickOutside(() => cancelMove());
 
   const promotionPieces: PieceSymbol[] = [QUEEN, KNIGHT, ROOK, BISHOP];

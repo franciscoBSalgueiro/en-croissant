@@ -267,6 +267,29 @@ export function moveToKey(move: Move | null) {
     return move ? ([move.from, move.to] as Key[]) : [];
 }
 
+
+const fileToNumber: Record<string, number> = {
+    a: 1,
+    b: 2,
+    c: 3,
+    d: 4,
+    e: 5,
+    f: 6,
+    g: 7,
+    h: 8,
+};
+
+
+export function moveToCoordinates(move: { from: string, to: string } | null, orientation: "white" | "black") {
+    let file = fileToNumber[move?.to[0] ?? "a"];
+    let rank = parseInt(move?.to[1] ?? "1");
+    if (orientation === "black") {
+        file = 9 - file;
+        rank = 9 - rank;
+    }
+    return { file, rank }
+}
+
 export function toDests(
     chess: Chess | null,
     forcedEP: boolean
