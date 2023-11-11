@@ -130,7 +130,7 @@ function AdvancedOptions({
               <Select
                 variant="unstyled"
                 dropdownPosition="bottom"
-                data={["Depth", "Time", "Nodes", "Infinite"]}
+                data={["Depth", { label: "Time (ms)", value: "Time" }, "Nodes", "Infinite"]}
                 value={settings.go.t}
                 onChange={(v) =>
                   setSettings((prev) => {
