@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::Stdio, sync::Arc};
+use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc};
 
 use derivative::Derivative;
 use log::info;
@@ -39,8 +39,8 @@ pub struct EngineProcess {
     stdin: ChildStdin,
     last_depth: u8,
     best_moves: Vec<BestMoves>,
-    fen: Fen,
-    multipv: u16,
+    options: EngineOptions,
+    real_multipv: u16,
     logs: Vec<EngineLog>,
 }
 
@@ -63,15 +63,18 @@ impl EngineProcess {
                 stdin: child.stdin.take().ok_or(Error::NoStdin)?,
                 last_depth: 0,
                 best_moves: Vec::new(),
-                fen: Fen::default(),
                 logs: Vec::new(),
-                multipv: 1,
+                options: EngineOptions::default(),
+                real_multipv: 0,
             },
             BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines(),
         ))
     }
 
-    async fn set_option(&mut self, name: &str, value: &str) -> Result<(), Error> {
+    async fn set_option<T>(&mut self, name: &str, value: T) -> Result<(), Error>
+    where
+        T: Display,
+    {
         let msg = format!("setoption name {} value {}\n", name, value);
         self.stdin.write_all(msg.as_bytes()).await?;
         self.logs.push(EngineLog::Gui(msg));
@@ -85,18 +88,25 @@ impl EngineProcess {
             Ok(p) => p,
             Err(e) => e.ignore_too_much_material()?,
         };
-        self.multipv = options.multipv.min(pos.legal_moves().len() as u16);
-        self.set_option("Threads", &options.threads.to_string())
-            .await?;
-        self.set_option("MultiPV", &options.multipv.to_string())
-            .await?;
-
-        for option in options.extra_options {
-            self.set_option(&option.name, &option.value).await?;
+        self.real_multipv = options.multipv.min(pos.legal_moves().len() as u16);
+        if options.threads != self.options.threads {
+            self.set_option("Threads", &options.threads).await?;
+        }
+        if options.multipv != self.options.multipv {
+            self.set_option("MultiPV", &options.multipv).await?;
         }
 
-        self.set_position(&options.fen).await?;
+        for option in &options.extra_options {
+            if !self.options.extra_options.contains(option) {
+                self.set_option(&option.name, &option.value).await?;
+            }
+        }
+
+        if options.fen != self.options.fen {
+            self.set_position(&options.fen).await?;
+        }
         self.last_depth = 0;
+        self.options = options.clone();
         self.best_moves.clear();
         Ok(())
     }
@@ -104,7 +114,7 @@ impl EngineProcess {
     async fn set_position(&mut self, fen: &str) -> Result<(), Error> {
         let msg = format!("position fen {}\n", fen);
         self.stdin.write_all(msg.as_bytes()).await?;
-        self.fen = fen.parse()?;
+        self.options.fen = fen.to_string();
         self.logs.push(EngineLog::Gui(msg));
         Ok(())
     }
@@ -266,16 +276,18 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
         .expect("Failed to write command");
 }
 
-#[derive(Deserialize, Debug, Clone, Type)]
+#[derive(Deserialize, Debug, Clone, Type, Derivative)]
 #[serde(rename_all = "camelCase")]
+#[derivative(Default)]
 pub struct EngineOptions {
     pub multipv: u16,
     pub threads: u16,
+    #[derivative(Default(value = "Fen::default().to_string()"))]
     pub fen: String,
     pub extra_options: Vec<EngineOption>,
 }
 
-#[derive(Deserialize, Debug, Clone, Type)]
+#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
 pub struct EngineOption {
     name: String,
     value: String,
@@ -384,11 +396,11 @@ pub async fn get_best_moves(
     while let Some(line) = reader.next_line().await? {
         let mut proc = process.lock().await;
         if let UciMessage::Info(attrs) = parse_one(&line) {
-            if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.fen) {
+            if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
                 let multipv = best_moves.multipv;
                 let cur_depth = best_moves.depth;
                 proc.best_moves.push(best_moves);
-                if multipv == proc.multipv {
+                if multipv == proc.options.multipv {
                     if proc.best_moves.iter().all(|x| x.depth == cur_depth)
                         && cur_depth >= proc.last_depth
                     {
