@@ -1,7 +1,7 @@
 import { minMax } from "@tiptap/react";
 import { Color } from "chess.js";
 import { Annotation } from "./chess";
-import { Score } from "@/bindings";
+import { BestMoves, Score } from "@/bindings";
 
 export const INITIAL_SCORE: Score = {
     type: "cp",
@@ -69,9 +69,9 @@ export function getAccuracy(prev: Score, next: Score, color: Color): number {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
     return minMax(
         103.1668 *
-            Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
-            3.1669 +
-            1,
+        Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
+        3.1669 +
+        1,
         0,
         100
     );
@@ -86,7 +86,8 @@ export function getCPLoss(prev: Score, next: Score, color: Color): number {
 export function getAnnotation(
     prev: Score,
     next: Score,
-    color: Color
+    color: Color,
+    prevMoves: BestMoves[]
 ): Annotation {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
     const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
@@ -97,6 +98,13 @@ export function getAnnotation(
         return "?";
     } else if (winChanceDiff > 5) {
         return "?!";
+    }
+
+    if (prevMoves.length > 1) {
+        const scores = normalizeScores(prevMoves[0].score, prevMoves[1].score, color);
+        if (getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10) {
+            return "!";
+        }
     }
     return "";
 }

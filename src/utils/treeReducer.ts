@@ -200,7 +200,7 @@ export type TreeAction =
     | { type: "SET_FEN"; payload: string }
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
-    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves, novelty: boolean }[] }
+    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[], novelty: boolean }[] }
     | { type: "PROMOTE_VARIATION"; payload: number[] };
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
@@ -388,23 +388,27 @@ export function getColorFromFen(fen: string): "w" | "b" {
     return "b";
 }
 
-function addAnalysis(state: TreeState, analysis: { best: BestMoves, novelty: boolean }[]) {
+function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: boolean }[]) {
     let cur = state.root;
     let i = 0;
     const initialColor = getColorFromFen(state.root.fen);
     while (cur !== undefined && i < analysis.length) {
-        cur.score = analysis[i].best.score;
-        if (analysis[i].novelty) {
-            cur.commentHTML = "Novelty";
-            cur.commentText = "Novelty";
+        if (!(new Chess(cur.fen).isGameOver())) {
+            cur.score = analysis[i].best[0].score;
+            if (analysis[i].novelty) {
+                cur.commentHTML = "Novelty";
+                cur.commentText = "Novelty";
+            }
+            let prevScore: Score = { type: "cp", value: 0 };
+            let prevMoves: BestMoves[] = [];
+            if (i > 0) {
+                prevScore = analysis[i - 1].best[0].score;
+                prevMoves = analysis[i - 1].best;
+            }
+            const curScore = analysis[i].best[0].score;
+            const color = i % 2 === (initialColor === "w" ? 1 : 0) ? "w" : "b";
+            cur.annotation = getAnnotation(prevScore, curScore, color, prevMoves);
         }
-        let prevScore: Score = { type: "cp", value: 0 };
-        if (i > 0) {
-            prevScore = analysis[i - 1].best.score;
-        }
-        const curScore = analysis[i].best.score;
-        const color = i % 2 === (initialColor === "w" ? 1: 0) ? "w" : "b";
-        cur.annotation = getAnnotation(prevScore, curScore, color);
         cur = cur.children[0];
         i++;
     }

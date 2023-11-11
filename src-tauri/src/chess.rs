@@ -400,7 +400,7 @@ pub async fn get_best_moves(
                 let multipv = best_moves.multipv;
                 let cur_depth = best_moves.depth;
                 proc.best_moves.push(best_moves);
-                if multipv == proc.options.multipv {
+                if multipv == proc.real_multipv {
                     if proc.best_moves.iter().all(|x| x.depth == cur_depth)
                         && cur_depth >= proc.last_depth
                     {
@@ -425,7 +425,7 @@ pub async fn get_best_moves(
 
 #[derive(Serialize, Debug, Default, Type)]
 pub struct MoveAnalysis {
-    best: BestMoves,
+    best: Vec<BestMoves>,
     novelty: bool,
 }
 
@@ -451,7 +451,7 @@ pub async fn analyze_game(
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
-    let (mut process, mut reader) = EngineProcess::new(path)?;
+    let (mut proc, mut reader) = EngineProcess::new(path)?;
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
@@ -462,7 +462,9 @@ pub async fn analyze_game(
         let san = San::from_ascii(m.as_bytes()).unwrap();
         let m = san.to_move(&chess).unwrap();
         chess.play_unchecked(&m);
-        fens.push(Fen::from_position(chess.clone(), EnPassantMode::Legal));
+        if !chess.is_game_over() {
+            fens.push(Fen::from_position(chess.clone(), EnPassantMode::Legal));
+        }
     });
 
     if options.reversed {
@@ -481,23 +483,33 @@ pub async fn analyze_game(
             },
         )?;
 
-        process
-            .set_options(EngineOptions {
-                threads: 4,
-                multipv: 1,
-                fen: fen.to_string(),
-                extra_options: Vec::new(),
-            })
-            .await?;
+        proc.set_options(EngineOptions {
+            threads: 4,
+            multipv: 2,
+            fen: fen.to_string(),
+            extra_options: Vec::new(),
+        })
+        .await?;
 
-        process.go(&go_mode).await?;
+        proc.go(&go_mode).await?;
 
         let mut current_analysis = MoveAnalysis::default();
         while let Ok(Some(line)) = reader.next_line().await {
             match parse_one(&line) {
                 UciMessage::Info(attrs) => {
-                    if let Ok(best_moves) = parse_uci_attrs(attrs, fen) {
-                        current_analysis.best = best_moves;
+                    if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
+                        let multipv = best_moves.multipv;
+                        let cur_depth = best_moves.depth;
+                        proc.best_moves.push(best_moves);
+                        if multipv == proc.real_multipv {
+                            if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                && cur_depth >= proc.last_depth
+                            {
+                                current_analysis.best = proc.best_moves.clone();
+                                proc.last_depth = cur_depth;
+                            }
+                            proc.best_moves.clear();
+                        }
                     }
                 }
                 UciMessage::BestMove { .. } => {
