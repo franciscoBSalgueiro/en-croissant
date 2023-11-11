@@ -20,23 +20,25 @@ function AccountCards({
           const account = session.lichess.account;
           const lichessSession = session.lichess;
           const totalGames =
-            (account.perfs.ultraBullet?.games ?? 0) +
-            (account.perfs.bullet?.games ?? 0) +
-            (account.perfs.blitz?.games ?? 0) +
-            (account.perfs.rapid?.games ?? 0) +
-            (account.perfs.classical?.games ?? 0);
+            (account.perfs?.ultraBullet?.games ?? 0) +
+            (account.perfs?.bullet?.games ?? 0) +
+            (account.perfs?.blitz?.games ?? 0) +
+            (account.perfs?.rapid?.games ?? 0) +
+            (account.perfs?.classical?.games ?? 0);
 
           const stats = [];
           const speeds = ["bullet", "blitz", "rapid", "classical"] as const;
 
-          for (const speed of speeds) {
-            const perf = account.perfs[speed];
-            if (perf) {
-              stats.push({
-                value: perf.rating,
-                label: speed,
-                diff: perf.prog,
-              });
+          if (account.perfs) {
+            for (const speed of speeds) {
+              const perf = account.perfs[speed];
+              if (perf) {
+                stats.push({
+                  value: perf.rating,
+                  label: speed,
+                  diff: perf.prog,
+                });
+              }
             }
           }
 
@@ -69,13 +71,13 @@ function AccountCards({
                   sessions.map((s) =>
                     s.lichess?.account.id === account.id
                       ? {
-                          ...s,
-                          lichess: {
-                            account: account,
-                            accessToken: lichessSession.accessToken,
-                          },
-                          updatedAt: Date.now(),
-                        }
+                        ...s,
+                        lichess: {
+                          account: account,
+                          accessToken: lichessSession.accessToken,
+                        },
+                        updatedAt: Date.now(),
+                      }
                       : s
                   )
                 );
@@ -120,13 +122,13 @@ function AccountCards({
                   sessions.map((s) =>
                     s.chessCom?.username === session.chessCom?.username
                       ? {
-                          ...s,
-                          chessCom: {
-                            username: session.chessCom!.username,
-                            stats,
-                          },
-                          updatedAt: Date.now(),
-                        }
+                        ...s,
+                        chessCom: {
+                          username: session.chessCom!.username,
+                          stats,
+                        },
+                        updatedAt: Date.now(),
+                      }
                       : s
                   )
                 );
