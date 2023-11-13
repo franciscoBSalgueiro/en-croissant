@@ -247,17 +247,23 @@ export type EngineSettings = {
 };
 
 export const tabEngineSettingsFamily = atomFamily(
-    ({ tab, engine }: { tab: string; engine: string }) =>
-        atom<EngineSettings>({
-            enabled: false,
-            go: {
-                t: "Depth",
-                c: 24,
-            },
-            cores: 2,
-            numberLines: 3,
-            extraOptions: [],
-        }),
+    ({ tab, engine }: { tab: string; engine: string }) => {
+        const savedDefault = localStorage.getItem(`engine-${engine}`);
+        return atom<EngineSettings>(
+            savedDefault !== null
+                ? { ...JSON.parse(savedDefault), enabled: false } as EngineSettings
+                :
+                {
+                    enabled: false,
+                    go: {
+                        t: "Depth",
+                        c: 24,
+                    },
+                    cores: 2,
+                    numberLines: 3,
+                    extraOptions: [],
+                })
+    },
     (a, b) => a.tab === b.tab && a.engine === b.engine
 );
 

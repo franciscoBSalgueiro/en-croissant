@@ -245,6 +245,7 @@ export default function BestMovesComponent({
           </ActionIcon>
         </Box>
         <EngineSettings
+          engine={engine.name}
           settingsOn={settingsOn}
           settings={settings}
           setSettings={setSettings}
