@@ -35,6 +35,7 @@ pub enum EngineLog {
     Engine(String),
 }
 
+#[derive(Debug)]
 pub struct EngineProcess {
     stdin: ChildStdin,
     last_depth: u8,
