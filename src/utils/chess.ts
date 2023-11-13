@@ -33,6 +33,7 @@ import {
 import { MantineColor } from "@mantine/core";
 import useSWR from 'swr';
 import { Score } from '@/bindings';
+import { match } from 'ts-pattern';
 
 export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
 
@@ -259,6 +260,9 @@ export function getPGN(
             specialSymbols,
             root: false,
         });
+    }
+    if (root) {
+        pgn += " " + headers?.result ?? "*";
     }
     return pgn.trim();
 }
