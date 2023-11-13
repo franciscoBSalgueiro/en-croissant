@@ -1,6 +1,6 @@
 import { ActionIcon, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
-import { DataTable } from "mantine-datatable";
+import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
 import { NormalizedGame, Tournament, getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -35,6 +35,22 @@ function PlayerCard({
     };
   }, [tournament.id, file]);
 
+  const [sort, setSort] = useState<DataTableSortStatus>({
+    columnAccessor: "date",
+    direction: "asc",
+  });
+
+  const sortedGames = games.sort((a, b) => {
+    const key = sort.columnAccessor;
+    if (sort.direction === "asc") {
+      /// @ts-expect-error we know they're the same type
+      return a[key] > b[key] ? 1 : -1;
+    } else {
+      /// @ts-expect-error we know they're the same type
+      return a[key] < b[key] ? 1 : -1;
+    }
+  });
+
   return (
     <Paper shadow="sm" p="sm" withBorder>
       <Stack align="center">
@@ -44,8 +60,10 @@ function PlayerCard({
         <DataTable
           withBorder
           highlightOnHover
-          records={games}
+          records={sortedGames}
           height={500}
+          sortStatus={sort}
+          onSortStatusChange={setSort}
           columns={[
             {
               accessor: "actions",
