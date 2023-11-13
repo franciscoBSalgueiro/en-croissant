@@ -20,12 +20,14 @@ import LinesSlider from "./LinesSlider";
 import { IconPlus, IconX } from "@tabler/icons-react";
 
 interface EngineSettingsProps {
+  engine: string;
   settingsOn: boolean;
   settings: EngineSettings;
   setSettings: React.Dispatch<React.SetStateAction<EngineSettings>>;
 }
 
 function EngineSettings({
+  engine,
   settingsOn,
   settings,
   setSettings,
@@ -93,14 +95,25 @@ function EngineSettings({
           />
         </SimpleGrid>
 
-        <Button
-          variant="light"
-          size="xs"
-          mt="sm"
-          onClick={() => setAdvancedOptions(true)}
-        >
-          Advanced Options
-        </Button>
+        <Group>
+          <Button
+            variant="default"
+            size="xs"
+            mt="sm"
+            onClick={() => setAdvancedOptions(true)}
+          >
+            Advanced options
+          </Button>
+
+          <Button
+            size="xs"
+            mt="sm"
+            onClick={() => localStorage.setItem(`engine-${engine}`, JSON.stringify(settings))}
+          >
+            Save as default
+          </Button>
+        </Group>
+
       </Collapse>
     </>
   );
