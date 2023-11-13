@@ -172,6 +172,7 @@ pub struct BestMoves {
     uci_moves: Vec<String>,
     #[serde(rename = "sanMoves")]
     san_moves: Vec<String>,
+    #[derivative(Default(value = "1"))]
     multipv: u16,
     nps: u32,
 }
