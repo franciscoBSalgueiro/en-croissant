@@ -515,7 +515,6 @@ function AnnotationHint({
     <Box
       sx={{
         position: "absolute",
-        zIndex: 100,
         width: "12.5%",
         height: "12.5%",
         left: `${(file - 1) * 12.5}%`,
@@ -527,6 +526,7 @@ function AnnotationHint({
           <Avatar
             sx={{
               transform: "translateY(-40%) translateX(-50%)",
+              zIndex: 100
             }}
             radius="xl"
             color={color}
