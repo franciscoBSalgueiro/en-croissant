@@ -88,8 +88,8 @@ export function getAnnotation(
     next: Score,
     color: Color,
     prevMoves: BestMoves[],
-    maybe_brilliant: boolean,
-    move: string
+    maybe_brilliant?: boolean,
+    move?: string
 ): Annotation {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
     const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
