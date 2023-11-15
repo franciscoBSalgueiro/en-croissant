@@ -526,13 +526,20 @@ function AnnotationHint({
           <Avatar
             sx={{
               transform: "translateY(-40%) translateX(-50%)",
-              zIndex: 100
+              zIndex: 100,
+              filter: "url(#shadow)",
+              overflow: "initial"
             }}
             radius="xl"
             color={color}
             variant="filled"
           >
             <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <defs>
+                <filter id="shadow">
+                  <feDropShadow dx="0" dy="1" floodOpacity="0.3" stdDeviation="0"></feDropShadow>
+                </filter>
+              </defs>
               <g>{glyphToSvg[annotation]}</g>
             </svg>
           </Avatar>
