@@ -69,9 +69,9 @@ export function getAccuracy(prev: Score, next: Score, color: Color): number {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
     return minMax(
         103.1668 *
-        Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
-        3.1669 +
-        1,
+            Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
+            3.1669 +
+            1,
         0,
         100
     );
@@ -87,7 +87,9 @@ export function getAnnotation(
     prev: Score,
     next: Score,
     color: Color,
-    prevMoves: BestMoves[]
+    prevMoves: BestMoves[],
+    maybe_brilliant: boolean,
+    move: string
 ): Annotation {
     const { prevCP, nextCP } = normalizeScores(prev, next, color);
     const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
@@ -101,8 +103,16 @@ export function getAnnotation(
     }
 
     if (prevMoves.length > 1) {
-        const scores = normalizeScores(prevMoves[0].score, prevMoves[1].score, color);
-        if (getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10) {
+        const scores = normalizeScores(
+            prevMoves[0].score,
+            prevMoves[1].score,
+            color
+        );
+        if (
+            getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
+            maybe_brilliant &&
+            move === prevMoves[0].sanMoves[0]
+        ) {
             return "!";
         }
     }

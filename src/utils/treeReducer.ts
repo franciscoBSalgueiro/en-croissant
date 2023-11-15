@@ -200,7 +200,7 @@ export type TreeAction =
     | { type: "SET_FEN"; payload: string }
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
-    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[], novelty: boolean }[] }
+    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[], novelty: boolean, maybe_brilliant: boolean }[] }
     | { type: "PROMOTE_VARIATION"; payload: number[] };
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
@@ -388,7 +388,7 @@ export function getColorFromFen(fen: string): "w" | "b" {
     return "b";
 }
 
-function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: boolean }[]) {
+function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: boolean, maybe_brilliant: boolean }[]) {
     let cur = state.root;
     let i = 0;
     const initialColor = getColorFromFen(state.root.fen);
@@ -407,7 +407,7 @@ function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: b
             }
             const curScore = analysis[i].best[0].score;
             const color = i % 2 === (initialColor === "w" ? 1 : 0) ? "w" : "b";
-            cur.annotation = getAnnotation(prevScore, curScore, color, prevMoves);
+            cur.annotation = getAnnotation(prevScore, curScore, color, prevMoves, analysis[i].maybe_brilliant, cur.move?.san ?? "");
         }
         cur = cur.children[0];
         i++;

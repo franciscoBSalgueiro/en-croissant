@@ -427,6 +427,7 @@ pub async fn get_best_moves(
 pub struct MoveAnalysis {
     best: Vec<BestMoves>,
     novelty: bool,
+    maybe_brilliant: bool,
 }
 
 #[derive(Deserialize, Debug, Default, Type)]
@@ -456,14 +457,20 @@ pub async fn analyze_game(
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
     let mut chess: Chess = fen.clone().into_position(CastlingMode::Standard)?;
-    let mut fens: Vec<Fen> = vec![fen];
+    let mut fens: Vec<(Fen, bool)> = vec![(fen, false)];
 
     moves.iter().for_each(|m| {
         let san = San::from_ascii(m.as_bytes()).unwrap();
         let m = san.to_move(&chess).unwrap();
+        let mut previous_setup = chess.clone().into_setup(EnPassantMode::Legal);
+        previous_setup.swap_turn();
         chess.play_unchecked(&m);
+        let current_setup = chess.clone().into_setup(EnPassantMode::Legal);
         if !chess.is_game_over() {
-            fens.push(Fen::from_position(chess.clone(), EnPassantMode::Legal));
+            fens.push((
+                Fen::from_position(chess.clone(), EnPassantMode::Legal),
+                count_attacked_material(&previous_setup) <= count_attacked_material(&current_setup),
+            ));
         }
     });
 
@@ -473,7 +480,7 @@ pub async fn analyze_game(
 
     let mut novelty_found = false;
 
-    for (i, fen) in fens.iter().enumerate() {
+    for (i, (fen, maybe_brilliant)) in fens.iter().enumerate() {
         app.emit_all(
             "report_progress",
             ProgressPayload {
@@ -527,9 +534,10 @@ pub async fn analyze_game(
     }
 
     for (i, analysis) in analysis.iter_mut().enumerate() {
-        let fen = &fens[i];
+        let fen = &fens[i].0;
         let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
+        analysis.maybe_brilliant = fens[i].1;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
                 analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;
@@ -550,6 +558,71 @@ pub async fn analyze_game(
         },
     )?;
     Ok(analysis)
+}
+
+fn count_attacked_material(pos: &Setup) -> i32 {
+    let mut attacked_material = 0;
+    let mut seen_attacked = Vec::new();
+    for s in Square::ALL.iter() {
+        if let Some(piece) = pos.board.piece_at(*s) {
+            if piece.color == pos.turn {
+                let squares_attacked = pos.board.attacks_from(*s);
+                for square in Square::ALL.iter() {
+                    if squares_attacked.contains(*square) && !seen_attacked.contains(square) {
+                        if let Some(attacked_piece) = pos.board.piece_at(*square) {
+                            seen_attacked.push(*square);
+                            if attacked_piece.color != pos.turn {
+                                attacked_material += match attacked_piece.role {
+                                    Role::Pawn => 1,
+                                    Role::Knight => 3,
+                                    Role::Bishop => 3,
+                                    Role::Rook => 5,
+                                    Role::Queen => 9,
+                                    Role::King => 1000,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    attacked_material
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_attacked_material() {
+        assert_eq!(count_attacked_material(&Setup::default()), 0);
+
+        let fen: Fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 1);
+
+        let fen: Fen = "r1bqkbnr/ppp1pppp/2n5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 1);
+
+        let fen: Fen = "r1bqkbnr/ppp2ppp/2n5/1B1pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 5);
+
+        let fen: Fen = "r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 4);
+
+        let fen: Fen = "r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 1003);
+    }
 }
 
 #[tauri::command]

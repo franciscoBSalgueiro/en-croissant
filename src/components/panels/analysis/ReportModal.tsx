@@ -54,7 +54,6 @@ function ReportModal({
   function analyze() {
     setInProgress(true);
     toggleReportingMode();
-    console.log(form.values);
     commands
       .analyzeGame(
         moves,
