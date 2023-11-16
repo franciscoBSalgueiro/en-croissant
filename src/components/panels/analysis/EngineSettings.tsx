@@ -18,6 +18,7 @@ import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";
 import { IconPlus, IconX } from "@tabler/icons-react";
+import HashSlider from "./HashSlider";
 
 interface EngineSettingsProps {
   engine: string;
@@ -48,9 +49,9 @@ function EngineSettings({
             Number of Lines
           </Text>
           <LinesSlider
-            value={settings.numberLines}
+            value={settings.options.multipv}
             setValue={(v) =>
-              setSettings((prev) => ({ ...prev, numberLines: v }))
+              setSettings((prev) => ({ ...prev, options: { ...prev.options, multipv: v } }))
             }
           />
           {settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
@@ -90,8 +91,16 @@ function EngineSettings({
             Number of cores
           </Text>
           <CoresSlide
-            value={settings.cores}
-            setValue={(v) => setSettings((prev) => ({ ...prev, cores: v }))}
+            value={settings.options.threads}
+            setValue={(v) => setSettings((prev) => ({ ...prev, options: { ...prev.options, threads: v } }))}
+          />
+
+          <Text size="sm" fw="bold">
+            Size of Hash
+          </Text>
+          <HashSlider
+            value={settings.options.hash}
+            setValue={(v) => setSettings((prev) => ({ ...prev, options: { ...prev.options, hash: v } }))}
           />
         </SimpleGrid>
 
@@ -186,9 +195,9 @@ function AdvancedOptions({
             <td>
               <NumberInput
                 min={1}
-                value={settings.cores}
+                value={settings.options.threads}
                 onChange={(v) =>
-                  setSettings((prev) => ({ ...prev, cores: v || 1 }))
+                  setSettings((prev) => ({ ...prev, options: { ...prev.options, threads: v || 1 } }))
                 }
               />
             </td>
@@ -198,20 +207,32 @@ function AdvancedOptions({
             <td>
               <NumberInput
                 min={1}
-                value={settings.numberLines}
+                value={settings.options.multipv}
                 onChange={(v) =>
-                  setSettings((prev) => ({ ...prev, numberLines: v || 1 }))
+                  setSettings((prev) => ({ ...prev, options: { ...prev.options, multipv: v || 1 } }))
                 }
               />
             </td>
           </tr>
-          {settings.extraOptions.map((option, i) => (
+          <tr>
+            <td>Hash Size</td>
+            <td>
+              <NumberInput
+                min={1}
+                value={settings.options.hash}
+                onChange={(v) =>
+                  setSettings((prev) => ({ ...prev, options: { ...prev.options, hash: v || 1 } }))
+                }
+              />
+            </td>
+          </tr>
+          {settings.options.extraOptions.map((option, i) => (
             <tr key={i}>
               <td>
                 <TextInput
                   value={option.name}
                   onChange={(e) => {
-                    const newOptions = settings.extraOptions;
+                    const newOptions = settings.options.extraOptions;
                     newOptions[i].name = e.currentTarget.value;
                     setSettings((prev) => ({
                       ...prev,
@@ -225,7 +246,7 @@ function AdvancedOptions({
                   <TextInput
                     value={option.value}
                     onChange={(e) => {
-                      const newOptions = settings.extraOptions;
+                      const newOptions = settings.options.extraOptions;
                       newOptions[i].value = e.currentTarget.value;
                       setSettings((prev) => ({
                         ...prev,
@@ -236,7 +257,7 @@ function AdvancedOptions({
                   {/* Remove button */}
                   <ActionIcon
                     onClick={() => {
-                      const newOptions = settings.extraOptions;
+                      const newOptions = settings.options.extraOptions;
                       newOptions.splice(i, 1);
                       setSettings((prev) => ({
                         ...prev,
@@ -259,7 +280,7 @@ function AdvancedOptions({
           variant="default"
           size="xs"
           onClick={() => {
-            const newOptions = settings.extraOptions;
+            const newOptions = settings.options.extraOptions;
             newOptions.push({ name: "", value: "" });
             setSettings((prev) => ({
               ...prev,

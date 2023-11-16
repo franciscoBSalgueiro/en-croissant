@@ -9,10 +9,10 @@ mod error;
 mod fide;
 mod fs;
 mod lexer;
+mod oauth;
 mod opening;
 mod pgn;
 mod puzzle;
-mod oauth;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -25,6 +25,7 @@ use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
 use oauth::AuthState;
+use sysinfo::SystemExt;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
@@ -116,6 +117,7 @@ fn main() {
                 stop_engine,
                 kill_engines,
                 get_engine_logs,
+                memory_size
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload));
 
@@ -213,4 +215,11 @@ fn is_bmi2_compatible() -> bool {
         return true;
     }
     false
+}
+
+#[tauri::command]
+#[specta::specta]
+fn memory_size() -> u32 {
+    let total_bytes = sysinfo::System::new_all().total_memory();
+    return (total_bytes / 1024 / 1024) as u32;
 }

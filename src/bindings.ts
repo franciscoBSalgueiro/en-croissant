@@ -51,6 +51,9 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async memorySize() : Promise<number> {
+return await TAURI_INVOKE("plugin:tauri-specta|memory_size");
 }
 }
 
@@ -66,7 +69,7 @@ export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referen
 export type BestMoves = { depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string }
 export type EngineOption = { name: string; value: string }
-export type EngineOptions = { multipv: number; threads: number; fen: string; extraOptions: EngineOption[] }
+export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
 

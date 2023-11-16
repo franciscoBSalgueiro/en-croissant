@@ -110,6 +110,9 @@ impl EngineProcess {
         if options.multipv != self.options.multipv {
             self.set_option("MultiPV", &options.multipv).await?;
         }
+        if options.hash != self.options.hash {
+            self.set_option("Hash", options.hash).await?;
+        }
 
         for option in &options.extra_options {
             if !self.options.extra_options.contains(option) {
@@ -298,6 +301,7 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
 pub struct EngineOptions {
     pub multipv: u16,
     pub threads: u16,
+    pub hash: u16,
     #[derivative(Default(value = "Fen::default().to_string()"))]
     pub fen: String,
     pub extra_options: Vec<EngineOption>,
@@ -498,6 +502,7 @@ pub async fn analyze_game(
             .set_options(EngineOptions {
                 threads: 4,
                 multipv: 1,
+                hash: 16,
                 fen: fen.to_string(),
                 extra_options: Vec::new(),
             })

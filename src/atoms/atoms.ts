@@ -1,4 +1,4 @@
-import { GoMode } from "@/bindings";
+import { EngineOptions, GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
@@ -241,9 +241,7 @@ export const deckAtomFamily = atomFamily(
 export type EngineSettings = {
     enabled: boolean;
     go: GoMode;
-    cores: number;
-    numberLines: number;
-    extraOptions: { name: string, value: string }[];
+    options: Omit<EngineOptions, "fen">;
 };
 
 export const tabEngineSettingsFamily = atomFamily(
@@ -259,9 +257,12 @@ export const tabEngineSettingsFamily = atomFamily(
                         t: "Depth",
                         c: 24,
                     },
-                    cores: 2,
-                    numberLines: 3,
-                    extraOptions: [],
+                    options: {
+                        threads: 2,
+                        multipv: 3,
+                        hash: 16,
+                        extraOptions: [],
+                    }
                 })
     },
     (a, b) => a.tab === b.tab && a.engine === b.engine

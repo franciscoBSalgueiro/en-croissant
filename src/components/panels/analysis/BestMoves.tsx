@@ -134,9 +134,10 @@ export default function BestMovesComponent({
           commands
             .getBestMoves(engine.path, activeTab!, settings.go, {
               fen: threat ? swapMove(fen) : fen,
-              multipv: settings.numberLines,
-              threads: settings.cores,
-              extraOptions: settings.extraOptions,
+              multipv: settings.options.multipv,
+              hash: settings.options.hash,
+              threads: settings.options.threads,
+              extraOptions: settings.options.extraOptions,
             })
             .then((res) => {
               unwrap(res);
@@ -149,9 +150,8 @@ export default function BestMovesComponent({
     50,
     [
       settings.enabled,
-      settings.cores,
+      settings.options,
       settings.go,
-      settings.numberLines,
       threat,
       fen,
     ]
@@ -271,7 +271,7 @@ export default function BestMovesComponent({
               </tr>}
               {!isGameOver && engineVariations.length === 0 &&
                 (settings.enabled ? (
-                  [...Array(settings.numberLines)].map((_, i) => (
+                  [...Array(settings.options.multipv)].map((_, i) => (
                     <tr key={i}>
                       <td>
                         <Skeleton height={35} radius="xl" p={5} />
