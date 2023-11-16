@@ -399,20 +399,22 @@ pub async fn get_best_moves(
             if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
                 let multipv = best_moves.multipv;
                 let cur_depth = best_moves.depth;
-                proc.best_moves.push(best_moves);
-                if multipv == proc.real_multipv {
-                    if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                        && cur_depth >= proc.last_depth
-                    {
-                        BestMovesPayload {
-                            best_lines: proc.best_moves.clone(),
-                            engine: engine.clone(),
-                            tab: tab.clone(),
+                if multipv as usize == proc.best_moves.len() + 1 {
+                    proc.best_moves.push(best_moves);
+                    if multipv == proc.real_multipv {
+                        if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                            && cur_depth >= proc.last_depth
+                        {
+                            BestMovesPayload {
+                                best_lines: proc.best_moves.clone(),
+                                engine: engine.clone(),
+                                tab: tab.clone(),
+                            }
+                            .emit_all(&app)?;
+                            proc.last_depth = cur_depth;
                         }
-                        .emit_all(&app)?;
-                        proc.last_depth = cur_depth;
+                        proc.best_moves.clear();
                     }
-                    proc.best_moves.clear();
                 }
             }
         }
@@ -507,15 +509,18 @@ pub async fn analyze_game(
                     if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
                         let multipv = best_moves.multipv;
                         let cur_depth = best_moves.depth;
-                        proc.best_moves.push(best_moves);
-                        if multipv == proc.real_multipv {
-                            if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                                && cur_depth >= proc.last_depth
-                            {
-                                current_analysis.best = proc.best_moves.clone();
-                                proc.last_depth = cur_depth;
+                        if multipv as usize == proc.best_moves.len() + 1 {
+                            proc.best_moves.push(best_moves);
+                            if multipv == proc.real_multipv {
+                                if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                    && cur_depth >= proc.last_depth
+                                {
+                                    current_analysis.best = proc.best_moves.clone();
+                                    proc.last_depth = cur_depth;
+                                }
+                                assert_eq!(proc.best_moves.len(), proc.real_multipv as usize);
+                                proc.best_moves.clear();
                             }
-                            proc.best_moves.clear();
                         }
                     }
                 }
@@ -525,6 +530,7 @@ pub async fn analyze_game(
                 _ => {}
             }
         }
+        println!("Analysis: {:?}", current_analysis);
         analysis.push(current_analysis);
     }
 
