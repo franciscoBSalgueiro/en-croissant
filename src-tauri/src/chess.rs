@@ -466,7 +466,7 @@ pub async fn analyze_game(
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
-    let (mut proc, mut reader) = EngineProcess::new(path).await?;
+    let (mut process, mut reader) = EngineProcess::new(path).await?;
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
