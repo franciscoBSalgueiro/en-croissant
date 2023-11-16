@@ -46,7 +46,7 @@ pub struct EngineProcess {
 }
 
 impl EngineProcess {
-    fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
+    async fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
         let mut command = Command::new(&path);
         command.current_dir(path.parent().unwrap());
         command
@@ -59,16 +59,30 @@ impl EngineProcess {
 
         let mut child = command.spawn()?;
 
+        let mut logs = Vec::new();
+
+        let mut stdin = child.stdin.take().ok_or(Error::NoStdin)?;
+        let mut lines = BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines();
+
+        stdin.write_all("uci\n".as_bytes()).await;
+        logs.push(EngineLog::Gui("uci\n".to_string()));
+        while let Some(line) = lines.next_line().await? {
+            logs.push(EngineLog::Engine(line.clone()));
+            if line == "uciok" {
+                break;
+            }
+        }
+
         Ok((
             Self {
-                stdin: child.stdin.take().ok_or(Error::NoStdin)?,
+                stdin,
                 last_depth: 0,
                 best_moves: Vec::new(),
-                logs: Vec::new(),
+                logs,
                 options: EngineOptions::default(),
                 real_multipv: 0,
             },
-            BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines(),
+            lines,
         ))
     }
 
@@ -387,7 +401,7 @@ pub async fn get_best_moves(
         return Ok(());
     }
 
-    let (mut process, mut reader) = EngineProcess::new(path)?;
+    let (mut process, mut reader) = EngineProcess::new(path).await?;
     process.set_options(options.clone()).await?;
     process.go(&go_mode).await?;
 
@@ -452,7 +466,8 @@ pub async fn analyze_game(
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
-    let (mut process, mut reader) = EngineProcess::new(path)?;
+    let (mut process, mut reader) = EngineProcess::new(path).await?;
+
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
     let mut chess: Chess = fen.into_position(CastlingMode::Standard)?;
