@@ -49,15 +49,30 @@ export async function createTab({
         sessionStorage.setItem(id, JSON.stringify(tree));
     }
 
-    setTabs((prev) => [
-        ...prev,
-        {
-            ...tab,
-            value: id,
-            file: fileInfo,
-            gameNumber,
-        },
-    ]);
+    setTabs((prev) => {
+        if (
+            prev.length === 0 ||
+            (prev.length === 1 && prev[0].type === "new")
+        ) {
+            return [
+                {
+                    ...tab,
+                    value: id,
+                    file: fileInfo,
+                    gameNumber,
+                },
+            ];
+        }
+        return [
+            ...prev,
+            {
+                ...tab,
+                value: id,
+                file: fileInfo,
+                gameNumber,
+            },
+        ];
+    });
     setActiveTab(id);
     return id;
 }
