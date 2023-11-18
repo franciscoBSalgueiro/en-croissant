@@ -37,6 +37,7 @@ import { commands } from "./bindings";
 import { count_pgn_games, read_games } from "./utils/db";
 import { parsePGN } from "./utils/chess";
 import { getGameName } from "./utils/treeReducer";
+import TopBar from "./components/TopBar";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -45,6 +46,7 @@ const router = createBrowserRouter(
       element={
         <AppShell
           navbar={<SideBar />}
+          header={<TopBar />}
           styles={(theme) => ({
             main: {
               userSelect: "none",

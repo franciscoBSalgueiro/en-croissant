@@ -94,7 +94,7 @@ function FilesPage() {
           metadata={selected}
         />
       )}
-      <Group align="baseline" ml="lg" my="xl">
+      <Group align="baseline" pl="lg" py="xl">
         <Title>Files</Title>
         <OpenFolderButton base="Document" folder="EnCroissant" />
       </Group>

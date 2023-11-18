@@ -10,6 +10,8 @@ interface ContentEditableProps {
   onKeyPress?: (event: React.KeyboardEvent<HTMLDivElement>) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void;
   html: string;
+  className?: string;
+  innerRef?: React.RefObject<HTMLDivElement>;
   disabled?: boolean;
 }
 
@@ -46,6 +48,9 @@ export const ContentEditable: React.FC<ContentEditableProps> = ({
   return (
     <ReactContentEditable
       {...props}
+      innerRef={props.innerRef}
+      onFocus={() => document.execCommand("selectAll", false, undefined)}
+      className={props.className}
       onChange={
         onChange
           ? (...args) => {

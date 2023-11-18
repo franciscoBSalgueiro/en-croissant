@@ -80,7 +80,7 @@ export default function Page() {
   const version = useLoaderData() as string;
 
   return (
-    <Tabs defaultValue="board" variant="outline">
+    <Tabs defaultValue="board">
       <Tabs.List>
         <Tabs.Tab value="board" icon={<IconChess size="1rem" />}>
           Board
@@ -95,9 +95,9 @@ export default function Page() {
           Appearance
         </Tabs.Tab>
       </Tabs.List>
-      <Stack my="md" mx="md">
-        <Tabs.Panel value="board" pt="xs">
-          <Card withBorder radius="md" p="xl" className={classes.card}>
+      <Stack>
+        <Card withBorder radius={0} p="xl" className={classes.card}>
+          <Tabs.Panel value="board" pt="xs">
             <Text size="lg" weight={500} className={classes.title}>
               Board
             </Text>
@@ -189,11 +189,9 @@ export default function Page() {
               </div>
               <SettingsSwitch atom={autoSaveAtom} />
             </Group>
-          </Card>
-        </Tabs.Panel>
+          </Tabs.Panel>
 
-        <Tabs.Panel value="report" pt="xs">
-          <Card withBorder radius="md" p="xl" className={classes.card}>
+          <Tabs.Panel value="report" pt="xs">
             <Text size="lg" weight={500} className={classes.title}>
               Opening Report
             </Text>
@@ -235,11 +233,9 @@ export default function Page() {
               </div>
               <SettingsNumberInput atom={minimumGamesAtom} min={0} step={1} />
             </Group>
-          </Card>
-        </Tabs.Panel>
+          </Tabs.Panel>
 
-        <Tabs.Panel value="anarchy" pt="xs">
-          <Card withBorder radius="md" p="xl" className={classes.card}>
+          <Tabs.Panel value="anarchy" pt="xs">
             <Text size="lg" weight={500} className={classes.title}>
               Anarchy
             </Text>
@@ -260,11 +256,9 @@ export default function Page() {
               </div>
               <SettingsSwitch atom={forcedEnPassantAtom} />
             </Group>
-          </Card>
-        </Tabs.Panel>
+          </Tabs.Panel>
 
-        <Tabs.Panel value="appearance" pt="xs">
-          <Card withBorder radius="md" p="xl" className={classes.card}>
+          <Tabs.Panel value="appearance" pt="xs">
             <Text size="lg" weight={500} className={classes.title}>
               Appearance
             </Text>
@@ -319,8 +313,8 @@ export default function Page() {
                 <ColorControl />
               </div>
             </Group>
-          </Card>
-        </Tabs.Panel>
+          </Tabs.Panel>
+        </Card>
         <Text size="xs" color="dimmed" align="right">
           En Croissant v{version}
         </Text>

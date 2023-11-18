@@ -104,7 +104,7 @@ export default function DatabasesPage() {
         setDatabases={setDatabases}
       />
 
-      <Group align="baseline" m="lg" mt="xl">
+      <Group align="baseline" pl="lg" py="xl">
         <Title>Your Databases</Title>
         <OpenFolderButton base="AppDir" folder="db" />
       </Group>

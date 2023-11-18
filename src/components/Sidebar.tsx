@@ -35,7 +35,7 @@ const useStyles = createStyles((theme) => ({
   active: {
     "&, &:hover": {
       borderLeftColor: theme.colors[theme.primaryColor],
-      color: theme.white,
+      color: theme.colorScheme === "dark" ? theme.white : theme.colors.dark[5],
     },
   },
 }));

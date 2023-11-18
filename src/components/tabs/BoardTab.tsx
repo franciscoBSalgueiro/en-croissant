@@ -28,17 +28,8 @@ const useStyles = createStyles(
     },
 
     input: {
-      all: "unset",
-      cursor: renaming ? "text" : "pointer",
-      textDecoration: renaming ? "underline" : "none",
-
-      "::selection": {
-        backgroundColor: renaming
-          ? theme.colorScheme === "dark"
-            ? theme.colors.blue[6]
-            : theme.colors.blue[4]
-          : "transparent",
-      },
+      minWidth: 100,
+      outline: "none",
     },
   })
 );
@@ -81,51 +72,49 @@ export function BoardTab({
   return (
     <Menu opened={open} shadow="md" width={200} closeOnClickOutside>
       <Menu.Target>
-        <Tooltip label={tab.name} key={tab.value}>
-          <Tabs.Tab
-            className={classes.tab}
-            value={tab.value}
-            rightSection={
-              <ActionIcon
-                component="div"
-                onClick={(e) => {
-                  closeTab(tab.value);
-                  e.stopPropagation();
-                }}
-                size={14}
-              >
-                <IconX />
-              </ActionIcon>
-            }
-            onPointerDown={(e) => {
-              if (e.button == 0) {
-                setActiveTab(tab.value);
-              }
-            }}
-            onDoubleClick={() => toggleRenaming(true)}
-            onAuxClick={(e) => {
-              // middle button click
-              if (e.button == 1) {
+        <Tabs.Tab
+          className={classes.tab}
+          value={tab.value}
+          rightSection={
+            <ActionIcon
+              component="div"
+              onClick={(e) => {
                 closeTab(tab.value);
-              }
+                e.stopPropagation();
+              }}
+              size={14}
+            >
+              <IconX />
+            </ActionIcon>
+          }
+          onPointerDown={(e) => {
+            if (e.button == 0) {
+              setActiveTab(tab.value);
+            }
+          }}
+          onDoubleClick={() => toggleRenaming(true)}
+          onAuxClick={(e) => {
+            // middle button click
+            if (e.button == 1) {
+              closeTab(tab.value);
+            }
+          }}
+          onContextMenu={(e) => {
+            toggleOpen();
+            e.preventDefault();
+          }}
+        >
+          <ContentEditable
+            innerRef={ref}
+            disabled={!renaming}
+            html={tab.name}
+            className={classes.input}
+            onChange={(e) => renameTab(tab.value, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") toggleRenaming(false);
             }}
-            onContextMenu={(e) => {
-              toggleOpen();
-              e.preventDefault();
-            }}
-          >
-            <div ref={ref}>
-              <ContentEditable
-                disabled={!renaming}
-                html={tab.name}
-                onChange={(e) => renameTab(tab.value, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") toggleRenaming(false);
-                }}
-              />
-            </div>
-          </Tabs.Tab>
-        </Tooltip>
+          />
+        </Tabs.Tab>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item

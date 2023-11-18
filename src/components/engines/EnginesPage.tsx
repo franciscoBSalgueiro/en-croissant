@@ -28,7 +28,7 @@ export default function EnginePage() {
   return (
     <>
       <AddEngine opened={opened} setOpened={setOpened} />
-      <Group align="baseline" ml="lg" mt="xl">
+      <Group align="baseline" pl="lg" py="xl">
         <Title>Your Engines</Title>
         <OpenFolderButton base="AppDir" folder="engines" />
       </Group>

@@ -15,7 +15,9 @@
       "protocol": {
         "all": false,
         "asset": true,
-        "assetScope": ["**"]
+        "assetScope": [
+          "**"
+        ]
       },
       "fs": {
         "all": true,
@@ -32,6 +34,18 @@
           "https://lichess.org/**",
           "https://explorer.lichess.ovh/**"
         ]
+      },
+      "window": {
+        "all": false,
+        "close": true,
+        "hide": true,
+        "show": true,
+        "maximize": true,
+        "minimize": true,
+        "unmaximize": true,
+        "unminimize": true,
+        "startDragging": true,
+        "setFullscreen": true
       }
     },
     "bundle": {
@@ -82,7 +96,8 @@
       {
         "title": "En Croissant",
         "maximized": true,
-        "visible": false
+        "visible": false,
+        "decorations": false
       }
     ],
     "cli": {
