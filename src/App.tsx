@@ -47,7 +47,6 @@ const router = createBrowserRouter(
           navbar={<SideBar />}
           styles={(theme) => ({
             main: {
-              paddingRight: 10,
               userSelect: "none",
               backgroundColor:
                 theme.colorScheme === "dark"

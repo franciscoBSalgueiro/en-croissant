@@ -1,14 +1,9 @@
-import {
-  ActionIcon,
-  createStyles,
-  Menu,
-  Tabs,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, createStyles, Menu, Tabs, Tooltip } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
 import type { Tab } from "@/utils/tabs";
+import { ContentEditable } from "./ContentEditable";
 
 const useStyles = createStyles(
   (
@@ -92,6 +87,7 @@ export function BoardTab({
             value={tab.value}
             rightSection={
               <ActionIcon
+                component="div"
                 onClick={(e) => {
                   closeTab(tab.value);
                   e.stopPropagation();
@@ -118,18 +114,16 @@ export function BoardTab({
               e.preventDefault();
             }}
           >
-            <input
-              ref={ref}
-              value={tab.name}
-              onChange={(event) =>
-                renameTab(tab.value, event.currentTarget.value)
-              }
-              readOnly={!renaming}
-              className={classes.input}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") toggleRenaming(false);
-              }}
-            />
+            <div ref={ref}>
+              <ContentEditable
+                disabled={!renaming}
+                html={tab.name}
+                onChange={(e) => renameTab(tab.value, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") toggleRenaming(false);
+                }}
+              />
+            </div>
           </Tabs.Tab>
         </Tooltip>
       </Menu.Target>

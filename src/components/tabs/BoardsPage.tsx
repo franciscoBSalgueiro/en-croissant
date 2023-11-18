@@ -189,7 +189,6 @@ export default function BoardsPage() {
         value={activeTab}
         onTabChange={(v) => setActiveTab(v)}
         variant="outline"
-        my="md"
         keepMounted={false}
       >
         <Stack>

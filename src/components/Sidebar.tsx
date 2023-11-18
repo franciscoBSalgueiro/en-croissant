@@ -14,9 +14,10 @@ const useStyles = createStyles((theme) => ({
   link: {
     width: 50,
     height: 50,
-    borderRadius: theme.radius.md,
     display: "flex",
     alignItems: "center",
+    borderLeft: "3px solid transparent",
+    borderRight: "3px solid transparent",
     justifyContent: "center",
     color:
       theme.colorScheme === "dark"
@@ -24,23 +25,17 @@ const useStyles = createStyles((theme) => ({
         : theme.colors.gray[7],
 
     "&:hover": {
-      backgroundColor:
+      color:
         theme.colorScheme === "dark"
-          ? theme.colors.dark[5]
-          : theme.colors.gray[0],
+          ? theme.colors.gray[0]
+          : theme.colors.dark[5],
     },
   },
 
   active: {
     "&, &:hover": {
-      backgroundColor: theme.fn.variant({
-        variant: "light",
-        color: theme.primaryColor,
-      }).background,
-      color: theme.fn.variant({
-        variant: "light",
-        color: theme.primaryColor,
-      }).color,
+      borderLeftColor: theme.colors[theme.primaryColor],
+      color: theme.white,
     },
   },
 }));
@@ -88,8 +83,8 @@ export function SideBar() {
   ));
 
   return (
-    <Navbar width={{ base: 80 }} p="md">
-      <Navbar.Section grow mt={100}>
+    <Navbar width={{ base: 50 }}>
+      <Navbar.Section grow>
         <Stack justify="center" spacing={0}>
           {links}
         </Stack>
