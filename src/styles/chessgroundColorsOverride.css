@@ -3,6 +3,7 @@
 cg-board {
   background-image: url("/board.svg");
   border-radius: 10px;
+  overflow: hidden;
 }
 
 /** Interactive board square colors */
