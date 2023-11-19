@@ -22,6 +22,7 @@ const useStyles = createStyles(
   ) => ({
     cell: {
       all: "unset",
+      fontSize: "0.9rem",
       fontWeight: 600,
       display: "inline-block",
       padding: 6,
