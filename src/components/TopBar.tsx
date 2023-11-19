@@ -11,8 +11,9 @@ import {
   createStyles,
   Text,
 } from "@mantine/core";
-import { open } from "@tauri-apps/api/dialog";
+import { ask, message, open } from "@tauri-apps/api/dialog";
 import { appWindow } from "@tauri-apps/api/window";
+import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { useAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import AboutModal from "./About";
@@ -117,6 +118,20 @@ function TopBar() {
     });
   }
 
+  async function checkForUpdates() {
+    const res = await checkUpdate();
+    if (res.shouldUpdate) {
+      const yes = await ask("Do you want to install them now?", {
+        title: "New version available",
+      });
+      if (yes) {
+        await installUpdate();
+      }
+    } else {
+      await message("No updates available");
+    }
+  }
+
   const menuActions: MenuGroup[] = [
     {
       label: "File",
@@ -150,6 +165,10 @@ function TopBar() {
     {
       label: "Help",
       options: [
+        {
+          label: "Check for updates",
+          action: checkForUpdates,
+        },
         {
           label: "About",
           action: () => setOpened(true),
