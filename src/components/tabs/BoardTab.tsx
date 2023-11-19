@@ -1,14 +1,9 @@
-import {
-  ActionIcon,
-  createStyles,
-  Menu,
-  Tabs,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, createStyles, Menu, Tabs, Tooltip } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
 import type { Tab } from "@/utils/tabs";
+import { ContentEditable } from "./ContentEditable";
 
 const useStyles = createStyles(
   (
@@ -33,17 +28,8 @@ const useStyles = createStyles(
     },
 
     input: {
-      all: "unset",
-      cursor: renaming ? "text" : "pointer",
-      textDecoration: renaming ? "underline" : "none",
-
-      "::selection": {
-        backgroundColor: renaming
-          ? theme.colorScheme === "dark"
-            ? theme.colors.blue[6]
-            : theme.colors.blue[4]
-          : "transparent",
-      },
+      minWidth: 100,
+      outline: "none",
     },
   })
 );
@@ -86,69 +72,66 @@ export function BoardTab({
   return (
     <Menu opened={open} shadow="md" width={200} closeOnClickOutside>
       <Menu.Target>
-        <Tooltip label={tab.name} key={tab.value}>
-          <Tabs.Tab
-            className={classes.tab}
-            value={tab.value}
-            rightSection={
-              <ActionIcon
-                onClick={(e) => {
-                  closeTab(tab.value);
-                  e.stopPropagation();
-                }}
-                size={14}
-              >
-                <IconX />
-              </ActionIcon>
-            }
-            onPointerDown={(e) => {
-              if (e.button == 0) {
-                setActiveTab(tab.value);
-              }
-            }}
-            onDoubleClick={() => toggleRenaming(true)}
-            onAuxClick={(e) => {
-              // middle button click
-              if (e.button == 1) {
+        <Tabs.Tab
+          className={classes.tab}
+          value={tab.value}
+          rightSection={
+            <ActionIcon
+              component="div"
+              onClick={(e) => {
                 closeTab(tab.value);
-              }
-            }}
-            onContextMenu={(e) => {
-              toggleOpen();
-              e.preventDefault();
-            }}
-          >
-            <input
-              ref={ref}
-              value={tab.name}
-              onChange={(event) =>
-                renameTab(tab.value, event.currentTarget.value)
-              }
-              readOnly={!renaming}
-              className={classes.input}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") toggleRenaming(false);
+                e.stopPropagation();
               }}
-            />
-          </Tabs.Tab>
-        </Tooltip>
+              size="0.875rem"
+            >
+              <IconX />
+            </ActionIcon>
+          }
+          onPointerDown={(e) => {
+            if (e.button == 0) {
+              setActiveTab(tab.value);
+            }
+          }}
+          onDoubleClick={() => toggleRenaming(true)}
+          onAuxClick={(e) => {
+            // middle button click
+            if (e.button == 1) {
+              closeTab(tab.value);
+            }
+          }}
+          onContextMenu={(e) => {
+            toggleOpen();
+            e.preventDefault();
+          }}
+        >
+          <ContentEditable
+            innerRef={ref}
+            disabled={!renaming}
+            html={tab.name}
+            className={classes.input}
+            onChange={(e) => renameTab(tab.value, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") toggleRenaming(false);
+            }}
+          />
+        </Tabs.Tab>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item
-          icon={<IconCopy size={14} />}
+          icon={<IconCopy size="0.875rem" />}
           onClick={() => duplicateTab(tab.value)}
         >
           Duplicate Tab
         </Menu.Item>
         <Menu.Item
-          icon={<IconEdit size={14} />}
+          icon={<IconEdit size="0.875rem" />}
           onClick={() => toggleRenaming(true)}
         >
           Rename Tab
         </Menu.Item>
         <Menu.Item
           color="red"
-          icon={<IconX size={14} />}
+          icon={<IconX size="0.875rem" />}
           onClick={() => closeTab(tab.value)}
         >
           Close Tab

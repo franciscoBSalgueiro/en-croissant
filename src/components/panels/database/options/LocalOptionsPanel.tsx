@@ -103,7 +103,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
         </Stack>
 
         <PiecesGrid
-          size={60}
+          size="3.75rem"
           boardRef={boardRef}
           fen={options.fen}
           vertical

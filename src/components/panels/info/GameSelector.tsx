@@ -169,9 +169,9 @@ function GameRow({
           <Group>
             <ActionIcon
               onClick={() => toggleDelete()}
-              variant={"outline"}
+              variant="outline"
               color="red"
-              size={18}
+              size="1rem"
             >
               <IconX />
             </ActionIcon>

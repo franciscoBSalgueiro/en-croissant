@@ -146,15 +146,6 @@ export default function BoardsPage() {
   );
 
   useHotkeys([
-    [
-      "ctrl+T",
-      () =>
-        createTab({
-          tab: { name: "New Tab", type: "new" },
-          setTabs,
-          setActiveTab,
-        }),
-    ],
     ["ctrl+W", () => closeTab(activeTab)],
     ["ctrl+tab", () => cycleTabs()],
     ["ctrl+shift+tab", () => cycleTabs(true)],
@@ -189,7 +180,6 @@ export default function BoardsPage() {
         value={activeTab}
         onTabChange={(v) => setActiveTab(v)}
         variant="outline"
-        my="md"
         keepMounted={false}
       >
         <Stack>
@@ -228,7 +218,7 @@ export default function BoardsPage() {
                 onClick={() =>
                   createTab({
                     tab: {
-                      name: "New tab",
+                      name: "New Tab",
                       type: "new",
                     },
                     setTabs,
@@ -237,7 +227,7 @@ export default function BoardsPage() {
                 }
                 className={classes.newTab}
               >
-                <IconPlus size={16} />
+                <IconPlus size="1rem" />
               </ActionIcon>
             </Reorder.Group>
           </ScrollArea>

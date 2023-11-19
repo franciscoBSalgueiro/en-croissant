@@ -55,7 +55,7 @@ function CompleteMoveCell({
         sx={{
           display: "inline-block",
           marginLeft: hasNumber ? 6 : 0,
-          fontSize: 14,
+          fontSize: "80%"
         }}
       >
         {hasNumber && <>{`${moveNumber.toString()}${isWhite ? "." : "..."}`}</>}
@@ -85,7 +85,7 @@ function CompleteMoveCell({
               <Menu.Dropdown>
                 {currentTab?.file?.metadata.type === "repertoire" && (
                   <Menu.Item
-                    icon={<IconFlag size={14} />}
+                    icon={<IconFlag size="0.875rem" />}
                     onClick={() => {
                       dispatch({
                         type: "SET_START",
@@ -98,7 +98,7 @@ function CompleteMoveCell({
                 )}
 
                 <Menu.Item
-                  icon={<IconChevronUp size={14} />}
+                  icon={<IconChevronUp size="0.875rem" />}
                   onClick={() =>
                     dispatch({ type: "PROMOTE_VARIATION", payload: movePath })
                   }
@@ -108,7 +108,7 @@ function CompleteMoveCell({
 
                 <Menu.Item
                   color="red"
-                  icon={<IconX size={14} />}
+                  icon={<IconX size="0.875rem" />}
                   onClick={() =>
                     dispatch({ type: "DELETE_MOVE", payload: movePath })
                   }

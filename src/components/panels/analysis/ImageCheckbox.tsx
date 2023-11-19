@@ -74,11 +74,11 @@ export default function ImageCheckbox({
       onClick={() => handleChange(!value)}
       className={cx(classes.button, className)}
     >
-      <Center h={40}>
+      <Center h="2.5rem">
         {image ? (
-          <Image src={image} alt={title} width={40} />
+          <Image src={image} alt={title} width="2.5rem" />
         ) : (
-          <IconRobot size={30} />
+          <IconRobot size="2rem" />
         )}
       </Center>
 

@@ -95,7 +95,7 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
             <TextInput
               sx={{ flexGrow: 1 }}
               placeholder="Search tournament..."
-              icon={<IconSearch size={16} />}
+              icon={<IconSearch size="1rem" />}
               value={name}
               onChange={(v) => setName(v.currentTarget.value)}
             />

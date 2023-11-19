@@ -199,11 +199,11 @@ function EngineCard({
             {engine.name} {engine.version}
           </Text>
           <Group noWrap spacing="xs">
-            <IconTrophy size={16} />
+            <IconTrophy size="1rem" />
             <Text size="xs">{`${engine.elo} ELO`}</Text>
           </Group>
           <Group noWrap spacing="xs" mb="xs">
-            <IconDatabase size={16} />
+            <IconDatabase size="1rem" />
             <Text size="xs">{formatBytes(engine.downloadSize)}</Text>
           </Group>
           <ProgressButton

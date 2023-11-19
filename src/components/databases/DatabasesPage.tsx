@@ -104,7 +104,7 @@ export default function DatabasesPage() {
         setDatabases={setDatabases}
       />
 
-      <Group align="baseline" m="lg" mt="xl">
+      <Group align="baseline" pl="lg" py="xl">
         <Title>Your Databases</Title>
         <OpenFolderButton base="AppDir" folder="db" />
       </Group>
@@ -126,7 +126,7 @@ export default function DatabasesPage() {
             Header={
               <Group noWrap position="apart">
                 <Group noWrap>
-                  <IconDatabase size={24} />
+                  <IconDatabase size="1.5rem" />
                   <div>
                     <Text weight={500}>{item.error ?? item.title}</Text>
                     <Text size="xs" color="dimmed">
@@ -134,7 +134,7 @@ export default function DatabasesPage() {
                     </Text>
                   </div>
                 </Group>
-                {referenceDatabase === item.file && <IconStar size={16} />}
+                {referenceDatabase === item.file && <IconStar size="1rem" />}
               </Group>
             }
             stats={[

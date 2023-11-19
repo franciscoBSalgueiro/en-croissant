@@ -39,7 +39,7 @@ function FileInfo({
                 })
               }
             >
-              <IconReload size={16} />
+              <IconReload size="1rem" />
             </ActionIcon>
           </Tooltip>
         </Group>

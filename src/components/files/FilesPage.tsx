@@ -94,7 +94,7 @@ function FilesPage() {
           metadata={selected}
         />
       )}
-      <Group align="baseline" ml="lg" my="xl">
+      <Group align="baseline" pl="lg" py="xl">
         <Title>Files</Title>
         <OpenFolderButton base="Document" folder="EnCroissant" />
       </Group>
@@ -104,14 +104,14 @@ function FilesPage() {
           <Group>
             <Input
               sx={{ flexGrow: 1 }}
-              icon={<IconSearch size={16} />}
+              icon={<IconSearch size="1rem" />}
               placeholder="Search for files"
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
             />
             <Button
               size="xs"
-              leftIcon={<IconPlus size={16} />}
+              leftIcon={<IconPlus size="1rem" />}
               onClick={() => toggleCreateModal()}
             >
               Create
@@ -120,7 +120,7 @@ function FilesPage() {
               size="xs"
               color="red"
               disabled={!selected}
-              leftIcon={<IconX size={16} />}
+              leftIcon={<IconX size="1rem" />}
               onClick={() => toggleDeleteModal()}
             >
               Delete

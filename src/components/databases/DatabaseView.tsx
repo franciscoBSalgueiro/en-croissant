@@ -23,7 +23,7 @@ function DatabaseView() {
             <Button
               mt="md"
               compact
-              leftIcon={<IconArrowBackUp size={16} />}
+              leftIcon={<IconArrowBackUp size="1rem" />}
               variant="outline"
             >
               Back
@@ -32,13 +32,13 @@ function DatabaseView() {
           <Title mt="sm">{database.title}</Title>
           <Tabs defaultValue="games" mt="md">
             <Tabs.List>
-              <Tabs.Tab icon={<IconChess size={16} />} value="games">
+              <Tabs.Tab icon={<IconChess size="1rem" />} value="games">
                 Games
               </Tabs.Tab>
-              <Tabs.Tab icon={<IconUser size={16} />} value="players">
+              <Tabs.Tab icon={<IconUser size="1rem" />} value="players">
                 Players
               </Tabs.Tab>
-              <Tabs.Tab icon={<IconTrophy size={16} />} value="tournaments">
+              <Tabs.Tab icon={<IconTrophy size="1rem" />} value="tournaments">
                 Tournaments
               </Tabs.Tab>
             </Tabs.List>

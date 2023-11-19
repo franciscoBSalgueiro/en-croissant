@@ -134,9 +134,10 @@ export default function BestMovesComponent({
           commands
             .getBestMoves(engine.path, activeTab!, settings.go, {
               fen: threat ? swapMove(fen) : fen,
-              multipv: settings.numberLines,
-              threads: settings.cores,
-              extraOptions: settings.extraOptions,
+              multipv: settings.options.multipv,
+              hash: settings.options.hash,
+              threads: settings.options.threads,
+              extraOptions: settings.options.extraOptions,
             })
             .then((res) => {
               unwrap(res);
@@ -149,9 +150,8 @@ export default function BestMovesComponent({
     50,
     [
       settings.enabled,
-      settings.cores,
+      settings.options,
       settings.go,
-      settings.numberLines,
       threat,
       fen,
     ]
@@ -172,9 +172,9 @@ export default function BestMovesComponent({
               ml={12}
             >
               {settings.enabled ? (
-                <IconPlayerPause size={16} />
+                <IconPlayerPause size="1rem" />
               ) : (
-                <IconPlayerPlay size={16} />
+                <IconPlayerPlay size="1rem" />
               )}
             </ActionIcon>
           </Stack>
@@ -237,14 +237,15 @@ export default function BestMovesComponent({
               disabled={!settings.enabled}
               variant="transparent"
             >
-              <IconTargetArrow color={threat ? "red" : undefined} size={16} />
+              <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
             </ActionIcon>
           </Tooltip>
           <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
-            <IconSettings size={16} />
+            <IconSettings size="1rem" />
           </ActionIcon>
         </Box>
         <EngineSettings
+          engine={engine.name}
           settingsOn={settingsOn}
           settings={settings}
           setSettings={setSettings}
@@ -270,7 +271,7 @@ export default function BestMovesComponent({
               </tr>}
               {!isGameOver && engineVariations.length === 0 &&
                 (settings.enabled ? (
-                  [...Array(settings.numberLines)].map((_, i) => (
+                  [...Array(settings.options.multipv)].map((_, i) => (
                     <tr key={i}>
                       <td>
                         <Skeleton height={35} radius="xl" p={5} />

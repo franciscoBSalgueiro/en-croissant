@@ -27,7 +27,7 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { DEFAULT_POSITION } from "chess.js";
-import { memo, useContext, useEffect, useRef } from "react";
+import { memo, useContext, useEffect, useRef, useState } from "react";
 import { isPrefix } from "@/utils/misc";
 import { getNodeAtPath, TreeNode } from "@/utils/treeReducer";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -185,32 +185,32 @@ const NotationHeader = memo(function NotationHeader({
           {setNotationExpanded && (
             <ActionIcon onClick={() => setNotationExpanded((v) => !v)}>
               {notationExpanded ? (
-                <IconArrowsDiagonalMinimize2 size={15} />
+                <IconArrowsDiagonalMinimize2 size="1rem" />
               ) : (
-                <IconArrowsDiagonal size={15} />
+                <IconArrowsDiagonal size="1rem" />
               )}
             </ActionIcon>
           )}
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
-              {invisible ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+              {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
             </ActionIcon>
           </Tooltip>
           <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
             <ActionIcon onClick={() => toggleComments()}>
               {showComments ? (
-                <IconArticle size={15} />
+                <IconArticle size="1rem" />
               ) : (
-                <IconArticleOff size={15} />
+                <IconArticleOff size="1rem" />
               )}
             </ActionIcon>
           </Tooltip>
           <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
             <ActionIcon onClick={() => toggleVariations()}>
               {showVariations ? (
-                <IconArrowsSplit size={15} />
+                <IconArrowsSplit size="1rem" />
               ) : (
-                <IconArrowRight size={15} />
+                <IconArrowRight size="1rem" />
               )}
             </ActionIcon>
           </Tooltip>
@@ -335,7 +335,7 @@ const RenderVariationTree = memo(
 );
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
-  const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
+  const [expanded, setExpanded] = useState(true);
   if (moveNodes.length >= 1)
     return (
       <>
@@ -346,10 +346,10 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
             marginLeft: 12,
           }}
         >
-          <ActionIcon size="xs" onClick={() => setInvisible((v) => !v)}>
-            {invisible ? <IconPlus size={8} /> : <IconMinus size={8} />}
+          <ActionIcon size="xs" onClick={() => setExpanded((v) => !v)}>
+            {!expanded ? <IconPlus size="0.5rem" /> : <IconMinus size="0.5rem" />}
           </ActionIcon>
-          {!invisible &&
+          {expanded &&
             moveNodes.map((node, i) => (
               <Box
                 key={i}

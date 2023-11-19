@@ -17,7 +17,7 @@ import DatabaseView from "@/components/databases/DatabaseView";
 import HomePage from "@/components/home/HomePage";
 import { getVersion } from "@tauri-apps/api/app";
 import { attachConsole } from "tauri-plugin-log-api";
-import { getMatches } from '@tauri-apps/api/cli'
+import { getMatches } from "@tauri-apps/api/cli";
 
 import {
   Outlet,
@@ -29,14 +29,19 @@ import {
 import { useEffect } from "react";
 import DatabasesPage from "./components/databases/DatabasesPage";
 import { useAtom, useAtomValue } from "jotai";
-import { currentTabAtom, pieceSetAtom, primaryColorAtom } from "./atoms/atoms";
+import {
+  activeTabAtom,
+  fontSizeAtom,
+  pieceSetAtom,
+  primaryColorAtom,
+  tabsAtom,
+} from "./atoms/atoms";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
 import { commands } from "./bindings";
-import { count_pgn_games, read_games } from "./utils/db";
-import { parsePGN } from "./utils/chess";
-import { getGameName } from "./utils/treeReducer";
+import TopBar from "./components/TopBar";
+import { openFile } from "./utils/files";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -45,9 +50,9 @@ const router = createBrowserRouter(
       element={
         <AppShell
           navbar={<SideBar />}
+          header={<TopBar />}
           styles={(theme) => ({
             main: {
-              paddingRight: 10,
               userSelect: "none",
               backgroundColor:
                 theme.colorScheme === "dark"
@@ -86,7 +91,8 @@ export default function App() {
   const toggleColorScheme = (value?: ColorScheme) =>
     setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
   const pieceSet = useAtomValue(pieceSetAtom);
-  const [, setCurrentTab] = useAtom(currentTabAtom);
+  const [, setTabs] = useAtom(tabsAtom);
+  const [, setActiveTab] = useAtom(activeTabAtom);
 
   useEffect(() => {
     (async () => {
@@ -97,31 +103,8 @@ export default function App() {
       if (matches.args["file"].occurrences > 0) {
         if (typeof matches.args["file"].value !== "string") return;
         const file = matches.args["file"].value;
-        
         router.navigate("/boards", { replace: true });
-          const count = await count_pgn_games(file);
-          const input = (await read_games(file, 0, 0))[0];
-
-          const fileInfo = {
-            metadata: {
-              tags: [],
-              type: "game" as const,
-            },
-            name: file,
-            path: file,
-            numGames: count,
-          } ;
-        const tree = await parsePGN(input);
-        setCurrentTab((prev) => {
-          sessionStorage.setItem(prev.value, JSON.stringify(tree));
-          return {
-            ...prev,
-            name: `${getGameName(tree.headers)} (Imported)`,
-            file: fileInfo,
-            gameNumber: 0,
-            type: "analysis",
-          };
-        });
+        openFile(file, setTabs, setActiveTab);
       }
 
       return () => {
@@ -129,6 +112,12 @@ export default function App() {
       };
     })();
   }, []);
+
+  const fontSize = useAtomValue(fontSizeAtom);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+  }, [fontSize]);
 
   return (
     <ColorSchemeProvider

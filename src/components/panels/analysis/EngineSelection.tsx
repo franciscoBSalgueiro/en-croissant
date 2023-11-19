@@ -7,11 +7,13 @@ import { Engine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
-import { enginesAtom } from "@/atoms/atoms";
+import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
+import { commands } from "@/bindings";
 
 function EngineBox({ engine }: { engine: Engine }) {
   const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
   const [, setEngines] = useAtom(enginesAtom);
+  const activeTab = useAtomValue(activeTabAtom);
 
   useEffect(() => {
     (async () => {
@@ -29,13 +31,16 @@ function EngineBox({ engine }: { engine: Engine }) {
         title={engine.name}
         image={imageSrc}
         checked={engine.loaded}
-        onChange={(checked) =>
+        onChange={(checked) => {
+          if (!checked) {
+            commands.stopEngine(engine.path, activeTab!);
+          }
           setEngines(async (engines) =>
             (await engines).map((e) =>
               e.name === engine.name ? { ...e, loaded: checked } : e
             )
-          )
-        }
+          );
+        }}
       />
     </Grid.Col>
   );
@@ -52,7 +57,7 @@ function EngineSelection() {
         onClick={() => {
           toggleShowSettings();
         }}
-        leftIcon={<IconSettings size={14} />}
+        leftIcon={<IconSettings size="0.875rem" />}
       >
         Manage Engines
       </Button>

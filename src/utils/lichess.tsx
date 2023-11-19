@@ -29,7 +29,7 @@ type LichessPerf = {
 export type LichessAccount = {
   id: string;
   username: string;
-  perfs: {
+  perfs?: {
     chess960?: LichessPerf;
     atomic?: LichessPerf;
     racingKings?: LichessPerf;
