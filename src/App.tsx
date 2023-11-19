@@ -29,7 +29,13 @@ import {
 import { useEffect } from "react";
 import DatabasesPage from "./components/databases/DatabasesPage";
 import { useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, pieceSetAtom, primaryColorAtom, tabsAtom } from "./atoms/atoms";
+import {
+  activeTabAtom,
+  fontSizeAtom,
+  pieceSetAtom,
+  primaryColorAtom,
+  tabsAtom,
+} from "./atoms/atoms";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
@@ -106,6 +112,12 @@ export default function App() {
       };
     })();
   }, []);
+
+  const fontSize = useAtomValue(fontSizeAtom);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+  }, [fontSize]);
 
   return (
     <ColorSchemeProvider

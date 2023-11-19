@@ -18,6 +18,7 @@ import SettingsSwitch from "./SettingsSwitch";
 import ThemeButton from "./ThemeButton";
 import { useLoaderData } from "react-router-dom";
 import { IconBook, IconBrush, IconChess, IconFlag } from "@tabler/icons-react";
+import FontSizeSlider from "./FontSizeSlider";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -278,6 +279,20 @@ export default function Page() {
                 </Text>
               </div>
               <ThemeButton />
+            </Group>
+            <Group
+              position="apart"
+              noWrap
+              spacing="xl"
+              className={classes.item}
+            >
+              <div>
+                <Text>Font Size</Text>
+                <Text size="xs" color="dimmed">
+                  Overall font size
+                </Text>
+              </div>
+              <FontSizeSlider />
             </Group>
             <Group
               position="apart"
