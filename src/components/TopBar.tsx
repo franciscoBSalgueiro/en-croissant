@@ -112,7 +112,7 @@ function TopBar() {
   function createNewTab() {
     navigate("/boards");
     createTab({
-      tab: { name: "New Tab", type: "analysis" },
+      tab: { name: "New Tab", type: "new" },
       setTabs,
       setActiveTab,
     });
@@ -186,10 +186,10 @@ function TopBar() {
 
   return (
     <>
-      <Header height={35} data-tauri-drag-region zIndex={1000}>
+      <Header height={35} zIndex={1000}>
         <Flex h={35} align="end">
           <Box sx={{ flexGrow: 1 }} p={5}>
-            <Group>
+            <Group data-tauri-drag-region>
               <img src="/logo.png" width={20} height={20} />
               <Group spacing={0}>
                 {menuActions.map((action) => (
@@ -237,7 +237,7 @@ function TopBar() {
             </Group>
           </Box>
           <Box h={35}>
-            <Group spacing={0}>
+            <Group spacing={0} data-tauri-drag-region>
               <Center
                 h={35}
                 w={45}
