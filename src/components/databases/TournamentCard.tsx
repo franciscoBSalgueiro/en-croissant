@@ -86,7 +86,7 @@ function PlayerCard({
                     navigate("/boards");
                   }}
                 >
-                  <IconEye size={16} stroke={1.5} />
+                  <IconEye size="1rem" stroke={1.5} />
                 </ActionIcon>
               ),
             },

@@ -145,7 +145,7 @@ function PersonalPlayerCard({
       <Text align="center">{total} Games</Text>
       <Progress
         sections={sections}
-        size={34}
+        size="2rem"
         classNames={{ label: classes.progressLabel }}
         mt={40}
       />

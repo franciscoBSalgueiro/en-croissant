@@ -12,8 +12,8 @@ import { NavLink } from "react-router-dom";
 
 const useStyles = createStyles((theme) => ({
   link: {
-    width: 50,
-    height: 50,
+    width: "3rem",
+    height: "3rem",
     display: "flex",
     alignItems: "center",
     borderLeft: "3px solid transparent",
@@ -59,7 +59,7 @@ function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
           });
         }}
       >
-        <Icon stroke={1.5} />
+        <Icon size="1.5rem" stroke={1.5} />
       </NavLink>
     </Tooltip>
   );
@@ -83,7 +83,7 @@ export function SideBar() {
   ));
 
   return (
-    <Navbar width={{ base: 50 }}>
+    <Navbar width={{ base: "3rem" }}>
       <Navbar.Section grow>
         <Stack justify="center" spacing={0}>
           {links}

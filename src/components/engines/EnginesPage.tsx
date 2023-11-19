@@ -49,7 +49,7 @@ export default function EnginePage() {
                 <Button
                   onClick={() => setOpened(true)}
                   variant="default"
-                  rightIcon={<IconPlus size={14} />}
+                  rightIcon={<IconPlus size="0.875rem" />}
                 >
                   Add new
                 </Button>
@@ -111,9 +111,9 @@ function EngineRow({ item }: { item: Engine }) {
         <td>
           <Group spacing="sm">
             {imageSrc ? (
-              <Image width={60} height={60} src={imageSrc} />
+              <Image width="3.75rem" height="3.75rem" src={imageSrc} />
             ) : (
-              <IconRobot size={60} />
+              <IconRobot size="3.75rem" />
             )}
             <Text size="md" weight={500} color={fileExists ? undefined : "red"}>
               {item.name} {fileExists ? "" : "(file missing)"}
@@ -124,10 +124,10 @@ function EngineRow({ item }: { item: Engine }) {
         <td>
           <Group>
             <ActionIcon>
-              <IconEdit size={20} onClick={() => toggleEditModal()} />
+              <IconEdit size="1.25rem" onClick={() => toggleEditModal()} />
             </ActionIcon>
             <ActionIcon>
-              <IconX size={20} onClick={() => toggleDeleteModal()} />
+              <IconX size="1.25rem" onClick={() => toggleDeleteModal()} />
             </ActionIcon>
           </Group>
         </td>

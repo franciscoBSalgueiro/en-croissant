@@ -22,7 +22,7 @@ function OpenFolderButton({
   return (
     <Tooltip label="Open folder in file explorer">
       <ActionIcon onClick={() => openAppDirData()}>
-        <IconFolder size={24} />
+        <IconFolder size="1.5rem" />
       </ActionIcon>
     </Tooltip>
   );

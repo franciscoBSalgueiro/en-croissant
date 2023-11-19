@@ -265,7 +265,7 @@ function AdvancedOptions({
                       }));
                     }}
                   >
-                    <IconX size={14} />
+                    <IconX size="0.875rem" />
                   </ActionIcon>
                 </Group>
               </td>
@@ -276,7 +276,7 @@ function AdvancedOptions({
 
       <Center pt="xs">
         <Button
-          leftIcon={<IconPlus size={16} />}
+          leftIcon={<IconPlus size="1rem" />}
           variant="default"
           size="xs"
           onClick={() => {

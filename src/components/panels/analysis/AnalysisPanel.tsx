@@ -143,7 +143,7 @@ function AnalysisPanel({
                   id={0}
                   redoable
                   disabled={root.children.length === 0}
-                  leftIcon={<IconZoomCheck size={14} />}
+                  leftIcon={<IconZoomCheck size="0.875rem" />}
                   onClick={() => toggleReportingMode()}
                   initInstalled={false}
                   progressEvent="report_progress"

@@ -128,16 +128,16 @@ function BoardAnalysis() {
             }}
           >
             <Tabs.List grow>
-              <Tabs.Tab value="analysis" icon={<IconZoomCheck size={16} />}>
+              <Tabs.Tab value="analysis" icon={<IconZoomCheck size="1rem" />}>
                 Analysis
               </Tabs.Tab>
-              <Tabs.Tab value="database" icon={<IconDatabase size={16} />}>
+              <Tabs.Tab value="database" icon={<IconDatabase size="1rem" />}>
                 Database
               </Tabs.Tab>
-              <Tabs.Tab value="annotate" icon={<IconNotes size={16} />}>
+              <Tabs.Tab value="annotate" icon={<IconNotes size="1rem" />}>
                 Annotate
               </Tabs.Tab>
-              <Tabs.Tab value="info" icon={<IconInfoCircle size={16} />}>
+              <Tabs.Tab value="info" icon={<IconInfoCircle size="1rem" />}>
                 Info
               </Tabs.Tab>
             </Tabs.List>

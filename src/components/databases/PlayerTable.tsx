@@ -110,7 +110,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
             <TextInput
               sx={{ flexGrow: 1 }}
               placeholder="Search player..."
-              icon={<IconSearch size={16} />}
+              icon={<IconSearch size="1rem" />}
               value={name}
               onChange={(v) => setName(v.currentTarget.value)}
             />
@@ -118,7 +118,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
               sx={{ flexGrow: 0 }}
               onClick={() => setOpen((prev) => !prev)}
             >
-              <IconDotsVertical size={16} />
+              <IconDotsVertical size="1rem" />
             </ActionIcon>
           </Flex>
           <Collapse in={open}>

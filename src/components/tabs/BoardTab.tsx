@@ -82,7 +82,7 @@ export function BoardTab({
                 closeTab(tab.value);
                 e.stopPropagation();
               }}
-              size={14}
+              size="0.875rem"
             >
               <IconX />
             </ActionIcon>
@@ -118,20 +118,20 @@ export function BoardTab({
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item
-          icon={<IconCopy size={14} />}
+          icon={<IconCopy size="0.875rem" />}
           onClick={() => duplicateTab(tab.value)}
         >
           Duplicate Tab
         </Menu.Item>
         <Menu.Item
-          icon={<IconEdit size={14} />}
+          icon={<IconEdit size="0.875rem" />}
           onClick={() => toggleRenaming(true)}
         >
           Rename Tab
         </Menu.Item>
         <Menu.Item
           color="red"
-          icon={<IconX size={14} />}
+          icon={<IconX size="0.875rem" />}
           onClick={() => closeTab(tab.value)}
         >
           Close Tab

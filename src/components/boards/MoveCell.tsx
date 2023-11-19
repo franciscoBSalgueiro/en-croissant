@@ -22,7 +22,6 @@ const useStyles = createStyles(
   ) => ({
     cell: {
       all: "unset",
-      fontSize: 14,
       fontWeight: 600,
       display: "inline-block",
       padding: 6,
@@ -66,7 +65,7 @@ const MoveCell = forwardRef(function MoveCell(
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >
-      {props.isStart && <IconFlag style={{ marginRight: 5 }} size={14} />}
+      {props.isStart && <IconFlag style={{ marginRight: 5 }} size="0.875rem" />}
       {props.move + props.annotation}
     </Box>
   );

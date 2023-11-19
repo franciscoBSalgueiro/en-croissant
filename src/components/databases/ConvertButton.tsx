@@ -55,7 +55,7 @@ function ConvertButton({
       <Text weight={500} mb={10}>
         Add New
       </Text>
-      {loading ? <Loader variant="dots" size={30} /> : <IconPlus size={30} />}
+      {loading ? <Loader variant="dots" size="2rem" /> : <IconPlus size="2rem" />}
 
       {progress && loading && (
         <Box sx={{ display: "flex", justifyContent: "space-around" }}>

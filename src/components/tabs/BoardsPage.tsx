@@ -227,7 +227,7 @@ export default function BoardsPage() {
                 }
                 className={classes.newTab}
               >
-                <IconPlus size={16} />
+                <IconPlus size="1rem" />
               </ActionIcon>
             </Reorder.Group>
           </ScrollArea>

@@ -198,7 +198,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
         <Stack>
           <Progress
             sections={sections}
-            size={34}
+            size="2rem"
             classNames={{ label: classes.progressLabel }}
             mt={40}
           />

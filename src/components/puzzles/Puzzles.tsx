@@ -141,9 +141,9 @@ function Puzzles({ id }: { id: string }) {
             Add New
           </Text>
           {loading ? (
-            <Loader variant="dots" size={30} />
+            <Loader variant="dots" size="2rem" />
           ) : (
-            <IconPlus size={30} />
+            <IconPlus size="2rem" />
           )}
         </Card>
       </SimpleGrid>

@@ -50,7 +50,7 @@ export function SearchInput({
       rightSection={
         <SideInput sides={sides} setSides={setSides} label={label} />
       }
-      icon={<IconSearch size={16} />}
+      icon={<IconSearch size="1rem" />}
       placeholder={label}
     />
   );

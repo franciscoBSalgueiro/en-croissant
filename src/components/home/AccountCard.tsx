@@ -81,7 +81,7 @@ export function AccountCard({
           {stat.diff && (
             <Text color={color} size="sm" weight={500} className={classes.diff}>
               <span>{stat.diff}</span>
-              <DiffIcon size={16} stroke={1.5} />
+              <DiffIcon size="1rem" stroke={1.5} />
             </Text>
           )}
         </Group>
@@ -169,7 +169,7 @@ export function AccountCard({
         <Stack align="end" justify="flex-start">
           <Tooltip label="Update stats">
             <ActionIcon onClick={() => reload()}>
-              <IconRefresh size={16} />
+              <IconRefresh size="1rem" />
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Download games">
@@ -192,12 +192,12 @@ export function AccountCard({
                 });
               }}
             >
-              {loading ? <Loader size={16} /> : <IconDownload size={16} />}
+              {loading ? <Loader size="1rem" /> : <IconDownload size="1rem" />}
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Remove account">
             <ActionIcon onClick={() => logout()}>
-              <IconX size={16} />
+              <IconX size="1rem" />
             </ActionIcon>
           </Tooltip>
         </Stack>

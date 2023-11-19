@@ -15,7 +15,7 @@ function PiecesGrid({
   fen: string;
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   onPut: (newFen: string) => void;
-  size: number;
+  size: string | number;
   vertical?: boolean;
 }) {
   return (

@@ -57,7 +57,7 @@ function EngineSelection() {
         onClick={() => {
           toggleShowSettings();
         }}
-        leftIcon={<IconSettings size={14} />}
+        leftIcon={<IconSettings size="0.875rem" />}
       >
         Manage Engines
       </Button>
