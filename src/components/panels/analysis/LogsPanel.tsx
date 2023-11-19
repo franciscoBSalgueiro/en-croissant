@@ -8,24 +8,30 @@ import {
   Table,
   Select,
 } from "@mantine/core";
-import { IconRefresh } from "@tabler/icons-react";
+import { IconFileExport, IconRefresh } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { FixedSizeList } from "react-window";
 import { commands } from "@/bindings";
 import { Engine } from "@/utils/engines";
+import { save } from "@tauri-apps/api/dialog";
+import { writeTextFile } from "@tauri-apps/api/fs";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
-  const [engine, setEngine] = useState<Engine | undefined>(engines.filter((e) => e.loaded)[0]);
+  const [engine, setEngine] = useState<Engine | undefined>(
+    engines.filter((e) => e.loaded)[0]
+  );
 
   const viewport = useRef<HTMLDivElement>(null);
   const activeTab = useAtomValue(activeTabAtom);
   const { data, mutate } = useSWR(
     ["logs", engine?.path, activeTab],
     async () => {
-      return engine ? unwrap(await commands.getEngineLogs(engine.path, activeTab!)) : undefined;
+      return engine
+        ? unwrap(await commands.getEngineLogs(engine.path, activeTab!))
+        : undefined;
     }
   );
 
@@ -49,12 +55,27 @@ export default function LogsPanel() {
     [data, filter]
   );
 
+  async function exportLogs() {
+    const file = await save({ defaultPath: "logs.csv" });
+    const content = data
+      ?.map((line) => `${line.type}, ${line.value.trimEnd()}`)
+      .join("\n");
+    if (file) {
+      await writeTextFile(file, content ?? "");
+    }
+  }
+
   return (
     <>
       <Group grow>
-        <ActionIcon onClick={() => mutate()} sx={{ flexGrow: 0 }}>
-          <IconRefresh />
-        </ActionIcon>
+        <Group sx={{ flexGrow: 0 }}>
+          <ActionIcon onClick={() => mutate()}>
+            <IconRefresh />
+          </ActionIcon>
+          <ActionIcon onClick={exportLogs}>
+            <IconFileExport />
+          </ActionIcon>
+        </Group>
         <SegmentedControl
           fullWidth
           value={filter}
