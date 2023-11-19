@@ -146,15 +146,6 @@ export default function BoardsPage() {
   );
 
   useHotkeys([
-    [
-      "ctrl+T",
-      () =>
-        createTab({
-          tab: { name: "New Tab", type: "new" },
-          setTabs,
-          setActiveTab,
-        }),
-    ],
     ["ctrl+W", () => closeTab(activeTab)],
     ["ctrl+tab", () => cycleTabs()],
     ["ctrl+shift+tab", () => cycleTabs(true)],
@@ -227,7 +218,7 @@ export default function BoardsPage() {
                 onClick={() =>
                   createTab({
                     tab: {
-                      name: "New tab",
+                      name: "New Tab",
                       type: "new",
                     },
                     setTabs,

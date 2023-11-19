@@ -52,7 +52,7 @@ export async function createTab({
     setTabs((prev) => {
         if (
             prev.length === 0 ||
-            (prev.length === 1 && prev[0].type === "new")
+            (prev.length === 1 && prev[0].type === "new" && tab.type !== "new")
         ) {
             return [
                 {

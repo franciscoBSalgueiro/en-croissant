@@ -15,6 +15,10 @@ import { open } from "@tauri-apps/api/dialog";
 import { appWindow } from "@tauri-apps/api/window";
 import { useAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
+import AboutModal from "./About";
+import { useState } from "react";
+import { createTab } from "@/utils/tabs";
+import { useHotkeys } from "@mantine/hooks";
 
 function IconMinimize() {
   return (
@@ -77,69 +81,59 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+type MenuAction = {
+  label: string;
+  shortcut?: string;
+  action?: () => void;
+};
+
+type MenuGroup = {
+  label: string;
+  options: MenuAction[];
+};
+
 function TopBar() {
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
   const navigate = useNavigate();
-  const menuActions = [
+
+  async function openNewFile() {
+    const selected = await open({
+      multiple: false,
+      filters: [{ name: "PGN file", extensions: ["pgn"] }],
+    });
+    if (typeof selected === "string") {
+      navigate("/boards");
+      openFile(selected, setTabs, setActiveTab);
+    }
+  }
+
+  function createNewTab() {
+    navigate("/boards");
+    createTab({
+      tab: { name: "New Tab", type: "analysis" },
+      setTabs,
+      setActiveTab,
+    });
+  }
+
+  const menuActions: MenuGroup[] = [
     {
       label: "File",
       options: [
         {
+          label: "New Tab",
+          shortcut: "Ctrl+T",
+          action: createNewTab,
+        },
+        {
           label: "Open File",
           shortcut: "Ctrl+O",
-          action: async () => {
-            const selected = await open({
-              multiple: false,
-              filters: [{ name: "PGN file", extensions: ["pgn"] }],
-            });
-            if (typeof selected === "string") {
-              navigate("/boards");
-              openFile(selected, setTabs, setActiveTab);
-            }
-          },
+          action: openNewFile,
         },
         {
-          label: "Gallery",
-        },
-        {
-          label: "Search",
-          shortcut: "⌘K",
-        },
-        {
-          label: "Transfer my data",
-        },
-        {
-          label: "Delete my account",
-        },
-      ],
-    },
-    {
-      label: "Edit",
-      options: [
-        {
-          label: "Undo",
-          shortcut: "Ctrl+Z",
-        },
-        {
-          label: "Redo",
-          shortcut: "Ctrl+Y",
-        },
-        {
-          label: "Cut",
-          shortcut: "Ctrl+X",
-        },
-        {
-          label: "Copy",
-          shortcut: "Ctrl+C",
-        },
-        {
-          label: "Paste",
-          shortcut: "Ctrl+V",
-        },
-        {
-          label: "Select all",
-          shortcut: "Ctrl+A",
+          label: "Exit",
+          action: () => appWindow.close(),
         },
       ],
     },
@@ -149,14 +143,7 @@ function TopBar() {
         {
           label: "Reload",
           shortcut: "Ctrl+R",
-        },
-        {
-          label: "Toggle full screen",
-          shortcut: "F11",
-        },
-        {
-          label: "Toggle developer tools",
-          shortcut: "Ctrl+Shift+I",
+          action: () => location.reload(),
         },
       ],
     },
@@ -165,92 +152,103 @@ function TopBar() {
       options: [
         {
           label: "About",
+          action: () => setOpened(true),
         },
       ],
     },
   ];
   const { classes } = useStyles();
+  const [opened, setOpened] = useState(false);
+
+  useHotkeys([
+    ["ctrl+T", createNewTab],
+    ["ctrl+O", openNewFile],
+  ]);
+
   return (
-    <Header height={35} data-tauri-drag-region zIndex={1000}>
-      <Flex h={35} align="end">
-        <Box sx={{ flexGrow: 1 }} p={5}>
-          <Group>
-            <img src="/logo.png" width={20} height={20} />
-            <Group spacing={0}>
-              {menuActions.map((action) => (
-                <Menu
-                  key={action.label}
-                  shadow="md"
-                  width={200}
-                  position="bottom-start"
-                  transitionProps={{ duration: 0 }}
-                >
-                  <Menu.Target>
-                    <Button
-                      sx={{
-                        ":active": {
-                          transform: "none",
-                        },
-                      }}
-                      variant="subtle"
-                      color="gray"
-                      compact
-                    >
-                      {action.label}
-                    </Button>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    {action.options.map((option) => (
-                      <Menu.Item
-                        key={option.label}
-                        rightSection={
-                          option.shortcut && (
-                            <Text size="xs" color="dimmed">
-                              {option.shortcut}
-                            </Text>
-                          )
-                        }
-                        onClick={option.action}
+    <>
+      <Header height={35} data-tauri-drag-region zIndex={1000}>
+        <Flex h={35} align="end">
+          <Box sx={{ flexGrow: 1 }} p={5}>
+            <Group>
+              <img src="/logo.png" width={20} height={20} />
+              <Group spacing={0}>
+                {menuActions.map((action) => (
+                  <Menu
+                    key={action.label}
+                    shadow="md"
+                    width={200}
+                    position="bottom-start"
+                    transitionProps={{ duration: 0 }}
+                  >
+                    <Menu.Target>
+                      <Button
+                        sx={{
+                          ":active": {
+                            transform: "none",
+                          },
+                        }}
+                        variant="subtle"
+                        color="gray"
+                        compact
                       >
-                        {option.label}
-                      </Menu.Item>
-                    ))}
-                  </Menu.Dropdown>
-                </Menu>
-              ))}
+                        {action.label}
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      {action.options.map((option) => (
+                        <Menu.Item
+                          key={option.label}
+                          rightSection={
+                            option.shortcut && (
+                              <Text size="xs" color="dimmed">
+                                {option.shortcut}
+                              </Text>
+                            )
+                          }
+                          onClick={option.action}
+                        >
+                          {option.label}
+                        </Menu.Item>
+                      ))}
+                    </Menu.Dropdown>
+                  </Menu>
+                ))}
+              </Group>
             </Group>
-          </Group>
-        </Box>
-        <Box h={35}>
-          <Group spacing={0}>
-            <Center
-              h={35}
-              w={45}
-              onClick={() => appWindow.minimize()}
-              className={classes.icon}
-            >
-              <IconMinimize />
-            </Center>
-            <Center
-              h={35}
-              w={45}
-              onClick={() => appWindow.toggleMaximize()}
-              className={classes.icon}
-            >
-              <IconMaximize />
-            </Center>
-            <Center
-              h={35}
-              w={45}
-              onClick={() => appWindow.close()}
-              className={classes.close}
-            >
-              <IconX />
-            </Center>
-          </Group>
-        </Box>
-      </Flex>
-    </Header>
+          </Box>
+          <Box h={35}>
+            <Group spacing={0}>
+              <Center
+                h={35}
+                w={45}
+                onClick={() => appWindow.minimize()}
+                className={classes.icon}
+              >
+                <IconMinimize />
+              </Center>
+              <Center
+                h={35}
+                w={45}
+                onClick={() => appWindow.toggleMaximize()}
+                className={classes.icon}
+              >
+                <IconMaximize />
+              </Center>
+              <Center
+                h={35}
+                w={45}
+                onClick={() => appWindow.close()}
+                className={classes.close}
+              >
+                <IconX />
+              </Center>
+            </Group>
+          </Box>
+        </Flex>
+      </Header>
+      <AboutModal opened={opened} setOpened={setOpened} />
+    </>
   );
 }
 

@@ -52,7 +52,7 @@ const loadableEnginesAtom = loadable(enginesAtom);
 // Tabs
 
 const firstTab: Tab = {
-    name: "New tab",
+    name: "New Tab",
     value: genID(),
     type: "new",
 };
