@@ -27,10 +27,23 @@ function OpeningsTable({
 }) {
   const { classes } = useStyles();
   const dispatch = useContext(TreeDispatchContext);
-  const grandTotal = openings?.reduce(
-    (acc, curr) => acc + curr.black + curr.white + curr.draw,
-    0
-  );
+
+  const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
+  const blackTotal = openings?.reduce((acc, curr) => acc + curr.black, 0);
+  const drawTotal = openings?.reduce((acc, curr) => acc + curr.draw, 0);
+  const grandTotal = whiteTotal + blackTotal + drawTotal;
+
+  if (openings.length > 0) {
+    openings = [
+      ...openings,
+      {
+        move: "Total",
+        white: whiteTotal,
+        black: blackTotal,
+        draw: drawTotal,
+      },
+    ];
+  }
 
   return (
     <DataTable
@@ -39,6 +52,16 @@ function OpeningsTable({
       height={height}
       records={openings}
       fetching={loading || openings === null}
+      rowStyle={(game, i) => {
+        if (i === openings.length - 1)
+          return {
+            fontWeight: 700,
+            position: "sticky",
+            bottom: 0,
+            zIndex: 10,
+          };
+        return {};
+      }}
       columns={[
         {
           accessor: "move",
@@ -51,12 +74,12 @@ function OpeningsTable({
         {
           accessor: "total",
           width: 180,
-          render: ({ white, draw, black }) => {
+          render: ({ move, white, draw, black }) => {
             const total = white + draw + black;
             const percentage = (total / grandTotal) * 100;
             return (
               <Group grow>
-                <Text>{percentage.toFixed(0)}%</Text>
+                {move !== "Total" && <Text>{percentage.toFixed(0)}%</Text>}
                 <Text align="right">{formatNumber(total)}</Text>
               </Group>
             );
@@ -71,7 +94,6 @@ function OpeningsTable({
             const blackPercent = (black / total) * 100;
             return (
               <Progress
-                mt="md"
                 size="xl"
                 radius="xl"
                 animate={false}
