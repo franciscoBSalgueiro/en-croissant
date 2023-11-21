@@ -1,0 +1,60 @@
+name: Bug Report
+description: Report a bug
+labels: ['bug']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## First of all
+        1. Please search for [existing issues](https://github.com/franciscoBSalgueiro/en-croissant/issues?q=is%3Aissue) about this problem first.
+        2. Make sure you have the latest version of available to download, or the latest version of the code if you are building from source.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear description of what the bug is. Include screenshots if applicable.
+      placeholder: Bug description
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to ...
+        2. Click on ...
+        3. See error
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear description of what you expected to happen.
+
+  - type: textarea
+    id: info
+    attributes:
+      label: Platform and versions
+      description: 'Please include with information about your Operating System such as version and/or specific distribution if revelant.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Stack trace
+      render: Shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: |
+        Provide any additional information that will give more context for the issue you are encountering.
+        Screenshots can be added by clicking this area and then pasting or dragging them in.
+    validations:
+      required: false
