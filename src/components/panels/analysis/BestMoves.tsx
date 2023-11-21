@@ -140,7 +140,10 @@ export default function BestMovesComponent({
               extraOptions: settings.options.extraOptions,
             })
             .then((res) => {
-              unwrap(res);
+              const bestMoves = unwrap(res);
+              if (bestMoves) {
+                setEngineVariation(bestMoves);
+              }
             });
         }
       } else {
