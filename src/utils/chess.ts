@@ -128,24 +128,24 @@ export function getMoveText(
         isFirst?: boolean;
     }
 ): string {
-    if (tree.move === null) {
-        return "";
-    }
     const isBlack = tree.halfMoves % 2 === 0;
     const moveNumber = Math.ceil(tree.halfMoves / 2);
     let moveText = "";
-    if (isBlack) {
-        if (opt.isFirst) {
-            moveText += `${moveNumber}... `;
+
+    if (tree.move) {
+        if (isBlack) {
+            if (opt.isFirst) {
+                moveText += `${moveNumber}... `;
+            }
+        } else {
+            moveText += `${moveNumber}. `;
         }
-    } else {
-        moveText += `${moveNumber}. `;
+        moveText += tree.move.san;
+        if (opt.symbols) {
+            moveText += tree.annotation;
+        }
+        moveText += " ";
     }
-    moveText += tree.move.san;
-    if (opt.symbols) {
-        moveText += tree.annotation;
-    }
-    moveText += " ";
 
     if (opt.comments || opt.specialSymbols) {
         let content = "{";
@@ -224,6 +224,9 @@ export function getPGN(
         pgn += '[FEN "' + tree.fen + '"]\n';
     }
     pgn += "\n";
+    if (root && tree.commentText !== null) {
+        pgn += `${getMoveText(tree, {symbols, comments, specialSymbols})}`
+    }
     const variationsPGN = variations
         ? tree.children.slice(1).map(
             (variation) =>
