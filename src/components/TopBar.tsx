@@ -166,6 +166,21 @@ function TopBar() {
       label: "Help",
       options: [
         {
+          label: "Clear saved data",
+          action: () => {
+            ask("Are you sure you want to clear all saved data?", {
+              title: "Clear data",
+            }).then((res) => {
+              if (res) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+              }
+            });
+          },
+        },
+        { label: "divider" },
+        {
           label: "Check for updates",
           action: checkForUpdates,
         },
@@ -215,21 +230,25 @@ function TopBar() {
                       </Button>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      {action.options.map((option) => (
-                        <Menu.Item
-                          key={option.label}
-                          rightSection={
-                            option.shortcut && (
-                              <Text size="xs" color="dimmed">
-                                {option.shortcut}
-                              </Text>
-                            )
-                          }
-                          onClick={option.action}
-                        >
-                          {option.label}
-                        </Menu.Item>
-                      ))}
+                      {action.options.map((option, i) =>
+                        option.label === "divider" ? (
+                          <Menu.Divider key={i} />
+                        ) : (
+                          <Menu.Item
+                            key={option.label}
+                            rightSection={
+                              option.shortcut && (
+                                <Text size="xs" color="dimmed">
+                                  {option.shortcut}
+                                </Text>
+                              )
+                            }
+                            onClick={option.action}
+                          >
+                            {option.label}
+                          </Menu.Item>
+                        )
+                      )}
                     </Menu.Dropdown>
                   </Menu>
                 ))}
