@@ -28,12 +28,8 @@ body:
         1. Go to ...
         2. Click on ...
         3. See error
-
-  - type: textarea
-    id: expected-behavior
-    attributes:
-      label: Expected behavior
-      description: A clear description of what you expected to happen.
+    validations:
+      required: true
 
   - type: textarea
     id: info
@@ -48,13 +44,3 @@ body:
     attributes:
       label: Stack trace
       render: Shell
-
-  - type: textarea
-    id: context
-    attributes:
-      label: Additional context
-      description: |
-        Provide any additional information that will give more context for the issue you are encountering.
-        Screenshots can be added by clicking this area and then pasting or dragging them in.
-    validations:
-      required: false
