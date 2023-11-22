@@ -132,7 +132,7 @@ function ErrorBoundary() {
         {error instanceof Error && (
           <CopyButton value={error.message + "\n" + error.stack}>
             {({ copied, copy }) => (
-              <Button color={copied ? "teal" : "blue"} onClick={copy}>
+              <Button color={copied ? "teal" : undefined} onClick={copy}>
                 {copied ? "Copied" : "Copy stack strace"}
               </Button>
             )}

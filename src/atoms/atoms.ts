@@ -1,4 +1,4 @@
-import { EngineOptions, GoMode } from "@/bindings";
+import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
@@ -273,6 +273,12 @@ export type EngineSettings = {
     go: GoMode;
     options: Omit<EngineOptions, "fen">;
 };
+
+export const engineMovesFamily = atomFamily(
+    ({ tab, engine }: { tab: string; engine: string }) =>
+        atom<Map<string, BestMoves[]>>(new Map()),
+    (a, b) => a.tab === b.tab && a.engine === b.engine
+);
 
 export const tabEngineSettingsFamily = atomFamily(
     ({ tab, engine }: { tab: string; engine: string }) => {
