@@ -101,6 +101,15 @@ function AnalysisPanel({
               multiple
               chevronSize={0}
               defaultValue={loadedEngines.map((e) => e.path)}
+              styles={{
+                label: {
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                },
+                content: {
+                  padding: "0.3rem"
+                }
+              }}
             >
               {loadedEngines.map((engine, i) => {
                 return (

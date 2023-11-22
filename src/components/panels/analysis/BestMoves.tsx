@@ -182,7 +182,7 @@ export default function BestMovesComponent({
     () => (
       <>
         <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Stack spacing={0}>
+          <Stack spacing={0} py="1rem">
             <ActionIcon
               size="lg"
               variant={settings.enabled ? "filled" : "transparent"}
@@ -223,27 +223,27 @@ export default function BestMovesComponent({
                   <>
                     <Stack align="center" spacing={0}>
                       <Text
-                        size="xs"
+                        size="0.7rem"
                         transform="uppercase"
                         weight={700}
                         className={classes.subtitle}
                       >
                         Eval
                       </Text>
-                      <Text fw="bold" fz="lg">
+                      <Text fw="bold" fz="md">
                         {formatScore(engineVariations[0].score, 1) ?? 0}
                       </Text>
                     </Stack>
                     <Stack align="center" spacing={0}>
                       <Text
-                        size="xs"
+                        size="0.7rem"
                         transform="uppercase"
                         weight={700}
                         className={classes.subtitle}
                       >
                         Depth
                       </Text>
-                      <Text fw="bold" fz="lg">
+                      <Text fw="bold" fz="md">
                         {depth}
                       </Text>
                     </Stack>
