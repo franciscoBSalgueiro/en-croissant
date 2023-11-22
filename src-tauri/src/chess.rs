@@ -434,7 +434,7 @@ pub async fn get_best_moves(
                 let multipv = best_moves.multipv;
                 let cur_depth = best_moves.depth;
                 proc.best_moves.push(best_moves);
-                if multipv == proc.options.multipv {
+                if multipv == proc.real_multipv {
                     if proc.best_moves.iter().all(|x| x.depth == cur_depth)
                         && cur_depth >= proc.last_depth
                     {
