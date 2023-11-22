@@ -1,6 +1,6 @@
 import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
-import { IconChevronUp, IconFlag, IconX } from "@tabler/icons-react";
+import { IconChevronUp, IconChevronsUp, IconFlag, IconX } from "@tabler/icons-react";
 import { memo, useContext, useState } from "react";
 import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
@@ -96,6 +96,14 @@ function CompleteMoveCell({
                     Mark as start
                   </Menu.Item>
                 )}
+                <Menu.Item
+                  icon={<IconChevronsUp size="0.875rem" />}
+                  onClick={() =>
+                    dispatch({ type: "PROMOTE_TO_MAINLINE", payload: movePath })
+                  }
+                >
+                  Promote to Main Line
+                </Menu.Item>
 
                 <Menu.Item
                   icon={<IconChevronUp size="0.875rem" />}

@@ -201,7 +201,8 @@ export type TreeAction =
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
     | { type: "ADD_ANALYSIS"; payload: { best: BestMoves, novelty: boolean }[] }
-    | { type: "PROMOTE_VARIATION"; payload: number[] };
+    | { type: "PROMOTE_VARIATION"; payload: number[] }
+    | { type: "PROMOTE_TO_MAINLINE"; payload: number[] };
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
     const res = match(action)
@@ -307,6 +308,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
         .with({ type: "PROMOTE_VARIATION" }, ({ payload }) => {
             state.dirty = true;
             promoteVariation(state, payload);
+        })
+        .with({ type: "PROMOTE_TO_MAINLINE" }, ({ payload }) => {
+            state.dirty = true;
+            while (!promoteVariation(state, payload)) {}
         })
         .exhaustive();
 
