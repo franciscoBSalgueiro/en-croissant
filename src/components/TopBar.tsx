@@ -10,6 +10,7 @@ import {
   Menu,
   createStyles,
   Text,
+  useMantineTheme,
 } from "@mantine/core";
 import { ask, message, open } from "@tauri-apps/api/dialog";
 import { appWindow } from "@tauri-apps/api/window";
@@ -199,6 +200,8 @@ function TopBar() {
     ["ctrl+O", openNewFile],
   ]);
 
+  const theme = useMantineTheme();
+
   return (
     <>
       <Header height={35} zIndex={1000}>
@@ -223,7 +226,7 @@ function TopBar() {
                           },
                         }}
                         variant="subtle"
-                        color="gray"
+                        color={theme.colorScheme === "dark" ? "gray": "dark"}
                         compact
                       >
                         {action.label}
