@@ -1,4 +1,4 @@
-import { Paper, Stack, Tabs } from "@mantine/core";
+import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconDatabase,
@@ -6,7 +6,14 @@ import {
   IconNotes,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { invoke } from "@/utils/invoke";
 
 import { getNodeAtPath } from "@/utils/treeReducer";
@@ -21,14 +28,13 @@ import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import BoardPlay from "./BoardPlay";
 import GameNotation from "./GameNotation";
-import { atom, useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import {
   autoSaveAtom,
   currentTabAtom,
   currentTabSelectedAtom,
 } from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
-import { Mosaic, MosaicNode } from "react-mosaic-component";
 import EditingCard from "./EditingCard";
 import ReportModal from "../panels/analysis/ReportModal";
 import { getMainLine } from "@/utils/chess";
@@ -88,127 +94,105 @@ function BoardAnalysis() {
     currentTabSelectedAtom
   );
 
-  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
-
-  const ELEMENT_MAP: { [viewId: string]: JSX.Element } = {
-    board: (
-      <BoardPlay
-        dirty={dirty}
-        currentNode={currentNode}
-        arrows={arrows}
-        headers={headers}
-        editingMode={editingMode}
-        toggleEditingMode={toggleEditingMode}
-        boardRef={boardRef}
-        saveFile={saveFile}
-        addGame={addGame}
-        root={root}
-      />
-    ),
-    b: editingMode ? (
-      <EditingCard
-        boardRef={boardRef}
-        fen={currentNode.fen}
-        setEditingMode={toggleEditingMode}
-      />
-    ) : (
-      <Paper
-        withBorder
-        p="xs"
-        sx={{
-          flex: 1,
-        }}
-        pos="relative"
-      >
-        <Tabs
-          w="100%"
-          h="100%"
-          value={currentTabSelected}
-          onTabChange={(v) => setCurrentTabSelected(v || "info")}
-          keepMounted={false}
-          activateTabWithKeyboard={false}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Tabs.List grow mb="1rem">
-            <Tabs.Tab value="analysis" icon={<IconZoomCheck size="1rem" />}>
-              Analysis
-            </Tabs.Tab>
-            <Tabs.Tab value="database" icon={<IconDatabase size="1rem" />}>
-              Database
-            </Tabs.Tab>
-            <Tabs.Tab value="annotate" icon={<IconNotes size="1rem" />}>
-              Annotate
-            </Tabs.Tab>
-            <Tabs.Tab value="info" icon={<IconInfoCircle size="1rem" />}>
-              Info
-            </Tabs.Tab>
-          </Tabs.List>
-          <Tabs.Panel value="info" sx={{ flex: 1, overflowY: "hidden" }}>
-            <InfoPanel />
-          </Tabs.Panel>
-          <Tabs.Panel value="database" sx={{ flex: 1, overflowY: "hidden" }}>
-            <DatabasePanel fen={currentNode.fen} />
-          </Tabs.Panel>
-          <Tabs.Panel value="annotate" sx={{ flex: 1, overflowY: "hidden" }}>
-            <AnnotationPanel />
-          </Tabs.Panel>
-          <Tabs.Panel value="analysis" sx={{ flex: 1, overflowY: "hidden" }}>
-            <AnalysisPanel
-              setArrows={setArrows}
-              toggleReportingMode={toggleReportingMode}
-              inProgress={inProgress}
-              setInProgress={setInProgress}
-            />
-          </Tabs.Panel>
-        </Tabs>
-      </Paper>
-    ),
-    c: (
-      <Stack>
-        <GameNotation topBar />
-        <MoveControls />
-      </Stack>
-    ),
-  };
-
   return (
     <>
-      <ReportModal
-        initialFen={root.fen}
-        moves={getMainLine(root)}
-        reportingMode={reportingMode}
-        toggleReportingMode={toggleReportingMode}
-        setInProgress={setInProgress}
-      />
-      <Mosaic<ViewId>
-        renderTile={(id) => ELEMENT_MAP[id]}
-        value={windowsState.currentNode}
-        onChange={(currentNode) => setWindowsState({ currentNode })}
-        resize={{ minimumPaneSizePercentage: 0 }}
-      />
+      <Suspense>
+        <ReportModal
+          initialFen={root.fen}
+          moves={getMainLine(root)}
+          reportingMode={reportingMode}
+          toggleReportingMode={toggleReportingMode}
+          setInProgress={setInProgress}
+        />
+      </Suspense>
+      <Portal target="#left" style={{ height: "100%" }}>
+        <BoardPlay
+          dirty={dirty}
+          currentNode={currentNode}
+          arrows={arrows}
+          headers={headers}
+          editingMode={editingMode}
+          toggleEditingMode={toggleEditingMode}
+          boardRef={boardRef}
+          saveFile={saveFile}
+          addGame={addGame}
+          root={root}
+        />
+      </Portal>
+      <Portal target="#topRight" style={{ height: "100%" }}>
+        <Paper
+          withBorder
+          p="xs"
+          sx={{
+            height: "100%",
+          }}
+          pos="relative"
+        >
+          <Tabs
+            w="100%"
+            h="100%"
+            value={currentTabSelected}
+            onTabChange={(v) => setCurrentTabSelected(v || "info")}
+            keepMounted={false}
+            activateTabWithKeyboard={false}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Tabs.List grow mb="1rem">
+              <Tabs.Tab value="analysis" icon={<IconZoomCheck size="1rem" />}>
+                Analysis
+              </Tabs.Tab>
+              <Tabs.Tab value="database" icon={<IconDatabase size="1rem" />}>
+                Database
+              </Tabs.Tab>
+              <Tabs.Tab value="annotate" icon={<IconNotes size="1rem" />}>
+                Annotate
+              </Tabs.Tab>
+              <Tabs.Tab value="info" icon={<IconInfoCircle size="1rem" />}>
+                Info
+              </Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="info" sx={{ flex: 1, overflowY: "hidden" }}>
+              <InfoPanel />
+            </Tabs.Panel>
+            <Tabs.Panel value="database" sx={{ flex: 1, overflowY: "hidden" }}>
+              <DatabasePanel fen={currentNode.fen} />
+            </Tabs.Panel>
+            <Tabs.Panel value="annotate" sx={{ flex: 1, overflowY: "hidden" }}>
+              <AnnotationPanel />
+            </Tabs.Panel>
+            <Tabs.Panel value="analysis" sx={{ flex: 1, overflowY: "hidden" }}>
+              <Suspense>
+                <AnalysisPanel
+                  setArrows={setArrows}
+                  toggleReportingMode={toggleReportingMode}
+                  inProgress={inProgress}
+                  setInProgress={setInProgress}
+                />
+              </Suspense>
+            </Tabs.Panel>
+          </Tabs>
+        </Paper>
+      </Portal>
+
+      <Portal target="#bottomRight" style={{ height: "100%" }}>
+        {editingMode ? (
+          <EditingCard
+            boardRef={boardRef}
+            fen={currentNode.fen}
+            setEditingMode={toggleEditingMode}
+          />
+        ) : (
+          <Stack h="100%">
+            <GameNotation topBar />
+            <MoveControls />
+          </Stack>
+        )}
+      </Portal>
     </>
   );
 }
-
-export interface WindowsState {
-  currentNode: MosaicNode<ViewId> | null;
-}
-
-export type ViewId = "board" | "b" | "c" | "new";
-
-const windowsStateAtom = atom<WindowsState>({
-  currentNode: {
-    direction: "row",
-    first: "board",
-    second: {
-      direction: "column",
-      first: "b",
-      second: "c",
-    },
-  },
-});
 
 export default BoardAnalysis;

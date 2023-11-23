@@ -103,7 +103,7 @@ export default function LogsPanel() {
       <FixedSizeList
         itemCount={filteredData?.length || 0}
         itemSize={30}
-        height={250}
+        height={200}
         width="100%"
         innerElementType={Inner}
       >

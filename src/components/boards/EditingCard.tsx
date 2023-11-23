@@ -6,6 +6,7 @@ import { useContext } from "react";
 
 const useStyles = createStyles((theme) => ({
   card: {
+    height: "100%",
     position: "sticky",
     top: 0,
     backgroundColor:
@@ -31,7 +32,7 @@ function EditingCard({
   return (
     <Card
       shadow="md"
-      style={{ overflow: "visible", position: "relative" }}
+      sx={{ position: "relative", overflow: "visible" }}
       className={classes.card}
     >
       <CloseButton

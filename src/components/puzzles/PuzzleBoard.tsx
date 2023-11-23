@@ -3,7 +3,6 @@ import { Chess, Move, Square } from "chess.js";
 import { useState } from "react";
 import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
 import { formatMove } from "@/utils/format";
-import { getBoardSize } from "@/utils/misc";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
 import { chessboard } from "@/styles/Chessboard.css";
@@ -49,8 +48,6 @@ function PuzzleBoard({
   const turn = formatMove(chess.turn());
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
-  const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
-
   function checkMove(move: string) {
     if (puzzle.moves[currentMove] === move) {
       if (currentMove === puzzle.moves.length - 1) {
@@ -73,52 +70,54 @@ function PuzzleBoard({
   if (!lastMove) return null;
 
   return (
-    <Stack justify="center">
-      <Box className={chessboard}>
-        <PromotionModal
-          pendingMove={pendingMove}
-          cancelMove={() => setPendingMove(null)}
-          confirmMove={(p) => {
-            checkMove(`${pendingMove?.from}${pendingMove?.to}${p}`);
-            setPendingMove(null);
-          }}
-          turn={turn}
-          orientation={orientation}
-        />
-        <Chessground
-          animation={{
-            enabled: true,
-          }}
-          width={boardSize}
-          coordinates={showCoordinates}
-          height={boardSize}
-          orientation={orientation}
-          movable={{
-            free: false,
-            color: turn,
-            dests: dests,
-            events: {
-              after: (orig, dest) => {
-                const newDest = handleMove(chess, orig, dest);
-                if (
-                  chess.get(orig as Square).type === "p" &&
-                  ((newDest[1] === "8" && turn === "white") ||
-                    (newDest[1] === "1" && turn === "black"))
-                ) {
-                  setPendingMove({ from: orig as Square, to: newDest });
-                } else {
-                  checkMove(`${orig}${newDest}`);
-                }
+    <Box className="container">
+      <Box className="Board">
+        <Box className={chessboard}>
+          <PromotionModal
+            pendingMove={pendingMove}
+            cancelMove={() => setPendingMove(null)}
+            confirmMove={(p) => {
+              checkMove(`${pendingMove?.from}${pendingMove?.to}${p}`);
+              setPendingMove(null);
+            }}
+            turn={turn}
+            orientation={orientation}
+          />
+          <Chessground
+            animation={{
+              enabled: true,
+            }}
+            width={500}
+            coordinates={showCoordinates}
+            height={500}
+            orientation={orientation}
+            movable={{
+              free: false,
+              color: turn,
+              dests: dests,
+              events: {
+                after: (orig, dest) => {
+                  const newDest = handleMove(chess, orig, dest);
+                  if (
+                    chess.get(orig as Square).type === "p" &&
+                    ((newDest[1] === "8" && turn === "white") ||
+                      (newDest[1] === "1" && turn === "black"))
+                  ) {
+                    setPendingMove({ from: orig as Square, to: newDest });
+                  } else {
+                    checkMove(`${orig}${newDest}`);
+                  }
+                },
               },
-            },
-          }}
-          lastMove={moveToKey(lastMove)}
-          turnColor={turn}
-          fen={fen}
-          check={chess.inCheck()}
-        />
+            }}
+            lastMove={moveToKey(lastMove)}
+            turnColor={turn}
+            fen={fen}
+            check={chess.inCheck()}
+          />
+        </Box>
       </Box>
-    </Stack>
+    </Box>
   );
 }
 

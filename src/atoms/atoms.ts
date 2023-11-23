@@ -38,18 +38,10 @@ const fileStorage: AsyncStringStorage = {
         }
     },
     async setItem(key, newValue) {
-        try {
-            await writeTextFile(key, newValue, options);
-        } catch (error) {
-            throw new Error("Unable to set item.");
-        }
+        await writeTextFile(key, newValue, options);
     },
     async removeItem(key) {
-        try {
-            await removeFile(key, options);
-        } catch (error) {
-            throw new Error("Unable to remove item.");
-        }
+        await removeFile(key, options);
     },
 };
 

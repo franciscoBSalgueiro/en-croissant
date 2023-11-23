@@ -9,6 +9,7 @@
     "Eval Board Board"
     ". Bottom Bottom";
   overflow: hidden;
+  height: 100%;
 }
 
 .Board {

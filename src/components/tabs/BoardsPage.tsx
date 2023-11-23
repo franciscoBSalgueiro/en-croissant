@@ -9,7 +9,7 @@ import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
 import { useCallback, useEffect } from "react";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import { match } from "ts-pattern";
@@ -19,6 +19,7 @@ import { unwrap } from "@/utils/invoke";
 
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
+import { Mosaic, MosaicNode } from "react-mosaic-component";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -243,19 +244,67 @@ export default function BoardsPage() {
   );
 }
 
+type ViewId = "left" | "topRight" | "bottomRight";
+
+const fullLayout: { [viewId: string]: JSX.Element } = {
+  left: <div id="left" />,
+  topRight: <div id="topRight" />,
+  bottomRight: <div id="bottomRight" />,
+};
+
+interface WindowsState {
+  currentNode: MosaicNode<ViewId> | null;
+}
+
+const windowsStateAtom = atom<WindowsState>({
+  currentNode: {
+    direction: "row",
+    first: "left",
+    second: {
+      direction: "column",
+      first: "topRight",
+      second: "bottomRight",
+    },
+  },
+});
+
 function TabSwitch({ tab }: { tab: Tab }) {
+  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+
   return match(tab.type)
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={windowsState.currentNode}
+          onChange={(currentNode) => setWindowsState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 0 }}
+        />
         <BoardGame />
       </TreeStateProvider>
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={windowsState.currentNode}
+          onChange={(currentNode) => setWindowsState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 0 }}
+        />
         <BoardAnalysis />
       </TreeStateProvider>
     ))
-    .with("puzzles", () => <Puzzles id={tab.value} />)
+    .with("puzzles", () => (
+      <>
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={windowsState.currentNode}
+          onChange={(currentNode) => setWindowsState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 0 }}
+        />
+        <Puzzles id={tab.value} />
+      </>
+    ))
     .exhaustive();
 }

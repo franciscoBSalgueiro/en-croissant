@@ -87,9 +87,8 @@ function AnalysisPanel({
           value="engines"
           pt="xs"
           sx={{
-            flex: 1,
             overflow: "hidden",
-            display: "flex",
+            display: tab === "engines" ? "flex" : "none",
             flexDirection: "column",
           }}
         >
@@ -143,8 +142,16 @@ function AnalysisPanel({
             </ScrollArea>
           </>
         </Tabs.Panel>
-        <Tabs.Panel value="report" pt="xs">
-          <ScrollArea mah="100%" offsetScrollbars>
+        <Tabs.Panel
+          value="report"
+          pt="xs"
+          sx={{
+            overflow: "hidden",
+            display: tab === "report" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <ScrollArea offsetScrollbars>
             <Stack mb="lg" spacing="0.4rem" mr="xs">
               <Group grow sx={{ textAlign: "center" }}>
                 {stats.whiteAccuracy && stats.blackAccuracy && (
@@ -190,7 +197,15 @@ function AnalysisPanel({
             </Stack>
           </ScrollArea>
         </Tabs.Panel>
-        <Tabs.Panel value="logs" pt="xs">
+        <Tabs.Panel
+          value="logs"
+          pt="xs"
+          sx={{
+            overflow: "hidden",
+            display: tab === "logs" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
           <Stack>
             <LogsPanel />
           </Stack>
