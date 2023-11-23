@@ -1,10 +1,8 @@
 import {
   ActionIcon,
-  Box,
   Center,
   Collapse,
   Flex,
-  Grid,
   Group,
   NumberInput,
   Text,
@@ -17,6 +15,7 @@ import { useEffect, useState } from "react";
 import { DatabaseInfo, Player, query_players } from "@/utils/db";
 import PlayerCard from "./PlayerCard";
 import useStyles from "./styles";
+import GridLayout from "./GridLayout";
 
 function PlayerTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -103,9 +102,9 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
   ]);
 
   return (
-    <Grid my="md" grow>
-      <Grid.Col span={3}>
-        <Box mb="xl" className={classes.search}>
+    <GridLayout
+      search={
+        <>
           <Flex sx={{ alignItems: "center", gap: 10 }}>
             <TextInput
               sx={{ flexGrow: 1 }}
@@ -141,9 +140,10 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
               />
             </Group>
           </Collapse>
-        </Box>
+        </>
+      }
+      table={
         <DataTable
-          height={500}
           withBorder
           highlightOnHover
           records={players}
@@ -169,18 +169,17 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
             setSelectedPlayer(i);
           }}
         />
-      </Grid.Col>
-
-      <Grid.Col span={2}>
-        {selectedPlayer !== null ? (
+      }
+      preview={
+        selectedPlayer !== null ? (
           <PlayerCard player={players[selectedPlayer]} file={database.file} />
         ) : (
           <Center h="100%">
             <Text>No player selected</Text>
           </Center>
-        )}
-      </Grid.Col>
-    </Grid>
+        )
+      }
+    />
   );
 }
 

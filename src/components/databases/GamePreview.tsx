@@ -69,13 +69,16 @@ function GamePreview({
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
-        <Group onClick={() => goToGame()} grow>
-          <AspectRatio ratio={1}>
-            <PreviewBoard />
-          </AspectRatio>
+        <Group
+          onClick={() => goToGame()}
+          grow
+          h="100%"
+          sx={{ overflow: "hidden" }}
+        >
+          <PreviewBoard />
           {!hideControls && (
-            <Stack>
-              <GameNotation boardSize={700} />
+            <Stack h="100%">
+              <GameNotation />
               <MoveControls
                 goToStart={() => dispatch({ type: "GO_TO_START" })}
                 goToEnd={() => dispatch({ type: "GO_TO_END" })}

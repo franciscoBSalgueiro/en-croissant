@@ -78,7 +78,7 @@ function FilesPage() {
   }, [selected]);
 
   return (
-    <>
+    <Stack h="100%">
       <CreateModal
         opened={createModal}
         setOpened={toggleCreateModal}
@@ -94,13 +94,13 @@ function FilesPage() {
           metadata={selected}
         />
       )}
-      <Group align="baseline" pl="lg" py="xl">
+      <Group align="baseline" pl="lg" py="sm">
         <Title>Files</Title>
         <OpenFolderButton base="Document" folder="EnCroissant" />
       </Group>
 
-      <Group grow align="baseline">
-        <Stack>
+      <Group grow sx={{ flex: 1, overflow: "hidden" }}>
+        <Stack h="100%">
           <Group>
             <Input
               sx={{ flexGrow: 1 }}
@@ -142,7 +142,7 @@ function FilesPage() {
             ))}
           </Group>
 
-          <ScrollArea h={500} offsetScrollbars>
+          <ScrollArea sx={{ flex: 1 }} offsetScrollbars>
             <Stack>
               {filteredFiles.map((file) => (
                 <GenericCard
@@ -189,7 +189,7 @@ function FilesPage() {
           </Center>
         )}
       </Group>
-    </>
+    </Stack>
   );
 }
 export default FilesPage;

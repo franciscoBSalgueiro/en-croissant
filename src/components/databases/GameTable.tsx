@@ -4,7 +4,6 @@ import {
   Center,
   Collapse,
   Flex,
-  Grid,
   Group,
   RangeSlider,
   Select,
@@ -30,6 +29,7 @@ import useStyles from "./styles";
 import { useAtom, useSetAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { useNavigate } from "react-router-dom";
+import GridLayout from "./GridLayout";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -166,9 +166,9 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   ]);
 
   return (
-    <Grid my="md" grow>
-      <Grid.Col span={3}>
-        <Box mb="xl" className={classes.search}>
+    <>
+      <GridLayout
+        search={
           <Flex sx={{ gap: 20 }}>
             <Box sx={{ flexGrow: 1 }}>
               <Group grow>
@@ -239,95 +239,97 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               <IconDotsVertical size="1rem" />
             </ActionIcon>
           </Flex>
-        </Box>
-        <DataTable
-          height={500}
-          withBorder
-          highlightOnHover
-          records={games}
-          fetching={loading}
-          columns={[
-            {
-              accessor: "actions",
-              title: "",
-              render: (game) => (
-                <ActionIcon
-                  variant="filled"
-                  color={theme.primaryColor}
-                  onClick={() => {
-                    createTab({
-                      tab: {
-                        name: `${game.white} - ${game.black}`,
-                        type: "analysis",
-                      },
-                      setTabs,
-                      setActiveTab,
-                      pgn: game.moves,
-                      headers: game,
-                    });
-                    navigate("/boards");
-                  }}
-                >
-                  <IconEye size="1rem" stroke={1.5} />
-                </ActionIcon>
-              ),
-            },
-            {
-              accessor: "white",
-              render: ({ white, white_elo }) => (
-                <div>
-                  <Text size="sm" weight={500}>
-                    {white}
-                  </Text>
-                  <Text size="xs" color="dimmed">
-                    {white_elo}
-                  </Text>
-                </div>
-              ),
-            },
-            {
-              accessor: "black",
-              render: ({ black, black_elo }) => (
-                <div>
-                  <Text size="sm" weight={500}>
-                    {black}
-                  </Text>
-                  <Text size="xs" color="dimmed">
-                    {black_elo}
-                  </Text>
-                </div>
-              ),
-            },
-            { accessor: "date", sortable: true },
-            { accessor: "result" },
-            { accessor: "ply_count", sortable: true },
-          ]}
-          rowClassName={(_, i) => (i === selectedGame ? classes.selected : "")}
-          noRecordsText="No games found"
-          totalRecords={count}
-          recordsPerPage={limit}
-          page={activePage}
-          onPageChange={setActivePage}
-          onRecordsPerPageChange={setLimit}
-          sortStatus={sort}
-          onSortStatusChange={setSort}
-          recordsPerPageOptions={[10, 25, 50]}
-          onRowClick={(_, i) => {
-            setSelectedGame(i);
-          }}
-        />
-      </Grid.Col>
-
-      <Grid.Col span={2}>
-        {selectedGame !== null ? (
-          <GameCard game={games[selectedGame]} />
-        ) : (
-          <Center h="100%">
-            <Text>No game selected</Text>
-          </Center>
-        )}
-      </Grid.Col>
-    </Grid>
+        }
+        table={
+          <DataTable
+            withBorder
+            highlightOnHover
+            records={games}
+            fetching={loading}
+            columns={[
+              {
+                accessor: "actions",
+                title: "",
+                render: (game) => (
+                  <ActionIcon
+                    variant="filled"
+                    color={theme.primaryColor}
+                    onClick={() => {
+                      createTab({
+                        tab: {
+                          name: `${game.white} - ${game.black}`,
+                          type: "analysis",
+                        },
+                        setTabs,
+                        setActiveTab,
+                        pgn: game.moves,
+                        headers: game,
+                      });
+                      navigate("/boards");
+                    }}
+                  >
+                    <IconEye size="1rem" stroke={1.5} />
+                  </ActionIcon>
+                ),
+              },
+              {
+                accessor: "white",
+                render: ({ white, white_elo }) => (
+                  <div>
+                    <Text size="sm" weight={500}>
+                      {white}
+                    </Text>
+                    <Text size="xs" color="dimmed">
+                      {white_elo}
+                    </Text>
+                  </div>
+                ),
+              },
+              {
+                accessor: "black",
+                render: ({ black, black_elo }) => (
+                  <div>
+                    <Text size="sm" weight={500}>
+                      {black}
+                    </Text>
+                    <Text size="xs" color="dimmed">
+                      {black_elo}
+                    </Text>
+                  </div>
+                ),
+              },
+              { accessor: "date", sortable: true },
+              { accessor: "result" },
+              { accessor: "ply_count", sortable: true },
+            ]}
+            rowClassName={(_, i) =>
+              i === selectedGame ? classes.selected : ""
+            }
+            noRecordsText="No games found"
+            totalRecords={count}
+            recordsPerPage={limit}
+            page={activePage}
+            onPageChange={setActivePage}
+            onRecordsPerPageChange={setLimit}
+            sortStatus={sort}
+            onSortStatusChange={setSort}
+            recordsPerPageOptions={[10, 25, 50]}
+            onRowClick={(_, i) => {
+              setSelectedGame(i);
+            }}
+          />
+        }
+        preview={
+          selectedGame !== null ? (
+            <GameCard game={games[selectedGame]} />
+          ) : (
+            <Center h="100%">
+              <Text>No game selected</Text>
+            </Center>
+          )
+        }
+      />
+    </>
   );
 }
 

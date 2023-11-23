@@ -1,4 +1,4 @@
-import { Box, Center, Flex, Grid, Text, TextInput } from "@mantine/core";
+import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { DatabaseInfo, Player, query_tournaments } from "@/utils/db";
 import TournamentCard from "./TournamentCard";
 import useStyles from "./styles";
+import GridLayout from "./GridLayout";
 
 function TournamentTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -88,21 +89,20 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
   ]);
 
   return (
-    <Grid my="md" grow>
-      <Grid.Col span={3}>
-        <Box mb="xl" className={classes.search}>
-          <Flex sx={{ alignItems: "center", gap: 10 }}>
-            <TextInput
-              sx={{ flexGrow: 1 }}
-              placeholder="Search tournament..."
-              icon={<IconSearch size="1rem" />}
-              value={name}
-              onChange={(v) => setName(v.currentTarget.value)}
-            />
-          </Flex>
-        </Box>
+    <GridLayout
+      search={
+        <Flex sx={{ alignItems: "center", gap: 10 }}>
+          <TextInput
+            sx={{ flexGrow: 1 }}
+            placeholder="Search tournament..."
+            icon={<IconSearch size="1rem" />}
+            value={name}
+            onChange={(v) => setName(v.currentTarget.value)}
+          />
+        </Flex>
+      }
+      table={
         <DataTable
-          height={500}
           withBorder
           highlightOnHover
           records={tournaments}
@@ -125,10 +125,9 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
             setSelected(i);
           }}
         />
-      </Grid.Col>
-
-      <Grid.Col span={2}>
-        {selected !== null ? (
+      }
+      preview={
+        selected !== null ? (
           <TournamentCard
             tournament={tournaments[selected]}
             file={database.file}
@@ -137,9 +136,9 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
           <Center h="100%">
             <Text>No tournament selected</Text>
           </Center>
-        )}
-      </Grid.Col>
-    </Grid>
+        )
+      }
+    />
   );
 }
 
