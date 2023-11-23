@@ -10,11 +10,13 @@ function PiecesGrid({
   boardRef,
   vertical,
   onPut,
+  orientation = "white",
 }: {
   fen: string;
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   onPut: (newFen: string) => void;
   vertical?: boolean;
+  orientation?: "white" | "black";
 }) {
   return (
     <SimpleGrid cols={vertical ? 2 : 6} sx={{ flex: 1 }} w="100%">
@@ -35,6 +37,7 @@ function PiecesGrid({
               type: piece,
               color,
             }}
+            orientation={orientation}
           />
         ))
       )}

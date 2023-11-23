@@ -1,7 +1,10 @@
 import { Card, CloseButton, Divider, createStyles } from "@mantine/core";
 import FenInput from "../panels/info/FenInput";
 import PiecesGrid from "./PiecesGrid";
-import { TreeDispatchContext } from "../common/TreeStateContext";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
 import { useContext } from "react";
 
 const useStyles = createStyles((theme) => ({
@@ -27,6 +30,7 @@ function EditingCard({
   setEditingMode: (editing: boolean) => void;
 }) {
   const { classes } = useStyles();
+  const { headers } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
 
   return (
@@ -50,6 +54,7 @@ function EditingCard({
             payload: newFen,
           });
         }}
+        orientation={headers.orientation}
       />
     </Card>
   );

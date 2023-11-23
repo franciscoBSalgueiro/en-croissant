@@ -8,11 +8,13 @@ export default function PieceComponent({
   boardRef,
   putPiece,
   size,
+  orientation,
 }: {
   piece: Piece;
   boardRef?: React.RefObject<HTMLDivElement>;
   putPiece?: (square: Square, piece: Piece) => void;
   size?: number | string;
+  orientation?: "white" | "black";
 }) {
   size = size || "100%";
   const pieceRef = useRef<HTMLDivElement>(null);
@@ -42,9 +44,13 @@ export default function PieceComponent({
       const boardHeight = boardRect.height;
       const squareWidth = boardWidth / 8;
       const squareHeight = boardHeight / 8;
-      const x = Math.floor((position.x - boardRect.left) / squareWidth);
-      const y = Math.floor((position.y - boardRect.top) / squareHeight);
+      let x = Math.floor((position.x - boardRect.left) / squareWidth);
+      let y = Math.floor((position.y - boardRect.top) / squareHeight);
 
+      if (orientation === "black") {
+        x = 7 - x;
+        y = 7 - y;
+      }
       putPiece(`${String.fromCharCode(97 + x)}${8 - y}` as Square, piece);
     }
   };

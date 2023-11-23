@@ -205,7 +205,7 @@ function DatabasePanel({ fen }: { fen: string }) {
           <GamesTable games={openingData?.games || []} loading={isLoading} />
         </PanelWithError>
         <PanelWithError value="options" error={error} type={db}>
-          <ScrollArea h="100%">
+          <ScrollArea h="100%" offsetScrollbars>
             {match(db)
               .with("local", () => (
                 <LocalOptionsPanel boardFen={debouncedFen} />
