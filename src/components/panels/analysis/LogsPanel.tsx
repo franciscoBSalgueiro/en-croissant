@@ -104,7 +104,7 @@ export default function LogsPanel() {
         itemCount={filteredData?.length || 0}
         itemSize={30}
         height={250}
-        width={"100%"}
+        width="100%"
         innerElementType={Inner}
       >
         {({ index, style }) => (

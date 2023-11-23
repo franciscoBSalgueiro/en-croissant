@@ -5,11 +5,9 @@ import { Score } from "@/bindings";
 
 function EvalBar({
   score,
-  boardSize,
   orientation,
 }: {
   score: Score | null;
-  boardSize: number;
   orientation: Color;
 }) {
   const theme = useMantineTheme();
@@ -79,10 +77,9 @@ function EvalBar({
       disabled={!score}
     >
       <Box
-        mt={10}
         sx={{
           width: 25,
-          height: boardSize,
+          height: "100%",
           borderRadius: 10,
         }}
       >

@@ -14,7 +14,6 @@ export default function PieceComponent({
   putPiece?: (square: Square, piece: Piece) => void;
   size?: number | string;
 }) {
-  size = size ?? "100%";
   const pieceRef = useRef<HTMLDivElement>(null);
   if (!boardRef || !putPiece) {
     return (
@@ -62,9 +61,9 @@ export default function PieceComponent({
         ref={pieceRef}
         className={getPieceName(piece)}
         style={{
-          width: size,
-          height: size,
-          backgroundSize: "cover",
+          backgroundSize: "contain",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
           zIndex: 100,
         }}
       />

@@ -1,4 +1,12 @@
-import { Alert, Group, SegmentedControl, Tabs, Text } from "@mantine/core";
+import {
+  Alert,
+  Group,
+  ScrollArea,
+  SegmentedControl,
+  Stack,
+  Tabs,
+  Text,
+} from "@mantine/core";
 import { memo, useEffect } from "react";
 import { Opening, searchPosition } from "@/utils/db";
 import {
@@ -87,7 +95,7 @@ async function fetchOpening(db: DBType, tab: string) {
     .exhaustive();
 }
 
-function DatabasePanel({ height, fen }: { height: number; fen: string }) {
+function DatabasePanel({ fen }: { fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
   const [lichessOptions, setLichessOptions] = useAtom(
@@ -139,8 +147,8 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
   );
 
   return (
-    <>
-      <Group position="apart">
+    <Stack h="100%" spacing={0}>
+      <Group position="apart" w="100%">
         <SegmentedControl
           data={[
             { label: "Local", value: "local" },
@@ -168,6 +176,11 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
         placement="right"
         value={tabType}
         onTabChange={(v) => setTabType(v!)}
+        display="flex"
+        sx={{
+          flex: 1,
+          overflow: "hidden",
+        }}
       >
         <Tabs.List>
           <Tabs.Tab
@@ -185,26 +198,25 @@ function DatabasePanel({ height, fen }: { height: number; fen: string }) {
         <PanelWithError value="stats" error={error} type={db}>
           <OpeningsTable
             openings={openingData?.openings || []}
-            height={height}
             loading={isLoading}
           />
         </PanelWithError>
         <PanelWithError value="games" error={error} type={db}>
-          <GamesTable
-            games={openingData?.games || []}
-            height={height}
-            loading={isLoading}
-          />
+          <GamesTable games={openingData?.games || []} loading={isLoading} />
         </PanelWithError>
         <PanelWithError value="options" error={error} type={db}>
-          {match(db)
-            .with("local", () => <LocalOptionsPanel boardFen={debouncedFen} />)
-            .with("lch_all", () => <LichessOptionsPanel />)
-            .with("lch_master", () => <MasterOptionsPanel />)
-            .exhaustive()}
+          <ScrollArea h="100%">
+            {match(db)
+              .with("local", () => (
+                <LocalOptionsPanel boardFen={debouncedFen} />
+              ))
+              .with("lch_all", () => <LichessOptionsPanel />)
+              .with("lch_master", () => <MasterOptionsPanel />)
+              .exhaustive()}
+          </ScrollArea>
         </PanelWithError>
       </Tabs>
-    </>
+    </Stack>
   );
 }
 
@@ -224,7 +236,7 @@ function PanelWithError(props: {
   }
 
   return (
-    <Tabs.Panel pt="xs" mr="xs" value={props.value}>
+    <Tabs.Panel pt="xs" value={props.value} sx={{ flex: 1 }}>
       {children}
     </Tabs.Panel>
   );

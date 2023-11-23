@@ -11,6 +11,8 @@ const useStyles = createStyles((theme) => ({
     backgroundColor:
       theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
     zIndex: 10,
+    display: "flex",
+    flexDirection: "column",
   },
 }));
 
@@ -39,7 +41,6 @@ function EditingCard({
       <FenInput currentFen={fen} />
       <Divider my="md" />
       <PiecesGrid
-        size="4.5rem"
         fen={fen}
         boardRef={boardRef}
         onPut={(newFen) => {

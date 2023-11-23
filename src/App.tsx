@@ -62,6 +62,7 @@ const router = createBrowserRouter(
           header={<TopBar />}
           styles={(theme) => ({
             main: {
+              height: "100vh",
               userSelect: "none",
               backgroundColor:
                 theme.colorScheme === "dark"

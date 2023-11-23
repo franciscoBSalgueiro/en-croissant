@@ -20,7 +20,11 @@ import FileInfo from "./FileInfo";
 import { read_games } from "@/utils/db";
 import { parsePGN } from "@/utils/chess";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { currentPracticingAtom, currentTabAtom, missingMovesAtom } from "@/atoms/atoms";
+import {
+  currentPracticingAtom,
+  currentTabAtom,
+  missingMovesAtom,
+} from "@/atoms/atoms";
 import { invoke } from "@tauri-apps/api";
 import { formatNumber } from "@/utils/format";
 import RepertoireInfo from "./RepertoireInfo";
@@ -29,7 +33,7 @@ import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 import { getTreeStats } from "@/utils/repertoire";
 import PracticePanel from "./PracticePanel";
 
-function InfoPanel({ boardSize }: { boardSize: number }) {
+function InfoPanel() {
   const tree = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(tree.root, tree.position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
@@ -40,13 +44,7 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
   const practicing = useAtomValue(currentPracticingAtom);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: `${boardSize / 2}px`,
-      }}
-    >
+    <Stack h="100%">
       {practicing ? (
         <PracticePanel />
       ) : (
@@ -82,7 +80,7 @@ function InfoPanel({ boardSize }: { boardSize: number }) {
           </ScrollArea>
         </>
       )}
-    </Box>
+    </Stack>
   );
 }
 

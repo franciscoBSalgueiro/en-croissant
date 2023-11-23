@@ -61,8 +61,8 @@ function EngineSelection() {
       >
         Manage Engines
       </Button>
-      <Collapse in={showSettings}>
-        <Stack spacing="xl">
+      <Collapse in={showSettings} >
+        <Stack spacing="xl" >
           {engines.length === 0 && (
             <Center>
               <Text>
@@ -71,7 +71,7 @@ function EngineSelection() {
               </Text>
             </Center>
           )}
-          <Grid grow>
+          <Grid grow w="100%">
             {engines.map((engine) => (
               <EngineBox key={engine.name} engine={engine} />
             ))}

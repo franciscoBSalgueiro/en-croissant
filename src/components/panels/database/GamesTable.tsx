@@ -10,11 +10,9 @@ import { useNavigate } from "react-router-dom";
 
 function GamesTable({
   games,
-  height,
   loading,
 }: {
   games: NormalizedGame[];
-  height: number;
   loading: boolean;
 }) {
   const [, setTabs] = useAtom(tabsAtom);
@@ -26,7 +24,6 @@ function GamesTable({
     <DataTable
       withBorder
       highlightOnHover
-      height={height}
       records={games}
       fetching={loading}
       columns={[

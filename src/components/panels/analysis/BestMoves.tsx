@@ -14,6 +14,7 @@ import {
   Accordion,
   ActionIcon,
   Box,
+  Code,
   Group,
   Progress,
   Skeleton,
@@ -181,7 +182,7 @@ export default function BestMovesComponent({
   return useMemo(
     () => (
       <>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box sx={{ display: "flex" }}>
           <Stack spacing={0} py="1rem">
             <ActionIcon
               size="lg"
@@ -200,21 +201,21 @@ export default function BestMovesComponent({
             </ActionIcon>
           </Stack>
 
-          <Accordion.Control>
+          <Accordion.Control sx={{ flex: 1 }}>
             <Group position="apart">
-              <Group align="baseline">
+              <Group align="center">
                 <Text fw="bold" fz="xl">
                   {engine.name}
                 </Text>
                 {settings.enabled &&
                   !isGameOver &&
-                  engineVariations.length === 0 && <Text>Loading...</Text>}
+                  engineVariations.length === 0 && <Code fz="xs">Loading...</Code>}
                 {progress < 100 &&
                   settings.enabled &&
                   !isGameOver &&
                   engineVariations.length > 0 && (
                     <Tooltip label={"How fast the engine is running"}>
-                      <Text>{nps}k nodes/s</Text>
+                      <Code fz="xs">{nps}k nodes/s</Code>
                     </Tooltip>
                   )}
               </Group>
@@ -258,11 +259,19 @@ export default function BestMovesComponent({
               onClick={() => toggleThreat()}
               disabled={!settings.enabled}
               variant="transparent"
+              mt="auto"
+              mb="auto"
             >
               <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
             </ActionIcon>
           </Tooltip>
-          <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
+          <ActionIcon
+            size="lg"
+            onClick={() => toggleSettingsOn()}
+            mr={8}
+            mt="auto"
+            mb="auto"
+          >
             <IconSettings size="1rem" />
           </ActionIcon>
         </Box>

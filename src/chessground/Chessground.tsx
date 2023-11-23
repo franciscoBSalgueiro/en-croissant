@@ -29,8 +29,7 @@ export function Chessground(props: ChessgroundProps) {
   return (
     <div
       style={{
-        height: props.height,
-        width: props.width,
+        aspectRatio: 1,
       }}
       ref={ref}
     />

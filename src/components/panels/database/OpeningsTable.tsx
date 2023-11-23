@@ -18,11 +18,9 @@ const useStyles = createStyles(() => ({
 
 function OpeningsTable({
   openings,
-  height,
   loading,
 }: {
   openings: Opening[];
-  height: number;
   loading: boolean;
 }) {
   const { classes } = useStyles();
@@ -49,7 +47,6 @@ function OpeningsTable({
     <DataTable
       withBorder
       highlightOnHover
-      height={height}
       records={openings}
       fetching={loading || openings === null}
       rowStyle={(game, i) => {

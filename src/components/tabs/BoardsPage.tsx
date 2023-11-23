@@ -1,10 +1,4 @@
-import {
-  ActionIcon,
-  createStyles,
-  ScrollArea,
-  Stack,
-  Tabs,
-} from "@mantine/core";
+import { ActionIcon, createStyles, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { createTab, genID, Tab } from "@/utils/tabs";
@@ -22,6 +16,9 @@ import { match } from "ts-pattern";
 import { Reorder } from "framer-motion";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
+
+import "react-mosaic-component/react-mosaic-component.css";
+import "@/styles/react-mosaic.css";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -181,63 +178,66 @@ export default function BoardsPage() {
         onTabChange={(v) => setActiveTab(v)}
         variant="outline"
         keepMounted={false}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          width: "100%",
+        }}
       >
-        <Stack>
-          <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
-            <Reorder.Group
-              axis="x"
-              as="div"
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                overflow: "hidden",
-                marginBlockStart: 0,
-              }}
-              layoutScroll
-              values={tabs}
-              onReorder={setTabs}
-            >
-              {tabs.map((tab) => (
-                <Reorder.Item
-                  key={tab.value}
-                  value={tab}
-                  as="div"
-                  onClick={() => setActiveTab(tab.value)}
-                >
-                  <BoardTab
-                    tab={tab}
-                    setActiveTab={setActiveTab}
-                    closeTab={closeTab}
-                    renameTab={renameTab}
-                    duplicateTab={duplicateTab}
-                    selected={activeTab === tab.value}
-                  />
-                </Reorder.Item>
-              ))}
-              <ActionIcon
-                onClick={() =>
-                  createTab({
-                    tab: {
-                      name: "New Tab",
-                      type: "new",
-                    },
-                    setTabs,
-                    setActiveTab,
-                  })
-                }
-                className={classes.newTab}
+        <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
+          <Reorder.Group
+            axis="x"
+            as="div"
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              overflow: "hidden",
+              marginBlockStart: 0,
+            }}
+            layoutScroll
+            values={tabs}
+            onReorder={setTabs}
+          >
+            {tabs.map((tab) => (
+              <Reorder.Item
+                key={tab.value}
+                value={tab}
+                as="div"
+                onClick={() => setActiveTab(tab.value)}
               >
-                <IconPlus size="1rem" />
-              </ActionIcon>
-            </Reorder.Group>
-          </ScrollArea>
-
-          {tabs.map((tab) => (
-            <Tabs.Panel key={tab.value} value={tab.value}>
-              <TabSwitch tab={tab} />
-            </Tabs.Panel>
-          ))}
-        </Stack>
+                <BoardTab
+                  tab={tab}
+                  setActiveTab={setActiveTab}
+                  closeTab={closeTab}
+                  renameTab={renameTab}
+                  duplicateTab={duplicateTab}
+                  selected={activeTab === tab.value}
+                />
+              </Reorder.Item>
+            ))}
+            <ActionIcon
+              onClick={() =>
+                createTab({
+                  tab: {
+                    name: "New Tab",
+                    type: "new",
+                  },
+                  setTabs,
+                  setActiveTab,
+                })
+              }
+              className={classes.newTab}
+            >
+              <IconPlus size="1rem" />
+            </ActionIcon>
+          </Reorder.Group>
+        </ScrollArea>
+        {tabs.map((tab) => (
+          <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%">
+            <TabSwitch tab={tab} />
+          </Tabs.Panel>
+        ))}
       </Tabs>
     </>
   );

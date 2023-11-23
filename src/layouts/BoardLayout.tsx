@@ -9,14 +9,13 @@ function BoardLayout({
 }) {
   return (
     <>
-      <Flex gap="md" wrap="nowrap" align="start">
+      <Flex gap="md" wrap="nowrap" align="start" h="100%">
         {board}
         <Stack
           sx={{
             flex: 1,
             flexGrow: 1,
-            justifyContent: "space-between",
-            height: window.innerWidth > 1000 ? "80vh" : "100%",
+            height: "100%",
           }}
         >
           {children}
