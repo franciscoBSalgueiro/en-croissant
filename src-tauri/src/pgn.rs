@@ -18,7 +18,7 @@ struct PgnParser {
 }
 
 lazy_static! {
-    static ref GAME_TERMINATION_MARKER : Regex = Regex::new(r"(1-0|0-1|1/2-1/2|\*)$").unwrap();
+    static ref GAME_TERMINATION_MARKER : Regex = Regex::new(r"\s+(1-0|0-1|1/2-1/2|\*)$").unwrap();
 }
 
 impl PgnParser {
@@ -269,6 +269,12 @@ fn test_gtm_draw() {
 fn test_gtm_unknown() {
     let s = String::from("1. e4 f5 2. d4 g5 *\n");
     assert!(is_end_of_game(&*s))
+}
+
+#[test]
+fn test_weird_gtm() {
+    let s = String::from("1. e4 f5 2. d4 g5 11-0\n");
+    assert!(!is_end_of_game(&*s))
 }
 
 #[test]
