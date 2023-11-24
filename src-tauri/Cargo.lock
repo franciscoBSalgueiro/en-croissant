@@ -1093,6 +1093,7 @@ dependencies = [
  "quick-xml 0.30.0",
  "rand 0.8.5",
  "rayon",
+ "regex",
  "reqwest",
  "rusqlite",
  "serde",
