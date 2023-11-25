@@ -76,7 +76,7 @@ interface ChessboardProps {
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
-  movable: "both" | "white" | "black" | "turn" | "none";
+  movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
   addGame?: () => void;
