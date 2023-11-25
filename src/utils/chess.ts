@@ -97,9 +97,10 @@ type AnnotationInfo = {
 
 export const BRUSH_COLORS = new Map<string, string>([
     ["DEFAULT", "green"],
+    ["R", "red"],
     ["G", "green"],
-    ["B", "blue"],
-    ["R", "red"]]);
+    ["Y", "yellow"],
+    ["B", "blue"]]);
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
     "": { name: "None", color: "gray" },
@@ -435,13 +436,13 @@ function innerParsePGN(
                 root.score = parseScore(evl[1]);
             }
 
-            const csl = comment.match(/\[%csl\s+((?:[RGB][a-h][1-8],?)+)\]/);
+            const csl = comment.match(/\[%csl\s+((?:[RGYB][a-h][1-8],?)+)\]/);
             if (csl) {
                 root.shapes.push(...parseCsl(csl[1]));
             }
 
             const cal = comment.match(
-                /\[%cal\s+((?:[RGB][a-h][1-8][a-h][1-8],?)+)\]/
+                /\[%cal\s+((?:[RGYB][a-h][1-8][a-h][1-8],?)+)\]/
             );
             if (cal) {
                 root.shapes.push(...parseCal(cal[1]));
