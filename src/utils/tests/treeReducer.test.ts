@@ -459,34 +459,36 @@ test("should handle SET_SHAPES", () => {
 test("should handle ADD_ANALYSIS", () => {
     const initialState = treeE4D5();
     initialState.position = [0];
-    const analysis: MoveAnalysis[] = [
+    const analysis = [
         {
-            best: {
+            best: [{
                 depth: 1,
                 multipv: 1,
                 score: {
-                    type: "cp",
+                    type: "cp" as const,
                     value: 10,
                 },
                 nps: 1000,
                 sanMoves: ["e4"],
                 uciMoves: ["e2e4"],
-            },
+            }],
             novelty: false,
+            maybe_brilliant: false,
         },
         {
-            best: {
+            best: [{
                 depth: 1,
                 multipv: 1,
                 score: {
-                    type: "cp",
+                    type: "cp" as const,
                     value: 20,
                 },
                 nps: 1000,
                 sanMoves: ["d5"],
                 uciMoves: ["d7d5"],
-            },
+            }],
             novelty: false,
+            maybe_brilliant: false,
         },
     ];
 
@@ -495,11 +497,11 @@ test("should handle ADD_ANALYSIS", () => {
         position: [0],
         dirty: true,
     };
-    expectedState.root.children[0].score = {
+    expectedState.root.score = {
         type: "cp",
         value: 10,
     };
-    expectedState.root.children[0].children[0].score = {
+    expectedState.root.children[0].score = {
         type: "cp",
         value: 20,
     };

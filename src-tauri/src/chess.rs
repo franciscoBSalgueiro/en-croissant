@@ -433,21 +433,23 @@ pub async fn get_best_moves(
             if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
                 let multipv = best_moves.multipv;
                 let cur_depth = best_moves.depth;
-                proc.best_moves.push(best_moves);
-                if multipv == proc.real_multipv {
-                    if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                        && cur_depth >= proc.last_depth
-                    {
-                        BestMovesPayload {
-                            best_lines: proc.best_moves.clone(),
-                            engine: engine.clone(),
-                            tab: tab.clone(),
+                if multipv as usize == proc.best_moves.len() + 1 {
+                    proc.best_moves.push(best_moves);
+                    if multipv == proc.real_multipv {
+                        if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                            && cur_depth >= proc.last_depth
+                        {
+                            BestMovesPayload {
+                                best_lines: proc.best_moves.clone(),
+                                engine: engine.clone(),
+                                tab: tab.clone(),
+                            }
+                            .emit_all(&app)?;
+                            proc.last_depth = cur_depth;
+                            proc.last_best_moves = proc.best_moves.clone();
                         }
-                        .emit_all(&app)?;
-                        proc.last_depth = cur_depth;
-                        proc.last_best_moves = proc.best_moves.clone();
+                        proc.best_moves.clear();
                     }
-                    proc.best_moves.clear();
                 }
             }
         }
@@ -460,8 +462,9 @@ pub async fn get_best_moves(
 
 #[derive(Serialize, Debug, Default, Type)]
 pub struct MoveAnalysis {
-    best: BestMoves,
+    best: Vec<BestMoves>,
     novelty: bool,
+    maybe_brilliant: bool,
 }
 
 #[derive(Deserialize, Debug, Default, Type)]
@@ -470,6 +473,7 @@ pub struct AnalysisOptions {
     pub fen: String,
     pub annotate_novelties: bool,
     pub reference_db: Option<PathBuf>,
+    pub reversed: bool,
 }
 
 #[tauri::command]
@@ -485,35 +489,45 @@ pub async fn analyze_game(
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
-    let (mut process, mut reader) = EngineProcess::new(path).await?;
+    let (mut proc, mut reader) = EngineProcess::new(path).await?;
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
-    let mut chess: Chess = fen.into_position(CastlingMode::Standard)?;
+    let mut chess: Chess = fen.clone().into_position(CastlingMode::Standard)?;
+    let mut fens: Vec<(Fen, bool)> = vec![(fen, false)];
 
-    let len_moves = moves.len();
+    moves.iter().for_each(|m| {
+        let san = San::from_ascii(m.as_bytes()).unwrap();
+        let m = san.to_move(&chess).unwrap();
+        let mut previous_setup = chess.clone().into_setup(EnPassantMode::Legal);
+        previous_setup.swap_turn();
+        chess.play_unchecked(&m);
+        let current_setup = chess.clone().into_setup(EnPassantMode::Legal);
+        if !chess.is_game_over() {
+            fens.push((
+                Fen::from_position(chess.clone(), EnPassantMode::Legal),
+                count_attacked_material(&previous_setup) <= count_attacked_material(&current_setup),
+            ));
+        }
+    });
+
+    if options.reversed {
+        fens.reverse();
+    }
 
     let mut novelty_found = false;
 
-    for (i, m) in moves.iter().enumerate() {
+    for (i, (fen, maybe_brilliant)) in fens.iter().enumerate() {
         app.emit_all(
             "report_progress",
             ProgressPayload {
-                progress: (i as f64 / len_moves as f64) * 100.0,
+                progress: (i as f64 / fens.len() as f64) * 100.0,
                 id: 0,
                 finished: false,
             },
         )?;
-        let san = San::from_ascii(m.as_bytes())?;
-        let m = san.to_move(&chess)?;
-        chess.play_unchecked(&m);
-        if chess.is_game_over() {
-            break;
-        }
-        let fen = Fen::from_position(chess.clone(), EnPassantMode::Legal);
-        let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
-        process
+        proc
             .set_options(EngineOptions {
                 threads: 4,
                 multipv: 1,
@@ -523,14 +537,28 @@ pub async fn analyze_game(
             })
             .await?;
 
-        process.go(&go_mode).await?;
+        proc.go(&go_mode).await?;
 
         let mut current_analysis = MoveAnalysis::default();
         while let Ok(Some(line)) = reader.next_line().await {
             match parse_one(&line) {
                 UciMessage::Info(attrs) => {
-                    if let Ok(best_moves) = parse_uci_attrs(attrs, &fen) {
-                        current_analysis.best = best_moves;
+                    if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
+                        let multipv = best_moves.multipv;
+                        let cur_depth = best_moves.depth;
+                        if multipv as usize == proc.best_moves.len() + 1 {
+                            proc.best_moves.push(best_moves);
+                            if multipv == proc.real_multipv {
+                                if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                    && cur_depth >= proc.last_depth
+                                {
+                                    current_analysis.best = proc.best_moves.clone();
+                                    proc.last_depth = cur_depth;
+                                }
+                                assert_eq!(proc.best_moves.len(), proc.real_multipv as usize);
+                                proc.best_moves.clear();
+                            }
+                        }
                     }
                 }
                 UciMessage::BestMove { .. } => {
@@ -539,19 +567,30 @@ pub async fn analyze_game(
                 _ => {}
             }
         }
+        println!("Analysis: {:?}", current_analysis);
+        analysis.push(current_analysis);
+    }
 
+    if options.reversed {
+        analysis.reverse();
+        fens.reverse();
+    }
+
+    for (i, analysis) in analysis.iter_mut().enumerate() {
+        let fen = &fens[i].0;
+        let query = PositionQuery::exact_from_fen(&fen.to_string())?;
+
+        analysis.maybe_brilliant = fens[i].1;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
-                current_analysis.novelty =
-                    !is_position_in_db(reference, query, state.clone()).await?;
-                if current_analysis.novelty {
+                analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;
+                if analysis.novelty {
                     novelty_found = true;
                 }
             } else {
                 return Err(Error::MissingReferenceDatabase);
             }
         }
-        analysis.push(current_analysis);
     }
     app.emit_all(
         "report_progress",
@@ -562,6 +601,71 @@ pub async fn analyze_game(
         },
     )?;
     Ok(analysis)
+}
+
+fn count_attacked_material(pos: &Setup) -> i32 {
+    let mut attacked_material = 0;
+    let mut seen_attacked = Vec::new();
+    for s in Square::ALL.iter() {
+        if let Some(piece) = pos.board.piece_at(*s) {
+            if piece.color == pos.turn {
+                let squares_attacked = pos.board.attacks_from(*s);
+                for square in Square::ALL.iter() {
+                    if squares_attacked.contains(*square) && !seen_attacked.contains(square) {
+                        if let Some(attacked_piece) = pos.board.piece_at(*square) {
+                            seen_attacked.push(*square);
+                            if attacked_piece.color != pos.turn {
+                                attacked_material += match attacked_piece.role {
+                                    Role::Pawn => 1,
+                                    Role::Knight => 3,
+                                    Role::Bishop => 3,
+                                    Role::Rook => 5,
+                                    Role::Queen => 9,
+                                    Role::King => 1000,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    attacked_material
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_attacked_material() {
+        assert_eq!(count_attacked_material(&Setup::default()), 0);
+
+        let fen: Fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 1);
+
+        let fen: Fen = "r1bqkbnr/ppp1pppp/2n5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 1);
+
+        let fen: Fen = "r1bqkbnr/ppp2ppp/2n5/1B1pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 5);
+
+        let fen: Fen = "r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 4);
+
+        let fen: Fen = "r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq"
+            .parse()
+            .unwrap();
+        assert_eq!(count_attacked_material(&fen.into_setup()), 1003);
+    }
 }
 
 #[tauri::command]

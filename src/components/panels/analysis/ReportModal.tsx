@@ -6,16 +6,14 @@ import {
   NumberInput,
   Select,
   Stack,
-  Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { memo, useContext } from "react";
-import { formatDuration } from "@/utils/format";
 import { unwrap } from "@/utils/invoke";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
 import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
-import { commands } from "@/bindings";
+import { GoMode, commands } from "@/bindings";
 
 function ReportModal({
   initialFen,
@@ -36,17 +34,15 @@ function ReportModal({
 
   const form = useForm({
     initialValues: {
-      engine: "",
-      millisecondsPerMove: 500,
+      engine: engines[0]?.path ?? "",
       novelty: true,
+      reversed: true,
+      goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
     },
 
     validate: {
       engine: (value) => {
         if (!value) return "Engine is required";
-      },
-      millisecondsPerMove: (value) => {
-        if (!value) return "Milliseconds per move is required";
       },
       novelty: (value) => {
         if (value && !referenceDb)
@@ -62,14 +58,12 @@ function ReportModal({
       .analyzeGame(
         moves,
         form.values.engine,
-        {
-          t: "Time",
-          c: form.values.millisecondsPerMove,
-        },
+        form.values.goMode,
         {
           annotateNovelties: form.values.novelty,
           fen: initialFen,
           referenceDb,
+          reversed: form.values.reversed
         }
       )
       .then((analysis) => {
@@ -103,12 +97,34 @@ function ReportModal({
             }
             {...form.getInputProps("engine")}
           />
-          <NumberInput
-            withAsterisk
-            label="Milliseconds per Move"
-            min={1}
-            step={200}
-            {...form.getInputProps("millisecondsPerMove")}
+          <Group noWrap>
+            <Select
+              dropdownPosition="bottom"
+              data={["Depth", { label: "Time (ms)", value: "Time" }, "Nodes"]}
+              value={form.values.goMode.t}
+              onChange={(v) => {
+                const newGo = form.values.goMode;
+                newGo.t = v as "Depth" | "Time" | "Nodes";
+                form.setFieldValue("goMode", newGo);
+              }}
+            />
+            <NumberInput
+              min={1}
+              value={form.values.goMode.c}
+              onChange={(v) =>
+                form.setFieldValue("goMode", {
+                  ...form.values.goMode,
+                  c: v || 1,
+                })
+              }
+            />
+          </Group>
+
+
+          <Checkbox
+            label="Reversed analysis"
+            description="Analyze the game in starting from the last move."
+            {...form.getInputProps("reversed", { type: "checkbox" })}
           />
 
           <Checkbox
@@ -116,11 +132,6 @@ function ReportModal({
             description="Add a comment to the first position that is not in the reference database."
             {...form.getInputProps("novelty", { type: "checkbox" })}
           />
-
-          <Text size="sm">
-            Estimated time:{" "}
-            {formatDuration(moves.length * form.values.millisecondsPerMove)}
-          </Text>
 
           <Group position="right">
             <Button type="submit">Analyze</Button>

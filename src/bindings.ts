@@ -20,7 +20,7 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async analyzeGame(moves: string[], engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves; novelty: boolean }[], string>> {
+async analyzeGame(moves: string[], engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; maybe_brilliant: boolean }[], string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { moves, engine, goMode, options }) };
 } catch (e) {
@@ -65,7 +65,7 @@ bestMovesPayload: "plugin:tauri-specta:best-moves-payload"
 
 /** user-defined types **/
 
-export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null }
+export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string }
 export type EngineOption = { name: string; value: string }

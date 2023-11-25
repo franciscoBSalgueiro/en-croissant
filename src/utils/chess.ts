@@ -25,6 +25,7 @@ import {
     createNode,
     defaultTree,
     GameHeaders,
+    getColorFromFen,
     getNodeAtPath,
     headersToPGN,
     TreeNode,
@@ -122,8 +123,9 @@ export interface BestMoves {
 }
 
 export interface MoveAnalysis {
-    best: BestMoves;
+    best: BestMoves[];
     novelty: boolean;
+    maybe_brilliant: boolean;
 }
 
 export function getMoveText(
@@ -424,6 +426,9 @@ function innerParsePGN(
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
+    if (halfMoves === 0 && getColorFromFen(fen) === "b") {
+        root.halfMoves += 1;
+    }
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
