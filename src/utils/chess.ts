@@ -42,12 +42,12 @@ function parseCsl(csl: string): DrawShape[] {
         if (square.length === 2) {
             return {
                 orig: square as Square,
-                brush: "green",
+                brush: BRUSH_COLORS.get("DEFAULT"),
             } as DrawShape;
         } else if (square.length === 3) {
             return {
                 orig: square.slice(1) as Square,
-                brush: "green",
+                brush: BRUSH_COLORS.get(square[0].toUpperCase()),
             } as DrawShape;
         } else {
             throw new Error("Invalid square: " + square);
@@ -57,19 +57,19 @@ function parseCsl(csl: string): DrawShape[] {
     return shapes;
 }
 
-function parseCal(csl: string): DrawShape[] {
-    const shapes = csl.split(",").map((square) => {
+function parseCal(cal: string): DrawShape[] {
+    const shapes = cal.split(",").map((square) => {
         if (square.length === 4) {
             return {
                 orig: square.slice(0, 2) as Square,
                 dest: square.slice(2) as Square,
-                brush: "green",
+                brush: BRUSH_COLORS.get("DEFAULT"),
             } as DrawShape;
         } else if (square.length === 5) {
             return {
                 orig: square.slice(1, 3) as Square,
                 dest: square.slice(3) as Square,
-                brush: "green",
+                brush: BRUSH_COLORS.get(square[0].toUpperCase()),
             } as DrawShape;
         } else {
             throw new Error("Invalid square: " + square);
@@ -94,6 +94,13 @@ type AnnotationInfo = {
     name: string;
     color: MantineColor;
 };
+
+export const BRUSH_COLORS = new Map<string, string>([
+    ["DEFAULT", "green"],
+    ["R", "red"],
+    ["G", "green"],
+    ["Y", "yellow"],
+    ["B", "blue"]]);
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
     "": { name: "None", color: "gray" },
@@ -156,20 +163,17 @@ export function getMoveText(
 
         if (opt.specialSymbols && tree.shapes.length > 0) {
             const squares = tree.shapes
-                .filter((shape) => shape.dest === undefined)
-                .map((shape) => {
-                    return shape.orig;
-                });
+                .filter((shape) => shape.dest === undefined);
             const arrows = tree.shapes
-                .filter((shape) => shape.dest !== undefined)
-                .map((shape) => {
-                    return shape.orig + shape.dest;
-                });
+                .filter((shape) => shape.dest !== undefined);
+
             if (squares.length > 0) {
-                content += `[%csl ${squares.join(",")}] `;
+                content += "[%csl " + squares.map(
+                    (shape) => {return shape.brush[0].toUpperCase() + shape.orig}).join(",") + "]";
             }
             if (arrows.length > 0) {
-                content += `[%cal ${arrows.join(",")}] `;
+                content += "[%cal " + arrows.map(
+                    (shape) => {return shape.brush[0].toUpperCase() + shape.orig + shape.dest}).join(",") + "]";
             }
         }
 
@@ -432,13 +436,13 @@ function innerParsePGN(
                 root.score = parseScore(evl[1]);
             }
 
-            const csl = comment.match(/\[%csl\s+((?:[a-h][1-8],?)+)\]/);
+            const csl = comment.match(/\[%csl\s+((?:[RGYB][a-h][1-8],?)+)\]/);
             if (csl) {
                 root.shapes.push(...parseCsl(csl[1]));
             }
 
             const cal = comment.match(
-                /\[%cal\s+((?:[a-h][1-8][a-h][1-8],?)+)\]/
+                /\[%cal\s+((?:[RGYB][a-h][1-8][a-h][1-8],?)+)\]/
             );
             if (cal) {
                 root.shapes.push(...parseCal(cal[1]));
