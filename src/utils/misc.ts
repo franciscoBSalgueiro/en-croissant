@@ -73,6 +73,6 @@ export function mean(arr: number[]): number {
 }
 
 export function harmonicMean(arr: number[]): number {
-    const sum = arr.reduce((a, b) => a + 1 / b, 0);
+    const sum = arr.reduce((a, b) => a + 1 / Math.max(1, b), 0);
     return arr.length / sum;
 }
