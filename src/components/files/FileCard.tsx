@@ -65,7 +65,7 @@ function FileCard({
   }
 
   return (
-    <Stack>
+    <Stack h="100%">
       <Stack align="center">
         <Text align="center" fz="xl" fw="bold">
           {selected?.name}
@@ -94,17 +94,15 @@ function FileCard({
 
       {selectedGame && (
         <>
-          <Box h={150}>
-            <GameSelector
-              height={150}
-              setGames={setGames}
-              games={games}
-              activePage={page}
-              path={selected.path}
-              setPage={setPage}
-              total={selected.numGames}
-            />
-          </Box>
+          <GameSelector
+            height={150}
+            setGames={setGames}
+            games={games}
+            activePage={page}
+            path={selected.path}
+            setPage={setPage}
+            total={selected.numGames}
+          />
           <GamePreview pgn={selectedGame} />
         </>
       )}

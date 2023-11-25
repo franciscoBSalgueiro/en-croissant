@@ -52,8 +52,8 @@ function PlayerCard({
   });
 
   return (
-    <Paper shadow="sm" p="sm" withBorder>
-      <Stack align="center">
+    <Paper shadow="sm" p="sm" withBorder h="100%">
+      <Stack h="100%">
         <Text fz="lg" weight={500}>
           {tournament.name}
         </Text>
@@ -61,7 +61,6 @@ function PlayerCard({
           withBorder
           highlightOnHover
           records={sortedGames}
-          height={500}
           sortStatus={sort}
           onSortStatusChange={setSort}
           columns={[

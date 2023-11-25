@@ -1,6 +1,6 @@
-import { AspectRatio, Group, Stack } from "@mantine/core";
+import { AspectRatio, Group, Stack, Text } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { Chessground } from "@/chessground/Chessground";
 import MoveControls from "../common/MoveControls";
 import { useSetAtom } from "jotai";
@@ -11,17 +11,41 @@ import {
   TreeStateContext,
 } from "../common/TreeStateContext";
 import { useImmerReducer } from "use-immer";
-import { parsePGN } from "@/utils/chess";
-import treeReducer, { defaultTree, getNodeAtPath } from "@/utils/treeReducer";
+import treeReducer, { TreeState, getNodeAtPath } from "@/utils/treeReducer";
 import { useNavigate } from "react-router-dom";
+import { parsePGN } from "@/utils/chess";
+import useSWR from "swr";
 
-function GamePreview({
+function GamePreviewWrapper({
   id,
   pgn,
   hideControls,
 }: {
   id?: string;
   pgn: string;
+  hideControls?: boolean;
+}) {
+  const { data: parsedGame, isLoading } = useSWR(pgn, async (game) => {
+    return await parsePGN(game);
+  });
+
+  return (
+    <>
+      {isLoading && <Text ta="center">Loading...</Text>}
+      {parsedGame && (
+        <GamePreview game={parsedGame} hideControls={hideControls} id={id} />
+      )}
+    </>
+  );
+}
+
+function GamePreview({
+  id,
+  game,
+  hideControls,
+}: {
+  id?: string;
+  game: TreeState;
   hideControls?: boolean;
 }) {
   const navigate = useNavigate();
@@ -35,19 +59,7 @@ function GamePreview({
     }
   }
 
-  const [treeState, dispatch] = useImmerReducer(
-    treeReducer,
-    undefined,
-    defaultTree
-  );
-
-  useEffect(() => {
-    async function loadPGN() {
-      const parsed = await parsePGN(pgn);
-      dispatch({ type: "SET_STATE", payload: parsed });
-    }
-    loadPGN();
-  }, [dispatch, pgn]);
+  const [treeState, dispatch] = useImmerReducer(treeReducer, game);
 
   useHotkeys([
     ["ArrowLeft", () => dispatch({ type: "GO_TO_PREVIOUS" })],
@@ -57,13 +69,16 @@ function GamePreview({
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
-        <Group onClick={() => goToGame()} grow>
-          <AspectRatio ratio={1}>
-            <PreviewBoard />
-          </AspectRatio>
+        <Group
+          onClick={() => goToGame()}
+          grow
+          h="100%"
+          sx={{ overflow: "hidden" }}
+        >
+          <PreviewBoard />
           {!hideControls && (
-            <Stack>
-              <GameNotation boardSize={700} />
+            <Stack h="100%">
+              <GameNotation />
               <MoveControls
                 goToStart={() => dispatch({ type: "GO_TO_START" })}
                 goToEnd={() => dispatch({ type: "GO_TO_END" })}
@@ -95,4 +110,4 @@ function PreviewBoard() {
   );
 }
 
-export default GamePreview;
+export default GamePreviewWrapper;

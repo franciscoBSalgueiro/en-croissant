@@ -1,10 +1,4 @@
-import {
-  ActionIcon,
-  createStyles,
-  ScrollArea,
-  Stack,
-  Tabs,
-} from "@mantine/core";
+import { ActionIcon, createStyles, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { createTab, genID, Tab } from "@/utils/tabs";
@@ -15,13 +9,17 @@ import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
 import { useCallback, useEffect } from "react";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import { match } from "ts-pattern";
 import { Reorder } from "framer-motion";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
+
+import "react-mosaic-component/react-mosaic-component.css";
+import "@/styles/react-mosaic.css";
+import { Mosaic, MosaicNode } from "react-mosaic-component";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -181,81 +179,132 @@ export default function BoardsPage() {
         onTabChange={(v) => setActiveTab(v)}
         variant="outline"
         keepMounted={false}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          width: "100%",
+        }}
       >
-        <Stack>
-          <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
-            <Reorder.Group
-              axis="x"
-              as="div"
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                overflow: "hidden",
-                marginBlockStart: 0,
-              }}
-              layoutScroll
-              values={tabs}
-              onReorder={setTabs}
-            >
-              {tabs.map((tab) => (
-                <Reorder.Item
-                  key={tab.value}
-                  value={tab}
-                  as="div"
-                  onClick={() => setActiveTab(tab.value)}
-                >
-                  <BoardTab
-                    tab={tab}
-                    setActiveTab={setActiveTab}
-                    closeTab={closeTab}
-                    renameTab={renameTab}
-                    duplicateTab={duplicateTab}
-                    selected={activeTab === tab.value}
-                  />
-                </Reorder.Item>
-              ))}
-              <ActionIcon
-                onClick={() =>
-                  createTab({
-                    tab: {
-                      name: "New Tab",
-                      type: "new",
-                    },
-                    setTabs,
-                    setActiveTab,
-                  })
-                }
-                className={classes.newTab}
+        <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
+          <Reorder.Group
+            axis="x"
+            as="div"
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              overflow: "hidden",
+              marginBlockStart: 0,
+            }}
+            layoutScroll
+            values={tabs}
+            onReorder={setTabs}
+          >
+            {tabs.map((tab) => (
+              <Reorder.Item
+                key={tab.value}
+                value={tab}
+                as="div"
+                onClick={() => setActiveTab(tab.value)}
               >
-                <IconPlus size="1rem" />
-              </ActionIcon>
-            </Reorder.Group>
-          </ScrollArea>
-
-          {tabs.map((tab) => (
-            <Tabs.Panel key={tab.value} value={tab.value}>
-              <TabSwitch tab={tab} />
-            </Tabs.Panel>
-          ))}
-        </Stack>
+                <BoardTab
+                  tab={tab}
+                  setActiveTab={setActiveTab}
+                  closeTab={closeTab}
+                  renameTab={renameTab}
+                  duplicateTab={duplicateTab}
+                  selected={activeTab === tab.value}
+                />
+              </Reorder.Item>
+            ))}
+            <ActionIcon
+              onClick={() =>
+                createTab({
+                  tab: {
+                    name: "New Tab",
+                    type: "new",
+                  },
+                  setTabs,
+                  setActiveTab,
+                })
+              }
+              className={classes.newTab}
+            >
+              <IconPlus size="1rem" />
+            </ActionIcon>
+          </Reorder.Group>
+        </ScrollArea>
+        {tabs.map((tab) => (
+          <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%">
+            <TabSwitch tab={tab} />
+          </Tabs.Panel>
+        ))}
       </Tabs>
     </>
   );
 }
 
+type ViewId = "left" | "topRight" | "bottomRight";
+
+const fullLayout: { [viewId: string]: JSX.Element } = {
+  left: <div id="left" />,
+  topRight: <div id="topRight" />,
+  bottomRight: <div id="bottomRight" />,
+};
+
+interface WindowsState {
+  currentNode: MosaicNode<ViewId> | null;
+}
+
+const windowsStateAtom = atom<WindowsState>({
+  currentNode: {
+    direction: "row",
+    first: "left",
+    second: {
+      direction: "column",
+      first: "topRight",
+      second: "bottomRight",
+    },
+  },
+});
+
 function TabSwitch({ tab }: { tab: Tab }) {
+  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+
   return match(tab.type)
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={windowsState.currentNode}
+          onChange={(currentNode) => setWindowsState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 0 }}
+        />
         <BoardGame />
       </TreeStateProvider>
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={windowsState.currentNode}
+          onChange={(currentNode) => setWindowsState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 0 }}
+        />
         <BoardAnalysis />
       </TreeStateProvider>
     ))
-    .with("puzzles", () => <Puzzles id={tab.value} />)
+    .with("puzzles", () => (
+      <>
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={windowsState.currentNode}
+          onChange={(currentNode) => setWindowsState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 0 }}
+        />
+        <Puzzles id={tab.value} />
+      </>
+    ))
     .exhaustive();
 }

@@ -35,13 +35,11 @@ import LogsPanel from "./LogsPanel";
 import EvalChart from "@/components/common/EvalChart";
 
 function AnalysisPanel({
-  boardSize,
   setArrows,
   toggleReportingMode,
   inProgress,
   setInProgress,
 }: {
-  boardSize: number;
   setArrows: (arrows: string[]) => void;
   toggleReportingMode: () => void;
   inProgress: boolean;
@@ -66,113 +64,154 @@ function AnalysisPanel({
   const stats = useMemo(() => getGameStats(root), [root]);
 
   return (
-    <Tabs
-      defaultValue="engines"
-      orientation="vertical"
-      placement="right"
-      value={tab}
-      onTabChange={(v) => setTab(v!)}
-    >
-      <Tabs.List>
-        <Tabs.Tab value="engines">Engines</Tabs.Tab>
-        <Tabs.Tab value="report">Report</Tabs.Tab>
-        <Tabs.Tab value="logs" disabled={loadedEngines.length == 0}>
-          Logs
-        </Tabs.Tab>
-      </Tabs.List>
-      <Tabs.Panel value="engines" pt="xs">
-        <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
-          {loadedEngines.length > 0 && (
-            <Group>
-              <Button
-                rightIcon={
-                  allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
-                }
-                variant={allEnabled ? "filled" : "default"}
-                onClick={() => enable(!allEnabled)}
-              >
-                {allEnabled ? "Stop All" : "Run All"}
-              </Button>
-            </Group>
-          )}
-          <Stack mt="sm">
-            <Accordion
-              variant="separated"
-              multiple
-              chevronSize={0}
-              defaultValue={loadedEngines.map((e) => e.path)}
-            >
-              {loadedEngines.map((engine, i) => {
-                return (
-                  <Accordion.Item key={engine.path} value={engine.path}>
-                    <BestMoves
-                      id={i}
-                      engine={engine}
-                      setArrows={setArrows}
-                      fen={currentNode.fen}
-                      halfMoves={currentNode.halfMoves}
-                    />
-                  </Accordion.Item>
-                );
-              })}
-            </Accordion>
-            <EngineSelection />
-          </Stack>
-        </ScrollArea>
-      </Tabs.Panel>
-      <Tabs.Panel value="report" pt="xs">
-        <ScrollArea sx={{ height: boardSize / 2 }} offsetScrollbars>
-          <Stack mb="lg" spacing="0.4rem" mr="xs">
-            <Group grow sx={{ textAlign: "center" }}>
-              {stats.whiteAccuracy && stats.blackAccuracy && (
-                <>
-                  <AccuracyCard
-                    color="WHITE"
-                    accuracy={stats.whiteAccuracy}
-                    cpl={stats.whiteCPL}
-                  />
-                  <AccuracyCard
-                    color="BLACK"
-                    accuracy={stats.blackAccuracy}
-                    cpl={stats.blackCPL}
-                  />
-                </>
-              )}
-              <Box w={100}>
-                <ProgressButton
-                  id={0}
-                  redoable
-                  disabled={root.children.length === 0}
-                  leftIcon={<IconZoomCheck size="0.875rem" />}
-                  onClick={() => toggleReportingMode()}
-                  initInstalled={false}
-                  progressEvent="report_progress"
-                  labels={{
-                    action: "Generate report",
-                    completed: "Report generated",
-                    inProgress: "Generating report",
+    <Stack h="100%">
+      <Tabs
+        h="100%"
+        defaultValue="engines"
+        orientation="vertical"
+        placement="right"
+        value={tab}
+        onTabChange={(v) => setTab(v!)}
+        sx={{
+          display: "flex",
+        }}
+      >
+        <Tabs.List>
+          <Tabs.Tab value="engines">Engines</Tabs.Tab>
+          <Tabs.Tab value="report">Report</Tabs.Tab>
+          <Tabs.Tab value="logs" disabled={loadedEngines.length == 0}>
+            Logs
+          </Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel
+          value="engines"
+          pt="xs"
+          sx={{
+            overflow: "hidden",
+            display: tab === "engines" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <>
+            {loadedEngines.length > 0 && (
+              <Group pb="xs">
+                <Button
+                  rightIcon={
+                    allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
+                  }
+                  variant={allEnabled ? "filled" : "default"}
+                  onClick={() => enable(!allEnabled)}
+                >
+                  {allEnabled ? "Stop All" : "Run All"}
+                </Button>
+              </Group>
+            )}
+            <ScrollArea offsetScrollbars>
+              <Stack mt="sm">
+                <Accordion
+                  variant="separated"
+                  multiple
+                  chevronSize={0}
+                  defaultValue={loadedEngines.map((e) => e.path)}
+                  styles={{
+                    label: {
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                    },
+                    content: {
+                      padding: "0.3rem",
+                    },
                   }}
-                  inProgress={inProgress}
-                  setInProgress={setInProgress}
+                >
+                  {loadedEngines.map((engine, i) => {
+                    return (
+                      <Accordion.Item key={engine.path} value={engine.path}>
+                        <BestMoves
+                          id={i}
+                          engine={engine}
+                          setArrows={setArrows}
+                          fen={currentNode.fen}
+                          halfMoves={currentNode.halfMoves}
+                        />
+                      </Accordion.Item>
+                    );
+                  })}
+                </Accordion>
+                <EngineSelection />
+              </Stack>
+            </ScrollArea>
+          </>
+        </Tabs.Panel>
+        <Tabs.Panel
+          value="report"
+          pt="xs"
+          sx={{
+            overflow: "hidden",
+            display: tab === "report" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <ScrollArea offsetScrollbars>
+            <Stack mb="lg" spacing="0.4rem" mr="xs">
+              <Group grow sx={{ textAlign: "center" }}>
+                {stats.whiteAccuracy && stats.blackAccuracy && (
+                  <>
+                    <AccuracyCard
+                      color="WHITE"
+                      accuracy={stats.whiteAccuracy}
+                      cpl={stats.whiteCPL}
+                    />
+                    <AccuracyCard
+                      color="BLACK"
+                      accuracy={stats.blackAccuracy}
+                      cpl={stats.blackCPL}
+                    />
+                  </>
+                )}
+                <Box w={100}>
+                  <ProgressButton
+                    id={0}
+                    redoable
+                    disabled={root.children.length === 0}
+                    leftIcon={<IconZoomCheck size="0.875rem" />}
+                    onClick={() => toggleReportingMode()}
+                    initInstalled={false}
+                    progressEvent="report_progress"
+                    labels={{
+                      action: "Generate report",
+                      completed: "Report generated",
+                      inProgress: "Generating report",
+                    }}
+                    inProgress={inProgress}
+                    setInProgress={setInProgress}
+                  />
+                </Box>
+              </Group>
+              <Paper withBorder p="md">
+                <EvalChart
+                  isAnalysing={inProgress}
+                  startAnalysis={() => toggleReportingMode()}
                 />
-              </Box>
-            </Group>
-            <Paper withBorder p="md">
-              <EvalChart
-                isAnalysing={inProgress}
-                startAnalysis={() => toggleReportingMode()}
-              />
-            </Paper>
-            <GameStats {...stats} />
+              </Paper>
+              <GameStats {...stats} />
+            </Stack>
+          </ScrollArea>
+        </Tabs.Panel>
+        <Tabs.Panel
+          value="logs"
+          pt="xs"
+          sx={{
+            overflow: "hidden",
+            display: tab === "logs" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <Stack>
+            <LogsPanel />
           </Stack>
-        </ScrollArea>
-      </Tabs.Panel>
-      <Tabs.Panel value="logs" pt="xs">
-        <Stack>
-          <LogsPanel />
-        </Stack>
-      </Tabs.Panel>
-    </Tabs>
+        </Tabs.Panel>
+      </Tabs>
+    </Stack>
   );
 }
 

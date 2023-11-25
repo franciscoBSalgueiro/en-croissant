@@ -10,9 +10,11 @@ import {
   Menu,
   createStyles,
   Text,
+  useMantineTheme,
 } from "@mantine/core";
-import { open } from "@tauri-apps/api/dialog";
+import { ask, message, open } from "@tauri-apps/api/dialog";
 import { appWindow } from "@tauri-apps/api/window";
+import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { useAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import AboutModal from "./About";
@@ -111,10 +113,24 @@ function TopBar() {
   function createNewTab() {
     navigate("/boards");
     createTab({
-      tab: { name: "New Tab", type: "analysis" },
+      tab: { name: "New Tab", type: "new" },
       setTabs,
       setActiveTab,
     });
+  }
+
+  async function checkForUpdates() {
+    const res = await checkUpdate();
+    if (res.shouldUpdate) {
+      const yes = await ask("Do you want to install them now?", {
+        title: "New version available",
+      });
+      if (yes) {
+        await installUpdate();
+      }
+    } else {
+      await message("No updates available");
+    }
   }
 
   const menuActions: MenuGroup[] = [
@@ -151,6 +167,25 @@ function TopBar() {
       label: "Help",
       options: [
         {
+          label: "Clear saved data",
+          action: () => {
+            ask("Are you sure you want to clear all saved data?", {
+              title: "Clear data",
+            }).then((res) => {
+              if (res) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+              }
+            });
+          },
+        },
+        { label: "divider" },
+        {
+          label: "Check for updates",
+          action: checkForUpdates,
+        },
+        {
           label: "About",
           action: () => setOpened(true),
         },
@@ -165,12 +200,14 @@ function TopBar() {
     ["ctrl+O", openNewFile],
   ]);
 
+  const theme = useMantineTheme();
+
   return (
     <>
-      <Header height={35} data-tauri-drag-region zIndex={1000}>
+      <Header height={35} zIndex={1000}>
         <Flex h={35} align="end">
           <Box sx={{ flexGrow: 1 }} p={5}>
-            <Group>
+            <Group data-tauri-drag-region>
               <img src="/logo.png" width={20} height={20} />
               <Group spacing={0}>
                 {menuActions.map((action) => (
@@ -189,28 +226,32 @@ function TopBar() {
                           },
                         }}
                         variant="subtle"
-                        color="gray"
+                        color={theme.colorScheme === "dark" ? "gray": "dark"}
                         compact
                       >
                         {action.label}
                       </Button>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      {action.options.map((option) => (
-                        <Menu.Item
-                          key={option.label}
-                          rightSection={
-                            option.shortcut && (
-                              <Text size="xs" color="dimmed">
-                                {option.shortcut}
-                              </Text>
-                            )
-                          }
-                          onClick={option.action}
-                        >
-                          {option.label}
-                        </Menu.Item>
-                      ))}
+                      {action.options.map((option, i) =>
+                        option.label === "divider" ? (
+                          <Menu.Divider key={i} />
+                        ) : (
+                          <Menu.Item
+                            key={option.label}
+                            rightSection={
+                              option.shortcut && (
+                                <Text size="xs" color="dimmed">
+                                  {option.shortcut}
+                                </Text>
+                              )
+                            }
+                            onClick={option.action}
+                          >
+                            {option.label}
+                          </Menu.Item>
+                        )
+                      )}
                     </Menu.Dropdown>
                   </Menu>
                 ))}
@@ -218,7 +259,7 @@ function TopBar() {
             </Group>
           </Box>
           <Box h={35}>
-            <Group spacing={0}>
+            <Group spacing={0} data-tauri-drag-region>
               <Center
                 h={35}
                 w={45}

@@ -1,8 +1,16 @@
 import {
+  Anchor,
   AppShell,
+  Button,
+  Code,
   ColorScheme,
   ColorSchemeProvider,
+  CopyButton,
+  Group,
   MantineProvider,
+  Stack,
+  Text,
+  Title,
 } from "@mantine/core";
 import { SideBar } from "./components/Sidebar";
 import { Helmet } from "react-helmet";
@@ -25,6 +33,7 @@ import {
   RouterProvider,
   createBrowserRouter,
   createRoutesFromElements,
+  useRouteError,
 } from "react-router-dom";
 import { useEffect } from "react";
 import DatabasesPage from "./components/databases/DatabasesPage";
@@ -53,6 +62,7 @@ const router = createBrowserRouter(
           header={<TopBar />}
           styles={(theme) => ({
             main: {
+              height: "100vh",
               userSelect: "none",
               backgroundColor:
                 theme.colorScheme === "dark"
@@ -64,23 +74,96 @@ const router = createBrowserRouter(
           <Outlet />
         </AppShell>
       }
+      errorElement={<ErrorBoundary />}
     >
-      <Route index element={<HomePage />} />
+      <Route index element={<HomePage />} errorElement={<ErrorBoundary />} />
       <Route
         path="settings"
         element={<SettingsPage />}
         loader={async () => {
           return getVersion();
         }}
+        errorElement={<ErrorBoundary />}
       />
-      <Route path="files" element={<FilesPage />} />
-      <Route path="databases" element={<DatabasesPage />} />
-      <Route path="databases/view" element={<DatabaseView />} />
-      <Route path="engines" element={<EnginesPage />} />
-      <Route path="boards" element={<BoardsPage />} />
+      <Route
+        path="files"
+        element={<FilesPage />}
+        errorElement={<ErrorBoundary />}
+      />
+      <Route
+        path="databases"
+        element={<DatabasesPage />}
+        errorElement={<ErrorBoundary />}
+      />
+      <Route
+        path="databases/view"
+        element={<DatabaseView />}
+        errorElement={<ErrorBoundary />}
+      />
+      <Route
+        path="engines"
+        element={<EnginesPage />}
+        errorElement={<ErrorBoundary />}
+      />
+      <Route
+        path="boards"
+        element={<BoardsPage />}
+        errorElement={<ErrorBoundary />}
+      />
     </Route>
   )
 );
+
+function ErrorBoundary() {
+  const error = useRouteError();
+
+  return (
+    <Stack pt="md">
+      <Title>An error ocurred</Title>
+      {error instanceof Error && (
+        <>
+          <Text>
+            <b>{error.name}:</b> {error.message}
+          </Text>
+          <Code>{error.stack}</Code>
+          {error.cause}
+        </>
+      )}
+      <Group>
+        {error instanceof Error && (
+          <CopyButton value={error.message + "\n" + error.stack}>
+            {({ copied, copy }) => (
+              <Button color={copied ? "teal" : undefined} onClick={copy}>
+                {copied ? "Copied" : "Copy stack strace"}
+              </Button>
+            )}
+          </CopyButton>
+        )}
+        <Button
+          onClick={() =>
+            router.navigate("/").then(() => window.location.reload())
+          }
+        >
+          Reload
+        </Button>
+      </Group>
+
+      <Text>
+        Please report this on{" "}
+        <Anchor
+          href="https://github.com/franciscoBSalgueiro/en-croissant/issues/new?assignees=&labels=bug&projects=&template=bug.yml"
+          target="_blank"
+        >
+          Github
+        </Anchor>{" "}
+        or on the{" "}
+        <Anchor href="https://discord.com/invite/tdYzfDbSSW" target="_blank">
+          Discord server
+        </Anchor>
+      </Text>
+    </Stack>
+  );
+}
 
 export default function App() {
   const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({

@@ -1,4 +1,4 @@
-import { EngineOptions, GoMode } from "@/bindings";
+import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
@@ -38,18 +38,10 @@ const fileStorage: AsyncStringStorage = {
         }
     },
     async setItem(key, newValue) {
-        try {
-            await writeTextFile(key, newValue, options);
-        } catch (error) {
-            throw new Error("Unable to set item.");
-        }
+        await writeTextFile(key, newValue, options);
     },
     async removeItem(key) {
-        try {
-            await removeFile(key, options);
-        } catch (error) {
-            throw new Error("Unable to remove item.");
-        }
+        await removeFile(key, options);
     },
 };
 
@@ -273,6 +265,12 @@ export type EngineSettings = {
     go: GoMode;
     options: Omit<EngineOptions, "fen">;
 };
+
+export const engineMovesFamily = atomFamily(
+    ({ tab, engine }: { tab: string; engine: string }) =>
+        atom<Map<string, BestMoves[]>>(new Map()),
+    (a, b) => a.tab === b.tab && a.engine === b.engine
+);
 
 export const tabEngineSettingsFamily = atomFamily(
     ({ tab, engine }: { tab: string; engine: string }) => {

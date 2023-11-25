@@ -36,16 +36,16 @@ function MoveControls({
   ]);
   return (
     <Group grow>
-      <ActionIcon variant="light" size="xl" onClick={handleGoToStart}>
+      <ActionIcon variant="default" size="xl" onClick={handleGoToStart}>
         <IconChevronsLeft />
       </ActionIcon>
-      <ActionIcon variant="light" size="xl" onClick={handleGoToPrevious}>
+      <ActionIcon variant="default" size="xl" onClick={handleGoToPrevious}>
         <IconChevronLeft />
       </ActionIcon>
-      <ActionIcon variant="light" size="xl" onClick={handleGoToNext}>
+      <ActionIcon variant="default" size="xl" onClick={handleGoToNext}>
         <IconChevronRight />
       </ActionIcon>
-      <ActionIcon variant="light" size="xl" onClick={handleGoToEnd}>
+      <ActionIcon variant="default" size="xl" onClick={handleGoToEnd}>
         <IconChevronsRight />
       </ActionIcon>
     </Group>

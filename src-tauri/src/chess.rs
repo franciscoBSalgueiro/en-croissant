@@ -40,7 +40,10 @@ pub struct EngineProcess {
     stdin: ChildStdin,
     last_depth: u8,
     best_moves: Vec<BestMoves>,
+    last_best_moves: Vec<BestMoves>,
     options: EngineOptions,
+    go_mode: GoMode,
+    running: bool,
     real_multipv: u16,
     logs: Vec<EngineLog>,
 }
@@ -78,9 +81,12 @@ impl EngineProcess {
                 stdin,
                 last_depth: 0,
                 best_moves: Vec::new(),
+                last_best_moves: Vec::new(),
                 logs,
                 options: EngineOptions::default(),
                 real_multipv: 0,
+                go_mode: GoMode::Infinite,
+                running: false,
             },
             lines,
         ))
@@ -126,6 +132,7 @@ impl EngineProcess {
         self.last_depth = 0;
         self.options = options.clone();
         self.best_moves.clear();
+        self.last_best_moves.clear();
         Ok(())
     }
 
@@ -138,6 +145,7 @@ impl EngineProcess {
     }
 
     async fn go(&mut self, mode: &GoMode) -> Result<(), Error> {
+        self.go_mode = mode.clone();
         let msg = match mode {
             GoMode::Depth(depth) => format!("go depth {}\n", depth),
             GoMode::Time(time) => format!("go movetime {}\n", time),
@@ -146,18 +154,21 @@ impl EngineProcess {
         };
         self.stdin.write_all(msg.as_bytes()).await?;
         self.logs.push(EngineLog::Gui(msg));
+        self.running = true;
         Ok(())
     }
 
     async fn stop(&mut self) -> Result<(), Error> {
         self.stdin.write_all(b"stop\n").await?;
         self.logs.push(EngineLog::Gui("stop\n".to_string()));
+        self.running = false;
         Ok(())
     }
 
     async fn kill(&mut self) -> Result<(), Error> {
         self.stdin.write_all(b"quit\n").await?;
         self.logs.push(EngineLog::Gui("quit\n".to_string()));
+        self.running = false;
         Ok(())
     }
 }
@@ -295,7 +306,7 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
         .expect("Failed to write command");
 }
 
-#[derive(Deserialize, Debug, Clone, Type, Derivative)]
+#[derive(Deserialize, Debug, Clone, Type, Derivative, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[derivative(Default)]
 pub struct EngineOptions {
@@ -313,7 +324,7 @@ pub struct EngineOption {
     value: String,
 }
 
-#[derive(Deserialize, Debug, Clone, Type)]
+#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
 #[serde(tag = "t", content = "c")]
 pub enum GoMode {
     Depth(u8),
@@ -383,7 +394,7 @@ pub async fn get_best_moves(
     options: EngineOptions,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<Option<Vec<BestMoves>>, Error> {
     let path = PathBuf::from(&engine);
 
     let key = (tab.clone(), engine.clone());
@@ -392,6 +403,9 @@ pub async fn get_best_moves(
         {
             let process = state.engine_processes.get_mut(&key).unwrap();
             let mut process = process.lock().await;
+            if options == process.options && go_mode == process.go_mode && process.running {
+                return Ok(Some(process.last_best_moves.clone()));
+            }
             process.stop().await?;
         }
         // give time for engine to stop and process previous lines
@@ -402,7 +416,7 @@ pub async fn get_best_moves(
             process.set_options(options.clone()).await?;
             process.go(&go_mode).await?;
         }
-        return Ok(());
+        return Ok(None);
     }
 
     let (mut process, mut reader) = EngineProcess::new(path).await?;
@@ -432,6 +446,7 @@ pub async fn get_best_moves(
                             }
                             .emit_all(&app)?;
                             proc.last_depth = cur_depth;
+                            proc.last_best_moves = proc.best_moves.clone();
                         }
                         proc.best_moves.clear();
                     }
@@ -442,7 +457,7 @@ pub async fn get_best_moves(
     }
     info!("Engine process finished: tab: {}, engine: {}", tab, engine);
     state.engine_processes.remove(&key).unwrap();
-    Ok(())
+    Ok(None)
 }
 
 #[derive(Serialize, Debug, Default, Type)]
@@ -749,17 +764,6 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
 
     let fen = Fen::from_setup(pos);
     Ok(fen.to_string())
-}
-
-#[tauri::command]
-pub fn make_random_move(fen: String) -> Result<String, Error> {
-    let fen: Fen = fen.parse()?;
-    let pos: Chess = fen.into_position(CastlingMode::Standard)?;
-    let legal_moves = pos.legal_moves();
-    let mut rng = rand::thread_rng();
-    let random_move = legal_moves.choose(&mut rng).ok_or(Error::NoLegalMoves)?;
-    let uci = Uci::from_move(random_move, CastlingMode::Standard);
-    Ok(uci.to_string())
 }
 
 #[derive(Serialize, Deserialize, Debug)]

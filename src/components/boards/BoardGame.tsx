@@ -1,29 +1,35 @@
 import {
+  ActionIcon,
+  Box,
   Button,
-  Card,
+  Center,
   Divider,
   Group,
   NumberInput,
+  Paper,
+  Portal,
+  SegmentedControl,
   Select,
-  SimpleGrid,
+  Stack,
   Text,
+  TextInput,
 } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
 import {
-  IconDice,
+  IconArrowsExchange,
   IconPlus,
-  IconRobot,
-  IconUsers,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { Chess, DEFAULT_POSITION } from "chess.js";
-import { useContext, useEffect, useRef, useState } from "react";
-import BoardLayout from "@/layouts/BoardLayout";
-import { parseUci } from "@/utils/chess";
-import { invoke } from "@/utils/invoke";
-import { getNodeAtPath } from "@/utils/treeReducer";
+import {
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import GameInfo from "../common/GameInfo";
-import GenericCard from "../common/GenericCard";
 import MoveControls from "../common/MoveControls";
 import {
   TreeDispatchContext,
@@ -34,23 +40,55 @@ import GameNotation from "./GameNotation";
 import { activeTabAtom, enginesAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
+import { parseUci } from "@/utils/chess";
+import { invoke } from "@tauri-apps/api";
+import { Engine } from "@/utils/engines";
 
-type Opponent = {
-  id: string;
-  name: string;
-  settings?: {
-    skillLevel: number;
-    depth: number;
-  };
-  icon: React.FC;
-};
+function EnginesSelect({
+  engine,
+  setEngine,
+}: {
+  engine: Engine | null;
+  setEngine: (engine: Engine | null) => void;
+}) {
+  const engines = useAtomValue(enginesAtom);
 
-const opponentPresets: Opponent[] = [
-  {
-    id: "random",
-    name: "Random Bot",
-    icon: IconDice,
-  },
+  useEffect(() => {
+    if (engines.length > 0 && engine === null) {
+      setEngine(engines[0]);
+    }
+  }, [engine, engines, setEngine]);
+
+  return (
+    <Suspense>
+      <Select
+        label="Engine"
+        data={engines!.map((engine) => ({
+          label: engine.name,
+          value: engine.path,
+        }))}
+        value={engine?.path ?? ""}
+        onChange={(e) => {
+          setEngine(engines.find((engine) => engine.path === e)!);
+        }}
+      />
+    </Suspense>
+  );
+}
+
+export type OpponentSettings =
+  | {
+      type: "human";
+      name?: string;
+    }
+  | {
+      type: "engine";
+      engine: Engine | null;
+      skillLevel: number | null;
+      depth: number;
+    };
+
+const enginePresets = [
   {
     id: "easy",
     name: "Easy Bot",
@@ -58,7 +96,6 @@ const opponentPresets: Opponent[] = [
       skillLevel: 2,
       depth: 12,
     },
-    icon: IconRobot,
   },
   {
     id: "medium",
@@ -67,7 +104,6 @@ const opponentPresets: Opponent[] = [
       skillLevel: 4,
       depth: 16,
     },
-    icon: IconRobot,
   },
   {
     id: "hard",
@@ -76,7 +112,6 @@ const opponentPresets: Opponent[] = [
       skillLevel: 6,
       depth: 20,
     },
-    icon: IconRobot,
   },
   {
     id: "impossible",
@@ -85,77 +120,123 @@ const opponentPresets: Opponent[] = [
       skillLevel: 8,
       depth: 24,
     },
-    icon: IconRobot,
-  },
-  {
-    id: "human",
-    name: "Human",
-    icon: IconUsers,
   },
 ];
 
-interface OpponentCardProps {
-  Icon: React.FC;
-  opponent: Opponent;
-  isSelected: boolean;
-  setSelected: React.Dispatch<React.SetStateAction<Opponent | null>>;
-  setSkillLevel: React.Dispatch<React.SetStateAction<number | null>>;
-  setDepth: React.Dispatch<React.SetStateAction<number | null>>;
-}
-
-function OpponentCard({
-  opponent,
-  isSelected,
-  Icon,
-  setSelected,
-  setSkillLevel,
-  setDepth,
-}: OpponentCardProps) {
-  const updateSettings = (opponent: Opponent) => {
-    setSkillLevel(opponent.settings?.skillLevel ?? null);
-    setDepth(opponent.settings?.depth ?? null);
-    setSelected(opponent);
-  };
+function OpponentForm({
+  settings,
+  setSettings,
+}: {
+  settings: OpponentSettings;
+  setSettings: React.Dispatch<React.SetStateAction<OpponentSettings>>;
+}) {
+  function updateType(type: "engine" | "human") {
+    if (type === "human") {
+      setSettings({ type: "human", name: "Player" });
+    } else {
+      setSettings({
+        type: "engine",
+        engine: null,
+        skillLevel: 2,
+        depth: 12,
+      });
+    }
+  }
 
   return (
-    <GenericCard
-      id={opponent}
-      isSelected={isSelected}
-      setSelected={updateSettings}
-      Header={
-        <Group noWrap>
-          <Icon />
-          <Text weight={500}>{opponent.name}</Text>
-        </Group>
-      }
-    />
+    <Stack sx={{ flex: 1 }}>
+      <SegmentedControl
+        data={[
+          { value: "human", label: "Human" },
+          { value: "engine", label: "Engine" },
+        ]}
+        value={settings.type}
+        onChange={updateType}
+      />
+
+      {settings.type === "human" && (
+        <TextInput
+          label="Name"
+          value={settings.name ?? ""}
+          onChange={(e) =>
+            setSettings((prev) => ({ ...prev, name: e.target.value }))
+          }
+        />
+      )}
+
+      {settings.type === "engine" && (
+        <>
+          <EnginesSelect
+            engine={settings.engine}
+            setEngine={(engine) => setSettings((prev) => ({ ...prev, engine }))}
+          />
+
+          <Group grow>
+            <NumberInput
+              label="Skill Level"
+              value={settings.skillLevel ?? 0}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, skillLevel: e || null }))
+              }
+            />
+
+            <NumberInput
+              label="Depth"
+              value={settings.depth ?? 0}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, depth: e || 20 }))
+              }
+            />
+          </Group>
+        </>
+      )}
+    </Stack>
   );
 }
+
+type GameState = "settingUp" | "playing" | "gameOver";
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
-  const [opponent, setOpponent] = useSessionStorage<string | null>({
-    key: activeTab + "-opponent",
-    defaultValue: null,
-  });
-  const [selected, setSelected] = useState<Opponent | null>(null);
-  const { headers, root, position } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
-  const currentNode = getNodeAtPath(root, position);
-  const [, setTabs] = useAtom(tabsAtom);
 
-  const boardRef = useRef(null);
-
-  const engines = useAtomValue(enginesAtom);
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white"
   );
-  const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
-  const [engine, setEngine] = useState<string | null>(null);
-  const [skillLevel, setSkillLevel] = useState<number | null>(null);
-  const [depth, setDepth] = useState<number | null>(null);
+  function cycleColor() {
+    setInputColor((prev) =>
+      match(prev)
+        .with("white", () => "black" as const)
+        .with("black", () => "random" as const)
+        .with("random", () => "white" as const)
+        .exhaustive()
+    );
+  }
 
-  const chess = new Chess(currentNode.fen);
+  const [player1Settings, setPlayer1Settings] = useState<OpponentSettings>({
+    type: "human",
+    name: "Player",
+  });
+  const [player2Settings, setPlayer2Settings] = useState<OpponentSettings>({
+    type: "human",
+    name: "Player",
+  });
+
+  function getPlayers() {
+    let white = inputColor === "white" ? player1Settings : player2Settings;
+    let black = inputColor === "black" ? player1Settings : player2Settings;
+    if (inputColor === "random") {
+      white = Math.random() > 0.5 ? player1Settings : player2Settings;
+      black = white === player1Settings ? player2Settings : player1Settings;
+    }
+    return { white, black };
+  }
+
+  const { headers, root, position } = useContext(TreeStateContext);
+  const dispatch = useContext(TreeDispatchContext);
+  const [, setTabs] = useAtom(tabsAtom);
+
+  const boardRef = useRef(null);
+  const [gameState, setGameState] = useState<GameState>("settingUp");
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
@@ -164,49 +245,59 @@ function BoardGame() {
       )
     );
   }
+  const mainLine = Array.from(treeIteratorMainLine(root));
+  const currentNode = getNodeAtPath(root, position);
+  const lastNode = mainLine[mainLine.length - 1].node;
+
+  const chess = useMemo(() => new Chess(lastNode.fen), [lastNode.fen]);
 
   useEffect(() => {
-    const isBotTurn = match(playingColor)
-      .with("black", () => chess.turn() === "w")
-      .with("white", () => chess.turn() === "b")
-      .exhaustive();
-    if (
-      currentNode.children.length === 0 &&
-      opponent &&
-      opponent !== "human" &&
-      isBotTurn &&
-      !chess.isGameOver()
-    ) {
-      if (opponent === "random") {
-        invoke<string>("make_random_move", {
-          fen: currentNode.fen,
-        }).then((move) => {
-          dispatch({
-            type: "MAKE_MOVE",
-            payload: parseUci(move),
-          });
-        });
-      } else if (engine) {
+    if (chess.isGameOver()) {
+      setGameState("gameOver");
+    }
+  }, [lastNode.fen]);
+
+  const [players, setPlayers] = useState<{
+    white: OpponentSettings;
+    black: OpponentSettings;
+  }>(getPlayers);
+
+  useEffect(() => {
+    if (gameState === "playing") {
+      const currentTurn = chess.turn();
+      const player = currentTurn === "w" ? players.white : players.black;
+
+      if (player.type === "engine") {
         invoke<string>("get_single_best_move", {
-          skillLevel,
-          depth,
-          engine,
-          fen: currentNode.fen,
+          skillLevel: player.skillLevel,
+          depth: player.depth,
+          engine: player.engine?.path,
+          fen: lastNode.fen,
         }).then((move) => {
           dispatch({
-            type: "MAKE_MOVE",
+            type: "APPEND_MOVE",
             payload: parseUci(move),
           });
         });
       }
     }
-  }, [position, engine, playingColor]);
+  }, [position, gameState, chess, players, lastNode.fen, dispatch]);
 
-  const [notationExpanded, setNotationExpanded] = useState(false);
+  const movable = useMemo(() => {
+    if (players.white.type === "human" && players.black.type === "human") {
+      return "turn";
+    } else if (players.white.type === "human") {
+      return "white";
+    } else if (players.black.type === "human") {
+      return "black";
+    } else {
+      return "none";
+    }
+  }, [players]);
 
   return (
-    <BoardLayout
-      board={
+    <>
+      <Portal target="#left" style={{ height: "100%" }}>
         <BoardPlay
           dirty={false}
           currentNode={currentNode}
@@ -214,109 +305,86 @@ function BoardGame() {
           headers={headers}
           editingMode={false}
           toggleEditingMode={() => undefined}
-          viewOnly={opponent === null}
+          viewOnly={gameState !== "playing"}
           disableVariations
           boardRef={boardRef}
-          side={opponent === "human" ? undefined : playingColor}
+          movable={movable}
           root={root}
         />
-      }
-    >
-      {opponent === null ? (
-        <Card shadow="sm" p="md">
-          <Text fw="bold" mb="md">
-            Choose an opponent
-          </Text>
-          <SimpleGrid cols={3} spacing="md">
-            {opponentPresets.map((opponent) => (
-              <OpponentCard
-                key={opponent.id}
-                opponent={opponent}
-                isSelected={selected?.id === opponent.id}
-                setSelected={setSelected}
-                setSkillLevel={setSkillLevel}
-                setDepth={setDepth}
-                Icon={opponent.icon}
-              />
-            ))}
-          </SimpleGrid>
-          {selected?.settings && (
-            <Group align="baseline">
-              <Select
-                mt="md"
-                w={200}
-                label="Engine"
-                data={engines!.map((engine) => ({
-                  label: engine.name,
-                  value: engine.path,
-                }))}
-                value={engine}
-                onChange={(e) => {
-                  setEngine(e);
-                }}
-              />
+      </Portal>
+      <Portal target="#topRight" style={{ height: "100%" }}>
+        <Paper withBorder shadow="sm" p="md" h="100%">
+          {gameState === "settingUp" && (
+            <Stack h="100%">
+              <Group>
+                <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                  {match(inputColor)
+                    .with("white", () => "White")
+                    .with("random", () => "Random")
+                    .with("black", () => "Black")
+                    .exhaustive()}
+                </Text>
+                <ActionIcon onClick={cycleColor}>
+                  <IconArrowsExchange />
+                </ActionIcon>
+                <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                  {match(inputColor)
+                    .with("white", () => "Black")
+                    .with("random", () => "Random")
+                    .with("black", () => "White")
+                    .exhaustive()}
+                </Text>
+              </Group>
+              <Box sx={{ flex: 1 }}>
+                <Group sx={{ alignItems: "start" }}>
+                  <OpponentForm
+                    settings={player1Settings}
+                    setSettings={setPlayer1Settings}
+                  />
+                  <Divider orientation="vertical" />
+                  <OpponentForm
+                    settings={player2Settings}
+                    setSettings={setPlayer2Settings}
+                  />
+                </Group>
+              </Box>
 
-              <NumberInput
-                label="Skill Level"
-                value={skillLevel ?? 0}
-                onChange={(e) => setSkillLevel(e as number)}
-              />
-
-              <NumberInput
-                label="Depth"
-                value={depth ?? 0}
-                onChange={(e) => setDepth(e as number)}
-              />
-            </Group>
+              <Center>
+                <Button
+                  onClick={() => {
+                    setGameState("playing");
+                    const players = getPlayers();
+                    setPlayers(players);
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        white:
+                          (players.white.type === "human"
+                            ? players.white.name
+                            : players.white.engine?.name) ?? "?",
+                        black:
+                          (players.black.type === "human"
+                            ? players.black.name
+                            : players.black.engine?.name) ?? "?",
+                      },
+                    });
+                  }}
+                >
+                  Start game
+                </Button>
+              </Center>
+            </Stack>
           )}
-
-          <Select
-            mt="md"
-            w={200}
-            label="Color"
-            data={[
-              { value: "white", label: "White" },
-              { value: "random", label: "Random" },
-              { value: "black", label: "Black" },
-            ]}
-            value={inputColor}
-            onChange={(e) => {
-              setInputColor(e as "white" | "black" | "random");
-            }}
-          />
-
-          <Divider my="md" />
-          <Button
-            disabled={
-              selected === null || (selected.settings && engine === null)
-            }
-            onClick={() => {
-              setPlayingColor(
-                inputColor === "random"
-                  ? Math.random() > 0.5
-                    ? "white"
-                    : "black"
-                  : inputColor
-              );
-              setOpponent(selected!.id);
-              dispatch({
-                type: "SET_FEN",
-                payload: DEFAULT_POSITION,
-              });
-            }}
-          >
-            Play
-          </Button>
-        </Card>
-      ) : (
-        <>
-          {!notationExpanded && (
-            <>
-              <GameInfo headers={headers} />
+          {(gameState === "playing" || gameState === "gameOver") && (
+            <Stack h="100%">
+              <Box sx={{ flex: 1 }}>
+                <GameInfo headers={headers} />
+              </Box>
               <Group grow>
                 <Button
                   onClick={() => {
-                    setOpponent(null);
+                    setGameState("settingUp");
                     dispatch({
                       type: "SET_FEN",
                       payload: DEFAULT_POSITION,
@@ -341,19 +409,17 @@ function BoardGame() {
                   Analyze
                 </Button>
               </Group>
-            </>
+            </Stack>
           )}
-
-          <GameNotation
-            boardSize={notationExpanded ? 1750 : 600}
-            notationExpanded={notationExpanded}
-            setNotationExpanded={setNotationExpanded}
-            topBar
-          />
+        </Paper>
+      </Portal>
+      <Portal target="#bottomRight" style={{ height: "100%" }}>
+        <Stack h="100%">
+          <GameNotation topBar />
           <MoveControls />
-        </>
-      )}
-    </BoardLayout>
+        </Stack>
+      </Portal>
+    </>
   );
 }
 

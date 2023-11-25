@@ -47,7 +47,10 @@ export function* treeIteratorMainLine(node: TreeNode): Generator<ListNode> {
     let current: ListNode | undefined = { position: [], node };
     while (current?.node) {
         yield current;
-        current = { position: [...current.position, 0], node: current.node.children[0] };
+        current = {
+            position: [...current.position, 0],
+            node: current.node.children[0],
+        };
     }
 }
 
@@ -179,15 +182,25 @@ export type TreeAction =
     | { type: "SET_ORIENTATION"; payload: "white" | "black" }
     | { type: "SET_START"; payload: number[] }
     | {
-        type: "MAKE_MOVE";
-        payload:
-        | {
-            from: Square;
-            to: Square;
-            promotion?: string;
-        }
-        | string;
-    }
+          type: "MAKE_MOVE";
+          payload:
+              | {
+                    from: Square;
+                    to: Square;
+                    promotion?: string;
+                }
+              | string;
+      }
+    | {
+          type: "APPEND_MOVE";
+          payload:
+              | {
+                    from: Square;
+                    to: Square;
+                    promotion?: string;
+                }
+              | string;
+      }
     | { type: "MAKE_MOVES"; payload: string[] }
     | { type: "GO_TO_START" }
     | { type: "GO_TO_END" }
@@ -200,8 +213,9 @@ export type TreeAction =
     | { type: "SET_FEN"; payload: string }
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
-    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[], novelty: boolean, maybe_brilliant: boolean }[] }
-    | { type: "PROMOTE_VARIATION"; payload: number[] };
+    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[]; novelty: boolean, maybe_brilliant: boolean }[] }
+    | { type: "PROMOTE_VARIATION"; payload: number[] }
+    | { type: "PROMOTE_TO_MAINLINE"; payload: number[] };
 
 const treeReducer = (state: TreeState, action: TreeAction) => {
     const res = match(action)
@@ -227,12 +241,15 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             state.headers.start = payload;
         })
         .with({ type: "MAKE_MOVE" }, ({ payload }) => {
-            makeMove(state, payload);
+            makeMove(state, payload, false);
+        })
+        .with({ type: "APPEND_MOVE" }, ({ payload }) => {
+            makeMove(state, payload, true);
         })
         .with({ type: "MAKE_MOVES" }, ({ payload }) => {
             state.dirty = true;
             for (const move of payload) {
-                makeMove(state, move);
+                makeMove(state, move, false);
             }
         })
         .with({ type: "GO_TO_START" }, () => {
@@ -308,6 +325,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             state.dirty = true;
             promoteVariation(state, payload);
         })
+        .with({ type: "PROMOTE_TO_MAINLINE" }, ({ payload }) => {
+            state.dirty = true;
+            while (!promoteVariation(state, payload)) {}
+        })
         .exhaustive();
 
     return res;
@@ -315,9 +336,14 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
 
 function makeMove(
     state: TreeState,
-    move: { from: Square; to: Square; promotion?: string } | string
+    move: { from: Square; to: Square; promotion?: string } | string,
+    last: boolean
 ) {
-    const moveNode = getNodeAtPath(state.root, state.position);
+    const mainLine = Array.from(treeIteratorMainLine(state.root));
+    const position = last
+        ? mainLine[mainLine.length - 1].position
+        : state.position;
+    const moveNode = getNodeAtPath(state.root, position);
     if (!moveNode) return;
     const chess = new Chess(moveNode.fen);
     let m: Move;
@@ -328,7 +354,11 @@ function makeMove(
     }
     const i = moveNode.children.findIndex((n) => n.move?.san === m.san);
     if (i !== -1) {
-        state.position.push(i);
+        if (state.position === position) {
+            state.position.push(i);
+        } else {
+            state.position = [...position, i];
+        }
     } else {
         state.dirty = true;
         const newMoveNode = createNode({
@@ -337,7 +367,11 @@ function makeMove(
             halfMoves: moveNode.halfMoves + 1,
         });
         moveNode.children.push(newMoveNode);
-        state.position.push(moveNode.children.length - 1);
+        if (state.position === position) {
+            state.position.push(moveNode.children.length - 1);
+        } else {
+            state.position = [...position, moveNode.children.length - 1];
+        }
     }
 }
 

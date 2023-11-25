@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
 import { memo, useContext } from "react";
 import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
 import { getNodeAtPath } from "@/utils/treeReducer";
@@ -19,7 +19,7 @@ const SymbolButton = memo(function SymbolButton({
   const { name, color } = ANNOTATION_INFO[annotation];
   const isActive = curAnnotation === annotation;
   return (
-    <Tooltip label={name}>
+    <Tooltip label={name} position="bottom">
       <ActionIcon
         onClick={() =>
           dispatch({
@@ -40,7 +40,7 @@ function AnnotationPanel() {
   const { root, position } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
   return (
-    <Stack>
+    <Stack h="100%">
       <Group grow>
         {Object.keys(ANNOTATION_INFO)
           .filter((a) => a !== "")
@@ -54,7 +54,12 @@ function AnnotationPanel() {
             );
           })}
       </Group>
-      <AnnotationEditor path={position} commentHTML={currentNode.commentHTML} />
+      <ScrollArea offsetScrollbars>
+        <AnnotationEditor
+          path={position}
+          commentHTML={currentNode.commentHTML}
+        />
+      </ScrollArea>
     </Stack>
   );
 }

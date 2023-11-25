@@ -102,15 +102,19 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           </Group>
         </Stack>
 
-        <PiecesGrid
-          size="3.75rem"
-          boardRef={boardRef}
-          fen={options.fen}
-          vertical
-          onPut={(newFen) => {
-            setOptions((q) => ({ ...q, fen: newFen }));
-          }}
-        />
+        <Box
+          sx={{ flex: 1, display: "flex", flexDirection: "column" }}
+          h="30rem"
+        >
+          <PiecesGrid
+            boardRef={boardRef}
+            fen={options.fen}
+            vertical
+            onPut={(newFen) => {
+              setOptions((q) => ({ ...q, fen: newFen }));
+            }}
+          />
+        </Box>
       </Group>
 
       {/* <Group>

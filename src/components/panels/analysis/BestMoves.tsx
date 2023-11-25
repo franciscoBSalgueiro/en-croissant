@@ -1,7 +1,11 @@
-import { activeTabAtom, tabEngineSettingsFamily } from "@/atoms/atoms";
+import {
+  activeTabAtom,
+  engineMovesFamily,
+  tabEngineSettingsFamily,
+} from "@/atoms/atoms";
 import { commands, events } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { BestMoves, swapMove } from "@/utils/chess";
+import { swapMove } from "@/utils/chess";
 import { Engine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import { useThrottledEffect } from "@/utils/misc";
@@ -10,6 +14,7 @@ import {
   Accordion,
   ActionIcon,
   Box,
+  Code,
   Group,
   Progress,
   Skeleton,
@@ -67,15 +72,14 @@ export default function BestMovesComponent({
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
-  const [ev, setEngineVariation] = useState<BestMoves[]>([]);
+  const [ev, setEngineVariation] = useAtom(
+    engineMovesFamily({ engine: engine.name, tab: activeTab! })
+  );
   const [settings, setSettings] = useAtom(
     tabEngineSettingsFamily({ engine: engine.name, tab: activeTab! })
   );
 
-  const engineVariations = useMemo(
-    () => (settings.enabled ? ev : []),
-    [settings.enabled, ev]
-  );
+  const engineVariations = useMemo(() => ev.get(fen) ?? [], [ev, fen]);
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
@@ -98,9 +102,18 @@ export default function BestMovesComponent({
     async function waitForMove() {
       const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
         const ev = payload.bestLines;
-        if (payload.engine === engine.path && payload.tab === activeTab && settings.enabled && !isGameOver) {
+        if (
+          payload.engine === engine.path &&
+          payload.tab === activeTab &&
+          settings.enabled &&
+          !isGameOver
+        ) {
           startTransition(() => {
-            setEngineVariation(ev);
+            setEngineVariation((prev) => {
+              const newMap = new Map(prev);
+              newMap.set(fen, ev);
+              return newMap;
+            });
             dispatch({
               type: "SET_SCORE",
               payload: ev[0].score,
@@ -121,7 +134,16 @@ export default function BestMovesComponent({
     return () => {
       listeners.current.forEach((unlisten) => unlisten());
     };
-  }, [activeTab, dispatch, engine.path, id, setArrows, settings.enabled, isGameOver]);
+  }, [
+    activeTab,
+    dispatch,
+    engine.path,
+    id,
+    setArrows,
+    settings.enabled,
+    isGameOver,
+    fen,
+  ]);
 
   useThrottledEffect(
     () => {
@@ -129,7 +151,6 @@ export default function BestMovesComponent({
         const chess = new Chess(fen);
         if (chess.isGameOver()) {
           commands.stopEngine(engine.path, activeTab!);
-          setEngineVariation([]);
         } else {
           commands
             .getBestMoves(engine.path, activeTab!, settings.go, {
@@ -140,7 +161,14 @@ export default function BestMovesComponent({
               extraOptions: settings.options.extraOptions,
             })
             .then((res) => {
-              unwrap(res);
+              const bestMoves = unwrap(res);
+              if (bestMoves) {
+                setEngineVariation((prev) => {
+                  const newMap = new Map(prev);
+                  newMap.set(fen, bestMoves);
+                  return newMap;
+                });
+              }
             });
         }
       } else {
@@ -148,20 +176,14 @@ export default function BestMovesComponent({
       }
     },
     50,
-    [
-      settings.enabled,
-      settings.options,
-      settings.go,
-      threat,
-      fen,
-    ]
+    [settings.enabled, settings.options, settings.go, threat, fen]
   );
 
   return useMemo(
     () => (
       <>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Stack spacing={0}>
+        <Box sx={{ display: "flex" }}>
+          <Stack spacing={0} py="1rem">
             <ActionIcon
               size="lg"
               variant={settings.enabled ? "filled" : "transparent"}
@@ -179,20 +201,21 @@ export default function BestMovesComponent({
             </ActionIcon>
           </Stack>
 
-          <Accordion.Control>
+          <Accordion.Control sx={{ flex: 1 }}>
             <Group position="apart">
-              <Group align="baseline">
+              <Group align="center">
                 <Text fw="bold" fz="xl">
                   {engine.name}
                 </Text>
-                {settings.enabled && !isGameOver && engineVariations.length === 0 && (
-                  <Text>Loading...</Text>
-                )}
+                {settings.enabled &&
+                  !isGameOver &&
+                  engineVariations.length === 0 && <Code fz="xs">Loading...</Code>}
                 {progress < 100 &&
                   settings.enabled &&
-                  !isGameOver && engineVariations.length > 0 && (
+                  !isGameOver &&
+                  engineVariations.length > 0 && (
                     <Tooltip label={"How fast the engine is running"}>
-                      <Text>{nps}k nodes/s</Text>
+                      <Code fz="xs">{nps}k nodes/s</Code>
                     </Tooltip>
                   )}
               </Group>
@@ -201,27 +224,27 @@ export default function BestMovesComponent({
                   <>
                     <Stack align="center" spacing={0}>
                       <Text
-                        size="xs"
+                        size="0.7rem"
                         transform="uppercase"
                         weight={700}
                         className={classes.subtitle}
                       >
                         Eval
                       </Text>
-                      <Text fw="bold" fz="lg">
+                      <Text fw="bold" fz="md">
                         {formatScore(engineVariations[0].score, 1) ?? 0}
                       </Text>
                     </Stack>
                     <Stack align="center" spacing={0}>
                       <Text
-                        size="xs"
+                        size="0.7rem"
                         transform="uppercase"
                         weight={700}
                         className={classes.subtitle}
                       >
                         Depth
                       </Text>
-                      <Text fw="bold" fz="lg">
+                      <Text fw="bold" fz="md">
                         {depth}
                       </Text>
                     </Stack>
@@ -236,11 +259,19 @@ export default function BestMovesComponent({
               onClick={() => toggleThreat()}
               disabled={!settings.enabled}
               variant="transparent"
+              mt="auto"
+              mb="auto"
             >
               <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
             </ActionIcon>
           </Tooltip>
-          <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mr={8}>
+          <ActionIcon
+            size="lg"
+            onClick={() => toggleSettingsOn()}
+            mr={8}
+            mt="auto"
+            mb="auto"
+          >
             <IconSettings size="1rem" />
           </ActionIcon>
         </Box>
@@ -262,14 +293,17 @@ export default function BestMovesComponent({
         <Accordion.Panel>
           <Table>
             <tbody>
-              {isGameOver && <tr>
-                <td>
-                  <Text align="center" my="lg">
-                    {"Game is over"}
-                  </Text>
-                </td>
-              </tr>}
-              {!isGameOver && engineVariations.length === 0 &&
+              {isGameOver && (
+                <tr>
+                  <td>
+                    <Text align="center" my="lg">
+                      {"Game is over"}
+                    </Text>
+                  </td>
+                </tr>
+              )}
+              {!isGameOver &&
+                engineVariations.length === 0 &&
                 (settings.enabled ? (
                   [...Array(settings.options.multipv)].map((_, i) => (
                     <tr key={i}>
@@ -287,17 +321,18 @@ export default function BestMovesComponent({
                     </td>
                   </tr>
                 ))}
-              {!isGameOver && engineVariations.map((engineVariation, index) => {
-                return (
-                  <AnalysisRow
-                    key={index}
-                    moves={engineVariation.sanMoves}
-                    score={engineVariation.score}
-                    halfMoves={halfMoves}
-                    threat={threat}
-                  />
-                );
-              })}
+              {!isGameOver &&
+                engineVariations.map((engineVariation, index) => {
+                  return (
+                    <AnalysisRow
+                      key={index}
+                      moves={engineVariation.sanMoves}
+                      score={engineVariation.score}
+                      halfMoves={halfMoves}
+                      threat={threat}
+                    />
+                  );
+                })}
             </tbody>
           </Table>
         </Accordion.Panel>

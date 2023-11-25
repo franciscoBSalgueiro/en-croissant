@@ -5,6 +5,7 @@ import {
   Divider,
   Group,
   Loader,
+  Portal,
   RangeSlider,
   SimpleGrid,
   Text,
@@ -15,7 +16,6 @@ import {
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconCheck, IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import BoardLayout from "@/layouts/BoardLayout";
 import { invoke } from "@/utils/invoke";
 import {
   Completion,
@@ -160,8 +160,8 @@ function Puzzles({ id }: { id: string }) {
       </Button>
     </>
   ) : (
-    <BoardLayout
-      board={
+    <>
+      <Portal target="#left" style={{ height: "100%" }}>
         <PuzzleBoard
           key={currentPuzzle}
           puzzles={puzzles}
@@ -172,10 +172,9 @@ function Puzzles({ id }: { id: string }) {
           setCurrentMove={setCurrentMove}
           db={selectedDb}
         />
-      }
-    >
-      <div>
-        <Card>
+      </Portal>
+      <Portal target="#topRight" style={{ height: "100%" }}>
+        <Card h="100%">
           <Group>
             <div>
               <Text size="sm" color="dimmed">
@@ -248,7 +247,9 @@ function Puzzles({ id }: { id: string }) {
             </Button>
           </Group>
         </Card>
-        <Card>
+      </Portal>
+      <Portal target="#bottomRight" style={{ height: "100%" }}>
+        <Card h="100%">
           <Text mb="md">Puzzles</Text>
           <ChallengeHistory
             challenges={puzzles}
@@ -259,8 +260,8 @@ function Puzzles({ id }: { id: string }) {
             }}
           />
         </Card>
-      </div>
-    </BoardLayout>
+      </Portal>
+    </>
   );
 }
 

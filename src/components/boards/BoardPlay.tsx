@@ -28,7 +28,6 @@ import {
 import { Outcome } from "@/utils/db";
 import { formatMove } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
-import { getBoardSize } from "@/utils/misc";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -36,6 +35,7 @@ import {
   Avatar,
   Box,
   Global,
+  Grid,
   Group,
   Input,
   Stack,
@@ -63,6 +63,8 @@ import { TreeDispatchContext } from "../common/TreeStateContext";
 import { updateCardPerformance } from "../files/opening";
 import EvalBar from "./EvalBar";
 import PromotionModal from "./PromotionModal";
+import "./board.css";
+import { match } from "ts-pattern";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -74,7 +76,7 @@ interface ChessboardProps {
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
-  side?: Color;
+  movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
   addGame?: () => void;
@@ -89,7 +91,7 @@ function BoardPlay({
   toggleEditingMode,
   viewOnly,
   disableVariations,
-  side,
+  movable = "turn",
   boardRef,
   saveFile,
   addGame,
@@ -136,7 +138,10 @@ function BoardPlay({
     from: Square;
     to: Square;
   } | null>(null);
-  const orientation = headers.orientation || "white";
+  const orientation =
+    movable === "white" || movable === "black"
+      ? movable
+      : headers.orientation || "white";
   const toggleOrientation = () =>
     dispatch({
       type: "SET_HEADERS",
@@ -145,8 +150,6 @@ function BoardPlay({
         orientation: headers.orientation === "black" ? "white" : "black",
       },
     });
-
-  const boardSize = getBoardSize(window.innerHeight, window.innerWidth);
 
   useHotkeys([["f", () => toggleOrientation()]]);
   const currentTab = useAtomValue(currentTabAtom);
@@ -264,61 +267,141 @@ function BoardPlay({
   );
 
   const { data } = useMaterialDiff(currentNode.fen);
-
   const practiceLock =
     !!practicing && !deck.find((c) => c.fen === currentNode.fen);
 
+  const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
+    return practiceLock
+      ? undefined
+      : editingMode
+      ? "both"
+      : match(movable)
+          .with("white", () => "white" as const)
+          .with("black", () => "black" as const)
+          .with("turn", () => turn)
+          .with("both", () => "both" as const)
+          .with("none", () => undefined)
+          .exhaustive();
+  }, [practiceLock, editingMode, movable, turn]);
+
   return (
     <>
-      {window.innerWidth > 800 && (
-        <EvalBar
-          score={currentNode.score}
-          boardSize={boardSize}
-          orientation={orientation}
-        />
-      )}
-
-      <Stack justify="center">
-        {error && (
-          <Alert
-            icon={<IconAlertCircle size="1rem" />}
-            title="Invalid position"
-            color="red"
-          >
-            {error}
-          </Alert>
-        )}
-        <Box className={chessboard} ref={boardRef} mt={10}>
-          {currentNode.annotation && currentNode.move && (
-            <AnnotationHint
+      <Box className="container">
+        <Box className="Board">
+          <Box className={chessboard} ref={boardRef}>
+            {currentNode.annotation && currentNode.move && (
+              <AnnotationHint
+                orientation={orientation}
+                move={currentNode.move}
+                annotation={currentNode.annotation}
+              />
+            )}
+            <PromotionModal
+              pendingMove={pendingMove}
+              cancelMove={() => setPendingMove(null)}
+              confirmMove={(p) => {
+                makeMove({
+                  from: pendingMove!.from,
+                  to: pendingMove!.to,
+                  promotion: p,
+                });
+              }}
+              turn={turn}
               orientation={orientation}
-              move={currentNode.move}
-              annotation={currentNode.annotation}
             />
-          )}
-          <PromotionModal
-            pendingMove={pendingMove}
-            cancelMove={() => setPendingMove(null)}
-            confirmMove={(p) => {
-              makeMove({
-                from: pendingMove!.from,
-                to: pendingMove!.to,
-                promotion: p,
-              });
-            }}
-            turn={turn}
-            orientation={orientation}
-          />
-          <Box sx={{ position: "absolute", top: -30 }}>
-            {data && (
+            <Chessground
+              orientation={orientation}
+              fen={currentNode.fen}
+              coordinates={showCoordinates}
+              movable={{
+                free: editingMode,
+                color: movableColor,
+                dests:
+                  editingMode || viewOnly
+                    ? undefined
+                    : disableVariations && currentNode.children.length > 0
+                    ? undefined
+                    : dests,
+                showDests,
+                events: {
+                  after: (orig, dest, metadata) => {
+                    if (editingMode) {
+                      invoke<string>("make_move", {
+                        fen: currentNode.fen,
+                        from: orig,
+                        to: dest,
+                      }).then((newFen) => {
+                        dispatch({
+                          type: "SET_FEN",
+                          payload: newFen,
+                        });
+                      });
+                    } else {
+                      if (chess) {
+                        const newDest = handleMove(chess, orig, dest);
+                        if (
+                          chess.get(orig as Square).type === "p" &&
+                          ((newDest[1] === "8" && turn === "white") ||
+                            (newDest[1] === "1" && turn === "black"))
+                        ) {
+                          if (autoPromote && !metadata.ctrlKey) {
+                            makeMove({
+                              from: orig as Square,
+                              to: newDest,
+                              promotion: "q",
+                            });
+                          } else {
+                            setPendingMove({
+                              from: orig as Square,
+                              to: newDest,
+                            });
+                          }
+                        } else {
+                          makeMove({
+                            from: orig as Square,
+                            to: newDest,
+                          });
+                        }
+                      }
+                    }
+                  },
+                },
+              }}
+              turnColor={turn}
+              check={chess?.inCheck()}
+              lastMove={moveToKey(currentNode.move)}
+              premovable={{
+                enabled: false,
+              }}
+              drawable={{
+                enabled: true,
+                visible: true,
+                defaultSnapToValidMove: true,
+                eraseOnClick: true,
+                autoShapes: shapes,
+                onChange: (shapes) => {
+                  dispatch({
+                    type: "SET_SHAPES",
+                    payload: shapes,
+                  });
+                },
+              }}
+            />
+          </Box>
+        </Box>
+        <Box className="Top">
+          {data && (
+            <Box px="sm">
               <ShowMaterial
                 diff={data?.diff}
                 pieces={data?.pieces}
                 color={orientation === "white" ? "black" : "white"}
               />
-            )}
-          </Box>
-          <Box sx={{ position: "absolute", bottom: -30 }}>
+            </Box>
+          )}
+        </Box>
+        <Box className="Bottom">
+          <Group position="apart" px="sm">
             {data && (
               <ShowMaterial
                 diff={data.diff}
@@ -326,96 +409,17 @@ function BoardPlay({
                 color={orientation}
               />
             )}
-          </Box>
-          <Chessground
-            width={boardSize}
-            height={boardSize}
-            orientation={side ?? orientation}
-            fen={currentNode.fen}
-            coordinates={showCoordinates}
-            movable={{
-              free: editingMode,
-              color: practiceLock
-                ? undefined
-                : editingMode
-                ? "both"
-                : side || turn,
-              dests:
-                editingMode || viewOnly
-                  ? undefined
-                  : disableVariations && currentNode.children.length > 0
-                  ? undefined
-                  : dests,
-              showDests,
-              events: {
-                after: (orig, dest, metadata) => {
-                  if (editingMode) {
-                    invoke<string>("make_move", {
-                      fen: currentNode.fen,
-                      from: orig,
-                      to: dest,
-                    }).then((newFen) => {
-                      dispatch({
-                        type: "SET_FEN",
-                        payload: newFen,
-                      });
-                    });
-                  } else {
-                    if (chess) {
-                      const newDest = handleMove(chess, orig, dest);
-                      if (
-                        chess.get(orig as Square).type === "p" &&
-                        ((newDest[1] === "8" && turn === "white") ||
-                          (newDest[1] === "1" && turn === "black"))
-                      ) {
-                        if (autoPromote && !metadata.ctrlKey) {
-                          makeMove({
-                            from: orig as Square,
-                            to: newDest,
-                            promotion: "q",
-                          });
-                        } else {
-                          setPendingMove({ from: orig as Square, to: newDest });
-                        }
-                      } else {
-                        makeMove({
-                          from: orig as Square,
-                          to: newDest,
-                        });
-                      }
-                    }
-                  }
-                },
-              },
-            }}
-            turnColor={turn}
-            check={chess?.inCheck()}
-            lastMove={moveToKey(currentNode.move)}
-            premovable={{
-              enabled: false,
-            }}
-            drawable={{
-              enabled: true,
-              visible: true,
-              defaultSnapToValidMove: true,
-              eraseOnClick: true,
-              autoShapes: shapes,
-              onChange: (shapes) => {
-                dispatch({
-                  type: "SET_SHAPES",
-                  payload: shapes,
-                });
-              },
-            }}
-          />
+            <Group>
+              {moveInput && <MoveInput currentNode={currentNode} />}
+            </Group>
+
+            {controls}
+          </Group>
         </Box>
-
-        <Group position={"apart"} h={20}>
-          <Group>{moveInput && <MoveInput currentNode={currentNode} />}</Group>
-
-          {controls}
-        </Group>
-      </Stack>
+        <Box className="Eval">
+          <EvalBar score={currentNode.score} orientation={orientation} />
+        </Box>
+      </Box>
     </>
   );
 }
@@ -528,7 +532,7 @@ function AnnotationHint({
               transform: "translateY(-40%) translateX(-50%)",
               zIndex: 100,
               filter: "url(#shadow)",
-              overflow: "initial"
+              overflow: "initial",
             }}
             radius="xl"
             color={color}
@@ -537,7 +541,12 @@ function AnnotationHint({
             <svg viewBox="0 0 100 100" width="100%" height="100%">
               <defs>
                 <filter id="shadow">
-                  <feDropShadow dx="0" dy="1" floodOpacity="0.3" stdDeviation="0"></feDropShadow>
+                  <feDropShadow
+                    dx="0"
+                    dy="1"
+                    floodOpacity="0.3"
+                    stdDeviation="0"
+                  ></feDropShadow>
                 </filter>
               </defs>
               <g>{glyphToSvg[annotation]}</g>

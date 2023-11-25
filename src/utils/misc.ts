@@ -34,14 +34,6 @@ export function useLocalFile<T>(
     return [state, setState];
 }
 
-export function getBoardSize(height: number, width: number) {
-    const initial = Math.min((height - 140) * 0.95, width * 0.4);
-    if (width < 680) {
-        return width - 120;
-    }
-    return initial;
-}
-
 export function isPrefix<T>(shorter: T[], longer: T[]): boolean {
     if (shorter.length > longer.length) {
         return false;

@@ -1,4 +1,4 @@
-import { Button, Tabs, Title } from "@mantine/core";
+import { ActionIcon, Group, Stack, Tabs, Title } from "@mantine/core";
 import {
   IconArrowBackUp,
   IconChess,
@@ -18,19 +18,24 @@ function DatabaseView() {
   return (
     <>
       {database && (
-        <>
-          <Link onClick={() => setDatabase(null)} to={`/databases`}>
-            <Button
-              mt="md"
-              compact
-              leftIcon={<IconArrowBackUp size="1rem" />}
-              variant="outline"
-            >
-              Back
-            </Button>
-          </Link>
-          <Title mt="sm">{database.title}</Title>
-          <Tabs defaultValue="games" mt="md">
+        <Stack h="100%" sx={{ overflow: "hidden" }}>
+          <Group align="center">
+            <Link onClick={() => setDatabase(null)} to={`/databases`}>
+              <ActionIcon variant="default">
+                <IconArrowBackUp size="1rem" />
+              </ActionIcon>
+            </Link>
+            <Title>{database.title}</Title>
+          </Group>
+          <Tabs
+            defaultValue="games"
+            sx={{
+              display: "flex",
+              flex: 1,
+              overflow: "hidden",
+              flexDirection: "column",
+            }}
+          >
             <Tabs.List>
               <Tabs.Tab icon={<IconChess size="1rem" />} value="games">
                 Games
@@ -42,17 +47,20 @@ function DatabaseView() {
                 Tournaments
               </Tabs.Tab>
             </Tabs.List>
-            <Tabs.Panel value="games">
+            <Tabs.Panel value="games" sx={{ flex: 1, overflow: "hidden" }}>
               <GameTable database={database} />
             </Tabs.Panel>
-            <Tabs.Panel value="players">
+            <Tabs.Panel value="players" sx={{ flex: 1, overflow: "hidden" }}>
               <PlayerTable database={database} />
             </Tabs.Panel>
-            <Tabs.Panel value="tournaments">
+            <Tabs.Panel
+              value="tournaments"
+              sx={{ flex: 1, overflow: "hidden" }}
+            >
               <TournamentTable database={database} />
             </Tabs.Panel>
           </Tabs>
-        </>
+        </Stack>
       )}
     </>
   );
