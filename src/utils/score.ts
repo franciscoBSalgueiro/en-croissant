@@ -102,19 +102,21 @@ export function getAnnotation(
         return "?!";
     }
 
-    if (prevMoves.length > 1) {
-        const scores = normalizeScores(
-            prevMoves[0].score,
-            prevMoves[1].score,
-            color
-        );
-        if (
-            getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
-            maybe_brilliant &&
-            move === prevMoves[0].sanMoves[0]
-        ) {
-            return "!";
-        }
-    }
+    // Annotating good moves is disabled for now, as it's not very accurate
+
+    // if (prevMoves.length > 1) {
+    //     const scores = normalizeScores(
+    //         prevMoves[0].score,
+    //         prevMoves[1].score,
+    //         color
+    //     );
+    //     if (
+    //         getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
+    //         maybe_brilliant &&
+    //         move === prevMoves[0].sanMoves[0]
+    //     ) {
+    //         return "!";
+    //     }
+    // }
     return "";
 }
