@@ -623,8 +623,8 @@ export function getGameStats(tree: TreeNode) {
     }
     const whiteCPL = mean(cplosses.w);
     const blackCPL = mean(cplosses.b);
-    const whiteAccuracy = (harmonicMean(accuracies.w) + mean(accuracies.w)) / 2;
-    const blackAccuracy = (harmonicMean(accuracies.b) + mean(accuracies.b)) / 2;
+    const whiteAccuracy = harmonicMean(accuracies.w);
+    const blackAccuracy = harmonicMean(accuracies.b);
 
     return {
         whiteCPL,
