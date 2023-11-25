@@ -14,16 +14,21 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
 import {
   IconArrowsExchange,
   IconPlus,
-  IconRobot,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { Chess, DEFAULT_POSITION } from "chess.js";
-import { Suspense, useContext, useEffect, useRef, useState } from "react";
-import { getNodeAtPath } from "@/utils/treeReducer";
+import {
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import {
@@ -35,19 +40,22 @@ import GameNotation from "./GameNotation";
 import { activeTabAtom, enginesAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
+import { parseUci } from "@/utils/chess";
+import { invoke } from "@tauri-apps/api";
+import { Engine } from "@/utils/engines";
 
 function EnginesSelect({
   engine,
   setEngine,
 }: {
-  engine: string | null;
-  setEngine: (engine: string | null) => void;
+  engine: Engine | null;
+  setEngine: (engine: Engine | null) => void;
 }) {
   const engines = useAtomValue(enginesAtom);
 
   useEffect(() => {
     if (engines.length > 0 && engine === null) {
-      setEngine(engines[0].path);
+      setEngine(engines[0]);
     }
   }, [engine, engines, setEngine]);
 
@@ -59,23 +67,23 @@ function EnginesSelect({
           label: engine.name,
           value: engine.path,
         }))}
-        value={engine}
+        value={engine?.path ?? ""}
         onChange={(e) => {
-          setEngine(e);
+          setEngine(engines.find((engine) => engine.path === e)!);
         }}
       />
     </Suspense>
   );
 }
 
-type OpponentSettings =
+export type OpponentSettings =
   | {
       type: "human";
       name?: string;
     }
   | {
       type: "engine";
-      engine: string | null;
+      engine: Engine | null;
       skillLevel: number | null;
       depth: number;
     };
@@ -186,67 +194,10 @@ function OpponentForm({
   );
 }
 
+type GameState = "settingUp" | "playing" | "gameOver";
+
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
-  const [opponent, setOpponent] = useSessionStorage<string | null>({
-    key: activeTab + "-opponent",
-    defaultValue: null,
-  });
-  const { headers, root, position } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
-  const currentNode = getNodeAtPath(root, position);
-  const [, setTabs] = useAtom(tabsAtom);
-
-  const boardRef = useRef(null);
-
-  const [playingColor, setPlayingColor] = useState<"white" | "black">("white");
-
-  const chess = new Chess(currentNode.fen);
-
-  function changeToAnalysisMode() {
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab
-      )
-    );
-  }
-
-  // useEffect(() => {
-  //   const isBotTurn = match(playingColor)
-  //     .with("black", () => chess.turn() === "w")
-  //     .with("white", () => chess.turn() === "b")
-  //     .exhaustive();
-  //   if (
-  //     currentNode.children.length === 0 &&
-  //     opponent &&
-  //     opponent !== "human" &&
-  //     isBotTurn &&
-  //     !chess.isGameOver()
-  //   ) {
-  //     if (opponent === "random") {
-  //       invoke<string>("make_random_move", {
-  //         fen: currentNode.fen,
-  //       }).then((move) => {
-  //         dispatch({
-  //           type: "MAKE_MOVE",
-  //           payload: parseUci(move),
-  //         });
-  //       });
-  //     } else if (engine) {
-  //       invoke<string>("get_single_best_move", {
-  //         skillLevel,
-  //         depth,
-  //         engine,
-  //         fen: currentNode.fen,
-  //       }).then((move) => {
-  //         dispatch({
-  //           type: "MAKE_MOVE",
-  //           payload: parseUci(move),
-  //         });
-  //       });
-  //     }
-  //   }
-  // }, [position, engine, playingColor]);
 
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white"
@@ -270,6 +221,80 @@ function BoardGame() {
     name: "Player",
   });
 
+  function getPlayers() {
+    let white = inputColor === "white" ? player1Settings : player2Settings;
+    let black = inputColor === "black" ? player1Settings : player2Settings;
+    if (inputColor === "random") {
+      white = Math.random() > 0.5 ? player1Settings : player2Settings;
+      black = white === player1Settings ? player2Settings : player1Settings;
+    }
+    return { white, black };
+  }
+
+  const { headers, root, position } = useContext(TreeStateContext);
+  const dispatch = useContext(TreeDispatchContext);
+  const [, setTabs] = useAtom(tabsAtom);
+
+  const boardRef = useRef(null);
+  const [gameState, setGameState] = useState<GameState>("settingUp");
+
+  function changeToAnalysisMode() {
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.value === activeTab ? { ...tab, type: "analysis" } : tab
+      )
+    );
+  }
+  const mainLine = Array.from(treeIteratorMainLine(root));
+  const currentNode = getNodeAtPath(root, position);
+  const lastNode = mainLine[mainLine.length - 1].node;
+
+  const chess = useMemo(() => new Chess(lastNode.fen), [lastNode.fen]);
+
+  useEffect(() => {
+    if (chess.isGameOver()) {
+      setGameState("gameOver");
+    }
+  }, [lastNode.fen]);
+
+  const [players, setPlayers] = useState<{
+    white: OpponentSettings;
+    black: OpponentSettings;
+  }>(getPlayers);
+
+  useEffect(() => {
+    if (gameState === "playing") {
+      const currentTurn = chess.turn();
+      const player = currentTurn === "w" ? players.white : players.black;
+
+      if (player.type === "engine") {
+        invoke<string>("get_single_best_move", {
+          skillLevel: player.skillLevel,
+          depth: player.depth,
+          engine: player.engine?.path,
+          fen: lastNode.fen,
+        }).then((move) => {
+          dispatch({
+            type: "APPEND_MOVE",
+            payload: parseUci(move),
+          });
+        });
+      }
+    }
+  }, [position, gameState, chess, players, lastNode.fen, dispatch]);
+
+  const movable = useMemo(() => {
+    if (players.white.type === "human" && players.black.type === "human") {
+      return "turn";
+    } else if (players.white.type === "human") {
+      return "white";
+    } else if (players.black.type === "human") {
+      return "black";
+    } else {
+      return "none";
+    }
+  }, [players]);
+
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -280,16 +305,16 @@ function BoardGame() {
           headers={headers}
           editingMode={false}
           toggleEditingMode={() => undefined}
-          viewOnly={opponent === null}
+          viewOnly={gameState !== "playing"}
           disableVariations
           boardRef={boardRef}
-          side={opponent === "human" ? undefined : playingColor}
+          movable={movable}
           root={root}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
-        {opponent === null ? (
-          <Paper withBorder shadow="sm" p="md" h="100%">
+        <Paper withBorder shadow="sm" p="md" h="100%">
+          {gameState === "settingUp" && (
             <Stack h="100%">
               <Group>
                 <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
@@ -326,46 +351,67 @@ function BoardGame() {
 
               <Center>
                 <Button
-                  onClick={() => console.log(player1Settings, player2Settings)}
+                  onClick={() => {
+                    setGameState("playing");
+                    const players = getPlayers();
+                    setPlayers(players);
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        white:
+                          (players.white.type === "human"
+                            ? players.white.name
+                            : players.white.engine?.name) ?? "?",
+                        black:
+                          (players.black.type === "human"
+                            ? players.black.name
+                            : players.black.engine?.name) ?? "?",
+                      },
+                    });
+                  }}
                 >
                   Start game
                 </Button>
               </Center>
             </Stack>
-          </Paper>
-        ) : (
-          <>
-            <GameInfo headers={headers} />
-            <Group grow>
-              <Button
-                onClick={() => {
-                  setOpponent(null);
-                  dispatch({
-                    type: "SET_FEN",
-                    payload: DEFAULT_POSITION,
-                  });
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      result: "*",
-                    },
-                  });
-                }}
-                leftIcon={<IconPlus />}
-              >
-                New Game
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => changeToAnalysisMode()}
-                leftIcon={<IconZoomCheck />}
-              >
-                Analyze
-              </Button>
-            </Group>
-          </>
-        )}
+          )}
+          {(gameState === "playing" || gameState === "gameOver") && (
+            <Stack h="100%">
+              <Box sx={{ flex: 1 }}>
+                <GameInfo headers={headers} />
+              </Box>
+              <Group grow>
+                <Button
+                  onClick={() => {
+                    setGameState("settingUp");
+                    dispatch({
+                      type: "SET_FEN",
+                      payload: DEFAULT_POSITION,
+                    });
+                    dispatch({
+                      type: "SET_HEADERS",
+                      payload: {
+                        ...headers,
+                        result: "*",
+                      },
+                    });
+                  }}
+                  leftIcon={<IconPlus />}
+                >
+                  New Game
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => changeToAnalysisMode()}
+                  leftIcon={<IconZoomCheck />}
+                >
+                  Analyze
+                </Button>
+              </Group>
+            </Stack>
+          )}
+        </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         <Stack h="100%">

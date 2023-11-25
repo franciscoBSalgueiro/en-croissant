@@ -64,6 +64,7 @@ import { updateCardPerformance } from "../files/opening";
 import EvalBar from "./EvalBar";
 import PromotionModal from "./PromotionModal";
 import "./board.css";
+import { match } from "ts-pattern";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -75,7 +76,7 @@ interface ChessboardProps {
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
-  side?: Color;
+  movable: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
   addGame?: () => void;
@@ -90,7 +91,7 @@ function BoardPlay({
   toggleEditingMode,
   viewOnly,
   disableVariations,
-  side,
+  movable = "turn",
   boardRef,
   saveFile,
   addGame,
@@ -137,7 +138,10 @@ function BoardPlay({
     from: Square;
     to: Square;
   } | null>(null);
-  const orientation = headers.orientation || "white";
+  const orientation =
+    movable === "white" || movable === "black"
+      ? movable
+      : headers.orientation || "white";
   const toggleOrientation = () =>
     dispatch({
       type: "SET_HEADERS",
@@ -266,6 +270,20 @@ function BoardPlay({
   const practiceLock =
     !!practicing && !deck.find((c) => c.fen === currentNode.fen);
 
+  const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
+    return practiceLock
+      ? undefined
+      : editingMode
+      ? "both"
+      : match(movable)
+          .with("white", () => "white" as const)
+          .with("black", () => "black" as const)
+          .with("turn", () => turn)
+          .with("both", () => "both" as const)
+          .with("none", () => undefined)
+          .exhaustive();
+  }, [practiceLock, editingMode, movable, turn]);
+
   return (
     <>
       <Box className="container">
@@ -292,16 +310,12 @@ function BoardPlay({
               orientation={orientation}
             />
             <Chessground
-              orientation={side ?? orientation}
+              orientation={orientation}
               fen={currentNode.fen}
               coordinates={showCoordinates}
               movable={{
                 free: editingMode,
-                color: practiceLock
-                  ? undefined
-                  : editingMode
-                  ? "both"
-                  : side || turn,
+                color: movableColor,
                 dests:
                   editingMode || viewOnly
                     ? undefined

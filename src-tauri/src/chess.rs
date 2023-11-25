@@ -662,17 +662,6 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
     Ok(fen.to_string())
 }
 
-#[tauri::command]
-pub fn make_random_move(fen: String) -> Result<String, Error> {
-    let fen: Fen = fen.parse()?;
-    let pos: Chess = fen.into_position(CastlingMode::Standard)?;
-    let legal_moves = pos.legal_moves();
-    let mut rng = rand::thread_rng();
-    let random_move = legal_moves.choose(&mut rng).ok_or(Error::NoLegalMoves)?;
-    let uci = Uci::from_move(random_move, CastlingMode::Standard);
-    Ok(uci.to_string())
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FenValidation {
     pub valid: bool,
