@@ -10,14 +10,6 @@ export const INITIAL_SCORE: Score = {
 
 const CP_CEILING = 1000;
 
-export function parseScore(score: string): Score {
-    if (score.includes("M") || score.includes("#")) {
-        return { type: "mate", value: parseInt(score.replace(/M|#/, "")) };
-    } else {
-        return { type: "cp", value: parseFloat(score) * 100 };
-    }
-}
-
 export function formatScore(score: Score, precision = 2): string {
     let scoreText = "";
     if (score.type === "cp") {

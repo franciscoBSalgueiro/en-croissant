@@ -1,4 +1,4 @@
-import { warn } from 'tauri-plugin-log-api';
+import { warn } from "tauri-plugin-log-api";
 import { invoke } from "@tauri-apps/api";
 import {
     Chess,
@@ -14,13 +14,7 @@ import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
 import { Outcome } from "./db";
 import { harmonicMean, mean } from "./misc";
-import {
-    formatScore,
-    getAccuracy,
-    getCPLoss,
-    INITIAL_SCORE,
-    parseScore,
-} from "./score";
+import { formatScore, getAccuracy, getCPLoss, INITIAL_SCORE } from "./score";
 import {
     createNode,
     defaultTree,
@@ -32,53 +26,12 @@ import {
     TreeState,
 } from "./treeReducer";
 import { MantineColor } from "@mantine/core";
-import useSWR from 'swr';
-import { Score } from '@/bindings';
-import { match } from 'ts-pattern';
+import useSWR from "swr";
+import { Score } from "@/bindings";
+import { isPawns, parseComment } from "chessops/pgn";
+import { makeSquare } from "chessops";
 
 export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
-
-function parseCsl(csl: string): DrawShape[] {
-    const shapes = csl.split(",").map((square) => {
-        if (square.length === 2) {
-            return {
-                orig: square as Square,
-                brush: BRUSH_COLORS.get("DEFAULT"),
-            } as DrawShape;
-        } else if (square.length === 3) {
-            return {
-                orig: square.slice(1) as Square,
-                brush: BRUSH_COLORS.get(square[0].toUpperCase()),
-            } as DrawShape;
-        } else {
-            throw new Error("Invalid square: " + square);
-        }
-    });
-
-    return shapes;
-}
-
-function parseCal(cal: string): DrawShape[] {
-    const shapes = cal.split(",").map((square) => {
-        if (square.length === 4) {
-            return {
-                orig: square.slice(0, 2) as Square,
-                dest: square.slice(2) as Square,
-                brush: BRUSH_COLORS.get("DEFAULT"),
-            } as DrawShape;
-        } else if (square.length === 5) {
-            return {
-                orig: square.slice(1, 3) as Square,
-                dest: square.slice(3) as Square,
-                brush: BRUSH_COLORS.get(square[0].toUpperCase()),
-            } as DrawShape;
-        } else {
-            throw new Error("Invalid square: " + square);
-        }
-    });
-
-    return shapes;
-}
 
 export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
 
@@ -95,13 +48,6 @@ type AnnotationInfo = {
     name: string;
     color: MantineColor;
 };
-
-export const BRUSH_COLORS = new Map<string, string>([
-    ["DEFAULT", "green"],
-    ["R", "red"],
-    ["G", "green"],
-    ["Y", "yellow"],
-    ["B", "blue"]]);
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
     "": { name: "None", color: "gray" },
@@ -164,18 +110,36 @@ export function getMoveText(
         }
 
         if (opt.specialSymbols && tree.shapes.length > 0) {
-            const squares = tree.shapes
-                .filter((shape) => shape.dest === undefined);
-            const arrows = tree.shapes
-                .filter((shape) => shape.dest !== undefined);
+            const squares = tree.shapes.filter(
+                (shape) => shape.dest === undefined
+            );
+            const arrows = tree.shapes.filter(
+                (shape) => shape.dest !== undefined
+            );
 
             if (squares.length > 0) {
-                content += "[%csl " + squares.map(
-                    (shape) => {return shape.brush[0].toUpperCase() + shape.orig}).join(",") + "]";
+                content +=
+                    "[%csl " +
+                    squares
+                        .map((shape) => {
+                            return shape.brush[0].toUpperCase() + shape.orig;
+                        })
+                        .join(",") +
+                    "]";
             }
             if (arrows.length > 0) {
-                content += "[%cal " + arrows.map(
-                    (shape) => {return shape.brush[0].toUpperCase() + shape.orig + shape.dest}).join(",") + "]";
+                content +=
+                    "[%cal " +
+                    arrows
+                        .map((shape) => {
+                            return (
+                                shape.brush[0].toUpperCase() +
+                                shape.orig +
+                                shape.dest
+                            );
+                        })
+                        .join(",") +
+                    "]";
             }
         }
 
@@ -226,30 +190,30 @@ export function getPGN(
         pgn += headersToPGN(headers);
     }
     if (root && tree.fen !== DEFAULT_POSITION) {
-        pgn += '[SetUp "1"]\n'
+        pgn += '[SetUp "1"]\n';
         pgn += '[FEN "' + tree.fen + '"]\n';
     }
     pgn += "\n";
     if (root && tree.commentText !== null) {
-        pgn += `${getMoveText(tree, {symbols, comments, specialSymbols})}`
+        pgn += `${getMoveText(tree, { symbols, comments, specialSymbols })}`;
     }
     const variationsPGN = variations
         ? tree.children.slice(1).map(
-            (variation) =>
-                `${getMoveText(variation, {
-                    symbols,
-                    comments,
-                    specialSymbols,
-                    isFirst: true,
-                })} ${getPGN(variation, {
-                    headers: null,
-                    symbols,
-                    comments,
-                    variations,
-                    specialSymbols,
-                    root: false,
-                })}`
-        )
+              (variation) =>
+                  `${getMoveText(variation, {
+                      symbols,
+                      comments,
+                      specialSymbols,
+                      isFirst: true,
+                  })} ${getPGN(variation, {
+                      headers: null,
+                      symbols,
+                      comments,
+                      variations,
+                      specialSymbols,
+                      root: false,
+                  })}`
+          )
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
@@ -280,7 +244,6 @@ export function moveToKey(move: Move | null) {
     return move ? ([move.from, move.to] as Key[]) : [];
 }
 
-
 const fileToNumber: Record<string, number> = {
     a: 1,
     b: 2,
@@ -292,15 +255,17 @@ const fileToNumber: Record<string, number> = {
     h: 8,
 };
 
-
-export function moveToCoordinates(move: { from: string, to: string } | null, orientation: "white" | "black") {
+export function moveToCoordinates(
+    move: { from: string; to: string } | null,
+    orientation: "white" | "black"
+) {
     let file = fileToNumber[move?.to[0] ?? "a"];
     let rank = parseInt(move?.to[1] ?? "1");
     if (orientation === "black") {
         file = 9 - file;
         rank = 9 - rank;
     }
-    return { file, rank }
+    return { file, rank };
 }
 
 export function toDests(
@@ -393,7 +358,9 @@ export async function getOpening(
     }
     return invoke<string>("get_opening_from_fen", { fen: tree.fen })
         .then((v) => v)
-        .catch(() => position.length === 0 ? "" : getOpening(root, position.slice(0, -1)));
+        .catch(() =>
+            position.length === 0 ? "" : getOpening(root, position.slice(0, -1))
+        );
 }
 
 export function swapMove(fen: string, color?: Color) {
@@ -434,32 +401,33 @@ function innerParsePGN(
         const token = tokens[i];
 
         if (token.type === "Comment") {
-            let comment = token.value;
+            const comment = parseComment(token.value);
 
-            const evl = comment.match(/\[%eval\s+([-+]?[0-9]*\.?[0-9]+)\]/);
-            if (evl) {
-                root.score = parseScore(evl[1]);
+            if (comment.evaluation) {
+                if (isPawns(comment.evaluation)) {
+                    root.score = {
+                        type: "cp",
+                        value: comment.evaluation.pawns * 100,
+                    };
+                } else {
+                    root.score = {
+                        type: "mate",
+                        value: comment.evaluation.mate,
+                    };
+                }
             }
 
-            const csl = comment.match(/\[%csl\s+((?:[RGYB][a-h][1-8],?)+)\]/);
-            if (csl) {
-                root.shapes.push(...parseCsl(csl[1]));
+            if (comment.shapes.length > 0) {
+                const shapes: DrawShape[] = comment.shapes.map((shape) => ({
+                    orig: makeSquare(shape.from),
+                    dest: makeSquare(shape.to),
+                    brush: shape.color,
+                }));
+                root.shapes.push(...shapes);
             }
 
-            const cal = comment.match(
-                /\[%cal\s+((?:[RGYB][a-h][1-8][a-h][1-8],?)+)\]/
-            );
-            if (cal) {
-                root.shapes.push(...parseCal(cal[1]));
-            }
-
-            // remove the special tags from the comment text
-            comment = comment.replace(/\[%.*\]/g, "");
-
-            if (comment.trim() !== "") {
-                root.commentText = comment;
-                root.commentHTML = `<p>${comment}</p>`;
-            }
+            root.commentText = comment.text;
+            root.commentHTML = comment.text;
         } else if (token.type === "ParenOpen") {
             const variation = [];
             let subvariations = 0;
@@ -655,8 +623,8 @@ export function getGameStats(tree: TreeNode) {
     }
     const whiteCPL = mean(cplosses.w);
     const blackCPL = mean(cplosses.b);
-    const whiteAccuracy = harmonicMean(accuracies.w);
-    const blackAccuracy = harmonicMean(accuracies.b);
+    const whiteAccuracy = (harmonicMean(accuracies.w) + mean(accuracies.w)) / 2;
+    const blackAccuracy = (harmonicMean(accuracies.b) + mean(accuracies.b)) / 2;
 
     return {
         whiteCPL,
@@ -678,7 +646,9 @@ export type PiecesCount = {
 
 export function useMaterialDiff(fen: string) {
     return useSWR(["material-diff", fen], async () => {
-        const pieces = await invoke<PiecesCount>("get_pieces_count", { fen: fen });
+        const pieces = await invoke<PiecesCount>("get_pieces_count", {
+            fen: fen,
+        });
 
         const diff =
             pieces.p * 1 +

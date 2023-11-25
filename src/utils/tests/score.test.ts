@@ -4,19 +4,8 @@ import {
     getAnnotation,
     getCPLoss,
     getWinChance,
-    parseScore,
 } from "../score";
 import { test, expect } from "vitest";
-
-test("should parse a cp score correctly", () => {
-    expect(parseScore("0.50")).toStrictEqual({ type: "cp", value: 50 });
-    expect(parseScore("-0.50")).toStrictEqual({ type: "cp", value: -50 });
-});
-
-test("should parse a mate score correctly", () => {
-    expect(parseScore("M5")).toStrictEqual({ type: "mate", value: 5 });
-    expect(parseScore("-M5")).toStrictEqual({ type: "mate", value: -5 });
-});
 
 test("should format a positive cp score correctly", () => {
     expect(formatScore({ type: "cp", value: 50 })).toBe("+0.50");

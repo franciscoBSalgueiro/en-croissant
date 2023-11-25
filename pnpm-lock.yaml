@@ -68,6 +68,9 @@ dependencies:
   chessground:
     specifier: ^8.3.10
     version: 8.3.10
+  chessops:
+    specifier: ^0.12.8
+    version: 0.12.8
   dayjs:
     specifier: ^1.11.8
     version: 1.11.8
@@ -440,6 +443,10 @@ packages:
       '@babel/helper-string-parser': 7.22.5
       '@babel/helper-validator-identifier': 7.22.20
       to-fast-properties: 2.0.0
+
+  /@badrap/result@0.2.13:
+    resolution: {integrity: sha512-Qvyzz0dmGY0h8pwvBFo1BznAKf5Y5NXIDiqhPALWtfU7oHbAToCtPu4FlYQ3uysskSWLx8GUiyhe0nv0nDd/7Q==}
+    dev: false
 
   /@emotion/babel-plugin@11.11.0:
     resolution: {integrity: sha512-m4HEDZleaaCH+XgDDsPF15Ht6wTLsgDTeR3WYj9Q/k76JtWhrJjcP4+/XlG8LGT/Rol9qUfOIztXeA84ATpqPQ==}
@@ -2575,6 +2582,13 @@ packages:
 
   /chessground@8.3.10:
     resolution: {integrity: sha512-tYJ9IKR3N+2EP2DCYX3AMcPTCa2ZfOf988tYFHCaPFQ6i/9CQstDteLtrWtOWQjPV3qHXVmsbeCtyhUP0eqS3Q==}
+    dev: false
+
+  /chessops@0.12.8:
+    resolution: {integrity: sha512-/9pkJa++RU1WiIa/pH4AdFh6ulcxeMlkYm7sc4xAb1jjcmu6MlsOSTjtOUhUXcw5aVJAIrWY2IwPNucNJLCpFw==}
+    deprecated: Version published from wrong branch
+    dependencies:
+      '@badrap/result': 0.2.13
     dev: false
 
   /classnames@2.3.2:
