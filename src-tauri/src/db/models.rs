@@ -1,9 +1,10 @@
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::db::schema::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Type)]
 #[diesel(table_name = puzzles)]
 pub struct Puzzle {
     pub id: i32,

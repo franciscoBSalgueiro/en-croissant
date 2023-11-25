@@ -117,7 +117,8 @@ fn main() {
                 stop_engine,
                 kill_engines,
                 get_engine_logs,
-                memory_size
+                memory_size,
+                get_puzzle
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload));
 
@@ -171,7 +172,6 @@ fn main() {
             download_file,
             get_opening_from_fen,
             search_opening_name,
-            get_puzzle,
             get_games,
             get_players,
             get_tournaments,

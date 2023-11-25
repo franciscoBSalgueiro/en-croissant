@@ -9,14 +9,13 @@ import {
   RangeSlider,
   SimpleGrid,
   Text,
-  Title,
   Tooltip,
   createStyles,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
-import { IconCheck, IconPlus, IconX } from "@tabler/icons-react";
+import { IconPlus, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { invoke } from "@/utils/invoke";
+import { unwrap } from "@/utils/invoke";
 import {
   Completion,
   Puzzle,
@@ -27,6 +26,7 @@ import PuzzleBoard from "./PuzzleBoard";
 import { PuzzleDbCard } from "./PuzzleDbCard";
 import AddPuzzle from "./AddPuzzle";
 import ChallengeHistory from "../common/ChallengeHistory";
+import { commands } from "@/bindings";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -82,15 +82,17 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.length;
 
   function generatePuzzle(db: string) {
-    invoke<any>("get_puzzle", {
-      file: db,
-      minRating: ratingRange[0],
-      maxRating: ratingRange[1],
-    }).then((res) => {
-      res.moves = res.moves.split(" ");
-      res.completion = "incomplete";
+    commands.getPuzzle(db, ratingRange[0], ratingRange[1]).then((res) => {
+      const puzzle = unwrap(res);
       setPuzzles((puzzles) => {
-        return [...puzzles, res];
+        return [
+          ...puzzles,
+          {
+            ...puzzle,
+            moves: puzzle.moves.split(" "),
+            completion: "incomplete",
+          },
+        ];
       });
       setCurrentPuzzle(puzzles.length);
       setCurrentMove(1);
@@ -110,56 +112,7 @@ function Puzzles({ id }: { id: string }) {
 
   const { classes } = useStyles();
 
-  return selectedDb === null || puzzles.length === 0 ? (
-    <>
-      <AddPuzzle
-        puzzleDbs={puzzleDbs}
-        opened={addOpened}
-        setOpened={setAddOpened}
-        setLoading={setLoading}
-        setPuzzleDbs={setPuzzleDbs}
-      />
-      <Title mb="md">Puzzle Collections</Title>
-      <SimpleGrid cols={4} mb="md">
-        {puzzleDbs.map((db) => (
-          <PuzzleDbCard
-            key={db.path}
-            db={db}
-            isSelected={tmpSelected === db.path}
-            setSelected={setTmpSelected}
-          />
-        ))}
-        <Card
-          withBorder
-          radius="md"
-          className={classes.card}
-          component="button"
-          type="button"
-          onClick={() => setAddOpened(true)}
-        >
-          <Text weight={500} mb={10}>
-            Add New
-          </Text>
-          {loading ? (
-            <Loader variant="dots" size="2rem" />
-          ) : (
-            <IconPlus size="2rem" />
-          )}
-        </Card>
-      </SimpleGrid>
-      <Button
-        onClick={() => {
-          setSelectedDb(tmpSelected);
-          generatePuzzle(tmpSelected!);
-          setTmpSelected(null);
-        }}
-        disabled={tmpSelected === null}
-        leftIcon={<IconCheck />}
-      >
-        Select
-      </Button>
-    </>
-  ) : (
+  return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
         <PuzzleBoard
@@ -175,6 +128,40 @@ function Puzzles({ id }: { id: string }) {
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
         <Card h="100%">
+          <AddPuzzle
+            puzzleDbs={puzzleDbs}
+            opened={addOpened}
+            setOpened={setAddOpened}
+            setLoading={setLoading}
+            setPuzzleDbs={setPuzzleDbs}
+          />
+          <SimpleGrid cols={2} mb="md">
+            {puzzleDbs.map((db) => (
+              <PuzzleDbCard
+                key={db.path}
+                db={db}
+                isSelected={tmpSelected === db.path}
+                setSelected={setTmpSelected}
+              />
+            ))}
+            <Card
+              withBorder
+              radius="md"
+              className={classes.card}
+              component="button"
+              type="button"
+              onClick={() => setAddOpened(true)}
+            >
+              <Text weight={500} mb={10}>
+                Add New
+              </Text>
+              {loading ? (
+                <Loader variant="dots" size="2rem" />
+              ) : (
+                <IconPlus size="2rem" />
+              )}
+            </Card>
+          </SimpleGrid>
           <Group>
             <div>
               <Text size="sm" color="dimmed">
@@ -216,7 +203,10 @@ function Puzzles({ id }: { id: string }) {
           <Divider my="sm" />
           <Group>
             <Tooltip label="New Puzzle">
-              <ActionIcon onClick={() => generatePuzzle(selectedDb)}>
+              <ActionIcon
+                disabled={!selectedDb}
+                onClick={() => generatePuzzle(selectedDb!)}
+              >
                 <IconPlus />
               </ActionIcon>
             </Tooltip>
@@ -241,7 +231,10 @@ function Puzzles({ id }: { id: string }) {
                   await new Promise((r) => setTimeout(r, 500));
                 }
               }}
-              disabled={currentMove === puzzles[currentPuzzle].moves.length}
+              disabled={
+                puzzles.length === 0 ||
+                currentMove === puzzles[currentPuzzle].moves.length
+              }
             >
               View Solution
             </Button>

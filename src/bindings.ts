@@ -54,6 +54,14 @@ try {
 },
 async memorySize() : Promise<number> {
 return await TAURI_INVOKE("plugin:tauri-specta|memory_size");
+},
+async getPuzzle(file: string, minRating: number, maxRating: number) : Promise<__Result__<{ id: number; fen: string; moves: string; rating: number; rating_deviation: number; popularity: number; nb_plays: number }, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_puzzle", { file, minRating, maxRating }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

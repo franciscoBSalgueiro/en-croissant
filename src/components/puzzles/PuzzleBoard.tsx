@@ -25,17 +25,22 @@ function PuzzleBoard({
   generatePuzzle: (db: string) => void;
   currentMove: number;
   setCurrentMove: (currentMove: number) => void;
-  db: string;
+  db: string | null;
 }) {
-  const puzzle = puzzles[currentPuzzle];
+  let puzzle: Puzzle | null = null;
+  if (puzzles.length > 0) {
+    puzzle = puzzles[currentPuzzle];
+  }
   const [ended, setEnded] = useState(false);
-  const chess = new Chess(puzzle.fen);
+  const chess = new Chess(puzzle?.fen);
   let lastMove: Move | null = null;
   let orientation: "white" | "black" = "white";
-  for (let i = 0; i < Math.min(currentMove, puzzle.moves.length); i++) {
-    lastMove = chess.move(parseUci(puzzle.moves[i]));
-    if (i == 0) {
-      orientation = formatMove(chess.turn());
+  if (puzzle) {
+    for (let i = 0; i < Math.min(currentMove, puzzle.moves.length); i++) {
+      lastMove = chess.move(parseUci(puzzle.moves[i]));
+      if (i == 0) {
+        orientation = formatMove(chess.turn());
+      }
     }
   }
   const [pendingMove, setPendingMove] = useState<{
@@ -49,14 +54,16 @@ function PuzzleBoard({
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
   function checkMove(move: string) {
-    if (puzzle.moves[currentMove] === move) {
+    if (puzzle && puzzle.moves[currentMove] === move) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
           changeCompletion("correct");
         }
         setEnded(false);
 
-        generatePuzzle(db);
+        if (db) {
+          generatePuzzle(db);
+        }
       }
       setCurrentMove(currentMove + 2);
     } else {
@@ -66,8 +73,6 @@ function PuzzleBoard({
       setEnded(true);
     }
   }
-
-  if (!lastMove) return null;
 
   return (
     <Box className="container">
@@ -87,13 +92,11 @@ function PuzzleBoard({
             animation={{
               enabled: true,
             }}
-            width={500}
             coordinates={showCoordinates}
-            height={500}
             orientation={orientation}
             movable={{
               free: false,
-              color: turn,
+              color: lastMove ? turn : undefined,
               dests: dests,
               events: {
                 after: (orig, dest) => {

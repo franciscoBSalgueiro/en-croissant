@@ -17,8 +17,8 @@ use crate::{
 struct PuzzleCache {
     cache: VecDeque<Puzzle>,
     counter: usize,
-    min_rating: usize,
-    max_rating: usize,
+    min_rating: u16,
+    max_rating: u16,
 }
 
 impl PuzzleCache {
@@ -34,8 +34,8 @@ impl PuzzleCache {
     fn get_puzzles(
         &mut self,
         file: &str,
-        min_rating: usize,
-        max_rating: usize,
+        min_rating: u16,
+        max_rating: u16,
     ) -> Result<(), Error> {
         if self.cache.is_empty()
             || self.min_rating != min_rating
@@ -72,7 +72,8 @@ impl PuzzleCache {
 }
 
 #[tauri::command]
-pub fn get_puzzle(file: String, min_rating: usize, max_rating: usize) -> Result<Puzzle, Error> {
+#[specta::specta]
+pub fn get_puzzle(file: String, min_rating: u16, max_rating: u16) -> Result<Puzzle, Error> {
     static PUZZLE_CACHE: Lazy<Mutex<PuzzleCache>> = Lazy::new(|| Mutex::new(PuzzleCache::new()));
 
     let mut cache = PUZZLE_CACHE.lock().unwrap();
