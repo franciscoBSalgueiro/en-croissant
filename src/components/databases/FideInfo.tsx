@@ -13,7 +13,7 @@ import * as Flags from "mantine-flagpack";
 import { IconCloud } from "@tabler/icons-react";
 
 import COUNTRIES from "./countries.json";
-import useSWR from "swr";
+import useSWR from "swr/immutable";
 import { useEffect, useState } from "react";
 import { BaseDirectory, exists } from "@tauri-apps/api/fs";
 import ProgressButton from "../common/ProgressButton";
@@ -133,7 +133,7 @@ function FideInfo({
       ) : (
         <Center>
           <Text fz="lg" pb="lg">
-            {error ?? "Player not found"}
+            {error && "Player not found"}
           </Text>
         </Center>
       )}
