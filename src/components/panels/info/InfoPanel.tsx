@@ -1,12 +1,4 @@
-import {
-  Accordion,
-  Box,
-  ScrollArea,
-  Stack,
-  TextInput,
-  Text,
-  Group,
-} from "@mantine/core";
+import { Accordion, ScrollArea, Stack, Text, Group } from "@mantine/core";
 import { useContext, useMemo, useState } from "react";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "@/components/common/GameInfo";
@@ -32,6 +24,7 @@ import { useToggle } from "@mantine/hooks";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 import { getTreeStats } from "@/utils/repertoire";
 import PracticePanel from "./PracticePanel";
+import FenSearch from "./FenSearch";
 
 function InfoPanel() {
   const tree = useContext(TreeStateContext);
@@ -56,18 +49,7 @@ function InfoPanel() {
               <GameInfo headers={tree.headers} simplified={isReportoire} />
               {isReportoire && <RepertoireInfo />}
               {currentNode && (
-                <TextInput
-                  readOnly
-                  value={currentNode.fen}
-                  label="FEN"
-                  labelProps={{
-                    sx: {
-                      fontWeight: "bold",
-                      fontSize: "1rem",
-                      marginBottom: "0.5rem",
-                    },
-                  }}
-                />
+                <FenSearch currentFen={currentNode.fen} key={currentNode.fen} />
               )}
               <PgnInput headers={tree.headers} root={tree.root} />
 
