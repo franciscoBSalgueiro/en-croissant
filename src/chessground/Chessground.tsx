@@ -30,6 +30,7 @@ export function Chessground(props: ChessgroundProps) {
     <div
       style={{
         aspectRatio: 1,
+        width: "100%"
       }}
       ref={ref}
     />
