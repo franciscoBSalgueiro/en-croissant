@@ -217,7 +217,7 @@ export function getPGN(
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
-        pgn += getMoveText(child, { symbols, comments, specialSymbols });
+        pgn += getMoveText(child, { symbols, comments, specialSymbols, isFirst: root });
     }
     if (variationsPGN.length >= 1) {
         variationsPGN.forEach((variation) => {
