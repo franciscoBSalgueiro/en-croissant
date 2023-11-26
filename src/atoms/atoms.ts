@@ -220,9 +220,9 @@ export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
 const pgnOptionsFamily = atomFamily((tab: string) =>
     atom({
         comments: true,
-        annotations: true,
+        glyphs: true,
         variations: true,
-        symbols: false,
+        extraMarkups: true,
     })
 );
 export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);

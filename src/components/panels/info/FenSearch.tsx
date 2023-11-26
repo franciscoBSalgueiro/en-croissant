@@ -2,7 +2,7 @@ import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { capitalize } from "@/utils/format";
 import { Group, Select, Text } from "@mantine/core";
 import { invoke } from "@/utils/invoke";
-import { useState, useContext, forwardRef } from "react";
+import { useState, useContext, forwardRef, useEffect } from "react";
 
 type ItemProps = {
   label: string;
@@ -16,6 +16,10 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
   ]);
   const [error, setError] = useState<string | undefined>(undefined);
   const dispatch = useContext(TreeDispatchContext);
+
+  useEffect(() => {
+    setData([{ label: currentFen, value: currentFen }]);
+  }, [currentFen]);
 
   function addFen(fen: string) {
     if (fen) {

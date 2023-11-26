@@ -77,9 +77,9 @@ export interface MoveAnalysis {
 export function getMoveText(
     tree: TreeNode,
     opt: {
-        symbols: boolean;
+        glyphs: boolean;
         comments: boolean;
-        specialSymbols: boolean;
+        extraMarkups: boolean;
         isFirst?: boolean;
     }
 ): string {
@@ -96,20 +96,20 @@ export function getMoveText(
             moveText += `${moveNumber}. `;
         }
         moveText += tree.move.san;
-        if (opt.symbols) {
+        if (opt.glyphs) {
             moveText += tree.annotation;
         }
         moveText += " ";
     }
 
-    if (opt.comments || opt.specialSymbols) {
+    if (opt.comments || opt.extraMarkups) {
         let content = "{";
 
-        if (opt.specialSymbols && tree.score !== null) {
+        if (opt.extraMarkups && tree.score !== null) {
             content += `[%eval ${formatScore(tree.score)}] `;
         }
 
-        if (opt.specialSymbols && tree.shapes.length > 0) {
+        if (opt.extraMarkups && tree.shapes.length > 0) {
             const squares = tree.shapes.filter(
                 (shape) => shape.dest === undefined
             );
@@ -171,17 +171,17 @@ export function getPGN(
     tree: TreeNode,
     {
         headers,
-        symbols = true,
+        glyphs = true,
         comments = true,
         variations = true,
-        specialSymbols = true,
+        extraMarkups = true,
         root = true,
     }: {
         headers: GameHeaders | null;
-        symbols?: boolean;
+        glyphs?: boolean;
         comments?: boolean;
         variations?: boolean;
-        specialSymbols?: boolean;
+        extraMarkups?: boolean;
         root?: boolean;
     }
 ): string {
@@ -195,29 +195,29 @@ export function getPGN(
     }
     pgn += "\n";
     if (root && tree.commentText !== null) {
-        pgn += `${getMoveText(tree, { symbols, comments, specialSymbols })}`;
+        pgn += `${getMoveText(tree, { glyphs, comments, extraMarkups })}`;
     }
     const variationsPGN = variations
         ? tree.children.slice(1).map(
               (variation) =>
                   `${getMoveText(variation, {
-                      symbols,
+                      glyphs,
                       comments,
-                      specialSymbols,
+                      extraMarkups,
                       isFirst: true,
                   })} ${getPGN(variation, {
                       headers: null,
-                      symbols,
+                      glyphs,
                       comments,
                       variations,
-                      specialSymbols,
+                      extraMarkups,
                       root: false,
                   })}`
           )
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
-        pgn += getMoveText(child, { symbols, comments, specialSymbols, isFirst: root });
+        pgn += getMoveText(child, { glyphs: glyphs, comments, extraMarkups, isFirst: root });
     }
     if (variationsPGN.length >= 1) {
         variationsPGN.forEach((variation) => {
@@ -228,10 +228,10 @@ export function getPGN(
     if (tree.children.length > 0) {
         pgn += getPGN(tree.children[0], {
             headers: null,
-            symbols,
+            glyphs,
             comments,
             variations,
-            specialSymbols,
+            extraMarkups,
             root: false,
         });
     }

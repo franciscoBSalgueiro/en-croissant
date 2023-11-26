@@ -48,10 +48,8 @@ function InfoPanel() {
             <Stack>
               <GameInfo headers={tree.headers} simplified={isReportoire} />
               {isReportoire && <RepertoireInfo />}
-              {currentNode && (
-                <FenSearch currentFen={currentNode.fen} key={currentNode.fen} />
-              )}
-              <PgnInput headers={tree.headers} root={tree.root} />
+              <FenSearch currentFen={currentNode.fen} />
+              <PgnInput />
 
               <Group>
                 <Text>Variations: {stats.leafs}</Text>
