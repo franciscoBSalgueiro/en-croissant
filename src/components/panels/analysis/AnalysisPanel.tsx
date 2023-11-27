@@ -93,20 +93,20 @@ function AnalysisPanel({
           }}
         >
           <>
-            {loadedEngines.length > 0 && (
-              <Group pb="xs">
-                <Button
-                  rightIcon={
-                    allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
-                  }
-                  variant={allEnabled ? "filled" : "default"}
-                  onClick={() => enable(!allEnabled)}
-                >
-                  {allEnabled ? "Stop All" : "Run All"}
-                </Button>
-              </Group>
-            )}
             <ScrollArea offsetScrollbars>
+              {loadedEngines.length > 0 && (
+                <Group pb="xs">
+                  <Button
+                    rightIcon={
+                      allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
+                    }
+                    variant={allEnabled ? "filled" : "default"}
+                    onClick={() => enable(!allEnabled)}
+                  >
+                    {allEnabled ? "Stop All" : "Run All"}
+                  </Button>
+                </Group>
+              )}
               <Stack mt="sm">
                 <Accordion
                   variant="separated"

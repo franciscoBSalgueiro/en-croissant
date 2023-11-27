@@ -31,19 +31,15 @@ import { invoke } from "@/utils/invoke";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import {
   ActionIcon,
-  Alert,
   Avatar,
   Box,
   Global,
-  Grid,
   Group,
   Input,
-  Stack,
   Tooltip,
 } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import {
-  IconAlertCircle,
   IconChessBishopFilled,
   IconChessFilled,
   IconChessKnightFilled,
@@ -53,6 +49,8 @@ import {
   IconEdit,
   IconPlus,
   IconSwitchVertical,
+  IconTarget,
+  IconZoomCheck,
 } from "@tabler/icons-react";
 import { Chess, Move, PieceSymbol, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
@@ -152,7 +150,7 @@ function BoardPlay({
     });
 
   useHotkeys([["f", () => toggleOrientation()]]);
-  const currentTab = useAtomValue(currentTabAtom);
+  const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const practicing = useAtomValue(currentPracticingAtom);
 
   const [deck, setDeck] = useAtom(
@@ -229,9 +227,31 @@ function BoardPlay({
     shapes = shapes.concat(currentNode.shapes);
   }
 
+  function changeTabType() {
+    setCurrentTab((t) => {
+      return {
+        ...t,
+        type: t.type === "analysis" ? "play" : "analysis",
+      };
+    });
+  }
+
   const controls = useMemo(
     () => (
       <Group>
+        <Tooltip
+          label={
+            currentTab?.type === "analysis" ? "Play from here" : "Analyze game"
+          }
+        >
+          <ActionIcon onClick={changeTabType}>
+            {currentTab?.type === "analysis" ? (
+              <IconTarget />
+            ) : (
+              <IconZoomCheck />
+            )}
+          </ActionIcon>
+        </Tooltip>
         {!disableVariations && (
           <Tooltip label={"Edit Position"}>
             <ActionIcon onClick={() => toggleEditingMode()}>
@@ -265,7 +285,6 @@ function BoardPlay({
     ),
     [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
   );
-
   const { data } = useMaterialDiff(currentNode.fen);
   const practiceLock =
     !!practicing && !deck.find((c) => c.fen === currentNode.fen);
