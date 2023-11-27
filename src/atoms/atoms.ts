@@ -27,6 +27,7 @@ import {
 import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
 import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
 import { Session } from "../utils/session";
+import { OpponentSettings } from "@/components/boards/BoardGame";
 
 const options = { dir: BaseDirectory.AppData };
 const fileStorage: AsyncStringStorage = {
@@ -226,6 +227,22 @@ const pgnOptionsFamily = atomFamily((tab: string) =>
     })
 );
 export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);
+
+// Game
+
+type GameState = "settingUp" | "playing" | "gameOver";
+const gameStateFamily = atomFamily((tab: string) =>
+    atom<GameState>("settingUp")
+);
+export const currentGameStateAtom = tabValue(gameStateFamily);
+
+const playersFamily = atomFamily((tab: string) =>
+    atom<{
+        white: OpponentSettings;
+        black: OpponentSettings;
+    }>({ white: {} as OpponentSettings, black: {} as OpponentSettings })
+);
+export const currentPlayersAtom = tabValue(playersFamily);
 
 // Practice
 

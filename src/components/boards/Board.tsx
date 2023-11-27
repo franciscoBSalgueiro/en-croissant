@@ -80,7 +80,7 @@ interface ChessboardProps {
   addGame?: () => void;
 }
 
-function BoardPlay({
+function Board({
   dirty,
   currentNode,
   headers,
@@ -645,4 +645,4 @@ const glyphToSvg = {
   ),
 } as const;
 
-export default memo(BoardPlay);
+export default memo(Board);

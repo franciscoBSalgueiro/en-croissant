@@ -35,9 +35,9 @@ import {
   TreeDispatchContext,
   TreeStateContext,
 } from "../common/TreeStateContext";
-import BoardPlay from "./BoardPlay";
+import Board from "./Board";
 import GameNotation from "./GameNotation";
-import { activeTabAtom, enginesAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, currentGameStateAtom, currentPlayersAtom, enginesAtom, tabsAtom } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 import { parseUci } from "@/utils/chess";
@@ -236,7 +236,7 @@ function BoardGame() {
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
-  const [gameState, setGameState] = useState<GameState>("settingUp");
+  const [gameState, setGameState] = useAtom(currentGameStateAtom);
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
@@ -257,10 +257,7 @@ function BoardGame() {
     }
   }, [lastNode.fen]);
 
-  const [players, setPlayers] = useState<{
-    white: OpponentSettings;
-    black: OpponentSettings;
-  }>(getPlayers);
+  const [players, setPlayers] = useAtom(currentPlayersAtom);
 
   useEffect(() => {
     if (gameState === "playing") {
@@ -298,7 +295,7 @@ function BoardGame() {
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
-        <BoardPlay
+        <Board
           dirty={false}
           currentNode={currentNode}
           arrows={[]}

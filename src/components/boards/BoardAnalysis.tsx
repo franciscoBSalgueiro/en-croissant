@@ -26,7 +26,7 @@ import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
-import BoardPlay from "./BoardPlay";
+import Board from "./Board";
 import GameNotation from "./GameNotation";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -106,7 +106,7 @@ function BoardAnalysis() {
         />
       </Suspense>
       <Portal target="#left" style={{ height: "100%" }}>
-        <BoardPlay
+        <Board
           dirty={dirty}
           currentNode={currentNode}
           arrows={arrows}
