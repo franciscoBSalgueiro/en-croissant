@@ -20,6 +20,14 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
+async getSingleBestMove(goMode: GoMode, options: EngineOptions, engine: string) : Promise<__Result__<string, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_single_best_move", { goMode, options, engine }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async analyzeGame(moves: string[], engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; maybe_brilliant: boolean }[], string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { moves, engine, goMode, options }) };

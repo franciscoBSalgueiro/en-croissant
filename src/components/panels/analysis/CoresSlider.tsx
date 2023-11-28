@@ -1,5 +1,4 @@
-import { Slider } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { SegmentedControl, useMantineTheme } from "@mantine/core";
 
 export default function CoresSlide({
   value,
@@ -8,32 +7,19 @@ export default function CoresSlide({
   value: number;
   setValue: (v: number) => void;
 }) {
-  const [tempValue, setTempValue] = useState(Math.log2(value));
-  const MARKS = [
-    { value: 0 },
-    { value: 1 },
-    { value: 2 },
-    { value: 3 },
-    { value: 4 },
-    { value: 5 },
-    { value: 6 },
-  ];
-
-  useEffect(() => {
-    setTempValue(Math.log2(value));
-  }, [value]);
+  const theme = useMantineTheme();
+  const values = Array.from(
+    { length: Math.log2(navigator.hardwareConcurrency) + 1 },
+    (_, i) => 2 ** i
+  );
 
   return (
-    <>
-      <Slider
-        min={0}
-        max={Math.log2(navigator.hardwareConcurrency)}
-        value={tempValue}
-        onChange={setTempValue}
-        onChangeEnd={(v) => setValue(2 ** v)}
-        marks={MARKS}
-        label={(value) => 2 ** value}
-      />
-    </>
+    <SegmentedControl
+      size="xs"
+      color={theme.primaryColor}
+      value={value.toString()}
+      onChange={(v) => setValue(parseInt(v))}
+      data={values.map((v) => v.toString())}
+    />
   );
 }

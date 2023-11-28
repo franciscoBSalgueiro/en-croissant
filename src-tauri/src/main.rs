@@ -77,6 +77,7 @@ pub struct AppState {
 const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
     (BaseDirectory::AppData, "engines"),
     (BaseDirectory::AppData, "db"),
+    (BaseDirectory::AppData, "presets"),
     (BaseDirectory::AppData, "puzzles"),
     (BaseDirectory::Document, "EnCroissant"),
 ];
@@ -113,6 +114,7 @@ fn main() {
                 close_splashscreen,
                 find_fide_player,
                 get_best_moves,
+                get_single_best_move,
                 analyze_game,
                 stop_engine,
                 kill_engines,
@@ -183,7 +185,6 @@ fn main() {
             delete_database,
             convert_pgn,
             search_position,
-            get_single_best_move,
             is_bmi2_compatible,
             clear_games,
             get_engine_name,

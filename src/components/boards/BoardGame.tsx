@@ -5,9 +5,9 @@ import {
   Center,
   Divider,
   Group,
-  NumberInput,
   Paper,
   Portal,
+  ScrollArea,
   SegmentedControl,
   Select,
   Stack,
@@ -37,12 +37,21 @@ import {
 } from "../common/TreeStateContext";
 import Board from "./Board";
 import GameNotation from "./GameNotation";
-import { activeTabAtom, currentGameStateAtom, currentPlayersAtom, enginesAtom, tabsAtom } from "@/atoms/atoms";
+import {
+  EngineSettings,
+  activeTabAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
+  enginesAtom,
+  tabsAtom,
+} from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 import { parseUci } from "@/utils/chess";
-import { invoke } from "@tauri-apps/api";
 import { Engine } from "@/utils/engines";
+import { commands } from "@/bindings";
+import { unwrap } from "@/utils/invoke";
+import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 
 function EnginesSelect({
   engine,
@@ -84,44 +93,8 @@ export type OpponentSettings =
   | {
       type: "engine";
       engine: Engine | null;
-      skillLevel: number | null;
-      depth: number;
+      settings: EngineSettings;
     };
-
-const enginePresets = [
-  {
-    id: "easy",
-    name: "Easy Bot",
-    settings: {
-      skillLevel: 2,
-      depth: 12,
-    },
-  },
-  {
-    id: "medium",
-    name: "Medium Bot",
-    settings: {
-      skillLevel: 4,
-      depth: 16,
-    },
-  },
-  {
-    id: "hard",
-    name: "Hard Bot",
-    settings: {
-      skillLevel: 6,
-      depth: 20,
-    },
-  },
-  {
-    id: "impossible",
-    name: "Impossible Bot",
-    settings: {
-      skillLevel: 8,
-      depth: 24,
-    },
-  },
-];
 
 function OpponentForm({
   settings,
@@ -137,8 +110,19 @@ function OpponentForm({
       setSettings({
         type: "engine",
         engine: null,
-        skillLevel: 2,
-        depth: 12,
+        settings: {
+          go: {
+            t: "Time",
+            c: 2000,
+          },
+          enabled: false,
+          options: {
+            threads: 2,
+            multipv: 1,
+            hash: 16,
+            extraOptions: [],
+          },
+        },
       });
     }
   }
@@ -171,30 +155,30 @@ function OpponentForm({
             setEngine={(engine) => setSettings((prev) => ({ ...prev, engine }))}
           />
 
-          <Group grow>
-            <NumberInput
-              label="Skill Level"
-              value={settings.skillLevel ?? 0}
-              onChange={(e) =>
-                setSettings((prev) => ({ ...prev, skillLevel: e || null }))
-              }
-            />
-
-            <NumberInput
-              label="Depth"
-              value={settings.depth ?? 0}
-              onChange={(e) =>
-                setSettings((prev) => ({ ...prev, depth: e || 20 }))
-              }
-            />
-          </Group>
+          <Stack>
+            {settings.engine && (
+              <EngineSettingsForm
+                engine={settings.engine}
+                settings={settings.settings}
+                setSettings={(fn) =>
+                  setSettings((prev) =>
+                    prev.type === "human"
+                      ? prev
+                      : {
+                          ...prev,
+                          settings: fn(prev.settings),
+                        }
+                  )
+                }
+                minimal={true}
+              />
+            )}
+          </Stack>
         </>
       )}
     </Stack>
   );
 }
-
-type GameState = "settingUp" | "playing" | "gameOver";
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
@@ -264,18 +248,19 @@ function BoardGame() {
       const currentTurn = chess.turn();
       const player = currentTurn === "w" ? players.white : players.black;
 
-      if (player.type === "engine") {
-        invoke<string>("get_single_best_move", {
-          skillLevel: player.skillLevel,
-          depth: player.depth,
-          engine: player.engine?.path,
-          fen: lastNode.fen,
-        }).then((move) => {
-          dispatch({
-            type: "APPEND_MOVE",
-            payload: parseUci(move),
+      if (player.type === "engine" && player.engine) {
+        commands
+          .getSingleBestMove(
+            player.settings.go,
+            { ...player.settings.options, fen: lastNode.fen },
+            player.engine.path
+          )
+          .then((move) => {
+            dispatch({
+              type: "APPEND_MOVE",
+              payload: parseUci(unwrap(move)),
+            });
           });
-        });
       }
     }
   }, [position, gameState, chess, players, lastNode.fen, dispatch]);
@@ -309,69 +294,71 @@ function BoardGame() {
           root={root}
         />
       </Portal>
-      <Portal target="#topRight" style={{ height: "100%" }}>
+      <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
         <Paper withBorder shadow="sm" p="md" h="100%">
           {gameState === "settingUp" && (
-            <Stack h="100%">
-              <Group>
-                <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
-                  {match(inputColor)
-                    .with("white", () => "White")
-                    .with("random", () => "Random")
-                    .with("black", () => "Black")
-                    .exhaustive()}
-                </Text>
-                <ActionIcon onClick={cycleColor}>
-                  <IconArrowsExchange />
-                </ActionIcon>
-                <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
-                  {match(inputColor)
-                    .with("white", () => "Black")
-                    .with("random", () => "Random")
-                    .with("black", () => "White")
-                    .exhaustive()}
-                </Text>
-              </Group>
-              <Box sx={{ flex: 1 }}>
-                <Group sx={{ alignItems: "start" }}>
-                  <OpponentForm
-                    settings={player1Settings}
-                    setSettings={setPlayer1Settings}
-                  />
-                  <Divider orientation="vertical" />
-                  <OpponentForm
-                    settings={player2Settings}
-                    setSettings={setPlayer2Settings}
-                  />
+            <ScrollArea h="100%" offsetScrollbars>
+              <Stack>
+                <Group>
+                  <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                    {match(inputColor)
+                      .with("white", () => "White")
+                      .with("random", () => "Random")
+                      .with("black", () => "Black")
+                      .exhaustive()}
+                  </Text>
+                  <ActionIcon onClick={cycleColor}>
+                    <IconArrowsExchange />
+                  </ActionIcon>
+                  <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                    {match(inputColor)
+                      .with("white", () => "Black")
+                      .with("random", () => "Random")
+                      .with("black", () => "White")
+                      .exhaustive()}
+                  </Text>
                 </Group>
-              </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Group sx={{ alignItems: "start" }}>
+                    <OpponentForm
+                      settings={player1Settings}
+                      setSettings={setPlayer1Settings}
+                    />
+                    <Divider orientation="vertical" />
+                    <OpponentForm
+                      settings={player2Settings}
+                      setSettings={setPlayer2Settings}
+                    />
+                  </Group>
+                </Box>
 
-              <Center>
-                <Button
-                  onClick={() => {
-                    setGameState("playing");
-                    const players = getPlayers();
-                    setPlayers(players);
-                    dispatch({
-                      type: "SET_HEADERS",
-                      payload: {
-                        ...headers,
-                        white:
-                          (players.white.type === "human"
-                            ? players.white.name
-                            : players.white.engine?.name) ?? "?",
-                        black:
-                          (players.black.type === "human"
-                            ? players.black.name
-                            : players.black.engine?.name) ?? "?",
-                      },
-                    });
-                  }}
-                >
-                  Start game
-                </Button>
-              </Center>
-            </Stack>
+                <Center>
+                  <Button
+                    onClick={() => {
+                      setGameState("playing");
+                      const players = getPlayers();
+                      setPlayers(players);
+                      dispatch({
+                        type: "SET_HEADERS",
+                        payload: {
+                          ...headers,
+                          white:
+                            (players.white.type === "human"
+                              ? players.white.name
+                              : players.white.engine?.name) ?? "?",
+                          black:
+                            (players.black.type === "human"
+                              ? players.black.name
+                              : players.black.engine?.name) ?? "?",
+                        },
+                      });
+                    }}
+                  >
+                    Start game
+                  </Button>
+                </Center>
+              </Stack>
+            </ScrollArea>
           )}
           {(gameState === "playing" || gameState === "gameOver") && (
             <Stack h="100%">

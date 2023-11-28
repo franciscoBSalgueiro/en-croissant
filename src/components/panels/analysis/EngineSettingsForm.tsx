@@ -1,39 +1,103 @@
-import { EngineSettings } from "@/atoms/atoms";
+import { EngineSettings, enginesAtom } from "@/atoms/atoms";
 import {
   ActionIcon,
   Button,
   Center,
-  Collapse,
   Group,
   Modal,
   NumberInput,
   Select,
-  SimpleGrid,
+  Stack,
   Table,
   Text,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
 import React, { memo, useState } from "react";
 import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";
-import { IconPlus, IconX } from "@tabler/icons-react";
+import {
+  IconDownload,
+  IconPlus,
+  IconSettings,
+  IconUpload,
+  IconX,
+} from "@tabler/icons-react";
 import HashSlider from "./HashSlider";
+import { save, open } from "@tauri-apps/api/dialog";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
+import { Engine } from "@/utils/engines";
+import { useAtom } from "jotai";
 
 interface EngineSettingsProps {
-  engine: string;
-  settingsOn: boolean;
+  engine: Engine;
   settings: EngineSettings;
-  setSettings: React.Dispatch<React.SetStateAction<EngineSettings>>;
+  setSettings: (fn: (prev: EngineSettings) => EngineSettings) => void;
+  minimal?: boolean;
 }
 
-function EngineSettings({
+function EngineSettingsForm({
   engine,
-  settingsOn,
   settings,
   setSettings,
+  minimal,
 }: EngineSettingsProps) {
   const [advancedOptions, setAdvancedOptions] = useState(false);
+  const [, setEngines] = useAtom(enginesAtom);
+
+  async function saveSettings() {
+    const defaultPath = await resolve(
+      await appDataDir(),
+      "presets",
+      engine.name + ".json"
+    );
+    const file = await save({
+      defaultPath,
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!file) return;
+    const json = JSON.stringify(settings);
+    await writeTextFile(file, json);
+    setEngines(async (prev) => {
+      const newEngines = (await prev).map((e) => {
+        if (e.name === engine.name) {
+          return {
+            ...e,
+            settings: settings,
+          };
+        }
+        return e;
+      });
+      return newEngines;
+    });
+  }
+
+  async function loadSettings() {
+    const configsDirectory = await resolve(await appDataDir(), "presets");
+    const file = await open({
+      defaultPath: configsDirectory,
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (typeof file !== "string") return;
+    const data = await readTextFile(file);
+    if (!data) return;
+    const json = JSON.parse(data);
+    setSettings(() => json);
+    setEngines(async (prev) => {
+      const newEngines = (await prev).map((e) => {
+        if (e.name === engine.name) {
+          return {
+            ...e,
+            settings: json,
+          };
+        }
+        return e;
+      });
+      return newEngines;
+    });
+  }
 
   return (
     <>
@@ -42,20 +106,12 @@ function EngineSettings({
         setOpened={setAdvancedOptions}
         settings={settings}
         setSettings={setSettings}
+        minimal={minimal}
       />
-      <Collapse in={settingsOn} px={30} pb={15}>
-        <SimpleGrid cols={2} spacing="xs" verticalSpacing="xs">
-          <Text size="sm" fw="bold">
-            Number of Lines
-          </Text>
-          <LinesSlider
-            value={settings.options.multipv}
-            setValue={(v) =>
-              setSettings((prev) => ({ ...prev, options: { ...prev.options, multipv: v } }))
-            }
-          />
+      <Stack pt="sm">
+        <Stack>
           {settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
-            <>
+            <Group grow>
               <Text size="sm" fw="bold">
                 Depth
               </Text>
@@ -63,15 +119,14 @@ function EngineSettings({
                 value={settings.go}
                 setValue={(v) => setSettings((prev) => ({ ...prev, go: v }))}
               />
-            </>
+            </Group>
           ) : (
-            <>
+            <Group grow>
               <Text size="sm" fw="bold" pt={7}>
-                {settings.go.t}
+                {settings.go.t === "Time" ? "Time (ms)" : "Nodes"}
               </Text>
               <NumberInput
                 min={1}
-                variant="unstyled"
                 value={settings.go.c}
                 onChange={(v) =>
                   setSettings((prev) => {
@@ -85,45 +140,77 @@ function EngineSettings({
                   })
                 }
               />
-            </>
+            </Group>
           )}
-          <Text size="sm" fw="bold">
-            Number of cores
-          </Text>
-          <CoresSlide
-            value={settings.options.threads}
-            setValue={(v) => setSettings((prev) => ({ ...prev, options: { ...prev.options, threads: v } }))}
-          />
 
-          <Text size="sm" fw="bold">
-            Size of Hash
-          </Text>
-          <HashSlider
-            value={settings.options.hash}
-            setValue={(v) => setSettings((prev) => ({ ...prev, options: { ...prev.options, hash: v } }))}
-          />
-        </SimpleGrid>
+          {!minimal && (
+            <Group grow>
+              <Text size="sm" fw="bold">
+                Number of Lines
+              </Text>
+              <LinesSlider
+                value={settings.options.multipv}
+                setValue={(v) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    options: { ...prev.options, multipv: v },
+                  }))
+                }
+              />
+            </Group>
+          )}
 
-        <Group>
-          <Button
-            variant="default"
-            size="xs"
-            mt="sm"
-            onClick={() => setAdvancedOptions(true)}
-          >
-            Advanced options
-          </Button>
+          <Group grow>
+            <Text size="sm" fw="bold">
+              Number of cores
+            </Text>
+            <CoresSlide
+              value={settings.options.threads}
+              setValue={(v) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  options: { ...prev.options, threads: v },
+                }))
+              }
+            />
+          </Group>
 
-          <Button
-            size="xs"
-            mt="sm"
-            onClick={() => localStorage.setItem(`engine-${engine}`, JSON.stringify(settings))}
-          >
-            Save as default
-          </Button>
+          <Group grow>
+            <Text size="sm" fw="bold">
+              Size of Hash
+            </Text>
+            <HashSlider
+              value={settings.options.hash}
+              setValue={(v) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  options: { ...prev.options, hash: v },
+                }))
+              }
+            />
+          </Group>
+        </Stack>
+
+        <Group spacing={0}>
+          <Tooltip label="Load settings">
+            <ActionIcon onClick={() => loadSettings()}>
+              <IconUpload size="1rem" />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip label="Save settings">
+            <ActionIcon onClick={() => saveSettings()}>
+              <IconDownload size="1rem" />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip label="Advanced Options">
+            <ActionIcon onClick={() => setAdvancedOptions(true)}>
+              <IconSettings size="1rem" />
+            </ActionIcon>
+          </Tooltip>
         </Group>
-
-      </Collapse>
+      </Stack>
     </>
   );
 }
@@ -133,12 +220,16 @@ function AdvancedOptions({
   setOpened,
   settings,
   setSettings,
+  minimal,
 }: {
   opened: boolean;
   setOpened: React.Dispatch<React.SetStateAction<boolean>>;
   settings: EngineSettings;
-  setSettings: React.Dispatch<React.SetStateAction<EngineSettings>>;
+  setSettings: (fn: (prev: EngineSettings) => EngineSettings) => void;
+  minimal?: boolean;
 }) {
+  const goTypes = ["Depth", { label: "Time (ms)", value: "Time" }, "Nodes"];
+  if (!minimal) goTypes.push("Infinite");
   return (
     <Modal
       title="Engine Options"
@@ -152,7 +243,7 @@ function AdvancedOptions({
               <Select
                 variant="unstyled"
                 dropdownPosition="bottom"
-                data={["Depth", { label: "Time (ms)", value: "Time" }, "Nodes", "Infinite"]}
+                data={goTypes}
                 value={settings.go.t}
                 onChange={(v) =>
                   setSettings((prev) => {
@@ -197,23 +288,31 @@ function AdvancedOptions({
                 min={1}
                 value={settings.options.threads}
                 onChange={(v) =>
-                  setSettings((prev) => ({ ...prev, options: { ...prev.options, threads: v || 1 } }))
+                  setSettings((prev) => ({
+                    ...prev,
+                    options: { ...prev.options, threads: v || 1 },
+                  }))
                 }
               />
             </td>
           </tr>
-          <tr>
-            <td>MultiPV</td>
-            <td>
-              <NumberInput
-                min={1}
-                value={settings.options.multipv}
-                onChange={(v) =>
-                  setSettings((prev) => ({ ...prev, options: { ...prev.options, multipv: v || 1 } }))
-                }
-              />
-            </td>
-          </tr>
+          {!minimal && (
+            <tr>
+              <td>MultiPV</td>
+              <td>
+                <NumberInput
+                  min={1}
+                  value={settings.options.multipv}
+                  onChange={(v) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      options: { ...prev.options, multipv: v || 1 },
+                    }))
+                  }
+                />
+              </td>
+            </tr>
+          )}
           <tr>
             <td>Hash Size</td>
             <td>
@@ -221,7 +320,10 @@ function AdvancedOptions({
                 min={1}
                 value={settings.options.hash}
                 onChange={(v) =>
-                  setSettings((prev) => ({ ...prev, options: { ...prev.options, hash: v || 1 } }))
+                  setSettings((prev) => ({
+                    ...prev,
+                    options: { ...prev.options, hash: v || 1 },
+                  }))
                 }
               />
             </td>
@@ -295,4 +397,4 @@ function AdvancedOptions({
   );
 }
 
-export default memo(EngineSettings);
+export default memo(EngineSettingsForm);

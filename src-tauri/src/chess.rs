@@ -669,10 +669,10 @@ mod tests {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_single_best_move(
-    skill_level: usize,
-    depth: usize,
-    fen: String,
+    go_mode: GoMode,
+    options: EngineOptions,
     engine: String,
     app: tauri::AppHandle,
 ) -> Result<String, Error> {
@@ -684,26 +684,14 @@ pub async fn get_single_best_move(
         path,
         Some(BaseDirectory::AppData),
     )?;
-    let number_threads = 4;
 
-    let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child)?;
-
-    send_command(&mut stdin, format!("position fen {}\n", &fen)).await;
-    send_command(
-        &mut stdin,
-        format!("setoption name Skill Level value {}\n", &skill_level),
-    )
-    .await;
-    send_command(
-        &mut stdin,
-        format!("setoption name Threads value {}\n", &number_threads),
-    )
-    .await;
-    send_command(&mut stdin, format!("go depth {}\n", &depth)).await;
+    
+    let (mut process, mut reader) = EngineProcess::new(path).await?;
+    process.set_options(options.clone()).await?;
+    process.go(&go_mode).await?;
 
     loop {
-        if let Some(line) = stdout.next_line().await? {
+        if let Some(line) = reader.next_line().await? {
             if line.starts_with("bestmove") {
                 let m = line.split_whitespace().nth(1).unwrap();
                 info!("bestmove {}", m);

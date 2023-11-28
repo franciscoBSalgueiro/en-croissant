@@ -16,8 +16,6 @@ import {
 import { shallowEqual, useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
-  IconArrowsDiagonal,
-  IconArrowsDiagonalMinimize2,
   IconArrowsSplit,
   IconArticle,
   IconArticleOff,

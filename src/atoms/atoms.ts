@@ -290,30 +290,24 @@ export const engineMovesFamily = atomFamily(
 );
 
 export const tabEngineSettingsFamily = atomFamily(
-    ({ tab, engine }: { tab: string; engine: string }) => {
-        const savedDefault = localStorage.getItem(`engine-${engine}`);
+    ({ tab, engine }: { tab: string; engine: Engine }) => {
         return atom<EngineSettings>(
-            savedDefault !== null
-                ? ({
-                      ...JSON.parse(savedDefault),
-                      enabled: false,
-                  } as EngineSettings)
-                : {
-                      enabled: false,
-                      go: {
-                          t: "Depth",
-                          c: 24,
-                      },
-                      options: {
-                          threads: 2,
-                          multipv: 3,
-                          hash: 16,
-                          extraOptions: [],
-                      },
-                  }
+            engine.settings || {
+                enabled: false,
+                go: {
+                    t: "Depth",
+                    c: 24,
+                },
+                options: {
+                    threads: 2,
+                    multipv: 3,
+                    hash: 16,
+                    extraOptions: [],
+                },
+            }
         );
     },
-    (a, b) => a.tab === b.tab && a.engine === b.engine
+    (a, b) => a.tab === b.tab && a.engine.name === b.engine.name
 );
 
 export const allEnabledAtom = loadable(
@@ -325,7 +319,7 @@ export const allEnabledAtom = loadable(
             .every((engine) => {
                 const atom = tabEngineSettingsFamily({
                     tab: get(activeTabAtom)!,
-                    engine: engine.name,
+                    engine: engine,
                 });
                 return get(atom).enabled;
             });
@@ -341,7 +335,7 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
     for (const engine of engines.data.filter((e) => e.loaded)) {
         const atom = tabEngineSettingsFamily({
             tab: get(activeTabAtom)!,
-            engine: engine.name,
+            engine: engine,
         });
         set(atom, { ...get(atom), enabled: value });
     }

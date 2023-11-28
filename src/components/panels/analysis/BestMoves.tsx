@@ -15,6 +15,7 @@ import {
   ActionIcon,
   Box,
   Code,
+  Collapse,
   Group,
   Progress,
   Skeleton,
@@ -34,17 +35,10 @@ import {
 } from "@tabler/icons-react";
 import { Chess } from "chess.js";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  startTransition,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { startTransition, useContext, useEffect, useMemo, useRef } from "react";
 import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
-import EngineSettings from "./EngineSettings";
+import EngineSettingsForm from "./EngineSettingsForm";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -76,7 +70,7 @@ export default function BestMovesComponent({
     engineMovesFamily({ engine: engine.name, tab: activeTab! })
   );
   const [settings, setSettings] = useAtom(
-    tabEngineSettingsFamily({ engine: engine.name, tab: activeTab! })
+    tabEngineSettingsFamily({ engine: engine, tab: activeTab! })
   );
 
   const engineVariations = useMemo(() => ev.get(fen) ?? [], [ev, fen]);
@@ -209,7 +203,9 @@ export default function BestMovesComponent({
                 </Text>
                 {settings.enabled &&
                   !isGameOver &&
-                  engineVariations.length === 0 && <Code fz="xs">Loading...</Code>}
+                  engineVariations.length === 0 && (
+                    <Code fz="xs">Loading...</Code>
+                  )}
                 {progress < 100 &&
                   settings.enabled &&
                   !isGameOver &&
@@ -275,12 +271,13 @@ export default function BestMovesComponent({
             <IconSettings size="1rem" />
           </ActionIcon>
         </Box>
-        <EngineSettings
-          engine={engine.name}
-          settingsOn={settingsOn}
-          settings={settings}
-          setSettings={setSettings}
-        />
+        <Collapse in={settingsOn} px={30} pb={15}>
+          <EngineSettingsForm
+            engine={engine}
+            settings={settings}
+            setSettings={setSettings}
+          />
+        </Collapse>
 
         <Progress
           value={isGameOver ? 0 : progress}

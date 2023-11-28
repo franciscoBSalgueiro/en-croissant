@@ -1,8 +1,9 @@
 import useSWR from "swr";
 import { invoke } from "./invoke";
 import { fetch } from "@tauri-apps/api/http";
+import { EngineSettings } from "@/atoms/atoms";
 
-export interface Engine {
+export type Engine = {
     name: string;
     version: string;
     path: string;
@@ -11,6 +12,7 @@ export interface Engine {
     downloadSize?: number;
     downloadLink?: string;
     loaded?: boolean;
+    settings?: EngineSettings;
 }
 
 type OS = "windows" | "linux" | "macos";

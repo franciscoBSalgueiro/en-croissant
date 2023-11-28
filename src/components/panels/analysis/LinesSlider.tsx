@@ -1,5 +1,4 @@
-import { Slider } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { SegmentedControl, useMantineTheme } from "@mantine/core";
 
 export default function DepthSlider({
   value,
@@ -8,29 +7,15 @@ export default function DepthSlider({
   value: number;
   setValue: (v: number) => void;
 }) {
-  const [tempValue, setTempValue] = useState(value);
-  const MARKS = [
-    { value: 1 },
-    { value: 2 },
-    { value: 3 },
-    { value: 4 },
-    { value: 5 },
-  ];
-
-  useEffect(() => {
-    setTempValue(value);
-  }, [value]);
+  const theme = useMantineTheme();
 
   return (
-    <>
-      <Slider
-        min={1}
-        max={5}
-        value={tempValue}
-        onChange={setTempValue}
-        onChangeEnd={setValue}
-        marks={MARKS}
-      />
-    </>
+    <SegmentedControl
+      size="xs"
+      color={theme.primaryColor}
+      data={["1", "2", "3", "4", "5"]}
+      value={value.toString()}
+      onChange={(v) => setValue(parseInt(v))}
+    />
   );
 }
