@@ -35,8 +35,14 @@ import {
 } from "@tabler/icons-react";
 import { Chess } from "chess.js";
 import { useAtom, useAtomValue } from "jotai";
-import { startTransition, useContext, useEffect, useMemo, useRef } from "react";
-import { match } from "ts-pattern";
+import {
+  startTransition,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import AnalysisRow from "./AnalysisRow";
 import EngineSettingsForm from "./EngineSettingsForm";
 
@@ -80,12 +86,9 @@ export default function BestMovesComponent({
   const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
-  const progress = match(settings.go)
-    .with({ t: "Depth" }, ({ c }) => (depth / c) * 100)
-    .with({ t: "Infinite" }, () => 99.9)
-    .otherwise(() => 0);
   const theme = useMantineTheme();
   const listeners = useRef<(() => void)[]>([]);
+  const [progress, setProgress] = useState(0);
 
   const isGameOver = useMemo(() => {
     const chess = new Chess(fen);
@@ -108,6 +111,7 @@ export default function BestMovesComponent({
               newMap.set(fen, ev);
               return newMap;
             });
+            setProgress(payload.progress);
             dispatch({
               type: "SET_SCORE",
               payload: ev[0].score,

@@ -12,7 +12,7 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async getBestMoves(engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<__Result__<{ depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }[] | null, string>> {
+async getBestMoves(engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<__Result__<{ nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }[] | null, string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_best_moves", { engine, tab, goMode, options }) };
 } catch (e) {
@@ -82,8 +82,8 @@ bestMovesPayload: "plugin:tauri-specta:best-moves-payload"
 /** user-defined types **/
 
 export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
-export type BestMoves = { depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
-export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string }
+export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
+export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; progress: number }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }

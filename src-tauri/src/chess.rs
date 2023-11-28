@@ -1,8 +1,7 @@
-use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc};
+use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
 
 use derivative::Derivative;
 use log::info;
-use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode,
@@ -46,6 +45,7 @@ pub struct EngineProcess {
     running: bool,
     real_multipv: u16,
     logs: Vec<EngineLog>,
+    start: Instant,
 }
 
 impl EngineProcess {
@@ -87,6 +87,7 @@ impl EngineProcess {
                 real_multipv: 0,
                 go_mode: GoMode::Infinite,
                 running: false,
+                start: Instant::now(),
             },
             lines,
         ))
@@ -155,6 +156,7 @@ impl EngineProcess {
         self.stdin.write_all(msg.as_bytes()).await?;
         self.logs.push(EngineLog::Gui(msg));
         self.running = true;
+        self.start = Instant::now();
         Ok(())
     }
 
@@ -194,6 +196,7 @@ pub struct AnalysisCacheKey {
 #[derive(Clone, Serialize, Debug, Derivative, Type)]
 #[derivative(Default)]
 pub struct BestMoves {
+    nodes: u32,
     depth: u8,
     #[derivative(Default(value = "Score::Cp(0)"))]
     score: Score,
@@ -212,6 +215,7 @@ pub struct BestMovesPayload {
     pub best_lines: Vec<BestMoves>,
     pub engine: String,
     pub tab: String,
+    pub progress: f64,
 }
 
 fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves, Error> {
@@ -236,6 +240,9 @@ fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves,
             }
             UciInfoAttribute::Nps(nps) => {
                 best_moves.nps = nps as u32;
+            }
+            UciInfoAttribute::Nodes(nodes) => {
+                best_moves.nodes = nodes as u32;
             }
             UciInfoAttribute::Depth(depth) => {
                 best_moves.depth = depth;
@@ -429,29 +436,55 @@ pub async fn get_best_moves(
 
     while let Some(line) = reader.next_line().await? {
         let mut proc = process.lock().await;
-        if let UciMessage::Info(attrs) = parse_one(&line) {
-            if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
-                let multipv = best_moves.multipv;
-                let cur_depth = best_moves.depth;
-                if multipv as usize == proc.best_moves.len() + 1 {
-                    proc.best_moves.push(best_moves);
-                    if multipv == proc.real_multipv {
-                        if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                            && cur_depth >= proc.last_depth
-                        {
-                            BestMovesPayload {
-                                best_lines: proc.best_moves.clone(),
-                                engine: engine.clone(),
-                                tab: tab.clone(),
+        match parse_one(&line) {
+            UciMessage::Info(attrs) => {
+                if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
+                    let multipv = best_moves.multipv;
+                    let cur_depth = best_moves.depth;
+                    let cur_nodes = best_moves.nodes;
+                    if multipv as usize == proc.best_moves.len() + 1 {
+                        proc.best_moves.push(best_moves);
+                        if multipv == proc.real_multipv {
+                            if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                && cur_depth >= proc.last_depth
+                            {
+                                BestMovesPayload {
+                                    best_lines: proc.best_moves.clone(),
+                                    engine: engine.clone(),
+                                    tab: tab.clone(),
+                                    progress: match proc.go_mode {
+                                        GoMode::Depth(depth) => {
+                                            (cur_depth as f64 / depth as f64) * 100.0
+                                        }
+                                        GoMode::Time(time) => {
+                                            (proc.start.elapsed().as_millis() as f64 / time as f64)
+                                                * 100.0
+                                        }
+                                        GoMode::Nodes(nodes) => {
+                                            (cur_nodes as f64 / nodes as f64) * 100.0
+                                        }
+                                        GoMode::Infinite => 99.99,
+                                    },
+                                }
+                                .emit_all(&app)?;
+                                proc.last_depth = cur_depth;
+                                proc.last_best_moves = proc.best_moves.clone();
                             }
-                            .emit_all(&app)?;
-                            proc.last_depth = cur_depth;
-                            proc.last_best_moves = proc.best_moves.clone();
+                            proc.best_moves.clear();
                         }
-                        proc.best_moves.clear();
                     }
                 }
             }
+            UciMessage::BestMove { .. } => {
+                BestMovesPayload {
+                    best_lines: proc.last_best_moves.clone(),
+                    engine: engine.clone(),
+                    tab: tab.clone(),
+                    progress: 100.0,
+                }
+                .emit_all(&app)?;
+            }
+            _ => {}
         }
         proc.logs.push(EngineLog::Engine(line));
     }
@@ -527,15 +560,14 @@ pub async fn analyze_game(
             },
         )?;
 
-        proc
-            .set_options(EngineOptions {
-                threads: 4,
-                multipv: 1,
-                hash: 16,
-                fen: fen.to_string(),
-                extra_options: Vec::new(),
-            })
-            .await?;
+        proc.set_options(EngineOptions {
+            threads: 4,
+            multipv: 1,
+            hash: 16,
+            fen: fen.to_string(),
+            extra_options: Vec::new(),
+        })
+        .await?;
 
         proc.go(&go_mode).await?;
 
@@ -685,7 +717,6 @@ pub async fn get_single_best_move(
         Some(BaseDirectory::AppData),
     )?;
 
-    
     let (mut process, mut reader) = EngineProcess::new(path).await?;
     process.set_options(options.clone()).await?;
     process.go(&go_mode).await?;
