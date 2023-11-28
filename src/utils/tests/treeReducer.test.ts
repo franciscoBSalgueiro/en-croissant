@@ -464,6 +464,7 @@ test("should handle ADD_ANALYSIS", () => {
             best: [{
                 depth: 1,
                 multipv: 1,
+                nodes: 1,
                 score: {
                     type: "cp" as const,
                     value: 10,
@@ -479,6 +480,7 @@ test("should handle ADD_ANALYSIS", () => {
             best: [{
                 depth: 1,
                 multipv: 1,
+                nodes: 1,
                 score: {
                     type: "cp" as const,
                     value: 20,
