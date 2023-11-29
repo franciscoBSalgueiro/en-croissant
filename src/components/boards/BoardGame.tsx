@@ -97,17 +97,17 @@ export type OpponentSettings =
     };
 
 function OpponentForm({
-  settings,
-  setSettings,
+  opponent,
+  setOpponent,
 }: {
-  settings: OpponentSettings;
-  setSettings: React.Dispatch<React.SetStateAction<OpponentSettings>>;
+  opponent: OpponentSettings;
+  setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
 }) {
   function updateType(type: "engine" | "human") {
     if (type === "human") {
-      setSettings({ type: "human", name: "Player" });
+      setOpponent({ type: "human", name: "Player" });
     } else {
-      setSettings({
+      setOpponent({
         type: "engine",
         engine: null,
         settings: {
@@ -134,34 +134,34 @@ function OpponentForm({
           { value: "human", label: "Human" },
           { value: "engine", label: "Engine" },
         ]}
-        value={settings.type}
+        value={opponent.type}
         onChange={updateType}
       />
 
-      {settings.type === "human" && (
+      {opponent.type === "human" && (
         <TextInput
           label="Name"
-          value={settings.name ?? ""}
+          value={opponent.name ?? ""}
           onChange={(e) =>
-            setSettings((prev) => ({ ...prev, name: e.target.value }))
+            setOpponent((prev) => ({ ...prev, name: e.target.value }))
           }
         />
       )}
 
-      {settings.type === "engine" && (
+      {opponent.type === "engine" && (
         <>
           <EnginesSelect
-            engine={settings.engine}
-            setEngine={(engine) => setSettings((prev) => ({ ...prev, engine }))}
+            engine={opponent.engine}
+            setEngine={(engine) => setOpponent((prev) => ({ ...prev, engine }))}
           />
 
           <Stack>
-            {settings.engine && (
+            {opponent.engine && (
               <EngineSettingsForm
-                engine={settings.engine}
-                settings={settings.settings}
+                engine={opponent.engine}
+                settings={opponent.settings}
                 setSettings={(fn) =>
-                  setSettings((prev) =>
+                  setOpponent((prev) =>
                     prev.type === "human"
                       ? prev
                       : {
@@ -321,13 +321,13 @@ function BoardGame() {
                 <Box sx={{ flex: 1 }}>
                   <Group sx={{ alignItems: "start" }}>
                     <OpponentForm
-                      settings={player1Settings}
-                      setSettings={setPlayer1Settings}
+                      opponent={player1Settings}
+                      setOpponent={setPlayer1Settings}
                     />
                     <Divider orientation="vertical" />
                     <OpponentForm
-                      settings={player2Settings}
-                      setSettings={setPlayer2Settings}
+                      opponent={player2Settings}
+                      setOpponent={setPlayer2Settings}
                     />
                   </Group>
                 </Box>

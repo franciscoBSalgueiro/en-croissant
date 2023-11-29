@@ -162,13 +162,15 @@ export default function BestMovesComponent({
               extraOptions: settings.options.extraOptions,
             })
             .then((res) => {
-              const bestMoves = unwrap(res);
-              if (bestMoves) {
+              const moves = unwrap(res);
+              if (moves) {
+                const [progress, bestMoves] = moves;
                 setEngineVariation((prev) => {
                   const newMap = new Map(prev);
                   newMap.set(fen, bestMoves);
                   return newMap;
                 });
+                setProgress(progress);
                 setArrows((prev) => {
                   const newMap = new Map(prev);
                   newMap.set(

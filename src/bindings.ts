@@ -12,7 +12,7 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async getBestMoves(engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<__Result__<{ nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }[] | null, string>> {
+async getBestMoves(engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<__Result__<[number, BestMoves[]] | null, string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_best_moves", { engine, tab, goMode, options }) };
 } catch (e) {

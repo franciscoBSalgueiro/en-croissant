@@ -40,6 +40,7 @@ pub struct EngineProcess {
     last_depth: u8,
     best_moves: Vec<BestMoves>,
     last_best_moves: Vec<BestMoves>,
+    last_progress: f32,
     options: EngineOptions,
     go_mode: GoMode,
     running: bool,
@@ -82,6 +83,7 @@ impl EngineProcess {
                 last_depth: 0,
                 best_moves: Vec::new(),
                 last_best_moves: Vec::new(),
+                last_progress: 0.0,
                 logs,
                 options: EngineOptions::default(),
                 real_multipv: 0,
@@ -401,7 +403,7 @@ pub async fn get_best_moves(
     options: EngineOptions,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-) -> Result<Option<Vec<BestMoves>>, Error> {
+) -> Result<Option<(f32, Vec<BestMoves>)>, Error> {
     let path = PathBuf::from(&engine);
 
     let key = (tab.clone(), engine.clone());
@@ -411,7 +413,7 @@ pub async fn get_best_moves(
             let process = state.engine_processes.get_mut(&key).unwrap();
             let mut process = process.lock().await;
             if options == process.options && go_mode == process.go_mode && process.running {
-                return Ok(Some(process.last_best_moves.clone()));
+                return Ok(Some((process.last_progress, process.last_best_moves.clone())));
             }
             process.stop().await?;
         }
@@ -448,27 +450,29 @@ pub async fn get_best_moves(
                             if proc.best_moves.iter().all(|x| x.depth == cur_depth)
                                 && cur_depth >= proc.last_depth
                             {
+                                let progress = match proc.go_mode {
+                                    GoMode::Depth(depth) => {
+                                        (cur_depth as f64 / depth as f64) * 100.0
+                                    }
+                                    GoMode::Time(time) => {
+                                        (proc.start.elapsed().as_millis() as f64 / time as f64)
+                                            * 100.0
+                                    }
+                                    GoMode::Nodes(nodes) => {
+                                        (cur_nodes as f64 / nodes as f64) * 100.0
+                                    }
+                                    GoMode::Infinite => 99.99,
+                                };
                                 BestMovesPayload {
                                     best_lines: proc.best_moves.clone(),
                                     engine: engine.clone(),
                                     tab: tab.clone(),
-                                    progress: match proc.go_mode {
-                                        GoMode::Depth(depth) => {
-                                            (cur_depth as f64 / depth as f64) * 100.0
-                                        }
-                                        GoMode::Time(time) => {
-                                            (proc.start.elapsed().as_millis() as f64 / time as f64)
-                                                * 100.0
-                                        }
-                                        GoMode::Nodes(nodes) => {
-                                            (cur_nodes as f64 / nodes as f64) * 100.0
-                                        }
-                                        GoMode::Infinite => 99.99,
-                                    },
+                                    progress,
                                 }
                                 .emit_all(&app)?;
                                 proc.last_depth = cur_depth;
                                 proc.last_best_moves = proc.best_moves.clone();
+                                proc.last_progress = progress as f32;
                             }
                             proc.best_moves.clear();
                         }
@@ -483,6 +487,7 @@ pub async fn get_best_moves(
                     progress: 100.0,
                 }
                 .emit_all(&app)?;
+                proc.last_progress = 100.0;
             }
             _ => {}
         }

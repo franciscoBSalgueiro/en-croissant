@@ -297,19 +297,21 @@ export const engineMovesFamily = atomFamily(
 export const tabEngineSettingsFamily = atomFamily(
     ({ tab, engine }: { tab: string; engine: Engine }) => {
         return atom<EngineSettings>(
-            engine.settings || {
-                enabled: false,
-                go: {
-                    t: "Depth",
-                    c: 24,
-                },
-                options: {
-                    threads: 2,
-                    multipv: 3,
-                    hash: 16,
-                    extraOptions: [],
-                },
-            }
+            engine.settings
+                ? { ...engine.settings, enabled: false }
+                : {
+                      enabled: false,
+                      go: {
+                          t: "Depth",
+                          c: 24,
+                      },
+                      options: {
+                          threads: 2,
+                          multipv: 3,
+                          hash: 16,
+                          extraOptions: [],
+                      },
+                  }
         );
     },
     (a, b) => a.tab === b.tab && a.engine.name === b.engine.name
