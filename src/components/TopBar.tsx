@@ -19,8 +19,9 @@ import { useAtom, useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import AboutModal from "./About";
 import { useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { createTab } from "@/utils/tabs";
-import { useHotkeys } from "@mantine/hooks";
+
 import { keyMapAtom } from "@/atoms/keybinds";
 
 function IconMinimize() {
@@ -198,10 +199,8 @@ function TopBar() {
   const { classes } = useStyles();
   const [opened, setOpened] = useState(false);
 
-  useHotkeys([
-    [keyMap.NEW_TAB.keys, createNewTab],
-    [keyMap.OPEN_FILE.keys, openNewFile],
-  ]);
+  useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
+  useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
 
   const theme = useMantineTheme();
 

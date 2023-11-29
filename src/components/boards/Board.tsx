@@ -38,7 +38,7 @@ import {
   Input,
   Tooltip,
 } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys } from "react-hotkeys-hook";
 import {
   IconChessBishopFilled,
   IconChessFilled,
@@ -152,7 +152,7 @@ function Board({
     });
 
   const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys([[keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation()]]);
+  useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const practicing = useAtomValue(currentPracticingAtom);
 

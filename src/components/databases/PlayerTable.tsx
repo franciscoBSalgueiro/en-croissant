@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys } from "react-hotkeys-hook";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
@@ -70,36 +70,28 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
     });
   }, [activePage, sort]);
 
-  useHotkeys([
-    [
-      "ArrowUp",
-      () => {
-        setSelectedPlayer((prev) => {
-          if (prev === null) {
-            return null;
-          }
-          if (prev === 0) {
-            return 0;
-          }
-          return prev - 1;
-        });
-      },
-    ],
-    [
-      "ArrowDown",
-      () => {
-        setSelectedPlayer((prev) => {
-          if (prev === null) {
-            return 0;
-          }
-          if (prev === players.length - 1) {
-            return players.length - 1;
-          }
-          return prev + 1;
-        });
-      },
-    ],
-  ]);
+  useHotkeys("ArrowUp", () => {
+    setSelectedPlayer((prev) => {
+      if (prev === null) {
+        return null;
+      }
+      if (prev === 0) {
+        return 0;
+      }
+      return prev - 1;
+    });
+  });
+  useHotkeys("ArrowDown", () => {
+    setSelectedPlayer((prev) => {
+      if (prev === null) {
+        return 0;
+      }
+      if (prev === players.length - 1) {
+        return players.length - 1;
+      }
+      return prev + 1;
+    });
+  });
 
   return (
     <GridLayout

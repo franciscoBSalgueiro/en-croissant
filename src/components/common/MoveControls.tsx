@@ -1,5 +1,5 @@
 import { ActionIcon, Group } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys } from "react-hotkeys-hook";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -30,13 +30,11 @@ function MoveControls({
     goToPrevious ?? (() => dispatch({ type: "GO_TO_PREVIOUS" }));
   const handleGoToNext = goToNext ?? (() => dispatch({ type: "GO_TO_NEXT" }));
   const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys([
-    [keyMap.PREVIOUS_MOVE.keys, handleGoToPrevious],
-    [keyMap.NEXT_MOVE.keys, handleGoToNext],
-    [keyMap.GO_TO_START.keys, handleGoToStart],
-    [keyMap.GO_TO_END.keys, handleGoToEnd],
-    [keyMap.DELETE_MOVE.keys, () => dispatch({ type: "DELETE_MOVE" })],
-  ]);
+  useHotkeys(keyMap.PREVIOUS_MOVE.keys, handleGoToPrevious);
+  useHotkeys(keyMap.NEXT_MOVE.keys, handleGoToNext);
+  useHotkeys(keyMap.GO_TO_START.keys, handleGoToStart);
+  useHotkeys(keyMap.GO_TO_END.keys, handleGoToEnd);
+  useHotkeys(keyMap.DELETE_MOVE.keys, () => dispatch({ type: "DELETE_MOVE" }));
   return (
     <Group grow>
       <ActionIcon variant="default" size="xl" onClick={handleGoToStart}>

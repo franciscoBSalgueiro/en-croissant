@@ -1,5 +1,5 @@
 import { Box, Group, Stack, Text } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useContext } from "react";
 import { Chessground } from "@/chessground/Chessground";
 import MoveControls from "../common/MoveControls";
@@ -63,10 +63,8 @@ function GamePreview({
   const [treeState, dispatch] = useImmerReducer(treeReducer, game);
 
   const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys([
-    [keyMap.PREVIOUS_MOVE.keys, () => dispatch({ type: "GO_TO_PREVIOUS" })],
-    [keyMap.NEXT_MOVE.keys, () => dispatch({ type: "GO_TO_NEXT" })],
-  ]);
+  useHotkeys(keyMap.PREVIOUS_MOVE.keys, () => dispatch({ type: "GO_TO_PREVIOUS" }));
+  useHotkeys(keyMap.NEXT_MOVE.keys, () => dispatch({ type: "GO_TO_NEXT" }));
 
   return (
     <TreeStateContext.Provider value={treeState}>
