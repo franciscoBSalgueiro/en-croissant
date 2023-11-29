@@ -1,4 +1,4 @@
-import { AspectRatio, Group, Stack, Text } from "@mantine/core";
+import { Box, Group, Stack, Text } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { useContext } from "react";
 import { Chessground } from "@/chessground/Chessground";
@@ -95,18 +95,33 @@ function GamePreview({
 
 function PreviewBoard() {
   const tree = useContext(TreeStateContext);
+  const dispatch = useContext(TreeDispatchContext);
   const node = getNodeAtPath(tree.root, tree.position);
   const fen = node.fen;
 
   return (
-    <Chessground
-      coordinates={false}
-      width={"100%"}
-      height={"100%"}
-      viewOnly={true}
-      fen={fen}
-      orientation={tree.headers.orientation || "white"}
-    />
+    <Box
+      onWheel={(e) => {
+        if (e.deltaY > 0) {
+          dispatch({
+            type: "GO_TO_NEXT",
+          });
+        } else {
+          dispatch({
+            type: "GO_TO_PREVIOUS",
+          });
+        }
+      }}
+    >
+      <Chessground
+        coordinates={false}
+        width={"100%"}
+        height={"100%"}
+        viewOnly={true}
+        fen={fen}
+        orientation={tree.headers.orientation || "white"}
+      />
+    </Box>
   );
 }
 
