@@ -213,6 +213,7 @@ export type TreeAction =
     | { type: "SET_FEN"; payload: string }
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
+    | { type: "CLEAR_SHAPES" }
     | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[]; novelty: boolean, maybe_brilliant: boolean }[] }
     | { type: "PROMOTE_VARIATION"; payload: number[] }
     | { type: "PROMOTE_TO_MAINLINE"; payload: number[] };
@@ -320,6 +321,13 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
         .with({ type: "SET_SHAPES" }, ({ payload }) => {
             state.dirty = true;
             setShapes(state, payload);
+        })
+        .with({ type: "CLEAR_SHAPES" }, () => {
+            state.dirty = true;
+            const node = getNodeAtPath(state.root, state.position);
+            if (node) {
+                node.shapes = [];
+            }
         })
         .with({ type: "PROMOTE_VARIATION" }, ({ payload }) => {
             state.dirty = true;

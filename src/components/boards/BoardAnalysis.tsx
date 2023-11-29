@@ -89,7 +89,16 @@ function BoardAnalysis() {
     });
   }, [setCurrentTab, dispatch, currentTab?.file?.path, root, headers]);
 
-  useHotkeys([["Ctrl+S", () => saveFile()]]);
+  useHotkeys([
+    ["Ctrl+S", () => saveFile()],
+    [
+      "Ctrl+L",
+      () =>
+        dispatch({
+          type: "CLEAR_SHAPES",
+        }),
+    ],
+  ]);
 
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
     currentTabSelectedAtom
