@@ -228,6 +228,11 @@ const pgnOptionsFamily = atomFamily((tab: string) =>
 );
 export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);
 
+const arrowsFamily = atomFamily((tab: string) =>
+    atom(new Map<number, string[]>())
+);
+export const currentArrowsAtom = tabValue(arrowsFamily);
+
 // Game
 
 type GameState = "settingUp" | "playing" | "gameOver";

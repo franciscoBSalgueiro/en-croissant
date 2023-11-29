@@ -1,5 +1,6 @@
 import {
   activeTabAtom,
+  currentArrowsAtom,
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
@@ -55,10 +56,11 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+export const arrowColors = ["blue", "green", "red", "yellow"];
+
 interface BestMovesProps {
   id: number;
   engine: Engine;
-  setArrows: (arrows: string[]) => void;
   fen: string;
   halfMoves: number;
 }
@@ -66,7 +68,6 @@ interface BestMovesProps {
 export default function BestMovesComponent({
   id,
   engine,
-  setArrows,
   fen,
   halfMoves,
 }: BestMovesProps) {
@@ -78,6 +79,7 @@ export default function BestMovesComponent({
   const [settings, setSettings] = useAtom(
     tabEngineSettingsFamily({ engine: engine, tab: activeTab! })
   );
+  const [, setArrows] = useAtom(currentArrowsAtom);
 
   const engineVariations = useMemo(() => ev.get(fen) ?? [], [ev, fen]);
 
@@ -116,13 +118,14 @@ export default function BestMovesComponent({
               type: "SET_SCORE",
               payload: ev[0].score,
             });
-            if (id === 0) {
-              setArrows(
-                ev.map((ev) => {
-                  return ev.uciMoves[0];
-                })
+            setArrows((prev) => {
+              const newMap = new Map(prev);
+              newMap.set(
+                id,
+                ev.map((ev) => ev.uciMoves[0])
               );
-            }
+              return newMap;
+            });
           });
         }
       });
@@ -166,6 +169,14 @@ export default function BestMovesComponent({
                   newMap.set(fen, bestMoves);
                   return newMap;
                 });
+                setArrows((prev) => {
+                  const newMap = new Map(prev);
+                  newMap.set(
+                    id,
+                    bestMoves.map((ev) => ev.uciMoves[0])
+                  );
+                  return newMap;
+                });
               }
             });
         }
@@ -185,7 +196,7 @@ export default function BestMovesComponent({
             <ActionIcon
               size="lg"
               variant={settings.enabled ? "filled" : "transparent"}
-              color={theme.primaryColor}
+              color={id < 4 ? arrowColors[id] : theme.primaryColor}
               onClick={() => {
                 setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
               }}
@@ -280,6 +291,7 @@ export default function BestMovesComponent({
             engine={engine}
             settings={settings}
             setSettings={setSettings}
+            color={id < 4 ? arrowColors[id] : theme.primaryColor}
           />
         </Collapse>
 
@@ -288,8 +300,7 @@ export default function BestMovesComponent({
           animate={progress < 100 && settings.enabled && !isGameOver}
           size="xs"
           striped={progress < 100 && !settings.enabled}
-          // color={threat ? "red" : "blue"}
-          color={threat ? "red" : theme.primaryColor}
+          color={id < 4 ? arrowColors[id] : theme.primaryColor}
         />
         <Accordion.Panel>
           <Table>

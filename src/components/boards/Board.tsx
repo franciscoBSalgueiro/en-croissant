@@ -63,11 +63,12 @@ import EvalBar from "./EvalBar";
 import PromotionModal from "./PromotionModal";
 import "./board.css";
 import { match } from "ts-pattern";
+import { arrowColors } from "../panels/analysis/BestMoves";
 
 interface ChessboardProps {
   dirty: boolean;
   currentNode: TreeNode;
-  arrows: string[];
+  arrows: Map<number, string[]>;
   headers: GameHeaders;
   root: TreeNode;
   editingMode: boolean;
@@ -211,17 +212,28 @@ function Board({
     }
   }
 
-  let shapes: DrawShape[] =
-    showArrows && arrows.length > 0
-      ? arrows.map((move, i) => {
+  let shapes: DrawShape[] = [];
+  if (showArrows && arrows.size > 0) {
+    const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
+    for (const [i, moves] of entries) {
+      if (i < 4) {
+        for (const [j, move] of moves.entries()) {
           const { from, to } = parseUci(move);
-          return {
+          if (shapes.find((s) => s.orig === from && s.dest === to)) continue;
+          shapes.push({
             orig: from,
             dest: to,
-            brush: i === 0 ? "paleBlue" : "paleGrey",
-          };
-        })
-      : [];
+            brush:
+              j === 0
+                ? arrowColors[i]
+                : "pale" +
+                  arrowColors[i].charAt(0).toUpperCase() +
+                  arrowColors[i].slice(1),
+          });
+        }
+      }
+    }
+  }
 
   if (currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);

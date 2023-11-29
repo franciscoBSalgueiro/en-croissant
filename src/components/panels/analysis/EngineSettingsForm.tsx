@@ -4,6 +4,7 @@ import {
   Button,
   Center,
   Group,
+  MantineColor,
   Modal,
   NumberInput,
   Select,
@@ -14,7 +15,6 @@ import {
   Tooltip,
 } from "@mantine/core";
 import React, { memo, useState } from "react";
-import CoresSlide from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import LinesSlider from "./LinesSlider";
 import {
@@ -30,11 +30,13 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 import { Engine } from "@/utils/engines";
 import { useAtom } from "jotai";
+import CoresSlider from "./CoresSlider";
 
 interface EngineSettingsProps {
   engine: Engine;
   settings: EngineSettings;
   setSettings: (fn: (prev: EngineSettings) => EngineSettings) => void;
+  color?: MantineColor;
   minimal?: boolean;
 }
 
@@ -42,6 +44,7 @@ function EngineSettingsForm({
   engine,
   settings,
   setSettings,
+  color,
   minimal,
 }: EngineSettingsProps) {
   const [advancedOptions, setAdvancedOptions] = useState(false);
@@ -118,6 +121,7 @@ function EngineSettingsForm({
               <DepthSlider
                 value={settings.go}
                 setValue={(v) => setSettings((prev) => ({ ...prev, go: v }))}
+                color={color}
               />
             </Group>
           ) : (
@@ -156,6 +160,7 @@ function EngineSettingsForm({
                     options: { ...prev.options, multipv: v },
                   }))
                 }
+                color={color}
               />
             </Group>
           )}
@@ -164,7 +169,7 @@ function EngineSettingsForm({
             <Text size="sm" fw="bold">
               Number of cores
             </Text>
-            <CoresSlide
+            <CoresSlider
               value={settings.options.threads}
               setValue={(v) =>
                 setSettings((prev) => ({
@@ -172,6 +177,7 @@ function EngineSettingsForm({
                   options: { ...prev.options, threads: v },
                 }))
               }
+              color={color}
             />
           </Group>
 
@@ -187,6 +193,7 @@ function EngineSettingsForm({
                   options: { ...prev.options, hash: v },
                 }))
               }
+              color={color}
             />
           </Group>
         </Stack>

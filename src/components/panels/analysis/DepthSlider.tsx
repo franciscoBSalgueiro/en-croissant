@@ -7,9 +7,11 @@ import { useStyles } from "./styles";
 export default function DepthSlider({
   value,
   setValue,
+  color,
 }: {
   value: GoMode;
   setValue: (v: GoMode) => void;
+  color?: string;
 }) {
   const [tempValue, setTempValue] = useState(value);
   const MARKS = [
@@ -46,6 +48,7 @@ export default function DepthSlider({
         min={10}
         max={60}
         value={v}
+        color={color}
         label={(v) => (v === 60 ? "Infinite" : v)}
         onChange={(v) => handleSliderChange(v, setTempValue)}
         onChangeEnd={(v) => handleSliderChange(v, setValue)}

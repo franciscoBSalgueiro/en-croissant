@@ -1,11 +1,13 @@
 import { SegmentedControl, useMantineTheme } from "@mantine/core";
 
-export default function CoresSlide({
+export default function CoresSlider({
   value,
   setValue,
+  color,
 }: {
   value: number;
   setValue: (v: number) => void;
+  color?: string;
 }) {
   const theme = useMantineTheme();
   const values = Array.from(
@@ -16,7 +18,7 @@ export default function CoresSlide({
   return (
     <SegmentedControl
       size="xs"
-      color={theme.primaryColor}
+      color={color || theme.primaryColor}
       value={value.toString()}
       onChange={(v) => setValue(parseInt(v))}
       data={values.map((v) => v.toString())}

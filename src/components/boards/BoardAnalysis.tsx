@@ -31,6 +31,7 @@ import GameNotation from "./GameNotation";
 import { useAtom, useAtomValue } from "jotai";
 import {
   autoSaveAtom,
+  currentArrowsAtom,
   currentTabAtom,
   currentTabSelectedAtom,
 } from "@/atoms/atoms";
@@ -42,7 +43,7 @@ import { getMainLine } from "@/utils/chess";
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
-  const [arrows, setArrows] = useState<string[]>([]);
+  const [arrows, setArrows] = useAtom(currentArrowsAtom);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
@@ -55,7 +56,7 @@ function BoardAnalysis() {
   const currentNode = getNodeAtPath(root, position);
 
   useEffect(() => {
-    setArrows([]);
+    setArrows(new Map());
   }, [position]);
 
   const saveFile = useCallback(async () => {
@@ -166,7 +167,6 @@ function BoardAnalysis() {
             <Tabs.Panel value="analysis" sx={{ flex: 1, overflowY: "hidden" }}>
               <Suspense>
                 <AnalysisPanel
-                  setArrows={setArrows}
                   toggleReportingMode={toggleReportingMode}
                   inProgress={inProgress}
                   setInProgress={setInProgress}

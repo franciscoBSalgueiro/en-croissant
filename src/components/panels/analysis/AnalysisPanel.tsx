@@ -35,12 +35,10 @@ import LogsPanel from "./LogsPanel";
 import EvalChart from "@/components/common/EvalChart";
 
 function AnalysisPanel({
-  setArrows,
   toggleReportingMode,
   inProgress,
   setInProgress,
 }: {
-  setArrows: (arrows: string[]) => void;
   toggleReportingMode: () => void;
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
@@ -129,7 +127,6 @@ function AnalysisPanel({
                         <BestMoves
                           id={i}
                           engine={engine}
-                          setArrows={setArrows}
                           fen={currentNode.fen}
                           halfMoves={currentNode.halfMoves}
                         />

@@ -9,9 +9,11 @@ import { useStyles } from "./styles";
 export default function HashSlider({
   value,
   setValue,
+  color,
 }: {
   value: number;
   setValue: (v: number) => void;
+  color?: string;
 }) {
   const [tempValue, setTempValue] = useState(Math.log2(value));
   const { classes } = useStyles();
@@ -29,6 +31,7 @@ export default function HashSlider({
       <Slider
         min={0}
         max={Math.log2(memorySize || 16)}
+        color={color}
         value={tempValue}
         onChange={setTempValue}
         onChangeEnd={(v) => setValue(2 ** v)}
