@@ -283,7 +283,7 @@ function BoardGame() {
         <Board
           dirty={false}
           currentNode={currentNode}
-          arrows={[]}
+          arrows={new Map()}
           headers={headers}
           editingMode={false}
           toggleEditingMode={() => undefined}
