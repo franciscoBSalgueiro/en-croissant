@@ -319,7 +319,21 @@ function Board({
     <>
       <Box className="container">
         <Box className="Board">
-          <Box className={chessboard} ref={boardRef}>
+          <Box
+            className={chessboard}
+            ref={boardRef}
+            onWheel={(e) => {
+              if (e.deltaY > 0) {
+                dispatch({
+                  type: "GO_TO_NEXT",
+                });
+              } else {
+                dispatch({
+                  type: "GO_TO_PREVIOUS",
+                });
+              }
+            }}
+          >
             {currentNode.annotation && currentNode.move && (
               <AnnotationHint
                 orientation={orientation}
