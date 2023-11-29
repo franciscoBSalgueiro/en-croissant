@@ -16,7 +16,6 @@ import { SideBar } from "./components/Sidebar";
 import { Helmet } from "react-helmet";
 import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
-
 import SettingsPage from "@/components/settings/SettingsPage";
 import FilesPage from "@/components/files/FilesPage";
 import EnginesPage from "@/components/engines/EnginesPage";
@@ -270,7 +269,6 @@ export default function App() {
         }}
       >
         <Notifications />
-
         <RouterProvider router={router} />
       </MantineProvider>
     </ColorSchemeProvider>

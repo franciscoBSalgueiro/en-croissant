@@ -15,12 +15,13 @@ import {
 import { ask, message, open } from "@tauri-apps/api/dialog";
 import { appWindow } from "@tauri-apps/api/window";
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import AboutModal from "./About";
 import { useState } from "react";
 import { createTab } from "@/utils/tabs";
 import { useHotkeys } from "@mantine/hooks";
+import { keyMapAtom } from "@/atoms/keybinds";
 
 function IconMinimize() {
   return (
@@ -133,18 +134,20 @@ function TopBar() {
     }
   }
 
+  const keyMap = useAtomValue(keyMapAtom);
+
   const menuActions: MenuGroup[] = [
     {
       label: "File",
       options: [
         {
           label: "New Tab",
-          shortcut: "Ctrl+T",
+          shortcut: keyMap.NEW_TAB.keys,
           action: createNewTab,
         },
         {
           label: "Open File",
-          shortcut: "Ctrl+O",
+          shortcut: keyMap.OPEN_FILE.keys,
           action: openNewFile,
         },
         {
@@ -196,8 +199,8 @@ function TopBar() {
   const [opened, setOpened] = useState(false);
 
   useHotkeys([
-    ["ctrl+T", createNewTab],
-    ["ctrl+O", openNewFile],
+    [keyMap.NEW_TAB.keys, createNewTab],
+    [keyMap.OPEN_FILE.keys, openNewFile],
   ]);
 
   const theme = useMantineTheme();
@@ -226,7 +229,7 @@ function TopBar() {
                           },
                         }}
                         variant="subtle"
-                        color={theme.colorScheme === "dark" ? "gray": "dark"}
+                        color={theme.colorScheme === "dark" ? "gray" : "dark"}
                         compact
                       >
                         {action.label}

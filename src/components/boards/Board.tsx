@@ -64,6 +64,7 @@ import PromotionModal from "./PromotionModal";
 import "./board.css";
 import { match } from "ts-pattern";
 import { arrowColors } from "../panels/analysis/BestMoves";
+import { keyMapAtom } from "@/atoms/keybinds";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -150,7 +151,8 @@ function Board({
       },
     });
 
-  useHotkeys([["f", () => toggleOrientation()]]);
+  const keyMap = useAtomValue(keyMapAtom);
+  useHotkeys([[keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation()]]);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const practicing = useAtomValue(currentPracticingAtom);
 

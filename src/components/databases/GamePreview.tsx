@@ -3,7 +3,7 @@ import { useHotkeys } from "@mantine/hooks";
 import { useContext } from "react";
 import { Chessground } from "@/chessground/Chessground";
 import MoveControls from "../common/MoveControls";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { activeTabAtom } from "@/atoms/atoms";
 import GameNotation from "../boards/GameNotation";
 import {
@@ -15,6 +15,7 @@ import treeReducer, { TreeState, getNodeAtPath } from "@/utils/treeReducer";
 import { useNavigate } from "react-router-dom";
 import { parsePGN } from "@/utils/chess";
 import useSWR from "swr";
+import { keyMapAtom } from "@/atoms/keybinds";
 
 function GamePreviewWrapper({
   id,
@@ -61,9 +62,10 @@ function GamePreview({
 
   const [treeState, dispatch] = useImmerReducer(treeReducer, game);
 
+  const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
-    ["ArrowLeft", () => dispatch({ type: "GO_TO_PREVIOUS" })],
-    ["ArrowRight", () => dispatch({ type: "GO_TO_NEXT" })],
+    [keyMap.PREVIOUS_MOVE.keys, () => dispatch({ type: "GO_TO_PREVIOUS" })],
+    [keyMap.NEXT_MOVE.keys, () => dispatch({ type: "GO_TO_NEXT" })],
   ]);
 
   return (

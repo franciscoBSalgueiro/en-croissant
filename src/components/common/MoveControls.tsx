@@ -8,6 +8,8 @@ import {
 } from "@tabler/icons-react";
 import { memo, useContext } from "react";
 import { TreeDispatchContext } from "./TreeStateContext";
+import { keyMapAtom } from "@/atoms/keybinds";
+import { useAtomValue } from "jotai";
 
 function MoveControls({
   goToStart,
@@ -27,12 +29,13 @@ function MoveControls({
   const handleGoToPrevious =
     goToPrevious ?? (() => dispatch({ type: "GO_TO_PREVIOUS" }));
   const handleGoToNext = goToNext ?? (() => dispatch({ type: "GO_TO_NEXT" }));
+  const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
-    ["ArrowLeft", handleGoToPrevious],
-    ["ArrowRight", handleGoToNext],
-    ["ArrowUp", handleGoToStart],
-    ["ArrowDown", handleGoToEnd],
-    ["Delete", () => dispatch({ type: "DELETE_MOVE" })],
+    [keyMap.PREVIOUS_MOVE.keys, handleGoToPrevious],
+    [keyMap.NEXT_MOVE.keys, handleGoToNext],
+    [keyMap.GO_TO_START.keys, handleGoToStart],
+    [keyMap.GO_TO_END.keys, handleGoToEnd],
+    [keyMap.DELETE_MOVE.keys, () => dispatch({ type: "DELETE_MOVE" })],
   ]);
   return (
     <Group grow>

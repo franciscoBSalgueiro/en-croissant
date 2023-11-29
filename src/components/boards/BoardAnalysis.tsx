@@ -39,6 +39,7 @@ import { saveToFile } from "@/utils/tabs";
 import EditingCard from "./EditingCard";
 import ReportModal from "../panels/analysis/ReportModal";
 import { getMainLine } from "@/utils/chess";
+import { keyMapAtom } from "@/atoms/keybinds";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
@@ -89,10 +90,11 @@ function BoardAnalysis() {
     });
   }, [setCurrentTab, dispatch, currentTab?.file?.path, root, headers]);
 
+  const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
-    ["Ctrl+S", () => saveFile()],
+    [keyMap.SAVE_FILE.keys, () => saveFile()],
     [
-      "Ctrl+L",
+      keyMap.CLEAR_SHAPES.keys,
       () =>
         dispatch({
           type: "CLEAR_SHAPES",

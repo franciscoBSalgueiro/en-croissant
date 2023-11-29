@@ -9,7 +9,7 @@ import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import NewTabHome from "./NewTabHome";
 import { useCallback, useEffect } from "react";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import { match } from "ts-pattern";
@@ -20,6 +20,7 @@ import { unwrap } from "@/utils/invoke";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 import { Mosaic, MosaicNode } from "react-mosaic-component";
+import { keyMapAtom } from "@/atoms/keybinds";
 
 const useStyles = createStyles((theme) => ({
   newTab: {
@@ -143,10 +144,11 @@ export default function BoardsPage() {
     [tabs, setTabs, setActiveTab]
   );
 
+  const keyMap = useAtomValue(keyMapAtom);  
   useHotkeys([
-    ["ctrl+W", () => closeTab(activeTab)],
-    ["ctrl+tab", () => cycleTabs()],
-    ["ctrl+shift+tab", () => cycleTabs(true)],
+    [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],
+    [keyMap.CYCLE_TABS.keys, () => cycleTabs()],
+    [keyMap.REVERSE_CYCLE_TABS.keys, () => cycleTabs(true)],
     ["alt+1", () => selectTab(0)],
     ["ctrl+1", () => selectTab(0)],
     ["alt+2", () => selectTab(1)],
