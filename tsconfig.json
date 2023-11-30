@@ -3,7 +3,7 @@
     "target": "es2015",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "skipLibCheck": false,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
