@@ -27,6 +27,8 @@ import { PuzzleDbCard } from "./PuzzleDbCard";
 import AddPuzzle from "./AddPuzzle";
 import ChallengeHistory from "../common/ChallengeHistory";
 import { commands } from "@/bindings";
+import { useAtom } from "jotai";
+import { selectedPuzzleDbAtom } from "@/atoms/atoms";
 
 const useStyles = createStyles((theme) => ({
   card: {
@@ -53,10 +55,8 @@ function Puzzles({ id }: { id: string }) {
   const [currentMove, setCurrentMove] = useState(1);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
-  const [selectedDb, setSelectedDb] = useLocalStorage<string | null>({
-    key: "puzzle-db",
-    defaultValue: null,
-  });
+  const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom)
+
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
       setPuzzleDbs(databases);
@@ -106,7 +106,6 @@ function Puzzles({ id }: { id: string }) {
     });
   }
 
-  const [tmpSelected, setTmpSelected] = useState<string | null>(null);
   const [addOpened, setAddOpened] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -140,8 +139,8 @@ function Puzzles({ id }: { id: string }) {
               <PuzzleDbCard
                 key={db.path}
                 db={db}
-                isSelected={tmpSelected === db.path}
-                setSelected={setTmpSelected}
+                isSelected={selectedDb === db.path}
+                setSelected={setSelectedDb}
               />
             ))}
             <Card

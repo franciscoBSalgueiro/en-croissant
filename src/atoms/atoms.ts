@@ -128,6 +128,12 @@ export const referenceDbAtom = atomWithStorage<string | null>(
     null
 );
 
+
+export const selectedPuzzleDbAtom = atomWithStorage<string | null>(
+    "puzzle-db",
+    null
+);
+
 export const selectedDatabaseAtom = atomWithStorage<DatabaseInfo | null>(
     "database-view",
     null,
