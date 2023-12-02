@@ -28,24 +28,25 @@ import HashSlider from "./HashSlider";
 import { save, open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import { Engine } from "@/utils/engines";
 import { useAtom } from "jotai";
 import CoresSlider from "./CoresSlider";
 
 interface EngineSettingsProps {
-  engine: Engine;
+  engineName: string;
   settings: EngineSettings;
   setSettings: (fn: (prev: EngineSettings) => EngineSettings) => void;
   color?: MantineColor;
   minimal?: boolean;
+  remote: boolean;
 }
 
 function EngineSettingsForm({
-  engine,
+  engineName,
   settings,
   setSettings,
   color,
   minimal,
+  remote,
 }: EngineSettingsProps) {
   const [advancedOptions, setAdvancedOptions] = useState(false);
   const [, setEngines] = useAtom(enginesAtom);
@@ -54,7 +55,7 @@ function EngineSettingsForm({
     const defaultPath = await resolve(
       await appDataDir(),
       "presets",
-      engine.name + ".json"
+      engineName + ".json"
     );
     const file = await save({
       defaultPath,
@@ -65,7 +66,7 @@ function EngineSettingsForm({
     await writeTextFile(file, json);
     setEngines(async (prev) => {
       const newEngines = (await prev).map((e) => {
-        if (e.name === engine.name) {
+        if (e.name === engineName) {
           return {
             ...e,
             settings: settings,
@@ -90,7 +91,7 @@ function EngineSettingsForm({
     setSettings(() => json);
     setEngines(async (prev) => {
       const newEngines = (await prev).map((e) => {
-        if (e.name === engine.name) {
+        if (e.name === engineName) {
           return {
             ...e,
             settings: json,
@@ -113,7 +114,7 @@ function EngineSettingsForm({
       />
       <Stack pt="sm">
         <Stack>
-          {settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
+          {remote ? <></> : settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
             <Group grow>
               <Text size="sm" fw="bold">
                 Depth
@@ -165,58 +166,64 @@ function EngineSettingsForm({
             </Group>
           )}
 
-          <Group grow>
-            <Text size="sm" fw="bold">
-              Number of cores
-            </Text>
-            <CoresSlider
-              value={settings.options.threads}
-              setValue={(v) =>
-                setSettings((prev) => ({
-                  ...prev,
-                  options: { ...prev.options, threads: v },
-                }))
-              }
-              color={color}
-            />
-          </Group>
+          {!remote && (
+            <>
+              <Group grow>
+                <Text size="sm" fw="bold">
+                  Number of cores
+                </Text>
+                <CoresSlider
+                  value={settings.options.threads}
+                  setValue={(v) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      options: { ...prev.options, threads: v },
+                    }))
+                  }
+                  color={color}
+                />
+              </Group>
 
-          <Group grow>
-            <Text size="sm" fw="bold">
-              Size of Hash
-            </Text>
-            <HashSlider
-              value={settings.options.hash}
-              setValue={(v) =>
-                setSettings((prev) => ({
-                  ...prev,
-                  options: { ...prev.options, hash: v },
-                }))
-              }
-              color={color}
-            />
-          </Group>
+              <Group grow>
+                <Text size="sm" fw="bold">
+                  Size of Hash
+                </Text>
+                <HashSlider
+                  value={settings.options.hash}
+                  setValue={(v) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      options: { ...prev.options, hash: v },
+                    }))
+                  }
+                  color={color}
+                />
+              </Group>
+            </>
+          )}
         </Stack>
 
-        <Group spacing={0}>
-          <Tooltip label="Load settings">
-            <ActionIcon onClick={() => loadSettings()}>
-              <IconUpload size="1rem" />
-            </ActionIcon>
-          </Tooltip>
+        {!remote && (
+          <Group spacing={0}>
+            <Tooltip label="Load settings">
+              <ActionIcon onClick={() => loadSettings()}>
+                <IconUpload size="1rem" />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip label="Save settings">
-            <ActionIcon onClick={() => saveSettings()}>
-              <IconDownload size="1rem" />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip label="Save settings">
+              <ActionIcon onClick={() => saveSettings()}>
+                <IconDownload size="1rem" />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip label="Advanced Options">
-            <ActionIcon onClick={() => setAdvancedOptions(true)}>
-              <IconSettings size="1rem" />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
+            <Tooltip label="Advanced Options">
+              <ActionIcon onClick={() => setAdvancedOptions(true)}>
+                <IconSettings size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        )}
       </Stack>
     </>
   );

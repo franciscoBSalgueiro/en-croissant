@@ -16,7 +16,7 @@ import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useCallback, useState } from "react";
-import { Engine, useDefaultEngines } from "@/utils/engines";
+import { LocalEngine, useDefaultEngines } from "@/utils/engines";
 import { formatBytes } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import ProgressButton from "../common/ProgressButton";
@@ -65,7 +65,7 @@ function AddEngine({
 
   const { defaultEngines, error, isLoading } = useDefaultEngines(os, opened);
 
-  const form = useForm<Engine>({
+  const form = useForm<LocalEngine>({
     initialValues: {
       version: "",
       name: "",
@@ -125,7 +125,7 @@ function AddEngine({
           <EngineForm
             submitLabel="Add"
             form={form}
-            onSubmit={(values: Engine) => {
+            onSubmit={(values: LocalEngine) => {
               setEngines(async (prev) => [...(await prev), values]);
               setOpened(false);
             }}
@@ -141,7 +141,7 @@ function EngineCard({
   engineId,
   initInstalled,
 }: {
-  engine: Engine;
+  engine: LocalEngine;
   engineId: number;
   initInstalled: boolean;
 }) {

@@ -12,9 +12,9 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async getBestMoves(engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<__Result__<[number, BestMoves[]] | null, string>> {
+async getBestMoves(id: string, engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<__Result__<[number, BestMoves[]] | null, string>> {
 try {
-    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_best_moves", { engine, tab, goMode, options }) };
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_best_moves", { id, engine, tab, goMode, options }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

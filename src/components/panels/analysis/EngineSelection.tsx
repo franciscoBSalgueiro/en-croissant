@@ -3,16 +3,22 @@ import { useToggle } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { memo, useEffect, useState } from "react";
-import { Engine } from "@/utils/engines";
+import { Engine, localEngine } from "@/utils/engines";
 import ImageCheckbox from "./ImageCheckbox";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
-import { commands } from "@/bindings";
+import { activeTabAtom, enginesAtom, remoteEnabledAtom } from "@/atoms/atoms";
+import { lichessCloudEval } from "@/utils/lichess";
+import { chessdb } from "@/utils/chessdb";
 
-function EngineBox({ engine }: { engine: Engine }) {
+function EngineBox({
+  engine,
+  toggleEnabled,
+}: {
+  engine: Engine;
+  toggleEnabled: () => void;
+}) {
   const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
-  const [, setEngines] = useAtom(enginesAtom);
   const activeTab = useAtomValue(activeTabAtom);
 
   useEffect(() => {
@@ -33,13 +39,9 @@ function EngineBox({ engine }: { engine: Engine }) {
         checked={engine.loaded}
         onChange={(checked) => {
           if (!checked) {
-            commands.stopEngine(engine.path, activeTab!);
+            engine.stop(activeTab!);
           }
-          setEngines(async (engines) =>
-            (await engines).map((e) =>
-              e.name === engine.name ? { ...e, loaded: checked } : e
-            )
-          );
+          toggleEnabled();
         }}
       />
     </Grid.Col>
@@ -48,7 +50,8 @@ function EngineBox({ engine }: { engine: Engine }) {
 
 function EngineSelection() {
   const [showSettings, toggleShowSettings] = useToggle();
-  const engines = useAtomValue(enginesAtom);
+  const [engines, setEngines] = useAtom(enginesAtom);
+  const [remoteEnabled, setRemoteEnabled] = useAtom(remoteEnabledAtom);
 
   return (
     <>
@@ -61,8 +64,8 @@ function EngineSelection() {
       >
         Manage Engines
       </Button>
-      <Collapse in={showSettings} >
-        <Stack spacing="xl" >
+      <Collapse in={showSettings}>
+        <Stack spacing="xl">
           {engines.length === 0 && (
             <Center>
               <Text>
@@ -73,8 +76,39 @@ function EngineSelection() {
           )}
           <Grid grow w="100%">
             {engines.map((engine) => (
-              <EngineBox key={engine.name} engine={engine} />
+              <EngineBox
+                key={engine.name}
+                engine={localEngine(engine)}
+                toggleEnabled={() => {
+                  setEngines(async (prev) =>
+                    (await prev).map((e) =>
+                      e.name === engine.name ? { ...e, loaded: !e.loaded } : e
+                    )
+                  );
+                }}
+              />
             ))}
+
+            <EngineBox
+              key="lichess"
+              engine={{ ...lichessCloudEval, loaded: remoteEnabled.lichess }}
+              toggleEnabled={() =>
+                setRemoteEnabled((prev) => ({
+                  ...prev,
+                  lichess: !prev.lichess,
+                }))
+              }
+            />
+            <EngineBox
+              key="chessdb"
+              engine={{ ...chessdb, loaded: remoteEnabled.chessdb }}
+              toggleEnabled={() =>
+                setRemoteEnabled((prev) => ({
+                  ...prev,
+                  chessdb: !prev.chessdb,
+                }))
+              }
+            />
           </Grid>
         </Stack>
       </Collapse>

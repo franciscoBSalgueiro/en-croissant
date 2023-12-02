@@ -14,13 +14,13 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { FixedSizeList } from "react-window";
 import { commands } from "@/bindings";
-import { Engine } from "@/utils/engines";
+import { LocalEngine } from "@/utils/engines";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
-  const [engine, setEngine] = useState<Engine | undefined>(
+  const [engine, setEngine] = useState<LocalEngine | undefined>(
     engines.filter((e) => e.loaded)[0]
   );
 

@@ -2,7 +2,7 @@ import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
-import { Engine } from "@/utils/engines";
+import { LocalEngine } from "@/utils/engines";
 import {
     LichessGamesOptions,
     MasterGamesOptions,
@@ -46,7 +46,12 @@ const fileStorage: AsyncStringStorage = {
     },
 };
 
-export const enginesAtom = atomWithStorage<Engine[]>(
+export const remoteEnabledAtom = atomWithStorage("remote-enabled", {
+    lichess: false,
+    chessdb: false,
+});
+
+export const enginesAtom = atomWithStorage<LocalEngine[]>(
     "engines/engines.json",
     [],
     createJSONStorage(() => fileStorage)
@@ -127,7 +132,6 @@ export const referenceDbAtom = atomWithStorage<string | null>(
     "reference-database",
     null
 );
-
 
 export const selectedPuzzleDbAtom = atomWithStorage<string | null>(
     "puzzle-db",
@@ -301,10 +305,18 @@ export const engineMovesFamily = atomFamily(
 );
 
 export const tabEngineSettingsFamily = atomFamily(
-    ({ tab, engine }: { tab: string; engine: Engine }) => {
+    ({
+        tab,
+        engineName,
+        defaultSettings,
+    }: {
+        tab: string;
+        engineName: string;
+        defaultSettings?: EngineSettings;
+    }) => {
         return atom<EngineSettings>(
-            engine.settings
-                ? { ...engine.settings, enabled: false }
+            defaultSettings
+                ? { ...defaultSettings, enabled: false }
                 : {
                       enabled: false,
                       go: {
@@ -320,7 +332,7 @@ export const tabEngineSettingsFamily = atomFamily(
                   }
         );
     },
-    (a, b) => a.tab === b.tab && a.engine.name === b.engine.name
+    (a, b) => a.tab === b.tab && a.engineName === b.engineName
 );
 
 export const allEnabledAtom = loadable(
@@ -332,7 +344,8 @@ export const allEnabledAtom = loadable(
             .every((engine) => {
                 const atom = tabEngineSettingsFamily({
                     tab: get(activeTabAtom)!,
-                    engine: engine,
+                    engineName: engine.name,
+                    defaultSettings: engine.settings,
                 });
                 return get(atom).enabled;
             });
@@ -348,7 +361,8 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
     for (const engine of engines.data.filter((e) => e.loaded)) {
         const atom = tabEngineSettingsFamily({
             tab: get(activeTabAtom)!,
-            engine: engine,
+            engineName: engine.name,
+            defaultSettings: engine.settings,
         });
         set(atom, { ...get(atom), enabled: value });
     }

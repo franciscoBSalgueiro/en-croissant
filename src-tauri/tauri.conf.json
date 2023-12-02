@@ -32,7 +32,8 @@
           "https://api.chess.com/**",
           "https://www.chess.com/**",
           "https://lichess.org/**",
-          "https://explorer.lichess.ovh/**"
+          "https://explorer.lichess.ovh/**",
+          "https://www.chessdb.cn/**"
         ]
       },
       "window": {

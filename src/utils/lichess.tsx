@@ -14,6 +14,11 @@ import {
   getLichessGamesQueryParams,
   getMasterGamesQueryParams,
 } from "./lichess/lichessexplorer";
+import { Engine } from "@/utils/engines";
+import { EngineOptions, GoMode } from "@/bindings";
+import { Chess, parseUci } from "chessops";
+import { parseFen } from "chessops/fen";
+import { makeSan } from "chessops/san";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
@@ -183,9 +188,69 @@ export async function getLichessAccount({
   return response.data;
 }
 
-export async function getCloudEvaluation(fen: string, multipv = 1) {
-  const url = `${baseURL}/cloud-eval?fen=${fen}&multipv=${multipv}`;
-  return fetch(url);
+export const lichessCloudEval: Engine = {
+  name: "Lichess Cloud",
+  remote: true,
+  loaded: false,
+  stop: () => Promise.resolve(),
+  getBestMoves: async (
+    _tab: string,
+    _goMode: GoMode,
+    options: EngineOptions
+  ) => {
+    const data = await getCloudEvaluation(options.fen, options.multipv);
+    return [
+      100,
+      data.pvs.map((m, i) => {
+        const uciMoves = m.moves.split(" ");
+        const setup = parseFen(options.fen).unwrap();
+        const pos = Chess.fromSetup(setup).unwrap();
+
+        const sanMoves = uciMoves.map((m) => {
+          const move = parseUci(m)!;
+          const san = makeSan(pos, move);
+          pos.play(move);
+          return san;
+        });
+
+        return {
+          score: { type: "cp", value: m.cp },
+          nodes: data.knodes * 1000,
+          depth: data.depth,
+          multipv: i + 1,
+          nps: 0,
+          sanMoves,
+          uciMoves,
+        };
+      }),
+    ];
+  },
+};
+
+const cache = new Map<string, LichessCloudData>();
+
+type LichessCloudData = {
+  fen: string;
+  knodes: number;
+  depth: number;
+  pvs: {
+    moves: string;
+    cp: number;
+  }[];
+};
+
+async function getCloudEvaluation(fen: string, multipv: number) {
+  if (cache.has(`${fen}-${multipv}`)) {
+    return cache.get(`${fen}-${multipv}`)!;
+  }
+  const url = new URL(`${baseURL}/cloud-eval`);
+  url.searchParams.append("fen", fen);
+  url.searchParams.append("multiPv", multipv.toString());
+
+  const response = await fetch<LichessCloudData>(url.toString());
+
+  cache.set(`${fen}-${multipv}`, response.data);
+  return response.data;
 }
 
 export async function getLichessGames(
@@ -233,9 +298,13 @@ export async function downloadLichess(
 }
 
 export async function getLichessGame(gameId: string): Promise<string> {
-  const response = await window.fetch(`https://lichess.org/game/export/${gameId}`);
+  const response = await window.fetch(
+    `https://lichess.org/game/export/${gameId}`
+  );
   if (!response.ok) {
-    throw new Error(`Failed to load lichess game ${gameId} - ${response.statusText}`);
+    throw new Error(
+      `Failed to load lichess game ${gameId} - ${response.statusText}`
+    );
   }
   return await response.text();
 }

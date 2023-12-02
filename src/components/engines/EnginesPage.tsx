@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { IconEdit, IconPlus, IconRobot, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { Engine } from "@/utils/engines";
+import { LocalEngine } from "@/utils/engines";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 import { useToggle } from "@mantine/hooks";
@@ -62,7 +62,7 @@ export default function EnginePage() {
   );
 }
 
-function EngineRow({ item }: { item: Engine }) {
+function EngineRow({ item }: { item: LocalEngine }) {
   const [, setEngines] = useAtom(enginesAtom);
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();

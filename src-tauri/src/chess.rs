@@ -397,6 +397,7 @@ pub async fn get_engine_logs(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_best_moves(
+    id: String,
     engine: String,
     tab: String,
     go_mode: GoMode,
@@ -465,7 +466,7 @@ pub async fn get_best_moves(
                                 };
                                 BestMovesPayload {
                                     best_lines: proc.best_moves.clone(),
-                                    engine: engine.clone(),
+                                    engine: id.clone(),
                                     tab: tab.clone(),
                                     progress,
                                 }
@@ -482,7 +483,7 @@ pub async fn get_best_moves(
             UciMessage::BestMove { .. } => {
                 BestMovesPayload {
                     best_lines: proc.last_best_moves.clone(),
-                    engine: engine.clone(),
+                    engine: id.clone(),
                     tab: tab.clone(),
                     progress: 100.0,
                 }

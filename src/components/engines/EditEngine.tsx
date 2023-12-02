@@ -1,6 +1,6 @@
 import { Modal } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Engine } from "@/utils/engines";
+import { LocalEngine } from "@/utils/engines";
 import EngineForm from "./EngineForm";
 import { enginesAtom } from "@/atoms/atoms";
 import { useAtom } from "jotai";
@@ -10,12 +10,12 @@ export default function EditEngine({
   opened,
   setOpened,
 }: {
-  initialEngine: Engine;
+  initialEngine: LocalEngine;
   opened: boolean;
   setOpened: (opened: boolean) => void;
 }) {
   const [engines, setEngines] = useAtom(enginesAtom);
-  const form = useForm<Engine>({
+  const form = useForm<LocalEngine>({
     initialValues: initialEngine,
 
     validate: {

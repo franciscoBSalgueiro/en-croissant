@@ -4,11 +4,9 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { commands, events } from "@/bindings";
+import { events } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { swapMove } from "@/utils/chess";
-import { Engine } from "@/utils/engines";
-import { unwrap } from "@/utils/invoke";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import {
@@ -46,6 +44,7 @@ import {
 } from "react";
 import AnalysisRow from "./AnalysisRow";
 import EngineSettingsForm from "./EngineSettingsForm";
+import { Engine } from "@/utils/engines";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -77,7 +76,11 @@ export default function BestMovesComponent({
     engineMovesFamily({ engine: engine.name, tab: activeTab! })
   );
   const [settings, setSettings] = useAtom(
-    tabEngineSettingsFamily({ engine: engine, tab: activeTab! })
+    tabEngineSettingsFamily({
+      engineName: engine.name,
+      defaultSettings: engine.settings,
+      tab: activeTab!,
+    })
   );
   const [, setArrows] = useAtom(currentArrowsAtom);
 
@@ -102,7 +105,7 @@ export default function BestMovesComponent({
       const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
         const ev = payload.bestLines;
         if (
-          payload.engine === engine.path &&
+          payload.engine === engine.name &&
           payload.tab === activeTab &&
           settings.enabled &&
           !isGameOver
@@ -138,7 +141,6 @@ export default function BestMovesComponent({
   }, [
     activeTab,
     dispatch,
-    engine.path,
     id,
     setArrows,
     settings.enabled,
@@ -151,18 +153,16 @@ export default function BestMovesComponent({
       if (settings.enabled) {
         const chess = new Chess(fen);
         if (chess.isGameOver()) {
-          commands.stopEngine(engine.path, activeTab!);
+          engine.stop(activeTab!);
         } else {
-          commands
-            .getBestMoves(engine.path, activeTab!, settings.go, {
+          engine.getBestMoves(activeTab!, settings.go, {
               fen: threat ? swapMove(fen) : fen,
               multipv: settings.options.multipv,
               hash: settings.options.hash,
               threads: settings.options.threads,
               extraOptions: settings.options.extraOptions,
             })
-            .then((res) => {
-              const moves = unwrap(res);
+            .then((moves) => {
               if (moves) {
                 const [progress, bestMoves] = moves;
                 setEngineVariation((prev) => {
@@ -183,7 +183,7 @@ export default function BestMovesComponent({
             });
         }
       } else {
-        commands.stopEngine(engine.path, activeTab!).then((r) => unwrap(r));
+        engine.stop(activeTab!);
       }
     },
     50,
@@ -290,10 +290,11 @@ export default function BestMovesComponent({
         </Box>
         <Collapse in={settingsOn} px={30} pb={15}>
           <EngineSettingsForm
-            engine={engine}
+            engineName={engine.name}
             settings={settings}
             setSettings={setSettings}
             color={id < 4 ? arrowColors[id] : theme.primaryColor}
+            remote={engine.remote}
           />
         </Collapse>
 

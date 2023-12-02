@@ -48,7 +48,7 @@ import {
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 import { parseUci } from "@/utils/chess";
-import { Engine } from "@/utils/engines";
+import { LocalEngine } from "@/utils/engines";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
@@ -57,8 +57,8 @@ function EnginesSelect({
   engine,
   setEngine,
 }: {
-  engine: Engine | null;
-  setEngine: (engine: Engine | null) => void;
+  engine: LocalEngine | null;
+  setEngine: (engine: LocalEngine | null) => void;
 }) {
   const engines = useAtomValue(enginesAtom);
 
@@ -92,7 +92,7 @@ export type OpponentSettings =
     }
   | {
       type: "engine";
-      engine: Engine | null;
+      engine: LocalEngine | null;
       settings: EngineSettings;
     };
 
@@ -158,7 +158,8 @@ function OpponentForm({
           <Stack>
             {opponent.engine && (
               <EngineSettingsForm
-                engine={opponent.engine}
+                remote={false}
+                engineName={opponent.engine.name}
                 settings={opponent.settings}
                 setSettings={(fn) =>
                   setOpponent((prev) =>

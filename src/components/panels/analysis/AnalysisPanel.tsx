@@ -29,10 +29,14 @@ import {
   currentAnalysisTabAtom,
   enableAllAtom,
   enginesAtom,
+  remoteEnabledAtom,
 } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import LogsPanel from "./LogsPanel";
 import EvalChart from "@/components/common/EvalChart";
+import { chessdb } from "@/utils/chessdb";
+import { lichessCloudEval } from "@/utils/lichess";
+import { localEngine } from "@/utils/engines";
 
 function AnalysisPanel({
   toggleReportingMode,
@@ -51,6 +55,7 @@ function AnalysisPanel({
     () => engines.filter((e) => e.loaded),
     [engines]
   );
+  const remoteEnabled = useAtomValue(remoteEnabledAtom);
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabledLoader = useAtomValue(allEnabledAtom);
@@ -126,13 +131,34 @@ function AnalysisPanel({
                       <Accordion.Item key={engine.path} value={engine.path}>
                         <BestMoves
                           id={i}
-                          engine={engine}
+                          engine={localEngine(engine)}
                           fen={currentNode.fen}
                           halfMoves={currentNode.halfMoves}
                         />
                       </Accordion.Item>
                     );
                   })}
+                  {remoteEnabled.chessdb && (
+                    <Accordion.Item value={"ChessDB"}>
+                      <BestMoves
+                        id={loadedEngines.length}
+                        engine={chessdb}
+                        fen={currentNode.fen}
+                        halfMoves={currentNode.halfMoves}
+                      />
+                    </Accordion.Item>
+                  )}
+
+                  {remoteEnabled.lichess && (
+                    <Accordion.Item value={"LichessCloud"}>
+                      <BestMoves
+                        id={loadedEngines.length + 1}
+                        engine={lichessCloudEval}
+                        fen={currentNode.fen}
+                        halfMoves={currentNode.halfMoves}
+                      />
+                    </Accordion.Item>
+                  )}
                 </Accordion>
                 <EngineSelection />
               </Stack>

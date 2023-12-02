@@ -1,4 +1,4 @@
-import { Engine } from "@/utils/engines";
+import { LocalEngine } from "@/utils/engines";
 import { TextInput, NumberInput, Input, Button, Text } from "@mantine/core";
 import { UseFormReturnType } from "@mantine/form";
 import { invoke } from "@tauri-apps/api";
@@ -13,8 +13,8 @@ export default function EngineForm({
   form,
   submitLabel,
 }: {
-  onSubmit: (values: Engine) => void;
-  form: UseFormReturnType<Engine, (values: Engine) => Engine>;
+  onSubmit: (values: LocalEngine) => void;
+  form: UseFormReturnType<LocalEngine, (values: LocalEngine) => LocalEngine>;
   submitLabel: string;
 }) {
   const { data: os } = useSWR("os", async () => {
