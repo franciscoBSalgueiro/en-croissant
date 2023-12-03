@@ -23,7 +23,6 @@ import {
   parseUci,
 } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
-import { invoke } from "@/utils/invoke";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -70,6 +69,7 @@ import {
   squareToCoordinates,
   positionFromFen,
 } from "@/utils/chessops";
+import { makeFen, parseFen } from "chessops/fen";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -357,15 +357,12 @@ function Board({
                 events: {
                   after: (orig, dest, metadata) => {
                     if (editingMode) {
-                      invoke<string>("make_move", {
-                        fen: currentNode.fen,
-                        from: orig,
-                        to: dest,
-                      }).then((newFen) => {
-                        dispatch({
-                          type: "SET_FEN",
-                          payload: newFen,
-                        });
+                      const setup = parseFen(currentNode.fen).unwrap();
+                      const p = setup.board.take(parseSquare(orig)!)!;
+                      setup.board.set(parseSquare(dest)!, p);
+                      dispatch({
+                        type: "SET_FEN",
+                        payload: makeFen(setup),
                       });
                     } else {
                       const from = parseSquare(orig)!;

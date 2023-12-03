@@ -7,12 +7,12 @@ import {
   Box,
   SegmentedControl,
 } from "@mantine/core";
-import { invoke } from "@tauri-apps/api";
 import { useRef } from "react";
 import { Chessground } from "@/chessground/Chessground";
 import { useAtom } from "jotai";
 import { currentLocalOptionsAtom } from "@/atoms/atoms";
 import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
+import { parseSquare } from "chessops";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
   const boardRef = useRef(null);
@@ -57,13 +57,10 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
                 color: "both",
                 events: {
                   after: (orig, dest) => {
-                    invoke<string>("make_move", {
-                      fen: options.fen,
-                      from: orig,
-                      to: dest,
-                    }).then((newFen) => {
-                      setOptions((q) => ({ ...q, fen: newFen }));
-                    });
+                    const setup = parseFen(options.fen).unwrap();
+                    const p = setup.board.take(parseSquare(orig)!)!;
+                    setup.board.set(parseSquare(dest)!, p);
+                    setOptions((q) => ({ ...q, fen: makeFen(setup) }));
                   },
                 },
               }}

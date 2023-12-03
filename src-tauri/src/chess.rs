@@ -756,26 +756,3 @@ pub async fn get_engine_name(path: PathBuf) -> Result<String, Error> {
         }
     }
 }
-
-#[tauri::command]
-pub fn make_move(fen: String, from: String, to: String) -> Result<String, String> {
-    let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
-    let mut pos: Setup = fen.into_setup();
-    let from = Square::from_ascii(from.as_bytes()).or(Err("Invalid square"))?;
-    let to = Square::from_ascii(to.as_bytes()).or(Err("Invalid square"))?;
-    let from_piece = pos.board.piece_at(from).unwrap();
-
-    pos.board.set_piece_at(to, from_piece);
-    pos.board.remove_piece_at(from).unwrap();
-
-    if let Err(e) = Chess::from_setup(pos.clone(), CastlingMode::Standard) {
-        if e.kinds()
-            .contains(PositionErrorKinds::INVALID_CASTLING_RIGHTS)
-        {
-            pos.castling_rights.clear();
-        }
-    }
-
-    let fen = Fen::from_setup(pos);
-    Ok(fen.to_string())
-}
