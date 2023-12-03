@@ -1,9 +1,7 @@
 import { SimpleGrid } from "@mantine/core";
-import { invoke } from "@tauri-apps/api";
 import Piece from "../common/Piece";
-
-const pieces = ["p", "n", "b", "r", "q", "k"] as const;
-const colors = ["w", "b"] as const;
+import { ROLES, COLORS, parseSquare } from "chessops";
+import { makeFen, parseFen } from "chessops/fen";
 
 function PiecesGrid({
   fen,
@@ -20,21 +18,19 @@ function PiecesGrid({
 }) {
   return (
     <SimpleGrid cols={vertical ? 2 : 6} sx={{ flex: 1 }} w="100%">
-      {colors.map((color) =>
-        pieces.map((piece) => (
+      {COLORS.map((color) =>
+        ROLES.map((role) => (
           <Piece
-            key={piece + color}
+            key={role + color}
             putPiece={(to, piece) => {
-              invoke<string>("put_piece", {
-                fen,
-                piece: piece.type,
-                square: to,
-                color: piece.color,
-              }).then(onPut);
+              const square = parseSquare(to);
+              const setup = parseFen(fen).unwrap();
+              setup.board.set(square, piece);
+              onPut(makeFen(setup));
             }}
             boardRef={boardRef}
             piece={{
-              type: piece,
+              role,
               color,
             }}
             orientation={orientation}

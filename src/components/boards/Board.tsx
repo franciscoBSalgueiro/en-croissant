@@ -17,16 +17,12 @@ import {
   ANNOTATION_INFO,
   Annotation,
   PiecesCount,
-  handleMove,
-  moveToCoordinates,
   moveToKey,
   parseKeyboardMove,
   parseUci,
-  toDests,
   useMaterialDiff,
 } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
-import { formatMove } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import {
@@ -36,6 +32,7 @@ import {
   Global,
   Group,
   Input,
+  Text,
   Tooltip,
 } from "@mantine/core";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -52,7 +49,6 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { Chess, Move, PieceSymbol, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -65,6 +61,15 @@ import "./board.css";
 import { match } from "ts-pattern";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import { keyMapAtom } from "@/atoms/keybinds";
+import { parseFen } from "chessops/fen";
+import { Chess, NormalMove, Square, SquareName, parseSquare } from "chessops";
+import { chessgroundDests } from "chessops/compat";
+import { makeSan } from "chessops/san";
+import {
+  forceEnPassant,
+  positionErrorString,
+  squareToCoordinates,
+} from "@/utils/board";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -98,21 +103,19 @@ function Board({
   root,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
-  let chess: Chess | null;
-  let error: string | null = null;
-  try {
-    chess = new Chess(currentNode.fen);
-  } catch (e) {
-    chess = null;
-    if (e instanceof Error) {
-      error = e.message;
-    }
-  }
 
-  if (chess !== null && chess.isGameOver() && headers.result === "*") {
+  const setup = parseFen(currentNode.fen).unwrap();
+  const res = Chess.fromSetup(setup);
+
+  const [pos, error] = match(res)
+    .with({ isOk: true }, ({ value }) => [value, null] as const)
+    .with({ isOk: false }, ({ error }) => [null, error] as const)
+    .exhaustive();
+
+  if (pos !== null && pos.isEnd() && headers.result === "*") {
     let newOutcome: Outcome = "1/2-1/2";
-    if (chess.isCheckmate()) {
-      newOutcome = chess.turn() === "w" ? "0-1" : "1-0";
+    if (pos.isCheckmate()) {
+      newOutcome = pos.turn === "white" ? "0-1" : "1-0";
     }
     dispatch({
       type: "SET_HEADERS",
@@ -132,12 +135,14 @@ function Board({
   const autoSave = useAtomValue(autoSaveAtom);
 
   const activeTab = useAtomValue(currentTabAtom);
-  const dests = toDests(chess, forcedEP);
-  const turn = chess ? formatMove(chess.turn()) : undefined;
-  const [pendingMove, setPendingMove] = useState<{
-    from: Square;
-    to: Square;
-  } | null>(null);
+  let dests: Map<SquareName, SquareName[]> = pos
+    ? chessgroundDests(pos)
+    : new Map();
+  if (forcedEP && pos) {
+    dests = forceEnPassant(dests, pos);
+  }
+  const turn = pos?.turn || "white";
+  const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
   const orientation =
     movable === "white" || movable === "black"
       ? movable
@@ -166,24 +171,17 @@ function Board({
   );
   const setInvisible = useSetAtom(currentInvisibleAtom);
 
-  async function makeMove({
-    from,
-    to,
-    promotion,
-  }: {
-    from: Square;
-    to: Square;
-    promotion?: PieceSymbol;
-  }) {
+  async function makeMove(move: NormalMove) {
+    if (!pos) return;
+    const san = makeSan(pos, move);
     if (practicing) {
       const c = deck.find((c) => c.fen === currentNode.fen);
       if (!c) {
         return;
       }
 
-      const m = chess?.move({ from, to, promotion });
       let isRecalled = true;
-      if (m?.san !== c?.answer) {
+      if (san !== c?.answer) {
         isRecalled = false;
       }
       const i = deck.indexOf(c);
@@ -193,22 +191,14 @@ function Board({
         setInvisible(false);
         dispatch({
           type: "MAKE_MOVE",
-          payload: {
-            from,
-            to,
-            promotion,
-          },
+          payload: san,
         });
         setPendingMove(null);
       }
     } else {
       dispatch({
         type: "MAKE_MOVE",
-        payload: {
-          from,
-          to,
-          promotion,
-        },
+        payload: san,
       });
       setPendingMove(null);
     }
@@ -339,7 +329,7 @@ function Board({
             {currentNode.annotation && currentNode.move && (
               <AnnotationHint
                 orientation={orientation}
-                move={currentNode.move}
+                square={parseSquare(currentNode.move.to)}
                 annotation={currentNode.annotation}
               />
             )}
@@ -384,29 +374,31 @@ function Board({
                         });
                       });
                     } else {
-                      if (chess) {
-                        const newDest = handleMove(chess, orig, dest);
+                      const from = parseSquare(orig)!;
+                      const to = parseSquare(dest)!;
+
+                      if (pos) {
                         if (
-                          chess.get(orig as Square).type === "p" &&
-                          ((newDest[1] === "8" && turn === "white") ||
-                            (newDest[1] === "1" && turn === "black"))
+                          pos.board.get(from)?.role === "pawn" &&
+                          ((dest[1] === "8" && turn === "white") ||
+                            (dest[1] === "1" && turn === "black"))
                         ) {
                           if (autoPromote && !metadata.ctrlKey) {
                             makeMove({
-                              from: orig as Square,
-                              to: newDest,
-                              promotion: "q",
+                              from,
+                              to,
+                              promotion: "queen",
                             });
                           } else {
                             setPendingMove({
-                              from: orig as Square,
-                              to: newDest,
+                              from,
+                              to,
                             });
                           }
                         } else {
                           makeMove({
-                            from: orig as Square,
-                            to: newDest,
+                            from,
+                            to,
                           });
                         }
                       }
@@ -415,7 +407,7 @@ function Board({
                 },
               }}
               turnColor={turn}
-              check={chess?.inCheck()}
+              check={pos?.isCheck()}
               lastMove={moveToKey(currentNode.move)}
               premovable={{
                 enabled: false,
@@ -439,6 +431,11 @@ function Board({
         <Box className="Top">
           {data && (
             <Box px="sm">
+              {error && (
+                <Text ta="center" color="red">
+                  {positionErrorString(error)}
+                </Text>
+              )}
               <ShowMaterial
                 diff={data?.diff}
                 pieces={data?.pieces}
@@ -551,15 +548,15 @@ function ShowMaterial({
 }
 
 function AnnotationHint({
-  move,
+  square,
   annotation,
   orientation,
 }: {
-  move: Move;
+  square: Square;
   annotation: Annotation;
   orientation: Color;
 }) {
-  const { file, rank } = moveToCoordinates(move, orientation);
+  const { file, rank } = squareToCoordinates(square, orientation);
   const { color } = ANNOTATION_INFO[annotation];
 
   return (

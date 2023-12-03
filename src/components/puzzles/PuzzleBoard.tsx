@@ -1,7 +1,5 @@
-import { Box, Stack } from "@mantine/core";
-import { Chess, Move, Square } from "chess.js";
+import { Box } from "@mantine/core";
 import { useState } from "react";
-import { handleMove, moveToKey, parseUci, toDests } from "@/utils/chess";
 import { formatMove } from "@/utils/format";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
@@ -9,6 +7,9 @@ import { chessboard } from "@/styles/Chessboard.css";
 import { Chessground } from "@/chessground/Chessground";
 import { useAtomValue } from "jotai";
 import { showCoordinatesAtom } from "@/atoms/atoms";
+import { Chess, NormalMove, makeUci, parseSquare, parseUci } from "chessops";
+import { makeFen, parseFen } from "chessops/fen";
+import { chessgroundDests, chessgroundMove } from "chessops/compat";
 
 function PuzzleBoard({
   puzzles,
@@ -32,25 +33,26 @@ function PuzzleBoard({
     puzzle = puzzles[currentPuzzle];
   }
   const [ended, setEnded] = useState(false);
-  const chess = new Chess(puzzle?.fen);
-  let lastMove: Move | null = null;
+
+  const pos = puzzle?.fen
+    ? Chess.fromSetup(parseFen(puzzle.fen).unwrap()).unwrap()
+    : Chess.default();
+  let lastMove: NormalMove | null = null;
   let orientation: "white" | "black" = "white";
   if (puzzle) {
     for (let i = 0; i < Math.min(currentMove, puzzle.moves.length); i++) {
-      lastMove = chess.move(parseUci(puzzle.moves[i]));
+      lastMove = parseUci(puzzle.moves[i])! as NormalMove;
+      pos.play(lastMove);
       if (i == 0) {
-        orientation = formatMove(chess.turn());
+        orientation = pos.turn;
       }
     }
   }
-  const [pendingMove, setPendingMove] = useState<{
-    from: Square;
-    to: Square;
-  } | null>(null);
+  const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
 
-  const dests = toDests(chess, false);
-  const fen = chess.fen();
-  const turn = formatMove(chess.turn());
+  const dests = chessgroundDests(pos);
+  const fen = makeFen(pos.toSetup());
+  const turn = pos.turn;
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
   function checkMove(move: string) {
@@ -100,23 +102,25 @@ function PuzzleBoard({
               dests: dests,
               events: {
                 after: (orig, dest) => {
-                  const newDest = handleMove(chess, orig, dest);
+                  const from = parseSquare(orig)!;
+                  const to = parseSquare(dest)!;
+                  const move: NormalMove = { from, to };
                   if (
-                    chess.get(orig as Square).type === "p" &&
-                    ((newDest[1] === "8" && turn === "white") ||
-                      (newDest[1] === "1" && turn === "black"))
+                    pos.board.get(from)?.role === "pawn" &&
+                    ((dest[1] === "8" && turn === "white") ||
+                      (dest[1] === "1" && turn === "black"))
                   ) {
-                    setPendingMove({ from: orig as Square, to: newDest });
+                    setPendingMove(move);
                   } else {
-                    checkMove(`${orig}${newDest}`);
+                    checkMove(makeUci(move));
                   }
                 },
               },
             }}
-            lastMove={moveToKey(lastMove)}
+            lastMove={lastMove ? chessgroundMove(lastMove) : undefined}
             turnColor={turn}
             fen={fen}
-            check={chess.inCheck()}
+            check={pos.isCheck()}
           />
         </Box>
       </Box>

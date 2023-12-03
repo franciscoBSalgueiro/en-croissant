@@ -1,9 +1,10 @@
 import { ActionIcon, SimpleGrid } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
-import { BISHOP, KNIGHT, PieceSymbol, QUEEN, ROOK, Square } from "chess.js";
 import { memo } from "react";
 import Piece from "../common/Piece";
-import { moveToCoordinates } from "@/utils/chess";
+import { Color } from "chessground/types";
+import { NormalMove, Role } from "chessops";
+import { squareToCoordinates } from "@/utils/board";
 
 const PromotionModal = memo(function PromotionModal({
   pendingMove,
@@ -12,16 +13,19 @@ const PromotionModal = memo(function PromotionModal({
   turn,
   orientation,
 }: {
-  pendingMove: { from: Square; to: Square } | null;
+  pendingMove: NormalMove | null;
   cancelMove: () => void;
-  confirmMove: (p: PieceSymbol) => void;
-  turn?: "white" | "black";
-  orientation: "white" | "black";
+  confirmMove: (p: Role) => void;
+  turn: Color;
+  orientation: Color;
 }) {
-  const { file, rank } = moveToCoordinates(pendingMove, orientation)
   const ref = useClickOutside(() => cancelMove());
 
-  const promotionPieces: PieceSymbol[] = [QUEEN, KNIGHT, ROOK, BISHOP];
+  if (!pendingMove) {
+    return null;
+  }
+  const { file, rank } = squareToCoordinates(pendingMove.to, orientation);
+  const promotionPieces: Role[] = ["queen", "knight", "rook", "bishop"];
   if (
     (turn === "black" && orientation === "white") ||
     (turn === "white" && orientation === "black")
@@ -67,8 +71,8 @@ const PromotionModal = memo(function PromotionModal({
                 >
                   <Piece
                     piece={{
-                      type: p,
-                      color: turn === "white" ? "w" : "b",
+                      role: p,
+                      color: turn,
                     }}
                   />
                 </ActionIcon>

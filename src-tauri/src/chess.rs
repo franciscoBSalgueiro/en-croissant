@@ -755,20 +755,6 @@ pub async fn get_engine_name(path: PathBuf) -> Result<String, Error> {
 }
 
 #[tauri::command]
-pub fn put_piece(fen: String, piece: char, square: String, color: char) -> Result<String, String> {
-    let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
-    let mut pos: Setup = fen.into_setup();
-    let piece = Piece {
-        role: Role::from_char(piece).unwrap(),
-        color: Color::from_char(color).unwrap(),
-    };
-    let square = Square::from_ascii(square.as_bytes()).or(Err("Invalid square"))?;
-    pos.board.set_piece_at(square, piece);
-    let fen = Fen::from_setup(pos);
-    Ok(fen.to_string())
-}
-
-#[tauri::command]
 pub fn make_move(fen: String, from: String, to: String) -> Result<String, String> {
     let fen: Fen = fen.parse().or(Err("Invalid fen"))?;
     let mut pos: Setup = fen.into_setup();

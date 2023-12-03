@@ -34,7 +34,7 @@ use tauri_plugin_log::LogTarget;
 
 use crate::chess::{
     analyze_game, get_engine_logs, get_engine_name, get_pieces_count, get_single_best_move,
-    kill_engines, make_move, put_piece, similar_structure, stop_engine,
+    kill_engines, make_move, similar_structure, stop_engine,
     validate_fen,
 };
 use crate::db::{
@@ -188,7 +188,6 @@ fn main() {
             is_bmi2_compatible,
             clear_games,
             get_engine_name,
-            put_piece,
             make_move,
             get_pieces_count,
             set_file_as_executable,

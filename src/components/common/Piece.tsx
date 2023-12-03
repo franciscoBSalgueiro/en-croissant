@@ -1,7 +1,7 @@
-import { Piece, Square } from "chess.js";
+import { Square } from "chess.js";
+import { Color, Piece } from "chessground/types";
 import { useRef } from "react";
 import Draggable from "react-draggable";
-import { match } from "ts-pattern";
 
 export default function PieceComponent({
   piece,
@@ -14,7 +14,7 @@ export default function PieceComponent({
   boardRef?: React.RefObject<HTMLDivElement>;
   putPiece?: (square: Square, piece: Piece) => void;
   size?: number | string;
-  orientation?: "white" | "black";
+  orientation?: Color;
 }) {
   size = size || "100%";
   const pieceRef = useRef<HTMLDivElement>(null);
@@ -78,14 +78,4 @@ export default function PieceComponent({
   );
 }
 
-function getPieceName(piece: Piece) {
-  const colorText = piece.color === "w" ? "white" : "black";
-  return match(piece.type)
-    .with("p", () => `${colorText} pawn`)
-    .with("r", () => `${colorText} rook`)
-    .with("n", () => `${colorText} knight`)
-    .with("b", () => `${colorText} bishop`)
-    .with("q", () => `${colorText} queen`)
-    .with("k", () => `${colorText} king`)
-    .exhaustive();
-}
+const getPieceName = (piece: Piece) => `${piece.color} ${piece.role}`;
