@@ -1,7 +1,7 @@
 import { minMax } from "@tiptap/react";
-import { Color } from "chess.js";
 import { Annotation } from "./chess";
 import { BestMoves, Score } from "@/bindings";
+import { Color } from "chessops";
 
 export const INITIAL_SCORE: Score = {
     type: "cp",
@@ -38,7 +38,7 @@ function normalizeScores(
     let prevCP = prev.value;
     let nextCP = next.value;
 
-    if (color == "b") {
+    if (color == "black") {
         prevCP *= -1;
         nextCP *= -1;
     }

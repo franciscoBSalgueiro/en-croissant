@@ -1,4 +1,4 @@
-import { Chess, DEFAULT_POSITION, Move, Square } from "chess.js";
+import { Chess, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Annotation } from "./chess";
 import { Outcome } from "./db";
@@ -6,6 +6,7 @@ import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
 import { match } from "ts-pattern";
 import { BestMoves, Score } from "@/bindings";
+import { INITIAL_FEN, parseFen } from "chessops/fen";
 
 export interface TreeState {
     root: TreeNode;
@@ -69,7 +70,7 @@ export function defaultTree(fen?: string): TreeState {
         dirty: false,
         position: [],
         root: {
-            fen: fen ?? DEFAULT_POSITION,
+            fen: fen ?? INITIAL_FEN,
             move: null,
             children: [],
             score: null,
@@ -82,7 +83,7 @@ export function defaultTree(fen?: string): TreeState {
         },
         headers: {
             id: 0,
-            fen: fen ?? DEFAULT_POSITION,
+            fen: fen ?? INITIAL_FEN,
             black: "",
             white: "",
             result: "*",
@@ -422,18 +423,11 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 
-export function getColorFromFen(fen: string): "w" | "b" {
-    const parts = fen.split(" ");
-    if (parts[1] === "w") {
-        return "w";
-    }
-    return "b";
-}
-
 function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: boolean, maybe_brilliant: boolean }[]) {
     let cur = state.root;
     let i = 0;
-    const initialColor = getColorFromFen(state.root.fen);
+    const setup = parseFen(state.root.fen).unwrap();
+    const initialColor = setup.turn;
     while (cur !== undefined && i < analysis.length) {
         if (!(new Chess(cur.fen).isGameOver())) {
             cur.score = analysis[i].best[0].score;
@@ -448,7 +442,7 @@ function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: b
                 prevMoves = analysis[i - 1].best;
             }
             const curScore = analysis[i].best[0].score;
-            const color = i % 2 === (initialColor === "w" ? 1 : 0) ? "w" : "b";
+            const color = i % 2 === (initialColor === "white" ? 1 : 0) ? "white" : "black";
             cur.annotation = getAnnotation(prevScore, curScore, color, prevMoves, analysis[i].maybe_brilliant, cur.move?.san ?? "");
         }
         cur = cur.children[0];

@@ -19,7 +19,6 @@ import {
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { Chess, DEFAULT_POSITION } from "chess.js";
 import {
   Suspense,
   useContext,
@@ -52,6 +51,8 @@ import { LocalEngine } from "@/utils/engines";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
+import { INITIAL_FEN, parseFen } from "chessops/fen";
+import { Chess } from "chessops";
 
 function EnginesSelect({
   engine,
@@ -234,10 +235,16 @@ function BoardGame() {
   const currentNode = getNodeAtPath(root, position);
   const lastNode = mainLine[mainLine.length - 1].node;
 
-  const chess = useMemo(() => new Chess(lastNode.fen), [lastNode.fen]);
+  const [pos, error] = useMemo(() => {
+    const setup = parseFen(lastNode.fen).unwrap();
+    return Chess.fromSetup(setup).unwrap(
+      (v) => [v, null],
+      (e) => [null, e]
+    );
+  }, [lastNode.fen]);
 
   useEffect(() => {
-    if (chess.isGameOver()) {
+    if (pos && pos.isEnd()) {
       setGameState("gameOver");
     }
   }, [lastNode.fen]);
@@ -245,9 +252,9 @@ function BoardGame() {
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
   useEffect(() => {
-    if (gameState === "playing") {
-      const currentTurn = chess.turn();
-      const player = currentTurn === "w" ? players.white : players.black;
+    if (pos && gameState === "playing") {
+      const currentTurn = pos.turn;
+      const player = currentTurn === "white" ? players.white : players.black;
 
       if (player.type === "engine" && player.engine) {
         commands
@@ -264,7 +271,7 @@ function BoardGame() {
           });
       }
     }
-  }, [position, gameState, chess, players, lastNode.fen, dispatch]);
+  }, [position, gameState, pos, players, lastNode.fen, dispatch]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -354,6 +361,7 @@ function BoardGame() {
                         },
                       });
                     }}
+                    disabled={error !== null}
                   >
                     Start game
                   </Button>
@@ -372,7 +380,7 @@ function BoardGame() {
                     setGameState("settingUp");
                     dispatch({
                       type: "SET_FEN",
-                      payload: DEFAULT_POSITION,
+                      payload: INITIAL_FEN,
                     });
                     dispatch({
                       type: "SET_HEADERS",

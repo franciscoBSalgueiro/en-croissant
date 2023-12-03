@@ -24,7 +24,6 @@ import {
   IconMinus,
   IconPlus,
 } from "@tabler/icons-react";
-import { DEFAULT_POSITION } from "chess.js";
 import { memo, useContext, useEffect, useRef, useState } from "react";
 import { isPrefix } from "@/utils/misc";
 import { getNodeAtPath, TreeNode } from "@/utils/treeReducer";
@@ -33,6 +32,7 @@ import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 import { useAtom, useAtomValue } from "jotai";
 import { currentInvisibleAtom } from "@/atoms/atoms";
+import { INITIAL_FEN } from "chessops/fen";
 
 const useStyles = createStyles((theme) => ({
   scroller: {
@@ -53,7 +53,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
 
   useEffect(() => {
     if (viewport.current) {
-      if (currentNode.fen === DEFAULT_POSITION) {
+      if (currentNode.fen === INITIAL_FEN) {
         viewport.current.scrollTo({ top: 0, behavior: "smooth" });
       } else if (targetRef.current) {
         viewport.current.scrollTo({

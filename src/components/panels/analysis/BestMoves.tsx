@@ -32,7 +32,6 @@ import {
   IconSettings,
   IconTargetArrow,
 } from "@tabler/icons-react";
-import { Chess } from "chess.js";
 import { useAtom, useAtomValue } from "jotai";
 import {
   startTransition,
@@ -45,6 +44,9 @@ import {
 import AnalysisRow from "./AnalysisRow";
 import EngineSettingsForm from "./EngineSettingsForm";
 import { Engine } from "@/utils/engines";
+import { parseFen } from "chessops/fen";
+import { Chess } from "chessops";
+import { positionErrorString } from "@/utils/board";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -95,9 +97,13 @@ export default function BestMovesComponent({
   const listeners = useRef<(() => void)[]>([]);
   const [progress, setProgress] = useState(0);
 
-  const isGameOver = useMemo(() => {
-    const chess = new Chess(fen);
-    return chess.isGameOver();
+  const [isGameOver, error] = useMemo(() => {
+    const setup = parseFen(fen).unwrap();
+    const [pos, error] = Chess.fromSetup(setup).unwrap(
+      (v) => [v, null],
+      (e) => [null, e]
+    );
+    return [pos?.isEnd() ?? false, error];
   }, [fen]);
 
   useEffect(() => {
@@ -138,24 +144,16 @@ export default function BestMovesComponent({
     return () => {
       listeners.current.forEach((unlisten) => unlisten());
     };
-  }, [
-    activeTab,
-    dispatch,
-    id,
-    setArrows,
-    settings.enabled,
-    isGameOver,
-    fen,
-  ]);
+  }, [activeTab, dispatch, id, setArrows, settings.enabled, isGameOver, fen]);
 
   useThrottledEffect(
     () => {
       if (settings.enabled) {
-        const chess = new Chess(fen);
-        if (chess.isGameOver()) {
+        if (isGameOver) {
           engine.stop(activeTab!);
         } else {
-          engine.getBestMoves(activeTab!, settings.go, {
+          engine
+            .getBestMoves(activeTab!, settings.go, {
               fen: threat ? swapMove(fen) : fen,
               multipv: settings.options.multipv,
               hash: settings.options.hash,
@@ -187,7 +185,7 @@ export default function BestMovesComponent({
       }
     },
     50,
-    [settings.enabled, settings.options, settings.go, threat, fen]
+    [settings.enabled, settings.options, settings.go, threat, fen, isGameOver]
   );
 
   return useMemo(
@@ -220,6 +218,7 @@ export default function BestMovesComponent({
                 </Text>
                 {settings.enabled &&
                   !isGameOver &&
+                  !error &&
                   engineVariations.length === 0 && (
                     <Code fz="xs">Loading...</Code>
                   )}
@@ -308,16 +307,26 @@ export default function BestMovesComponent({
         <Accordion.Panel>
           <Table>
             <tbody>
+              {error && (
+                <tr>
+                  <td>
+                    <Text align="center" my="lg">
+                      Invalid position: {positionErrorString(error)}
+                    </Text>
+                  </td>
+                </tr>
+              )}
               {isGameOver && (
                 <tr>
                   <td>
                     <Text align="center" my="lg">
-                      {"Game is over"}
+                      Game is over
                     </Text>
                   </td>
                 </tr>
               )}
               {!isGameOver &&
+                !error &&
                 engineVariations.length === 0 &&
                 (settings.enabled ? (
                   [...Array(settings.options.multipv)].map((_, i) => (
@@ -336,7 +345,7 @@ export default function BestMovesComponent({
                     </td>
                   </tr>
                 ))}
-              {!isGameOver &&
+              {!isGameOver && !error &&
                 engineVariations.map((engineVariation, index) => {
                   return (
                     <AnalysisRow

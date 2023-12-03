@@ -1,5 +1,6 @@
-import { Square } from "chess.js";
 import { Color, Piece } from "chessground/types";
+import { Square } from "chessops";
+import { squareFromCoords } from "chessops/util";
 import { useRef } from "react";
 import Draggable from "react-draggable";
 
@@ -51,7 +52,7 @@ export default function PieceComponent({
         x = 7 - x;
         y = 7 - y;
       }
-      putPiece(`${String.fromCharCode(97 + x)}${8 - y}` as Square, piece);
+      putPiece(squareFromCoords(x, 7 - y)!, piece);
     }
   };
 

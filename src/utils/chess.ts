@@ -1,15 +1,6 @@
 import { warn } from "tauri-plugin-log-api";
 import { invoke } from "@tauri-apps/api";
-import {
-    Chess,
-    Color,
-    DEFAULT_POSITION,
-    KING,
-    Move,
-    ROOK,
-    Square,
-    SQUARES,
-} from "chess.js";
+import { Chess, KING, Move, ROOK, Square, SQUARES } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
 import { Outcome } from "./db";
@@ -19,7 +10,6 @@ import {
     createNode,
     defaultTree,
     GameHeaders,
-    getColorFromFen,
     getNodeAtPath,
     headersToPGN,
     TreeNode,
@@ -29,7 +19,8 @@ import { MantineColor } from "@mantine/core";
 import useSWR from "swr";
 import { Score } from "@/bindings";
 import { isPawns, parseComment } from "chessops/pgn";
-import { makeSquare } from "chessops";
+import { Color, makeSquare } from "chessops";
+import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 
 export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
 
@@ -189,7 +180,7 @@ export function getPGN(
     if (headers) {
         pgn += headersToPGN(headers);
     }
-    if (root && tree.fen !== DEFAULT_POSITION) {
+    if (root && tree.fen !== INITIAL_FEN) {
         pgn += '[SetUp "1"]\n';
         pgn += '[FEN "' + tree.fen + '"]\n';
     }
@@ -217,7 +208,12 @@ export function getPGN(
         : [];
     if (tree.children.length > 0) {
         const child = tree.children[0];
-        pgn += getMoveText(child, { glyphs: glyphs, comments, extraMarkups, isFirst: root });
+        pgn += getMoveText(child, {
+            glyphs: glyphs,
+            comments,
+            extraMarkups,
+            isFirst: root,
+        });
     }
     if (variationsPGN.length >= 1) {
         variationsPGN.forEach((variation) => {
@@ -364,15 +360,14 @@ export async function getOpening(
 }
 
 export function swapMove(fen: string, color?: Color) {
-    const fenGroups = fen.split(" ");
+    const setup = parseFen(fen).unwrap();
     if (color) {
-        fenGroups[1] = color;
+        setup.turn = color;
     } else {
-        fenGroups[1] = fenGroups[1] === "w" ? "b" : "w";
+        setup.turn = setup.turn === "white" ? "black" : "white";
     }
-    fenGroups[3] = "-";
 
-    return fenGroups.join(" ");
+    return makeFen(setup);
 }
 
 type Token =
@@ -386,14 +381,16 @@ type Token =
 
 function innerParsePGN(
     tokens: Token[],
-    fen: string = DEFAULT_POSITION,
+    fen: string = INITIAL_FEN,
     halfMoves = 0
 ): TreeState {
     const tree = defaultTree(fen);
     let root = tree.root;
     let prevNode = root;
     root.halfMoves = halfMoves;
-    if (halfMoves === 0 && getColorFromFen(fen) === "b") {
+    const setup = parseFen(fen).unwrap();
+
+    if (halfMoves === 0 && setup.turn === "black") {
         root.halfMoves += 1;
     }
 
@@ -520,7 +517,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
 
     const headers: GameHeaders = {
         id: 0,
-        fen: FEN ?? DEFAULT_POSITION,
+        fen: FEN ?? INITIAL_FEN,
         result: (Result as Outcome) ?? "*",
         black: Black ?? "?",
         white: White ?? "?",
@@ -598,12 +595,12 @@ export function getGameStats(tree: TreeNode) {
 
     let prevScore: Score = tree.score ?? INITIAL_SCORE;
     const cplosses: ColorMap<number[]> = {
-        w: [],
-        b: [],
+        white: [],
+        black: [],
     };
     const accuracies: ColorMap<number[]> = {
-        w: [],
-        b: [],
+        white: [],
+        black: [],
     };
     while (tree.children.length > 0) {
         tree = tree.children[0];
@@ -614,17 +611,17 @@ export function getGameStats(tree: TreeNode) {
                 blackAnnotations[tree.annotation]++;
             }
         }
-        const color = tree.halfMoves % 2 == 1 ? "w" : "b";
+        const color = tree.halfMoves % 2 == 1 ? "white" : "black";
         if (tree.score) {
             cplosses[color].push(getCPLoss(prevScore, tree.score, color));
             accuracies[color].push(getAccuracy(prevScore, tree.score, color));
             prevScore = tree.score;
         }
     }
-    const whiteCPL = mean(cplosses.w);
-    const blackCPL = mean(cplosses.b);
-    const whiteAccuracy = harmonicMean(accuracies.w);
-    const blackAccuracy = harmonicMean(accuracies.b);
+    const whiteCPL = mean(cplosses.white);
+    const blackCPL = mean(cplosses.black);
+    const whiteAccuracy = harmonicMean(accuracies.white);
+    const blackAccuracy = harmonicMean(accuracies.black);
 
     return {
         whiteCPL,

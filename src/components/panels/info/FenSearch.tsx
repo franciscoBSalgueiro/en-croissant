@@ -1,8 +1,9 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { capitalize } from "@/utils/format";
 import { Group, Select, Text } from "@mantine/core";
 import { invoke } from "@/utils/invoke";
 import { useState, useContext, forwardRef, useEffect } from "react";
+import { FenError, parseFen } from "chessops/fen";
+import { invalidFenErrorString } from "@/utils/board";
 
 type ItemProps = {
   label: string;
@@ -14,7 +15,7 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
   const [data, setData] = useState<ItemProps[]>([
     { label: currentFen, value: currentFen },
   ]);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<FenError | undefined>(undefined);
   const dispatch = useContext(TreeDispatchContext);
 
   useEffect(() => {
@@ -23,16 +24,13 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
 
   function addFen(fen: string) {
     if (fen) {
-      invoke<{ valid: boolean; error?: string }>("validate_fen", {
-        fen,
-      }).then((v) => {
-        if (v.valid) {
-          dispatch({ type: "SET_FEN", payload: fen });
-          setError(undefined);
-        } else if (v.error) {
-          setError(capitalize(v.error));
-        }
-      });
+      const res = parseFen(fen);
+      if (res.isErr) {
+        setError(res.error);
+      } else {
+        dispatch({ type: "SET_FEN", payload: fen });
+        setError(undefined);
+      }
     }
     return fen;
   }
@@ -64,7 +62,7 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
       placeholder="Enter FEN"
       value={currentFen}
       data={data}
-      error={error}
+      error={error ? invalidFenErrorString(error) : undefined}
       itemComponent={SelectItem}
       dropdownPosition="bottom"
       onChange={addFen}

@@ -105,12 +105,10 @@ function Board({
   const dispatch = useContext(TreeDispatchContext);
 
   const setup = parseFen(currentNode.fen).unwrap();
-  const res = Chess.fromSetup(setup);
-
-  const [pos, error] = match(res)
-    .with({ isOk: true }, ({ value }) => [value, null] as const)
-    .with({ isOk: false }, ({ error }) => [null, error] as const)
-    .exhaustive();
+  const [pos, error] = Chess.fromSetup(setup).unwrap(
+    (v) => [v, null],
+    (e) => [null, e]
+  );
 
   if (pos !== null && pos.isEnd() && headers.result === "*") {
     let newOutcome: Outcome = "1/2-1/2";

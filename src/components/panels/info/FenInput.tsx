@@ -1,10 +1,10 @@
 import { Checkbox, Group, Select, Stack, Text } from "@mantine/core";
-import { Chess } from "chess.js";
 import { memo, useContext } from "react";
 import { swapMove } from "@/utils/chess";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { warn } from "tauri-plugin-log-api";
 import FenSearch from "./FenSearch";
+import { makeFen, parseFen } from "chessops/fen";
+import { squareFromCoords } from "chessops/util";
 
 type Castlingrights = {
   k: boolean;
@@ -14,18 +14,22 @@ type Castlingrights = {
 function FenInput({ currentFen }: { currentFen: string }) {
   const dispatch = useContext(TreeDispatchContext);
 
-  let chess: Chess | null;
-  let whiteCastling: Castlingrights;
-  let blackCastling: Castlingrights;
-  try {
-    chess = new Chess(currentFen);
-    whiteCastling = chess.getCastlingRights("w");
-    blackCastling = chess.getCastlingRights("b");
-  } catch (e) {
-    warn(e as string);
-    chess = null;
-    whiteCastling = { k: false, q: false };
-    blackCastling = { k: false, q: false };
+  const [setup, error] = parseFen(currentFen).unwrap(
+    (v) => [v, null],
+    (e) => [null, e]
+  );
+  let whiteCastling: Castlingrights = { k: false, q: false };
+  let blackCastling: Castlingrights = { k: false, q: false };
+
+  if (setup) {
+    whiteCastling = {
+      k: setup.castlingRights.has(squareFromCoords(7, 0)!),
+      q: setup.castlingRights.has(squareFromCoords(0, 0)!),
+    };
+    blackCastling = {
+      k: setup.castlingRights.has(squareFromCoords(7, 7)!),
+      q: setup.castlingRights.has(squareFromCoords(0, 7)!),
+    };
   }
 
   function setCastlingRights(
@@ -33,14 +37,14 @@ function FenInput({ currentFen }: { currentFen: string }) {
     side: "q" | "k",
     value: boolean
   ) {
-    if (chess) {
-      chess.setCastlingRights(color, {
-        ...chess.getCastlingRights(color),
-        [side]: value,
-      });
+    if (setup) {
+      setup.castlingRights = setup.castlingRights.set(
+        squareFromCoords(side === "q" ? 0 : 7, color === "w" ? 0 : 7)!,
+        value
+      );
       dispatch({
         type: "SET_FEN",
-        payload: chess.fen(),
+        payload: makeFen(setup),
       });
     }
   }
@@ -53,13 +57,13 @@ function FenInput({ currentFen }: { currentFen: string }) {
           <FenSearch currentFen={currentFen} />
           <Select
             data={[
-              { label: "White to move", value: "w" },
-              { label: "Black to move", value: "b" },
+              { label: "White to move", value: "white" },
+              { label: "Black to move", value: "black" },
             ]}
-            value={chess?.turn() || "w"}
+            value={setup?.turn || "white"}
             onChange={(value) => {
-              if (chess) {
-                const newFen = swapMove(currentFen, value as "w" | "b");
+              if (setup) {
+                const newFen = swapMove(currentFen, value as "white" | "black");
                 dispatch({
                   type: "SET_FEN",
                   payload: newFen,
@@ -77,7 +81,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
               onChange={(e) =>
                 setCastlingRights("w", "k", e.currentTarget.checked)
               }
-              disabled={!chess}
+              disabled={!setup}
             />
             <Checkbox
               label="O-O-O"
@@ -85,7 +89,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
               onChange={(e) =>
                 setCastlingRights("w", "q", e.currentTarget.checked)
               }
-              disabled={!chess}
+              disabled={!setup}
             />
           </Stack>
           <Stack>
@@ -96,7 +100,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
               onChange={(e) =>
                 setCastlingRights("b", "k", e.currentTarget.checked)
               }
-              disabled={!chess}
+              disabled={!setup}
             />
             <Checkbox
               label="O-O-O"
@@ -104,7 +108,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
               onChange={(e) =>
                 setCastlingRights("b", "q", e.currentTarget.checked)
               }
-              disabled={!chess}
+              disabled={!setup}
             />
           </Stack>
         </Group>

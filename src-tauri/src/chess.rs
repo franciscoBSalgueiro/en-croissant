@@ -777,26 +777,6 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
     Ok(fen.to_string())
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FenValidation {
-    pub valid: bool,
-    pub error: Option<String>,
-}
-
-#[tauri::command]
-pub async fn validate_fen(fen: String) -> Result<FenValidation, ()> {
-    match fen.parse::<Fen>() {
-        Ok(_) => Ok(FenValidation {
-            valid: true,
-            error: None,
-        }),
-        Err(err) => Ok(FenValidation {
-            valid: false,
-            error: Some(err.to_string()),
-        }),
-    }
-}
-
 #[tauri::command]
 pub async fn similar_structure(fen: String) -> Result<String, Error> {
     let fen: Fen = fen.parse()?;

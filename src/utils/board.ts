@@ -8,6 +8,7 @@ import {
     squareFile,
     squareRank,
 } from "chessops";
+import { FenError, InvalidFen } from "chessops/fen";
 import { match } from "ts-pattern";
 
 export function squareToCoordinates(
@@ -32,6 +33,20 @@ export function positionErrorString(error: PositionError) {
             { message: IllegalSetup.PawnsOnBackrank },
             () => "Pawns on backrank"
         )
+        .otherwise(() => "Unknown error");
+}
+
+export function invalidFenErrorString(error: FenError) {
+    return match(error)
+        .with( { message: InvalidFen.Board }, () => "Invalid board")
+        .with( { message: InvalidFen.Castling }, () => "Invalid castling rights")
+        .with( { message: InvalidFen.EpSquare }, () => "Invalid en passant square")
+        .with( { message: InvalidFen.Fen }, () => "Invalid FEN")
+        .with( { message: InvalidFen.Fullmoves }, () => "Invalid fullmove number")
+        .with( { message: InvalidFen.Halfmoves }, () => "Invalid halfmove number")
+        .with( { message: InvalidFen.Pockets }, () => "Invalid pockets")
+        .with( { message: InvalidFen.RemainingChecks }, () => "Invalid remaining checks")
+        .with( { message: InvalidFen.Turn }, () => "Invalid turn")
         .otherwise(() => "Unknown error");
 }
 

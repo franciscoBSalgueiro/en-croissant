@@ -23,9 +23,8 @@ function PiecesGrid({
           <Piece
             key={role + color}
             putPiece={(to, piece) => {
-              const square = parseSquare(to);
               const setup = parseFen(fen).unwrap();
-              setup.board.set(square, piece);
+              setup.board.set(to, piece);
               onPut(makeFen(setup));
             }}
             boardRef={boardRef}
