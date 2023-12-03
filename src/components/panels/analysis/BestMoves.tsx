@@ -6,7 +6,7 @@ import {
 } from "@/atoms/atoms";
 import { events } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { swapMove } from "@/utils/chess";
+import { swapMove } from "@/utils/chessops";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import {
@@ -44,9 +44,7 @@ import {
 import AnalysisRow from "./AnalysisRow";
 import EngineSettingsForm from "./EngineSettingsForm";
 import { Engine } from "@/utils/engines";
-import { parseFen } from "chessops/fen";
-import { Chess } from "chessops";
-import { positionErrorString } from "@/utils/board";
+import { chessopsError, positionFromFen } from "@/utils/chessops";
 
 const useStyles = createStyles((theme) => ({
   subtitle: {
@@ -98,11 +96,7 @@ export default function BestMovesComponent({
   const [progress, setProgress] = useState(0);
 
   const [isGameOver, error] = useMemo(() => {
-    const setup = parseFen(fen).unwrap();
-    const [pos, error] = Chess.fromSetup(setup).unwrap(
-      (v) => [v, null],
-      (e) => [null, e]
-    );
+    const [pos, error] = positionFromFen(fen);
     return [pos?.isEnd() ?? false, error];
   }, [fen]);
 
@@ -311,7 +305,7 @@ export default function BestMovesComponent({
                 <tr>
                   <td>
                     <Text align="center" my="lg">
-                      Invalid position: {positionErrorString(error)}
+                      Invalid position: {chessopsError(error)}
                     </Text>
                   </td>
                 </tr>
@@ -345,7 +339,8 @@ export default function BestMovesComponent({
                     </td>
                   </tr>
                 ))}
-              {!isGameOver && !error &&
+              {!isGameOver &&
+                !error &&
                 engineVariations.map((engineVariation, index) => {
                   return (
                     <AnalysisRow

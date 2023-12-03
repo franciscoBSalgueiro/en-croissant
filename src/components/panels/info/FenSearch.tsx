@@ -3,7 +3,7 @@ import { Group, Select, Text } from "@mantine/core";
 import { invoke } from "@/utils/invoke";
 import { useState, useContext, forwardRef, useEffect } from "react";
 import { FenError, parseFen } from "chessops/fen";
-import { invalidFenErrorString } from "@/utils/board";
+import { chessopsError } from "@/utils/chessops";
 
 type ItemProps = {
   label: string;
@@ -62,7 +62,7 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
       placeholder="Enter FEN"
       value={currentFen}
       data={data}
-      error={error ? invalidFenErrorString(error) : undefined}
+      error={error ? chessopsError(error) : undefined}
       itemComponent={SelectItem}
       dropdownPosition="bottom"
       onChange={addFen}

@@ -51,8 +51,8 @@ import { LocalEngine } from "@/utils/engines";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
-import { INITIAL_FEN, parseFen } from "chessops/fen";
-import { Chess } from "chessops";
+import { INITIAL_FEN } from "chessops/fen";
+import { positionFromFen } from "@/utils/chessops";
 
 function EnginesSelect({
   engine,
@@ -236,11 +236,7 @@ function BoardGame() {
   const lastNode = mainLine[mainLine.length - 1].node;
 
   const [pos, error] = useMemo(() => {
-    const setup = parseFen(lastNode.fen).unwrap();
-    return Chess.fromSetup(setup).unwrap(
-      (v) => [v, null],
-      (e) => [null, e]
-    );
+    return positionFromFen(lastNode.fen);
   }, [lastNode.fen]);
 
   useEffect(() => {

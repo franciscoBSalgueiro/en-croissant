@@ -1,5 +1,4 @@
 import PiecesGrid from "@/components/boards/PiecesGrid";
-import { EMPTY_BOARD } from "@/utils/chess";
 import {
   Text,
   Stack,
@@ -13,17 +12,18 @@ import { useRef } from "react";
 import { Chessground } from "@/chessground/Chessground";
 import { useAtom } from "jotai";
 import { currentLocalOptionsAtom } from "@/atoms/atoms";
-
-async function similarStructure(fen: string) {
-  return await invoke<string>("similar_structure", { fen });
-}
+import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
   const boardRef = useRef(null);
   const [options, setOptions] = useAtom(currentLocalOptionsAtom);
 
-  const fetchSimilarStructure = async (fen: string) => {
-    const fenResult = await similarStructure(fen);
+  const setSimilarStructure = async (fen: string) => {
+    const setup = parseFen(fen).unwrap();
+    for (const square of setup.board.pawn.complement()) {
+      setup.board.take(square);
+    }
+    const fenResult = makeFen(setup);
     setOptions((q) => ({ ...q, type: "partial", fen: fenResult }));
   };
 
@@ -82,7 +82,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             <Button
               variant="default"
               onClick={() => {
-                fetchSimilarStructure(boardFen);
+                setSimilarStructure(boardFen);
               }}
             >
               Similar Structure
@@ -93,7 +93,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
                 setOptions((q) => ({
                   ...q,
                   type: "partial",
-                  fen: EMPTY_BOARD,
+                  fen: EMPTY_BOARD_FEN,
                 }));
               }}
             >

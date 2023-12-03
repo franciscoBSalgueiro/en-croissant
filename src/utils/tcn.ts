@@ -1,12 +1,12 @@
-import { Move, PieceSymbol, Square } from "chess.js";
+import { NormalMove, charToRole, parseSquare } from "chessops";
 
 const pieceEncoding =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?{~}(^)[_]@#$,./&-*++=";
 
-export function decodeTCN(moveCode: string): Move {
-    const move = {} as Move;
+export function decodeTCN(moveCode: string): NormalMove {
+    const move = {} as NormalMove;
     const codeLength = moveCode.length;
-    const decodedMoves: Move[] = [];
+    const decodedMoves: NormalMove[] = [];
 
     for (let i = 0; i < codeLength; i += 2) {
         const pieceIndex1 = pieceEncoding.indexOf(moveCode[i]);
@@ -20,15 +20,15 @@ export function decodeTCN(moveCode: string): Move {
                 ((pieceIndex2 - 1) % 3) -
                 1;
 
-            move.promotion = promotion as PieceSymbol;
+            move.promotion = charToRole(promotion);
             pieceIndex2 = newIndex;
         }
 
-        move.from = (pieceEncoding[pieceIndex1 % 8] +
-            (Math.floor(pieceIndex1 / 8) + 1).toString()) as Square;
+        move.from = parseSquare((pieceEncoding[pieceIndex1 % 8] +
+            (Math.floor(pieceIndex1 / 8) + 1).toString()))!;
 
-        move.to = (pieceEncoding[pieceIndex2 % 8] +
-            (Math.floor(pieceIndex2 / 8) + 1).toString()) as Square;
+        move.to = parseSquare(pieceEncoding[pieceIndex2 % 8] +
+            (Math.floor(pieceIndex2 / 8) + 1).toString())!;
 
         decodedMoves.push(move);
     }

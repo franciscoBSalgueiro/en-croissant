@@ -4,7 +4,7 @@ import { memo } from "react";
 import Piece from "../common/Piece";
 import { Color } from "chessground/types";
 import { NormalMove, Role } from "chessops";
-import { squareToCoordinates } from "@/utils/board";
+import { squareToCoordinates } from "@/utils/chessops";
 
 const PromotionModal = memo(function PromotionModal({
   pendingMove,

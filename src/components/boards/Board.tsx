@@ -17,10 +17,10 @@ import {
   ANNOTATION_INFO,
   Annotation,
   PiecesCount,
+  getMaterialDiff,
   moveToKey,
   parseKeyboardMove,
   parseUci,
-  useMaterialDiff,
 } from "@/utils/chess";
 import { Outcome } from "@/utils/db";
 import { invoke } from "@/utils/invoke";
@@ -61,15 +61,15 @@ import "./board.css";
 import { match } from "ts-pattern";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import { keyMapAtom } from "@/atoms/keybinds";
-import { parseFen } from "chessops/fen";
-import { Chess, NormalMove, Square, SquareName, parseSquare } from "chessops";
+import { NormalMove, Square, SquareName, parseSquare } from "chessops";
 import { chessgroundDests } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import {
   forceEnPassant,
-  positionErrorString,
+  chessopsError,
   squareToCoordinates,
-} from "@/utils/board";
+  positionFromFen,
+} from "@/utils/chessops";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -104,11 +104,7 @@ function Board({
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
 
-  const setup = parseFen(currentNode.fen).unwrap();
-  const [pos, error] = Chess.fromSetup(setup).unwrap(
-    (v) => [v, null],
-    (e) => [null, e]
-  );
+  const [pos, error] = positionFromFen(currentNode.fen);
 
   if (pos !== null && pos.isEnd() && headers.result === "*") {
     let newOutcome: Outcome = "1/2-1/2";
@@ -287,7 +283,7 @@ function Board({
     ),
     [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
   );
-  const { data } = useMaterialDiff(currentNode.fen);
+  const data = getMaterialDiff(currentNode.fen);
   const practiceLock =
     !!practicing && !deck.find((c) => c.fen === currentNode.fen);
 
@@ -431,7 +427,7 @@ function Board({
             <Box px="sm">
               {error && (
                 <Text ta="center" color="red">
-                  {positionErrorString(error)}
+                  {chessopsError(error)}
                 </Text>
               )}
               <ShowMaterial

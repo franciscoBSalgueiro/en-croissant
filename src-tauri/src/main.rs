@@ -33,8 +33,8 @@ use tauri::{
 use tauri_plugin_log::LogTarget;
 
 use crate::chess::{
-    analyze_game, get_engine_logs, get_engine_name, get_pieces_count, get_single_best_move,
-    kill_engines, make_move, similar_structure, stop_engine,
+    analyze_game, get_engine_logs, get_engine_name, get_single_best_move, kill_engines, make_move,
+    stop_engine,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
@@ -188,7 +188,6 @@ fn main() {
             clear_games,
             get_engine_name,
             make_move,
-            get_pieces_count,
             set_file_as_executable,
             count_pgn_games,
             read_games,
@@ -199,7 +198,6 @@ fn main() {
             create_indexes,
             lex_pgn,
             download_fide_db,
-            similar_structure
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

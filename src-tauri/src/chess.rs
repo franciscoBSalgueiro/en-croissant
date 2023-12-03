@@ -414,7 +414,10 @@ pub async fn get_best_moves(
             let process = state.engine_processes.get_mut(&key).unwrap();
             let mut process = process.lock().await;
             if options == process.options && go_mode == process.go_mode && process.running {
-                return Ok(Some((process.last_progress, process.last_best_moves.clone())));
+                return Ok(Some((
+                    process.last_progress,
+                    process.last_best_moves.clone(),
+                )));
             }
             process.stop().await?;
         }
@@ -775,63 +778,4 @@ pub fn make_move(fen: String, from: String, to: String) -> Result<String, String
 
     let fen = Fen::from_setup(pos);
     Ok(fen.to_string())
-}
-
-#[tauri::command]
-pub async fn similar_structure(fen: String) -> Result<String, Error> {
-    let fen: Fen = fen.parse()?;
-    let mut setup = fen.as_setup().clone();
-
-    // remove all pieces except pawns
-    for square in Square::ALL.iter() {
-        if let Some(piece) = setup.board.piece_at(*square) {
-            if piece.role != Role::Pawn {
-                setup.board.remove_piece_at(*square).unwrap();
-            }
-        }
-    }
-
-    Ok(Fen::from_setup(setup).to_string())
-}
-
-#[derive(Serialize, Debug)]
-pub struct PieceCount {
-    pub p: i8,
-    pub n: i8,
-    pub b: i8,
-    pub r: i8,
-    pub q: i8,
-}
-
-#[tauri::command]
-pub async fn get_pieces_count(fen: String) -> Result<PieceCount, Error> {
-    let fen: Fen = fen.parse()?;
-    let setup = fen.as_setup().clone();
-
-    let mut counts = PieceCount {
-        p: 0,
-        n: 0,
-        b: 0,
-        r: 0,
-        q: 0,
-    };
-
-    for square in Square::ALL.iter() {
-        if let Some(piece) = setup.board.piece_at(*square) {
-            let color = match piece.color {
-                Color::White => 1,
-                Color::Black => -1,
-            };
-            match piece.role {
-                Role::Pawn => counts.p += color,
-                Role::Knight => counts.n += color,
-                Role::Bishop => counts.b += color,
-                Role::Rook => counts.r += color,
-                Role::Queen => counts.q += color,
-                _ => (),
-            }
-        }
-    }
-
-    Ok(counts)
 }

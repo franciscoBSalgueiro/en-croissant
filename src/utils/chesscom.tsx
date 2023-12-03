@@ -3,10 +3,11 @@ import { IconX } from "@tabler/icons-react";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Chess } from "chess.js";
-import { handleMove } from "./chess";
 import { decodeTCN } from "./tcn";
 import { error } from "tauri-plugin-log-api";
+import { ChildNode, PgnNodeData, defaultGame, makePgn } from "chessops/pgn";
+import { Chess } from "chessops";
+import { makeSan } from "chessops/san";
 const baseURL = "https://api.chess.com";
 const headers = {
   "User-Agent": "EnCroissant",
@@ -101,7 +102,10 @@ export async function downloadChessCom(
     if (archiveDate < approximateDate) {
       continue;
     }
-    const response = await fetch<ChessComGames>(archive, { headers, method: "GET" });
+    const response = await fetch<ChessComGames>(archive, {
+      headers,
+      method: "GET",
+    });
     const games = await response.data;
     for (const game of games.games) {
       totalPGN += "\n" + game.pgn;
@@ -125,8 +129,11 @@ export async function getChesscomGame(gameURL: string) {
   const gameId = match[2];
 
   const apiData = await fetch<{
-    game: { moveList: string; pgnHeaders: Record<string, string> };
-  }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`, { headers, method: "GET" });
+    game: { moveList: string; pgnHeaders: Record<string, string | number> };
+  }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`, {
+    headers,
+    method: "GET",
+  });
   const apiDataJson = await apiData.data;
   const moveList = apiDataJson.game.moveList;
   const pgnHeaders = apiDataJson.game.pgnHeaders;
@@ -134,17 +141,24 @@ export async function getChesscomGame(gameURL: string) {
   if (!moves) {
     return "";
   }
-  const chess = new Chess();
-  for (const header of Object.keys(pgnHeaders)) {
-    chess.header(header, pgnHeaders[header]);
-  }
+  const game = defaultGame<PgnNodeData>(
+    () => new Map(Object.entries(pgnHeaders).map(([k, v]) => [k, v.toString()]))
+  );
+  const chess = Chess.default();
+
+  let lastNode = game.moves;
   moves.forEach((move) => {
     const m = decodeTCN(move);
-    const newDest = handleMove(chess, m.from, m.to);
-    m.to = newDest;
-    chess.move(m);
+    lastNode.children.push(
+      new ChildNode({
+        san: makeSan(chess, m),
+      })
+    );
+    chess.play(m);
+    lastNode = lastNode.children[0];
   });
-  return chess.pgn();
+
+  return makePgn(game);
 }
 
 export function getStats(stats: ChessComStats) {

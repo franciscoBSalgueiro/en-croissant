@@ -1,6 +1,6 @@
 import { Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { memo, useContext } from "react";
-import { swapMove } from "@/utils/chess";
+import { swapMove } from "@/utils/chessops";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import FenSearch from "./FenSearch";
 import { makeFen, parseFen } from "chessops/fen";

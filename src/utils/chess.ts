@@ -1,6 +1,6 @@
 import { warn } from "tauri-plugin-log-api";
 import { invoke } from "@tauri-apps/api";
-import { Chess, KING, Move, ROOK, Square, SQUARES } from "chess.js";
+import { Chess, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
 import { Outcome } from "./db";
@@ -16,13 +16,10 @@ import {
     TreeState,
 } from "./treeReducer";
 import { MantineColor } from "@mantine/core";
-import useSWR from "swr";
 import { Score } from "@/bindings";
 import { isPawns, parseComment } from "chessops/pgn";
-import { Color, makeSquare } from "chessops";
-import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
-
-export const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
+import { Color, Role, makeSquare } from "chessops";
+import { INITIAL_FEN, parseFen } from "chessops/fen";
 
 export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
 
@@ -240,67 +237,6 @@ export function moveToKey(move: Move | null) {
     return move ? ([move.from, move.to] as Key[]) : [];
 }
 
-const fileToNumber: Record<string, number> = {
-    a: 1,
-    b: 2,
-    c: 3,
-    d: 4,
-    e: 5,
-    f: 6,
-    g: 7,
-    h: 8,
-};
-
-export function moveToCoordinates(
-    move: { from: string; to: string } | null,
-    orientation: "white" | "black"
-) {
-    let file = fileToNumber[move?.to[0] ?? "a"];
-    let rank = parseInt(move?.to[1] ?? "1");
-    if (orientation === "black") {
-        file = 9 - file;
-        rank = 9 - rank;
-    }
-    return { file, rank };
-}
-
-export function toDests(
-    chess: Chess | null,
-    forcedEP: boolean
-): Map<Key, Key[]> {
-    const dests = new Map();
-    if (chess === null) {
-        return dests;
-    }
-    for (const s of SQUARES) {
-        const ms = chess.moves({ square: s, verbose: true }) as Move[];
-        for (const m of ms) {
-            const to = m.to;
-            if (dests.has(s)) {
-                dests.get(s).push(to);
-            } else {
-                dests.set(s, [to]);
-            }
-            // Forced en-passant
-            if (forcedEP && m.flags === "e") {
-                dests.clear();
-                dests.set(s, [to]);
-                return dests;
-            }
-            // allow to move the piece to rook square in case of castling
-            if (m.piece === "k") {
-                if (m.flags === "k") {
-                    dests.get(s).push(m.color === "w" ? "h1" : "h8");
-                }
-                if (m.flags === "q") {
-                    dests.get(s).push(m.color === "w" ? "a1" : "a8");
-                }
-            }
-        }
-    }
-    return dests;
-}
-
 export function parseUci(move: string) {
     const from = move.substring(0, 2) as Square;
     const to = move.substring(2, 4) as Square;
@@ -357,17 +293,6 @@ export async function getOpening(
         .catch(() =>
             position.length === 0 ? "" : getOpening(root, position.slice(0, -1))
         );
-}
-
-export function swapMove(fen: string, color?: Color) {
-    const setup = parseFen(fen).unwrap();
-    if (color) {
-        setup.turn = color;
-    } else {
-        setup.turn = setup.turn === "white" ? "black" : "white";
-    }
-
-    return makeFen(setup);
 }
 
 type Token =
@@ -533,31 +458,6 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     return headers;
 }
 
-export function handleMove(chess: Chess, orig: Key, dest: Key): Square {
-    if (orig === "a0" || dest === "a0") {
-        // NOTE: Idk if this can happen
-        throw new Error("Invalid move");
-    }
-    // allow castling to the rooks
-    if (chess.get(orig).type === KING && chess.get(dest).type === ROOK) {
-        switch (dest) {
-            case "h1":
-                dest = "g1";
-                break;
-            case "a1":
-                dest = "c1";
-                break;
-            case "h8":
-                dest = "g8";
-                break;
-            case "a8":
-                dest = "c8";
-                break;
-        }
-    }
-    return dest;
-}
-
 type ColorMap<T> = {
     [key in Color]: T;
 };
@@ -641,19 +541,32 @@ export type PiecesCount = {
     q: number;
 };
 
-export function useMaterialDiff(fen: string) {
-    return useSWR(["material-diff", fen], async () => {
-        const pieces = await invoke<PiecesCount>("get_pieces_count", {
-            fen: fen,
-        });
+export function getMaterialDiff(fen: string) {
+    const res = parseFen(fen);
+    if (res.isErr) {
+        return null;
+    }
+    const board = res.unwrap().board;
+    const { white, black } = board;
 
-        const diff =
-            pieces.p * 1 +
-            pieces.n * 3 +
-            pieces.b * 3 +
-            pieces.r * 5 +
-            pieces.q * 9;
+    const pieceDiff = (piece: Role) =>
+        white.intersect(board[piece]).size() -
+        black.intersect(board[piece]).size();
 
-        return { pieces, diff };
-    });
+    const pieces = {
+        p: pieceDiff("pawn"),
+        n: pieceDiff("knight"),
+        b: pieceDiff("bishop"),
+        r: pieceDiff("rook"),
+        q: pieceDiff("queen"),
+    };
+
+    const diff =
+        pieces.p * 1 +
+        pieces.n * 3 +
+        pieces.b * 3 +
+        pieces.r * 5 +
+        pieces.q * 9;
+
+    return { pieces, diff };
 }
