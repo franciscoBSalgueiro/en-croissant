@@ -403,11 +403,11 @@ function innerParsePGN(
     return tree;
 }
 
-export async function parsePGN(pgn: string, halfMoves = 0): Promise<TreeState> {
+export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeState> {
     const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
 
     const headers = getPgnHeaders(tokens);
-    const tree = innerParsePGN(tokens, headers.fen, halfMoves);
+    const tree = innerParsePGN(tokens, initialFen || headers.fen, 0);
     tree.headers = headers;
     tree.position = headers.start ?? [];
     return tree;

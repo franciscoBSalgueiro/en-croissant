@@ -21,7 +21,7 @@ use diesel::{
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, Board, ByColor, Chess, Piece, Position};
+use shakmaty::{fen::Fen, Board, ByColor, Chess, FromSetup, Piece, Position};
 
 use std::{
     fs::{remove_file, File},
@@ -311,9 +311,10 @@ impl Visitor for Importer {
             if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
                 self.game.fen = None;
             } else {
-                // Don't process games that don't start in standard position
-                self.skip = true;
-                // self.current.fen = Some(value.decode_utf8_lossy().into_owned());
+                let fen = Fen::from_ascii(value.as_bytes()).unwrap();
+                self.game.fen = Some(value.decode_utf8_lossy().into_owned());
+                self.game.position =
+                    Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard).unwrap();
             }
         }
     }
@@ -861,29 +862,36 @@ pub async fn get_games(
 fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<NormalizedGame> {
     games
         .into_iter()
-        .map(|(game, white, black, event, site)| NormalizedGame {
-            id: game.id,
-            event: event.name.unwrap_or_default(),
-            event_id: event.id,
-            site: site.name.unwrap_or_default(),
-            site_id: site.id,
-            date: game.date,
-            time: game.time,
-            round: game.round,
-            white: white.name.unwrap_or_default(),
-            white_id: game.white_id,
-            white_elo: game.white_elo,
-            black: black.name.unwrap_or_default(),
-            black_id: game.black_id,
-            black_elo: game.black_elo,
-            result: game.result,
-            time_control: game.time_control,
-            eco: game.eco,
-            white_material: game.white_material,
-            black_material: game.black_material,
-            ply_count: game.ply_count,
-            fen: game.fen.unwrap_or(Fen::default().to_string()),
-            moves: decode_moves(game.moves).unwrap_or_default(),
+        .map(|(game, white, black, event, site)| {
+            let fen: Fen = game
+                .fen
+                .map(|f| Fen::from_ascii(f.as_bytes()).unwrap())
+                .unwrap_or_default();
+
+            NormalizedGame {
+                id: game.id,
+                event: event.name.unwrap_or_default(),
+                event_id: event.id,
+                site: site.name.unwrap_or_default(),
+                site_id: site.id,
+                date: game.date,
+                time: game.time,
+                round: game.round,
+                white: white.name.unwrap_or_default(),
+                white_id: game.white_id,
+                white_elo: game.white_elo,
+                black: black.name.unwrap_or_default(),
+                black_id: game.black_id,
+                black_elo: game.black_elo,
+                result: game.result,
+                time_control: game.time_control,
+                eco: game.eco,
+                white_material: game.white_material,
+                black_material: game.black_material,
+                ply_count: game.ply_count,
+                fen: fen.to_string(),
+                moves: decode_moves(game.moves, fen).unwrap_or_default(),
+            }
         })
         .collect()
 }

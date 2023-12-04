@@ -1,5 +1,5 @@
 use crate::error::Error;
-use shakmaty::{san::SanPlus, Chess, Move, Position};
+use shakmaty::{fen::Fen, san::SanPlus, CastlingMode, Chess, FromSetup, Move, Position};
 
 pub fn encode_move(m: &Move, chess: &Chess) -> Result<u8, Error> {
     let moves = chess.legal_moves();
@@ -11,8 +11,8 @@ pub fn decode_move(byte: u8, chess: &Chess) -> Option<Move> {
     legal_moves.get(byte as usize).cloned()
 }
 
-pub fn decode_moves(moves_bytes: Vec<u8>) -> Result<String, Error> {
-    let mut chess = Chess::default();
+pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<String, Error> {
+    let mut chess = Chess::from_setup(initial_fen.into(), CastlingMode::Standard).unwrap();
     let mut moves = Vec::new();
     for byte in moves_bytes {
         let m = decode_move(byte, &chess).unwrap();

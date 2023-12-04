@@ -42,7 +42,7 @@ export async function createTab({
     const id = genID();
 
     if (pgn) {
-        const tree = await parsePGN(pgn);
+        const tree = await parsePGN(pgn, headers?.fen);
         if (headers) {
             tree.headers = headers;
         }

@@ -9,7 +9,7 @@ function GameCard({ game }: { game: NormalizedGame }) {
       <Stack h="100%">
         <GameInfo headers={game} />
         <Divider mb="sm" />
-        <GamePreview pgn={game.moves} />
+        <GamePreview pgn={game.moves} headers={game} />
       </Stack>
     </Paper>
   );
