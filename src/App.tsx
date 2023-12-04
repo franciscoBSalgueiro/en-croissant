@@ -32,6 +32,7 @@ import {
   RouterProvider,
   createBrowserRouter,
   createRoutesFromElements,
+  redirect,
   useRouteError,
 } from "react-router-dom";
 import { useEffect } from "react";
@@ -93,6 +94,13 @@ const router = createBrowserRouter(
         path="databases"
         element={<DatabasesPage />}
         errorElement={<ErrorBoundary />}
+        loader={async () => {
+          const db = sessionStorage.getItem("database-view");
+          if (db !== null && db !== "null") {
+            return redirect("/databases/view");
+          }
+          return null;
+        }}
       />
       <Route
         path="databases/view"

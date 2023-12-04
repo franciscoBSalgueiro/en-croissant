@@ -3,8 +3,8 @@ import {
   Box,
   Button,
   Checkbox,
-  Divider,
   Group,
+  ScrollArea,
   SimpleGrid,
   Stack,
   Text,
@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { DatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
@@ -29,17 +29,12 @@ import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
 import ConfirmModal from "../common/ConfirmModal";
 
 export default function DatabasesPage() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    const db = sessionStorage.getItem("database-view");
-    if (db !== null && db !== "null") {
-      navigate("/databases/view/");
-    }
-  }, [navigate]);
-
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedDatabase, setSelectedDatabase] = useAtom(selectedDatabaseAtom);
+  const [selectedDatabase, setSelectedDatabase] = useState<DatabaseInfo | null>(
+    null
+  );
+  const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
@@ -77,7 +72,7 @@ export default function DatabasesPage() {
   }, [selectedDatabase]);
 
   return (
-    <>
+    <Stack h="100%">
       <ConfirmModal
         title={"Delete Database"}
         description={"Are you sure you want to delete this database?"}
@@ -108,126 +103,137 @@ export default function DatabasesPage() {
         <Title>Your Databases</Title>
         <OpenFolderButton base="AppDir" folder="db" />
       </Group>
-      <SimpleGrid
-        cols={4}
-        breakpoints={[
-          { maxWidth: 1200, cols: 3, spacing: "md" },
-          { maxWidth: 1000, cols: 2, spacing: "sm" },
-          { maxWidth: 800, cols: 1, spacing: "sm" },
-        ]}
-      >
-        {databases.map((item) => (
-          <GenericCard
-            id={item}
-            key={item.filename}
-            isSelected={selectedDatabase?.filename === item.filename}
-            setSelected={setSelectedDatabase}
-            error={item.error}
-            Header={
-              <Group noWrap position="apart">
-                <Group noWrap>
-                  <IconDatabase size="1.5rem" />
-                  <div>
-                    <Text weight={500}>{item.error ?? item.title}</Text>
-                    <Text size="xs" color="dimmed">
-                      {item.error ? item.file : item.description}
-                    </Text>
-                  </div>
-                </Group>
-                {referenceDatabase === item.file && <IconStar size="1rem" />}
-              </Group>
-            }
-            stats={[
-              {
-                label: "Games",
-                value: item.error ? "???" : formatNumber(item.game_count),
-              },
-              {
-                label: "Storage",
-                value: item.error ? "???" : formatBytes(item.storage_size),
-              },
+
+      <Group grow sx={{ flex: 1, overflow: "hidden" }} align="start">
+        <ScrollArea h="100%" offsetScrollbars>
+          <SimpleGrid
+            cols={2}
+            breakpoints={[
+              { maxWidth: 1200, cols: 3, spacing: "md" },
+              { maxWidth: 1000, cols: 2, spacing: "sm" },
+              { maxWidth: 800, cols: 1, spacing: "sm" },
             ]}
-          />
-        ))}
-        <ConvertButton setOpen={setOpen} loading={loading} />
-      </SimpleGrid>
+          >
+            {databases.map((item) => (
+              <GenericCard
+                id={item}
+                key={item.filename}
+                isSelected={selectedDatabase?.filename === item.filename}
+                setSelected={setSelectedDatabase}
+                error={item.error}
+                Header={
+                  <Group noWrap position="apart">
+                    <Group noWrap>
+                      <IconDatabase size="1.5rem" />
+                      <div>
+                        <Text weight={500}>{item.error ?? item.title}</Text>
+                        <Text size="xs" color="dimmed">
+                          {item.error ? item.file : item.description}
+                        </Text>
+                      </div>
+                    </Group>
+                    {referenceDatabase === item.file && (
+                      <IconStar size="1rem" />
+                    )}
+                  </Group>
+                }
+                stats={[
+                  {
+                    label: "Games",
+                    value: item.error ? "???" : formatNumber(item.game_count),
+                  },
+                  {
+                    label: "Storage",
+                    value: item.error ? "???" : formatBytes(item.storage_size),
+                  },
+                ]}
+              />
+            ))}
+            <ConvertButton setOpen={setOpen} loading={loading} />
+          </SimpleGrid>
+        </ScrollArea>
 
-      {selectedDatabase !== null && (
-        <Box mx={30}>
-          <Divider my="md" />
-          <Stack>
-            {selectedDatabase.error ? (
-              <>
-                <Text fz="lg" fw="bold">
-                  There was an error loading this database
-                </Text>
-
-                <Text>
-                  <Text underline span>
-                    Reason:
-                  </Text>
-                  {" " + selectedDatabase.error}
-                </Text>
-
-                <Text>
-                  Check if the file exists and that it is not corrupted.
-                </Text>
-              </>
-            ) : (
-              <>
-                <Group>
-                  {selectedDatabase.indexed && <Badge>Indexed</Badge>}
-                  {isReference && <Badge>Reference</Badge>}
-                </Group>
-                <TextInput
-                  label="Title"
-                  value={title ?? ""}
-                  onChange={(e) => setTitle(e.currentTarget.value)}
-                  error={title === "" && "Name is required"}
-                />
-                <Textarea
-                  label="Description"
-                  value={description ?? ""}
-                  onChange={(e) => setDescription(e.currentTarget.value)}
-                />
-                <Checkbox
-                  label="Reference Database"
-                  checked={isReference}
-                  onChange={() => {
-                    if (isReference) {
-                      setReferenceDatabase(null);
-                      invoke("clear_games");
-                    } else {
-                      if (selectedDatabase.file !== referenceDatabase) {
-                        invoke("clear_games");
-                      }
-                      setReferenceDatabase(selectedDatabase.file);
-                    }
-                  }}
-                />
-              </>
-            )}
-            <Group>
-              {!selectedDatabase.error && (
+        {selectedDatabase === null ? (
+          <Text ta="center">No database selected</Text>
+        ) : (
+          <Box mx={30}>
+            <Stack>
+              {selectedDatabase.error ? (
                 <>
-                  <Link to={`/databases/view`}>
-                    <Button>Explore</Button>
-                  </Link>
-                  <IndexButton
-                    indexed={selectedDatabase.indexed}
-                    file={selectedDatabase.file}
-                    setDatabases={setDatabases}
+                  <Text fz="lg" fw="bold">
+                    There was an error loading this database
+                  </Text>
+
+                  <Text>
+                    <Text underline span>
+                      Reason:
+                    </Text>
+                    {" " + selectedDatabase.error}
+                  </Text>
+
+                  <Text>
+                    Check if the file exists and that it is not corrupted.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Group>
+                    {selectedDatabase.indexed && <Badge>Indexed</Badge>}
+                    {isReference && <Badge>Reference</Badge>}
+                  </Group>
+                  <TextInput
+                    label="Title"
+                    value={title ?? ""}
+                    onChange={(e) => setTitle(e.currentTarget.value)}
+                    error={title === "" && "Name is required"}
+                  />
+                  <Textarea
+                    label="Description"
+                    value={description ?? ""}
+                    onChange={(e) => setDescription(e.currentTarget.value)}
+                  />
+                  <Checkbox
+                    label="Reference Database"
+                    checked={isReference}
+                    onChange={() => {
+                      if (isReference) {
+                        setReferenceDatabase(null);
+                        invoke("clear_games");
+                      } else {
+                        if (selectedDatabase.file !== referenceDatabase) {
+                          invoke("clear_games");
+                        }
+                        setReferenceDatabase(selectedDatabase.file);
+                      }
+                    }}
                   />
                 </>
               )}
-              <Button onClick={() => toggleDeleteModal()} color="red">
-                Delete
-              </Button>
-            </Group>
-          </Stack>
-        </Box>
-      )}
-    </>
+              <Group>
+                {!selectedDatabase.error && (
+                  <>
+                    <Link
+                      to="/databases/view"
+                      onClick={() => setStorageSelected(selectedDatabase)}
+                    >
+                      <Button>Explore</Button>
+                    </Link>
+                    <IndexButton
+                      indexed={selectedDatabase.indexed}
+                      file={selectedDatabase.file}
+                      setDatabases={setDatabases}
+                    />
+                  </>
+                )}
+                <Button onClick={() => toggleDeleteModal()} color="red">
+                  Delete
+                </Button>
+              </Group>
+            </Stack>
+          </Box>
+        )}
+      </Group>
+    </Stack>
   );
 }
 
