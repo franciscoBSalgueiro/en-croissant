@@ -19,6 +19,8 @@ import { currentTabAtom } from "@/atoms/atoms";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { FileMetadata } from "../files/file";
 import { match } from "ts-pattern";
+import { parseFen } from "chessops/fen";
+import { chessopsError } from "@/utils/chessops";
 
 type ImportType = "PGN" | "Link" | "FEN";
 
@@ -36,6 +38,7 @@ export default function ImportModal({
   const [importType, setImportType] = useState<ImportType>("PGN");
   const [loading, setLoading] = useState(false);
   const [, setCurrentTab] = useAtom(currentTabAtom);
+  const [fenError, setFenError] = useState("");
 
   const Input = match(importType)
     .with("PGN", () => (
@@ -82,6 +85,7 @@ export default function ImportModal({
       <TextInput
         value={fen}
         onChange={(event) => setFen(event.currentTarget.value)}
+        error={fenError}
         label="FEN"
         data-autofocus
       />
@@ -170,10 +174,15 @@ export default function ImportModal({
               };
             });
           } else if (importType === "FEN") {
+            const res = parseFen(fen);
+            if (res.isErr) {
+              setFenError(chessopsError(res.error));
+              return;
+            }
+            setFenError("");
             setCurrentTab((prev) => {
-              const tree = defaultTree();
-              tree.root.fen = fen;
-              tree.headers.fen = fen;
+              const tree = defaultTree(fen.trim());
+              tree.headers.fen = fen.trim();
               sessionStorage.setItem(prev.value, JSON.stringify(tree));
               return {
                 ...prev,

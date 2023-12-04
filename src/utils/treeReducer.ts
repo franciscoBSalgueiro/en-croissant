@@ -70,7 +70,7 @@ export function defaultTree(fen?: string): TreeState {
         dirty: false,
         position: [],
         root: {
-            fen: fen ?? INITIAL_FEN,
+            fen: fen?.trim() ?? INITIAL_FEN,
             move: null,
             children: [],
             score: null,

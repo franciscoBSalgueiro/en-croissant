@@ -407,7 +407,7 @@ export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeSt
     const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
 
     const headers = getPgnHeaders(tokens);
-    const tree = innerParsePGN(tokens, initialFen || headers.fen, 0);
+    const tree = innerParsePGN(tokens, initialFen?.trim() || headers.fen.trim(), 0);
     tree.headers = headers;
     tree.position = headers.start ?? [];
     return tree;
