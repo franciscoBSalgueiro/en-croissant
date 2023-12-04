@@ -157,12 +157,18 @@ function GameRow({
         className={clsx(classes.row, {
           [classes.active]: index === activePage,
         })}
-        onClick={() => {
-          setPracticing(false);
-          setPage(index);
-        }}
       >
-        <Text fz="sm" truncate maw={600}>
+        <Text
+          fz="sm"
+          truncate
+          maw={600}
+          onClick={() => {
+            console.log(index);
+            setPracticing(false);
+            setPage(index);
+          }}
+          sx={{ flex: 1 }}
+        >
           {formatNumber(index + 1)}. {game}
         </Text>
         {deleteGame && (
