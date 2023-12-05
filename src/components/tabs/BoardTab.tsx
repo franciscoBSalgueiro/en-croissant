@@ -1,4 +1,4 @@
-import { ActionIcon, createStyles, Menu, Tabs, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, createStyles, Menu } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
@@ -11,6 +11,8 @@ const useStyles = createStyles(
     { selected, renaming }: { selected: boolean; renaming: boolean }
   ) => ({
     tab: {
+      cursor: "unset",
+      borderBottomWidth: 0,
       marginRight: theme.spacing.xs,
       backgroundColor: selected
         ? theme.colorScheme === "dark"
@@ -72,10 +74,12 @@ export function BoardTab({
   return (
     <Menu opened={open} shadow="md" width={200} closeOnClickOutside>
       <Menu.Target>
-        <Tabs.Tab
+        <Button
+          component="div"
           className={classes.tab}
-          value={tab.value}
-          rightSection={
+          variant="default"
+          fw="normal"
+          rightIcon={
             <ActionIcon
               component="div"
               onClick={(e) => {
@@ -114,7 +118,7 @@ export function BoardTab({
               if (e.key === "Enter") toggleRenaming(false);
             }}
           />
-        </Tabs.Tab>
+        </Button>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item

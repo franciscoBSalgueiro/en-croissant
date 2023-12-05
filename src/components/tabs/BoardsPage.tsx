@@ -13,9 +13,9 @@ import { atom, useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import { match } from "ts-pattern";
-import { Reorder } from "framer-motion";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
@@ -144,7 +144,7 @@ export default function BoardsPage() {
     [tabs, setTabs, setActiveTab]
   );
 
-  const keyMap = useAtomValue(keyMapAtom);  
+  const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],
     [keyMap.CYCLE_TABS.keys, () => cycleTabs()],
@@ -189,52 +189,69 @@ export default function BoardsPage() {
         }}
       >
         <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
-          <Reorder.Group
-            axis="x"
-            as="div"
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              overflow: "hidden",
-              marginBlockStart: 0,
-            }}
-            layoutScroll
-            values={tabs}
-            onReorder={setTabs}
+          <DragDropContext
+            onDragEnd={({ destination, source }) =>
+              destination?.index !== undefined &&
+              setTabs((prev) => {
+                const result = Array.from(prev);
+                const [removed] = result.splice(source.index, 1);
+                result.splice(destination.index, 0, removed);
+                return result;
+              })
+            }
           >
-            {tabs.map((tab) => (
-              <Reorder.Item
-                key={tab.value}
-                value={tab}
-                as="div"
-                onClick={() => setActiveTab(tab.value)}
-              >
-                <BoardTab
-                  tab={tab}
-                  setActiveTab={setActiveTab}
-                  closeTab={closeTab}
-                  renameTab={renameTab}
-                  duplicateTab={duplicateTab}
-                  selected={activeTab === tab.value}
-                />
-              </Reorder.Item>
-            ))}
-            <ActionIcon
-              onClick={() =>
-                createTab({
-                  tab: {
-                    name: "New Tab",
-                    type: "new",
-                  },
-                  setTabs,
-                  setActiveTab,
-                })
-              }
-              className={classes.newTab}
-            >
-              <IconPlus size="1rem" />
-            </ActionIcon>
-          </Reorder.Group>
+            <Droppable droppableId="droppable" direction="horizontal">
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  style={{ display: "flex" }}
+                >
+                  {tabs.map((tab, i) => (
+                    <Draggable
+                      key={tab.value}
+                      draggableId={tab.value}
+                      index={i}
+                    >
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
+                          <BoardTab
+                            tab={tab}
+                            setActiveTab={setActiveTab}
+                            closeTab={closeTab}
+                            renameTab={renameTab}
+                            duplicateTab={duplicateTab}
+                            selected={activeTab === tab.value}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  <ActionIcon
+                    my="auto"
+                    onClick={() =>
+                      createTab({
+                        tab: {
+                          name: "New Tab",
+                          type: "new",
+                        },
+                        setTabs,
+                        setActiveTab,
+                      })
+                    }
+                    className={classes.newTab}
+                  >
+                    <IconPlus size="1rem" />
+                  </ActionIcon>
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </ScrollArea>
         {tabs.map((tab) => (
           <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%">
