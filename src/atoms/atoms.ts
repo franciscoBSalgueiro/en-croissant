@@ -2,7 +2,7 @@ import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
-import { LocalEngine } from "@/utils/engines";
+import { Engine } from "@/utils/engines";
 import {
     LichessGamesOptions,
     MasterGamesOptions,
@@ -45,13 +45,7 @@ const fileStorage: AsyncStringStorage = {
         await removeFile(key, options);
     },
 };
-
-export const remoteEnabledAtom = atomWithStorage("remote-enabled", {
-    lichess: false,
-    chessdb: false,
-});
-
-export const enginesAtom = atomWithStorage<LocalEngine[]>(
+export const enginesAtom = atomWithStorage<Engine[]>(
     "engines/engines.json",
     [],
     createJSONStorage(() => fileStorage)

@@ -1,5 +1,4 @@
-import { EngineOptions, GoMode } from "@/bindings";
-import { Engine } from "@/utils/engines";
+import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { fetch } from "@tauri-apps/api/http";
 
 const endpoint = "https://www.chessdb.cn/cdb.php";
@@ -18,31 +17,25 @@ type ChessDBData = {
     winrate?: string;
 };
 
-export const chessdb: Engine = {
-    name: "ChessDB",
-    remote: true,
-    loaded: false,
-    stop: () => Promise.resolve(),
-    getBestMoves: async (
-        _tab: string,
-        _goMode: GoMode,
-        options: EngineOptions
-    ) => {
-        const moves = await queryPosition(options.fen);
-        return [
-            100,
-            moves.slice(0, options.multipv).map((m, i) => ({
-                score: { type: "cp", value: m.score },
-                nodes: 0,
-                depth: 0,
-                multipv: i + 1,
-                nps: 0,
-                sanMoves: [m.san],
-                uciMoves: [m.uci],
-            })),
-        ];
-    },
-};
+export async function getBestMoves(
+    _tab: string,
+    _goMode: GoMode,
+    options: EngineOptions
+): Promise<[number, BestMoves[]] | null> {
+    const moves = await queryPosition(options.fen);
+    return [
+        100,
+        moves.slice(0, options.multipv).map((m, i) => ({
+            score: { type: "cp", value: m.score },
+            nodes: 0,
+            depth: 0,
+            multipv: i + 1,
+            nps: 0,
+            sanMoves: [m.san],
+            uciMoves: [m.uci],
+        })),
+    ];
+}
 
 const cache = new Map<string, ChessDBData[]>();
 

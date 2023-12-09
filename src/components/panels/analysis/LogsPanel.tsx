@@ -20,8 +20,11 @@ import { writeTextFile } from "@tauri-apps/api/fs";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
+  const localEngines = engines
+    .filter((e): e is LocalEngine => e.type === "local")
+    .filter((e) => e.loaded);
   const [engine, setEngine] = useState<LocalEngine | undefined>(
-    engines.filter((e) => e.loaded)[0]
+    localEngines[0]
   );
 
   const viewport = useRef<HTMLDivElement>(null);
@@ -89,7 +92,9 @@ export default function LogsPanel() {
         />
         <Select
           value={engine?.name ?? "No engines loaded"}
-          onChange={(name) => setEngine(engines.find((e) => e.name === name)!)}
+          onChange={(name) =>
+            setEngine(localEngines.find((e) => e.name === name))
+          }
           data={engines.map((e) => ({ value: e.name, label: e.name }))}
         />
       </Group>

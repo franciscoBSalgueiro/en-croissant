@@ -1,6 +1,7 @@
 import {
   Alert,
   Box,
+  Button,
   Center,
   Group,
   Image,
@@ -17,7 +18,7 @@ import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useCallback, useState } from "react";
-import { LocalEngine, useDefaultEngines } from "@/utils/engines";
+import { LocalEngine, RemoteEngine, useDefaultEngines } from "@/utils/engines";
 import { formatBytes } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import ProgressButton from "../common/ProgressButton";
@@ -34,7 +35,11 @@ function AddEngine({
   opened: boolean;
   setOpened: (opened: boolean) => void;
 }) {
-  const [engines, setEngines] = useAtom(enginesAtom);
+  const [allEngines, setEngines] = useAtom(enginesAtom);
+  const engines = allEngines.filter(
+    (e): e is LocalEngine => e.type === "local"
+  );
+
   const { data: os } = useSWR("os", async () => {
     const p = await platform();
     const os = match(p)
@@ -51,6 +56,7 @@ function AddEngine({
 
   const form = useForm<LocalEngine>({
     initialValues: {
+      type: "local",
       version: "",
       name: "",
       path: "",
@@ -74,6 +80,7 @@ function AddEngine({
       <Tabs defaultValue="web">
         <Tabs.List>
           <Tabs.Tab value="web">Web</Tabs.Tab>
+          <Tabs.Tab value="cloud">Cloud Eval</Tabs.Tab>
           <Tabs.Tab value="local">Local</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
@@ -105,6 +112,24 @@ function AddEngine({
             </Stack>
           </ScrollArea.Autosize>
         </Tabs.Panel>
+        <Tabs.Panel value="cloud" pt="xs">
+          <Stack>
+            <CloudCard
+              engine={{
+                name: "ChessDB",
+                type: "chessdb",
+                url: "https://chessdb.cn",
+              }}
+            />
+            <CloudCard
+              engine={{
+                name: "Lichess Cloud",
+                type: "lichess",
+                url: "https://lichess.org",
+              }}
+            />
+          </Stack>
+        </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm
             submitLabel="Add"
@@ -117,6 +142,38 @@ function AddEngine({
         </Tabs.Panel>
       </Tabs>
     </Modal>
+  );
+}
+
+function CloudCard({ engine }: { engine: RemoteEngine }) {
+  const [engines, setEngines] = useAtom(enginesAtom);
+  return (
+    <Paper withBorder radius="md" p={0} key={engine.name}>
+      <Group wrap="nowrap" gap={0} grow>
+        <Box p="md" style={{ flex: 1 }}>
+          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
+            ENGINE
+          </Text>
+          <Text fw="bold">{engine.name}</Text>
+          <Text size="xs" c="dimmed" mb="xs">
+            {engine.url}
+          </Text>
+          <Button
+            disabled={engines.find((e) => e.type === engine.type) !== undefined}
+            fullWidth
+            onClick={() => {
+              console.log(engine);
+              setEngines(async (prev) => [
+                ...(await prev),
+                { ...engine, type: engine.type, loaded: true },
+              ]);
+            }}
+          >
+            Add
+          </Button>
+        </Box>
+      </Group>
+    </Paper>
   );
 }
 
@@ -154,6 +211,7 @@ function EngineCard({
         ...(await prev),
         {
           ...engine,
+          type: "local",
           path: enginePath,
         },
       ]);
@@ -169,7 +227,7 @@ function EngineCard({
             <Image src={engine.image} alt={engine.name} fit="contain" />
           </Box>
         )}
-        <Box p="md">
+        <Box p="md" style={{ flex: 1 }}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>

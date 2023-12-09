@@ -61,7 +61,9 @@ function EnginesSelect({
   engine: LocalEngine | null;
   setEngine: (engine: LocalEngine | null) => void;
 }) {
-  const engines = useAtomValue(enginesAtom);
+  const engines = useAtomValue(enginesAtom).filter(
+    (e): e is LocalEngine => e.type === "local"
+  );
 
   useEffect(() => {
     if (engines.length > 0 && engine === null) {

@@ -4,21 +4,10 @@ import { fetch } from "@tauri-apps/api/http";
 import { EngineSettings } from "@/atoms/atoms";
 import { BestMoves, EngineOptions, GoMode, commands } from "@/bindings";
 
-export interface Engine {
-    name: string;
-    remote: boolean;
-    loaded: boolean;
-    image?: string;
-    settings?: EngineSettings;
-    stop(tab: string): Promise<void>;
-    getBestMoves(
-        tab: string,
-        goMode: GoMode,
-        options: EngineOptions
-    ): Promise<[number, BestMoves[]] | null>;
-}
+export type Engine = LocalEngine | RemoteEngine;
 
 export type LocalEngine = {
+    type: "local";
     name: string;
     version: string;
     path: string;
@@ -30,23 +19,30 @@ export type LocalEngine = {
     settings?: EngineSettings;
 };
 
-export function localEngine(engine: LocalEngine): Engine {
-    return {
-        remote: false,
-        loaded: engine.loaded ?? false,
-        name: engine.name,
-        settings: engine.settings,
-        image: engine.image,
-        stop: (tab) =>
-            commands.stopEngine(engine.path, tab).then((r) => {
-                unwrap(r);
-            }),
-        getBestMoves: (tab, goMode, options) => {
-            return commands
-                .getBestMoves(engine.name, engine.path, tab, goMode, options)
-                .then((r) => unwrap(r));
-        },
-    };
+export type RemoteEngine = {
+    type: "chessdb" | "lichess";
+    name: string;
+    url: string;
+    image?: string;
+    settings?: EngineSettings;
+    loaded?: boolean;
+};
+
+export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
+    return commands.stopEngine(engine.path, tab).then((r) => {
+        unwrap(r);
+    });
+}
+
+export function getBestMoves(
+    engine: LocalEngine,
+    tab: string,
+    goMode: GoMode,
+    options: EngineOptions
+): Promise<[number, BestMoves[]] | null> {
+    return commands
+        .getBestMoves(engine.name, engine.path, tab, goMode, options)
+        .then((r) => unwrap(r));
 }
 
 type OS = "windows" | "linux" | "macos";

@@ -6,19 +6,19 @@ import {
   Group,
   Stack,
   Text,
-  Collapse,
   Paper,
+  Collapse,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconCloud, IconRobot, IconSettings } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
-import { memo, useEffect, useState } from "react";
-import { Engine, localEngine } from "@/utils/engines";
+import { memo } from "react";
+import { Engine, stopEngine } from "@/utils/engines";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, enginesAtom, remoteEnabledAtom } from "@/atoms/atoms";
-import { lichessCloudEval } from "@/utils/lichess";
-import { chessdb } from "@/utils/chessdb";
+import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import useSWRImmutable from "swr/immutable";
 
 function EngineBox({
   engine,
@@ -27,28 +27,26 @@ function EngineBox({
   engine: Engine;
   toggleEnabled: () => void;
 }) {
-  const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
   const activeTab = useAtomValue(activeTabAtom);
 
-  useEffect(() => {
-    (async () => {
-      if (engine.image && engine.image.startsWith("http")) {
-        setImageSrc(engine.image);
-      } else if (engine.image) {
-        setImageSrc(await convertFileSrc(engine.image));
-      }
-    })();
-  }, [engine.image]);
+  const { data: imageSrc } = useSWRImmutable(engine.image, async (image) => {
+    if (image && image.startsWith("http")) {
+      return image;
+    } else if (image) {
+      return await convertFileSrc(image);
+    }
+  });
 
   return (
     <Paper
       withBorder
       p="sm"
       w="16rem"
+      mb="xs"
       h="4rem"
       onClick={() => {
-        if (engine.loaded) {
-          engine.stop(activeTab!);
+        if (engine.loaded && engine.type === "local") {
+          stopEngine(engine, activeTab!);
         }
         toggleEnabled();
       }}
@@ -58,7 +56,7 @@ function EngineBox({
         <Checkbox checked={engine.loaded} />
         {imageSrc ? (
           <Image src={imageSrc} alt={engine.name} h="2.5rem" />
-        ) : engine.remote ? (
+        ) : engine.type !== "local" ? (
           <IconCloud size="2rem" />
         ) : (
           <IconRobot size="2rem" />
@@ -72,8 +70,6 @@ function EngineBox({
 function EngineSelection() {
   const [showSettings, toggleShowSettings] = useToggle();
   const [engines, setEngines] = useAtom(enginesAtom);
-
-  const [remoteEnabled, setRemoteEnabled] = useAtom(remoteEnabledAtom);
 
   return (
     <>
@@ -95,46 +91,58 @@ function EngineSelection() {
             </Text>
           </Center>
         )}
-        <Stack>
-          <Stack justify="center">
-            {engines.map((engine) => (
-              <EngineBox
-                key={engine.name}
-                engine={localEngine(engine)}
-                toggleEnabled={() => {
-                  setEngines(async (prev) =>
-                    (await prev).map((e) =>
-                      e.name === engine.name ? { ...e, loaded: !e.loaded } : e
-                    )
-                  );
-                }}
-              />
-            ))}
-            <EngineBox
-              engine={{
-                ...lichessCloudEval,
-                loaded: remoteEnabled.lichess,
-              }}
-              toggleEnabled={() =>
-                setRemoteEnabled((prev) => ({
-                  ...prev,
-                  lichess: !prev.lichess,
-                }))
-              }
-            />
 
-            <EngineBox
-              key="chessdb"
-              engine={{ ...chessdb, loaded: remoteEnabled.chessdb }}
-              toggleEnabled={() =>
-                setRemoteEnabled((prev) => ({
-                  ...prev,
-                  chessdb: !prev.chessdb,
-                }))
-              }
-            />
-          </Stack>
-        </Stack>
+        <DragDropContext
+          onDragEnd={({ destination, source }) =>
+            destination?.index !== undefined &&
+            setEngines(async (prev) => {
+              const result = Array.from(await prev);
+              const [removed] = result.splice(source.index, 1);
+              result.splice(destination.index, 0, removed);
+              return result;
+            })
+          }
+        >
+          <Droppable droppableId="droppable" direction="vertical">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps}>
+                <Stack gap={0} align="center">
+                  {engines.map((engine, i) => (
+                    <Draggable
+                      key={engine.name}
+                      draggableId={engine.name}
+                      index={i}
+                    >
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
+                          <EngineBox
+                            key={engine.name}
+                            engine={engine}
+                            toggleEnabled={() => {
+                              setEngines(async (prev) =>
+                                (await prev).map((e) =>
+                                  e.name === engine.name
+                                    ? { ...e, loaded: !e.loaded }
+                                    : e
+                                )
+                              );
+                            }}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                </Stack>
+
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </Collapse>
     </>
   );

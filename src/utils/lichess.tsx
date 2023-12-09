@@ -14,8 +14,7 @@ import {
   getLichessGamesQueryParams,
   getMasterGamesQueryParams,
 } from "./lichess/lichessexplorer";
-import { Engine } from "@/utils/engines";
-import { EngineOptions, GoMode } from "@/bindings";
+import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
@@ -188,44 +187,38 @@ export async function getLichessAccount({
   return response.data;
 }
 
-export const lichessCloudEval: Engine = {
-  name: "Lichess Cloud",
-  remote: true,
-  loaded: false,
-  stop: () => Promise.resolve(),
-  getBestMoves: async (
-    _tab: string,
-    _goMode: GoMode,
-    options: EngineOptions
-  ) => {
-    const data = await getCloudEvaluation(options.fen, options.multipv);
-    return [
-      100,
-      data.pvs.map((m, i) => {
-        const uciMoves = m.moves.split(" ");
-        const setup = parseFen(options.fen).unwrap();
-        const pos = Chess.fromSetup(setup).unwrap();
+export async function getBestMoves(
+  _tab: string,
+  _goMode: GoMode,
+  options: EngineOptions
+): Promise<[number, BestMoves[]] | null> {
+  const data = await getCloudEvaluation(options.fen, options.multipv);
+  return [
+    100,
+    data.pvs.map((m, i) => {
+      const uciMoves = m.moves.split(" ");
+      const setup = parseFen(options.fen).unwrap();
+      const pos = Chess.fromSetup(setup).unwrap();
 
-        const sanMoves = uciMoves.map((m) => {
-          const move = parseUci(m)!;
-          const san = makeSan(pos, move);
-          pos.play(move);
-          return san;
-        });
+      const sanMoves = uciMoves.map((m) => {
+        const move = parseUci(m)!;
+        const san = makeSan(pos, move);
+        pos.play(move);
+        return san;
+      });
 
-        return {
-          score: { type: "cp", value: m.cp },
-          nodes: data.knodes * 1000,
-          depth: data.depth,
-          multipv: i + 1,
-          nps: 0,
-          sanMoves,
-          uciMoves,
-        };
-      }),
-    ];
-  },
-};
+      return {
+        score: { type: "cp", value: m.cp },
+        nodes: data.knodes * 1000,
+        depth: data.depth,
+        multipv: i + 1,
+        nps: 0,
+        sanMoves,
+        uciMoves,
+      };
+    }),
+  ];
+}
 
 const cache = new Map<string, LichessCloudData>();
 

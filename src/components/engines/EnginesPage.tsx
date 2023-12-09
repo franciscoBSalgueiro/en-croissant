@@ -10,9 +10,15 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { IconEdit, IconPlus, IconRobot, IconX } from "@tabler/icons-react";
+import {
+  IconCloud,
+  IconEdit,
+  IconPlus,
+  IconRobot,
+  IconX,
+} from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { LocalEngine } from "@/utils/engines";
+import { Engine } from "@/utils/engines";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 import { useToggle } from "@mantine/hooks";
@@ -34,18 +40,21 @@ export default function EnginesPage() {
         <Title>Your Engines</Title>
         <OpenFolderButton base="AppDir" folder="engines" />
       </Group>
-      <ScrollArea>
+      <ScrollArea px="xl">
         <Table style={{ minWidth: 800 }} verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Engine</Table.Th>
               <Table.Th>Elo</Table.Th>
-              <Table.Th>Actions</Table.Th>
+              <Table.Th w="8rem" ta="right">
+                Actions
+              </Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {engines &&
-              engines.map((item) => <EngineRow key={item.path} item={item} />)}
+            {engines.map((item) => (
+              <EngineRow key={item.name} item={item} />
+            ))}
             <Table.Tr>
               <Table.Td>
                 <Button
@@ -64,7 +73,7 @@ export default function EnginesPage() {
   );
 }
 
-function EngineRow({ item }: { item: LocalEngine }) {
+function EngineRow({ item }: { item: Engine }) {
   const [, setEngines] = useAtom(enginesAtom);
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
@@ -86,9 +95,10 @@ function EngineRow({ item }: { item: LocalEngine }) {
 
   useEffect(() => {
     (async () => {
+      if (item.type !== "local") return;
       setFileExists(await exists(item.path));
     })();
-  }, [item.path]);
+  }, [item]);
 
   return (
     <>
@@ -103,11 +113,13 @@ function EngineRow({ item }: { item: LocalEngine }) {
           )
         }
       />
-      <EditEngine
-        opened={editModal}
-        setOpened={toggleEditModal}
-        initialEngine={item}
-      />
+      {item.type === "local" && (
+        <EditEngine
+          opened={editModal}
+          setOpened={toggleEditModal}
+          initialEngine={item}
+        />
+      )}
 
       <Table.Tr>
         <Table.Td>
@@ -116,8 +128,10 @@ function EngineRow({ item }: { item: LocalEngine }) {
               <Center>
                 {imageSrc ? (
                   <Image fit="contain" src={imageSrc} />
-                ) : (
+                ) : item.type === "local" ? (
                   <IconRobot size="3.75rem" />
+                ) : (
+                  <IconCloud size="3.75rem" />
                 )}
               </Center>
             </Box>
@@ -126,12 +140,15 @@ function EngineRow({ item }: { item: LocalEngine }) {
             </Text>
           </Group>
         </Table.Td>
-        <Table.Td>{item.elo || "Unknown"}</Table.Td>
+        {/* @ts-expect-error only local has elo */}
+        <Table.Td>{item?.elo || "?"}</Table.Td>
         <Table.Td>
-          <Group>
-            <ActionIcon>
-              <IconEdit size="1.25rem" onClick={() => toggleEditModal()} />
-            </ActionIcon>
+          <Group justify="right">
+            {item.type === "local" && (
+              <ActionIcon>
+                <IconEdit size="1.25rem" onClick={() => toggleEditModal()} />
+              </ActionIcon>
+            )}
             <ActionIcon>
               <IconX size="1.25rem" onClick={() => toggleDeleteModal()} />
             </ActionIcon>

@@ -73,21 +73,30 @@ function ProgressButton({
   const theme = useMantineTheme();
 
   return (
-    <Button
-      fullWidth
-      className={classes.button}
-      onClick={() => {
-        onClick(id);
-      }}
-      disabled={(completed && !redoable) || disabled}
-      color={completed ? "green" : theme.primaryColor}
-      leftSection={leftIcon}
-    >
-      <div className={classes.label}>{label}</div>
-      {progress !== 0 && (
-        <Progress value={progress} className={classes.progress} radius="sm" />
-      )}
-    </Button>
+    <>
+      <Button
+        fullWidth
+        onClick={() => {
+          onClick(id);
+        }}
+        color={completed ? "green" : theme.primaryColor}
+        disabled={(completed && !redoable) || disabled}
+        leftSection={leftIcon}
+      >
+        <div className={classes.label}>{label}</div>
+        {progress !== 0 && (
+          <Progress
+            pos="absolute"
+            w="100%"
+            h="100%"
+            c="blue"
+            value={progress}
+            className={classes.progress}
+            radius="sm"
+          />
+        )}
+      </Button>
+    </>
   );
 }
 

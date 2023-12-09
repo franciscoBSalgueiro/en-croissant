@@ -4,7 +4,7 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { events } from "@/bindings";
+import { EngineOptions, GoMode, events } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { swapMove } from "@/utils/chessops";
 import { useThrottledEffect } from "@/utils/misc";
@@ -42,9 +42,13 @@ import {
 } from "react";
 import AnalysisRow from "./AnalysisRow";
 import EngineSettingsForm from "./EngineSettingsForm";
-import { Engine } from "@/utils/engines";
+import { Engine, LocalEngine, stopEngine } from "@/utils/engines";
 import { chessopsError, positionFromFen } from "@/utils/chessops";
 import * as classes from "./BestMoves.css";
+import { match } from "ts-pattern";
+import { getBestMoves as localGetBestMoves } from "@/utils/engines";
+import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
+import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
 
 export const arrowColors = ["blue", "green", "red", "yellow"];
 
@@ -130,42 +134,54 @@ export default function BestMovesComponent({
     };
   }, [activeTab, dispatch, id, setArrows, settings.enabled, isGameOver, fen]);
 
+  const getBestMoves = match(engine.type)
+    .with(
+      "local",
+      () => (fen: string, goMode: GoMode, options: EngineOptions) =>
+        localGetBestMoves(engine as LocalEngine, fen, goMode, options)
+    )
+    .with("chessdb", () => chessdbGetBestMoves)
+    .with("lichess", () => lichessGetBestMoves)
+    .exhaustive();
+
   useThrottledEffect(
     () => {
       if (settings.enabled) {
         if (isGameOver) {
-          engine.stop(activeTab!);
+          if (engine.type === "local") {
+            stopEngine(engine, activeTab!);
+          }
         } else {
-          engine
-            .getBestMoves(activeTab!, settings.go, {
-              fen: threat ? swapMove(fen) : fen,
-              multipv: settings.options.multipv,
-              hash: settings.options.hash,
-              threads: settings.options.threads,
-              extraOptions: settings.options.extraOptions,
-            })
-            .then((moves) => {
-              if (moves) {
-                const [progress, bestMoves] = moves;
-                setEngineVariation((prev) => {
-                  const newMap = new Map(prev);
-                  newMap.set(fen, bestMoves);
-                  return newMap;
-                });
-                setProgress(progress);
-                setArrows((prev) => {
-                  const newMap = new Map(prev);
-                  newMap.set(
-                    id,
-                    bestMoves.map((ev) => ev.uciMoves[0])
-                  );
-                  return newMap;
-                });
-              }
-            });
+          getBestMoves(activeTab!, settings.go, {
+            fen: threat ? swapMove(fen) : fen,
+            multipv: settings.options.multipv,
+            hash: settings.options.hash,
+            threads: settings.options.threads,
+            extraOptions: settings.options.extraOptions,
+          }).then((moves) => {
+            if (moves) {
+              const [progress, bestMoves] = moves;
+              setEngineVariation((prev) => {
+                const newMap = new Map(prev);
+                newMap.set(fen, bestMoves);
+                return newMap;
+              });
+              setProgress(progress);
+              setArrows((prev) => {
+                const newMap = new Map(prev);
+                newMap.set(
+                  id,
+                  bestMoves.map((ev) => ev.uciMoves[0])
+                );
+                return newMap;
+              });
+            }
+          });
         }
       } else {
-        engine.stop(activeTab!);
+        if (engine.type === "local") {
+          stopEngine(engine, activeTab!);
+        }
       }
     },
     50,
@@ -282,7 +298,7 @@ export default function BestMovesComponent({
             settings={settings}
             setSettings={setSettings}
             color={id < 4 ? arrowColors[id] : theme.primaryColor}
-            remote={engine.remote}
+            remote={engine.type !== "local"}
           />
         </Collapse>
 

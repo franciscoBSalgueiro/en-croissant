@@ -14,6 +14,7 @@ import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
 import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
 import { GoMode, commands } from "@/bindings";
+import { LocalEngine } from "@/utils/engines";
 
 function ReportModal({
   initialFen,
@@ -30,11 +31,14 @@ function ReportModal({
 }) {
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
+  const localEngines = engines.filter(
+    (e): e is LocalEngine => e.type === "local"
+  );
   const dispatch = useContext(TreeDispatchContext);
 
   const form = useForm({
     initialValues: {
-      engine: engines[0]?.path ?? "",
+      engine: localEngines[0]?.path ?? "",
       novelty: true,
       reversed: true,
       goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
@@ -84,7 +88,7 @@ function ReportModal({
             label="Engine"
             placeholder="Pick one"
             data={
-              engines.map((engine) => {
+              localEngines.map((engine) => {
                 return {
                   value: engine.path,
                   label: engine.name,
