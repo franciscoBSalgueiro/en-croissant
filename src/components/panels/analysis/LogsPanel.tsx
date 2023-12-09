@@ -68,14 +68,15 @@ export default function LogsPanel() {
   return (
     <>
       <Group grow>
-        <Group sx={{ flexGrow: 0 }}>
-          <ActionIcon onClick={() => mutate()}>
-            <IconRefresh />
+        <ActionIcon.Group style={{ flexGrow: 0 }}>
+          <ActionIcon size="lg" variant="default" onClick={() => mutate()}>
+            <IconRefresh size="1.3rem" />
           </ActionIcon>
-          <ActionIcon onClick={exportLogs}>
-            <IconFileExport />
+          <ActionIcon size="lg" variant="default" onClick={exportLogs}>
+            <IconFileExport size="1.3rem" />
           </ActionIcon>
-        </Group>
+        </ActionIcon.Group>
+
         <SegmentedControl
           fullWidth
           value={filter}
@@ -88,15 +89,13 @@ export default function LogsPanel() {
         />
         <Select
           value={engine?.name ?? "No engines loaded"}
-          onChange={(name: string) =>
-            setEngine(engines.find((e) => e.name === name)!)
-          }
+          onChange={(name) => setEngine(engines.find((e) => e.name === name)!)}
           data={engines.map((e) => ({ value: e.name, label: e.name }))}
         />
       </Group>
 
       {filteredData?.length === 0 && (
-        <Text align="center" mt="lg">
+        <Text ta="center" mt="lg">
           No logs for {engine?.name ?? "engine"}
         </Text>
       )}
@@ -108,9 +107,9 @@ export default function LogsPanel() {
         innerElementType={Inner}
       >
         {({ index, style }) => (
-          <tr style={style}>
+          <Table.Tr style={style}>
             <LogLine log={filteredData![index]} />
-          </tr>
+          </Table.Tr>
         )}
       </FixedSizeList>
     </>
@@ -122,7 +121,7 @@ const Inner = forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>(
     return (
       <div {...rest} ref={ref}>
         <Table>
-          <tbody>{children}</tbody>
+          <Table.Tbody>{children}</Table.Tbody>
         </Table>
       </div>
     );
@@ -133,12 +132,12 @@ type Log = { type: "gui"; value: string } | { type: "engine"; value: string };
 function LogLine({ log }: { log: Log }) {
   return (
     <>
-      <td>{log.type.toUpperCase()}</td>
-      <td>
+      <Table.Td w="5rem">{log.type.toUpperCase()}</Table.Td>
+      <Table.Td>
         <Text lineClamp={1} fz="xs">
           {log.value}
         </Text>
-      </td>
+      </Table.Td>
     </>
   );
 }

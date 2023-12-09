@@ -1,5 +1,5 @@
 import { Box, Group } from "@mantine/core";
-import useStyles from "./styles";
+import * as classes from "./GridLayout.css";
 
 function GridLayout({
   search,
@@ -10,12 +10,11 @@ function GridLayout({
   table: JSX.Element;
   preview: JSX.Element;
 }) {
-  const { classes } = useStyles();
   return (
     <>
       <Group grow h="100%">
         <Box
-          sx={{
+          style={{
             display: "flex",
             gap: "1rem",
             flexDirection: "column",
@@ -27,7 +26,7 @@ function GridLayout({
         </Box>
 
         <Box
-          sx={{
+          style={{
             display: "flex",
             gap: "1rem",
             flexDirection: "column",

@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   Box,
-  createStyles,
   Divider,
   Group,
   Overlay,
@@ -11,9 +10,8 @@ import {
   Text,
   Tooltip,
   TypographyStylesProvider,
-  useMantineTheme,
 } from "@mantine/core";
-import { shallowEqual, useToggle } from "@mantine/hooks";
+import { shallowEqual, useColorScheme, useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
@@ -33,16 +31,6 @@ import OpeningName from "./OpeningName";
 import { useAtom, useAtomValue } from "jotai";
 import { currentInvisibleAtom } from "@/atoms/atoms";
 import { INITIAL_FEN } from "chessops/fen";
-
-const useStyles = createStyles((theme) => ({
-  scroller: {
-    position: "sticky",
-    top: 0,
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-    zIndex: 10,
-  },
-}));
 
 function GameNotation({ topBar }: { topBar?: boolean }) {
   const { headers, position, root } = useContext(TreeStateContext);
@@ -64,10 +52,10 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
     }
   }, [currentNode.fen]);
 
-  const theme = useMantineTheme();
   const invisible = useAtomValue(currentInvisibleAtom);
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
+  const colorScheme = useColorScheme();
 
   const multipleLine =
     root.commentHTML.split("</p>").length - 1 > 1 ||
@@ -79,69 +67,71 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
     <Paper
       withBorder
       p="md"
-      sx={{ position: "relative", flex: 1, overflow: "hidden" }}
+      style={{ position: "relative", flex: 1, overflow: "hidden" }}
     >
-      <ScrollArea h="100%" offsetScrollbars viewportRef={viewport}>
-        <Stack>
-          {topBar && (
-            <NotationHeader
-              showComments={showComments}
-              toggleComments={toggleComments}
-              showVariations={showVariations}
-              toggleVariations={toggleVariations}
-            />
-          )}
-          <Box>
-            {invisible && (
-              <Overlay
-                opacity={0.6}
-                color={theme.colorScheme === "dark" ? "#222" : undefined}
-                blur={3}
-                zIndex={2}
-              />
-            )}
-            {showComments && root.commentHTML && (
-              <TypographyStylesProvider
-                style={{
-                  display: multipleLine ? "block" : "inline-block",
-                  marginLeft: 4,
-                  marginRight: 4,
-                }}
-              >
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: root.commentHTML,
-                  }}
+      <Stack h="100%" gap={0}>
+        {topBar && (
+          <NotationHeader
+            showComments={showComments}
+            toggleComments={toggleComments}
+            showVariations={showVariations}
+            toggleVariations={toggleVariations}
+          />
+        )}
+        <ScrollArea style={{ flex: 1 }} offsetScrollbars viewportRef={viewport}>
+          <Stack pt="md">
+            <Box>
+              {invisible && (
+                <Overlay
+                  backgroundOpacity={0.6}
+                  color={colorScheme === "dark" ? "#1a1b1e" : undefined}
+                  blur={3}
+                  zIndex={2}
                 />
-              </TypographyStylesProvider>
-            )}
-            <RenderVariationTree
-              currentPath={position}
-              targetRef={targetRef}
-              tree={root}
-              depth={0}
-              first
-              start={headers.start}
-              showVariations={showVariations}
-              showComments={showComments}
-              path={[]}
-            />
-          </Box>
-          {headers.result && headers.result !== "*" && (
-            <Text align="center">
-              {headers.result}
-              <br />
-              <Text span fs="italic">
-                {headers.result === "1/2-1/2"
-                  ? "Draw"
-                  : headers.result === "1-0"
-                  ? "White wins"
-                  : "Black wins"}
+              )}
+              {showComments && root.commentHTML && (
+                <TypographyStylesProvider
+                  pl={0}
+                  mx={4}
+                  style={{
+                    display: multipleLine ? "block" : "inline-block",
+                  }}
+                >
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: root.commentHTML,
+                    }}
+                  />
+                </TypographyStylesProvider>
+              )}
+              <RenderVariationTree
+                currentPath={position}
+                targetRef={targetRef}
+                tree={root}
+                depth={0}
+                first
+                start={headers.start}
+                showVariations={showVariations}
+                showComments={showComments}
+                path={[]}
+              />
+            </Box>
+            {headers.result && headers.result !== "*" && (
+              <Text ta="center">
+                {headers.result}
+                <br />
+                <Text span fs="italic">
+                  {headers.result === "1/2-1/2"
+                    ? "Draw"
+                    : headers.result === "1-0"
+                    ? "White wins"
+                    : "Black wins"}
+                </Text>
               </Text>
-            </Text>
-          )}
-        </Stack>
-      </ScrollArea>
+            )}
+          </Stack>
+        </ScrollArea>
+      </Stack>
     </Paper>
   );
 }
@@ -157,13 +147,12 @@ const NotationHeader = memo(function NotationHeader({
   showVariations: boolean;
   toggleVariations: () => void;
 }) {
-  const { classes } = useStyles();
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   return (
-    <Stack className={classes.scroller}>
+    <Stack>
       <Group style={{ justifyContent: "space-between" }}>
         <OpeningName />
-        <Group spacing="sm">
+        <Group gap="sm">
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
               {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
@@ -313,7 +302,7 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
     return (
       <>
         <Box
-          sx={{
+          style={{
             borderLeft: "2px solid #404040",
             paddingLeft: 5,
             marginLeft: 12,
@@ -330,7 +319,7 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
             moveNodes.map((node, i) => (
               <Box
                 key={i}
-                sx={{
+                style={{
                   "::before": {
                     display: "inline-block",
                     content: '" "',
@@ -348,16 +337,6 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
         </Box>
       </>
     );
-  // else if (moveNodes.length === 1)
-  //   return (
-  //     <Box sx={{ fontStyle: "italic" }}>
-  //       {"("}
-  //       {moveNodes.map((node, i) => (
-  //         <span key={i}>{node}</span>
-  //       ))}
-  //       {")"}
-  //     </Box>
-  //   );
   else return <></>;
 }
 

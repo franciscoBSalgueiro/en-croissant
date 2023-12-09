@@ -74,8 +74,8 @@ function AnalysisPanel({
         orientation="vertical"
         placement="right"
         value={tab}
-        onTabChange={(v) => setTab(v!)}
-        sx={{
+        onChange={(v) => setTab(v!)}
+        style={{
           display: "flex",
         }}
       >
@@ -89,7 +89,7 @@ function AnalysisPanel({
         <Tabs.Panel
           value="engines"
           pt="xs"
-          sx={{
+          style={{
             overflow: "hidden",
             display: tab === "engines" ? "flex" : "none",
             flexDirection: "column",
@@ -100,7 +100,7 @@ function AnalysisPanel({
               {loadedEngines.length > 0 && (
                 <Group pb="xs">
                   <Button
-                    rightIcon={
+                    rightSection={
                       allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
                     }
                     variant={allEnabled ? "filled" : "default"}
@@ -168,15 +168,15 @@ function AnalysisPanel({
         <Tabs.Panel
           value="report"
           pt="xs"
-          sx={{
+          style={{
             overflow: "hidden",
             display: tab === "report" ? "flex" : "none",
             flexDirection: "column",
           }}
         >
           <ScrollArea offsetScrollbars>
-            <Stack mb="lg" spacing="0.4rem" mr="xs">
-              <Group grow sx={{ textAlign: "center" }}>
+            <Stack mb="lg" gap="0.4rem" mr="xs">
+              <Group grow style={{ textAlign: "center" }}>
                 {stats.whiteAccuracy && stats.blackAccuracy && (
                   <>
                     <AccuracyCard
@@ -223,7 +223,7 @@ function AnalysisPanel({
         <Tabs.Panel
           value="logs"
           pt="xs"
-          sx={{
+          style={{
             overflow: "hidden",
             display: tab === "logs" ? "flex" : "none",
             flexDirection: "column",
@@ -256,7 +256,7 @@ const GameStats = memo(
                 <React.Fragment key={annotation}>
                   <Grid.Col
                     span={4}
-                    sx={{ textAlign: "center" }}
+                    style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
                   >
                     {w}
@@ -296,16 +296,16 @@ function AccuracyCard({
 }) {
   return (
     <Paper withBorder p="xs">
-      <Group position="apart">
-        <Stack spacing={0} align="start">
-          <Text color="dimmed">{color}</Text>
+      <Group justify="space-between">
+        <Stack gap={0} align="start">
+          <Text c="dimmed">{color}</Text>
           <Text fz="sm">{cpl.toFixed(1)} ACPL</Text>
         </Stack>
-        <Stack spacing={0} align="center">
+        <Stack gap={0} align="center">
           <Text fz="xl" lh="normal">
             {accuracy.toFixed(1)}%
           </Text>
-          <Text fz="sm" color="dimmed" lh="normal">
+          <Text fz="sm" c="dimmed" lh="normal">
             Accuracy
           </Text>
         </Stack>

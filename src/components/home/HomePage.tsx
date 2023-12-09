@@ -4,17 +4,21 @@ import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
 
 function HomePage() {
   return (
-    <SimpleGrid cols={2} spacing="md">
+    <SimpleGrid
+      cols={2}
+      spacing="md"
+      p="md"
+      h="100%"
+      style={{ overflow: "hidden" }}
+    >
       <Card>
-        <Stack>
+        <Stack h="100%">
           <Title>Accounts</Title>
           <Accounts />
         </Stack>
       </Card>
       <Card>
-        <Stack>
-          <Databases />
-        </Stack>
+        <Databases />
       </Card>
     </SimpleGrid>
   );

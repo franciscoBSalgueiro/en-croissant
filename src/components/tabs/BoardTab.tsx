@@ -1,40 +1,11 @@
-import { ActionIcon, Button, createStyles, Menu } from "@mantine/core";
+import { ActionIcon, Button, Menu } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import { useEffect } from "react";
 import type { Tab } from "@/utils/tabs";
 import { ContentEditable } from "./ContentEditable";
-
-const useStyles = createStyles(
-  (
-    theme,
-    { selected, renaming }: { selected: boolean; renaming: boolean }
-  ) => ({
-    tab: {
-      cursor: "unset",
-      borderBottomWidth: 0,
-      marginRight: theme.spacing.xs,
-      backgroundColor: selected
-        ? theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0]
-        : theme.colorScheme === "dark"
-        ? theme.colors.dark[7]
-        : "transparent",
-      ":hover": {
-        backgroundColor:
-          theme.colorScheme === "dark"
-            ? theme.colors.dark[6]
-            : theme.colors.gray[2],
-      },
-    },
-
-    input: {
-      minWidth: 100,
-      outline: "none",
-    },
-  })
-);
+import * as classes from "./BoardTab.css";
+import cx from "clsx";
 
 export function BoardTab({
   tab,
@@ -56,7 +27,6 @@ export function BoardTab({
   const ref = useClickOutside(() => {
     toggleOpen(false), toggleRenaming(false);
   });
-  const { classes } = useStyles({ selected, renaming });
 
   useHotkeys([
     [
@@ -76,10 +46,10 @@ export function BoardTab({
       <Menu.Target>
         <Button
           component="div"
-          className={classes.tab}
+          className={cx(classes.tab, { [classes.selected]: selected })}
           variant="default"
           fw="normal"
-          rightIcon={
+          rightSection={
             <ActionIcon
               component="div"
               onClick={(e) => {
@@ -122,20 +92,20 @@ export function BoardTab({
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item
-          icon={<IconCopy size="0.875rem" />}
+          leftSection={<IconCopy size="0.875rem" />}
           onClick={() => duplicateTab(tab.value)}
         >
           Duplicate Tab
         </Menu.Item>
         <Menu.Item
-          icon={<IconEdit size="0.875rem" />}
+          leftSection={<IconEdit size="0.875rem" />}
           onClick={() => toggleRenaming(true)}
         >
           Rename Tab
         </Menu.Item>
         <Menu.Item
           color="red"
-          icon={<IconX size="0.875rem" />}
+          leftSection={<IconX size="0.875rem" />}
           onClick={() => closeTab(tab.value)}
         >
           Close Tab

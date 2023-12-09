@@ -24,7 +24,7 @@ function EvalBar({
     ScoreBars = [
       <Box
         key="black"
-        sx={{
+        style={{
           height: `${100 - progress}%`,
           backgroundColor: theme.colors.dark[4],
           transition: "height 0.2s ease",
@@ -44,7 +44,7 @@ function EvalBar({
       </Box>,
       <Box
         key="white"
-        sx={{
+        style={{
           height: `${progress}%`,
           backgroundColor: theme.colors.gray[2],
           transition: "height 0.2s ease",
@@ -77,7 +77,7 @@ function EvalBar({
       disabled={!score}
     >
       <Box
-        sx={{
+        style={{
           width: 25,
           height: "100%",
           borderRadius: 10,

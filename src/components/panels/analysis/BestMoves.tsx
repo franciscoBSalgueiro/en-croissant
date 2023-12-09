@@ -22,7 +22,6 @@ import {
   Table,
   Text,
   Tooltip,
-  createStyles,
   useMantineTheme,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
@@ -45,15 +44,7 @@ import AnalysisRow from "./AnalysisRow";
 import EngineSettingsForm from "./EngineSettingsForm";
 import { Engine } from "@/utils/engines";
 import { chessopsError, positionFromFen } from "@/utils/chessops";
-
-const useStyles = createStyles((theme) => ({
-  subtitle: {
-    color:
-      theme.colorScheme === "dark"
-        ? theme.fn.rgba(theme.white, 0.65)
-        : theme.black,
-  },
-}));
+import * as classes from "./BestMoves.css";
 
 export const arrowColors = ["blue", "green", "red", "yellow"];
 
@@ -88,7 +79,6 @@ export default function BestMovesComponent({
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
-  const { classes } = useStyles();
   const depth = engineVariations[0]?.depth ?? 0;
   const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const theme = useMantineTheme();
@@ -185,8 +175,8 @@ export default function BestMovesComponent({
   return useMemo(
     () => (
       <>
-        <Box sx={{ display: "flex" }}>
-          <Stack spacing={0} py="1rem">
+        <Box style={{ display: "flex" }}>
+          <Stack gap={0} py="1rem">
             <ActionIcon
               size="lg"
               variant={settings.enabled ? "filled" : "transparent"}
@@ -204,8 +194,8 @@ export default function BestMovesComponent({
             </ActionIcon>
           </Stack>
 
-          <Accordion.Control sx={{ flex: 1 }}>
-            <Group position="apart">
+          <Accordion.Control style={{ flex: 1 }}>
+            <Group justify="space-between">
               <Group align="center">
                 <Text fw="bold" fz="xl">
                   {engine.name}
@@ -225,14 +215,14 @@ export default function BestMovesComponent({
                     </Tooltip>
                   )}
               </Group>
-              <Group spacing="lg">
+              <Group gap="lg">
                 {!isGameOver && engineVariations.length > 0 && (
                   <>
-                    <Stack align="center" spacing={0}>
+                    <Stack align="center" gap={0}>
                       <Text
                         size="0.7rem"
-                        transform="uppercase"
-                        weight={700}
+                        tt="uppercase"
+                        fw={700}
                         className={classes.subtitle}
                       >
                         Eval
@@ -241,11 +231,11 @@ export default function BestMovesComponent({
                         {formatScore(engineVariations[0].score, 1) ?? 0}
                       </Text>
                     </Stack>
-                    <Stack align="center" spacing={0}>
+                    <Stack align="center" gap={0}>
                       <Text
                         size="0.7rem"
-                        transform="uppercase"
-                        weight={700}
+                        tt="uppercase"
+                        fw={700}
                         className={classes.subtitle}
                       >
                         Depth
@@ -259,27 +249,32 @@ export default function BestMovesComponent({
               </Group>
             </Group>
           </Accordion.Control>
-          <Tooltip label="Check the opponent's threat">
+          <ActionIcon.Group>
+            <Tooltip label="Check the opponent's threat">
+              <ActionIcon
+                size="lg"
+                onClick={() => toggleThreat()}
+                disabled={!settings.enabled}
+                variant="transparent"
+                mt="auto"
+                mb="auto"
+              >
+                <IconTargetArrow
+                  color={threat ? "red" : undefined}
+                  size="1rem"
+                />
+              </ActionIcon>
+            </Tooltip>
             <ActionIcon
               size="lg"
-              onClick={() => toggleThreat()}
-              disabled={!settings.enabled}
-              variant="transparent"
+              onClick={() => toggleSettingsOn()}
+              mr={8}
               mt="auto"
               mb="auto"
             >
-              <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
+              <IconSettings size="1rem" />
             </ActionIcon>
-          </Tooltip>
-          <ActionIcon
-            size="lg"
-            onClick={() => toggleSettingsOn()}
-            mr={8}
-            mt="auto"
-            mb="auto"
-          >
-            <IconSettings size="1rem" />
-          </ActionIcon>
+          </ActionIcon.Group>
         </Box>
         <Collapse in={settingsOn} px={30} pb={15}>
           <EngineSettingsForm
@@ -293,51 +288,51 @@ export default function BestMovesComponent({
 
         <Progress
           value={isGameOver ? 0 : progress}
-          animate={progress < 100 && settings.enabled && !isGameOver}
+          animated={progress < 100 && settings.enabled && !isGameOver}
           size="xs"
           striped={progress < 100 && !settings.enabled}
           color={id < 4 ? arrowColors[id] : theme.primaryColor}
         />
         <Accordion.Panel>
           <Table>
-            <tbody>
+            <Table.Tbody>
               {error && (
-                <tr>
-                  <td>
-                    <Text align="center" my="lg">
+                <Table.Tr>
+                  <Table.Td>
+                    <Text ta="center" my="lg">
                       Invalid position: {chessopsError(error)}
                     </Text>
-                  </td>
-                </tr>
+                  </Table.Td>
+                </Table.Tr>
               )}
               {isGameOver && (
-                <tr>
-                  <td>
-                    <Text align="center" my="lg">
+                <Table.Tr>
+                  <Table.Td>
+                    <Text ta="center" my="lg">
                       Game is over
                     </Text>
-                  </td>
-                </tr>
+                  </Table.Td>
+                </Table.Tr>
               )}
               {!isGameOver &&
                 !error &&
                 engineVariations.length === 0 &&
                 (settings.enabled ? (
                   [...Array(settings.options.multipv)].map((_, i) => (
-                    <tr key={i}>
-                      <td>
+                    <Table.Tr key={i}>
+                      <Table.Td>
                         <Skeleton height={35} radius="xl" p={5} />
-                      </td>
-                    </tr>
+                      </Table.Td>
+                    </Table.Tr>
                   ))
                 ) : (
-                  <tr>
-                    <td>
-                      <Text align="center" my="lg">
+                  <Table.Tr>
+                    <Table.Td>
+                      <Text ta="center" my="lg">
                         {"Engine isn't enabled"}
                       </Text>
-                    </td>
-                  </tr>
+                    </Table.Td>
+                  </Table.Tr>
                 ))}
               {!isGameOver &&
                 !error &&
@@ -352,7 +347,7 @@ export default function BestMovesComponent({
                     />
                   );
                 })}
-            </tbody>
+            </Table.Tbody>
           </Table>
         </Accordion.Panel>
       </>

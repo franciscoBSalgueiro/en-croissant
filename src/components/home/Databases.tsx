@@ -1,4 +1,4 @@
-import { ScrollArea, Stack, Text } from "@mantine/core";
+import { Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import {
   DatabaseInfo as PlainDatabaseInfo,
@@ -101,15 +101,18 @@ function Databases() {
   }, [sessions]);
 
   return (
-    <ScrollArea sx={{ height: "80vh" }}>
-      <Stack>
-        {personalInfo.length === 0 && <Text>No databases installed.</Text>}
+    <>
+      {personalInfo.length === 0 ? (
+        <Text ta="center" fw="bold" my="auto" fz="lg">
+          No databases found
+        </Text>
+      ) : (
         <PersonalPlayerCard
           name={"Stats"}
           info={combinePlayerInfo(personalInfo.map((i) => i.info))}
         />
-      </Stack>
-    </ScrollArea>
+      )}
+    </>
   );
 }
 

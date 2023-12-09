@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 function NoDatabaseWarning() {
   return (
     <Text
-      sx={{
+      style={{
         pointerEvents: "all",
       }}
     >

@@ -1,6 +1,5 @@
 import { Box } from "@mantine/core";
 import { useState } from "react";
-import { formatMove } from "@/utils/format";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
 import { chessboard } from "@/styles/Chessboard.css";
@@ -77,7 +76,16 @@ function PuzzleBoard({
   }
 
   return (
-    <Box className="container">
+    <Box
+      className="container"
+      style={{
+        gridTemplateAreas: `
+      "Board Board Board"
+      "Board Board Board"
+      "Board Board Board"
+    `,
+      }}
+    >
       <Box className="Board">
         <Box className={chessboard}>
           <PromotionModal

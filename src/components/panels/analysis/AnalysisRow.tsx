@@ -1,10 +1,11 @@
-import { Flex, ActionIcon, ChevronIcon } from "@mantine/core";
+import { Flex, ActionIcon, Table, rem } from "@mantine/core";
 import { useState, useContext } from "react";
 import { Score } from "@/bindings";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import ScoreBubble from "./ScoreBubble";
 import React from "react";
+import { IconChevronDown } from "@tabler/icons-react";
 
 function AnalysisRow({
   score,
@@ -25,15 +26,15 @@ function AnalysisRow({
   }
 
   return (
-    <tr style={{ verticalAlign: "top" }}>
-      <td width={70}>
+    <Table.Tr style={{ verticalAlign: "top" }}>
+      <Table.Td width={70}>
         <ScoreBubble score={score} />
-      </td>
-      <td>
+      </Table.Td>
+      <Table.Td>
         <Flex
           direction="row"
           wrap="wrap"
-          sx={{
+          style={{
             height: open ? "100%" : 35,
             overflow: "hidden",
             alignItems: "center",
@@ -67,8 +68,8 @@ function AnalysisRow({
             );
           })}
         </Flex>
-      </td>
-      <td width={10}>
+      </Table.Td>
+      <Table.Th w={10}>
         <ActionIcon
           style={{
             transition: "transform 200ms ease",
@@ -76,10 +77,10 @@ function AnalysisRow({
           }}
           onClick={() => setOpen(!open)}
         >
-          <ChevronIcon />
+          <IconChevronDown size={16} />
         </ActionIcon>
-      </td>
-    </tr>
+      </Table.Th>
+    </Table.Tr>
   );
 }
 

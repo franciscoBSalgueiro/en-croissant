@@ -67,7 +67,7 @@ function FileCard({
   return (
     <Stack h="100%">
       <Stack align="center">
-        <Text align="center" fz="xl" fw="bold">
+        <Text ta="center" fz="xl" fw="bold">
           {selected?.name}
         </Text>
         <Badge>{selected.metadata.type}</Badge>
@@ -86,7 +86,7 @@ function FileCard({
             </ActionIcon>
           </Tooltip>
         </Group>
-        <Text align="center" color="dimmed">
+        <Text ta="center" c="dimmed">
           {selected?.numGames} Games
         </Text>
         <div />

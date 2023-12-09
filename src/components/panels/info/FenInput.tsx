@@ -50,9 +50,9 @@ function FenInput({ currentFen }: { currentFen: string }) {
   }
 
   return (
-    <Stack spacing="sm">
+    <Stack gap="sm">
       <Group>
-        <Stack sx={{ flexGrow: 1 }}>
+        <Stack style={{ flexGrow: 1 }}>
           <Text fw="bold">FEN</Text>
           <FenSearch currentFen={currentFen} />
           <Select

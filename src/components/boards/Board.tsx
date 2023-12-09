@@ -16,7 +16,6 @@ import { chessboard } from "@/styles/Chessboard.css";
 import {
   ANNOTATION_INFO,
   Annotation,
-  PiecesCount,
   getMaterialDiff,
   moveToKey,
   parseKeyboardMove,
@@ -28,19 +27,14 @@ import {
   ActionIcon,
   Avatar,
   Box,
-  Global,
   Group,
   Input,
   Text,
   Tooltip,
+  useMantineTheme,
 } from "@mantine/core";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
-  IconChessBishopFilled,
-  IconChessFilled,
-  IconChessKnightFilled,
-  IconChessQueenFilled,
-  IconChessRookFilled,
   IconDeviceFloppy,
   IconEdit,
   IconPlus,
@@ -70,6 +64,7 @@ import {
   positionFromFen,
 } from "@/utils/chessops";
 import { makeFen, parseFen } from "chessops/fen";
+import ShowMaterial from "../common/ShowMaterial";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -236,50 +231,59 @@ function Board({
 
   const controls = useMemo(
     () => (
-      <Group>
+      <ActionIcon.Group>
         <Tooltip
           label={
             currentTab?.type === "analysis" ? "Play from here" : "Analyze game"
           }
         >
-          <ActionIcon onClick={changeTabType}>
+          <ActionIcon variant="default" size="lg" onClick={changeTabType}>
             {currentTab?.type === "analysis" ? (
-              <IconTarget />
+              <IconTarget size="1.3rem" />
             ) : (
-              <IconZoomCheck />
+              <IconZoomCheck size="1.3rem" />
             )}
           </ActionIcon>
         </Tooltip>
         {!disableVariations && (
-          <Tooltip label={"Edit Position"}>
-            <ActionIcon onClick={() => toggleEditingMode()}>
-              <IconEdit />
+          <Tooltip label="Edit Position">
+            <ActionIcon
+              variant="default"
+              size="lg"
+              onClick={() => toggleEditingMode()}
+            >
+              <IconEdit size="1.3rem" />
             </ActionIcon>
           </Tooltip>
         )}
         {saveFile && (
-          <Tooltip label={"Save PGN"}>
+          <Tooltip label="Save PGN">
             <ActionIcon
               onClick={() => saveFile()}
-              variant={dirty && !autoSave ? "outline" : "subtle"}
+              size="lg"
+              variant={dirty && !autoSave ? "outline" : "default"}
             >
-              <IconDeviceFloppy />
+              <IconDeviceFloppy size="1.3rem" />
             </ActionIcon>
           </Tooltip>
         )}
         {addGame && activeTab?.file && (
-          <Tooltip label={"Add Game"}>
-            <ActionIcon onClick={() => addGame()}>
-              <IconPlus />
+          <Tooltip label="Add Game">
+            <ActionIcon variant="default" size="lg" onClick={() => addGame()}>
+              <IconPlus size="1.3rem" />
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip label={"Flip Board"}>
-          <ActionIcon onClick={() => toggleOrientation()}>
-            <IconSwitchVertical />
+        <Tooltip label="Flip Board">
+          <ActionIcon
+            variant="default"
+            size="lg"
+            onClick={() => toggleOrientation()}
+          >
+            <IconSwitchVertical size="1.3rem" />
           </ActionIcon>
         </Tooltip>
-      </Group>
+      </ActionIcon.Group>
     ),
     [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
   );
@@ -301,11 +305,24 @@ function Board({
           .exhaustive();
   }, [practiceLock, editingMode, movable, turn]);
 
+  const theme = useMantineTheme();
+  const { color } = ANNOTATION_INFO[currentNode.annotation];
+  const lightColor = theme.colors[color][6];
+  const darkColor = theme.colors[color][8];
+
   return (
     <>
       <Box className="container">
         <Box className="Board">
           <Box
+            style={
+              currentNode.annotation !== ""
+                ? {
+                    "--light-color": lightColor,
+                    "--dark-color": darkColor,
+                  }
+                : undefined
+            }
             className={chessboard}
             ref={boardRef}
             onWheel={(e) => {
@@ -422,27 +439,28 @@ function Board({
         <Box className="Top">
           {data && (
             <Box px="sm">
-              {error && (
-                <Text ta="center" color="red">
-                  {chessopsError(error)}
-                </Text>
-              )}
               <ShowMaterial
-                diff={data?.diff}
-                pieces={data?.pieces}
+                diff={data.diff}
+                pieces={data.pieces}
                 color={orientation === "white" ? "black" : "white"}
               />
             </Box>
           )}
         </Box>
-        <Box className="Bottom">
-          <Group position="apart" px="sm">
+        <Box className="Bottom" pt="xs">
+          <Group justify="space-between" px="sm">
             {data && (
               <ShowMaterial
                 diff={data.diff}
                 pieces={data.pieces}
                 color={orientation}
               />
+            )}
+
+            {error && (
+              <Text ta="center" c="red">
+                {chessopsError(error)}
+              </Text>
             )}
             <Group>
               {moveInput && <MoveInput currentNode={currentNode} />}
@@ -495,49 +513,6 @@ function MoveInput({ currentNode }: { currentNode: TreeNode }) {
   );
 }
 
-function ShowMaterial({
-  pieces,
-  diff,
-  color,
-}: {
-  pieces: PiecesCount;
-  color: Color;
-  diff: number;
-}) {
-  let compare;
-  if (color === "white") compare = (v: number) => v > 0;
-  else compare = (v: number) => v < 0;
-
-  const pawns = [...Array(Math.abs(pieces.p)).keys()].map((i) => (
-    <IconChessFilled key={i} />
-  ));
-  const knights = [...Array(Math.abs(pieces.n)).keys()].map((i) => (
-    <IconChessKnightFilled key={i} />
-  ));
-  const bishops = [...Array(Math.abs(pieces.b)).keys()].map((i) => (
-    <IconChessBishopFilled key={i} />
-  ));
-  const rooks = [...Array(Math.abs(pieces.r)).keys()].map((i) => (
-    <IconChessRookFilled key={i} />
-  ));
-  const queens = [...Array(Math.abs(pieces.q)).keys()].map((i) => (
-    <IconChessQueenFilled key={i} />
-  ));
-
-  return (
-    <Group spacing="xs">
-      <Group spacing={0}>
-        {compare(pieces.p) && pawns}
-        {compare(pieces.n) && knights}
-        {compare(pieces.b) && bishops}
-        {compare(pieces.r) && rooks}
-        {compare(pieces.q) && queens}
-      </Group>
-      {compare(diff) && (diff > 0 ? "+" + diff : diff)}
-    </Group>
-  );
-}
-
 function AnnotationHint({
   square,
   annotation,
@@ -552,7 +527,7 @@ function AnnotationHint({
 
   return (
     <Box
-      sx={{
+      style={{
         position: "absolute",
         width: "12.5%",
         height: "12.5%",
@@ -563,7 +538,7 @@ function AnnotationHint({
       <Box pl="90%">
         {annotation && (
           <Avatar
-            sx={{
+            style={{
               transform: "translateY(-40%) translateX(-50%)",
               zIndex: 100,
               filter: "url(#shadow)",
@@ -589,19 +564,6 @@ function AnnotationHint({
           </Avatar>
         )}
       </Box>
-
-      <Global
-        styles={(theme) => ({
-          "cg-board": {
-            "square.last-move": {
-              background: theme.fn.rgba(
-                theme.colors[color][theme.colorScheme === "dark" ? 8 : 6],
-                0.4
-              ),
-            },
-          },
-        })}
-      />
     </Box>
   );
 }

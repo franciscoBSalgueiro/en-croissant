@@ -1,20 +1,9 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
-import { Group, Progress, Text, createStyles } from "@mantine/core";
+import { Group, Progress, Text } from "@mantine/core";
 import { DataTable } from "mantine-datatable";
 import { useContext, memo } from "react";
-
-const useStyles = createStyles(() => ({
-  clickable: {
-    cursor: "pointer",
-  },
-  whiteLabel: {
-    "& .mantine-Progress-label": {
-      color: "black",
-    },
-  },
-}));
 
 function OpeningsTable({
   openings,
@@ -23,7 +12,6 @@ function OpeningsTable({
   openings: Opening[];
   loading: boolean;
 }) {
-  const { classes } = useStyles();
   const dispatch = useContext(TreeDispatchContext);
 
   const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
@@ -45,7 +33,7 @@ function OpeningsTable({
 
   return (
     <DataTable
-      withBorder
+      withTableBorder
       highlightOnHover
       records={openings}
       fetching={loading || openings === null}
@@ -64,8 +52,8 @@ function OpeningsTable({
           accessor: "move",
           width: 100,
           render: ({ move }) => {
-            if (move === "*") return <Text fs="italic">Game end</Text>;
-            return <Text>{move}</Text>;
+            if (move === "*") return <Text fz="sm" fs="italic">Game end</Text>;
+            return <Text fz="sm">{move}</Text>;
           },
         },
         {
@@ -75,9 +63,11 @@ function OpeningsTable({
             const total = white + draw + black;
             const percentage = (total / grandTotal) * 100;
             return (
-              <Group grow>
-                {move !== "Total" && <Text>{percentage.toFixed(0)}%</Text>}
-                <Text align="right">{formatNumber(total)}</Text>
+              <Group>
+                {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
+                <Text fz="sm" style={{ flex: 1 }} ta="right">
+                  {formatNumber(total)}
+                </Text>
               </Group>
             );
           },
@@ -90,41 +80,33 @@ function OpeningsTable({
             const drawPercent = (draw / total) * 100;
             const blackPercent = (black / total) * 100;
             return (
-              <Progress
-                size="xl"
-                radius="xl"
-                animate={false}
-                sections={[
-                  {
-                    className: classes.whiteLabel,
-                    value: whitePercent,
-                    color: "white",
-                    label:
-                      whitePercent > 5 ? whitePercent.toFixed(1) + "%" : "",
-                  },
-                  {
-                    value: drawPercent,
-                    color: "gray",
-                    label: drawPercent > 5 ? drawPercent.toFixed(1) + "%" : "",
-                  },
-                  {
-                    value: blackPercent,
-                    color: "black",
-                    label:
-                      blackPercent > 5 ? blackPercent.toFixed(1) + "%" : "",
-                  },
-                ]}
-              />
+              <Progress.Root size="xl">
+                <Progress.Section value={whitePercent} color="white">
+                  <Progress.Label c="black">
+                    {whitePercent > 5 ? `${whitePercent.toFixed(1)}%` : ""}
+                  </Progress.Label>
+                </Progress.Section>
+                <Progress.Section value={drawPercent} color="gray">
+                  <Progress.Label>
+                    {drawPercent > 5 ? `${drawPercent.toFixed(1)}%` : ""}
+                  </Progress.Label>
+                </Progress.Section>
+                <Progress.Section value={blackPercent} color="black">
+                  <Progress.Label>
+                    {blackPercent > 5 ? `${blackPercent.toFixed(1)}%` : ""}
+                  </Progress.Label>
+                </Progress.Section>
+              </Progress.Root>
             );
           },
         },
       ]}
       idAccessor="move"
       emptyState={"No games found"}
-      onRowClick={({ move }) => {
+      onRowClick={({ record }) => {
         dispatch({
           type: "MAKE_MOVE",
-          payload: move,
+          payload: record.move,
         });
       }}
     />

@@ -111,7 +111,7 @@ function PgnInput() {
   }
 
   const pgnArea = (
-    <Box sx={{ position: "relative" }}>
+    <Box style={{ position: "relative" }}>
       <Textarea
         autosize
         value={tmp}
@@ -128,7 +128,7 @@ function PgnInput() {
               color={copied ? "teal" : "gray"}
               variant="subtle"
               onClick={copy}
-              sx={{ position: "absolute", top: 15, right: 15 }}
+              style={{ position: "absolute", top: 15, right: 15 }}
             >
               {copied ? (
                 <IconCheck style={{ width: rem(16) }} />
@@ -141,7 +141,7 @@ function PgnInput() {
       </CopyButton>
       {realPGN !== tmp && (
         <Button
-          sx={{ position: "absolute", bottom: 15, right: 15 }}
+          style={{ position: "absolute", bottom: 15, right: 15 }}
           onClick={() => updatePgn()}
         >
           Update
@@ -151,7 +151,7 @@ function PgnInput() {
   );
 
   return (
-    <Stack spacing={0}>
+    <Stack gap={0}>
       {controls}
       {pgnArea}
     </Stack>

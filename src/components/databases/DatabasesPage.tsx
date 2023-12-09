@@ -104,15 +104,17 @@ export default function DatabasesPage() {
         <OpenFolderButton base="AppDir" folder="db" />
       </Group>
 
-      <Group grow sx={{ flex: 1, overflow: "hidden" }} align="start">
+      <Group
+        grow
+        style={{ flex: 1, overflow: "hidden" }}
+        align="start"
+        px="md"
+        pb="md"
+      >
         <ScrollArea h="100%" offsetScrollbars>
           <SimpleGrid
-            cols={2}
-            breakpoints={[
-              { maxWidth: 1200, cols: 3, spacing: "md" },
-              { maxWidth: 1000, cols: 2, spacing: "sm" },
-              { maxWidth: 800, cols: 1, spacing: "sm" },
-            ]}
+            cols={{ base: 1, md: 2 }}
+            spacing={{ base: "md", md: "sm" }}
           >
             {databases.map((item) => (
               <GenericCard
@@ -122,12 +124,12 @@ export default function DatabasesPage() {
                 setSelected={setSelectedDatabase}
                 error={item.error}
                 Header={
-                  <Group noWrap position="apart">
-                    <Group noWrap>
+                  <Group wrap="nowrap" justify="space-between">
+                    <Group wrap="nowrap">
                       <IconDatabase size="1.5rem" />
                       <div>
-                        <Text weight={500}>{item.error ?? item.title}</Text>
-                        <Text size="xs" color="dimmed">
+                        <Text fw={500}>{item.error ?? item.title}</Text>
+                        <Text size="xs" c="dimmed">
                           {item.error ? item.file : item.description}
                         </Text>
                       </div>
@@ -165,7 +167,7 @@ export default function DatabasesPage() {
                   </Text>
 
                   <Text>
-                    <Text underline span>
+                    <Text td="underline" span>
                       Reason:
                     </Text>
                     {" " + selectedDatabase.error}

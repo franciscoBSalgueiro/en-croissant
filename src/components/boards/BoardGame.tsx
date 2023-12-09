@@ -129,14 +129,14 @@ function OpponentForm({
   }
 
   return (
-    <Stack sx={{ flex: 1 }}>
+    <Stack style={{ flex: 1 }}>
       <SegmentedControl
         data={[
           { value: "human", label: "Human" },
           { value: "engine", label: "Engine" },
         ]}
         value={opponent.type}
-        onChange={updateType}
+        onChange={(v) => updateType(v as "human" | "engine")}
       />
 
       {opponent.type === "human" && (
@@ -304,7 +304,7 @@ function BoardGame() {
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 <Group>
-                  <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                  <Text style={{ flex: 1 }} ta="center" fz="lg" fw="bold">
                     {match(inputColor)
                       .with("white", () => "White")
                       .with("random", () => "Random")
@@ -314,7 +314,7 @@ function BoardGame() {
                   <ActionIcon onClick={cycleColor}>
                     <IconArrowsExchange />
                   </ActionIcon>
-                  <Text sx={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                  <Text style={{ flex: 1 }} ta="center" fz="lg" fw="bold">
                     {match(inputColor)
                       .with("white", () => "Black")
                       .with("random", () => "Random")
@@ -322,8 +322,8 @@ function BoardGame() {
                       .exhaustive()}
                   </Text>
                 </Group>
-                <Box sx={{ flex: 1 }}>
-                  <Group sx={{ alignItems: "start" }}>
+                <Box style={{ flex: 1 }}>
+                  <Group style={{ alignItems: "start" }}>
                     <OpponentForm
                       opponent={player1Settings}
                       setOpponent={setPlayer1Settings}
@@ -367,7 +367,7 @@ function BoardGame() {
           )}
           {(gameState === "playing" || gameState === "gameOver") && (
             <Stack h="100%">
-              <Box sx={{ flex: 1 }}>
+              <Box style={{ flex: 1 }}>
                 <GameInfo headers={headers} />
               </Box>
               <Group grow>
@@ -386,14 +386,14 @@ function BoardGame() {
                       },
                     });
                   }}
-                  leftIcon={<IconPlus />}
+                  leftSection={<IconPlus />}
                 >
                   New Game
                 </Button>
                 <Button
                   variant="default"
                   onClick={() => changeToAnalysisMode()}
-                  leftIcon={<IconZoomCheck />}
+                  leftSection={<IconZoomCheck />}
                 >
                   Analyze
                 </Button>

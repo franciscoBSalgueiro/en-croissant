@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Text, clsx, createStyles } from "@mantine/core";
+import { ActionIcon, Group, Text } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useEffect } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
@@ -12,6 +12,8 @@ import ConfirmModal from "@/components/common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
 import { useSetAtom } from "jotai";
 import { currentPracticingAtom } from "@/atoms/atoms";
+import cx from "clsx";
+import * as classes from "./GameSelector.css"
 
 export default function GameSelector({
   height,
@@ -93,27 +95,6 @@ export default function GameSelector({
   );
 }
 
-const useStyles = createStyles((theme) => ({
-  row: {
-    padding: "0 10px",
-    cursor: "pointer",
-    borderBottom: `1px solid ${theme.colors.gray[7]}`,
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[2],
-    },
-  },
-  active: {
-    backgroundColor: `${
-      theme.colorScheme === "dark"
-        ? theme.fn.rgba(theme.colors[theme.primaryColor][7], 0.3)
-        : theme.colors[theme.primaryColor][0]
-    } !important`,
-  },
-}));
-
 function GameRow({
   style,
   index,
@@ -133,7 +114,6 @@ function GameRow({
   deleteGame?: (indxe: number) => void;
 }) {
   const [deleteModal, toggleDelete] = useToggle();
-  const { classes } = useStyles();
   const setPracticing = useSetAtom(currentPracticingAtom);
 
   return (
@@ -152,9 +132,9 @@ function GameRow({
       )}
       <Group
         style={style}
-        position="apart"
+        justify="space-between"
         pr="xl"
-        className={clsx(classes.row, {
+        className={cx(classes.row, {
           [classes.active]: index === activePage,
         })}
       >
@@ -163,11 +143,10 @@ function GameRow({
           truncate
           maw={600}
           onClick={() => {
-            console.log(index);
             setPracticing(false);
             setPage(index);
           }}
-          sx={{ flex: 1 }}
+          style={{ flex: 1 }}
         >
           {formatNumber(index + 1)}. {game}
         </Text>

@@ -1,6 +1,12 @@
-import { ActionIcon, createStyles, ScrollArea, Tabs } from "@mantine/core";
+import {
+  ActionIcon,
+  ScrollArea,
+  Tabs,
+} from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconPlus,
+} from "@tabler/icons-react";
 import { createTab, genID, Tab } from "@/utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -21,24 +27,9 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 import { Mosaic, MosaicNode } from "react-mosaic-component";
 import { keyMapAtom } from "@/atoms/keybinds";
-
-const useStyles = createStyles((theme) => ({
-  newTab: {
-    backgroundColor:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[7]
-        : theme.colors.gray[0],
-    ":hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[2],
-    },
-  },
-}));
+import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
-  const { classes } = useStyles();
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
   const [saveModalOpened, toggleSaveModal] = useToggle();
@@ -178,17 +169,16 @@ export default function BoardsPage() {
       />
       <Tabs
         value={activeTab}
-        onTabChange={(v) => setActiveTab(v)}
-        variant="outline"
+        onChange={(v) => setActiveTab(v)}
         keepMounted={false}
-        sx={{
+        style={{
           display: "flex",
           flexDirection: "column",
           height: "100%",
           width: "100%",
         }}
       >
-        <ScrollArea offsetScrollbars sx={{ overflow: "visible" }}>
+        <ScrollArea type="never" h="3.75rem" px="md" pt="sm">
           <DragDropContext
             onDragEnd={({ destination, source }) =>
               destination?.index !== undefined &&
@@ -233,7 +223,7 @@ export default function BoardsPage() {
                   ))}
                   {provided.placeholder}
                   <ActionIcon
-                    my="auto"
+                    variant="default"
                     onClick={() =>
                       createTab({
                         tab: {
@@ -244,9 +234,12 @@ export default function BoardsPage() {
                         setActiveTab,
                       })
                     }
-                    className={classes.newTab}
+                    size="lg"
+                    classNames={{
+                      root: classes.newTab,
+                    }}
                   >
-                    <IconPlus size="1rem" />
+                    <IconPlus />
                   </ActionIcon>
                 </div>
               )}
@@ -254,7 +247,14 @@ export default function BoardsPage() {
           </DragDropContext>
         </ScrollArea>
         {tabs.map((tab) => (
-          <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%">
+          <Tabs.Panel
+            key={tab.value}
+            value={tab.value}
+            h="100%"
+            w="100%"
+            pb="sm"
+            px="sm"
+          >
             <TabSwitch tab={tab} />
           </Tabs.Panel>
         ))}

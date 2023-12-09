@@ -35,7 +35,7 @@ function PlayerCard({
     };
   }, [tournament.id, file]);
 
-  const [sort, setSort] = useState<DataTableSortStatus>({
+  const [sort, setSort] = useState<DataTableSortStatus<NormalizedGame>>({
     columnAccessor: "date",
     direction: "asc",
   });
@@ -54,11 +54,11 @@ function PlayerCard({
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
       <Stack h="100%">
-        <Text fz="lg" weight={500}>
+        <Text fz="lg" fw={500}>
           {tournament.name}
         </Text>
-        <DataTable
-          withBorder
+        <DataTable<NormalizedGame>
+          withTableBorder
           highlightOnHover
           records={sortedGames}
           sortStatus={sort}
@@ -93,10 +93,10 @@ function PlayerCard({
               accessor: "white",
               render: ({ white, white_elo }) => (
                 <div>
-                  <Text size="sm" weight={500}>
+                  <Text size="sm" fw={500}>
                     {white}
                   </Text>
-                  <Text size="xs" color="dimmed">
+                  <Text size="xs" c="dimmed">
                     {white_elo}
                   </Text>
                 </div>
@@ -106,10 +106,10 @@ function PlayerCard({
               accessor: "black",
               render: ({ black, black_elo }) => (
                 <div>
-                  <Text size="sm" weight={500}>
+                  <Text size="sm" fw={500}>
                     {black}
                   </Text>
-                  <Text size="xs" color="dimmed">
+                  <Text size="xs" c="dimmed">
                     {black_elo}
                   </Text>
                 </div>

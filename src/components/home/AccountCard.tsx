@@ -23,8 +23,9 @@ import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { downloadLichess } from "@/utils/lichess";
 import { invoke } from "@/utils/invoke";
 import LichessLogo from "./LichessLogo";
-import useStyles from "./styles";
+import * as classes from "./styles.css";
 import { info } from "tauri-plugin-log-api";
+import { capitalize } from "@/utils/format";
 
 interface AccountCardProps {
   type: "lichess" | "chesscom";
@@ -55,7 +56,6 @@ export function AccountCard({
   setDatabases,
   token,
 }: AccountCardProps) {
-  const { classes } = useStyles();
   const items = stats.map((stat) => {
     let color = "gray.5";
     let DiffIcon: React.FC<TablerIconsProps> = IconArrowRight;
@@ -70,22 +70,22 @@ export function AccountCard({
       }
     }
     return (
-      <div key={stat.label} className={classes.rating}>
-        <Group align="baseline" position="apart">
+      <Card key={stat.label} withBorder p="xs">
+        <Group align="baseline" justify="space-between">
           <div>
-            <Text className={classes.label}>{stat.value}</Text>
-            <Text size="xs" color="dimmed">
-              {stat.label}
+            <Text fw="bold">{stat.value}</Text>
+            <Text size="xs" c="dimmed">
+              {capitalize(stat.label)}
             </Text>
           </div>
           {stat.diff && (
-            <Text color={color} size="sm" weight={500} className={classes.diff}>
+            <Text c={color} size="xs" fw={500} className={classes.diff}>
               <span>{stat.diff}</span>
               <DiffIcon size="1rem" stroke={1.5} />
             </Text>
           )}
         </Group>
-      </div>
+      </Card>
     );
   });
   const [loading, setLoading] = useState(false);
@@ -126,7 +126,7 @@ export function AccountCard({
   }, [database]);
 
   return (
-    <Card withBorder p="xl" radius="md" className={classes.card}>
+    <Card withBorder p="lg" radius="md" className={classes.card}>
       <Group grow>
         <div>
           <Group>
@@ -136,31 +136,31 @@ export function AccountCard({
               <img width={35} height={35} src="/chesscom.png" />
             )}
             <div>
-              <Text size="xl" className={classes.label}>
+              <Text size="xl" fw="bold">
                 {title}
               </Text>
-              <Text mt={5} size="sm" color="dimmed">
+              <Text mt={5} size="sm" c="dimmed">
                 {"Last Updated: " + new Date(updatedAt).toLocaleDateString()}
               </Text>
             </div>
           </Group>
-          <Group>
+          <Group mt="1.5rem">
             <div>
-              <Text className={classes.lead} mt={30}>
+              <Text fw="bold" fz="xl">
                 {total}
               </Text>
-              <Text size="xs" color="dimmed">
+              <Text size="xs" c="dimmed">
                 Total Games
               </Text>
             </div>
 
             <div>
               <Tooltip label={`${downloadedGames} games`}>
-                <Text className={classes.lead} mt={30}>
+                <Text fw="bold" fz="xl">
                   {percentage}%
                 </Text>
               </Tooltip>
-              <Text size="xs" color="dimmed">
+              <Text size="xs" c="dimmed">
                 Downloaded Games
               </Text>
             </div>

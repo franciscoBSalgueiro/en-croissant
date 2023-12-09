@@ -99,19 +99,19 @@ function FilesPage() {
         <OpenFolderButton base="Document" folder="EnCroissant" />
       </Group>
 
-      <Group grow sx={{ flex: 1, overflow: "hidden" }}>
+      <Group grow style={{ flex: 1, overflow: "hidden" }} px="md" pb="md">
         <Stack h="100%">
           <Group>
             <Input
-              sx={{ flexGrow: 1 }}
-              icon={<IconSearch size="1rem" />}
+              style={{ flexGrow: 1 }}
+              rightSection={<IconSearch size="1rem" />}
               placeholder="Search for files"
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
             />
             <Button
               size="xs"
-              leftIcon={<IconPlus size="1rem" />}
+              leftSection={<IconPlus size="1rem" />}
               onClick={() => toggleCreateModal()}
             >
               Create
@@ -120,7 +120,7 @@ function FilesPage() {
               size="xs"
               color="red"
               disabled={!selected}
-              leftIcon={<IconX size="1rem" />}
+              leftSection={<IconX size="1rem" />}
               onClick={() => toggleDeleteModal()}
             >
               Delete
@@ -129,6 +129,7 @@ function FilesPage() {
           <Group>
             {FILE_TYPES.map((type) => (
               <Chip
+                variant="outline"
                 key={type}
                 onChange={(v) =>
                   setFilter((filter) =>
@@ -142,7 +143,7 @@ function FilesPage() {
             ))}
           </Group>
 
-          <ScrollArea sx={{ flex: 1 }} offsetScrollbars>
+          <ScrollArea style={{ flex: 1 }} offsetScrollbars>
             <Stack>
               {filteredFiles.map((file) => (
                 <GenericCard
@@ -151,8 +152,8 @@ function FilesPage() {
                   isSelected={selected?.name === file.name}
                   setSelected={setSelected}
                   Header={
-                    <Group noWrap>
-                      <Text weight={500}>{file.name}</Text>
+                    <Group wrap="nowrap">
+                      <Text fw={500}>{file.name}</Text>
                     </Group>
                   }
                 />

@@ -17,10 +17,10 @@ export function PuzzleDbCard({ db, isSelected, setSelected }: PuzzleCardProps) {
       isSelected={isSelected}
       setSelected={setSelected}
       Header={
-        <Group noWrap>
+        <Group wrap="nowrap">
           <IconDatabase size="1.5rem" />
           <div>
-            <Text weight={500}>{db.title}</Text>
+            <Text fw={500}>{db.title}</Text>
           </div>
         </Group>
       }

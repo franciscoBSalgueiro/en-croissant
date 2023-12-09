@@ -36,6 +36,7 @@ export function localEngine(engine: LocalEngine): Engine {
         loaded: engine.loaded ?? false,
         name: engine.name,
         settings: engine.settings,
+        image: engine.image,
         stop: (tab) =>
             commands.stopEngine(engine.path, tab).then((r) => {
                 unwrap(r);

@@ -1,6 +1,8 @@
 import {
   ActionIcon,
+  Box,
   Button,
+  Center,
   Group,
   Image,
   ScrollArea,
@@ -21,7 +23,7 @@ import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
 import { enginesAtom } from "@/atoms/atoms";
 
-export default function EnginePage() {
+export default function EnginesPage() {
   const engines = useAtomValue(enginesAtom);
   const [opened, setOpened] = useState(false);
 
@@ -33,29 +35,29 @@ export default function EnginePage() {
         <OpenFolderButton base="AppDir" folder="engines" />
       </Group>
       <ScrollArea>
-        <Table sx={{ minWidth: 800 }} verticalSpacing="sm">
-          <thead>
-            <tr>
-              <th>Engine</th>
-              <th>Elo</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table style={{ minWidth: 800 }} verticalSpacing="sm">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Engine</Table.Th>
+              <Table.Th>Elo</Table.Th>
+              <Table.Th>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
             {engines &&
               engines.map((item) => <EngineRow key={item.path} item={item} />)}
-            <tr>
-              <td>
+            <Table.Tr>
+              <Table.Td>
                 <Button
                   onClick={() => setOpened(true)}
                   variant="default"
-                  rightIcon={<IconPlus size="0.875rem" />}
+                  rightSection={<IconPlus />}
                 >
                   Add new
                 </Button>
-              </td>
-            </tr>
-          </tbody>
+              </Table.Td>
+            </Table.Tr>
+          </Table.Tbody>
         </Table>
       </ScrollArea>
     </>
@@ -107,21 +109,25 @@ function EngineRow({ item }: { item: LocalEngine }) {
         initialEngine={item}
       />
 
-      <tr>
-        <td>
-          <Group spacing="sm">
-            {imageSrc ? (
-              <Image width="3.75rem" height="3.75rem" src={imageSrc} />
-            ) : (
-              <IconRobot size="3.75rem" />
-            )}
-            <Text size="md" weight={500} color={fileExists ? undefined : "red"}>
+      <Table.Tr>
+        <Table.Td>
+          <Group>
+            <Box w="5rem">
+              <Center>
+                {imageSrc ? (
+                  <Image fit="contain" src={imageSrc} />
+                ) : (
+                  <IconRobot size="3.75rem" />
+                )}
+              </Center>
+            </Box>
+            <Text size="md" fw={500} color={fileExists ? undefined : "red"}>
               {item.name} {fileExists ? "" : "(file missing)"}
             </Text>
           </Group>
-        </td>
-        <td>{item.elo}</td>
-        <td>
+        </Table.Td>
+        <Table.Td>{item.elo || "Unknown"}</Table.Td>
+        <Table.Td>
           <Group>
             <ActionIcon>
               <IconEdit size="1.25rem" onClick={() => toggleEditModal()} />
@@ -130,8 +136,8 @@ function EngineRow({ item }: { item: LocalEngine }) {
               <IconX size="1.25rem" onClick={() => toggleDeleteModal()} />
             </ActionIcon>
           </Group>
-        </td>
-      </tr>
+        </Table.Td>
+      </Table.Tr>
     </>
   );
 }

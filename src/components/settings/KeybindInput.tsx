@@ -1,5 +1,6 @@
 import { keyMapAtom } from "@/atoms/keybinds";
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
+import { useColorScheme } from "@mantine/hooks";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { useState } from "react";
@@ -45,14 +46,15 @@ function KbdDisplay({
   hovering: boolean;
 }) {
   const splitted = keys.split("+");
+  const colorScheme = useColorScheme();
   return (
     <Group>
       {splitted.map((key, i) => (
         <Group key={key}>
           <Kbd
-            sx={(theme) => ({
+            style={(theme) => ({
               backgroundColor: hovering
-                ? theme.colorScheme === "dark"
+                ? colorScheme === "dark"
                   ? theme.colors.dark[6]
                   : theme.colors.gray[2]
                 : undefined,

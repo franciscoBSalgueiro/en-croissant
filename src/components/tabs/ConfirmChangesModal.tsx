@@ -42,7 +42,7 @@ function ConfirmChangesModal({
           </Text>
         </div>
 
-        <Group position="right">
+        <Group justify="right">
           <Button
             variant="default"
             onClick={() => {

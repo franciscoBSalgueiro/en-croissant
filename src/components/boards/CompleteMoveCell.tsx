@@ -1,6 +1,11 @@
 import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
-import { IconChevronUp, IconChevronsUp, IconFlag, IconX } from "@tabler/icons-react";
+import {
+  IconChevronUp,
+  IconChevronsUp,
+  IconFlag,
+  IconX,
+} from "@tabler/icons-react";
 import { memo, useContext, useState } from "react";
 import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
@@ -52,10 +57,10 @@ function CompleteMoveCell({
       <Box
         ref={isCurrentVariation ? targetRef : undefined}
         component="span"
-        sx={{
+        style={{
           display: "inline-block",
           marginLeft: hasNumber ? 6 : 0,
-          fontSize: "80%"
+          fontSize: "80%",
         }}
       >
         {hasNumber && <>{`${moveNumber.toString()}${isWhite ? "." : "..."}`}</>}
@@ -85,7 +90,7 @@ function CompleteMoveCell({
               <Menu.Dropdown>
                 {currentTab?.file?.metadata.type === "repertoire" && (
                   <Menu.Item
-                    icon={<IconFlag size="0.875rem" />}
+                    leftSection={<IconFlag size="0.875rem" />}
                     onClick={() => {
                       dispatch({
                         type: "SET_START",
@@ -97,7 +102,7 @@ function CompleteMoveCell({
                   </Menu.Item>
                 )}
                 <Menu.Item
-                  icon={<IconChevronsUp size="0.875rem" />}
+                  leftSection={<IconChevronsUp size="0.875rem" />}
                   onClick={() =>
                     dispatch({ type: "PROMOTE_TO_MAINLINE", payload: movePath })
                   }
@@ -106,7 +111,7 @@ function CompleteMoveCell({
                 </Menu.Item>
 
                 <Menu.Item
-                  icon={<IconChevronUp size="0.875rem" />}
+                  leftSection={<IconChevronUp size="0.875rem" />}
                   onClick={() =>
                     dispatch({ type: "PROMOTE_VARIATION", payload: movePath })
                   }
@@ -116,7 +121,7 @@ function CompleteMoveCell({
 
                 <Menu.Item
                   color="red"
-                  icon={<IconX size="0.875rem" />}
+                  leftSection={<IconX size="0.875rem" />}
                   onClick={() =>
                     dispatch({ type: "DELETE_MOVE", payload: movePath })
                   }
@@ -130,10 +135,10 @@ function CompleteMoveCell({
       </Box>
       {showComments && commentHTML && (
         <TypographyStylesProvider
+          pl={0}
+          mx={4}
           style={{
             display: multipleLine ? "block" : "inline-block",
-            marginLeft: 4,
-            marginRight: 4,
           }}
         >
           <span

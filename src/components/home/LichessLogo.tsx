@@ -1,23 +1,11 @@
-import { createStyles } from "@mantine/core";
-
-const useStyles = createStyles((theme) => ({
-  logo: {
-    width: 35,
-    height: 35,
-    borderRadius: theme.radius.sm,
-    overflow: "hidden",
-    fill: theme.colorScheme === "dark" ? theme.white : theme.black,
-    stroke: theme.colorScheme === "dark" ? theme.white : theme.black,
-  },
-}));
+import { logo } from "./LichessLogo.css";
 
 function LichessLogo() {
-  const { classes } = useStyles();
   return (
     <svg
       viewBox="0 0 50 50"
       xmlns="http://www.w3.org/2000/svg"
-      className={classes.logo}
+      className={logo}
     >
       <path
         strokeLinejoin="round"

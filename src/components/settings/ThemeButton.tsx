@@ -2,19 +2,20 @@ import {
   Box,
   Center,
   Group,
+  MantineColorScheme,
   SegmentedControl,
   useMantineColorScheme,
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 
 export default function ThemeButton() {
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   return (
-    <Group position="center">
+    <Group justify="center">
       <SegmentedControl
         value={colorScheme}
-        onChange={(value: "light" | "dark") => toggleColorScheme(value)}
+        onChange={(value) => setColorScheme(value as MantineColorScheme)}
         data={[
           {
             value: "light",

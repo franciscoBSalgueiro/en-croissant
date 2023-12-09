@@ -1,23 +1,8 @@
-import { Box, Card, createStyles, Loader, Text } from "@mantine/core";
+import { Box, Loader, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-
-const useStyles = createStyles((theme) => ({
-  card: {
-    cursor: "pointer",
-    border: 0,
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0],
-    },
-  },
-}));
+import * as classes from "@/components/common/GenericCard.css";
 
 type Progress = {
   total: number;
@@ -31,7 +16,6 @@ function ConvertButton({
   setOpen: (open: boolean) => void;
   loading: boolean;
 }) {
-  const { classes } = useStyles();
   const [progress, setProgress] = useState<Progress | null>(null);
 
   useEffect(() => {
@@ -44,28 +28,32 @@ function ConvertButton({
     getProgress();
   }, []);
   return (
-    <Card
-      withBorder
-      radius="md"
+    <Box
       className={classes.card}
       component="button"
       type="button"
       onClick={() => setOpen(true)}
     >
-      <Text weight={500} mb={10}>
-        Add New
-      </Text>
-      {loading ? <Loader variant="dots" size="2rem" /> : <IconPlus size="2rem" />}
-
-      {progress && loading && (
-        <Box sx={{ display: "flex", justifyContent: "space-around" }}>
-          <Text fz="xs">{progress.total} games</Text>
-          <Text fz="xs" mb={10}>
-            {(progress.total / progress.elapsed).toFixed(1)} games/s
-          </Text>
+      <Stack gap={0} justify="center" w="100%" h="100%">
+        <Text mb={10}>Add New</Text>
+        <Box>
+          {loading ? (
+            <Loader variant="dots" size="1.3rem" />
+          ) : (
+            <IconPlus size="1.3rem" />
+          )}
         </Box>
-      )}
-    </Card>
+
+        {progress && loading && (
+          <Box style={{ display: "flex", justifyContent: "space-around" }}>
+            <Text fz="xs">{progress.total} games</Text>
+            <Text fz="xs" mb={10}>
+              {(progress.total / progress.elapsed).toFixed(1)} games/s
+            </Text>
+          </Box>
+        )}
+      </Stack>
+    </Box>
   );
 }
 

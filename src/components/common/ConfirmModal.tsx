@@ -26,7 +26,7 @@ function ConfirmModal({
           <Text>This action cannot be undone.</Text>
         </div>
 
-        <Group position="right">
+        <Group justify="right">
           <Button variant="default" onClick={() => onClose()}>
             Cancel
           </Button>

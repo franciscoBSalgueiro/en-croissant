@@ -15,7 +15,7 @@ function FileInfo({
   if (!tab?.file) return null;
   return (
     <>
-      <Group position="apart" py="sm" px="md">
+      <Group justify="space-between" py="sm" px="md">
         <Text>
           {formatNumber(tab.file.numGames || 0)} game
           {tab.file.numGames === 1 ? "" : "s"}

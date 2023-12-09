@@ -69,7 +69,7 @@ function GamePreview({
           onClick={() => goToGame()}
           grow
           h="100%"
-          sx={{ overflow: "hidden" }}
+          style={{ overflow: "hidden" }}
         >
           <PreviewBoard />
           {!hideControls && (

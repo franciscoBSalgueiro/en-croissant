@@ -1,13 +1,13 @@
 import {
   Alert,
+  Box,
   Button,
-  Card,
   Center,
-  createStyles,
   Divider,
   Group,
   Loader,
   Modal,
+  Paper,
   ScrollArea,
   Stack,
   Tabs,
@@ -24,23 +24,6 @@ import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
-
-const useStyles = createStyles((theme) => ({
-  card: {
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-  },
-
-  title: {
-    fontWeight: 700,
-    fontFamily: `Greycliff CF, ${theme.fontFamily}`,
-    lineHeight: 1.2,
-  },
-
-  body: {
-    padding: theme.spacing.md,
-  },
-}));
 
 function AddDatabase({
   databases,
@@ -205,44 +188,42 @@ function DatabaseCard({
     });
     setDatabases(await getDatabases());
   }
-  const { classes } = useStyles();
 
   return (
-    <Card
+    <Paper
       withBorder
       radius="md"
       p={0}
       key={database.title}
-      className={classes.card}
     >
-      <Group noWrap spacing={0} grow>
-        <div className={classes.body}>
-          <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+      <Group wrap="nowrap" gap={0} grow>
+        <Box p="md">
+          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             DATABASE
           </Text>
-          <Text className={classes.title} mb="xs">
+          <Text fw="bold" mb="xs">
             {database.title}
           </Text>
 
-          <Text size="xs" color="dimmed">
+          <Text size="xs" c="dimmed">
             {database.description}
           </Text>
           <Divider />
-          <Group noWrap grow my="md">
-            <Stack spacing={0} align="center">
-              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+          <Group wrap="nowrap" grow my="md">
+            <Stack gap={0} align="center">
+              <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 SIZE
               </Text>
               <Text size="xs">{formatBytes(database.storage_size)}</Text>
             </Stack>
-            <Stack spacing={0} align="center">
-              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+            <Stack gap={0} align="center">
+              <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 GAMES
               </Text>
               <Text size="xs">{formatNumber(database.game_count)}</Text>
             </Stack>
-            <Stack spacing={0} align="center">
-              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+            <Stack gap={0} align="center">
+              <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 PLAYERS
               </Text>
               <Text size="xs">{formatNumber(database.player_count)}</Text>
@@ -268,9 +249,9 @@ function DatabaseCard({
             inProgress={inProgress}
             setInProgress={setInProgress}
           />
-        </div>
+        </Box>
       </Group>
-    </Card>
+    </Paper>
   );
 }
 

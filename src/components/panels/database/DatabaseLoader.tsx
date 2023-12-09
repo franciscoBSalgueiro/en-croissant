@@ -41,7 +41,7 @@ function DatabaseLoader({
 
   return (
     <Progress
-      animate={isLoadingFromMemory}
+      animated={isLoadingFromMemory}
       value={isLoadingFromMemory ? 100 : progress}
       size="xs"
       mt="xs"

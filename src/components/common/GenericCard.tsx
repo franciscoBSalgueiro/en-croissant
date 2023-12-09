@@ -1,54 +1,7 @@
-import { Card, Stack, Text, createStyles } from "@mantine/core";
+import { Box, Stack, Text } from "@mantine/core";
 import { ReactNode } from "react";
-
-const useStyles = createStyles(
-  (theme, { selected, error }: { selected: boolean; error: boolean }) => ({
-    card: {
-      cursor: "pointer",
-      backgroundColor: selected
-        ? theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0]
-        : theme.colorScheme === "dark"
-        ? theme.colors.dark[7]
-        : theme.white,
-
-      borderStyle: "solid",
-      borderColor: error
-        ? theme.colors.red[6]
-        : selected
-        ? theme.colors[theme.primaryColor][6]
-        : "transparent",
-      borderWidth: error ? 1 : 2,
-
-      "&:hover": {
-        backgroundColor:
-          theme.colorScheme === "dark"
-            ? theme.colors.dark[6]
-            : theme.colors.gray[0],
-        borderColor: error
-          ? theme.colors.red[6]
-          : selected
-          ? theme.colors[theme.primaryColor][6]
-          : theme.colors.gray[6],
-      },
-    },
-
-    label: {
-      marginBottom: theme.spacing.xs,
-      lineHeight: 1,
-      fontWeight: 700,
-      fontSize: theme.fontSizes.xs,
-      letterSpacing: -0.25,
-      textTransform: "uppercase",
-    },
-
-    info: {
-      display: "flex",
-      justifyContent: "space-between",
-    },
-  })
-);
+import * as classes from "./GenericCard.css";
+import cx from "clsx";
 
 type Props<T> = {
   id: T;
@@ -70,13 +23,13 @@ export default function GenericCard<T>({
   stats,
   Header,
 }: Props<T>) {
-  const { classes } = useStyles({ selected: isSelected, error: !!error });
-
   return (
     <>
-      <Card
-        radius="md"
-        className={classes.card}
+      <Box
+        className={cx(classes.card, {
+          [classes.selected]: isSelected,
+          [classes.error]: !!error,
+        })}
         onClick={() => setSelected(id)}
       >
         <Stack h="100%" justify="space-between">
@@ -87,14 +40,15 @@ export default function GenericCard<T>({
               {stats.map((stat) => (
                 <div key={stat.label}>
                   <Text
-                    size="sm"
-                    color="dimmed"
+                    size="xs"
+                    c="dimmed"
+                    fw="bold"
                     className={classes.label}
-                    mt={15}
+                    mt="1rem"
                   >
                     {stat.label}
                   </Text>
-                  <Text weight={700} size="xl" sx={{ lineHeight: 1 }}>
+                  <Text fw={700} size="lg" style={{ lineHeight: 1 }}>
                     {stat.value}
                   </Text>
                 </div>
@@ -102,7 +56,7 @@ export default function GenericCard<T>({
             </div>
           )}
         </Stack>
-      </Card>
+      </Box>
     </>
   );
 }

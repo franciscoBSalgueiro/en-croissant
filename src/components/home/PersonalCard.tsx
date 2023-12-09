@@ -1,13 +1,15 @@
 import {
   Button,
-  ChevronIcon,
-  createStyles,
   Divider,
   Group,
   Paper,
   Progress,
   Stack,
   Text,
+  Tooltip as MTTooltip,
+  ScrollArea,
+  ActionIcon,
+  Box,
 } from "@mantine/core";
 import { useState } from "react";
 import {
@@ -21,14 +23,8 @@ import {
   YAxis,
 } from "recharts";
 import { PlayerGameInfo } from "@/utils/db";
-
-const useStyles = createStyles((theme) => ({
-  progressLabel: {
-    fontFamily: `Greycliff CF, ${theme.fontFamily}`,
-    lineHeight: 1,
-    fontSize: theme.fontSizes.sm,
-  },
-}));
+import { IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
+import FideInfo from "../databases/FideInfo";
 
 function fillMissingMonths(data: { name: string; games: number }[]) {
   if (data.length === 0) return data;
@@ -82,35 +78,8 @@ function PersonalPlayerCard({
   info: PlayerGameInfo;
 }) {
   const total = info ? info.won + info.lost + info.draw : 0;
-  const { classes } = useStyles();
   const [expanded, setExpanded] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-
-  const sections = info
-    ? [
-        {
-          value: (info.won / total) * 100,
-          color: "green",
-          label: `${((info.won / total) * 100).toFixed(1)}%`,
-          tooltip: `${info.won} wins`,
-        },
-        {
-          value: (info.draw / total) * 100,
-          color: "gray",
-          label:
-            info.draw / total > 0.05
-              ? `${((info.draw / total) * 100).toFixed(1)}%`
-              : undefined,
-          tooltip: `${info.draw} draws`,
-        },
-        {
-          value: (info.lost / total) * 100,
-          color: "red",
-          label: `${((info.lost / total) * 100).toFixed(1)}%`,
-          tooltip: `${info.lost} losses`,
-        },
-      ]
-    : [];
 
   let data = fillMissingMonths(
     info?.games_per_month
@@ -135,93 +104,132 @@ function PersonalPlayerCard({
     black_openings = black_openings.slice(0, 3);
   }
 
+  const [opened, setOpened] = useState(false);
+
   return (
-    <Paper shadow="sm" p="sm" withBorder>
-      <Stack align="center">
-        <Text fz="lg" weight={500}>
-          {name}
+    <Paper
+      h="100%"
+      shadow="sm"
+      p="md"
+      withBorder
+      style={{ overflow: "hidden" }}
+    >
+      <FideInfo key={name} opened={opened} setOpened={setOpened} name={name} />
+      <ScrollArea h="100%">
+        <Box pos="relative">
+          {name !== "Stats" && (
+            <ActionIcon pos="absolute" onClick={() => setOpened(true)}>
+              <IconInfoCircle />
+            </ActionIcon>
+          )}
+          <Stack align="center" w="100%">
+            <Text fz="lg" fw={500}>
+              {name}
+            </Text>
+          </Stack>
+        </Box>
+        <Text ta="center">{total} Games</Text>
+        <Progress.Root size="2rem" mt="1rem">
+          <MTTooltip label={`${info.won} wins`}>
+            <Progress.Section value={(info.won / total) * 100} color="green">
+              <Progress.Label>{`${((info.won / total) * 100).toFixed(
+                1
+              )}%`}</Progress.Label>
+            </Progress.Section>
+          </MTTooltip>
+
+          <MTTooltip label={`${info.draw} draws`}>
+            <Progress.Section value={(info.draw / total) * 100} color="gray">
+              <Progress.Label>
+                {info.draw / total > 0.1
+                  ? `${((info.draw / total) * 100).toFixed(1)}%`
+                  : undefined}
+              </Progress.Label>
+            </Progress.Section>
+          </MTTooltip>
+
+          <MTTooltip label={`${info.lost} losses`}>
+            <Progress.Section value={(info.lost / total) * 100} color="red">
+              <Progress.Label>{`${((info.lost / total) * 100).toFixed(
+                1
+              )}%`}</Progress.Label>
+            </Progress.Section>
+          </MTTooltip>
+        </Progress.Root>
+        <Divider my="xs" />
+        <Text ta="center" fw="bold">
+          Openings
         </Text>
-      </Stack>
-      <Text align="center">{total} Games</Text>
-      <Progress
-        sections={sections}
-        size="2rem"
-        classNames={{ label: classes.progressLabel }}
-        mt={40}
-      />
-      <Divider my="xs" />
-      <Text align="center" fw="bold">
-        Openings
-      </Text>
-      <Group grow mt="lg">
+        <Group grow mt="lg">
+          <Stack>
+            <Text fw="bold">White</Text>
+            {white_openings.map(([opening, games]) => (
+              <Text key={opening}>
+                {opening}: {games}
+              </Text>
+            ))}
+          </Stack>
+          <Stack>
+            <Text fw="bold">Black</Text>
+            {black_openings.map(([opening, games]) => (
+              <Text key={opening}>
+                {opening}: {games}
+              </Text>
+            ))}
+          </Stack>
+        </Group>
+        <Divider
+          my="xs"
+          variant="dashed"
+          labelPosition="center"
+          onClick={() => setExpanded((v) => !v)}
+          label={
+            <Button
+              size="sm"
+              variant="subtle"
+              leftSection={
+                <IconChevronDown
+                  style={{
+                    transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              }
+            >
+              {expanded ? "Show Less" : "Show More"}
+            </Button>
+          }
+        />
         <Stack>
-          <Text fw="bold">White</Text>
-          {white_openings.map(([opening, games]) => (
-            <Text key={opening}>
-              {opening}: {games}
-            </Text>
-          ))}
-        </Stack>
-        <Stack>
-          <Text fw="bold">Black</Text>
-          {black_openings.map(([opening, games]) => (
-            <Text key={opening}>
-              {opening}: {games}
-            </Text>
-          ))}
-        </Stack>
-      </Group>
-      <Divider
-        my="xs"
-        variant="dashed"
-        labelPosition="center"
-        onClick={() => setExpanded((v) => !v)}
-        label={
-          <Button
-            size="sm"
-            variant="subtle"
-            leftIcon={
-              <ChevronIcon
-                style={{
-                  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={data}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+              onClick={(e) => {
+                const year = parseInt(e.activePayload?.[0]?.payload?.name);
+                if (year) {
+                  setSelectedYear((prev) => (prev === year ? null : year));
+                }
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />3
+              <YAxis />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgb(0, 0, 0)",
                 }}
               />
-            }
-          >
-            {expanded ? "Show Less" : "Show More"}
-          </Button>
-        }
-      />
-      <Stack>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-            onClick={(e) => {
-              const year = parseInt(e.activePayload?.[0]?.payload?.name);
-              if (year) {
-                setSelectedYear((prev) => (prev === year ? null : year));
-              }
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />3
-            <YAxis />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "rgb(0, 0, 0)",
-              }}
-            />
-            <Legend />
-            <Bar dataKey="games" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Stack>
+              <Legend />
+              <Bar dataKey="games" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Stack>
+      </ScrollArea>
     </Paper>
   );
 }

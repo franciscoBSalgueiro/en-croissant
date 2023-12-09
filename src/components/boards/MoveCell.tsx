@@ -1,7 +1,8 @@
-import { Box, createStyles } from "@mantine/core";
+import { Box, rgba, useMantineTheme } from "@mantine/core";
 import { ForwardedRef, forwardRef } from "react";
 import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
 import { IconFlag } from "@tabler/icons-react";
+import * as classes from "./MoveCell.css";
 
 interface MoveCellProps {
   annotation: Annotation;
@@ -12,57 +13,47 @@ interface MoveCellProps {
   onContextMenu: (e: React.MouseEvent) => void;
 }
 
-const useStyles = createStyles(
-  (
-    theme,
-    {
-      isCurrentVariation,
-      color,
-    }: { isCurrentVariation: boolean; color: string }
-  ) => ({
-    cell: {
-      all: "unset",
-      fontSize: "0.9rem",
-      fontWeight: 600,
-      display: "inline-block",
-      padding: 6,
-      borderRadius: 4,
-      whiteSpace: "nowrap",
-      cursor: "pointer",
-      color:
-        color === "gray"
-          ? theme.colorScheme === "dark"
-            ? theme.white
-            : theme.colors.gray[8]
-          : theme.colors[color][6],
-      backgroundColor: isCurrentVariation
-        ? theme.fn.rgba(theme.colors[color][6], 0.2)
-        : "transparent",
-      "&:hover": {
-        backgroundColor: theme.fn.rgba(
-          theme.colors[color][6],
-          isCurrentVariation ? 0.25 : 0.1
-        ),
-      },
-    },
-  })
-);
-
 const MoveCell = forwardRef(function MoveCell(
   props: MoveCellProps,
   ref: ForwardedRef<HTMLButtonElement>
 ) {
   const color = ANNOTATION_INFO[props.annotation].color;
-  const { classes } = useStyles({
-    isCurrentVariation: props.isCurrentVariation,
-    color,
-  });
+  const theme = useMantineTheme();
+  const hoverOpacity = props.isCurrentVariation ? 0.25 : 0.1;
+  let baseLight = theme.colors.gray[8];
+  let hoverLight = rgba(baseLight, hoverOpacity);
+  let baseDark = theme.colors.gray[1];
+  let hoverDark = rgba(baseDark, hoverOpacity);
+  let darkBg = "transparent";
+  let lightBg = "transparent";
+
+  if (color !== "gray") {
+    baseLight = theme.colors[color][6];
+    hoverLight = rgba(baseLight, hoverOpacity);
+    baseDark = theme.colors[color][6];
+    hoverDark = rgba(baseDark, hoverOpacity);
+  }
+
+  if (props.isCurrentVariation) {
+    darkBg = rgba(theme.colors[color][6], 0.2);
+    lightBg = rgba(theme.colors[color][6], 0.2);
+    hoverLight = rgba(lightBg, 0.25);
+    hoverDark = rgba(darkBg, 0.25);
+  }
 
   return (
     <Box
       ref={ref}
       component="button"
       className={classes.cell}
+      style={{
+        "--light-color": baseLight,
+        "--light-hover-color": hoverLight,
+        "--dark-color": baseDark,
+        "--dark-hover-color": hoverDark,
+        "--dark-bg": darkBg,
+        "--light-bg": lightBg,
+      }}
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >

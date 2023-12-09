@@ -1,10 +1,10 @@
 import {
   Alert,
-  Card,
-  createStyles,
+  Box,
   Divider,
   Group,
   Modal,
+  Paper,
   ScrollArea,
   Stack,
   Text,
@@ -17,23 +17,6 @@ import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import ProgressButton from "../common/ProgressButton";
 import { getPuzzleDatabases, PuzzleDatabase } from "@/utils/puzzles";
-
-const useStyles = createStyles((theme) => ({
-  card: {
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-  },
-
-  title: {
-    fontWeight: 700,
-    fontFamily: `Greycliff CF, ${theme.fontFamily}`,
-    lineHeight: 1.2,
-  },
-
-  body: {
-    padding: theme.spacing.md,
-  },
-}));
 
 function AddPuzzle({
   puzzleDbs,
@@ -116,38 +99,36 @@ function PuzzleDbCard({
     });
     setPuzzleDbs(await getPuzzleDatabases());
   }
-  const { classes } = useStyles();
 
   return (
-    <Card
+    <Paper
       withBorder
       radius="md"
       p={0}
       key={puzzleDb.title}
-      className={classes.card}
     >
-      <Group noWrap spacing={0} grow>
-        <div className={classes.body}>
-          <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+      <Group wrap="nowrap" gap={0} grow>
+        <Box p="md">
+          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             DATABASE
           </Text>
-          <Text className={classes.title} mb="xs">
+          <Text fw="bold" mb="xs">
             {puzzleDb.title}
           </Text>
 
-          <Text size="xs" color="dimmed">
+          <Text size="xs" c="dimmed">
             {puzzleDb.description}
           </Text>
           <Divider />
-          <Group noWrap grow my="md">
-            <Stack spacing={0} align="center">
-              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+          <Group wrap="nowrap" grow my="md">
+            <Stack gap={0} align="center">
+              <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 SIZE
               </Text>
               <Text size="xs">{formatBytes(puzzleDb.storage_size)}</Text>
             </Stack>
-            <Stack spacing={0} align="center">
-              <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+            <Stack gap={0} align="center">
+              <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 PUZZLES
               </Text>
               <Text size="xs">{formatNumber(puzzleDb.puzzle_count)}</Text>
@@ -173,9 +154,9 @@ function PuzzleDbCard({
             inProgress={inProgress}
             setInProgress={setInProgress}
           />
-        </div>
+        </Box>
       </Group>
-    </Card>
+    </Paper>
   );
 }
 

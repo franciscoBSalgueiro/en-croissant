@@ -55,24 +55,20 @@ function ReportModal({
     setInProgress(true);
     toggleReportingMode();
     commands
-      .analyzeGame(
-        moves,
-        form.values.engine,
-        form.values.goMode,
-        {
-          annotateNovelties: form.values.novelty,
-          fen: initialFen,
-          referenceDb,
-          reversed: form.values.reversed
-        }
-      )
+      .analyzeGame(moves, form.values.engine, form.values.goMode, {
+        annotateNovelties: form.values.novelty,
+        fen: initialFen,
+        referenceDb,
+        reversed: form.values.reversed,
+      })
       .then((analysis) => {
         const analysisData = unwrap(analysis);
         dispatch({
           type: "ADD_ANALYSIS",
           payload: analysisData,
         });
-      }).finally(() => setInProgress(false));
+      })
+      .finally(() => setInProgress(false));
   }
 
   return (
@@ -97,9 +93,12 @@ function ReportModal({
             }
             {...form.getInputProps("engine")}
           />
-          <Group noWrap>
+          <Group wrap="nowrap">
             <Select
-              dropdownPosition="bottom"
+              comboboxProps={{
+                position: "bottom",
+                middlewares: { flip: false, shift: false },
+              }}
               data={["Depth", { label: "Time (ms)", value: "Time" }, "Nodes"]}
               value={form.values.goMode.t}
               onChange={(v) => {
@@ -114,12 +113,11 @@ function ReportModal({
               onChange={(v) =>
                 form.setFieldValue("goMode", {
                   ...form.values.goMode,
-                  c: v || 1,
+                  c: (v || 1) as number,
                 })
               }
             />
           </Group>
-
 
           <Checkbox
             label="Reversed analysis"
@@ -133,7 +131,7 @@ function ReportModal({
             {...form.getInputProps("novelty", { type: "checkbox" })}
           />
 
-          <Group position="right">
+          <Group justify="right">
             <Button type="submit">Analyze</Button>
           </Group>
         </Stack>

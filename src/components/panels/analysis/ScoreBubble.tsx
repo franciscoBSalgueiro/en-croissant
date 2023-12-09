@@ -6,7 +6,7 @@ function ScoreBubble({ score }: { score: Score }) {
   const text = formatScore(score);
   return (
     <Box
-      sx={(theme) => ({
+      style={(theme) => ({
         backgroundColor:
           score.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
@@ -17,11 +17,11 @@ function ScoreBubble({ score }: { score: Score }) {
       })}
     >
       <Text
-        weight={700}
-        color={score.value >= 0 ? "black" : "white"}
+        fw={700}
+        c={score.value >= 0 ? "black" : "white"}
         size="md"
-        align="center"
-        sx={(theme) => ({
+        ta="center"
+        style={(theme) => ({
           fontFamily: theme.fontFamilyMonospace,
         })}
       >

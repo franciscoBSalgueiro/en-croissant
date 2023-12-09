@@ -100,7 +100,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
         </Stack>
 
         <Box
-          sx={{ flex: 1, display: "flex", flexDirection: "column" }}
+          style={{ flex: 1, display: "flex", flexDirection: "column" }}
           h="30rem"
         >
           <PiecesGrid

@@ -78,20 +78,16 @@ export default function NewTabHome({ id }: { id: string }) {
     <>
       <ImportModal openModal={openModal} setOpenModal={setOpenModal} />
       <SimpleGrid
-        cols={4}
-        breakpoints={[
-          { maxWidth: 600, cols: 1 },
-          { maxWidth: 900, cols: 2 },
-        ]}
+        cols={{ base: 1, sm: 2, lg: 4 }}
       >
         {cards.map((card) => (
           <Card shadow="sm" p="lg" radius="md" withBorder key={card.title}>
             <Stack align="center" h="100%" justify="space-between">
               <FontAwesomeIcon icon={card.icon} size="4x" />
 
-              <Box sx={{ textAlign: "center" }}>
-                <Text weight={500}>{card.title}</Text>
-                <Text size="sm" color="dimmed">
+              <Box style={{ textAlign: "center" }}>
+                <Text fw={500}>{card.title}</Text>
+                <Text size="sm" c="dimmed">
                   {card.description}
                 </Text>
               </Box>

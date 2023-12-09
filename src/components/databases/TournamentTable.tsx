@@ -3,10 +3,10 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
-import { DatabaseInfo, Player, query_tournaments } from "@/utils/db";
+import { DatabaseInfo, Player, Tournament, query_tournaments } from "@/utils/db";
 import TournamentCard from "./TournamentCard";
-import useStyles from "./styles";
 import GridLayout from "./GridLayout";
+import * as classes from "./styles.css";
 
 function TournamentTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
@@ -17,12 +17,10 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
   const [limit, setLimit] = useState(25);
   const [activePage, setActivePage] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
-  const [sort, setSort] = useState<DataTableSortStatus>({
+  const [sort, setSort] = useState<DataTableSortStatus<Tournament>>({
     columnAccessor: "id",
     direction: "asc",
   });
-
-  const { classes } = useStyles();
 
   useEffect(() => {
     setActivePage(1);
@@ -83,19 +81,19 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
   return (
     <GridLayout
       search={
-        <Flex sx={{ alignItems: "center", gap: 10 }}>
+        <Flex style={{ alignItems: "center", gap: 10 }}>
           <TextInput
-            sx={{ flexGrow: 1 }}
+            style={{ flexGrow: 1 }}
             placeholder="Search tournament..."
-            icon={<IconSearch size="1rem" />}
+            leftSection={<IconSearch size="1rem" />}
             value={name}
             onChange={(v) => setName(v.currentTarget.value)}
           />
         </Flex>
       }
       table={
-        <DataTable
-          withBorder
+        <DataTable<Tournament>
+          withTableBorder
           highlightOnHover
           records={tournaments}
           fetching={loading}
@@ -113,8 +111,8 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
           sortStatus={sort}
           onSortStatusChange={setSort}
           recordsPerPageOptions={[10, 25, 50]}
-          onRowClick={(_, i) => {
-            setSelected(i);
+          onRowClick={({ index }) => {
+            setSelected(index);
           }}
         />
       }

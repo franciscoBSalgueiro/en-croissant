@@ -15,7 +15,7 @@ export default function SettingsNumberInput({
     const [value, setValue] = useAtom(atom);
     return <NumberInput
         value={value}
-        onChange={(value) => setValue(value || min)}
+        onChange={(value) => setValue((value || min) as number)}
         min={min}
         max={max}
         step={step}

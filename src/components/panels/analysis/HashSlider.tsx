@@ -4,7 +4,6 @@ import { Slider, rem } from "@mantine/core";
 import { IconGripVertical } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
-import { useStyles } from "./styles";
 
 export default function HashSlider({
   value,
@@ -16,7 +15,6 @@ export default function HashSlider({
   color?: string;
 }) {
   const [tempValue, setTempValue] = useState(Math.log2(value));
-  const { classes } = useStyles();
 
   useEffect(() => {
     setTempValue(Math.log2(value));
@@ -42,7 +40,18 @@ export default function HashSlider({
             stroke={1.5}
           />
         }
-        classNames={classes}
+        styles={(theme) => ({
+          mark: {
+            display: "flex",
+          },
+          thumb: {
+            width: rem(20),
+            height: rem(20),
+            backgroundColor: theme.white,
+            color: theme.colors.gray[5],
+            border: `1px solid ${theme.colors.gray[2]}`,
+          },
+        })}
       />
     </>
   );

@@ -1,5 +1,5 @@
 import { useAtom } from "jotai";
-import { ChessComStats, getChessComAccount, getStats } from "@/utils/chesscom";
+import { getChessComAccount, getStats } from "@/utils/chesscom";
 import { DatabaseInfo } from "@/utils/db";
 import { getLichessAccount } from "@/utils/lichess";
 import { AccountCard } from "../home/AccountCard";

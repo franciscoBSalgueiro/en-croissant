@@ -15,6 +15,11 @@ interface ContentEditableProps {
   disabled?: boolean;
 }
 
+function htmlDecode(input: string) {
+  const doc = new DOMParser().parseFromString(input, "text/html");
+  return doc.documentElement.textContent;
+}
+
 export const ContentEditable: React.FC<ContentEditableProps> = ({
   onChange,
   onInput,
@@ -55,6 +60,8 @@ export const ContentEditable: React.FC<ContentEditableProps> = ({
         onChange
           ? (...args) => {
               if (onChangeRef.current) {
+                const input = args[0].target;
+                input.value = htmlDecode(input.value) || "";
                 onChangeRef.current(...args);
               }
             }

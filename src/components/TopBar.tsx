@@ -4,13 +4,10 @@ import {
   Box,
   Button,
   Center,
-  Flex,
   Group,
-  Header,
+  Image,
   Menu,
-  createStyles,
   Text,
-  useMantineTheme,
 } from "@mantine/core";
 import { ask, message, open } from "@tauri-apps/api/dialog";
 import { appWindow } from "@tauri-apps/api/window";
@@ -21,8 +18,10 @@ import AboutModal from "./About";
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { createTab } from "@/utils/tabs";
+import * as classes from "./TopBar.css";
 
 import { keyMapAtom } from "@/atoms/keybinds";
+import { useColorScheme } from "@mantine/hooks";
 
 function IconMinimize() {
   return (
@@ -68,22 +67,6 @@ function IconX() {
     </svg>
   );
 }
-
-const useStyles = createStyles((theme) => ({
-  icon: {
-    transition: "background-color 100ms ease",
-    "&:hover": {
-      backgroundColor: theme.colors.dark[5],
-    },
-  },
-  close: {
-    transition: "background-color 100ms ease",
-    "&:hover": {
-      backgroundColor: theme.colors.red[7],
-      color: theme.white,
-    },
-  },
-}));
 
 type MenuAction = {
   label: string;
@@ -196,100 +179,100 @@ function TopBar() {
       ],
     },
   ];
-  const { classes } = useStyles();
   const [opened, setOpened] = useState(false);
 
   useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
 
-  const theme = useMantineTheme();
+  const colorScheme = useColorScheme();
 
   return (
     <>
-      <Header height={35} zIndex={1000}>
-        <Flex h={35} align="end">
-          <Box sx={{ flexGrow: 1 }} p={5}>
-            <Group data-tauri-drag-region>
-              <img src="/logo.png" width={20} height={20} />
-              <Group spacing={0}>
-                {menuActions.map((action) => (
-                  <Menu
-                    key={action.label}
-                    shadow="md"
-                    width={200}
-                    position="bottom-start"
-                    transitionProps={{ duration: 0 }}
-                  >
-                    <Menu.Target>
-                      <Button
-                        sx={{
-                          ":active": {
-                            transform: "none",
-                          },
-                        }}
-                        variant="subtle"
-                        color={theme.colorScheme === "dark" ? "gray" : "dark"}
-                        compact
-                      >
-                        {action.label}
-                      </Button>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      {action.options.map((option, i) =>
-                        option.label === "divider" ? (
-                          <Menu.Divider key={i} />
-                        ) : (
-                          <Menu.Item
-                            key={option.label}
-                            rightSection={
-                              option.shortcut && (
-                                <Text size="xs" color="dimmed">
-                                  {option.shortcut}
-                                </Text>
-                              )
-                            }
-                            onClick={option.action}
-                          >
-                            {option.label}
-                          </Menu.Item>
-                        )
-                      )}
-                    </Menu.Dropdown>
-                  </Menu>
-                ))}
-              </Group>
+      <Group>
+        <Box style={{ flexGrow: 1 }}>
+          <Group data-tauri-drag-region gap="xs" px="sm">
+            <Box h="1.5rem" w="1.5rem">
+              <Image src="/logo.png" fit="fill" />
+            </Box>
+            <Group gap={0}>
+              {menuActions.map((action) => (
+                <Menu
+                  key={action.label}
+                  shadow="md"
+                  width={200}
+                  position="bottom-start"
+                  transitionProps={{ duration: 0 }}
+                >
+                  <Menu.Target>
+                    <Button
+                      style={{
+                        ":active": {
+                          transform: "none",
+                        },
+                      }}
+                      fz="sm"
+                      variant="subtle"
+                      color={colorScheme === "dark" ? "gray" : "dark"}
+                      size="compact-md"
+                    >
+                      {action.label}
+                    </Button>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    {action.options.map((option, i) =>
+                      option.label === "divider" ? (
+                        <Menu.Divider key={i} />
+                      ) : (
+                        <Menu.Item
+                          key={option.label}
+                          rightSection={
+                            option.shortcut && (
+                              <Text size="xs" c="dimmed">
+                                {option.shortcut}
+                              </Text>
+                            )
+                          }
+                          onClick={option.action}
+                        >
+                          {option.label}
+                        </Menu.Item>
+                      )
+                    )}
+                  </Menu.Dropdown>
+                </Menu>
+              ))}
             </Group>
-          </Box>
-          <Box h={35}>
-            <Group spacing={0} data-tauri-drag-region>
-              <Center
-                h={35}
-                w={45}
-                onClick={() => appWindow.minimize()}
-                className={classes.icon}
-              >
-                <IconMinimize />
-              </Center>
-              <Center
-                h={35}
-                w={45}
-                onClick={() => appWindow.toggleMaximize()}
-                className={classes.icon}
-              >
-                <IconMaximize />
-              </Center>
-              <Center
-                h={35}
-                w={45}
-                onClick={() => appWindow.close()}
-                className={classes.close}
-              >
-                <IconX />
-              </Center>
-            </Group>
-          </Box>
-        </Flex>
-      </Header>
+          </Group>
+        </Box>
+        <Box h={35}>
+          <Group gap={0} data-tauri-drag-region>
+            <Center
+              h={35}
+              w={45}
+              onClick={() => appWindow.minimize()}
+              className={classes.icon}
+            >
+              <IconMinimize />
+            </Center>
+            <Center
+              h={35}
+              w={45}
+              onClick={() => appWindow.toggleMaximize()}
+              className={classes.icon}
+            >
+              <IconMaximize />
+            </Center>
+            <Center
+              h={35}
+              w={45}
+              onClick={() => appWindow.close()}
+              className={classes.close}
+            >
+              <IconX />
+            </Center>
+          </Group>
+        </Box>
+      </Group>
       <AboutModal opened={opened} setOpened={setOpened} />
     </>
   );

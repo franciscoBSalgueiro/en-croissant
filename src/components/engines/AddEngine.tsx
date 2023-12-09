@@ -1,11 +1,12 @@
 import {
   Alert,
-  Card,
+  Box,
   Center,
-  createStyles,
   Group,
+  Image,
   Loader,
   Modal,
+  Paper,
   ScrollArea,
   Stack,
   Tabs,
@@ -25,23 +26,6 @@ import { match } from "ts-pattern";
 import EngineForm from "./EngineForm";
 import { useAtom } from "jotai";
 import { enginesAtom } from "@/atoms/atoms";
-
-const useStyles = createStyles((theme) => ({
-  card: {
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-  },
-
-  title: {
-    fontWeight: 700,
-    fontFamily: `Greycliff CF, ${theme.fontFamily}`,
-    lineHeight: 1.2,
-  },
-
-  body: {
-    padding: theme.spacing.md,
-  },
-}));
 
 function AddEngine({
   opened,
@@ -177,32 +161,26 @@ function EngineCard({
     [engine, setEngines]
   );
 
-  const { classes } = useStyles();
-
   return (
-    <Card
-      withBorder
-      radius="md"
-      p={0}
-      key={engine.name}
-      className={classes.card}
-    >
-      <Group noWrap spacing={0} grow>
+    <Paper withBorder radius="md" p={0} key={engine.name}>
+      <Group wrap="nowrap" gap={0} grow>
         {engine.image && (
-          <img src={engine.image} height={160} alt={engine.name} />
+          <Box w="2rem" px="xs">
+            <Image src={engine.image} alt={engine.name} fit="contain" />
+          </Box>
         )}
-        <div className={classes.body}>
-          <Text transform="uppercase" color="dimmed" weight={700} size="xs">
+        <Box p="md">
+          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>
-          <Text className={classes.title} mb="xs">
+          <Text fw="bold" mb="xs">
             {engine.name} {engine.version}
           </Text>
-          <Group noWrap spacing="xs">
+          <Group wrap="nowrap" gap="xs">
             <IconTrophy size="1rem" />
             <Text size="xs">{`${engine.elo} ELO`}</Text>
           </Group>
-          <Group noWrap spacing="xs" mb="xs">
+          <Group wrap="nowrap" gap="xs" mb="xs">
             <IconDatabase size="1rem" />
             <Text size="xs">{formatBytes(engine.downloadSize)}</Text>
           </Group>
@@ -220,9 +198,9 @@ function EngineCard({
             inProgress={inProgress}
             setInProgress={setInProgress}
           />
-        </div>
+        </Box>
       </Group>
-    </Card>
+    </Paper>
   );
 }
 

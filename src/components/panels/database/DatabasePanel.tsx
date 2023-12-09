@@ -147,8 +147,8 @@ function DatabasePanel({ fen }: { fen: string }) {
   );
 
   return (
-    <Stack h="100%" spacing={0}>
-      <Group position="apart" w="100%">
+    <Stack h="100%" gap={0}>
+      <Group justify="space-between" w="100%">
         <SegmentedControl
           data={[
             { label: "Local", value: "local" },
@@ -175,9 +175,9 @@ function DatabasePanel({ fen }: { fen: string }) {
         orientation="vertical"
         placement="right"
         value={tabType}
-        onTabChange={(v) => setTabType(v!)}
+        onChange={(v) => setTabType(v!)}
         display="flex"
-        sx={{
+        style={{
           flex: 1,
           overflow: "hidden",
         }}
@@ -236,7 +236,7 @@ function PanelWithError(props: {
   }
 
   return (
-    <Tabs.Panel pt="xs" value={props.value} sx={{ flex: 1 }}>
+    <Tabs.Panel pt="xs" value={props.value} style={{ flex: 1 }}>
       {children}
     </Tabs.Panel>
   );

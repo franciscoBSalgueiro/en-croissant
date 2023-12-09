@@ -98,12 +98,12 @@ export function CreateModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={<Text align="center">{v.label}</Text>}
+                Header={<Text ta="center">{v.label}</Text>}
               />
             ))}
           </SimpleGrid>
 
-          <Button sx={{ marginTop: "1rem" }} type="submit">
+          <Button style={{ marginTop: "1rem" }} type="submit">
             Create
           </Button>
         </Stack>
@@ -218,12 +218,12 @@ export function EditModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={<Text align="center">{v.label}</Text>}
+                Header={<Text ta="center">{v.label}</Text>}
               />
             ))}
           </SimpleGrid>
 
-          <Button sx={{ marginTop: "1rem" }} type="submit">
+          <Button style={{ marginTop: "1rem" }} type="submit">
             Edit
           </Button>
         </Stack>

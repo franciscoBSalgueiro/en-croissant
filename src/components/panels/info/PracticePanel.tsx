@@ -65,7 +65,7 @@ function PracticePanel() {
   return (
     <>
       <Stack>
-        <Group position="apart" m={12}>
+        <Group justify="space-between" m={12}>
           <Text fw="bold">Practicing</Text>
           <ActionIcon
             onClick={() => {
@@ -81,7 +81,7 @@ function PracticePanel() {
             size={150}
             thickness={16}
             label={
-              <Text align="center" px="xs" sx={{ pointerEvents: "none" }}>
+              <Text ta="center" px="xs" style={{ pointerEvents: "none" }}>
                 {Math.round((stats.mastered / stats.total) * 100)}% mastered
               </Text>
             }

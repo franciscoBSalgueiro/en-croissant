@@ -65,12 +65,12 @@ function Accounts() {
 
   return (
     <>
-      <ScrollArea sx={{ height: "80vh" }}>
+      <ScrollArea>
         <Stack>
           <AccountCards databases={databases} setDatabases={setDatabases} />
-          <Button onClick={() => setOpen(true)}>Add Account</Button>
         </Stack>
       </ScrollArea>
+      <Button h="2.5rem" onClick={() => setOpen(true)}>Add Account</Button>
       <AccountModal
         open={open}
         setOpen={setOpen}
@@ -149,7 +149,7 @@ function AccountModal({
               onChange={(e) => setWithLogin(e.currentTarget.checked)}
             />
           )}
-          <Button sx={{ marginTop: "1rem" }} type="submit">
+          <Button mt="1rem" type="submit">
             Add
           </Button>
         </Stack>

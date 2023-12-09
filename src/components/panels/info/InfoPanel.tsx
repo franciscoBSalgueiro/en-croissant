@@ -46,8 +46,10 @@ function InfoPanel() {
           <ScrollArea offsetScrollbars>
             <FileInfo setGames={setGames} />
             <Stack>
-              <GameInfo headers={tree.headers} simplified={isReportoire} />
-              {isReportoire && <RepertoireInfo />}
+              <div>
+                <GameInfo headers={tree.headers} simplified={isReportoire} />
+                {isReportoire && <RepertoireInfo />}
+              </div>
               <FenSearch currentFen={currentNode.fen} />
               <PgnInput />
 

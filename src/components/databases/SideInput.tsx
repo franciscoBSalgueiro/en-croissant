@@ -1,50 +1,13 @@
-import { Box, createStyles, Menu, UnstyledButton } from "@mantine/core";
+import { Box, Menu, UnstyledButton } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { Sides } from "@/utils/db";
+import * as classes from "./SideInput.css";
 
 const data = [
   { label: "White", color: "white" },
   { label: "Black", color: "black" },
   { label: "Any", color: "gray" },
 ];
-
-const useStyles = createStyles((theme, { opened }: { opened: boolean }) => ({
-  control: {
-    display: "flex",
-    alignItems: "center",
-    padding: "8px 15px 8px 15px",
-    borderRadius: theme.radius.md,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    border: `1px solid ${
-      theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[2]
-    }`,
-    transition: "background-color 150ms ease",
-    backgroundColor:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[opened ? 5 : 6]
-        : opened
-        ? theme.colors.gray[0]
-        : theme.white,
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[5]
-          : theme.colors.gray[0],
-    },
-  },
-
-  label: {
-    fontWeight: 500,
-    fontSize: theme.fontSizes.sm,
-  },
-
-  icon: {
-    transition: "transform 150ms ease",
-    transform: opened ? "rotate(180deg)" : "rotate(0deg)",
-  },
-}));
 
 export function SideInput({
   label,
@@ -56,7 +19,6 @@ export function SideInput({
   setSides: (val: Sides) => void;
 }) {
   const [opened, setOpened] = useState(false);
-  const { classes } = useStyles({ opened });
   const [selected, setSelected] = useState(
     (sides === "WhiteBlack" && label === "Player") ||
       (sides === "BlackWhite" && label === "Opponent")
@@ -67,9 +29,9 @@ export function SideInput({
   );
   const items = data.map((item) => (
     <Menu.Item
-      icon={
+      leftSection={
         <Box
-          sx={{
+          style={{
             width: 18,
             height: 18,
             borderRadius: "50%",
@@ -114,7 +76,7 @@ export function SideInput({
       <Menu.Target>
         <UnstyledButton className={classes.control}>
           <Box
-            sx={{
+            style={{
               width: 18,
               height: 18,
               borderRadius: "50%",

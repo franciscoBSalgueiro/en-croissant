@@ -14,7 +14,7 @@ import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
 import { DatabaseInfo, Player, query_players } from "@/utils/db";
 import PlayerCard from "./PlayerCard";
-import useStyles from "./styles";
+import * as classes from "./styles.css";
 import GridLayout from "./GridLayout";
 
 function PlayerTable({ database }: { database: DatabaseInfo }) {
@@ -28,12 +28,10 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
   const [activePage, setActivePage] = useState(1);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
-  const [sort, setSort] = useState<DataTableSortStatus>({
+  const [sort, setSort] = useState<DataTableSortStatus<Player>>({
     columnAccessor: "id",
     direction: "asc",
   });
-
-  const { classes } = useStyles();
 
   useEffect(() => {
     setActivePage(1);
@@ -97,16 +95,16 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
     <GridLayout
       search={
         <>
-          <Flex sx={{ alignItems: "center", gap: 10 }}>
+          <Flex style={{ alignItems: "center", gap: 10 }}>
             <TextInput
-              sx={{ flexGrow: 1 }}
+              style={{ flexGrow: 1 }}
               placeholder="Search player..."
-              icon={<IconSearch size="1rem" />}
+              leftSection={<IconSearch size="1rem" />}
               value={name}
               onChange={(v) => setName(v.currentTarget.value)}
             />
             <ActionIcon
-              sx={{ flexGrow: 0 }}
+              style={{ flexGrow: 0 }}
               onClick={() => setOpen((prev) => !prev)}
             >
               <IconDotsVertical size="1rem" />
@@ -120,7 +118,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
                 min={0}
                 max={3000}
                 step={100}
-                onChange={(v) => setRange([v || 0, range[1]])}
+                onChange={(v) => setRange([(v || 0) as number, range[1]])}
               />
               <NumberInput
                 label="Max ELO"
@@ -128,15 +126,15 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
                 min={0}
                 max={3000}
                 step={100}
-                onChange={(v) => setRange([range[0], v || 0])}
+                onChange={(v) => setRange([range[0], (v || 0) as number])}
               />
             </Group>
           </Collapse>
         </>
       }
       table={
-        <DataTable
-          withBorder
+        <DataTable<Player>
+          withTableBorder
           highlightOnHover
           records={players}
           fetching={loading}
@@ -157,8 +155,8 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
           sortStatus={sort}
           onSortStatusChange={setSort}
           recordsPerPageOptions={[10, 25, 50]}
-          onRowClick={(_, i) => {
-            setSelectedPlayer(i);
+          onRowClick={({ index }) => {
+            setSelectedPlayer(index);
           }}
         />
       }

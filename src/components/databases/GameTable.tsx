@@ -25,7 +25,7 @@ import {
 import { createTab } from "@/utils/tabs";
 import GameCard from "./GameCard";
 import { SearchInput } from "./SearchInput";
-import useStyles from "./styles";
+import * as classes from "./styles.css";
 import { useAtom, useSetAtom } from "jotai";
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { useNavigate } from "react-router-dom";
@@ -51,7 +51,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const [loading, setLoading] = useState(false);
   // const [skip, toggleSkip] = useToggle([true, false]);
   const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState<DataTableSortStatus>({
+  const [sort, setSort] = useState<DataTableSortStatus<NormalizedGame>>({
     columnAccessor: "date",
     direction: "desc",
   });
@@ -60,7 +60,6 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const [openedSettings, toggleOpenedSettings] = useToggle();
 
   const theme = useMantineTheme();
-  const { classes } = useStyles();
 
   const navigate = useNavigate();
 
@@ -169,8 +168,8 @@ function GameTable({ database }: { database: DatabaseInfo }) {
     <>
       <GridLayout
         search={
-          <Flex sx={{ gap: 20 }}>
-            <Box sx={{ flexGrow: 1 }}>
+          <Flex style={{ gap: 20 }}>
+            <Box style={{ flexGrow: 1 }}>
               <Group grow>
                 <SearchInput
                   setValue={setPlayer1}
@@ -233,7 +232,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               </Collapse>
             </Box>
             <ActionIcon
-              sx={{ flexGrow: 0 }}
+              style={{ flexGrow: 0 }}
               onClick={() => toggleOpenedSettings()}
             >
               <IconDotsVertical size="1rem" />
@@ -241,8 +240,8 @@ function GameTable({ database }: { database: DatabaseInfo }) {
           </Flex>
         }
         table={
-          <DataTable
-            withBorder
+          <DataTable<NormalizedGame>
+            withTableBorder
             highlightOnHover
             records={games}
             fetching={loading}
@@ -252,7 +251,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                 title: "",
                 render: (game) => (
                   <ActionIcon
-                    variant="filled"
+                    variant="subtle"
                     color={theme.primaryColor}
                     onClick={() => {
                       createTab({
@@ -276,10 +275,10 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                 accessor: "white",
                 render: ({ white, white_elo }) => (
                   <div>
-                    <Text size="sm" weight={500}>
+                    <Text size="sm" fw={500}>
                       {white}
                     </Text>
-                    <Text size="xs" color="dimmed">
+                    <Text size="xs" c="dimmed">
                       {white_elo}
                     </Text>
                   </div>
@@ -289,10 +288,10 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                 accessor: "black",
                 render: ({ black, black_elo }) => (
                   <div>
-                    <Text size="sm" weight={500}>
+                    <Text size="sm" fw={500}>
                       {black}
                     </Text>
-                    <Text size="xs" color="dimmed">
+                    <Text size="xs" c="dimmed">
                       {black_elo}
                     </Text>
                   </div>
@@ -314,8 +313,8 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             sortStatus={sort}
             onSortStatusChange={setSort}
             recordsPerPageOptions={[10, 25, 50]}
-            onRowClick={(_, i) => {
-              setSelectedGame(i);
+            onRowClick={({ index }) => {
+              setSelectedGame(index);
             }}
           />
         }

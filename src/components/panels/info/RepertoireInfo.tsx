@@ -11,7 +11,7 @@ import {
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
 import { MissingMove, openingReport } from "@/utils/repertoire";
-import { Button, Group, Progress, Select, Text } from "@mantine/core";
+import { Button, Group, Progress, Select, Stack, Text } from "@mantine/core";
 import { IconReload, IconTargetArrow } from "@tabler/icons-react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
@@ -54,8 +54,8 @@ function RepertoireInfo() {
   }
 
   return (
-    <>
-      <Group mx="auto" spacing={4}>
+    <Stack>
+      <Group mx="md" gap={4}>
         <Text>opening for</Text>
 
         <Select
@@ -63,10 +63,6 @@ function RepertoireInfo() {
           variant="unstyled"
           rightSection={<></>}
           rightSectionWidth={0}
-          sx={{
-            width: 80,
-            "& input": { paddingRight: 0, fontWeight: 500, fontSize: "1rem" },
-          }}
           onChange={(value) =>
             dispatch({
               type: "SET_ORIENTATION",
@@ -86,19 +82,22 @@ function RepertoireInfo() {
         />
       </Group>
 
-      <Button
-        variant="default"
-        onClick={() => setPracticing(true)}
-        leftIcon={<IconTargetArrow />}
-      >
-        Practice
-      </Button>
-
-      {!loading && !missingMoves && (
-        <Button variant="default" onClick={() => searchForMissingMoves()}>
-          Look for missing moves
+      <Group>
+        <Button
+          variant="default"
+          onClick={() => setPracticing(true)}
+          leftSection={<IconTargetArrow />}
+        >
+          Practice
         </Button>
-      )}
+
+        {!loading && !missingMoves && (
+          <Button variant="default" onClick={() => searchForMissingMoves()}>
+            Look for missing moves
+          </Button>
+        )}
+      </Group>
+
       {loading ? (
         <>
           <Text>Analyzing Repertoire</Text>
@@ -112,7 +111,7 @@ function RepertoireInfo() {
           />
         )
       )}
-    </>
+    </Stack>
   );
 }
 
@@ -128,15 +127,15 @@ function MissingMoves({
   return (
     <div>
       <DataTable
-        withBorder
+        withTableBorder
         h={200}
         emptyState={<Text py={200}>No missing moves found</Text>}
         highlightOnHover
         records={missingMoves}
-        onRowClick={(row) =>
+        onRowClick={({ record }) =>
           dispatch({
             type: "GO_TO_MOVE",
-            payload: row.position,
+            payload: record.position,
           })
         }
         groups={[
@@ -180,7 +179,7 @@ function MissingMoves({
       <Button
         variant="default"
         mt={20}
-        rightIcon={<IconReload />}
+        rightSection={<IconReload />}
         onClick={search}
       >
         Reload missing moves

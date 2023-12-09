@@ -135,7 +135,7 @@ function BoardAnalysis() {
         <Paper
           withBorder
           p="xs"
-          sx={{
+          style={{
             height: "100%",
           }}
           pos="relative"
@@ -144,38 +144,38 @@ function BoardAnalysis() {
             w="100%"
             h="100%"
             value={currentTabSelected}
-            onTabChange={(v) => setCurrentTabSelected(v || "info")}
+            onChange={(v) => setCurrentTabSelected(v || "info")}
             keepMounted={false}
             activateTabWithKeyboard={false}
-            sx={{
+            style={{
               display: "flex",
               flexDirection: "column",
             }}
           >
             <Tabs.List grow mb="1rem">
-              <Tabs.Tab value="analysis" icon={<IconZoomCheck size="1rem" />}>
+              <Tabs.Tab value="analysis" leftSection={<IconZoomCheck size="1rem" />}>
                 Analysis
               </Tabs.Tab>
-              <Tabs.Tab value="database" icon={<IconDatabase size="1rem" />}>
+              <Tabs.Tab value="database" leftSection={<IconDatabase size="1rem" />}>
                 Database
               </Tabs.Tab>
-              <Tabs.Tab value="annotate" icon={<IconNotes size="1rem" />}>
+              <Tabs.Tab value="annotate" leftSection={<IconNotes size="1rem" />}>
                 Annotate
               </Tabs.Tab>
-              <Tabs.Tab value="info" icon={<IconInfoCircle size="1rem" />}>
+              <Tabs.Tab value="info" leftSection={<IconInfoCircle size="1rem" />}>
                 Info
               </Tabs.Tab>
             </Tabs.List>
-            <Tabs.Panel value="info" sx={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel value="info" style={{ flex: 1, overflowY: "hidden" }}>
               <InfoPanel />
             </Tabs.Panel>
-            <Tabs.Panel value="database" sx={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel value="database" style={{ flex: 1, overflowY: "hidden" }}>
               <DatabasePanel fen={currentNode.fen} />
             </Tabs.Panel>
-            <Tabs.Panel value="annotate" sx={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel value="annotate" style={{ flex: 1, overflowY: "hidden" }}>
               <AnnotationPanel />
             </Tabs.Panel>
-            <Tabs.Panel value="analysis" sx={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel value="analysis" style={{ flex: 1, overflowY: "hidden" }}>
               <Suspense>
                 <AnalysisPanel
                   toggleReportingMode={toggleReportingMode}

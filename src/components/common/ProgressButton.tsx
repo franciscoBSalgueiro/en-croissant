@@ -1,33 +1,7 @@
-import { Button, createStyles, Progress } from "@mantine/core";
+import { Button, Progress, useMantineTheme } from "@mantine/core";
 import { listen } from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
-
-const useStyles = createStyles((theme, finished: boolean) => ({
-  button: {
-    position: "relative",
-    transition: "background-color 150ms ease",
-    ":disabled": {
-      backgroundColor: finished ? theme.colors.green[7] : theme.colors.gray[7],
-      color: finished ? theme.colors.gray[2] : theme.colors.gray[5],
-    },
-  },
-
-  progress: {
-    position: "absolute",
-    bottom: -1,
-    right: -1,
-    left: -1,
-    top: -1,
-    height: "auto",
-    backgroundColor: "transparent",
-    zIndex: 0,
-  },
-
-  label: {
-    position: "relative",
-    zIndex: 1,
-  },
-}));
+import * as classes from "./ProgressButton.css";
 
 type ProgressPayload = {
   id: number;
@@ -67,7 +41,6 @@ function ProgressButton({
 }: Props) {
   const [progress, setProgress] = useState(0);
   const [completed, setCompleted] = useState(initInstalled);
-  const { classes, theme } = useStyles(completed);
 
   useEffect(() => {
     async function getProgress() {
@@ -97,6 +70,7 @@ function ProgressButton({
     else if (progress === 100) label = labels.finalizing ?? labels.inProgress;
     else label = labels.inProgress;
   }
+  const theme = useMantineTheme();
 
   return (
     <Button
@@ -107,16 +81,11 @@ function ProgressButton({
       }}
       disabled={(completed && !redoable) || disabled}
       color={completed ? "green" : theme.primaryColor}
-      leftIcon={leftIcon}
+      leftSection={leftIcon}
     >
       <div className={classes.label}>{label}</div>
       {progress !== 0 && (
-        <Progress
-          value={progress}
-          className={classes.progress}
-          color={theme.fn.rgba(theme.colors[theme.primaryColor][2], 0.35)}
-          radius="sm"
-        />
+        <Progress value={progress} className={classes.progress} radius="sm" />
       )}
     </Button>
   );

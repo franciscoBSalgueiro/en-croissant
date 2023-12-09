@@ -1,16 +1,16 @@
 import {
   ActionIcon,
+  Box,
   Button,
-  Card,
   Divider,
   Group,
   Loader,
+  Paper,
   Portal,
   RangeSlider,
   SimpleGrid,
   Text,
   Tooltip,
-  createStyles,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconX } from "@tabler/icons-react";
@@ -29,22 +29,7 @@ import ChallengeHistory from "../common/ChallengeHistory";
 import { commands } from "@/bindings";
 import { useAtom } from "jotai";
 import { selectedPuzzleDbAtom } from "@/atoms/atoms";
-
-const useStyles = createStyles((theme) => ({
-  card: {
-    cursor: "pointer",
-    border: 0,
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0],
-    },
-  },
-}));
+import * as classes from "@/components/common/GenericCard.css";
 
 function Puzzles({ id }: { id: string }) {
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
@@ -55,7 +40,7 @@ function Puzzles({ id }: { id: string }) {
   const [currentMove, setCurrentMove] = useState(1);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
-  const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom)
+  const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
 
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
@@ -109,8 +94,6 @@ function Puzzles({ id }: { id: string }) {
   const [addOpened, setAddOpened] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { classes } = useStyles();
-
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -126,7 +109,7 @@ function Puzzles({ id }: { id: string }) {
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
-        <Card h="100%">
+        <Paper h="100%" withBorder p="md">
           <AddPuzzle
             puzzleDbs={puzzleDbs}
             opened={addOpened}
@@ -143,15 +126,13 @@ function Puzzles({ id }: { id: string }) {
                 setSelected={setSelectedDb}
               />
             ))}
-            <Card
-              withBorder
-              radius="md"
+            <Box
               className={classes.card}
               component="button"
               type="button"
               onClick={() => setAddOpened(true)}
             >
-              <Text weight={500} mb={10}>
+              <Text fw={500} mb={10}>
                 Add New
               </Text>
               {loading ? (
@@ -159,33 +140,33 @@ function Puzzles({ id }: { id: string }) {
               ) : (
                 <IconPlus size="2rem" />
               )}
-            </Card>
+            </Box>
           </SimpleGrid>
           <Group>
             <div>
-              <Text size="sm" color="dimmed">
+              <Text size="sm" c="dimmed">
                 Puzzle Rating
               </Text>
-              <Text weight={500} size="xl">
+              <Text fw={500} size="xl">
                 {puzzles[currentPuzzle]?.rating}
               </Text>
             </div>
             {averageWonRating && (
               <div>
-                <Text size="sm" color="dimmed">
+                <Text size="sm" c="dimmed">
                   Average Won Rating
                 </Text>
-                <Text weight={500} size="xl">
+                <Text fw={500} size="xl">
                   {averageWonRating.toFixed(0)}
                 </Text>
               </div>
             )}
             {averageLostRating && (
               <div>
-                <Text size="sm" color="dimmed">
+                <Text size="sm" c="dimmed">
                   Average Lost Rating
                 </Text>
-                <Text weight={500} size="xl">
+                <Text fw={500} size="xl">
                   {averageLostRating.toFixed(0)}
                 </Text>
               </div>
@@ -238,11 +219,11 @@ function Puzzles({ id }: { id: string }) {
               View Solution
             </Button>
           </Group>
-        </Card>
+        </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Card h="100%">
-          <Text mb="md">Puzzles</Text>
+        <Paper h="100%" withBorder p="md">
+          <Text mb="md">History</Text>
           <ChallengeHistory
             challenges={puzzles}
             current={currentPuzzle}
@@ -251,7 +232,7 @@ function Puzzles({ id }: { id: string }) {
               setCurrentMove(1);
             }}
           />
-        </Card>
+        </Paper>
       </Portal>
     </>
   );

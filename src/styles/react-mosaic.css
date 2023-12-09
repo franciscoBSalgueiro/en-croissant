@@ -9,3 +9,7 @@
   bottom: 0;
   left: 0;
 }
+
+.mosaic-split:hover .mosaic-split-line {
+  box-shadow: 0 0 0 1px var(--mantine-primary-color-filled) !important;
+}

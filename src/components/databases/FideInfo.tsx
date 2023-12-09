@@ -84,7 +84,7 @@ function FideInfo({
         <Center>Loading...</Center>
       ) : player ? (
         <Stack>
-          <Group position="apart" pr="md">
+          <Group justify="space-between" pr="md">
             <Group>
               <Text fz="lg" fw="bold">
                 {player.name}

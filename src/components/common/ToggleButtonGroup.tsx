@@ -31,9 +31,9 @@ function ToggleButtonGroup<T>(props: ToggleButtonGroupProps<T>) {
 
     return (
         //this could use <InputWrapper> for the label instead if updating mantine to 7
-        <Stack justify="flex-start" spacing={0}>
-            <Text weight={500} size="sm">{props.label}</Text>
-            <Group spacing={0}>
+        <Stack justify="flex-start" gap={0}>
+            <Text fw={500} size="sm">{props.label}</Text>
+            <Group gap={0}>
                 {props.options.map(option => {
                     if (props.includeTooltips) {
                         return (

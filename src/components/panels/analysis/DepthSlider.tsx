@@ -2,7 +2,6 @@ import { GoMode } from "@/bindings";
 import { Slider, rem } from "@mantine/core";
 import { IconGripVertical } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { useStyles } from "./styles";
 
 export default function DepthSlider({
   value,
@@ -22,7 +21,6 @@ export default function DepthSlider({
     { value: 50 },
     { value: 60 },
   ];
-  const { classes } = useStyles();
 
   useEffect(() => {
     setTempValue(value);
@@ -59,7 +57,18 @@ export default function DepthSlider({
             stroke={1.5}
           />
         }
-        classNames={classes}
+        styles={(theme) => ({
+          mark: {
+            display: "flex",
+          },
+          thumb: {
+            width: rem(20),
+            height: rem(20),
+            backgroundColor: theme.white,
+            color: theme.colors.gray[5],
+            border: `1px solid ${theme.colors.gray[2]}`,
+          },
+        })}
       />
     </>
   );

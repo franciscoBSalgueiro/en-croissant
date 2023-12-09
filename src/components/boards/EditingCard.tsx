@@ -1,4 +1,4 @@
-import { Card, CloseButton, Divider, createStyles } from "@mantine/core";
+import { Card, CloseButton, Divider } from "@mantine/core";
 import FenInput from "../panels/info/FenInput";
 import PiecesGrid from "./PiecesGrid";
 import {
@@ -6,19 +6,7 @@ import {
   TreeStateContext,
 } from "../common/TreeStateContext";
 import { useContext } from "react";
-
-const useStyles = createStyles((theme) => ({
-  card: {
-    height: "100%",
-    position: "sticky",
-    top: 0,
-    backgroundColor:
-      theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-    zIndex: 10,
-    display: "flex",
-    flexDirection: "column",
-  },
-}));
+import * as classes from "./EditingCard.css";
 
 function EditingCard({
   fen,
@@ -29,18 +17,17 @@ function EditingCard({
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;
 }) {
-  const { classes } = useStyles();
   const { headers } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
 
   return (
     <Card
       shadow="md"
-      sx={{ position: "relative", overflow: "visible" }}
+      style={{ position: "relative", overflow: "visible" }}
       className={classes.card}
     >
       <CloseButton
-        sx={{ position: "absolute", top: 10, right: 15 }}
+        style={{ position: "absolute", top: 10, right: 15 }}
         onClick={() => setEditingMode(false)}
       />
       <FenInput currentFen={fen} />

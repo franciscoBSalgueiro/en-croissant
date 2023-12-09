@@ -29,7 +29,7 @@ function ChallengeHistory({
               variant="light"
               key={i}
               color="green"
-              sx={{ border: isCurrent ? "2px solid green" : "none" }}
+              style={{ border: isCurrent ? "2px solid green" : "none" }}
             >
               <IconCheck color="green" />
             </ActionIcon>
@@ -40,7 +40,7 @@ function ChallengeHistory({
               variant="light"
               key={i}
               color="red"
-              sx={{ border: isCurrent ? "2px solid red" : "none" }}
+              style={{ border: isCurrent ? "2px solid red" : "none" }}
             >
               <IconX color="red" />
             </ActionIcon>
@@ -51,7 +51,7 @@ function ChallengeHistory({
               variant="light"
               key={i}
               color="yellow"
-              sx={{ border: isCurrent ? "2px solid yellow" : "none" }}
+              style={{ border: isCurrent ? "2px solid yellow" : "none" }}
             >
               <IconDots color="yellow" />
             </ActionIcon>

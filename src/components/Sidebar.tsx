@@ -1,4 +1,4 @@
-import { createStyles, Navbar, Stack, Tooltip } from "@mantine/core";
+import { AppShellSection, Stack, Tooltip } from "@mantine/core";
 import {
   Icon,
   IconChess,
@@ -9,36 +9,8 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { NavLink } from "react-router-dom";
-
-const useStyles = createStyles((theme) => ({
-  link: {
-    width: "3rem",
-    height: "3rem",
-    display: "flex",
-    alignItems: "center",
-    borderLeft: "3px solid transparent",
-    borderRight: "3px solid transparent",
-    justifyContent: "center",
-    color:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[0]
-        : theme.colors.gray[7],
-
-    "&:hover": {
-      color:
-        theme.colorScheme === "dark"
-          ? theme.colors.gray[0]
-          : theme.colors.dark[5],
-    },
-  },
-
-  active: {
-    "&, &:hover": {
-      borderLeftColor: theme.colors[theme.primaryColor],
-      color: theme.colorScheme === "dark" ? theme.white : theme.colors.dark[5],
-    },
-  },
-}));
+import * as classes from "./Sidebar.css";
+import cx from "clsx";
 
 interface NavbarLinkProps {
   icon: Icon;
@@ -48,7 +20,6 @@ interface NavbarLinkProps {
 }
 
 function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
-  const { classes, cx } = useStyles();
   return (
     <Tooltip label={label} position="right">
       <NavLink
@@ -83,17 +54,17 @@ export function SideBar() {
   ));
 
   return (
-    <Navbar width={{ base: "3rem" }}>
-      <Navbar.Section grow>
-        <Stack justify="center" spacing={0}>
+    <>
+      <AppShellSection grow>
+        <Stack justify="center" gap={0}>
           {links}
         </Stack>
-      </Navbar.Section>
-      <Navbar.Section>
-        <Stack justify="center" spacing={0}>
+      </AppShellSection>
+      <AppShellSection>
+        <Stack justify="center" gap={0}>
           <NavbarLink icon={IconSettings} label="Settings" url="/settings" />
         </Stack>
-      </Navbar.Section>
-    </Navbar>
+      </AppShellSection>
+    </>
   );
 }

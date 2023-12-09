@@ -22,7 +22,7 @@ function GamesTable({
   const navigate = useNavigate();
   return (
     <DataTable
-      withBorder
+      withTableBorder
       highlightOnHover
       records={games}
       fetching={loading}
@@ -32,7 +32,7 @@ function GamesTable({
           title: "",
           render: (game) => (
             <ActionIcon
-              variant="filled"
+              variant="subtle"
               color={theme.primaryColor}
               onClick={() => {
                 createTab({
@@ -56,10 +56,10 @@ function GamesTable({
           accessor: "white",
           render: ({ white, white_elo }) => (
             <div>
-              <Text size="sm" weight={500}>
+              <Text size="sm" fw={500}>
                 {white}
               </Text>
-              <Text size="xs" color="dimmed">
+              <Text size="xs" c="dimmed">
                 {white_elo}
               </Text>
             </div>
@@ -69,10 +69,10 @@ function GamesTable({
           accessor: "black",
           render: ({ black, black_elo }) => (
             <div>
-              <Text size="sm" weight={500}>
+              <Text size="sm" fw={500}>
                 {black}
               </Text>
-              <Text size="xs" color="dimmed">
+              <Text size="xs" c="dimmed">
                 {black_elo}
               </Text>
             </div>

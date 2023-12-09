@@ -1,20 +1,19 @@
 import {
+  ActionIcon,
   Anchor,
   AppShell,
   Button,
   Code,
-  ColorScheme,
-  ColorSchemeProvider,
   CopyButton,
   Group,
   MantineProvider,
   Stack,
   Text,
   Title,
+  localStorageColorSchemeManager,
 } from "@mantine/core";
 import { SideBar } from "./components/Sidebar";
 import { Helmet } from "react-helmet";
-import { useLocalStorage } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
 import SettingsPage from "@/components/settings/SettingsPage";
 import FilesPage from "@/components/files/FilesPage";
@@ -48,9 +47,23 @@ import {
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
+
+import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/tiptap/styles.css";
+
+import "mantine-datatable/styles.css";
+
+import "@/styles/global.css";
+
 import { commands } from "./bindings";
 import TopBar from "./components/TopBar";
 import { openFile } from "./utils/files";
+
+const colorSchemeManager = localStorageColorSchemeManager({
+  key: "mantine-color-scheme",
+});
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -58,20 +71,29 @@ const router = createBrowserRouter(
       path="/"
       element={
         <AppShell
-          navbar={<SideBar />}
-          header={<TopBar />}
-          styles={(theme) => ({
+          navbar={{
+            width: "3rem",
+            breakpoint: "lg",
+          }}
+          header={{
+            height: "2.5rem",
+          }}
+          styles={{
             main: {
               height: "100vh",
               userSelect: "none",
-              backgroundColor:
-                theme.colorScheme === "dark"
-                  ? theme.colors.dark[8]
-                  : theme.colors.gray[0],
             },
-          })}
+          }}
         >
-          <Outlet />
+          <AppShell.Header>
+            <TopBar />
+          </AppShell.Header>
+          <AppShell.Navbar>
+            <SideBar />
+          </AppShell.Navbar>
+          <AppShell.Main>
+            <Outlet />
+          </AppShell.Main>
         </AppShell>
       }
       errorElement={<ErrorBoundary />}
@@ -102,6 +124,7 @@ const router = createBrowserRouter(
           return null;
         }}
       />
+
       <Route
         path="databases/view"
         element={<DatabaseView />}
@@ -125,7 +148,7 @@ function ErrorBoundary() {
   const error = useRouteError();
 
   return (
-    <Stack pt="md">
+    <Stack p="md">
       <Title>An error ocurred</Title>
       {error instanceof Error && (
         <>
@@ -173,13 +196,7 @@ function ErrorBoundary() {
 }
 
 export default function App() {
-  const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
-    key: "mantine-color-scheme",
-    defaultValue: "dark",
-  });
   const primaryColor = useAtomValue(primaryColorAtom);
-  const toggleColorScheme = (value?: ColorScheme) =>
-    setColorScheme(value || (colorScheme === "dark" ? "light" : "dark"));
   const pieceSet = useAtomValue(pieceSetAtom);
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
@@ -210,75 +227,41 @@ export default function App() {
   }, [fontSize]);
 
   return (
-    <ColorSchemeProvider
-      colorScheme={colorScheme}
-      toggleColorScheme={toggleColorScheme}
-    >
+    <>
       <Helmet>
         <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
       </Helmet>
       <MantineProvider
-        withGlobalStyles
-        withNormalizeCSS
+        colorSchemeManager={colorSchemeManager}
         theme={{
-          colorScheme,
           primaryColor,
-          globalStyles: (theme) => ({
-            "cg-board": {
-              "square.last-move": {
-                background: theme.fn.rgba(
-                  theme.colors[theme.primaryColor][
-                    theme.colorScheme === "dark" ? 5 : 3
-                  ],
-                  0.4
-                ),
+          components: {
+            ActionIcon: ActionIcon.extend({
+              defaultProps: {
+                variant: "transparent",
+                color: "gray",
               },
-              "square.selected": {
-                backgroundColor: theme.fn.rgba(
-                  theme.colors[theme.primaryColor][
-                    theme.colorScheme === "dark" ? 5 : 3
-                  ],
-                  0.5
-                ),
-              },
-              "square.move-dest": {
-                backgroundColor: theme.fn.rgba(theme.black, 0.3),
-                borderRadius: "50%",
-                padding: "4%",
-                backgroundClip: "content-box",
-                boxSizing: "border-box",
-                ":hover": {
-                  backgroundColor: theme.fn.rgba(
-                    theme.colors[theme.primaryColor][
-                      theme.colorScheme === "dark" ? 5 : 3
-                    ],
-                    0.6
-                  ),
-                  borderRadius: 0,
-                  padding: 0,
-                },
-              },
-              "square.oc.move-dest": {
-                background: "none",
-                border: `5px solid ${theme.fn.rgba(theme.black, 0.3)}`,
-                borderRadius: 0,
-                ":hover": {
-                  background: theme.fn.rgba(
-                    theme.colors[theme.primaryColor][
-                      theme.colorScheme === "dark" ? 5 : 3
-                    ],
-                    0.6
-                  ),
-                  borderRadius: 0,
-                },
-              },
-            },
-          }),
+            }),
+          },
+          colors: {
+            dark: [
+              "#C1C2C5",
+              "#A6A7AB",
+              "#909296",
+              "#5c5f66",
+              "#373A40",
+              "#2C2E33",
+              "#25262b",
+              "#1A1B1E",
+              "#141517",
+              "#101113",
+            ],
+          },
         }}
       >
         <Notifications />
         <RouterProvider router={router} />
       </MantineProvider>
-    </ColorSchemeProvider>
+    </>
   );
 }

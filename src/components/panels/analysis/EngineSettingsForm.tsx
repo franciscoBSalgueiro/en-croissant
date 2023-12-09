@@ -114,7 +114,9 @@ function EngineSettingsForm({
       />
       <Stack pt="sm">
         <Stack>
-          {remote ? <></> : settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
+          {remote ? (
+            <></>
+          ) : settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
             <Group grow>
               <Text size="sm" fw="bold">
                 Depth
@@ -139,7 +141,7 @@ function EngineSettingsForm({
                       ...prev,
                       go: {
                         ...prev.go,
-                        c: v || 1,
+                        c: (v || 1) as number,
                       },
                     };
                   })
@@ -204,7 +206,7 @@ function EngineSettingsForm({
         </Stack>
 
         {!remote && (
-          <Group spacing={0}>
+          <Group gap={0}>
             <Tooltip label="Load settings">
               <ActionIcon onClick={() => loadSettings()}>
                 <IconUpload size="1rem" />
@@ -251,12 +253,15 @@ function AdvancedOptions({
       onClose={() => setOpened(false)}
     >
       <Table>
-        <tbody>
-          <tr>
-            <td>
+        <Table.Tbody>
+          <Table.Tr>
+            <Table.Td>
               <Select
                 variant="unstyled"
-                dropdownPosition="bottom"
+                comboboxProps={{
+                  position: "bottom",
+                  middlewares: { flip: false, shift: false },
+                }}
                 data={goTypes}
                 value={settings.go.t}
                 onChange={(v) =>
@@ -274,8 +279,8 @@ function AdvancedOptions({
                   })
                 }
               />
-            </td>
-            <td>
+            </Table.Td>
+            <Table.Td>
               {settings.go.t !== "Infinite" && (
                 <NumberInput
                   min={1}
@@ -286,65 +291,65 @@ function AdvancedOptions({
                         ...prev,
                         go: {
                           ...prev.go,
-                          c: v || 1,
+                          c: (v || 1) as number,
                         },
                       };
                     })
                   }
                 />
               )}
-            </td>
-          </tr>
-          <tr>
-            <td>Threads</td>
-            <td>
+            </Table.Td>
+          </Table.Tr>
+          <Table.Tr>
+            <Table.Td>Threads</Table.Td>
+            <Table.Td>
               <NumberInput
                 min={1}
                 value={settings.options.threads}
                 onChange={(v) =>
                   setSettings((prev) => ({
                     ...prev,
-                    options: { ...prev.options, threads: v || 1 },
+                    options: { ...prev.options, threads: (v || 1) as number },
                   }))
                 }
               />
-            </td>
-          </tr>
+            </Table.Td>
+          </Table.Tr>
           {!minimal && (
-            <tr>
-              <td>MultiPV</td>
-              <td>
+            <Table.Tr>
+              <Table.Td>MultiPV</Table.Td>
+              <Table.Td>
                 <NumberInput
                   min={1}
                   value={settings.options.multipv}
                   onChange={(v) =>
                     setSettings((prev) => ({
                       ...prev,
-                      options: { ...prev.options, multipv: v || 1 },
+                      options: { ...prev.options, multipv: (v || 1) as number },
                     }))
                   }
                 />
-              </td>
-            </tr>
+              </Table.Td>
+            </Table.Tr>
           )}
-          <tr>
-            <td>Hash Size</td>
-            <td>
+          <Table.Tr>
+            <Table.Td>Hash Size</Table.Td>
+            <Table.Td>
               <NumberInput
                 min={1}
                 value={settings.options.hash}
                 onChange={(v) =>
                   setSettings((prev) => ({
                     ...prev,
-                    options: { ...prev.options, hash: v || 1 },
+                    options: { ...prev.options, hash: (v || 1) as number },
                   }))
                 }
               />
-            </td>
-          </tr>
+            </Table.Td>
+          </Table.Tr>
           {settings.options.extraOptions.map((option, i) => (
-            <tr key={i}>
-              <td>
+            <Table.Tr key={i}>
+              <Table.Td>
                 <TextInput
                   value={option.name}
                   onChange={(e) => {
@@ -356,9 +361,9 @@ function AdvancedOptions({
                     }));
                   }}
                 />
-              </td>
-              <td>
-                <Group noWrap spacing={0}>
+              </Table.Td>
+              <Table.Td>
+                <Group wrap="nowrap" gap={0}>
                   <TextInput
                     value={option.value}
                     onChange={(e) => {
@@ -384,15 +389,15 @@ function AdvancedOptions({
                     <IconX size="0.875rem" />
                   </ActionIcon>
                 </Group>
-              </td>
-            </tr>
+              </Table.Td>
+            </Table.Tr>
           ))}
-        </tbody>
+        </Table.Tbody>
       </Table>
 
       <Center pt="xs">
         <Button
-          leftIcon={<IconPlus size="1rem" />}
+          leftSection={<IconPlus size="1rem" />}
           variant="default"
           size="xs"
           onClick={() => {

@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
-import { Box, LoadingOverlay, createStyles } from "@mantine/core";
+import { Box, LoadingOverlay, useMantineTheme } from "@mantine/core";
 import { Stack } from "@mantine/core";
 import {
   ResponsiveContainer,
@@ -16,6 +16,8 @@ import { ANNOTATION_INFO } from "@/utils/chess";
 import { formatScore } from "@/utils/score";
 import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
 import { positionFromFen } from "@/utils/chessops";
+import * as classes from "./EvalChart.css";
+import { useColorScheme } from "@mantine/hooks";
 
 interface EvalChartProps {
   isAnalysing: boolean;
@@ -30,27 +32,12 @@ type DataPoint = {
   movePath: number[];
 };
 
-const useStyles = createStyles((theme) => ({
-  tooltip: {
-    margin: 0,
-    padding: 5,
-    backgroundColor:
-      theme.colorScheme === "light" ? "white" : theme.colors.dark[3],
-    color: theme.colorScheme === "light" ? "black" : "white",
-    opacity: 0.8,
-    border: "1px solid #ccc",
-    whiteSpace: "nowrap",
-  },
-  tooltipTitle: {
-    fontWeight: "bold",
-  },
-}));
-
 const EvalChart = (props: EvalChartProps) => {
   const { root, position } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
-  const { classes, theme } = useStyles();
-  const isLightTheme = theme.colorScheme == "light";
+  const theme = useMantineTheme();
+  const colorScheme = useColorScheme();
+  const isLightTheme = colorScheme == "light";
 
   function getYValue(node: TreeNode): number | undefined {
     if (node.score) {

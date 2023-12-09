@@ -1,10 +1,19 @@
-import { Button, Center, Collapse, Grid, Stack, Text } from "@mantine/core";
+import {
+  Button,
+  Center,
+  Checkbox,
+  Image,
+  Group,
+  Stack,
+  Text,
+  Collapse,
+  Paper,
+} from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { IconSettings } from "@tabler/icons-react";
+import { IconCloud, IconRobot, IconSettings } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
 import { memo, useEffect, useState } from "react";
 import { Engine, localEngine } from "@/utils/engines";
-import ImageCheckbox from "./ImageCheckbox";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, enginesAtom, remoteEnabledAtom } from "@/atoms/atoms";
@@ -32,25 +41,38 @@ function EngineBox({
   }, [engine.image]);
 
   return (
-    <Grid.Col span={4}>
-      <ImageCheckbox
-        title={engine.name}
-        image={imageSrc}
-        checked={engine.loaded}
-        onChange={(checked) => {
-          if (!checked) {
-            engine.stop(activeTab!);
-          }
-          toggleEnabled();
-        }}
-      />
-    </Grid.Col>
+    <Paper
+      withBorder
+      p="sm"
+      w="16rem"
+      h="4rem"
+      onClick={() => {
+        if (engine.loaded) {
+          engine.stop(activeTab!);
+        }
+        toggleEnabled();
+      }}
+      style={{ cursor: "pointer" }}
+    >
+      <Group>
+        <Checkbox checked={engine.loaded} />
+        {imageSrc ? (
+          <Image src={imageSrc} alt={engine.name} h="2.5rem" />
+        ) : engine.remote ? (
+          <IconCloud size="2rem" />
+        ) : (
+          <IconRobot size="2rem" />
+        )}
+        <Text>{engine.name}</Text>
+      </Group>
+    </Paper>
   );
 }
 
 function EngineSelection() {
   const [showSettings, toggleShowSettings] = useToggle();
   const [engines, setEngines] = useAtom(enginesAtom);
+
   const [remoteEnabled, setRemoteEnabled] = useAtom(remoteEnabledAtom);
 
   return (
@@ -60,21 +82,21 @@ function EngineSelection() {
         onClick={() => {
           toggleShowSettings();
         }}
-        leftIcon={<IconSettings size="0.875rem" />}
+        leftSection={<IconSettings size="0.875rem" />}
       >
         Manage Engines
       </Button>
-      <Collapse in={showSettings}>
-        <Stack spacing="xl">
-          {engines.length === 0 && (
-            <Center>
-              <Text>
-                No engines installed. Please{" "}
-                <Link to="/engines">Add an engine</Link> first.
-              </Text>
-            </Center>
-          )}
-          <Grid grow w="100%">
+      <Collapse title="Engine Selection" in={showSettings}>
+        {engines.length === 0 && (
+          <Center>
+            <Text>
+              No engines installed. Please{" "}
+              <Link to="/engines">Add an engine</Link> first.
+            </Text>
+          </Center>
+        )}
+        <Stack>
+          <Stack justify="center">
             {engines.map((engine) => (
               <EngineBox
                 key={engine.name}
@@ -88,10 +110,11 @@ function EngineSelection() {
                 }}
               />
             ))}
-
             <EngineBox
-              key="lichess"
-              engine={{ ...lichessCloudEval, loaded: remoteEnabled.lichess }}
+              engine={{
+                ...lichessCloudEval,
+                loaded: remoteEnabled.lichess,
+              }}
               toggleEnabled={() =>
                 setRemoteEnabled((prev) => ({
                   ...prev,
@@ -99,6 +122,7 @@ function EngineSelection() {
                 }))
               }
             />
+
             <EngineBox
               key="chessdb"
               engine={{ ...chessdb, loaded: remoteEnabled.chessdb }}
@@ -109,7 +133,7 @@ function EngineSelection() {
                 }))
               }
             />
-          </Grid>
+          </Stack>
         </Stack>
       </Collapse>
     </>
