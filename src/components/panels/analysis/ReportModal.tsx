@@ -84,6 +84,7 @@ function ReportModal({
       <form onSubmit={form.onSubmit(() => analyze())}>
         <Stack>
           <Select
+            allowDeselect={false}
             withAsterisk
             label="Engine"
             placeholder="Pick one"
@@ -99,6 +100,7 @@ function ReportModal({
           />
           <Group wrap="nowrap">
             <Select
+              allowDeselect={false}
               comboboxProps={{
                 position: "bottom",
                 middlewares: { flip: false, shift: false },

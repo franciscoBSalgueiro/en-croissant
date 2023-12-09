@@ -70,7 +70,9 @@ function Accounts() {
           <AccountCards databases={databases} setDatabases={setDatabases} />
         </Stack>
       </ScrollArea>
-      <Button h="2.5rem" onClick={() => setOpen(true)}>Add Account</Button>
+      <Button h="2.5rem" onClick={() => setOpen(true)}>
+        Add Account
+      </Button>
       <AccountModal
         open={open}
         setOpen={setOpen}
@@ -125,6 +127,7 @@ function AccountModal({
       >
         <Stack>
           <Select
+            allowDeselect={false}
             label="Website"
             placeholder="Select website"
             data={[

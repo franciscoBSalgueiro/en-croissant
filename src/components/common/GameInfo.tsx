@@ -214,6 +214,7 @@ function GameInfo({
           />
           <Select
             readOnly={disabled}
+            allowDeselect={false}
             data={["1-0", "0-1", "1/2-1/2", "*"]}
             value={headers.result}
             variant="unstyled"

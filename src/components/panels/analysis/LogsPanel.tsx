@@ -91,11 +91,12 @@ export default function LogsPanel() {
           ]}
         />
         <Select
+          allowDeselect={false}
           value={engine?.name ?? "No engines loaded"}
           onChange={(name) =>
             setEngine(localEngines.find((e) => e.name === name))
           }
-          data={engines.map((e) => ({ value: e.name, label: e.name }))}
+          data={localEngines.map((e) => ({ value: e.name, label: e.name }))}
         />
       </Group>
 

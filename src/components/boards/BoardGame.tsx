@@ -75,6 +75,7 @@ function EnginesSelect({
     <Suspense>
       <Select
         label="Engine"
+        allowDeselect={false}
         data={engines!.map((engine) => ({
           label: engine.name,
           value: engine.path,

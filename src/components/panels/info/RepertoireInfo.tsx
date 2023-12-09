@@ -59,6 +59,7 @@ function RepertoireInfo() {
         <Text>opening for</Text>
 
         <Select
+          allowDeselect={false}
           value={headers.orientation || "white"}
           variant="unstyled"
           rightSection={<></>}

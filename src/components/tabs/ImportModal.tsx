@@ -105,6 +105,7 @@ export default function ImportModal({
       title="Import game"
     >
       <Select
+        allowDeselect={false}
         label="Type of import"
         placeholder="Pick one"
         mb="lg"

@@ -257,6 +257,7 @@ function AdvancedOptions({
           <Table.Tr>
             <Table.Td>
               <Select
+                allowDeselect={false}
                 variant="unstyled"
                 comboboxProps={{
                   position: "bottom",

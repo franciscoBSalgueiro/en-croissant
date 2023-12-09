@@ -56,6 +56,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
           <Text fw="bold">FEN</Text>
           <FenSearch currentFen={currentFen} />
           <Select
+            allowDeselect={false}
             data={[
               { label: "White to move", value: "white" },
               { label: "Black to move", value: "black" },
