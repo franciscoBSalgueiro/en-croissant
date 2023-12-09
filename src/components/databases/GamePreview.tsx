@@ -2,31 +2,30 @@ import { Box, Group, Stack, Text } from "@mantine/core";
 import { useContext } from "react";
 import { Chessground } from "@/chessground/Chessground";
 import MoveControls from "../common/MoveControls";
-import { useSetAtom } from "jotai";
-import { activeTabAtom } from "@/atoms/atoms";
 import GameNotation from "../boards/GameNotation";
 import {
   TreeDispatchContext,
   TreeStateContext,
 } from "../common/TreeStateContext";
 import { useImmerReducer } from "use-immer";
-import treeReducer, { GameHeaders, TreeState, getNodeAtPath } from "@/utils/treeReducer";
-import { useNavigate } from "react-router-dom";
+import treeReducer, {
+  GameHeaders,
+  TreeState,
+  getNodeAtPath,
+} from "@/utils/treeReducer";
 import { parsePGN } from "@/utils/chess";
-import useSWR from "swr";
+import useSWRImmutable from "swr/immutable";
 
 function GamePreviewWrapper({
-  id,
   pgn,
   headers,
   hideControls,
 }: {
-  id?: string;
   pgn: string;
   headers?: GameHeaders;
   hideControls?: boolean;
 }) {
-  const { data: parsedGame, isLoading } = useSWR(pgn, async (game) => {
+  const { data: parsedGame, isLoading } = useSWRImmutable(pgn, async (game) => {
     return await parsePGN(game, headers?.fen);
   });
 
@@ -34,43 +33,25 @@ function GamePreviewWrapper({
     <>
       {isLoading && <Text ta="center">Loading...</Text>}
       {parsedGame && (
-        <GamePreview game={parsedGame} hideControls={hideControls} id={id} />
+        <GamePreview key={pgn} game={parsedGame} hideControls={hideControls} />
       )}
     </>
   );
 }
 
 function GamePreview({
-  id,
   game,
   hideControls,
 }: {
-  id?: string;
   game: TreeState;
   hideControls?: boolean;
 }) {
-  const navigate = useNavigate();
-
-  const setActiveTab = useSetAtom(activeTabAtom);
-
-  function goToGame() {
-    if (id) {
-      setActiveTab(id);
-      navigate("/boards");
-    }
-  }
-
   const [treeState, dispatch] = useImmerReducer(treeReducer, game);
 
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
-        <Group
-          onClick={() => goToGame()}
-          grow
-          h="100%"
-          style={{ overflow: "hidden" }}
-        >
+        <Group grow h="100%" style={{ overflow: "hidden" }}>
           <PreviewBoard />
           {!hideControls && (
             <Stack h="100%">
