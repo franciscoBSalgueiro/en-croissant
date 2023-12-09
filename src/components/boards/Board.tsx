@@ -257,7 +257,7 @@ function Board({
           </Tooltip>
         )}
         {saveFile && (
-          <Tooltip label="Save PGN">
+          <Tooltip label={`Save PGN (${keyMap.SAVE_FILE.keys})`}>
             <ActionIcon
               onClick={() => saveFile()}
               size="lg"
@@ -274,7 +274,7 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip label="Flip Board">
+        <Tooltip label={`Flip Board (${keyMap.SWAP_ORIENTATION.keys})`}>
           <ActionIcon
             variant="default"
             size="lg"
