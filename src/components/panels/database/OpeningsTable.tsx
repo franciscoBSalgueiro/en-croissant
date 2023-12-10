@@ -83,17 +83,17 @@ function OpeningsTable({
               <Progress.Root size="xl">
                 <Progress.Section value={whitePercent} color="white">
                   <Progress.Label c="black">
-                    {whitePercent > 5 ? `${whitePercent.toFixed(1)}%` : ""}
+                    {whitePercent > 10 ? `${whitePercent.toFixed(1)}%` : ""}
                   </Progress.Label>
                 </Progress.Section>
                 <Progress.Section value={drawPercent} color="gray">
                   <Progress.Label>
-                    {drawPercent > 5 ? `${drawPercent.toFixed(1)}%` : ""}
+                    {drawPercent > 10 ? `${drawPercent.toFixed(1)}%` : ""}
                   </Progress.Label>
                 </Progress.Section>
                 <Progress.Section value={blackPercent} color="black">
                   <Progress.Label>
-                    {blackPercent > 5 ? `${blackPercent.toFixed(1)}%` : ""}
+                    {blackPercent > 10 ? `${blackPercent.toFixed(1)}%` : ""}
                   </Progress.Label>
                 </Progress.Section>
               </Progress.Root>
