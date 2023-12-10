@@ -22,7 +22,7 @@ import { ANNOTATION_INFO, getGameStats } from "@/utils/chess";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import BestMoves from "./BestMoves";
+import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import React from "react";
 import {
@@ -119,11 +119,12 @@ function AnalysisPanel({
                       </Button>
                     </Stack>
                     <Group grow style={{ flex: 1 }}>
-                      {loadedEngines.map((engine) => (
+                      {loadedEngines.map((engine, i) => (
                         <EngineSummary
                           key={engine.name}
                           engine={engine}
                           fen={currentNode.fen}
+                          i={i}
                         />
                       ))}
                     </Group>
@@ -237,7 +238,15 @@ function AnalysisPanel({
   );
 }
 
-function EngineSummary({ engine, fen }: { engine: Engine; fen: string }) {
+function EngineSummary({
+  engine,
+  fen,
+  i,
+}: {
+  engine: Engine;
+  fen: string;
+  i: number;
+}) {
   const activeTab = useAtomValue(activeTabAtom);
   const [ev] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! })
@@ -247,7 +256,7 @@ function EngineSummary({ engine, fen }: { engine: Engine; fen: string }) {
   const score = curEval ? curEval[0].score : null;
 
   return (
-    <Card withBorder>
+    <Card withBorder c={arrowColors[i].strong}>
       <Stack gap="xs" align="center">
         <Text
           fw="bold"
