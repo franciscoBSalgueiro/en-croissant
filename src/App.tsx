@@ -222,7 +222,7 @@ function RootLayout() {
     <AppShell
       navbar={{
         width: "3rem",
-        breakpoint: "lg",
+        breakpoint: 0
       }}
       header={
         isNative

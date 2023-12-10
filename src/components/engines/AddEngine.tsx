@@ -77,13 +77,13 @@ function AddEngine({
 
   return (
     <Modal opened={opened} onClose={() => setOpened(false)} title="Add Engine">
-      <Tabs defaultValue="web">
+      <Tabs defaultValue="download">
         <Tabs.List>
-          <Tabs.Tab value="web">Web</Tabs.Tab>
-          <Tabs.Tab value="cloud">Cloud Eval</Tabs.Tab>
+          <Tabs.Tab value="download">Download</Tabs.Tab>
+          <Tabs.Tab value="cloud">Cloud</Tabs.Tab>
           <Tabs.Tab value="local">Local</Tabs.Tab>
         </Tabs.List>
-        <Tabs.Panel value="web" pt="xs">
+        <Tabs.Panel value="download" pt="xs">
           {isLoading && (
             <Center>
               <Loader />
