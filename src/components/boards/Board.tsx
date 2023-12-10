@@ -206,10 +206,8 @@ function Board({
             dest: to,
             brush:
               j === 0
-                ? arrowColors[i]
-                : "pale" +
-                  arrowColors[i].charAt(0).toUpperCase() +
-                  arrowColors[i].slice(1),
+                ? arrowColors[i].strong
+                : arrowColors[i].pale
           });
         }
       }

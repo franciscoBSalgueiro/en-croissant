@@ -83,7 +83,7 @@ bestMovesPayload: "plugin:tauri-specta:best-moves-payload"
 
 export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
-export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; progress: number }
+export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; progress: number }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }

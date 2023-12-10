@@ -232,11 +232,6 @@ const pgnOptionsFamily = atomFamily((tab: string) =>
 );
 export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);
 
-const arrowsFamily = atomFamily((tab: string) =>
-    atom(new Map<number, string[]>())
-);
-export const currentArrowsAtom = tabValue(arrowsFamily);
-
 // Game
 
 type GameState = "settingUp" | "playing" | "gameOver";
@@ -296,6 +291,32 @@ export const engineMovesFamily = atomFamily(
     ({ tab, engine }: { tab: string; engine: string }) =>
         atom<Map<string, BestMoves[]>>(new Map()),
     (a, b) => a.tab === b.tab && a.engine === b.engine
+);
+
+// returns the best moves of each engine for the current position
+export const bestMovesFamily = atomFamily((fen: string) =>
+    atom<Map<number, string[]>>((get) => {
+        const tab = get(activeTabAtom);
+        if (!tab) return new Map();
+        const engines = get(loadableEnginesAtom);
+        if (!(engines.state === "hasData")) return new Map();
+        const bestMoves = new Map<number, string[]>();
+        let n = 0;
+        for (const engine of engines.data.filter((e) => e.loaded)) {
+            const engineMoves = get(
+                engineMovesFamily({ tab, engine: engine.name })
+            );
+            const moves = engineMoves.get(fen);
+            if (moves) {
+                bestMoves.set(
+                    n,
+                    moves.map((m) => m.uciMoves[0])
+                );
+            }
+            n++;
+        }
+        return bestMoves;
+    })
 );
 
 export const tabEngineSettingsFamily = atomFamily(

@@ -2,7 +2,7 @@ import { Box, Text } from "@mantine/core";
 import { formatScore } from "@/utils/score";
 import { Score } from "@/bindings";
 
-function ScoreBubble({ score }: { score: Score }) {
+function ScoreBubble({ size, score }: { size: "sm" | "md"; score: Score }) {
   const text = formatScore(score);
   return (
     <Box
@@ -10,16 +10,16 @@ function ScoreBubble({ score }: { score: Score }) {
         backgroundColor:
           score.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
-        padding: "0.3125rem",
+        padding: size === "md" ? "0.3125rem" : "0.25rem",
         borderRadius: theme.radius.md,
-        width: "4.5rem",
+        width: size === "md" ? "4.5rem" : "3.5rem",
         boxShadow: theme.shadows.md,
       })}
     >
       <Text
         fw={700}
         c={score.value >= 0 ? "black" : "white"}
-        size="md"
+        size={size}
         ta="center"
         style={(theme) => ({
           fontFamily: theme.fontFamilyMonospace,

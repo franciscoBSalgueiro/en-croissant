@@ -1,6 +1,5 @@
 import {
   activeTabAtom,
-  currentArrowsAtom,
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
@@ -50,7 +49,12 @@ import { getBestMoves as localGetBestMoves } from "@/utils/engines";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
 
-export const arrowColors = ["blue", "green", "red", "yellow"];
+export const arrowColors = [
+  { strong: "blue", pale: "paleBlue" },
+  { strong: "green", pale: "paleGreen" },
+  { strong: "red", pale: "paleRed" },
+  { strong: "yellow", pale: "yellow" }, // there's no paleYellow in chessground
+];
 
 interface BestMovesProps {
   id: number;
@@ -77,7 +81,6 @@ export default function BestMovesComponent({
       tab: activeTab!,
     })
   );
-  const [, setArrows] = useAtom(currentArrowsAtom);
 
   const engineVariations = useMemo(() => ev.get(fen) ?? [], [ev, fen]);
 
@@ -88,6 +91,8 @@ export default function BestMovesComponent({
   const theme = useMantineTheme();
   const listeners = useRef<(() => void)[]>([]);
   const [progress, setProgress] = useState(0);
+
+  const searchingFen = threat ? swapMove(fen) : fen;
 
   const [isGameOver, error] = useMemo(() => {
     const [pos, error] = positionFromFen(fen);
@@ -101,27 +106,20 @@ export default function BestMovesComponent({
         if (
           payload.engine === engine.name &&
           payload.tab === activeTab &&
+          payload.fen === searchingFen &&
           settings.enabled &&
           !isGameOver
         ) {
           startTransition(() => {
             setEngineVariation((prev) => {
               const newMap = new Map(prev);
-              newMap.set(fen, ev);
+              newMap.set(searchingFen, ev);
               return newMap;
             });
             setProgress(payload.progress);
             dispatch({
               type: "SET_SCORE",
               payload: ev[0].score,
-            });
-            setArrows((prev) => {
-              const newMap = new Map(prev);
-              newMap.set(
-                id,
-                ev.map((ev) => ev.uciMoves[0])
-              );
-              return newMap;
             });
           });
         }
@@ -132,7 +130,16 @@ export default function BestMovesComponent({
     return () => {
       listeners.current.forEach((unlisten) => unlisten());
     };
-  }, [activeTab, dispatch, id, setArrows, settings.enabled, isGameOver, fen]);
+  }, [
+    activeTab,
+    dispatch,
+    id,
+    settings.enabled,
+    isGameOver,
+    searchingFen,
+    engine.name,
+    setEngineVariation,
+  ]);
 
   const getBestMoves = match(engine.type)
     .with(
@@ -153,7 +160,7 @@ export default function BestMovesComponent({
           }
         } else {
           getBestMoves(activeTab!, settings.go, {
-            fen: threat ? swapMove(fen) : fen,
+            fen: searchingFen,
             multipv: settings.options.multipv,
             hash: settings.options.hash,
             threads: settings.options.threads,
@@ -163,18 +170,10 @@ export default function BestMovesComponent({
               const [progress, bestMoves] = moves;
               setEngineVariation((prev) => {
                 const newMap = new Map(prev);
-                newMap.set(fen, bestMoves);
+                newMap.set(searchingFen, bestMoves);
                 return newMap;
               });
               setProgress(progress);
-              setArrows((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(
-                  id,
-                  bestMoves.map((ev) => ev.uciMoves[0])
-                );
-                return newMap;
-              });
             }
           });
         }
@@ -185,7 +184,14 @@ export default function BestMovesComponent({
       }
     },
     50,
-    [settings.enabled, settings.options, settings.go, threat, fen, isGameOver]
+    [
+      settings.enabled,
+      settings.options,
+      settings.go,
+      threat,
+      searchingFen,
+      isGameOver,
+    ]
   );
 
   return useMemo(
@@ -196,7 +202,7 @@ export default function BestMovesComponent({
             <ActionIcon
               size="lg"
               variant={settings.enabled ? "filled" : "transparent"}
-              color={id < 4 ? arrowColors[id] : theme.primaryColor}
+              color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
               onClick={() => {
                 setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
               }}
@@ -297,7 +303,7 @@ export default function BestMovesComponent({
             engineName={engine.name}
             settings={settings}
             setSettings={setSettings}
-            color={id < 4 ? arrowColors[id] : theme.primaryColor}
+            color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
             remote={engine.type !== "local"}
           />
         </Collapse>
@@ -307,7 +313,7 @@ export default function BestMovesComponent({
           animated={progress < 100 && settings.enabled && !isGameOver}
           size="xs"
           striped={progress < 100 && !settings.enabled}
-          color={id < 4 ? arrowColors[id] : theme.primaryColor}
+          color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
         />
         <Accordion.Panel>
           <Table>

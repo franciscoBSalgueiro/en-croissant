@@ -31,7 +31,7 @@ import GameNotation from "./GameNotation";
 import { useAtom, useAtomValue } from "jotai";
 import {
   autoSaveAtom,
-  currentArrowsAtom,
+  bestMovesFamily,
   currentTabAtom,
   currentTabSelectedAtom,
 } from "@/atoms/atoms";
@@ -44,7 +44,6 @@ import { keyMapAtom } from "@/atoms/keybinds";
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
   const [reportingMode, toggleReportingMode] = useToggle();
-  const [arrows, setArrows] = useAtom(currentArrowsAtom);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
@@ -56,9 +55,7 @@ function BoardAnalysis() {
   const { dirty, root, position, headers } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
 
-  useEffect(() => {
-    setArrows(new Map());
-  }, [position]);
+  const arrows = useAtomValue(bestMovesFamily(currentNode.fen));
 
   const saveFile = useCallback(async () => {
     saveToFile({
@@ -153,29 +150,50 @@ function BoardAnalysis() {
             }}
           >
             <Tabs.List grow mb="1rem">
-              <Tabs.Tab value="analysis" leftSection={<IconZoomCheck size="1rem" />}>
+              <Tabs.Tab
+                value="analysis"
+                leftSection={<IconZoomCheck size="1rem" />}
+              >
                 Analysis
               </Tabs.Tab>
-              <Tabs.Tab value="database" leftSection={<IconDatabase size="1rem" />}>
+              <Tabs.Tab
+                value="database"
+                leftSection={<IconDatabase size="1rem" />}
+              >
                 Database
               </Tabs.Tab>
-              <Tabs.Tab value="annotate" leftSection={<IconNotes size="1rem" />}>
+              <Tabs.Tab
+                value="annotate"
+                leftSection={<IconNotes size="1rem" />}
+              >
                 Annotate
               </Tabs.Tab>
-              <Tabs.Tab value="info" leftSection={<IconInfoCircle size="1rem" />}>
+              <Tabs.Tab
+                value="info"
+                leftSection={<IconInfoCircle size="1rem" />}
+              >
                 Info
               </Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="info" style={{ flex: 1, overflowY: "hidden" }}>
               <InfoPanel />
             </Tabs.Panel>
-            <Tabs.Panel value="database" style={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel
+              value="database"
+              style={{ flex: 1, overflowY: "hidden" }}
+            >
               <DatabasePanel fen={currentNode.fen} />
             </Tabs.Panel>
-            <Tabs.Panel value="annotate" style={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel
+              value="annotate"
+              style={{ flex: 1, overflowY: "hidden" }}
+            >
               <AnnotationPanel />
             </Tabs.Panel>
-            <Tabs.Panel value="analysis" style={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel
+              value="analysis"
+              style={{ flex: 1, overflowY: "hidden" }}
+            >
               <Suspense>
                 <AnalysisPanel
                   toggleReportingMode={toggleReportingMode}

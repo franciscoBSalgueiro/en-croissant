@@ -217,6 +217,7 @@ pub struct BestMovesPayload {
     pub best_lines: Vec<BestMoves>,
     pub engine: String,
     pub tab: String,
+    pub fen: String,
     pub progress: f64,
 }
 
@@ -471,6 +472,7 @@ pub async fn get_best_moves(
                                     best_lines: proc.best_moves.clone(),
                                     engine: id.clone(),
                                     tab: tab.clone(),
+                                    fen: proc.options.fen.clone(),
                                     progress,
                                 }
                                 .emit_all(&app)?;
@@ -488,6 +490,7 @@ pub async fn get_best_moves(
                     best_lines: proc.last_best_moves.clone(),
                     engine: id.clone(),
                     tab: tab.clone(),
+                    fen: proc.options.fen.clone(),
                     progress: 100.0,
                 }
                 .emit_all(&app)?;

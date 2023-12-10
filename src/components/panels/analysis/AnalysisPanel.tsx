@@ -2,6 +2,7 @@ import {
   Accordion,
   Box,
   Button,
+  Card,
   Grid,
   Group,
   Paper,
@@ -25,14 +26,18 @@ import BestMoves from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import React from "react";
 import {
+  activeTabAtom,
   allEnabledAtom,
   currentAnalysisTabAtom,
   enableAllAtom,
+  engineMovesFamily,
   enginesAtom,
 } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import LogsPanel from "./LogsPanel";
 import EvalChart from "@/components/common/EvalChart";
+import ScoreBubble from "./ScoreBubble";
+import { Engine } from "@/utils/engines";
 
 function AnalysisPanel({
   toggleReportingMode,
@@ -93,17 +98,37 @@ function AnalysisPanel({
           <>
             <ScrollArea offsetScrollbars>
               {loadedEngines.length > 0 && (
-                <Group pb="xs">
-                  <Button
-                    rightSection={
-                      allEnabled ? <IconPlayerPause /> : <IconChevronsRight />
-                    }
-                    variant={allEnabled ? "filled" : "default"}
-                    onClick={() => enable(!allEnabled)}
-                  >
-                    {allEnabled ? "Stop All" : "Run All"}
-                  </Button>
-                </Group>
+                <Paper withBorder p="xs" style={{ flex: 1 }}>
+                  <Group w="100%">
+                    <Stack w="8rem">
+                      <Text ta="center" fw="bold">
+                        Summary
+                      </Text>
+                      <Button
+                        rightSection={
+                          allEnabled ? (
+                            <IconPlayerPause size="1.2rem" />
+                          ) : (
+                            <IconChevronsRight size="1.2rem" />
+                          )
+                        }
+                        variant={allEnabled ? "filled" : "default"}
+                        onClick={() => enable(!allEnabled)}
+                      >
+                        {allEnabled ? "Stop" : "Run"}
+                      </Button>
+                    </Stack>
+                    <Group grow style={{ flex: 1 }}>
+                      {loadedEngines.map((engine) => (
+                        <EngineSummary
+                          key={engine.name}
+                          engine={engine}
+                          fen={currentNode.fen}
+                        />
+                      ))}
+                    </Group>
+                  </Group>
+                </Paper>
               )}
               <Stack mt="sm">
                 <Accordion
@@ -209,6 +234,37 @@ function AnalysisPanel({
         </Tabs.Panel>
       </Tabs>
     </Stack>
+  );
+}
+
+function EngineSummary({ engine, fen }: { engine: Engine; fen: string }) {
+  const activeTab = useAtomValue(activeTabAtom);
+  const [ev] = useAtom(
+    engineMovesFamily({ engine: engine.name, tab: activeTab! })
+  );
+
+  const curEval = ev.get(fen);
+  const score = curEval ? curEval[0].score : null;
+
+  return (
+    <Card withBorder>
+      <Stack gap="xs" align="center">
+        <Text
+          fw="bold"
+          fz="xs"
+          style={{ textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          {engine.name}
+        </Text>
+        {score ? (
+          <ScoreBubble size="sm" score={score} />
+        ) : (
+          <Text fz="sm" c="dimmed">
+            ???
+          </Text>
+        )}
+      </Stack>
+    </Card>
   );
 }
 

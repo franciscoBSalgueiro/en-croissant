@@ -28,7 +28,7 @@ function AnalysisRow({
   return (
     <Table.Tr style={{ verticalAlign: "top" }}>
       <Table.Td width={70}>
-        <ScoreBubble score={score} />
+        <ScoreBubble size="md" score={score} />
       </Table.Td>
       <Table.Td>
         <Flex
