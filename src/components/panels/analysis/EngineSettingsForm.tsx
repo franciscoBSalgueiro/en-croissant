@@ -1,4 +1,4 @@
-import { EngineSettings, enginesAtom } from "@/atoms/atoms";
+import { enginesAtom } from "@/atoms/atoms";
 import {
   ActionIcon,
   Button,
@@ -30,6 +30,7 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 import { useAtom } from "jotai";
 import CoresSlider from "./CoresSlider";
+import { EngineSettings } from "@/utils/engines";
 
 interface EngineSettingsProps {
   engineName: string;

@@ -61,7 +61,7 @@ function AddEngine({
       name: "",
       path: "",
       image: "",
-      elo: "",
+      elo: undefined,
     },
 
     validate: {

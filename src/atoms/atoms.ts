@@ -1,22 +1,17 @@
-import { BestMoves, EngineOptions, GoMode } from "@/bindings";
+import { BestMoves } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
-import { Engine } from "@/utils/engines";
+import { Engine, EngineSettings, engineSchema } from "@/utils/engines";
 import {
     LichessGamesOptions,
     MasterGamesOptions,
 } from "@/utils/lichess/lichessexplorer";
 import { MissingMove } from "@/utils/repertoire";
-import { Tab, genID } from "@/utils/tabs";
+import { Tab, genID, tabSchema } from "@/utils/tabs";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import { MantineColor } from "@mantine/core";
-import {
-    BaseDirectory,
-    readTextFile,
-    removeFile,
-    writeTextFile,
-} from "@tauri-apps/api/fs";
+
 import { PrimitiveAtom, atom } from "jotai";
 import {
     atomFamily,
@@ -25,30 +20,15 @@ import {
     loadable,
 } from "jotai/utils";
 import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
-import { AsyncStringStorage } from "jotai/vanilla/utils/atomWithStorage";
 import { Session } from "../utils/session";
 import { OpponentSettings } from "@/components/boards/BoardGame";
+import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
+import { z } from "zod";
 
-const options = { dir: BaseDirectory.AppData };
-const fileStorage: AsyncStringStorage = {
-    async getItem(key) {
-        try {
-            return await readTextFile(key, options);
-        } catch (error) {
-            return null;
-        }
-    },
-    async setItem(key, newValue) {
-        await writeTextFile(key, newValue, options);
-    },
-    async removeItem(key) {
-        await removeFile(key, options);
-    },
-};
 export const enginesAtom = atomWithStorage<Engine[]>(
     "engines/engines.json",
     [],
-    createJSONStorage(() => fileStorage)
+    createAsyncZodStorage(z.array(engineSchema), fileStorage)
 );
 
 const loadableEnginesAtom = loadable(enginesAtom);
@@ -64,7 +44,7 @@ const firstTab: Tab = {
 export const tabsAtom = atomWithStorage<Tab[]>(
     "tabs",
     [firstTab],
-    createJSONStorage(() => sessionStorage)
+    createZodStorage(z.array(tabSchema), sessionStorage)
 );
 
 export const activeTabAtom = atomWithStorage<string | null>(
@@ -119,10 +99,7 @@ export const primaryColorAtom = atomWithStorage<MantineColor>(
     "blue"
 );
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
-export const nativeBarAtom = atomWithStorage<boolean>(
-    "native-bar",
-    false
-);
+export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
 
 // Database
 
@@ -284,12 +261,6 @@ export const deckAtomFamily = atomFamily(
     },
     (a, b) => a.id === b.id && a.game === b.game
 );
-
-export type EngineSettings = {
-    enabled: boolean;
-    go: GoMode;
-    options: Omit<EngineOptions, "fen">;
-};
 
 export const engineMovesFamily = atomFamily(
     ({ tab, engine }: { tab: string; engine: string }) =>

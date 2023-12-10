@@ -1,32 +1,70 @@
 import useSWR from "swr";
 import { invoke, unwrap } from "./invoke";
 import { fetch } from "@tauri-apps/api/http";
-import { EngineSettings } from "@/atoms/atoms";
 import { BestMoves, EngineOptions, GoMode, commands } from "@/bindings";
+import { z } from "zod";
 
-export type Engine = LocalEngine | RemoteEngine;
+const goModeSchema: z.ZodSchema<GoMode> = z.union([
+    z.object({
+        t: z.literal("Depth"),
+        c: z.number(),
+    }),
+    z.object({
+        t: z.literal("Time"),
+        c: z.number(),
+    }),
+    z.object({
+        t: z.literal("Nodes"),
+        c: z.number(),
+    }),
+    z.object({
+        t: z.literal("Infinite"),
+    }),
+]);
 
-export type LocalEngine = {
-    type: "local";
-    name: string;
-    version: string;
-    path: string;
-    image?: string;
-    elo: number | "";
-    downloadSize?: number;
-    downloadLink?: string;
-    loaded?: boolean;
-    settings?: EngineSettings;
-};
+const engineOptionsSchema: z.ZodSchema<Omit<EngineOptions, "fen">> = z.object({
+    multipv: z.number(),
+    threads: z.number(),
+    hash: z.number(),
+    extraOptions: z.array(z.object({ name: z.string(), value: z.string() })),
+});
 
-export type RemoteEngine = {
-    type: "chessdb" | "lichess";
-    name: string;
-    url: string;
-    image?: string;
-    settings?: EngineSettings;
-    loaded?: boolean;
-};
+const engineSettingsSchema = z.object({
+    enabled: z.boolean(),
+    go: goModeSchema,
+    options: engineOptionsSchema,
+});
+
+export type EngineSettings = z.infer<typeof engineSettingsSchema>;
+
+const localEngineSchema = z.object({
+    type: z.literal("local"),
+    name: z.string(),
+    version: z.string(),
+    path: z.string(),
+    image: z.string().optional(),
+    elo: z.number().optional(),
+    downloadSize: z.number().optional(),
+    downloadLink: z.string().optional(),
+    loaded: z.boolean().optional(),
+    settings: engineSettingsSchema.optional(),
+});
+
+export type LocalEngine = z.infer<typeof localEngineSchema>;
+
+const remoteEngineSchema = z.object({
+    type: z.enum(["chessdb", "lichess"]),
+    name: z.string(),
+    url: z.string(),
+    image: z.string().optional(),
+    settings: engineSettingsSchema.optional(),
+    loaded: z.boolean().optional(),
+});
+
+export type RemoteEngine = z.infer<typeof remoteEngineSchema>;
+
+export const engineSchema = z.union([localEngineSchema, remoteEngineSchema]);
+export type Engine = z.infer<typeof engineSchema>;
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
     return commands.stopEngine(engine.path, tab).then((r) => {

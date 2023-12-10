@@ -1,24 +1,32 @@
 import { count_pgn_games } from "@/utils/db";
 import { exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
+import { z } from "zod";
 
-export type FileType =
-    | "repertoire"
-    | "game"
-    | "tournament"
-    | "puzzle"
-    | "other";
+const fileTypeSchema = z.enum([
+    "repertoire",
+    "game",
+    "tournament",
+    "puzzle",
+    "other",
+]);
 
-export type FileInfoMetadata = {
-    type: FileType;
-    tags: string[];
-};
+export type FileType = z.infer<typeof fileTypeSchema>;
 
-export type FileMetadata = {
-    name: string;
-    path: string;
-    numGames: number;
-    metadata: FileInfoMetadata;
-};
+const fileInfoMetadataSchema = z.object({
+    type: fileTypeSchema,
+    tags: z.array(z.string()),
+});
+
+export type FileInfoMetadata = z.infer<typeof fileInfoMetadataSchema>;
+
+export const fileMetadataSchema = z.object({
+    name: z.string(),
+    path: z.string(),
+    numGames: z.number(),
+    metadata: fileInfoMetadataSchema,
+});
+
+export type FileMetadata = z.infer<typeof fileMetadataSchema>;
 
 export type FileData = {
     metadata: FileInfoMetadata;

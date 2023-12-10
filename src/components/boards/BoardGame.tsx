@@ -37,7 +37,6 @@ import {
 import Board from "./Board";
 import GameNotation from "./GameNotation";
 import {
-  EngineSettings,
   activeTabAtom,
   currentGameStateAtom,
   currentPlayersAtom,
@@ -47,7 +46,7 @@ import {
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 import { parseUci } from "@/utils/chess";
-import { LocalEngine } from "@/utils/engines";
+import { EngineSettings, LocalEngine } from "@/utils/engines";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";

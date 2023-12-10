@@ -60,7 +60,8 @@
     "tauri-plugin-log-api": "github:tauri-apps/tauri-plugin-log#v1",
     "ts-pattern": "^5.0.4",
     "use-immer": "^0.9.0",
-    "vite": "^5.0.4"
+    "vite": "^5.0.4",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.2",

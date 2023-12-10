@@ -1,19 +1,20 @@
-import { FileMetadata } from "@/components/files/file";
+import { FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import { getPGN, parsePGN } from "./chess";
 import { GameHeaders, TreeNode } from "./treeReducer";
 import { invoke } from "./invoke";
 import { documentDir, resolve } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/api/dialog";
+import { z } from "zod";
 
-type TabType = "new" | "play" | "analysis" | "puzzles";
+export const tabSchema = z.object({
+    name: z.string(),
+    value: z.string(),
+    type: z.enum(["new", "play", "analysis", "puzzles"]),
+    gameNumber: z.number().optional(),
+    file: fileMetadataSchema.optional(),
+});
 
-export type Tab = {
-    name: string;
-    value: string;
-    type: TabType;
-    gameNumber?: number;
-    file?: FileMetadata;
-};
+export type Tab = z.infer<typeof tabSchema>;
 
 export function genID() {
     function S4() {
