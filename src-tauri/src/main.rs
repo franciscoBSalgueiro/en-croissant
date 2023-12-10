@@ -246,18 +246,20 @@ fn is_bmi2_compatible() -> bool {
 
 #[tauri::command]
 #[specta::specta]
-fn is_menu_visisble(window: tauri::Window) -> bool {
+async fn is_menu_visisble(window: tauri::Window) -> bool {
     window.menu_handle().is_visible().unwrap()
 }
 
 #[tauri::command]
 #[specta::specta]
-fn set_menu_visisble(state: bool, window: tauri::Window) {
+async fn set_menu_visisble(state: bool, window: tauri::Window) {
     let menu = window.menu_handle();
     if state {
         menu.show().unwrap();
+        window.set_decorations(true).unwrap();
     } else {
         menu.hide().unwrap();
+        window.set_decorations(false).unwrap();
     }
 }
 
