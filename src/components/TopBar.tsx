@@ -1,26 +1,7 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { openFile } from "@/utils/files";
-import {
-  Box,
-  Button,
-  Center,
-  Group,
-  Image,
-  Menu,
-  Text,
-} from "@mantine/core";
-import { ask, message, open } from "@tauri-apps/api/dialog";
+import { Box, Button, Center, Group, Image, Menu, Text } from "@mantine/core";
 import { appWindow } from "@tauri-apps/api/window";
-import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
-import { useAtom, useAtomValue } from "jotai";
-import { useNavigate } from "react-router-dom";
-import AboutModal from "./About";
-import { useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { createTab } from "@/utils/tabs";
 import * as classes from "./TopBar.css";
 
-import { keyMapAtom } from "@/atoms/keybinds";
 import { useColorScheme } from "@mantine/hooks";
 
 function IconMinimize() {
@@ -79,111 +60,7 @@ type MenuGroup = {
   options: MenuAction[];
 };
 
-function TopBar() {
-  const [, setTabs] = useAtom(tabsAtom);
-  const [, setActiveTab] = useAtom(activeTabAtom);
-  const navigate = useNavigate();
-
-  async function openNewFile() {
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: "PGN file", extensions: ["pgn"] }],
-    });
-    if (typeof selected === "string") {
-      navigate("/boards");
-      openFile(selected, setTabs, setActiveTab);
-    }
-  }
-
-  function createNewTab() {
-    navigate("/boards");
-    createTab({
-      tab: { name: "New Tab", type: "new" },
-      setTabs,
-      setActiveTab,
-    });
-  }
-
-  async function checkForUpdates() {
-    const res = await checkUpdate();
-    if (res.shouldUpdate) {
-      const yes = await ask("Do you want to install them now?", {
-        title: "New version available",
-      });
-      if (yes) {
-        await installUpdate();
-      }
-    } else {
-      await message("No updates available");
-    }
-  }
-
-  const keyMap = useAtomValue(keyMapAtom);
-
-  const menuActions: MenuGroup[] = [
-    {
-      label: "File",
-      options: [
-        {
-          label: "New Tab",
-          shortcut: keyMap.NEW_TAB.keys,
-          action: createNewTab,
-        },
-        {
-          label: "Open File",
-          shortcut: keyMap.OPEN_FILE.keys,
-          action: openNewFile,
-        },
-        {
-          label: "Exit",
-          action: () => appWindow.close(),
-        },
-      ],
-    },
-    {
-      label: "View",
-      options: [
-        {
-          label: "Reload",
-          shortcut: "Ctrl+R",
-          action: () => location.reload(),
-        },
-      ],
-    },
-    {
-      label: "Help",
-      options: [
-        {
-          label: "Clear saved data",
-          action: () => {
-            ask("Are you sure you want to clear all saved data?", {
-              title: "Clear data",
-            }).then((res) => {
-              if (res) {
-                localStorage.clear();
-                sessionStorage.clear();
-                location.reload();
-              }
-            });
-          },
-        },
-        { label: "divider" },
-        {
-          label: "Check for updates",
-          action: checkForUpdates,
-        },
-        {
-          label: "About",
-          action: () => setOpened(true),
-        },
-      ],
-    },
-  ];
-  const [opened, setOpened] = useState(false);
-
-  useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
-  useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
-
+function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
   const colorScheme = useColorScheme();
 
   return (
@@ -273,7 +150,6 @@ function TopBar() {
           </Group>
         </Box>
       </Group>
-      <AboutModal opened={opened} setOpened={setOpened} />
     </>
   );
 }

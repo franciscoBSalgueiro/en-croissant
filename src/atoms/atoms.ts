@@ -119,6 +119,10 @@ export const primaryColorAtom = atomWithStorage<MantineColor>(
     "blue"
 );
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
+export const nativeBarAtom = atomWithStorage<boolean>(
+    "native-bar",
+    true
+);
 
 // Database
 

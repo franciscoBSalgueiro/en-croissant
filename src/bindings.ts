@@ -70,6 +70,12 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async setMenuVisisble(state: boolean) : Promise<null> {
+return await TAURI_INVOKE("plugin:tauri-specta|set_menu_visisble", { state });
+},
+async isMenuVisisble() : Promise<boolean> {
+return await TAURI_INVOKE("plugin:tauri-specta|is_menu_visisble");
 }
 }
 

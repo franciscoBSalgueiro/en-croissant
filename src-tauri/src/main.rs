@@ -30,6 +30,7 @@ use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager, Window,
 };
+use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
 use tauri_plugin_log::LogTarget;
 
 use crate::chess::{
@@ -86,7 +87,6 @@ const REQUIRED_FILES: &[(BaseDirectory, &str)] =
 #[tauri::command]
 #[specta::specta]
 fn close_splashscreen(window: Window) {
-    // Show main window
     window
         .get_window("main")
         .expect("no window labeled 'main' found")
@@ -118,7 +118,9 @@ fn main() {
                 kill_engines,
                 get_engine_logs,
                 memory_size,
-                get_puzzle
+                get_puzzle,
+                set_menu_visisble,
+                is_menu_visisble
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload));
 
@@ -127,7 +129,38 @@ fn main() {
         specta_builder.into_plugin()
     };
 
+    let new_tab = CustomMenuItem::new("new_tab".to_string(), "New tab");
+    let open_file = CustomMenuItem::new("open_file".to_string(), "Open file");
+    let file_menu = Submenu::new(
+        "File",
+        Menu::new()
+            .add_item(new_tab)
+            .add_item(open_file)
+            .add_native_item(MenuItem::Quit),
+    );
+
+    let reload = CustomMenuItem::new("reload".to_string(), "Reload");
+
+    let view_menu = Submenu::new("View", Menu::new().add_item(reload));
+
+    let clear_saved_data = CustomMenuItem::new("clear_saved_data".to_string(), "Clear saved data");
+    let check_updates = CustomMenuItem::new("check_updates".to_string(), "Check for updates");
+    let about = CustomMenuItem::new("about".to_string(), "About");
+    let help_menu = Submenu::new(
+        "Help",
+        Menu::new()
+            .add_item(clear_saved_data)
+            .add_item(check_updates)
+            .add_item(about),
+    );
+
+    let menu = Menu::new()
+        .add_submenu(file_menu)
+        .add_submenu(view_menu)
+        .add_submenu(help_menu);
+
     tauri::Builder::default()
+        .menu(menu)
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets(LOG_TARGETS)
@@ -210,9 +243,27 @@ fn is_bmi2_compatible() -> bool {
     false
 }
 
+
+#[tauri::command]
+#[specta::specta]
+fn is_menu_visisble(window: tauri::Window) -> bool {
+    window.menu_handle().is_visible().unwrap()
+}
+
+#[tauri::command]
+#[specta::specta]
+fn set_menu_visisble(state: bool, window: tauri::Window) {
+    let menu = window.menu_handle();
+    if state {
+        menu.show().unwrap();
+    } else {
+        menu.hide().unwrap();
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 fn memory_size() -> u32 {
     let total_bytes = sysinfo::System::new_all().total_memory();
-    return (total_bytes / 1024 / 1024) as u32;
+    (total_bytes / 1024 / 1024) as u32
 }

@@ -1,4 +1,4 @@
-import { Modal, Text } from "@mantine/core";
+import { Anchor, Modal, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { getVersion, getTauriVersion } from "@tauri-apps/api/app";
 import { type, arch, version as OSVersion } from "@tauri-apps/api/os";
@@ -44,9 +44,9 @@ function AboutModal({
 
       <br />
 
-      <a href="https://www.encroissant.org" target="_blank" rel="noreferrer">
+      <Anchor href="https://www.encroissant.org" target="_blank" rel="noreferrer">
         www.encroissant.org
-      </a>
+      </Anchor>
     </Modal>
   );
 }

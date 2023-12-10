@@ -9,12 +9,14 @@ import {
   pieceSetAtom,
   showDestsAtom,
   showCoordinatesAtom,
+  nativeBarAtom,
 } from "@/atoms/atoms";
 import {
   ActionIcon,
   Card,
   Group,
   ScrollArea,
+  Select,
   Stack,
   Table,
   Tabs,
@@ -78,6 +80,7 @@ const pieceSets = [
 export default function Page() {
   const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
+  const [isNative, setIsNative] = useAtom(nativeBarAtom);
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -282,6 +285,27 @@ export default function Page() {
                   </Text>
                 </div>
                 <ThemeButton />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Title Bar</Text>
+                  <Text size="xs" c="dimmed">
+                    Choose between native or custom title bar
+                  </Text>
+                </div>
+                <Select
+                  allowDeselect={false}
+                  data={["Native", "Custom"]}
+                  value={isNative ? "Native" : "Custom"}
+                  onChange={(val) => {
+                    setIsNative(val === "Native");
+                  }}
+                />
               </Group>
               <Group
                 justify="space-between"
