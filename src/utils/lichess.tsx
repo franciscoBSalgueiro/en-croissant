@@ -292,7 +292,12 @@ export async function downloadLichess(
 
 export async function getLichessGame(gameId: string): Promise<string> {
   const response = await window.fetch(
-    `https://lichess.org/game/export/${gameId}`
+    `https://lichess.org/game/export/${gameId.slice(0, 8)}`,
+    {
+      headers: {
+        Accept: "application/json",
+      },
+    }
   );
   if (!response.ok) {
     throw new Error(
