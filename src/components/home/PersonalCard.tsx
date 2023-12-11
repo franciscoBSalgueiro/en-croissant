@@ -96,8 +96,8 @@ function PersonalPlayerCard({
     data = mergeYears(data);
   }
 
-  let white_openings = info?.white_openings ?? [];
-  let black_openings = info?.black_openings ?? [];
+  let white_openings = info?.white_openings.slice(0, 10) ?? [];
+  let black_openings = info?.black_openings.slice(0, 10) ?? [];
 
   if (!expanded) {
     white_openings = white_openings.slice(0, 3);

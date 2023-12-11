@@ -1135,9 +1135,6 @@ pub async fn get_players_game_info(
         *o = opening_name;
     });
 
-    game_info.white_openings.truncate(10);
-    game_info.black_openings.truncate(10);
-
     // transform ECO to opening name
 
     Ok(game_info)
