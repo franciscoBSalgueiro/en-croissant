@@ -5,7 +5,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode,
-    FromSetup, Piece, Position, PositionErrorKinds, Role, Setup, Square,
+    Position, Role, Setup, Square,
 };
 use specta::Type;
 use tauri::{
@@ -68,7 +68,7 @@ impl EngineProcess {
         let mut stdin = child.stdin.take().ok_or(Error::NoStdin)?;
         let mut lines = BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines();
 
-        stdin.write_all("uci\n".as_bytes()).await;
+        let _ = stdin.write_all("uci\n".as_bytes()).await;
         logs.push(EngineLog::Gui("uci\n".to_string()));
         while let Some(line) = lines.next_line().await? {
             logs.push(EngineLog::Engine(line.clone()));
@@ -358,7 +358,7 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
                 let mut process = process.lock().await;
                 process.kill().await?;
             }
-            state.engine_processes.remove(&key).unwrap();
+            state.engine_processes.remove(&key);
         }
     }
     Ok(())
@@ -501,7 +501,7 @@ pub async fn get_best_moves(
         proc.logs.push(EngineLog::Engine(line));
     }
     info!("Engine process finished: tab: {}, engine: {}", tab, engine);
-    state.engine_processes.remove(&key).unwrap();
+    state.engine_processes.remove(&key);
     Ok(None)
 }
 
@@ -562,7 +562,7 @@ pub async fn analyze_game(
 
     let mut novelty_found = false;
 
-    for (i, (fen, maybe_brilliant)) in fens.iter().enumerate() {
+    for (i, (fen, _)) in fens.iter().enumerate() {
         app.emit_all(
             "report_progress",
             ProgressPayload {

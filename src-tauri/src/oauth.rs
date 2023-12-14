@@ -69,9 +69,10 @@ pub async fn authenticate(
         .set_pkce_challenge(state.auth.pkce.0.clone())
         .url();
     tauri::api::shell::open(&app.shell_scope(), auth_url, None)?;
-    let server_handle = tauri::async_runtime::spawn(async move { run_server(app).await });
+    let _server_handle = tauri::async_runtime::spawn(async move { run_server(app).await });
     Ok(())
 }
+
 
 #[derive(Deserialize)]
 struct CallbackQuery {

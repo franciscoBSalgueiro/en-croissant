@@ -78,9 +78,6 @@ pub enum Error {
     #[error("No match found")]
     NoMatchFound,
 
-    #[error("No legal moves")]
-    NoLegalMoves,
-
     #[error("No puzzles")]
     NoPuzzles,
 }
