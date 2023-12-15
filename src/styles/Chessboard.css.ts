@@ -14,11 +14,11 @@ globalStyle(
     `${chessboard} > .cg-wrap > cg-container > cg-board > square.last-move`,
     {
         [vars.darkSelector]: {
-            background:
+            backgroundColor:
                 "color-mix(in srgb, var(--light-color, var(--mantine-primary-color-5)) 40%, transparent)",
         },
         [vars.lightSelector]: {
-            background:
+            backgroundColor:
                 "color-mix(in srgb, var(--dark-color, var(--mantine-primary-color-3)) 40%, transparent)",
         },
     }

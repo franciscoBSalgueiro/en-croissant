@@ -13,21 +13,17 @@ globalStyle("cg-board square.selected", {
 });
 
 globalStyle("cg-board square.move-dest", {
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    borderRadius: "50%",
-    padding: "4%",
-    backgroundClip: "content-box",
-    boxSizing: "border-box",
+    background: "radial-gradient(rgba(0, 0, 0, 0.3) 25%, rgba(0, 0, 0, 0) 0)",
 });
 
 globalStyle("cg-board square.move-dest:hover", {
     [vars.darkSelector]: {
         background:
-            "color-mix(in srgb, var(--mantine-primary-color-5) 60%, transparent)",
+            "color-mix(in srgb, var(--mantine-primary-color-5) 60%, transparent) !important",
     },
     [vars.lightSelector]: {
         background:
-            "color-mix(in srgb, var(--mantine-primary-color-3) 60%, transparent)",
+            "color-mix(in srgb, var(--mantine-primary-color-3) 60%, transparent) !important",
     },
     borderRadius: 0,
     padding: 0,

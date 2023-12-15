@@ -24,7 +24,6 @@ cg-board {
   user-select: none;
   line-height: 0;
   background-size: cover;
-  /* outline: 10px solid #A13E3C; */
 }
 
 cg-board square {
