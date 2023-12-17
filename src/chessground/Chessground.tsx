@@ -3,12 +3,7 @@ import { Api } from "chessground/api";
 import { Config } from "chessground/config";
 import { useEffect, useRef, useState } from "react";
 
-interface ChessgroundProps extends Config {
-  height?: string | number;
-  width?: string | number;
-}
-
-export function Chessground(props: ChessgroundProps) {
+export function Chessground(props: Config) {
   const [api, setApi] = useState<Api | null>(null);
 
   const ref = useRef<HTMLDivElement>(null);
@@ -30,7 +25,7 @@ export function Chessground(props: ChessgroundProps) {
     <div
       style={{
         aspectRatio: 1,
-        width: "100%"
+        width: "100%",
       }}
       ref={ref}
     />

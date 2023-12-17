@@ -47,8 +47,6 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
         <Stack>
           <Box ref={boardRef}>
             <Chessground
-              width={400}
-              height={400}
               fen={options.fen}
               coordinates={false}
               lastMove={[]}

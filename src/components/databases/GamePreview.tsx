@@ -92,8 +92,6 @@ function PreviewBoard() {
     >
       <Chessground
         coordinates={false}
-        width={"100%"}
-        height={"100%"}
         viewOnly={true}
         fen={fen}
         orientation={tree.headers.orientation || "white"}
