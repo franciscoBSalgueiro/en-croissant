@@ -144,20 +144,37 @@ export function EditModal({
       filename + ".pgn"
     );
 
-    await renameFile(
-      "EnCroissant/" + metadata.name + ".pgn",
-      "EnCroissant/" + filename + ".pgn",
-      {
-        dir: BaseDirectory.Document,
-      }
-    );
-    await renameFile(
-      "EnCroissant/" + metadata.name + ".info",
-      "EnCroissant/" + filename + ".info",
-      {
-        dir: BaseDirectory.Document,
-      }
-    );
+    try {
+      await renameFile(
+        "EnCroissant/" + metadata.name + ".pgn",
+        "EnCroissant/" + filename + ".pgn",
+        {
+          dir: BaseDirectory.Document,
+        }
+      );
+      await renameFile(
+        "EnCroissant/" + metadata.name + ".info",
+        "EnCroissant/" + filename + ".info",
+        {
+          dir: BaseDirectory.Document,
+        }
+      );
+    } catch {
+      await renameFile(
+        "documents/" + metadata.name + ".pgn",
+        "documents/" + filename + ".pgn",
+        {
+          dir: BaseDirectory.AppData,
+        }
+      );
+      await renameFile(
+        "documents/" + metadata.name + ".info",
+        "documents/" + filename + ".info",
+        {
+          dir: BaseDirectory.AppData,
+        }
+      );
+    }
 
     setFiles((files) =>
       [
