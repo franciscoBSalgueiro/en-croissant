@@ -78,6 +78,7 @@ const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
     (BaseDirectory::AppData, "db"),
     (BaseDirectory::AppData, "presets"),
     (BaseDirectory::AppData, "puzzles"),
+    (BaseDirectory::AppData, "documents"),
     (BaseDirectory::Document, "EnCroissant"),
 ];
 
@@ -177,11 +178,12 @@ fn main() {
                     &app.env(),
                     path,
                     Some(*dir),
-                )
-                .unwrap();
-                if !Path::new(&path).exists() {
-                    create_dir_all(&path).unwrap();
-                }
+                );
+                if let Ok(path) = path {
+                    if !Path::new(&path).exists() {
+                        create_dir_all(&path).unwrap();
+                    }
+                };
             }
 
             for (dir, path) in REQUIRED_FILES.iter() {
@@ -242,7 +244,6 @@ fn is_bmi2_compatible() -> bool {
     }
     false
 }
-
 
 #[tauri::command]
 #[specta::specta]

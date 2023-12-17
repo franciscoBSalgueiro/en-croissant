@@ -15,8 +15,13 @@ function OpenFolderButton({
       const path = await resolve(await appDataDir(), folder);
       open(path);
     } else if (base === "Document") {
-      const path = await resolve(await documentDir(), folder);
-      open(path);
+      try {
+        const path = await resolve(await documentDir(), folder);
+        open(path);
+      } catch {
+        const path = await resolve(await appDataDir(), "documents");
+        open(path);
+      }
     }
   }
   return (
