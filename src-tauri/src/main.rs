@@ -121,7 +121,8 @@ fn main() {
                 memory_size,
                 get_puzzle,
                 set_menu_visisble,
-                is_menu_visisble
+                is_menu_visisble,
+                get_opening_from_fen
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload));
 
@@ -205,7 +206,6 @@ fn main() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             download_file,
-            get_opening_from_fen,
             search_opening_name,
             get_games,
             get_players,

@@ -1,6 +1,6 @@
 use log::info;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position};
+use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position, Setup};
 
 use lazy_static::lazy_static;
 use strsim::jaro_winkler;
@@ -11,7 +11,8 @@ use crate::error::Error;
 pub struct Opening {
     eco: String,
     name: String,
-    fen: String,
+    #[serde(skip)]
+    setup: Setup,
 }
 
 #[derive(Deserialize)]
@@ -30,12 +31,18 @@ const TSV_DATA: [&[u8]; 5] = [
 ];
 
 #[tauri::command]
-pub fn get_opening_from_fen(fen: &str) -> Result<&str, Error> {
+#[specta::specta]
+pub fn get_opening_from_fen(fen: &str) -> Result<String, Error> {
+    let fen: Fen = fen.parse()?;
+    get_opening_from_setup(fen.into_setup())
+}
+
+pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
     OPENINGS
         .iter()
-        .find(|o| o.fen == fen)
-        .map(|o| o.name.as_str())
-        .ok_or(Error::NoOpeningFound)
+        .find(|o| o.setup == setup)
+        .map(|o| o.name.clone())
+        .ok_or_else(|| Error::NoOpeningFound)
 }
 
 pub fn get_opening_from_eco(eco: &str) -> Result<&str, Error> {
@@ -85,12 +92,12 @@ lazy_static! {
             Opening {
                 eco: "Extra".to_string(),
                 name: "Starting Position".to_string(),
-                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+                setup: Setup::default(),
             },
             Opening {
                 eco: "Extra".to_string(),
                 name: "Empty Board".to_string(),
-                fen: "8/8/8/8/8/8/8/8 w - - 0 1".to_string(),
+                setup: Setup::empty(),
             },
         ];
 
@@ -104,11 +111,10 @@ lazy_static! {
                         pos.play_unchecked(&san.to_move(&pos).expect("legal move"));
                     }
                 }
-                let fen = Fen::from_position(pos.clone(), EnPassantMode::Legal);
                 positions.push(Opening {
                     eco: record.eco,
                     name: record.name,
-                    fen: fen.to_string(),
+                    setup: pos.into_setup(EnPassantMode::Legal),
                 });
             }
         }

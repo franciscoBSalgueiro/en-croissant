@@ -23,8 +23,9 @@ import {
   YAxis,
 } from "recharts";
 import { PlayerGameInfo } from "@/utils/db";
-import { IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
+import { IconInfoCircle } from "@tabler/icons-react";
 import FideInfo from "../databases/FideInfo";
+import { DataTable } from "mantine-datatable";
 
 function fillMissingMonths(data: { name: string; games: number }[]) {
   if (data.length === 0) return data;
@@ -70,6 +71,13 @@ function mergeYears(data: { name: string; games: number }[]) {
   return summed;
 }
 
+function zip<T>(a: T[], b: T[]) {
+  return Array.from(Array(Math.max(b.length, a.length)), (_, i) => [
+    a[i],
+    b[i],
+  ]);
+}
+
 function PersonalPlayerCard({
   name,
   info,
@@ -78,7 +86,6 @@ function PersonalPlayerCard({
   info: PlayerGameInfo;
 }) {
   const total = info ? info.won + info.lost + info.draw : 0;
-  const [expanded, setExpanded] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   let data = fillMissingMonths(
@@ -96,13 +103,8 @@ function PersonalPlayerCard({
     data = mergeYears(data);
   }
 
-  let white_openings = info?.white_openings.slice(0, 10) ?? [];
-  let black_openings = info?.black_openings.slice(0, 10) ?? [];
-
-  if (!expanded) {
-    white_openings = white_openings.slice(0, 3);
-    black_openings = black_openings.slice(0, 3);
-  }
+  const white_openings = info?.white_openings ?? [];
+  const black_openings = info?.black_openings ?? [];
 
   const [opened, setOpened] = useState(false);
 
@@ -115,7 +117,7 @@ function PersonalPlayerCard({
       style={{ overflow: "hidden" }}
     >
       <FideInfo key={name} opened={opened} setOpened={setOpened} name={name} />
-      <ScrollArea h="100%">
+      <ScrollArea h="100%" type="never">
         <Box pos="relative">
           {name !== "Stats" && (
             <ActionIcon pos="absolute" onClick={() => setOpened(true)}>
@@ -160,45 +162,42 @@ function PersonalPlayerCard({
         <Text ta="center" fw="bold">
           Openings
         </Text>
-        <Group grow mt="lg">
-          <Stack>
-            <Text fw="bold">White</Text>
-            {white_openings.map(([opening, games]) => (
-              <Text key={opening}>
-                {opening}: {games}
-              </Text>
-            ))}
-          </Stack>
-          <Stack>
-            <Text fw="bold">Black</Text>
-            {black_openings.map(([opening, games]) => (
-              <Text key={opening}>
-                {opening}: {games}
-              </Text>
-            ))}
-          </Stack>
-        </Group>
-        <Divider
-          my="xs"
-          variant="dashed"
-          labelPosition="center"
-          onClick={() => setExpanded((v) => !v)}
-          label={
-            <Button
-              size="sm"
-              variant="subtle"
-              leftSection={
-                <IconChevronDown
-                  style={{
-                    transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-                  }}
-                />
-              }
-            >
-              {expanded ? "Show Less" : "Show More"}
-            </Button>
-          }
+        <DataTable
+          height="20rem"
+          columns={[
+            {
+              accessor: "white",
+              title: "White",
+              render: ({ white }) => <Text>{white}</Text>,
+            },
+            {
+              accessor: "white_games",
+              title: "#",
+              textAlign: "right",
+              render: ({ white_games }) => <Text>{white_games}</Text>,
+            },
+            {
+              accessor: "black",
+              title: "Black",
+              render: ({ black }) => <Text>{black}</Text>,
+            },
+            {
+              accessor: "black_games",
+              title: "#",
+              textAlign: "right",
+              render: ({ black_games }) => <Text>{black_games}</Text>,
+            },
+          ]}
+          records={zip(white_openings, black_openings).map(
+            ([white, black]) => ({
+              white: white && white[0],
+              white_games: white && white[1],
+              black: black && black[0],
+              black_games: black && black[1],
+            })
+          )}
         />
+        <Divider my="xs" />
         <Stack>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart

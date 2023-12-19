@@ -1,5 +1,4 @@
 import { Text } from "@mantine/core";
-import { useEffect, useState } from "react";
 import {
   DatabaseInfo as PlainDatabaseInfo,
   Player,
@@ -12,6 +11,7 @@ import { useAtomValue } from "jotai";
 import { sessionsAtom } from "@/atoms/atoms";
 import { Session } from "@/utils/session";
 import PersonalPlayerCard from "./PersonalCard";
+import useSWRImmutable from "swr/immutable";
 
 interface DatabaseInfo extends PlainDatabaseInfo {
   username?: string;
@@ -68,11 +68,13 @@ function combinePlayerInfo(playerInfos: PlayerGameInfo[]) {
 
 function Databases() {
   const sessions = useAtomValue(sessionsAtom);
-  const [personalInfo, setPersonalInfo] = useState<PersonalInfo[]>([]);
-
-  useEffect(() => {
-    async function getPlayerInfo() {
-      if (sessions.length === 0) return;
+  const {
+    data: personalInfo,
+    isLoading,
+    error,
+  } = useSWRImmutable<PersonalInfo[]>(
+    sessions.length === 0 ? null : ["databases", sessions],
+    async () => {
       const dbs = await getDatabases();
       const personalDbs = dbs.filter((db) =>
         isDatabaseFromSession(db, sessions)
@@ -95,23 +97,25 @@ function Databases() {
           return { db, info };
         })
       );
-      setPersonalInfo(newInfo);
+      return newInfo;
     }
-    getPlayerInfo();
-  }, [sessions]);
+  );
 
   return (
     <>
-      {personalInfo.length === 0 ? (
-        <Text ta="center" fw="bold" my="auto" fz="lg">
-          No databases found
-        </Text>
-      ) : (
-        <PersonalPlayerCard
-          name={"Stats"}
-          info={combinePlayerInfo(personalInfo.map((i) => i.info))}
-        />
-      )}
+      {isLoading && <Text ta="center">Loading...</Text>}
+      {error && <Text ta="center">Error loading databases: {error}</Text>}
+      {personalInfo &&
+        (personalInfo.length === 0 ? (
+          <Text ta="center" fw="bold" my="auto" fz="lg">
+            No databases found
+          </Text>
+        ) : (
+          <PersonalPlayerCard
+            name={"Stats"}
+            info={combinePlayerInfo(personalInfo.map((i) => i.info))}
+          />
+        ))}
     </>
   );
 }

@@ -97,7 +97,7 @@ function AnalysisPanel({
         >
           <>
             <ScrollArea offsetScrollbars>
-              {loadedEngines.length > 0 && (
+              {loadedEngines.length > 1 && (
                 <Paper withBorder p="xs" style={{ flex: 1 }}>
                   <Group w="100%">
                     <Stack w="8rem">

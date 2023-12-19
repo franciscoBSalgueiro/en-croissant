@@ -16,7 +16,7 @@ import {
     TreeState,
 } from "./treeReducer";
 import { MantineColor } from "@mantine/core";
-import { Score } from "@/bindings";
+import { Score, commands } from "@/bindings";
 import { isPawns, parseComment } from "chessops/pgn";
 import { Color, Role, makeSquare } from "chessops";
 import { INITIAL_FEN, parseFen } from "chessops/fen";
@@ -288,11 +288,15 @@ export async function getOpening(
     if (tree === null) {
         return "";
     }
-    return invoke<string>("get_opening_from_fen", { fen: tree.fen })
-        .then((v) => v)
-        .catch(() =>
-            position.length === 0 ? "" : getOpening(root, position.slice(0, -1))
-        );
+    const res = await commands.getOpeningFromFen(tree.fen);
+    if (res.status === "error") {
+        if (position.length === 0) {
+            return "";
+        }
+        return getOpening(root, position.slice(0, -1));
+    } else {
+        return res.data;
+    }
 }
 
 type Token =
