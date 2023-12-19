@@ -4,6 +4,7 @@ import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./invoke";
 import { PuzzleDatabase } from "./puzzles";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import { MonthData } from "@/bindings";
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
@@ -201,18 +202,21 @@ export async function getDatabase(path: string): Promise<DatabaseInfo> {
 }
 
 export function useDefaultDatabases(opened: boolean) {
-    const { data, error, isLoading } = useSWR(opened ? "default-dbs" : null, async () => {
-        const data = await fetch<DatabaseInfo[]>(
-            `https://www.encroissant.org/databases`,
-            {
-                method: "GET",
+    const { data, error, isLoading } = useSWR(
+        opened ? "default-dbs" : null,
+        async () => {
+            const data = await fetch<DatabaseInfo[]>(
+                `https://www.encroissant.org/databases`,
+                {
+                    method: "GET",
+                }
+            );
+            if (!data.ok) {
+                throw new Error("Failed to fetch engines");
             }
-        );
-        if (!data.ok) {
-            throw new Error("Failed to fetch engines");
+            return data.data;
         }
-        return data.data;
-    });
+    );
     return {
         defaultDatabases: data,
         error,
@@ -280,28 +284,18 @@ export interface PlayerGameInfo {
     won: number;
     lost: number;
     draw: number;
-    games_per_month: [string, number][];
+    data_per_month: [string, MonthData][];
     white_openings: [string, number][];
     black_openings: [string, number][];
 }
 
-export async function getPlayersGameInfo(file: string, id: number) {
-    return await invoke<PlayerGameInfo>("get_players_game_info", {
-        file,
-        id,
-    });
-}
-
-export async function searchPosition(
-    options: LocalOptions,
-    tab: string,
-) {
+export async function searchPosition(options: LocalOptions, tab: string) {
     const openings: [Opening[], NormalizedGame[]] = await invoke(
         "search_position",
         {
             file: options.path,
             query: options,
-            tabId: tab
+            tabId: tab,
         },
         (s) => s === "Search stopped"
     );

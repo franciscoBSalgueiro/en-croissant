@@ -4,7 +4,6 @@ import {
   Player,
   PlayerGameInfo,
   getDatabases,
-  getPlayersGameInfo,
   query_players,
 } from "@/utils/db";
 import { useAtomValue } from "jotai";
@@ -12,6 +11,8 @@ import { sessionsAtom } from "@/atoms/atoms";
 import { Session } from "@/utils/session";
 import PersonalPlayerCard from "./PersonalCard";
 import useSWRImmutable from "swr/immutable";
+import { MonthData, commands } from "@/bindings";
+import { unwrap } from "@/utils/invoke";
 
 interface DatabaseInfo extends PlainDatabaseInfo {
   username?: string;
@@ -54,12 +55,44 @@ function sumGamesPlayed(lists: [string, number][][]) {
   return Array.from(openingCounts.entries()).sort((a, b) => b[1] - a[1]);
 }
 
+function joinMonthData(data: [string, MonthData][][]) {
+  const monthCounts = new Map<string, MonthData & {avg_count: number}>();
+
+  for (const list of data) {
+    for (const [month, monthData] of list) {
+      if (monthCounts.has(month)) {
+        const oldData = monthCounts.get(month);
+        if (oldData) {
+          monthCounts.set(month, {
+            count: oldData.count + monthData.count,
+            avg_elo: oldData.avg_elo + monthData.avg_elo,
+            avg_count: oldData.avg_count + 1,
+          });
+        }
+      } else {
+        monthCounts.set(month, { ...monthData, avg_count: 1 });
+      }
+    }
+  }
+  for (const [month, monthData] of monthCounts) {
+    monthCounts.set(month, {
+      count: monthData.count,
+      avg_elo: monthData.avg_elo / monthData.avg_count,
+      avg_count: monthData.avg_count,
+    });
+  }
+
+  return Array.from(monthCounts.entries()).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+}
+
 function combinePlayerInfo(playerInfos: PlayerGameInfo[]) {
   const combined: PlayerGameInfo = {
     won: playerInfos.reduce((acc, i) => acc + i.won, 0),
     lost: playerInfos.reduce((acc, i) => acc + i.lost, 0),
     draw: playerInfos.reduce((acc, i) => acc + i.draw, 0),
-    games_per_month: sumGamesPlayed(playerInfos.map((i) => i.games_per_month)),
+    data_per_month: joinMonthData(playerInfos.map((i) => i.data_per_month)),
     white_openings: sumGamesPlayed(playerInfos.map((i) => i.white_openings)),
     black_openings: sumGamesPlayed(playerInfos.map((i) => i.black_openings)),
   };
@@ -93,7 +126,9 @@ function Databases() {
           } else {
             throw new Error("Player not found");
           }
-          const info = await getPlayersGameInfo(db.file, player.id);
+          const info = unwrap(
+            await commands.getPlayersGameInfo(db.file, player.id)
+          );
           return { db, info };
         })
       );

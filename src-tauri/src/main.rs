@@ -122,7 +122,8 @@ fn main() {
                 get_puzzle,
                 set_menu_visisble,
                 is_menu_visisble,
-                get_opening_from_fen
+                get_opening_from_fen,
+                get_players_game_info,
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload));
 
@@ -213,7 +214,6 @@ fn main() {
             get_db_info,
             get_puzzle_db_info,
             edit_db_info,
-            get_players_game_info,
             authenticate,
             delete_database,
             convert_pgn,

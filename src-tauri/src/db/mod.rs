@@ -30,14 +30,11 @@ use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position};
 
 use rayon::prelude::*;
+use specta::Type;
 use std::{
-    collections::HashMap,
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Mutex,
-    },
+    sync::atomic::{AtomicI32, Ordering},
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -1044,17 +1041,26 @@ pub async fn get_tournaments(
     })
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Type, Default)]
 pub struct PlayerGameInfo {
-    pub won: usize,
-    pub lost: usize,
-    pub draw: usize,
-    pub games_per_month: Vec<(String, usize)>,
-    pub white_openings: Vec<(String, usize)>,
-    pub black_openings: Vec<(String, usize)>,
+    pub won: i32,
+    pub lost: i32,
+    pub draw: i32,
+    pub data_per_month: Vec<(String, MonthData)>,
+    pub white_openings: Vec<(String, i32)>,
+    pub black_openings: Vec<(String, i32)>,
+}
+
+#[derive(Debug, Clone, Serialize, Type, Default)]
+pub struct MonthData {
+    pub count: i32,
+    pub avg_elo: i32,
+    #[serde(skip)]
+    avg_count: i32,
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_players_game_info(
     file: PathBuf,
     id: i32,
@@ -1070,42 +1076,40 @@ pub async fn get_players_game_info(
             games::result,
             games::date,
             games::moves,
+            games::white_elo,
+            games::black_elo,
         ))
         .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
 
-    type GameInfo = (i32, i32, Option<String>, Option<String>, Vec<u8>);
+    type GameInfo = (
+        i32,
+        i32,
+        Option<String>,
+        Option<String>,
+        Vec<u8>,
+        Option<i32>,
+        Option<i32>,
+    );
     let info: Vec<GameInfo> = sql_query.load(db)?;
 
     let mut game_info = PlayerGameInfo::default();
     let white_openings = DashMap::new();
     let black_openings = DashMap::new();
-    let won = AtomicUsize::new(0);
-    let lost = AtomicUsize::new(0);
-    let draw = AtomicUsize::new(0);
-    let game_per_month = DashMap::new();
+    let won = AtomicI32::new(0);
+    let lost = AtomicI32::new(0);
+    let draw = AtomicI32::new(0);
+    let data_per_month = DashMap::new();
 
-    info.par_iter()
-        .for_each(|(white_id, black_id, outcome, date, moves)| {
+    info.par_iter().for_each(
+        |(white_id, black_id, outcome, date, moves, white_elo, black_elo)| {
             let is_white = *white_id == id;
             assert!(is_white || *black_id == id);
-
-            match outcome.as_deref() {
-                Some("1-0") => match is_white {
-                    true => won.fetch_add(1, Ordering::Relaxed),
-                    false => lost.fetch_add(1, Ordering::Relaxed),
-                },
-                Some("0-1") => match is_white {
-                    true => lost.fetch_add(1, Ordering::Relaxed),
-                    false => won.fetch_add(1, Ordering::Relaxed),
-                },
-                Some("1/2-1/2") => draw.fetch_add(1, Ordering::Relaxed),
-                _ => unreachable!(),
-            };
 
             let mut setups = vec![];
             let mut chess = Chess::default();
             for (i, byte) in moves.iter().enumerate() {
-                if i > 30 {
+                if i > 54 {
+                    // max lenght of opening in data
                     break;
                 }
                 let m = decode_move(*byte, &chess).unwrap();
@@ -1126,21 +1130,62 @@ pub async fn get_players_game_info(
             }
 
             if let Some(date) = date {
-                let date = match NaiveDate::parse_from_str(&date, "%Y.%m.%d") {
+                let date = match NaiveDate::parse_from_str(date, "%Y.%m.%d") {
                     Ok(date) => date,
                     Err(_) => return,
                 };
                 let month = date.format("%Y-%m").to_string();
 
-                *game_per_month.entry(month).or_insert(0) += 1;
+                // update count and avg elo
+                let mut month_data = data_per_month
+                    .entry(month.clone())
+                    .or_insert(MonthData::default());
+                month_data.count += 1;
+                let elo = if is_white { white_elo } else { black_elo };
+                if let Some(elo) = elo {
+                    month_data.avg_elo += elo;
+                    month_data.avg_count += 1;
+                }
             }
-        });
+            match outcome.as_deref() {
+                Some("1-0") => match is_white {
+                    true => won.fetch_add(1, Ordering::Relaxed),
+                    false => lost.fetch_add(1, Ordering::Relaxed),
+                },
+                Some("0-1") => match is_white {
+                    true => lost.fetch_add(1, Ordering::Relaxed),
+                    false => won.fetch_add(1, Ordering::Relaxed),
+                },
+                Some("1/2-1/2") => draw.fetch_add(1, Ordering::Relaxed),
+                _ => unreachable!(),
+            };
+        },
+    );
     game_info.white_openings = white_openings.into_iter().collect();
     game_info.black_openings = black_openings.into_iter().collect();
     game_info.won = won.into_inner();
     game_info.lost = lost.into_inner();
     game_info.draw = draw.into_inner();
-    game_info.games_per_month = game_per_month.into_iter().collect();
+    game_info.data_per_month = data_per_month.into_iter().collect();
+    game_info.data_per_month = game_info
+        .data_per_month
+        .into_iter()
+        .map(|(month, data)| {
+            let avg_elo = if data.avg_count == 0 {
+                0
+            } else {
+                data.avg_elo / data.avg_count
+            };
+            (
+                month,
+                MonthData {
+                    count: data.count,
+                    avg_elo,
+                    avg_count: data.avg_count,
+                },
+            )
+        })
+        .collect();
 
     // sort openings by count
     game_info.white_openings.sort_by(|(_, a), (_, b)| b.cmp(a));
