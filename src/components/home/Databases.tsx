@@ -11,7 +11,7 @@ import { sessionsAtom } from "@/atoms/atoms";
 import { Session } from "@/utils/session";
 import PersonalPlayerCard from "./PersonalCard";
 import useSWRImmutable from "swr/immutable";
-import { MonthData, commands } from "@/bindings";
+import { MonthData, Results, commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 
 interface DatabaseInfo extends PlainDatabaseInfo {
@@ -43,20 +43,28 @@ interface PersonalInfo {
   info: PlayerGameInfo;
 }
 
-function sumGamesPlayed(lists: [string, number][][]) {
-  const openingCounts = new Map<string, number>();
+function sumGamesPlayed(lists: [string, Results][][]) {
+  const openingCounts = new Map<string, Results>();
 
   for (const list of lists) {
     for (const [opening, count] of list) {
-      openingCounts.set(opening, (openingCounts.get(opening) ?? 0) + count);
+      const prev = openingCounts.get(opening) || { won: 0, draw: 0, lost: 0 };
+      openingCounts.set(opening, {
+        won: prev.won + count.won,
+        draw: prev.draw + count.draw,
+        lost: prev.lost + count.lost,
+      });
     }
   }
 
-  return Array.from(openingCounts.entries()).sort((a, b) => b[1] - a[1]);
+  return Array.from(openingCounts.entries()).sort(
+    (a, b) =>
+      b[1].won + b[1].draw + b[1].lost - a[1].won - a[1].draw - a[1].lost
+  );
 }
 
 function joinMonthData(data: [string, MonthData][][]) {
-  const monthCounts = new Map<string, MonthData & {avg_count: number}>();
+  const monthCounts = new Map<string, MonthData & { avg_count: number }>();
 
   for (const list of data) {
     for (const [month, monthData] of list) {

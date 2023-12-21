@@ -47,15 +47,16 @@ function DatabaseView() {
                 Tournaments
               </Tabs.Tab>
             </Tabs.List>
-            <Tabs.Panel value="games" style={{ flex: 1, overflow: "hidden" }}>
+            <Tabs.Panel value="games" style={{ flex: 1, overflow: "hidden" }} pt="md">
               <GameTable database={database} />
             </Tabs.Panel>
-            <Tabs.Panel value="players" style={{ flex: 1, overflow: "hidden" }}>
+            <Tabs.Panel value="players" style={{ flex: 1, overflow: "hidden" }} pt="md">
               <PlayerTable database={database} />
             </Tabs.Panel>
             <Tabs.Panel
               value="tournaments"
               style={{ flex: 1, overflow: "hidden" }}
+              pt="md"
             >
               <TournamentTable database={database} />
             </Tabs.Panel>

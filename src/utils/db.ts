@@ -4,7 +4,7 @@ import { fetch } from "@tauri-apps/api/http";
 import { invoke } from "./invoke";
 import { PuzzleDatabase } from "./puzzles";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { MonthData } from "@/bindings";
+import { MonthData, Results } from "@/bindings";
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
@@ -285,8 +285,8 @@ export interface PlayerGameInfo {
     lost: number;
     draw: number;
     data_per_month: [string, MonthData][];
-    white_openings: [string, number][];
-    black_openings: [string, number][];
+    white_openings: [string, Results][];
+    black_openings: [string, Results][];
 }
 
 export async function searchPosition(options: LocalOptions, tab: string) {

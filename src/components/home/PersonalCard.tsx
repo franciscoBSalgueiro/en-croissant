@@ -9,6 +9,7 @@ import {
   Tabs,
   useMantineTheme,
   useMantineColorScheme,
+  Group,
 } from "@mantine/core";
 import { useState } from "react";
 import {
@@ -113,9 +114,15 @@ function PersonalPlayerCard({
       <FideInfo key={name} opened={opened} setOpened={setOpened} name={name} />
       <Box pos="relative">
         {name !== "Stats" && (
-          <ActionIcon pos="absolute" onClick={() => setOpened(true)}>
-            <IconInfoCircle />
-          </ActionIcon>
+          <MTTooltip label="FIDE info">
+            <ActionIcon
+              pos="absolute"
+              right={0}
+              onClick={() => setOpened(true)}
+            >
+              <IconInfoCircle />
+            </ActionIcon>
+          </MTTooltip>
         )}
         <Stack align="center" w="100%">
           <Text fz="lg" fw={500}>
@@ -139,44 +146,22 @@ function PersonalPlayerCard({
         </Tabs.List>
         <Tabs.Panel value="overview">
           <Stack>
-            <Text pt="md" ta="center">
+            <Text pt="md" fw="bold" fz="lg" ta="center">
               {total} Games
             </Text>
-            <Progress.Root size="2rem" mt="1rem">
-              <MTTooltip label={`${info.won} wins`}>
-                <Progress.Section
-                  value={(info.won / total) * 100}
-                  color="green"
-                >
-                  <Progress.Label>{`${((info.won / total) * 100).toFixed(
-                    1
-                  )}%`}</Progress.Label>
-                </Progress.Section>
-              </MTTooltip>
 
-              <MTTooltip label={`${info.draw} draws`}>
-                <Progress.Section
-                  value={(info.draw / total) * 100}
-                  color="gray"
-                >
-                  <Progress.Label>
-                    {info.draw / total > 0.1
-                      ? `${((info.draw / total) * 100).toFixed(1)}%`
-                      : undefined}
-                  </Progress.Label>
-                </Progress.Section>
-              </MTTooltip>
+            {total > 0 && (
+              <>
+                <ResultsChart
+                  won={info.won}
+                  draw={info.draw}
+                  lost={info.lost}
+                  size="2rem"
+                />
 
-              <MTTooltip label={`${info.lost} losses`}>
-                <Progress.Section value={(info.lost / total) * 100} color="red">
-                  <Progress.Label>{`${((info.lost / total) * 100).toFixed(
-                    1
-                  )}%`}</Progress.Label>
-                </Progress.Section>
-              </MTTooltip>
-            </Progress.Root>
-
-            <DateChart data_per_month={info.data_per_month} />
+                <DateChart data_per_month={info.data_per_month} />
+              </>
+            )}
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
@@ -185,32 +170,60 @@ function PersonalPlayerCard({
               {
                 accessor: "white",
                 title: "White",
-                render: ({ white }) => <Text>{white}</Text>,
-              },
-              {
-                accessor: "white_games",
-                title: "#",
-                textAlign: "right",
-                render: ({ white_games }) => <Text>{white_games}</Text>,
+                render: ({ white, white_results }) => (
+                  <Stack>
+                    <Group justify="apart">
+                      <Text style={{ flex: 1 }}>{white}</Text>
+                      <Text>
+                        {white_results &&
+                          white_results.won +
+                            white_results.lost +
+                            white_results.draw}
+                      </Text>
+                    </Group>
+                    {white_results && (
+                      <ResultsChart
+                        won={white_results.won}
+                        draw={white_results.draw}
+                        lost={white_results.lost}
+                        size="1.5rem"
+                      />
+                    )}
+                  </Stack>
+                ),
               },
               {
                 accessor: "black",
                 title: "Black",
-                render: ({ black }) => <Text>{black}</Text>,
-              },
-              {
-                accessor: "black_games",
-                title: "#",
-                textAlign: "right",
-                render: ({ black_games }) => <Text>{black_games}</Text>,
+                render: ({ black, black_results }) => (
+                  <Stack>
+                    <Group justify="apart">
+                      <Text style={{ flex: 1 }}>{black}</Text>
+                      <Text>
+                        {black_results &&
+                          black_results.won +
+                            black_results.lost +
+                            black_results.draw}
+                      </Text>
+                    </Group>
+                    {black_results && (
+                      <ResultsChart
+                        won={black_results.won}
+                        draw={black_results.draw}
+                        lost={black_results.lost}
+                        size="1.5rem"
+                      />
+                    )}
+                  </Stack>
+                ),
               },
             ]}
             records={zip(white_openings, black_openings).map(
               ([white, black]) => ({
                 white: white && white[0],
-                white_games: white && white[1],
+                white_results: white && white[1],
                 black: black && black[0],
-                black_games: black && black[1],
+                black_results: black && black[1],
               })
             )}
           />
@@ -272,7 +285,11 @@ function DateChart({
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" />3
         <YAxis yAxisId="left" />
-        <YAxis yAxisId="right" orientation="right" />
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          domain={["dataMin - 50", "dataMax + 50"]}
+        />
         <Tooltip
           contentStyle={{
             backgroundColor:
@@ -291,6 +308,53 @@ function DateChart({
         />
       </ComposedChart>
     </ResponsiveContainer>
+  );
+}
+
+function ResultsChart({
+  won,
+  draw,
+  lost,
+  size,
+}: {
+  won: number;
+  draw: number;
+  lost: number;
+  size: string;
+}) {
+  const total = won + draw + lost;
+  return (
+    <Progress.Root size={size}>
+      <MTTooltip label={`${won} wins`}>
+        <Progress.Section value={(won / total) * 100} color="green">
+          <Progress.Label style={{ textOverflow: "clip" }}>
+            {won / total > 0.15
+              ? `${((won / total) * 100).toFixed(1)}%`
+              : undefined}
+          </Progress.Label>
+        </Progress.Section>
+      </MTTooltip>
+
+      <MTTooltip label={`${draw} draws`}>
+        <Progress.Section value={(draw / total) * 100} color="gray">
+          <Progress.Label style={{ textOverflow: "clip" }}>
+            {draw / total > 0.15
+              ? `${((draw / total) * 100).toFixed(1)}%`
+              : undefined}
+          </Progress.Label>
+        </Progress.Section>
+      </MTTooltip>
+
+      <MTTooltip label={`${lost} losses`}>
+        <Progress.Section value={(lost / total) * 100} color="red">
+          <Progress.Label style={{ textOverflow: "clip" }}>
+            {lost / total > 0.15
+              ? `${((lost / total) * 100).toFixed(1)}%`
+              : undefined}
+          </Progress.Label>
+        </Progress.Section>
+      </MTTooltip>
+    </Progress.Root>
   );
 }
 

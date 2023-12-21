@@ -85,7 +85,7 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async getPlayersGameInfo(file: string, id: number) : Promise<__Result__<{ won: number; lost: number; draw: number; data_per_month: ([string, MonthData])[]; white_openings: ([string, number])[]; black_openings: ([string, number])[] }, string>> {
+async getPlayersGameInfo(file: string, id: number) : Promise<__Result__<{ won: number; lost: number; draw: number; data_per_month: ([string, MonthData])[]; white_openings: ([string, Results])[]; black_openings: ([string, Results])[] }, string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_players_game_info", { file, id }) };
 } catch (e) {
@@ -110,6 +110,7 @@ export type EngineOption = { name: string; value: string }
 export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
+export type Results = { won: number; lost: number; draw: number }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
 
 /** tauri-specta globals **/

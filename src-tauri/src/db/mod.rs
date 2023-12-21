@@ -1047,8 +1047,15 @@ pub struct PlayerGameInfo {
     pub lost: i32,
     pub draw: i32,
     pub data_per_month: Vec<(String, MonthData)>,
-    pub white_openings: Vec<(String, i32)>,
-    pub black_openings: Vec<(String, i32)>,
+    pub white_openings: Vec<(String, Results)>,
+    pub black_openings: Vec<(String, Results)>,
+}
+
+#[derive(Debug, Clone, Serialize, Type, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Results {
+    pub won: i32,
+    pub lost: i32,
+    pub draw: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Type, Default)]
@@ -1113,6 +1120,7 @@ pub async fn get_players_game_info(
                     break;
                 }
                 let m = decode_move(*byte, &chess).unwrap();
+                
                 chess.play_unchecked(&m);
                 setups.push(chess.clone().into_setup(EnPassantMode::Legal));
             }
@@ -1121,9 +1129,76 @@ pub async fn get_players_game_info(
             for setup in setups {
                 if let Ok(opening) = get_opening_from_setup(setup) {
                     if is_white {
-                        *white_openings.entry(opening.to_string()).or_insert(0) += 1;
+                        // *white_openings.entry(opening.to_string()).or_insert(0) += 1;
+                        if outcome.as_deref() == Some("1-0") {
+                            white_openings
+                                .entry(opening.to_string())
+                                .and_modify(|e: &mut Results| {
+                                    e.won += 1;
+                                })
+                                .or_insert(Results {
+                                    won: 1,
+                                    lost: 0,
+                                    draw: 0,
+                                });
+                        } else if outcome.as_deref() == Some("0-1") {
+                            white_openings
+                                .entry(opening.to_string())
+                                .and_modify(|e| {
+                                    e.lost += 1;
+                                })
+                                .or_insert(Results {
+                                    won: 0,
+                                    lost: 1,
+                                    draw: 0,
+                                });
+                        } else if outcome.as_deref() == Some("1/2-1/2") {
+                            white_openings
+                                .entry(opening.to_string())
+                                .and_modify(|e| {
+                                    e.draw += 1;
+                                })
+                                .or_insert(Results {
+                                    won: 0,
+                                    lost: 0,
+                                    draw: 1,
+                                });
+                        }
                     } else {
-                        *black_openings.entry(opening.to_string()).or_insert(0) += 1;
+                        if outcome.as_deref() == Some("1-0") {
+                            black_openings
+                                .entry(opening.to_string())
+                                .and_modify(|e: &mut Results| {
+                                    e.lost += 1;
+                                })
+                                .or_insert(Results {
+                                    won: 0,
+                                    lost: 1,
+                                    draw: 0,
+                                });
+                        } else if outcome.as_deref() == Some("0-1") {
+                            black_openings
+                                .entry(opening.to_string())
+                                .and_modify(|e| {
+                                    e.won += 1;
+                                })
+                                .or_insert(Results {
+                                    won: 1,
+                                    lost: 0,
+                                    draw: 0,
+                                });
+                        } else if outcome.as_deref() == Some("1/2-1/2") {
+                            black_openings
+                                .entry(opening.to_string())
+                                .and_modify(|e| {
+                                    e.draw += 1;
+                                })
+                                .or_insert(Results {
+                                    won: 0,
+                                    lost: 0,
+                                    draw: 1,
+                                });
+                        }
                     }
                     break;
                 }
