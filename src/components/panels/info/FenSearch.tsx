@@ -58,7 +58,7 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
   const exactOptionMatch = data?.some((item) => item.fen === search);
 
   const options = data?.map((item) => (
-    <Combobox.Option value={item.fen} key={item.fen}>
+    <Combobox.Option value={item.fen} key={item.name}>
       <Group wrap="nowrap">
         <div>
           <Text size="sm">{item.name}</Text>

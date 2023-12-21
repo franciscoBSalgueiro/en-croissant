@@ -94,15 +94,16 @@ function FileCard({
 
       {selectedGame && (
         <>
-          <GameSelector
-            height={150}
-            setGames={setGames}
-            games={games}
-            activePage={page}
-            path={selected.path}
-            setPage={setPage}
-            total={selected.numGames}
-          />
+          <Box h="50%">
+            <GameSelector
+              setGames={setGames}
+              games={games}
+              activePage={page}
+              path={selected.path}
+              setPage={setPage}
+              total={selected.numGames}
+            />
+          </Box>
           <GamePreview pgn={selectedGame} />
         </>
       )}

@@ -7,12 +7,15 @@ import {
   ActionIcon,
   Table,
   Select,
+  Box,
+  Stack,
 } from "@mantine/core";
 import { IconFileExport, IconRefresh } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { FixedSizeList } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 import { commands } from "@/bindings";
 import { LocalEngine } from "@/utils/engines";
 import { save } from "@tauri-apps/api/dialog";
@@ -69,7 +72,7 @@ export default function LogsPanel() {
   }
 
   return (
-    <>
+    <Stack style={{ flex: 1 }} h="100%">
       <Group grow>
         <ActionIcon.Group style={{ flexGrow: 0 }}>
           <ActionIcon size="lg" variant="default" onClick={() => mutate()}>
@@ -105,20 +108,26 @@ export default function LogsPanel() {
           No logs for {engine?.name ?? "engine"}
         </Text>
       )}
-      <FixedSizeList
-        itemCount={filteredData?.length || 0}
-        itemSize={30}
-        height={200}
-        width="100%"
-        innerElementType={Inner}
-      >
-        {({ index, style }) => (
-          <Table.Tr style={style}>
-            <LogLine log={filteredData![index]} />
-          </Table.Tr>
-        )}
-      </FixedSizeList>
-    </>
+      <Box w="100%" style={{ flex: 1 }}>
+        <AutoSizer>
+          {({ height, width }) => (
+            <FixedSizeList
+              itemCount={filteredData?.length || 0}
+              itemSize={30}
+              height={height}
+              width={width}
+              innerElementType={Inner}
+            >
+              {({ index, style }) => (
+                <Table.Tr style={style}>
+                  <LogLine log={filteredData![index]} />
+                </Table.Tr>
+              )}
+            </FixedSizeList>
+          )}
+        </AutoSizer>
+      </Box>
+    </Stack>
   );
 }
 

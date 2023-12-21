@@ -16,7 +16,6 @@ import cx from "clsx";
 import * as classes from "./GameSelector.css"
 
 export default function GameSelector({
-  height,
   games,
   setGames,
   setPage,
@@ -25,7 +24,6 @@ export default function GameSelector({
   activePage,
   deleteGame,
 }: {
-  height: number;
   games: Map<number, string>;
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
   setPage: (v: number) => void;
@@ -58,8 +56,8 @@ export default function GameSelector({
   }, [games.size, loadMoreRows]);
 
   return (
-    <AutoSizer disableHeight>
-      {({ width }) => (
+    <AutoSizer>
+      {({ width, height }) => (
         <InfiniteLoader
           loadMoreItems={loadMoreRows}
           itemCount={total}

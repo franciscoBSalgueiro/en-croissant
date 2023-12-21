@@ -1,4 +1,4 @@
-import { Accordion, ScrollArea, Stack, Text, Group } from "@mantine/core";
+import { Accordion, ScrollArea, Stack, Text, Group, Box } from "@mantine/core";
 import { useContext, useMemo, useState } from "react";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import GameInfo from "@/components/common/GameInfo";
@@ -141,17 +141,18 @@ function GameSelectorAccordion({
           <Accordion.Control>
             {formatNumber(gameNumber + 1)}. {currentName}
           </Accordion.Control>
-          <Accordion.Panel h={200} mb={20}>
-            <GameSelector
-              height={200}
-              games={games}
-              setGames={setGames}
-              setPage={setPage}
-              deleteGame={deleteGame}
-              path={currentTab.file.path}
-              activePage={gameNumber || 0}
-              total={currentTab.file.numGames}
-            />
+          <Accordion.Panel>
+            <Box h="10rem">
+              <GameSelector
+                games={games}
+                setGames={setGames}
+                setPage={setPage}
+                deleteGame={deleteGame}
+                path={currentTab.file.path}
+                activePage={gameNumber || 0}
+                total={currentTab.file.numGames}
+              />
+            </Box>
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>

@@ -229,9 +229,7 @@ function AnalysisPanel({
             flexDirection: "column",
           }}
         >
-          <Stack>
-            <LogsPanel />
-          </Stack>
+          <LogsPanel />
         </Tabs.Panel>
       </Tabs>
     </Stack>
