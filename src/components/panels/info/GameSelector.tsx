@@ -2,8 +2,6 @@ import { ActionIcon, Group, Text } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useEffect } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList } from "react-window";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
@@ -13,7 +11,8 @@ import { useToggle } from "@mantine/hooks";
 import { useSetAtom } from "jotai";
 import { currentPracticingAtom } from "@/atoms/atoms";
 import cx from "clsx";
-import * as classes from "./GameSelector.css"
+import * as classes from "./GameSelector.css";
+import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 
 export default function GameSelector({
   games,
@@ -56,40 +55,37 @@ export default function GameSelector({
   }, [games.size, loadMoreRows]);
 
   return (
-    <AutoSizer>
-      {({ width, height }) => (
-        <InfiniteLoader
-          loadMoreItems={loadMoreRows}
-          itemCount={total}
-          isItemLoaded={isRowLoaded}
-        >
-          {({ onItemsRendered, ref }) => (
-            <FixedSizeList
-              width={width}
-              height={height}
-              itemSize={30}
-              itemCount={total}
-              ref={ref}
-              onItemsRendered={onItemsRendered}
-            >
-              {({ index, style }) => (
-                <GameRow
-                  index={index}
-                  game={games.get(index)}
-                  style={style}
-                  setGames={setGames}
-                  setPage={setPage}
-                  deleteGame={deleteGame}
-                  activePage={activePage}
-                  path={path}
-                  total={total}
-                />
-              )}
-            </FixedSizeList>
-          )}
-        </InfiniteLoader>
-      )}
-    </AutoSizer>
+    <InfiniteLoader
+      loadMoreItems={loadMoreRows}
+      itemCount={total}
+      isItemLoaded={isRowLoaded}
+    >
+      {({ onItemsRendered, ref }) => {
+        return (
+          <VirtualizedScrollArea
+            itemSize={30}
+            itemCount={total}
+            listRef={ref}
+            onItemsRendered={onItemsRendered}
+            style={{ overflow: "visible" }}
+          >
+            {({ index, style }) => (
+              <GameRow
+                index={index}
+                game={games.get(index)}
+                style={style}
+                setGames={setGames}
+                setPage={setPage}
+                deleteGame={deleteGame}
+                activePage={activePage}
+                path={path}
+                total={total}
+              />
+            )}
+          </VirtualizedScrollArea>
+        );
+      }}
+    </InfiniteLoader>
   );
 }
 

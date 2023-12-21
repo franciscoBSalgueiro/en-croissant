@@ -14,12 +14,11 @@ import { IconFileExport, IconRefresh } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
-import { FixedSizeList } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
 import { commands } from "@/bindings";
 import { LocalEngine } from "@/utils/engines";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
+import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
@@ -109,23 +108,17 @@ export default function LogsPanel() {
         </Text>
       )}
       <Box w="100%" style={{ flex: 1 }}>
-        <AutoSizer>
-          {({ height, width }) => (
-            <FixedSizeList
-              itemCount={filteredData?.length || 0}
-              itemSize={30}
-              height={height}
-              width={width}
-              innerElementType={Inner}
-            >
-              {({ index, style }) => (
-                <Table.Tr style={style}>
-                  <LogLine log={filteredData![index]} />
-                </Table.Tr>
-              )}
-            </FixedSizeList>
+        <VirtualizedScrollArea
+          itemCount={filteredData?.length || 0}
+          itemSize={30}
+          innerElementType={Inner}
+        >
+          {({ index, style }) => (
+            <Table.Tr style={style}>
+              <LogLine log={filteredData![index]} />
+            </Table.Tr>
           )}
-        </AutoSizer>
+        </VirtualizedScrollArea>
       </Box>
     </Stack>
   );
