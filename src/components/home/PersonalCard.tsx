@@ -131,6 +131,7 @@ function PersonalPlayerCard({
         </Stack>
       </Box>
       <Tabs
+        keepMounted={false}
         defaultValue="overview"
         variant="outline"
         style={{

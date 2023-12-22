@@ -20,7 +20,7 @@ use std::{fs::create_dir_all, path::Path};
 
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
-use db::{NormalizedGame, PositionQuery, PositionStats};
+use db::{NormalizedGame, PositionQuery, PositionStats, Progress};
 use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
@@ -125,7 +125,7 @@ fn main() {
                 get_opening_from_fen,
                 get_players_game_info,
             ))
-            .events(tauri_specta::collect_events!(BestMovesPayload));
+            .events(tauri_specta::collect_events!(BestMovesPayload, Progress));
 
         #[cfg(debug_assertions)]
         let specta_builder = specta_builder.path("../src/bindings.ts");

@@ -1,4 +1,4 @@
-import { Text } from "@mantine/core";
+import { Progress, Text } from "@mantine/core";
 import {
   DatabaseInfo as PlainDatabaseInfo,
   Player,
@@ -11,8 +11,9 @@ import { sessionsAtom } from "@/atoms/atoms";
 import { Session } from "@/utils/session";
 import PersonalPlayerCard from "./PersonalCard";
 import useSWRImmutable from "swr/immutable";
-import { MonthData, Results, commands } from "@/bindings";
+import { MonthData, Results, commands, events } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
+import { useState } from "react";
 
 interface DatabaseInfo extends PlainDatabaseInfo {
   username?: string;
@@ -109,19 +110,24 @@ function combinePlayerInfo(playerInfos: PlayerGameInfo[]) {
 
 function Databases() {
   const sessions = useAtomValue(sessionsAtom);
+
+  const { data: databases } = useSWRImmutable<DatabaseInfo[]>(
+    sessions.length === 0 ? null : ["personalDatabases", sessions],
+    async () => {
+      const dbs = await getDatabases();
+      return dbs.filter((db) => isDatabaseFromSession(db, sessions));
+    }
+  );
+
   const {
     data: personalInfo,
     isLoading,
     error,
   } = useSWRImmutable<PersonalInfo[]>(
-    sessions.length === 0 ? null : ["databases", sessions],
+    databases ? ["personalInfo", databases] : null,
     async () => {
-      const dbs = await getDatabases();
-      const personalDbs = dbs.filter((db) =>
-        isDatabaseFromSession(db, sessions)
-      ) as DatabaseInfo[];
       const newInfo: PersonalInfo[] = await Promise.all(
-        personalDbs.map(async (db) => {
+        databases!.map(async (db, i) => {
           let player: Player | null = null;
           const players = await query_players(db.file, {
             name: db.username,
@@ -144,9 +150,22 @@ function Databases() {
     }
   );
 
+  const [progress, setProgress] = useState(0);
+  events.progress.listen((e) => {
+    setProgress(e.payload.progress);
+  });
+
   return (
     <>
-      {isLoading && <Text ta="center">Loading...</Text>}
+      {isLoading && databases && (
+        <>
+          <Text ta="center" fw="bold" my="auto" fz="lg">
+            Processing Games{databases.length > 1 ? "s" : ""}...
+          </Text>
+
+          <Progress value={progress} />
+        </>
+      )}
       {error && <Text ta="center">Error loading databases: {error}</Text>}
       {personalInfo &&
         (personalInfo.length === 0 ? (

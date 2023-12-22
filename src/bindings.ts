@@ -96,9 +96,11 @@ try {
 }
 
 export const events = __makeEvents__<{
-bestMovesPayload: BestMovesPayload
+bestMovesPayload: BestMovesPayload,
+progress: Progress
 }>({
-bestMovesPayload: "plugin:tauri-specta:best-moves-payload"
+bestMovesPayload: "plugin:tauri-specta:best-moves-payload",
+progress: "plugin:tauri-specta:progress"
 })
 
 /** user-defined types **/
@@ -110,6 +112,7 @@ export type EngineOption = { name: string; value: string }
 export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
+export type Progress = { id: string; progress: number }
 export type Results = { won: number; lost: number; draw: number }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
 

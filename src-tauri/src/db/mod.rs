@@ -34,7 +34,7 @@ use specta::Type;
 use std::{
     fs::{remove_file, File},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicI32, Ordering},
+    sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
 use tauri::State;
@@ -42,6 +42,7 @@ use tauri::{
     api::path::{resolve_path, BaseDirectory},
     Manager,
 };
+use tauri_specta::Event as _;
 
 use self::encoding::encode_move;
 
@@ -1066,12 +1067,19 @@ pub struct MonthData {
     avg_count: i32,
 }
 
+#[derive(Serialize, Debug, Clone, Type, tauri_specta::Event)]
+pub struct Progress {
+    pub id: String,
+    pub progress: f64,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn get_players_game_info(
     file: PathBuf,
     id: i32,
     state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<PlayerGameInfo, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let timer = Instant::now();
@@ -1106,6 +1114,7 @@ pub async fn get_players_game_info(
     let lost = AtomicI32::new(0);
     let draw = AtomicI32::new(0);
     let data_per_month = DashMap::new();
+    let progress = AtomicUsize::new(0);
 
     info.par_iter().for_each(
         |(white_id, black_id, outcome, date, moves, white_elo, black_elo)| {
@@ -1120,7 +1129,6 @@ pub async fn get_players_game_info(
                     break;
                 }
                 let m = decode_move(*byte, &chess).unwrap();
-                
                 chess.play_unchecked(&m);
                 setups.push(chess.clone().into_setup(EnPassantMode::Legal));
             }
@@ -1128,78 +1136,46 @@ pub async fn get_players_game_info(
             setups.reverse();
             for setup in setups {
                 if let Ok(opening) = get_opening_from_setup(setup) {
-                    if is_white {
-                        // *white_openings.entry(opening.to_string()).or_insert(0) += 1;
-                        if outcome.as_deref() == Some("1-0") {
-                            white_openings
-                                .entry(opening.to_string())
-                                .and_modify(|e: &mut Results| {
-                                    e.won += 1;
-                                })
-                                .or_insert(Results {
-                                    won: 1,
-                                    lost: 0,
-                                    draw: 0,
-                                });
-                        } else if outcome.as_deref() == Some("0-1") {
-                            white_openings
-                                .entry(opening.to_string())
-                                .and_modify(|e| {
-                                    e.lost += 1;
-                                })
-                                .or_insert(Results {
-                                    won: 0,
-                                    lost: 1,
-                                    draw: 0,
-                                });
-                        } else if outcome.as_deref() == Some("1/2-1/2") {
-                            white_openings
-                                .entry(opening.to_string())
-                                .and_modify(|e| {
-                                    e.draw += 1;
-                                })
-                                .or_insert(Results {
-                                    won: 0,
-                                    lost: 0,
-                                    draw: 1,
-                                });
-                        }
+                    let openings = if is_white {
+                        &white_openings
                     } else {
-                        if outcome.as_deref() == Some("1-0") {
-                            black_openings
-                                .entry(opening.to_string())
-                                .and_modify(|e: &mut Results| {
-                                    e.lost += 1;
-                                })
-                                .or_insert(Results {
-                                    won: 0,
-                                    lost: 1,
-                                    draw: 0,
-                                });
-                        } else if outcome.as_deref() == Some("0-1") {
-                            black_openings
-                                .entry(opening.to_string())
-                                .and_modify(|e| {
-                                    e.won += 1;
-                                })
-                                .or_insert(Results {
-                                    won: 1,
-                                    lost: 0,
-                                    draw: 0,
-                                });
-                        } else if outcome.as_deref() == Some("1/2-1/2") {
-                            black_openings
-                                .entry(opening.to_string())
-                                .and_modify(|e| {
-                                    e.draw += 1;
-                                })
-                                .or_insert(Results {
-                                    won: 0,
-                                    lost: 0,
-                                    draw: 1,
-                                });
-                        }
+                        &black_openings
+                    };
+                    if outcome.as_deref() == Some("1-0") {
+                        openings
+                            .entry(opening.to_string())
+                            .and_modify(|e: &mut Results| {
+                                e.won += 1;
+                            })
+                            .or_insert(Results {
+                                won: 1,
+                                lost: 0,
+                                draw: 0,
+                            });
+                    } else if outcome.as_deref() == Some("0-1") {
+                        openings
+                            .entry(opening.to_string())
+                            .and_modify(|e| {
+                                e.lost += 1;
+                            })
+                            .or_insert(Results {
+                                won: 0,
+                                lost: 1,
+                                draw: 0,
+                            });
+                    } else if outcome.as_deref() == Some("1/2-1/2") {
+                        openings
+                            .entry(opening.to_string())
+                            .and_modify(|e| {
+                                e.draw += 1;
+                            })
+                            .or_insert(Results {
+                                won: 0,
+                                lost: 0,
+                                draw: 1,
+                            });
                     }
+
                     break;
                 }
             }
@@ -1234,6 +1210,15 @@ pub async fn get_players_game_info(
                 Some("1/2-1/2") => draw.fetch_add(1, Ordering::Relaxed),
                 _ => unreachable!(),
             };
+
+            let p = progress.fetch_add(1, Ordering::Relaxed);
+            if p % 1000 == 0 || p == info.len() - 1 {
+                let _ = Progress {
+                    id: id.to_string(),
+                    progress: (p as f64 / info.len() as f64) * 100_f64,
+                }
+                .emit_all(&app);
+            }
         },
     );
     game_info.white_openings = white_openings.into_iter().collect();
