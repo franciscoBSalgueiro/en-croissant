@@ -10,6 +10,7 @@ import {
   useMantineTheme,
   useMantineColorScheme,
   Group,
+  Divider,
 } from "@mantine/core";
 import { useState } from "react";
 import {
@@ -28,6 +29,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import FideInfo from "../databases/FideInfo";
 import { DataTable } from "mantine-datatable";
 import { MonthData } from "@/bindings";
+import VirtualizedScrollArea from "../common/VirtualizedScrollArea";
 
 function fillMissingMonths(
   data: { name: string; data: MonthData }[]
@@ -101,6 +103,13 @@ function PersonalPlayerCard({
   const white_openings = info?.white_openings ?? [];
   const black_openings = info?.black_openings ?? [];
 
+  const whiteGames = white_openings.reduce((acc, cur) => {
+    return acc + cur[1].won + cur[1].draw + cur[1].lost;
+  }, 0);
+  const blackGames = black_openings.reduce((acc, cur) => {
+    return acc + cur[1].won + cur[1].draw + cur[1].lost;
+  }, 0);
+
   const [opened, setOpened] = useState(false);
 
   return (
@@ -165,69 +174,83 @@ function PersonalPlayerCard({
             )}
           </Stack>
         </Tabs.Panel>
-        <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
-          <DataTable
-            columns={[
-              {
-                accessor: "white",
-                title: "White",
-                render: ({ white, white_results }) => (
-                  <Stack>
-                    <Group justify="apart">
-                      <Text style={{ flex: 1 }}>{white}</Text>
-                      <Text>
-                        {white_results &&
-                          white_results.won +
-                            white_results.lost +
-                            white_results.draw}
-                      </Text>
-                    </Group>
-                    {white_results && (
-                      <ResultsChart
-                        won={white_results.won}
-                        draw={white_results.draw}
-                        lost={white_results.lost}
-                        size="1.5rem"
-                      />
+        <Tabs.Panel
+          value="openings"
+          style={{ overflow: "hidden", flex: 1 }}
+          py="md"
+        >
+          <VirtualizedScrollArea
+            itemCount={Math.max(white_openings.length, black_openings.length)}
+            itemSize={120}
+          >
+            {({ index, style }) => {
+              const white = white_openings[index];
+              const black = black_openings[index];
+              return (
+                <Stack key={white?.[0] ?? black?.[0]} style={style} gap={0}>
+                  <Group grow h="100%">
+                    {white ? (
+                      <Stack
+                        style={{ overflow: "hidden" }}
+                        h="100%"
+                        py="sm"
+                        justify="space-between"
+                      >
+                        <Group justify="space-between" wrap="nowrap">
+                          <Text>{white[0]}</Text>
+                          <Text>
+                            {Math.round(
+                              ((white[1].won + white[1].draw + white[1].lost) /
+                                whiteGames) *
+                                100
+                            )}
+                            %
+                          </Text>
+                        </Group>
+                        <ResultsChart
+                          won={white[1].won}
+                          draw={white[1].draw}
+                          lost={white[1].lost}
+                          size="1.5rem"
+                        />
+                      </Stack>
+                    ) : (
+                      <div />
                     )}
-                  </Stack>
-                ),
-              },
-              {
-                accessor: "black",
-                title: "Black",
-                render: ({ black, black_results }) => (
-                  <Stack>
-                    <Group justify="apart">
-                      <Text style={{ flex: 1 }}>{black}</Text>
-                      <Text>
-                        {black_results &&
-                          black_results.won +
-                            black_results.lost +
-                            black_results.draw}
-                      </Text>
-                    </Group>
-                    {black_results && (
-                      <ResultsChart
-                        won={black_results.won}
-                        draw={black_results.draw}
-                        lost={black_results.lost}
-                        size="1.5rem"
-                      />
+                    {black ? (
+                      <Stack
+                        style={{ overflow: "hidden" }}
+                        h="100%"
+                        py="sm"
+                        justify="space-between"
+                      >
+                        <Group justify="space-between" wrap="nowrap">
+                          <Text>{black[0]}</Text>
+                          <Text>
+                            {Math.round(
+                              ((black[1].won + black[1].draw + black[1].lost) /
+                                blackGames) *
+                                100
+                            )}
+                            %
+                          </Text>
+                        </Group>
+                        <ResultsChart
+                          won={black[1].won}
+                          draw={black[1].draw}
+                          lost={black[1].lost}
+                          size="1.5rem"
+                        />
+                      </Stack>
+                    ) : (
+                      <div />
                     )}
-                  </Stack>
-                ),
-              },
-            ]}
-            records={zip(white_openings, black_openings).map(
-              ([white, black]) => ({
-                white: white && white[0],
-                white_results: white && white[1],
-                black: black && black[0],
-                black_results: black && black[1],
-              })
-            )}
-          />
+                  </Group>
+                  <Divider />
+                </Stack>
+              );
+            }}
+          </VirtualizedScrollArea>
         </Tabs.Panel>
       </Tabs>
     </Paper>

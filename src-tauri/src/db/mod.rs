@@ -1145,7 +1145,11 @@ pub async fn get_players_game_info(
                         openings
                             .entry(opening.to_string())
                             .and_modify(|e: &mut Results| {
-                                e.won += 1;
+                                if is_white {
+                                    e.won += 1;
+                                } else {
+                                    e.lost += 1;
+                                }
                             })
                             .or_insert(Results {
                                 won: 1,
@@ -1156,7 +1160,11 @@ pub async fn get_players_game_info(
                         openings
                             .entry(opening.to_string())
                             .and_modify(|e| {
-                                e.lost += 1;
+                                if is_white {
+                                    e.lost += 1;
+                                } else {
+                                    e.won += 1;
+                                }
                             })
                             .or_insert(Results {
                                 won: 0,
