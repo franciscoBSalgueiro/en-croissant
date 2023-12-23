@@ -179,6 +179,11 @@ function PersonalPlayerCard({
           style={{ overflow: "hidden", flex: 1 }}
           py="md"
         >
+          <Group grow>
+            <Text ta="center" fw="bold">White</Text>
+            <Text ta="center" fw="bold">Black</Text>
+          </Group>
+          <Divider mt="md" />
           <VirtualizedScrollArea
             itemCount={Math.max(white_openings.length, black_openings.length)}
             itemSize={120}
@@ -197,13 +202,13 @@ function PersonalPlayerCard({
                         justify="space-between"
                       >
                         <Group justify="space-between" wrap="nowrap">
-                          <Text>{white[0]}</Text>
+                          <Text lineClamp={2}>{white[0]}</Text>
                           <Text>
-                            {Math.round(
+                            {(
                               ((white[1].won + white[1].draw + white[1].lost) /
                                 whiteGames) *
-                                100
-                            )}
+                              100
+                            ).toFixed(2)}
                             %
                           </Text>
                         </Group>
@@ -225,13 +230,13 @@ function PersonalPlayerCard({
                         justify="space-between"
                       >
                         <Group justify="space-between" wrap="nowrap">
-                          <Text>{black[0]}</Text>
+                          <Text lineClamp={2}>{black[0]}</Text>
                           <Text>
-                            {Math.round(
+                            {(
                               ((black[1].won + black[1].draw + black[1].lost) /
                                 blackGames) *
-                                100
-                            )}
+                              100
+                            ).toFixed(2)}
                             %
                           </Text>
                         </Group>
