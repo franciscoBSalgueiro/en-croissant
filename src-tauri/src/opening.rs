@@ -1,5 +1,5 @@
 use log::info;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeStruct};
 use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position, Setup};
 
 use lazy_static::lazy_static;
@@ -7,12 +7,23 @@ use strsim::jaro_winkler;
 
 use crate::error::Error;
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Opening {
     eco: String,
     name: String,
-    #[serde(skip)]
     setup: Setup,
+}
+
+impl Serialize for Opening {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        // returns an object with eco, name and the fen from the setup
+        let mut state = serializer.serialize_struct("Opening", 3)?;
+        state.serialize_field("eco", &self.eco)?;
+        state.serialize_field("name", &self.name)?;
+        let fen = Fen::from_setup(self.setup.clone()).to_string();
+        state.serialize_field("fen", &fen)?;
+        state.end()
+    }
 }
 
 #[derive(Deserialize)]
@@ -43,14 +54,6 @@ pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
         .find(|o| o.setup == setup)
         .map(|o| o.name.clone())
         .ok_or_else(|| Error::NoOpeningFound)
-}
-
-pub fn get_opening_from_eco(eco: &str) -> Result<&str, Error> {
-    OPENINGS
-        .iter()
-        .find(|o| o.eco == eco)
-        .map(|o| o.name.as_str())
-        .ok_or(Error::NoOpeningFound)
 }
 
 #[tauri::command]

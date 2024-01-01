@@ -207,7 +207,6 @@ fn main() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             download_file,
-            search_opening_name,
             get_games,
             get_players,
             get_tournaments,
@@ -231,6 +230,7 @@ fn main() {
             create_indexes,
             lex_pgn,
             download_fide_db,
+            search_opening_name,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
