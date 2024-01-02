@@ -653,11 +653,11 @@ fn count_material(position: &Chess) -> i32 {
         return -10000;
     }
     let material: ByColor<i32> = position.board().material().map(|p| {
-        p.pawn as i32 * 100
-            + p.knight as i32 * 350
-            + p.bishop as i32 * 350
-            + p.rook as i32 * 525
-            + p.queen as i32 * 1000
+        p.pawn as i32 * piece_value(Role::Pawn)
+            + p.knight as i32 * piece_value(Role::Knight)
+            + p.bishop as i32 * piece_value(Role::Bishop)
+            + p.rook as i32 * piece_value(Role::Rook)
+            + p.queen as i32 * piece_value(Role::Queen)
     });
     if position.turn() == Color::White {
         material.white - material.black
@@ -666,7 +666,18 @@ fn count_material(position: &Chess) -> i32 {
     }
 }
 
-fn quiesce(position: &Chess, mut alpha: i32, beta: i32) -> i32 {
+fn piece_value(role: Role) -> i32 {
+    match role {
+        Role::Pawn => 100,
+        Role::Knight => 350,
+        Role::Bishop => 350,
+        Role::Rook => 525,
+        Role::Queen => 1000,
+        _ => 0,
+    }
+}
+
+fn qsearch(position: &Chess, mut alpha: i32, beta: i32) -> i32 {
     let stand_pat = count_material(position);
 
     if stand_pat >= beta {
@@ -675,10 +686,19 @@ fn quiesce(position: &Chess, mut alpha: i32, beta: i32) -> i32 {
     if alpha < stand_pat {
         alpha = stand_pat;
     }
-    for capture in position.legal_moves().iter().filter(|m| m.is_capture()) {
+    let legal_moves = position.legal_moves();
+    let mut captures: Vec<_> = legal_moves.iter().filter(|m| m.is_capture()).collect();
+
+    captures.sort_by(|a, b| {
+        let a_value = piece_value(a.capture().unwrap());
+        let b_value = piece_value(b.capture().unwrap());
+        b_value.cmp(&a_value)
+    });
+
+    for capture in captures {
         let mut new_position = position.clone();
         new_position.play_unchecked(capture);
-        let score = -quiesce(&new_position, -beta, -alpha);
+        let score = -qsearch(&new_position, -beta, -alpha);
         if score >= beta {
             return beta;
         }
@@ -696,7 +716,7 @@ fn naive_eval(pos: &Chess) -> i32 {
         .map(|mv| {
             let mut new_position = pos.clone();
             new_position.play_unchecked(mv);
-            -quiesce(&new_position, i32::MIN, i32::MAX)
+            -qsearch(&new_position, i32::MIN, i32::MAX)
         })
         .max()
         .unwrap_or(i32::MIN)
