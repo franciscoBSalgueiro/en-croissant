@@ -324,7 +324,6 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
         })
         .with({ type: "ADD_ANALYSIS" }, ({ payload }) => {
             state.dirty = true;
-            // console.log(payload);
             addAnalysis(state, payload);
         })
         .with({ type: "SET_SHAPES" }, ({ payload }) => {

@@ -109,20 +109,14 @@ export function getAnnotation(
             getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
             move === prevMoves[0].sanMoves[0]
         ) {
-            if (is_sacrifice) {
-                return "!!";
-            }
             const scores = normalizeScores(
                 prevprev || { type: "cp", value: 0 },
                 prevMoves[0].score,
                 color
             );
-            // console.log(move, scores.prevCP, scores.nextCP);
-            // console.log(
-            //     move,
-            //     getWinChance(scores.prevCP),
-            //     getWinChance(scores.nextCP)
-            // );
+            if (is_sacrifice && (getWinChance(scores.prevCP) < 90 || (prev?.type == "mate" && next.type == "mate"))) {
+                return "!!";
+            }
             if (getWinChance(scores.nextCP) - getWinChance(scores.prevCP) > 5) {
                 return "!";
             }

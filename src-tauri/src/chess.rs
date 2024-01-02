@@ -5,7 +5,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::San, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode,
-    Position,
+    Position, Role,
 };
 use specta::Type;
 use tauri::{
@@ -550,7 +550,6 @@ pub async fn analyze_game(
         if !chess.is_game_over() {
             let prev_eval = naive_eval(&previous_pos);
             let cur_eval = -naive_eval(&current_pos);
-            // println!("{m} {prev_eval} {cur_eval}");
             fens.push((
                 Fen::from_position(current_pos, EnPassantMode::Legal),
                 prev_eval > cur_eval + 100,
