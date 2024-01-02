@@ -215,7 +215,14 @@ export type TreeAction =
     | { type: "SET_SCORE"; payload: Score }
     | { type: "SET_SHAPES"; payload: DrawShape[] }
     | { type: "CLEAR_SHAPES" }
-    | { type: "ADD_ANALYSIS"; payload: { best: BestMoves[]; novelty: boolean, maybe_brilliant: boolean }[] }
+    | {
+          type: "ADD_ANALYSIS";
+          payload: {
+              best: BestMoves[];
+              novelty: boolean;
+              is_sacrifice: boolean;
+          }[];
+      }
     | { type: "PROMOTE_VARIATION"; payload: number[] }
     | { type: "PROMOTE_TO_MAINLINE"; payload: number[] };
 
@@ -317,6 +324,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
         })
         .with({ type: "ADD_ANALYSIS" }, ({ payload }) => {
             state.dirty = true;
+            // console.log(payload);
             addAnalysis(state, payload);
         })
         .with({ type: "SET_SHAPES" }, ({ payload }) => {
@@ -423,27 +431,49 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     return getNodeAtPath(node.children[index], path.slice(1));
 };
 
-function addAnalysis(state: TreeState, analysis: { best: BestMoves[], novelty: boolean, maybe_brilliant: boolean }[]) {
+function addAnalysis(
+    state: TreeState,
+    analysis: {
+        best: BestMoves[];
+        novelty: boolean;
+        is_sacrifice: boolean;
+    }[]
+) {
     let cur = state.root;
     let i = 0;
     const setup = parseFen(state.root.fen).unwrap();
     const initialColor = setup.turn;
     while (cur !== undefined && i < analysis.length) {
-        if (!(new Chess(cur.fen).isGameOver())) {
+        if (!new Chess(cur.fen).isGameOver()) {
             cur.score = analysis[i].best[0].score;
             if (analysis[i].novelty) {
                 cur.commentHTML = "Novelty";
                 cur.commentText = "Novelty";
             }
-            let prevScore: Score = { type: "cp", value: 0 };
+            let prevScore = null;
+            let prevprevScore = null;
             let prevMoves: BestMoves[] = [];
             if (i > 0) {
                 prevScore = analysis[i - 1].best[0].score;
                 prevMoves = analysis[i - 1].best;
             }
+            if (i > 1) {
+                prevprevScore = analysis[i - 2].best[0].score;
+            }
             const curScore = analysis[i].best[0].score;
-            const color = i % 2 === (initialColor === "white" ? 1 : 0) ? "white" : "black";
-            cur.annotation = getAnnotation(prevScore, curScore, color, prevMoves, analysis[i].maybe_brilliant, cur.move?.san ?? "");
+            const color =
+                i % 2 === (initialColor === "white" ? 1 : 0)
+                    ? "white"
+                    : "black";
+            cur.annotation = getAnnotation(
+                prevprevScore,
+                prevScore,
+                curScore,
+                color,
+                prevMoves,
+                analysis[i].is_sacrifice,
+                cur.move?.san ?? ""
+            );
         }
         cur = cur.children[0];
         i++;

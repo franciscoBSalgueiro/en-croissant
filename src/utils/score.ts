@@ -76,14 +76,19 @@ export function getCPLoss(prev: Score, next: Score, color: Color): number {
 }
 
 export function getAnnotation(
-    prev: Score,
+    prevprev: Score | null,
+    prev: Score | null,
     next: Score,
     color: Color,
     prevMoves: BestMoves[],
-    maybe_brilliant?: boolean,
+    is_sacrifice?: boolean,
     move?: string
 ): Annotation {
-    const { prevCP, nextCP } = normalizeScores(prev, next, color);
+    const { prevCP, nextCP } = normalizeScores(
+        prev || { type: "cp", value: 0 },
+        next,
+        color
+    );
     const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
 
     if (winChanceDiff > 20) {
@@ -94,21 +99,36 @@ export function getAnnotation(
         return "?!";
     }
 
-    // Annotating good moves is disabled for now, as it's not very accurate
-
-    // if (prevMoves.length > 1) {
-    //     const scores = normalizeScores(
-    //         prevMoves[0].score,
-    //         prevMoves[1].score,
-    //         color
-    //     );
-    //     if (
-    //         getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
-    //         maybe_brilliant &&
-    //         move === prevMoves[0].sanMoves[0]
-    //     ) {
-    //         return "!";
-    //     }
-    // }
+    if (prevMoves.length > 1) {
+        const scores = normalizeScores(
+            prevMoves[0].score,
+            prevMoves[1].score,
+            color
+        );
+        if (
+            getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
+            move === prevMoves[0].sanMoves[0]
+        ) {
+            if (is_sacrifice) {
+                return "!!";
+            }
+            const scores = normalizeScores(
+                prevprev || { type: "cp", value: 0 },
+                prevMoves[0].score,
+                color
+            );
+            // console.log(move, scores.prevCP, scores.nextCP);
+            // console.log(
+            //     move,
+            //     getWinChance(scores.prevCP),
+            //     getWinChance(scores.nextCP)
+            // );
+            if (getWinChance(scores.nextCP) - getWinChance(scores.prevCP) > 5) {
+                return "!";
+            }
+        } else if (is_sacrifice && nextCP > -200) {
+            return "!?";
+        }
+    }
     return "";
 }

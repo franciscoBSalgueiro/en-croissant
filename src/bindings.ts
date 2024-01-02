@@ -28,7 +28,7 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async analyzeGame(moves: string[], engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; maybe_brilliant: boolean }[], string>> {
+async analyzeGame(moves: string[], engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { moves, engine, goMode, options }) };
 } catch (e) {

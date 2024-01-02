@@ -160,7 +160,7 @@ function Databases() {
       {isLoading && databases && (
         <>
           <Text ta="center" fw="bold" my="auto" fz="lg">
-            Processing Games{databases.length > 1 ? "s" : ""}...
+            Processing Games...
           </Text>
 
           <Progress value={progress} />

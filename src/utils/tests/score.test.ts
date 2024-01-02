@@ -37,21 +37,21 @@ test("should calculate the cp loss correctly", () => {
 });
 
 test("should annotate as ??", () => {
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: -500 }, "white", [])).toBe("??");
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: 500 }, "black", [])).toBe("??");
+    expect(getAnnotation(null, null, { type: "cp", value: -500 }, "white", [])).toBe("??");
+    expect(getAnnotation(null, null, { type: "cp", value: 500 }, "black", [])).toBe("??");
 });
 
 test("should annotate as ?", () => {
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: -200 }, "white", [])).toBe("?");
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: 200 }, "black", [])).toBe("?");
+    expect(getAnnotation(null, null, { type: "cp", value: -200 }, "white", [])).toBe("?");
+    expect(getAnnotation(null, null, { type: "cp", value: 200 }, "black", [])).toBe("?");
 });
 
 test("should annotate as ?!", () => {
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: -100 }, "white", [])).toBe("?!");
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: 100 }, "black", [])).toBe("?!");
+    expect(getAnnotation(null, null, { type: "cp", value: -100 }, "white", [])).toBe("?!");
+    expect(getAnnotation(null, null, { type: "cp", value: 100 }, "black", [])).toBe("?!");
 });
 
 test("should not annotate", () => {
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: -50 }, "white", [])).toBe("");
-    expect(getAnnotation({ type: "cp", value: 0 }, { type: "cp", value: 50 }, "black", [])).toBe("");
+    expect(getAnnotation(null, null, { type: "cp", value: -50 }, "white", [])).toBe("");
+    expect(getAnnotation(null, null, { type: "cp", value: 50 }, "black", [])).toBe("");
 });

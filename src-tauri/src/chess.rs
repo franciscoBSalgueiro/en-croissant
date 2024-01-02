@@ -4,8 +4,8 @@ use derivative::Derivative;
 use log::info;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::San, san::SanPlus, uci::Uci, CastlingMode, Chess, Color, EnPassantMode,
-    Position, Role, Setup, Square,
+    fen::Fen, san::San, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode,
+    Position,
 };
 use specta::Type;
 use tauri::{
@@ -509,7 +509,7 @@ pub async fn get_best_moves(
 pub struct MoveAnalysis {
     best: Vec<BestMoves>,
     novelty: bool,
-    maybe_brilliant: bool,
+    is_sacrifice: bool,
 }
 
 #[derive(Deserialize, Debug, Default, Type)]
@@ -544,14 +544,16 @@ pub async fn analyze_game(
     moves.iter().for_each(|m| {
         let san = San::from_ascii(m.as_bytes()).unwrap();
         let m = san.to_move(&chess).unwrap();
-        let mut previous_setup = chess.clone().into_setup(EnPassantMode::Legal);
-        previous_setup.swap_turn();
+        let previous_pos = chess.clone();
         chess.play_unchecked(&m);
-        let current_setup = chess.clone().into_setup(EnPassantMode::Legal);
+        let current_pos = chess.clone();
         if !chess.is_game_over() {
+            let prev_eval = naive_eval(&previous_pos);
+            let cur_eval = -naive_eval(&current_pos);
+            // println!("{m} {prev_eval} {cur_eval}");
             fens.push((
-                Fen::from_position(chess.clone(), EnPassantMode::Legal),
-                count_attacked_material(&previous_setup) <= count_attacked_material(&current_setup),
+                Fen::from_position(current_pos, EnPassantMode::Legal),
+                prev_eval > cur_eval + 100,
             ));
         }
     });
@@ -574,7 +576,7 @@ pub async fn analyze_game(
 
         proc.set_options(EngineOptions {
             threads: 4,
-            multipv: 1,
+            multipv: 2,
             hash: 16,
             fen: fen.to_string(),
             extra_options: Vec::new(),
@@ -611,7 +613,6 @@ pub async fn analyze_game(
                 _ => {}
             }
         }
-        println!("Analysis: {:?}", current_analysis);
         analysis.push(current_analysis);
     }
 
@@ -624,7 +625,7 @@ pub async fn analyze_game(
         let fen = &fens[i].0;
         let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
-        analysis.maybe_brilliant = fens[i].1;
+        analysis.is_sacrifice = fens[i].1;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
                 analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;
@@ -647,68 +648,122 @@ pub async fn analyze_game(
     Ok(analysis)
 }
 
-fn count_attacked_material(pos: &Setup) -> i32 {
-    let mut attacked_material = 0;
-    let mut seen_attacked = Vec::new();
-    for s in Square::ALL.iter() {
-        if let Some(piece) = pos.board.piece_at(*s) {
-            if piece.color == pos.turn {
-                let squares_attacked = pos.board.attacks_from(*s);
-                for square in Square::ALL.iter() {
-                    if squares_attacked.contains(*square) && !seen_attacked.contains(square) {
-                        if let Some(attacked_piece) = pos.board.piece_at(*square) {
-                            seen_attacked.push(*square);
-                            if attacked_piece.color != pos.turn {
-                                attacked_material += match attacked_piece.role {
-                                    Role::Pawn => 1,
-                                    Role::Knight => 3,
-                                    Role::Bishop => 3,
-                                    Role::Rook => 5,
-                                    Role::Queen => 9,
-                                    Role::King => 1000,
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+fn count_material(position: &Chess) -> i32 {
+    if position.is_checkmate() {
+        return -10000;
+    }
+    let material: ByColor<i32> = position.board().material().map(|p| {
+        p.pawn as i32 * 100
+            + p.knight as i32 * 350
+            + p.bishop as i32 * 350
+            + p.rook as i32 * 525
+            + p.queen as i32 * 1000
+    });
+    if position.turn() == Color::White {
+        material.white - material.black
+    } else {
+        material.black - material.white
+    }
+}
+
+fn quiesce(position: &Chess, mut alpha: i32, beta: i32) -> i32 {
+    let stand_pat = count_material(position);
+
+    if stand_pat >= beta {
+        return beta;
+    }
+    if alpha < stand_pat {
+        alpha = stand_pat;
+    }
+    for capture in position.legal_moves().iter().filter(|m| m.is_capture()) {
+        let mut new_position = position.clone();
+        new_position.play_unchecked(capture);
+        let score = -quiesce(&new_position, -beta, -alpha);
+        if score >= beta {
+            return beta;
+        }
+        if score > alpha {
+            alpha = score;
         }
     }
-    attacked_material
+
+    alpha
+}
+
+fn naive_eval(pos: &Chess) -> i32 {
+    pos.legal_moves()
+        .iter()
+        .map(|mv| {
+            let mut new_position = pos.clone();
+            new_position.play_unchecked(mv);
+            -quiesce(&new_position, i32::MIN, i32::MAX)
+        })
+        .max()
+        .unwrap_or(i32::MIN)
 }
 
 #[cfg(test)]
 mod tests {
+    use shakmaty::FromSetup;
+
     use super::*;
 
+    fn pos(fen: &str) -> Chess {
+        let fen: Fen = fen.parse().unwrap();
+        Chess::from_setup(fen.into_setup(), CastlingMode::Standard).unwrap()
+    }
+
     #[test]
-    fn test_count_attacked_material() {
-        assert_eq!(count_attacked_material(&Setup::default()), 0);
+    fn eval_start_pos() {
+        assert_eq!(naive_eval(&Chess::default()), 0);
+    }
 
-        let fen: Fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"
-            .parse()
-            .unwrap();
-        assert_eq!(count_attacked_material(&fen.into_setup()), 1);
+    #[test]
+    fn eval_scandi() {
+        let position = pos("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        assert_eq!(naive_eval(&position), 0);
+    }
 
-        let fen: Fen = "r1bqkbnr/ppp1pppp/2n5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"
-            .parse()
-            .unwrap();
-        assert_eq!(count_attacked_material(&fen.into_setup()), 1);
+    #[test]
+    fn eval_hanging_pawn() {
+        let position = pos("r1bqkbnr/ppp1pppp/2n5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3");
+        assert_eq!(naive_eval(&position), 100);
+    }
 
-        let fen: Fen = "r1bqkbnr/ppp2ppp/2n5/1B1pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4"
-            .parse()
-            .unwrap();
-        assert_eq!(count_attacked_material(&fen.into_setup()), 5);
+    #[test]
+    fn eval_complex_center() {
+        let position = pos("r1bqkbnr/ppp2ppp/2n5/1B1pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4");
+        assert_eq!(naive_eval(&position), 100);
+    }
 
-        let fen: Fen = "r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4"
-            .parse()
-            .unwrap();
-        assert_eq!(count_attacked_material(&fen.into_setup()), 4);
+    #[test]
+    fn eval_in_check() {
+        let position = pos("r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4");
+        assert_eq!(naive_eval(&position), -100);
+    }
 
-        let fen: Fen = "r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq"
-            .parse()
-            .unwrap();
-        assert_eq!(count_attacked_material(&fen.into_setup()), 1003);
+    #[test]
+    fn eval_rook_stack() {
+        let position = pos("rnrq4/8/8/1R6/1R6/1R5K/1Q6/7k w - - 0 1");
+        assert_eq!(naive_eval(&position), 500);
+    }
+
+    #[test]
+    fn eval_rook_stack2() {
+        let position = pos("rnrq4/8/8/1R6/1Q6/1R5K/1R6/7k w - - 0 1");
+        assert_eq!(naive_eval(&position), 200);
+    }
+
+    #[test]
+    fn eval_opera_game1() {
+        let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 14");
+        assert_eq!(naive_eval(&position), -100);
+    }
+
+    #[test]
+    fn eval_opera_game2() {
+        let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 1 14");
+        assert_eq!(naive_eval(&position), 0);
     }
 }
 

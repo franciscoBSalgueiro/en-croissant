@@ -59,7 +59,7 @@ export interface BestMoves {
 export interface MoveAnalysis {
     best: BestMoves[];
     novelty: boolean;
-    maybe_brilliant: boolean;
+    is_sacrifice: boolean;
 }
 
 export function getMoveText(

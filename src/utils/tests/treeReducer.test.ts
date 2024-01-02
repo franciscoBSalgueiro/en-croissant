@@ -474,7 +474,7 @@ test("should handle ADD_ANALYSIS", () => {
                 uciMoves: ["e2e4"],
             }],
             novelty: false,
-            maybe_brilliant: false,
+            is_sacrifice: false,
         },
         {
             best: [{
@@ -490,7 +490,7 @@ test("should handle ADD_ANALYSIS", () => {
                 uciMoves: ["d7d5"],
             }],
             novelty: false,
-            maybe_brilliant: false,
+            is_sacrifice: false,
         },
     ];
 
