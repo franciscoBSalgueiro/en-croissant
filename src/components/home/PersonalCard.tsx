@@ -413,13 +413,13 @@ function OpeningNameButton({ name, color }: { name: string, color: Color }) {
         const headers = defaultTree().headers;
         const tree = await parsePGN(pgn);
         headers.orientation = color;
-        headers.start = Array.from(Array(countMainPly(tree.root)), () => 0);
         createTab({
           tab: { name, type: "analysis" },
           pgn,
           headers,
           setTabs,
           setActiveTab,
+          position: Array.from(Array(countMainPly(tree.root)), () => 0)
         });
         navigate("/boards");
       }}

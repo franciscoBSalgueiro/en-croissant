@@ -31,6 +31,7 @@ export async function createTab({
     headers,
     fileInfo,
     gameNumber,
+    position,
 }: {
     tab: Omit<Tab, "value">;
     setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
@@ -39,6 +40,7 @@ export async function createTab({
     headers?: GameHeaders;
     fileInfo?: FileMetadata;
     gameNumber?: number;
+    position?: number[];
 }) {
     const id = genID();
 
@@ -46,8 +48,8 @@ export async function createTab({
         const tree = await parsePGN(pgn, headers?.fen);
         if (headers) {
             tree.headers = headers;
-            if (headers.start) {
-                tree.position = headers.start;
+            if (position) {
+                tree.position = position;
             }
         }
         sessionStorage.setItem(id, JSON.stringify(tree));
