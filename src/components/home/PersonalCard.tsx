@@ -27,9 +27,17 @@ import {
 import { PlayerGameInfo } from "@/utils/db";
 import { IconInfoCircle } from "@tabler/icons-react";
 import FideInfo from "../databases/FideInfo";
-import { DataTable } from "mantine-datatable";
-import { MonthData } from "@/bindings";
+import { MonthData, commands } from "@/bindings";
 import VirtualizedScrollArea from "../common/VirtualizedScrollArea";
+import * as classes from "./PersonalCard.css";
+import { createTab } from "@/utils/tabs";
+import { useNavigate } from "react-router-dom";
+import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
+import { useAtom } from "jotai";
+import { countMainPly, defaultTree } from "@/utils/treeReducer";
+import { parsePGN } from "@/utils/chess";
+import { unwrap } from "@/utils/invoke";
+import { Color } from "chessops";
 
 function fillMissingMonths(
   data: { name: string; data: MonthData }[]
@@ -180,8 +188,12 @@ function PersonalPlayerCard({
           py="md"
         >
           <Group grow>
-            <Text ta="center" fw="bold">White</Text>
-            <Text ta="center" fw="bold">Black</Text>
+            <Text ta="center" fw="bold">
+              White
+            </Text>
+            <Text ta="center" fw="bold">
+              Black
+            </Text>
           </Group>
           <Divider mt="md" />
           <VirtualizedScrollArea
@@ -202,7 +214,7 @@ function PersonalPlayerCard({
                         justify="space-between"
                       >
                         <Group justify="space-between" wrap="nowrap">
-                          <Text lineClamp={2}>{white[0]}</Text>
+                          <OpeningNameButton name={white[0]} color="white" />
                           <Text>
                             {(
                               ((white[1].won + white[1].draw + white[1].lost) /
@@ -230,7 +242,7 @@ function PersonalPlayerCard({
                         justify="space-between"
                       >
                         <Group justify="space-between" wrap="nowrap">
-                          <Text lineClamp={2}>{black[0]}</Text>
+                        <OpeningNameButton name={black[0]} color="black" />
                           <Text>
                             {(
                               ((black[1].won + black[1].draw + black[1].lost) /
@@ -384,6 +396,36 @@ function ResultsChart({
         </Progress.Section>
       </MTTooltip>
     </Progress.Root>
+  );
+}
+
+function OpeningNameButton({ name, color }: { name: string, color: Color }) {
+  const navigate = useNavigate();
+
+  const [, setTabs] = useAtom(tabsAtom);
+  const [, setActiveTab] = useAtom(activeTabAtom);
+  return (
+    <Text
+      lineClamp={2}
+      className={classes.link}
+      onClick={async () => {
+        const pgn = unwrap(await commands.getOpeningFromName(name));
+        const headers = defaultTree().headers;
+        const tree = await parsePGN(pgn);
+        headers.orientation = color;
+        headers.start = Array.from(Array(countMainPly(tree.root)), () => 0);
+        createTab({
+          tab: { name, type: "analysis" },
+          pgn,
+          headers,
+          setTabs,
+          setActiveTab,
+        });
+        navigate("/boards");
+      }}
+    >
+      {name}
+    </Text>
   );
 }
 

@@ -1216,7 +1216,7 @@ pub async fn get_players_game_info(
                     false => won.fetch_add(1, Ordering::Relaxed),
                 },
                 Some("1/2-1/2") => draw.fetch_add(1, Ordering::Relaxed),
-                _ => unreachable!(),
+                _ => 0,
             };
 
             let p = progress.fetch_add(1, Ordering::Relaxed);

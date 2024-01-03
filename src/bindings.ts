@@ -85,6 +85,14 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
+async getOpeningFromName(name: string) : Promise<__Result__<string, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_opening_from_name", { name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPlayersGameInfo(file: string, id: number) : Promise<__Result__<{ won: number; lost: number; draw: number; data_per_month: ([string, MonthData])[]; white_openings: ([string, Results])[]; black_openings: ([string, Results])[] }, string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_players_game_info", { file, id }) };

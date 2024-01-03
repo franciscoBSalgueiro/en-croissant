@@ -46,6 +46,9 @@ export async function createTab({
         const tree = await parsePGN(pgn, headers?.fen);
         if (headers) {
             tree.headers = headers;
+            if (headers.start) {
+                tree.position = headers.start;
+            }
         }
         sessionStorage.setItem(id, JSON.stringify(tree));
     }

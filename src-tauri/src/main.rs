@@ -50,7 +50,7 @@ use crate::{
     chess::get_best_moves,
     db::{edit_db_info, get_db_info, get_games, get_players},
     fs::download_file,
-    opening::{get_opening_from_fen, search_opening_name},
+    opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
 
@@ -123,6 +123,7 @@ fn main() {
                 set_menu_visisble,
                 is_menu_visisble,
                 get_opening_from_fen,
+                get_opening_from_name,
                 get_players_game_info,
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload, Progress));

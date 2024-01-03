@@ -12,11 +12,11 @@ pub struct Opening {
     eco: String,
     name: String,
     setup: Setup,
+    pgn: Option<String>,
 }
 
 impl Serialize for Opening {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        // returns an object with eco, name and the fen from the setup
         let mut state = serializer.serialize_struct("Opening", 3)?;
         state.serialize_field("eco", &self.eco)?;
         state.serialize_field("name", &self.name)?;
@@ -46,6 +46,16 @@ const TSV_DATA: [&[u8]; 5] = [
 pub fn get_opening_from_fen(fen: &str) -> Result<String, Error> {
     let fen: Fen = fen.parse()?;
     get_opening_from_setup(fen.into_setup())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_opening_from_name(name: &str) -> Result<String, Error> {
+    OPENINGS
+        .iter()
+        .find(|o| o.name == name)
+        .map(|o| o.pgn.clone().expect("opening without pgn"))
+        .ok_or_else(|| Error::NoOpeningFound)
 }
 
 pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
@@ -96,11 +106,13 @@ lazy_static! {
                 eco: "Extra".to_string(),
                 name: "Starting Position".to_string(),
                 setup: Setup::default(),
+                pgn: None,
             },
             Opening {
                 eco: "Extra".to_string(),
                 name: "Empty Board".to_string(),
                 setup: Setup::empty(),
+                pgn: None,
             },
         ];
 
@@ -118,6 +130,7 @@ lazy_static! {
                     eco: record.eco,
                     name: record.name,
                     setup: pos.into_setup(EnPassantMode::Legal),
+                    pgn: Some(record.pgn),
                 });
             }
         }
