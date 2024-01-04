@@ -99,7 +99,7 @@ function FilesPage() {
         <OpenFolderButton base="Document" folder="EnCroissant" />
       </Group>
 
-      <Group grow style={{ flex: 1, overflow: "hidden" }} px="md" pb="md">
+      <Group grow flex={1} style={{ overflow: "hidden" }} px="md" pb="md">
         <Stack h="100%">
           <Group>
             <Input
@@ -143,7 +143,7 @@ function FilesPage() {
             ))}
           </Group>
 
-          <ScrollArea style={{ flex: 1 }} offsetScrollbars>
+          <ScrollArea flex={1} offsetScrollbars>
             <Stack>
               {filteredFiles.map((file) => (
                 <GenericCard

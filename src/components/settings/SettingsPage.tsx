@@ -101,7 +101,7 @@ export default function Page() {
           Keybinds
         </Tabs.Tab>
       </Tabs.List>
-      <Stack style={{ flex: 1 }} px="md" pt="md">
+      <Stack flex={1} px="md" pt="md">
         <ScrollArea>
           <Card withBorder p="lg" className={classes.card} w="100%">
             <Tabs.Panel value="board">

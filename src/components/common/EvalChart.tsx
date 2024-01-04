@@ -1,23 +1,21 @@
 import { useContext } from "react";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
-import { Box, LoadingOverlay, useMantineTheme } from "@mantine/core";
-import { Stack } from "@mantine/core";
 import {
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-} from "recharts";
+  Box,
+  LoadingOverlay,
+  Paper,
+  useMantineTheme,
+  Text,
+} from "@mantine/core";
+import { Stack } from "@mantine/core";
+import { AreaChart } from "@mantine/charts";
 import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { ANNOTATION_INFO } from "@/utils/chess";
 import { formatScore } from "@/utils/score";
 import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
 import { positionFromFen } from "@/utils/chessops";
 import * as classes from "./EvalChart.css";
-import { useColorScheme } from "@mantine/hooks";
+import { CategoricalChartState } from "recharts/types/chart/generateCategoricalChart";
 
 interface EvalChartProps {
   isAnalysing: boolean;
@@ -27,17 +25,15 @@ interface EvalChartProps {
 type DataPoint = {
   name: string;
   evalText: string;
-  yValue: number | undefined;
-  altValue: number | undefined;
+  yValue: number | "none";
   movePath: number[];
+  color: string;
 };
 
 const EvalChart = (props: EvalChartProps) => {
   const { root, position } = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
   const theme = useMantineTheme();
-  const colorScheme = useColorScheme();
-  const isLightTheme = colorScheme == "light";
 
   function getYValue(node: TreeNode): number | undefined {
     if (node.score) {
@@ -87,35 +83,25 @@ const EvalChart = (props: EvalChartProps) => {
   function* getData(): Iterable<DataPoint> {
     const nodes = getNodes();
     for (let i = 0; i < nodes.length; i++) {
-      const prevNode = nodes[i - 1]?.node;
       const currentNode = nodes[i];
-      const nextNode = nodes[i + 1]?.node;
-
       const move = currentNode.node.move!;
-      const annotation = currentNode.node.annotation
-        ? ANNOTATION_INFO[currentNode.node.annotation].name.toLowerCase()
-        : undefined;
       const yValue = getYValue(currentNode.node);
-      //hiding gaps in chart areas between analysed and unanalysed positions
-      const needsAltValue =
-        yValue == undefined ||
-        (prevNode && !prevNode.score) ||
-        (nextNode && !nextNode.score);
+
       yield {
         name: `${Math.ceil(currentNode.node.halfMoves / 2)}.${
           move.color === "w" ? "" : ".."
-        } ${move.san}${annotation ? ` (${annotation})` : ""}`,
+        } ${move.san}${currentNode.node.annotation}`,
         evalText: getEvalText(currentNode.node),
-        yValue: yValue,
-        altValue: needsAltValue ? 0 : undefined,
+        yValue: yValue ?? "none",
         movePath: currentNode.position,
+        color: ANNOTATION_INFO[currentNode.node.annotation]?.color,
       };
     }
   }
 
   function gradientOffset(data: DataPoint[]) {
-    const dataMax = Math.max(...data.map((i) => i.yValue ?? 0));
-    const dataMin = Math.min(...data.map((i) => i.yValue ?? 0));
+    const dataMax = Math.max(...data.map((i) => i.yValue !== "none" ? i.yValue : 0));
+    const dataMin = Math.min(...data.map((i) => i.yValue !== "none" ? i.yValue : 0));
 
     if (dataMax <= 0) return 0;
     if (dataMin >= 0) return 1;
@@ -123,20 +109,28 @@ const EvalChart = (props: EvalChartProps) => {
     return dataMax / (dataMax - dataMin);
   }
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload: any;
+  }) => {
     if (active && payload && payload.length && payload[0].payload) {
       const dataPoint: DataPoint = payload[0].payload;
       return (
-        <div className={classes.tooltip}>
-          <div className={classes.tooltipTitle}>{dataPoint.name}</div>
-          <div>{dataPoint.evalText}</div>
-        </div>
+        <Paper px="md" py="sm" withBorder shadow="md" radius="md">
+          <Text className={classes.tooltipTitle} c={dataPoint.color === "gray" ? undefined : dataPoint.color }>
+            {dataPoint.name}
+          </Text>
+          <Text>{dataPoint.evalText}</Text>
+        </Paper>
       );
     }
     return null;
   };
 
-  const onChartClick = (data: any) => {
+  const onChartClick = (data: CategoricalChartState) => {
     if (
       data &&
       data.activePayload &&
@@ -156,52 +150,46 @@ const EvalChart = (props: EvalChartProps) => {
     arrayEquals(point.movePath, position)
   )?.name;
   const colouroffset = gradientOffset(data);
-  const areaChartPropsHack = { cursor: "pointer" } as any;
 
   return (
     <Stack>
       <Box pos="relative">
         <LoadingOverlay visible={props.isAnalysing == true} />
-        <ResponsiveContainer width="99%" height={220}>
-          <AreaChart data={data} onClick={onChartClick} {...areaChartPropsHack}>
-            <RechartsTooltip content={<CustomTooltip />} />
-            <XAxis hide dataKey="name" type="category" />
-            <YAxis hide dataKey="yValue" domain={[-1, 1]} />
-            <defs>
-              <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset={colouroffset}
-                  stopColor={isLightTheme ? "#e6e6e6" : "#ccc"}
-                  stopOpacity={1}
-                />
-                <stop
-                  offset={colouroffset}
-                  stopColor={isLightTheme ? "#333333" : "#000"}
-                  stopOpacity={1}
-                />
-              </linearGradient>
-            </defs>
-            {currentPositionName && (
-              <ReferenceLine
-                x={currentPositionName}
-                stroke={theme.colors[theme.primaryColor][7]}
-              />
-            )}
-            <Area
-              type="linear"
-              dataKey="yValue"
-              stroke={theme.colors[theme.primaryColor][7]}
-              fill="url(#splitColor)"
-            />
-            <Area
-              type="linear"
-              dataKey="altValue"
-              stroke="#999999"
-              strokeDasharray="3 3"
-              activeDot={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <AreaChart
+          h={150}
+          curveType="monotone"
+          data={data}
+          dataKey={"name"}
+          series={[
+            { name: "yValue", color: theme.colors[theme.primaryColor][7] },
+          ]}
+          connectNulls={false}
+          withXAxis={false}
+          withYAxis={false}
+          yAxisProps={{ domain: [-1, 1] }}
+          type="split"
+          fillOpacity={0.8}
+          splitColors={["gray.1", "black"]}
+          splitOffset={colouroffset}
+          activeDotProps={{ r: 3, strokeWidth: 1 }}
+          dotProps={{ r: 0 }}
+          referenceLines={[
+            {
+              x: currentPositionName,
+              color: theme.colors[theme.primaryColor][7],
+            }
+          ]}
+          areaChartProps={{
+            onClick: onChartClick,
+            style: { cursor: "pointer" },
+          }}
+          gridAxis="none"
+          tooltipProps={{
+            content: ({ payload, active }) => (
+              <CustomTooltip active={active} payload={payload} />
+            ),
+          }}
+        />
       </Box>
     </Stack>
   );

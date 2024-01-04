@@ -151,8 +151,8 @@ function PersonalPlayerCard({
         keepMounted={false}
         defaultValue="overview"
         variant="outline"
+        flex={1}
         style={{
-          flex: 1,
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
@@ -184,7 +184,8 @@ function PersonalPlayerCard({
         </Tabs.Panel>
         <Tabs.Panel
           value="openings"
-          style={{ overflow: "hidden", flex: 1 }}
+          flex={1}
+          style={{ overflow: "hidden" }}
           py="md"
         >
           <Group grow>
@@ -242,7 +243,7 @@ function PersonalPlayerCard({
                         justify="space-between"
                       >
                         <Group justify="space-between" wrap="nowrap">
-                        <OpeningNameButton name={black[0]} color="black" />
+                          <OpeningNameButton name={black[0]} color="black" />
                           <Text>
                             {(
                               ((black[1].won + black[1].draw + black[1].lost) /
@@ -399,7 +400,7 @@ function ResultsChart({
   );
 }
 
-function OpeningNameButton({ name, color }: { name: string, color: Color }) {
+function OpeningNameButton({ name, color }: { name: string; color: Color }) {
   const navigate = useNavigate();
 
   const [, setTabs] = useAtom(tabsAtom);
@@ -419,7 +420,7 @@ function OpeningNameButton({ name, color }: { name: string, color: Color }) {
           headers,
           setTabs,
           setActiveTab,
-          position: Array.from(Array(countMainPly(tree.root)), () => 0)
+          position: Array.from(Array(countMainPly(tree.root)), () => 0),
         });
         navigate("/boards");
       }}

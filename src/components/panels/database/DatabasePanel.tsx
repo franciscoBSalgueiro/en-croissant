@@ -177,10 +177,8 @@ function DatabasePanel({ fen }: { fen: string }) {
         value={tabType}
         onChange={(v) => setTabType(v!)}
         display="flex"
-        style={{
-          flex: 1,
-          overflow: "hidden",
-        }}
+        flex={1}
+        style={{ overflow: "hidden" }}
       >
         <Tabs.List>
           <Tabs.Tab
@@ -236,7 +234,7 @@ function PanelWithError(props: {
   }
 
   return (
-    <Tabs.Panel pt="xs" value={props.value} style={{ flex: 1 }}>
+    <Tabs.Panel pt="xs" value={props.value} flex={1}>
       {children}
     </Tabs.Panel>
   );

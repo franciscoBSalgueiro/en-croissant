@@ -98,7 +98,7 @@ function AnalysisPanel({
           <>
             <ScrollArea offsetScrollbars>
               {loadedEngines.length > 1 && (
-                <Paper withBorder p="xs" style={{ flex: 1 }}>
+                <Paper withBorder p="xs" flex={1}>
                   <Group w="100%">
                     <Stack w="8rem">
                       <Text ta="center" fw="bold">
@@ -118,7 +118,7 @@ function AnalysisPanel({
                         {allEnabled ? "Stop" : "Run"}
                       </Button>
                     </Stack>
-                    <Group grow style={{ flex: 1 }}>
+                    <Group grow flex={1}>
                       {loadedEngines.map((engine, i) => (
                         <EngineSummary
                           key={engine.name}
@@ -191,7 +191,7 @@ function AnalysisPanel({
                     />
                   </>
                 )}
-                <Box w={100}>
+                <div>
                   <ProgressButton
                     id={0}
                     redoable
@@ -208,7 +208,7 @@ function AnalysisPanel({
                     inProgress={inProgress}
                     setInProgress={setInProgress}
                   />
-                </Box>
+                </div>
               </Group>
               <Paper withBorder p="md">
                 <EvalChart

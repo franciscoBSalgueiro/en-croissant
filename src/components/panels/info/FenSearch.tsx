@@ -77,7 +77,6 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
       store={combobox}
       withinPortal={true}
       onOptionSubmit={(val) => {
-        console.log(val);
         if (val === "$create") {
           addFen(search);
           setValue(search);

@@ -71,7 +71,7 @@ export default function LogsPanel() {
   }
 
   return (
-    <Stack style={{ flex: 1 }} h="100%">
+    <Stack flex={1} h="100%">
       <Group grow>
         <ActionIcon.Group style={{ flexGrow: 0 }}>
           <ActionIcon size="lg" variant="default" onClick={() => mutate()}>
@@ -107,7 +107,7 @@ export default function LogsPanel() {
           No logs for {engine?.name ?? "engine"}
         </Text>
       )}
-      <Box w="100%" style={{ flex: 1 }}>
+      <Box w="100%" flex={1}>
         <VirtualizedScrollArea
           itemCount={filteredData?.length || 0}
           itemSize={30}

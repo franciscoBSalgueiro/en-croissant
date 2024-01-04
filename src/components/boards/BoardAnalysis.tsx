@@ -175,24 +175,27 @@ function BoardAnalysis() {
                 Info
               </Tabs.Tab>
             </Tabs.List>
-            <Tabs.Panel value="info" style={{ flex: 1, overflowY: "hidden" }}>
+            <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
               <InfoPanel />
             </Tabs.Panel>
             <Tabs.Panel
               value="database"
-              style={{ flex: 1, overflowY: "hidden" }}
+              flex={1}
+              style={{ overflowY: "hidden" }}
             >
               <DatabasePanel fen={currentNode.fen} />
             </Tabs.Panel>
             <Tabs.Panel
               value="annotate"
-              style={{ flex: 1, overflowY: "hidden" }}
+              flex={1}
+              style={{ overflowY: "hidden" }}
             >
               <AnnotationPanel />
             </Tabs.Panel>
             <Tabs.Panel
               value="analysis"
-              style={{ flex: 1, overflowY: "hidden" }}
+              flex={1}
+              style={{ overflowY: "hidden" }}
             >
               <Suspense>
                 <AnalysisPanel

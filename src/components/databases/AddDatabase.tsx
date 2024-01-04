@@ -197,7 +197,7 @@ function DatabaseCard({
       key={database.title}
     >
       <Group wrap="nowrap" gap={0} grow>
-        <Box p="md" style={{ flex: 1 }}>
+        <Box p="md" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             DATABASE
           </Text>

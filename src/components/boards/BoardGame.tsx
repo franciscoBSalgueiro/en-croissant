@@ -131,7 +131,7 @@ function OpponentForm({
   }
 
   return (
-    <Stack style={{ flex: 1 }}>
+    <Stack flex={1}>
       <SegmentedControl
         data={[
           { value: "human", label: "Human" },
@@ -306,7 +306,7 @@ function BoardGame() {
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 <Group>
-                  <Text style={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                  <Text flex={1} ta="center" fz="lg" fw="bold">
                     {match(inputColor)
                       .with("white", () => "White")
                       .with("random", () => "Random")
@@ -316,7 +316,7 @@ function BoardGame() {
                   <ActionIcon onClick={cycleColor}>
                     <IconArrowsExchange />
                   </ActionIcon>
-                  <Text style={{ flex: 1 }} ta="center" fz="lg" fw="bold">
+                  <Text flex={1} ta="center" fz="lg" fw="bold">
                     {match(inputColor)
                       .with("white", () => "Black")
                       .with("random", () => "Random")
@@ -324,7 +324,7 @@ function BoardGame() {
                       .exhaustive()}
                   </Text>
                 </Group>
-                <Box style={{ flex: 1 }}>
+                <Box flex={1}>
                   <Group style={{ alignItems: "start" }}>
                     <OpponentForm
                       opponent={player1Settings}
@@ -369,7 +369,7 @@ function BoardGame() {
           )}
           {(gameState === "playing" || gameState === "gameOver") && (
             <Stack h="100%">
-              <Box style={{ flex: 1 }}>
+              <Box flex={1}>
                 <GameInfo headers={headers} />
               </Box>
               <Group grow>

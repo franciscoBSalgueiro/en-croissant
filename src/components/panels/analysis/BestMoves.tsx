@@ -216,7 +216,7 @@ export default function BestMovesComponent({
             </ActionIcon>
           </Stack>
 
-          <Accordion.Control style={{ flex: 1 }}>
+          <Accordion.Control>
             <Group justify="space-between">
               <Group align="center">
                 <Text fw="bold" fz="xl">

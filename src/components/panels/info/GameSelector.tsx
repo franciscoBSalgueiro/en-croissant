@@ -140,7 +140,7 @@ function GameRow({
             setPracticing(false);
             setPage(index);
           }}
-          style={{ flex: 1 }}
+          flex={1}
         >
           {formatNumber(index + 1)}. {game}
         </Text>

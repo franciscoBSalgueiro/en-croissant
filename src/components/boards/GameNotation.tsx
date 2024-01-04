@@ -67,7 +67,8 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
     <Paper
       withBorder
       p="md"
-      style={{ position: "relative", flex: 1, overflow: "hidden" }}
+      flex={1}
+      style={{ position: "relative", overflow: "hidden" }}
     >
       <Stack h="100%" gap={0}>
         {topBar && (
@@ -78,7 +79,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
             toggleVariations={toggleVariations}
           />
         )}
-        <ScrollArea style={{ flex: 1 }} offsetScrollbars viewportRef={viewport}>
+        <ScrollArea flex={1} offsetScrollbars viewportRef={viewport}>
           <Stack pt="md">
             <Box>
               {invisible && (

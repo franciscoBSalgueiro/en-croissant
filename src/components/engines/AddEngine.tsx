@@ -150,7 +150,7 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
   return (
     <Paper withBorder radius="md" p={0} key={engine.name}>
       <Group wrap="nowrap" gap={0} grow>
-        <Box p="md" style={{ flex: 1 }}>
+        <Box p="md" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>
@@ -162,7 +162,6 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             disabled={engines.find((e) => e.type === engine.type) !== undefined}
             fullWidth
             onClick={() => {
-              console.log(engine);
               setEngines(async (prev) => [
                 ...(await prev),
                 { ...engine, type: engine.type, loaded: true },
@@ -227,7 +226,7 @@ function EngineCard({
             <Image src={engine.image} alt={engine.name} fit="contain" />
           </Box>
         )}
-        <Box p="md" style={{ flex: 1 }}>
+        <Box p="md" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>

@@ -17,7 +17,7 @@ function PiecesGrid({
   orientation?: "white" | "black";
 }) {
   return (
-    <SimpleGrid cols={vertical ? 2 : 6} style={{ flex: 1 }} w="100%">
+    <SimpleGrid cols={vertical ? 2 : 6} flex={1} w="100%">
       {COLORS.map((color) =>
         ROLES.map((role) => (
           <Piece

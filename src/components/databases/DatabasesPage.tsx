@@ -106,7 +106,8 @@ export default function DatabasesPage() {
 
       <Group
         grow
-        style={{ flex: 1, overflow: "hidden" }}
+        flex={1}
+        style={{ overflow: "hidden" }}
         align="start"
         px="md"
         pb="md"

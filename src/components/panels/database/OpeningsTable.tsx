@@ -65,7 +65,7 @@ function OpeningsTable({
             return (
               <Group>
                 {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
-                <Text fz="sm" style={{ flex: 1 }} ta="right">
+                <Text fz="sm" flex={1} ta="right">
                   {formatNumber(total)}
                 </Text>
               </Group>
