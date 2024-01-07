@@ -1,57 +1,58 @@
 import { Box } from "@mantine/core";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import PromotionModal from "../boards/PromotionModal";
 import { chessboard } from "@/styles/Chessboard.css";
 import { Chessground } from "@/chessground/Chessground";
 import { useAtomValue } from "jotai";
 import { showCoordinatesAtom } from "@/atoms/atoms";
-import { Chess, NormalMove, makeUci, parseSquare, parseUci } from "chessops";
-import { makeFen, parseFen } from "chessops/fen";
-import { chessgroundDests, chessgroundMove } from "chessops/compat";
+import { Chess, NormalMove, makeUci, parseSquare } from "chessops";
+import { parseFen } from "chessops/fen";
+import { chessgroundDests } from "chessops/compat";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
+import { countMainPly, getNodeAtPath } from "@/utils/treeReducer";
+import { moveToKey } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
 
 function PuzzleBoard({
   puzzles,
   currentPuzzle,
   changeCompletion,
   generatePuzzle,
-  currentMove,
-  setCurrentMove,
   db,
 }: {
   puzzles: Puzzle[];
   currentPuzzle: number;
   changeCompletion: (completion: Completion) => void;
   generatePuzzle: (db: string) => void;
-  currentMove: number;
-  setCurrentMove: (currentMove: number) => void;
   db: string | null;
 }) {
+  const tree = useContext(TreeStateContext);
+  const dispatch = useContext(TreeDispatchContext);
+
+  const currentNode = getNodeAtPath(tree.root, tree.position);
+
   let puzzle: Puzzle | null = null;
   if (puzzles.length > 0) {
     puzzle = puzzles[currentPuzzle];
   }
   const [ended, setEnded] = useState(false);
 
-  const pos = puzzle?.fen
-    ? Chess.fromSetup(parseFen(puzzle.fen).unwrap()).unwrap()
-    : Chess.default();
-  let lastMove: NormalMove | null = null;
-  let orientation: "white" | "black" = "white";
-  if (puzzle) {
-    for (let i = 0; i < Math.min(currentMove, puzzle.moves.length); i++) {
-      lastMove = parseUci(puzzle.moves[i])! as NormalMove;
-      pos.play(lastMove);
-      if (i == 0) {
-        orientation = pos.turn;
-      }
-    }
-  }
+  const [pos] = positionFromFen(currentNode.fen);
+
+  const currentMove = countMainPly(tree.root);
+  const orientation = puzzle?.fen
+    ? Chess.fromSetup(parseFen(puzzle.fen).unwrap()).unwrap().turn === "white"
+      ? "black"
+      : "white"
+    : "white";
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
 
-  const dests = chessgroundDests(pos);
-  const fen = makeFen(pos.toSetup());
-  const turn = pos.turn;
+  const dests = chessgroundDests(pos!);
+  const turn = pos?.turn || "white";
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
   function checkMove(move: string) {
@@ -66,8 +67,16 @@ function PuzzleBoard({
           generatePuzzle(db);
         }
       }
-      setCurrentMove(currentMove + 2);
+      const newMoves = puzzle.moves.slice(currentMove, currentMove + 2);
+      dispatch({
+        type: "MAKE_MOVES",
+        payload: newMoves,
+      });
     } else {
+      dispatch({
+        type: "MAKE_MOVE",
+        payload: move,
+      })
       if (!ended) {
         changeCompletion("incorrect");
       }
@@ -92,7 +101,13 @@ function PuzzleBoard({
             pendingMove={pendingMove}
             cancelMove={() => setPendingMove(null)}
             confirmMove={(p) => {
-              checkMove(`${pendingMove?.from}${pendingMove?.to}${p}`);
+              checkMove(
+                makeUci({
+                  from: pendingMove!.from,
+                  to: pendingMove!.to,
+                  promotion: p,
+                })
+              );
               setPendingMove(null);
             }}
             turn={turn}
@@ -106,7 +121,7 @@ function PuzzleBoard({
             orientation={orientation}
             movable={{
               free: false,
-              color: lastMove ? turn : undefined,
+              color: tree.position.length === currentMove ? turn : undefined,
               dests: dests,
               events: {
                 after: (orig, dest) => {
@@ -114,7 +129,7 @@ function PuzzleBoard({
                   const to = parseSquare(dest)!;
                   const move: NormalMove = { from, to };
                   if (
-                    pos.board.get(from)?.role === "pawn" &&
+                    pos?.board.get(from)?.role === "pawn" &&
                     ((dest[1] === "8" && turn === "white") ||
                       (dest[1] === "1" && turn === "black"))
                   ) {
@@ -125,10 +140,10 @@ function PuzzleBoard({
                 },
               },
             }}
-            lastMove={lastMove ? chessgroundMove(lastMove) : undefined}
+            lastMove={moveToKey(currentNode.move)}
             turnColor={turn}
-            fen={fen}
-            check={pos.isCheck()}
+            fen={currentNode.fen}
+            check={pos?.isCheck()}
           />
         </Box>
       </Box>

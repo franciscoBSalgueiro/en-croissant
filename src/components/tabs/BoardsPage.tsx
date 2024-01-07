@@ -1,12 +1,6 @@
-import {
-  ActionIcon,
-  ScrollArea,
-  Tabs,
-} from "@mantine/core";
+import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import {
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconPlus } from "@tabler/icons-react";
 import { createTab, genID, Tab } from "@/utils/tabs";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -315,7 +309,7 @@ function TabSwitch({ tab }: { tab: Tab }) {
       </TreeStateProvider>
     ))
     .with("puzzles", () => (
-      <>
+      <TreeStateProvider id={tab.value}>
         <Mosaic<ViewId>
           renderTile={(id) => fullLayout[id]}
           value={windowsState.currentNode}
@@ -323,7 +317,7 @@ function TabSwitch({ tab }: { tab: Tab }) {
           resize={{ minimumPaneSizePercentage: 0 }}
         />
         <Puzzles id={tab.value} />
-      </>
+      </TreeStateProvider>
     ))
     .exhaustive();
 }

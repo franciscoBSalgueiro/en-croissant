@@ -12,12 +12,13 @@ import {
   Portal,
   RangeSlider,
   SimpleGrid,
+  Stack,
   Text,
   Tooltip,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconX } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { unwrap } from "@/utils/invoke";
 import {
   Completion,
@@ -33,14 +34,24 @@ import { commands } from "@/bindings";
 import { useAtom } from "jotai";
 import { selectedPuzzleDbAtom } from "@/atoms/atoms";
 import * as classes from "@/components/common/GenericCard.css";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
+import { parseUci } from "@/utils/chess";
+import GameNotation from "../boards/GameNotation";
+import MoveControls from "../common/MoveControls";
+import { countMainPly } from "@/utils/treeReducer";
 
 function Puzzles({ id }: { id: string }) {
+  const tree = useContext(TreeStateContext);
+  const dispatch = useContext(TreeDispatchContext);
+  const currentMove = countMainPly(tree.root);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
-    key: id,
+    key: id + "-puzzles",
     defaultValue: [],
   });
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
-  const [currentMove, setCurrentMove] = useState(1);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
@@ -69,6 +80,11 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
     lostPuzzles.length;
 
+  function setPuzzle(puzzle: { fen: string; moves: string[] }) {
+    dispatch({ type: "SET_FEN", payload: puzzle.fen });
+    dispatch({ type: "MAKE_MOVE", payload: parseUci(puzzle.moves[0]) });
+  }
+
   function generatePuzzle(db: string) {
     let range = ratingRange;
     if (progressive) {
@@ -80,18 +96,16 @@ function Puzzles({ id }: { id: string }) {
     }
     commands.getPuzzle(db, range[0], range[1]).then((res) => {
       const puzzle = unwrap(res);
+      const newPuzzle: Puzzle = {
+        ...puzzle,
+        moves: puzzle.moves.split(" "),
+        completion: "incomplete",
+      };
       setPuzzles((puzzles) => {
-        return [
-          ...puzzles,
-          {
-            ...puzzle,
-            moves: puzzle.moves.split(" "),
-            completion: "incomplete",
-          },
-        ];
+        return [...puzzles, newPuzzle];
       });
       setCurrentPuzzle(puzzles.length);
-      setCurrentMove(1);
+      setPuzzle(newPuzzle);
     });
   }
 
@@ -115,8 +129,6 @@ function Puzzles({ id }: { id: string }) {
           currentPuzzle={currentPuzzle}
           changeCompletion={changeCompletion}
           generatePuzzle={generatePuzzle}
-          currentMove={currentMove}
-          setCurrentMove={setCurrentMove}
           db={selectedDb}
         />
       </Portal>
@@ -233,7 +245,10 @@ function Puzzles({ id }: { id: string }) {
                   changeCompletion("incorrect");
                 }
                 for (let i = currentMove; i < curPuzzle.moves.length; i++) {
-                  setCurrentMove((currentMove) => currentMove + 1);
+                  dispatch({
+                    type: "MAKE_MOVE",
+                    payload: parseUci(curPuzzle.moves[i]),
+                  });
                   await new Promise((r) => setTimeout(r, 500));
                 }
               }}
@@ -248,20 +263,25 @@ function Puzzles({ id }: { id: string }) {
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Paper h="100%" withBorder p="md">
-          <Text mb="md">History</Text>
-          <ChallengeHistory
-            challenges={puzzles.map((p) => ({
-              ...p,
-              label: p.rating.toString(),
-            }))}
-            current={currentPuzzle}
-            select={(i) => {
-              setCurrentPuzzle(i);
-              setCurrentMove(1);
-            }}
-          />
-        </Paper>
+        <Stack h="100%" gap="xs">
+          <Paper withBorder p="md" mih="5rem">
+            <ChallengeHistory
+              challenges={puzzles.map((p) => ({
+                ...p,
+                label: p.rating.toString(),
+              }))}
+              current={currentPuzzle}
+              select={(i) => {
+                setCurrentPuzzle(i);
+                setPuzzle(puzzles[i]);
+              }}
+            />
+          </Paper>
+          <Stack flex={1}>
+            <GameNotation />
+            <MoveControls />
+          </Stack>
+        </Stack>
       </Portal>
     </>
   );
