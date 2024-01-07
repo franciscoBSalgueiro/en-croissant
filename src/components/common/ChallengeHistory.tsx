@@ -1,10 +1,11 @@
 import { Completion } from "@/utils/puzzles";
-import { Group, ActionIcon } from "@mantine/core";
+import { Group, ActionIcon, Stack, Text } from "@mantine/core";
 import { IconCheck, IconX, IconDots } from "@tabler/icons-react";
 import { match } from "ts-pattern";
 
 type Challenge = {
   completion: Completion;
+  label?: string;
 };
 
 function ChallengeHistory({
@@ -22,39 +23,53 @@ function ChallengeHistory({
         const isCurrent = i === current;
         return match(p.completion)
           .with("correct", () => (
-            <ActionIcon
-              onClick={() => {
-                select(i);
-              }}
-              variant="light"
-              key={i}
-              color="green"
-              style={{ border: isCurrent ? "2px solid green" : "none" }}
-            >
-              <IconCheck color="green" />
-            </ActionIcon>
+            <Stack key={i} gap={0}>
+              <ActionIcon
+                onClick={() => {
+                  select(i);
+                }}
+                variant="light"
+                color="green"
+                style={{ border: isCurrent ? "2px solid green" : "none" }}
+              >
+                <IconCheck color="green" />
+              </ActionIcon>
+              <Text ta="center" fz="xs" c="green">
+                {p.label}
+              </Text>
+            </Stack>
           ))
           .with("incorrect", () => (
-            <ActionIcon
-              onClick={() => select(i)}
-              variant="light"
-              key={i}
-              color="red"
-              style={{ border: isCurrent ? "2px solid red" : "none" }}
-            >
-              <IconX color="red" />
-            </ActionIcon>
+            <Stack key={i} gap={0}>
+              <ActionIcon
+                onClick={() => select(i)}
+                variant="light"
+                key={i}
+                color="red"
+                style={{ border: isCurrent ? "2px solid red" : "none" }}
+              >
+                <IconX color="red" />
+              </ActionIcon>
+              <Text ta="center" fz="xs" c="red">
+                {p.label}
+              </Text>
+            </Stack>
           ))
           .with("incomplete", () => (
-            <ActionIcon
-              onClick={() => select(i)}
-              variant="light"
-              key={i}
-              color="yellow"
-              style={{ border: isCurrent ? "2px solid yellow" : "none" }}
-            >
-              <IconDots color="yellow" />
-            </ActionIcon>
+            <Stack key={i} gap={0}>
+              <ActionIcon
+                onClick={() => select(i)}
+                variant="light"
+                key={i}
+                color="yellow"
+                style={{ border: isCurrent ? "2px solid yellow" : "none" }}
+              >
+                <IconDots color="yellow" />
+              </ActionIcon>
+              <Text ta="center" fz="xs" c="yellow">
+                {p.label}
+              </Text>
+            </Stack>
           ))
           .exhaustive();
       })}

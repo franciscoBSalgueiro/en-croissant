@@ -2,8 +2,11 @@ import {
   ActionIcon,
   Box,
   Button,
+  Center,
+  Checkbox,
   Divider,
   Group,
+  Input,
   Loader,
   Paper,
   Portal,
@@ -67,7 +70,15 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.length;
 
   function generatePuzzle(db: string) {
-    commands.getPuzzle(db, ratingRange[0], ratingRange[1]).then((res) => {
+    let range = ratingRange;
+    if (progressive) {
+      const rating = puzzles[currentPuzzle]?.rating;
+      if (rating) {
+        range = [rating + 50, rating + 100];
+        setRatingRange([rating + 50, rating + 100]);
+      }
+    }
+    commands.getPuzzle(db, range[0], range[1]).then((res) => {
       const puzzle = unwrap(res);
       setPuzzles((puzzles) => {
         return [
@@ -93,6 +104,7 @@ function Puzzles({ id }: { id: string }) {
 
   const [addOpened, setAddOpened] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progressive, setProgressive] = useState(false);
 
   return (
     <>
@@ -173,13 +185,27 @@ function Puzzles({ id }: { id: string }) {
             )}
           </Group>
           <Divider my="sm" />
-          <Text>Rating Range</Text>
-          <RangeSlider
-            min={600}
-            max={2800}
-            value={ratingRange}
-            onChange={setRatingRange}
-          />
+          <Group>
+            <Input.Wrapper label="Rating Range" flex={1}>
+              <RangeSlider
+                min={600}
+                max={2800}
+                value={ratingRange}
+                onChange={setRatingRange}
+                disabled={progressive}
+              />
+            </Input.Wrapper>
+            <Input.Wrapper label="Progressive">
+              <Center>
+                <Checkbox
+                  checked={progressive}
+                  onChange={(event) =>
+                    setProgressive(event.currentTarget.checked)
+                  }
+                />
+              </Center>
+            </Input.Wrapper>
+          </Group>
           <Divider my="sm" />
           <Group>
             <Tooltip label="New Puzzle">
@@ -225,7 +251,10 @@ function Puzzles({ id }: { id: string }) {
         <Paper h="100%" withBorder p="md">
           <Text mb="md">History</Text>
           <ChallengeHistory
-            challenges={puzzles}
+            challenges={puzzles.map((p) => ({
+              ...p,
+              label: p.rating.toString(),
+            }))}
             current={currentPuzzle}
             select={(i) => {
               setCurrentPuzzle(i);
