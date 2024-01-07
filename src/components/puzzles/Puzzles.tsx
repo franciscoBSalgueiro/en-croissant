@@ -17,7 +17,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
-import { IconPlus, IconX } from "@tabler/icons-react";
+import { IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
 import { useContext, useEffect, useState } from "react";
 import { unwrap } from "@/utils/invoke";
 import {
@@ -31,8 +31,8 @@ import { PuzzleDbCard } from "./PuzzleDbCard";
 import AddPuzzle from "./AddPuzzle";
 import ChallengeHistory from "../common/ChallengeHistory";
 import { commands } from "@/bindings";
-import { useAtom } from "jotai";
-import { selectedPuzzleDbAtom } from "@/atoms/atoms";
+import { atom, useAtom, useSetAtom } from "jotai";
+import { activeTabAtom, selectedPuzzleDbAtom, tabsAtom } from "@/atoms/atoms";
 import * as classes from "@/components/common/GenericCard.css";
 import {
   TreeDispatchContext,
@@ -41,7 +41,10 @@ import {
 import { parseUci } from "@/utils/chess";
 import GameNotation from "../boards/GameNotation";
 import MoveControls from "../common/MoveControls";
-import { countMainPly } from "@/utils/treeReducer";
+import { countMainPly, defaultTree } from "@/utils/treeReducer";
+import { createTab } from "@/utils/tabs";
+
+const currentPuzzleAtom = atom<number>(0);
 
 function Puzzles({ id }: { id: string }) {
   const tree = useContext(TreeStateContext);
@@ -51,7 +54,7 @@ function Puzzles({ id }: { id: string }) {
     key: id + "-puzzles",
     defaultValue: [],
   });
-  const [currentPuzzle, setCurrentPuzzle] = useState(0);
+  const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
@@ -119,6 +122,10 @@ function Puzzles({ id }: { id: string }) {
   const [addOpened, setAddOpened] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progressive, setProgressive] = useState(false);
+
+  
+  const [, setTabs] = useAtom(tabsAtom);
+  const setActiveTab = useSetAtom(activeTabAtom);
 
   return (
     <>
@@ -226,6 +233,25 @@ function Puzzles({ id }: { id: string }) {
                 onClick={() => generatePuzzle(selectedDb!)}
               >
                 <IconPlus />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Analyze Position">
+              <ActionIcon
+                disabled={!selectedDb}
+                onClick={() =>
+                  createTab({
+                    tab: {
+                      name: "Puzzle Analysis",
+                      type: "analysis",
+                    },
+                    setTabs,
+                    setActiveTab,
+                    pgn: puzzles[currentPuzzle]?.moves.join(" "),
+                    headers:  { ...defaultTree().headers, fen: puzzles[currentPuzzle]?.fen },
+                  })
+                }
+              >
+                <IconZoomCheck />
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Clear Session">
