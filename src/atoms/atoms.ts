@@ -136,7 +136,7 @@ export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
     createJSONStorage(() => sessionStorage)
 );
 
-function tabValue<T extends object | string | boolean>(
+function tabValue<T extends object | string | boolean | number>(
     family: AtomFamily<string, PrimitiveAtom<T>>
 ) {
     return atom(
@@ -212,6 +212,9 @@ const pgnOptionsFamily = atomFamily((tab: string) =>
     })
 );
 export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);
+
+const currentPuzzleFamily = atomFamily((tab: string) => atom(0));
+export const currentPuzzleAtom = tabValue(currentPuzzleFamily);
 
 // Game
 

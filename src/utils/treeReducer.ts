@@ -191,6 +191,8 @@ export type TreeAction =
                     promotion?: string;
                 }
               | string;
+          changePosition?: boolean;
+          mainline?: boolean;
       }
     | {
           type: "APPEND_MOVE";
@@ -202,7 +204,7 @@ export type TreeAction =
                 }
               | string;
       }
-    | { type: "MAKE_MOVES"; payload: string[] }
+    | { type: "MAKE_MOVES"; payload: string[]; mainline?: boolean }
     | { type: "GO_TO_START" }
     | { type: "GO_TO_END" }
     | { type: "GO_TO_NEXT" }
@@ -249,16 +251,16 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
             state.dirty = true;
             state.headers.start = payload;
         })
-        .with({ type: "MAKE_MOVE" }, ({ payload }) => {
-            makeMove(state, payload, false);
+        .with({ type: "MAKE_MOVE" }, ({ payload, changePosition, mainline }) => {
+            makeMove({ state, move: payload, last: false, changePosition, mainline });
         })
         .with({ type: "APPEND_MOVE" }, ({ payload }) => {
-            makeMove(state, payload, true);
+            makeMove({ state, move: payload, last: true });
         })
-        .with({ type: "MAKE_MOVES" }, ({ payload }) => {
+        .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {
             state.dirty = true;
             for (const move of payload) {
-                makeMove(state, move, false);
+                makeMove({ state, move, last: false, mainline });
             }
         })
         .with({ type: "GO_TO_START" }, () => {
@@ -350,11 +352,19 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     return res;
 };
 
-function makeMove(
-    state: TreeState,
-    move: { from: Square; to: Square; promotion?: string } | string,
-    last: boolean
-) {
+function makeMove({
+    state,
+    move,
+    last,
+    changePosition = true,
+    mainline = false,
+}: {
+    state: TreeState;
+    move: { from: Square; to: Square; promotion?: string } | string;
+    last: boolean;
+    changePosition?: boolean;
+    mainline?: boolean;
+}) {
     const mainLine = Array.from(treeIteratorMainLine(state.root));
     const position = last
         ? mainLine[mainLine.length - 1].position
@@ -370,10 +380,12 @@ function makeMove(
     }
     const i = moveNode.children.findIndex((n) => n.move?.san === m.san);
     if (i !== -1) {
-        if (state.position === position) {
-            state.position.push(i);
-        } else {
-            state.position = [...position, i];
+        if (changePosition) {
+            if (state.position === position) {
+                state.position.push(i);
+            } else {
+                state.position = [...position, i];
+            }
         }
     } else {
         state.dirty = true;
@@ -382,11 +394,21 @@ function makeMove(
             move: m,
             halfMoves: moveNode.halfMoves + 1,
         });
-        moveNode.children.push(newMoveNode);
-        if (state.position === position) {
-            state.position.push(moveNode.children.length - 1);
+        if (mainline) {
+            moveNode.children.unshift(newMoveNode);
         } else {
-            state.position = [...position, moveNode.children.length - 1];
+            moveNode.children.push(newMoveNode);
+        }
+        if (changePosition) {
+            if (state.position === position) {
+                if (mainline) {
+                    state.position.push(0);
+                } else {
+                    state.position.push(moveNode.children.length - 1);
+                }
+            } else {
+                state.position = [...position, moveNode.children.length - 1];
+            }
         }
     }
 }

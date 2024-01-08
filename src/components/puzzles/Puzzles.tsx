@@ -1,17 +1,16 @@
 import {
   ActionIcon,
-  Box,
   Button,
   Center,
   Checkbox,
   Divider,
   Group,
   Input,
-  Loader,
   Paper,
   Portal,
   RangeSlider,
-  SimpleGrid,
+  ScrollArea,
+  Select,
   Stack,
   Text,
   Tooltip,
@@ -27,13 +26,16 @@ import {
   getPuzzleDatabases,
 } from "@/utils/puzzles";
 import PuzzleBoard from "./PuzzleBoard";
-import { PuzzleDbCard } from "./PuzzleDbCard";
 import AddPuzzle from "./AddPuzzle";
 import ChallengeHistory from "../common/ChallengeHistory";
 import { commands } from "@/bindings";
-import { atom, useAtom, useSetAtom } from "jotai";
-import { activeTabAtom, selectedPuzzleDbAtom, tabsAtom } from "@/atoms/atoms";
-import * as classes from "@/components/common/GenericCard.css";
+import { useAtom, useSetAtom } from "jotai";
+import {
+  activeTabAtom,
+  currentPuzzleAtom,
+  selectedPuzzleDbAtom,
+  tabsAtom,
+} from "@/atoms/atoms";
 import {
   TreeDispatchContext,
   TreeStateContext,
@@ -43,8 +45,8 @@ import GameNotation from "../boards/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { countMainPly, defaultTree } from "@/utils/treeReducer";
 import { createTab } from "@/utils/tabs";
-
-const currentPuzzleAtom = atom<number>(0);
+import { Chess } from "chessops";
+import { parseFen } from "chessops/fen";
 
 function Puzzles({ id }: { id: string }) {
   const tree = useContext(TreeStateContext);
@@ -123,7 +125,6 @@ function Puzzles({ id }: { id: string }) {
   const [loading, setLoading] = useState(false);
   const [progressive, setProgressive] = useState(false);
 
-  
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
@@ -148,32 +149,7 @@ function Puzzles({ id }: { id: string }) {
             setLoading={setLoading}
             setPuzzleDbs={setPuzzleDbs}
           />
-          <SimpleGrid cols={2} mb="md">
-            {puzzleDbs.map((db) => (
-              <PuzzleDbCard
-                key={db.path}
-                db={db}
-                isSelected={selectedDb === db.path}
-                setSelected={setSelectedDb}
-              />
-            ))}
-            <Box
-              className={classes.card}
-              component="button"
-              type="button"
-              onClick={() => setAddOpened(true)}
-            >
-              <Text fw={500} mb={10}>
-                Add New
-              </Text>
-              {loading ? (
-                <Loader variant="dots" size="2rem" />
-              ) : (
-                <IconPlus size="2rem" />
-              )}
-            </Box>
-          </SimpleGrid>
-          <Group>
+          <Group grow>
             <div>
               <Text size="sm" c="dimmed">
                 Puzzle Rating
@@ -185,7 +161,7 @@ function Puzzles({ id }: { id: string }) {
             {averageWonRating && (
               <div>
                 <Text size="sm" c="dimmed">
-                  Average Won Rating
+                  Average Success Rating
                 </Text>
                 <Text fw={500} size="xl">
                   {averageWonRating.toFixed(0)}
@@ -195,13 +171,29 @@ function Puzzles({ id }: { id: string }) {
             {averageLostRating && (
               <div>
                 <Text size="sm" c="dimmed">
-                  Average Lost Rating
+                  Average Fail Rating
                 </Text>
                 <Text fw={500} size="xl">
                   {averageLostRating.toFixed(0)}
                 </Text>
               </div>
             )}
+            <Select
+              data={puzzleDbs
+                .map((p) => ({
+                  label: p.title.split(".db3")[0],
+                  value: p.path,
+                }))
+                .concat({ label: "+ Add new", value: "add" })}
+              value={selectedDb}
+              onChange={(v) => {
+                if (v === "add") {
+                  setAddOpened(true);
+                } else {
+                  setSelectedDb(v);
+                }
+              }}
+            />
           </Group>
           <Divider my="sm" />
           <Group>
@@ -247,7 +239,16 @@ function Puzzles({ id }: { id: string }) {
                     setTabs,
                     setActiveTab,
                     pgn: puzzles[currentPuzzle]?.moves.join(" "),
-                    headers:  { ...defaultTree().headers, fen: puzzles[currentPuzzle]?.fen },
+                    headers: {
+                      ...defaultTree().headers,
+                      fen: puzzles[currentPuzzle]?.fen,
+                      orientation:
+                        Chess.fromSetup(
+                          parseFen(puzzles[currentPuzzle].fen).unwrap()
+                        ).unwrap().turn === "white"
+                          ? "black"
+                          : "white",
+                    },
                   })
                 }
               >
@@ -258,7 +259,7 @@ function Puzzles({ id }: { id: string }) {
               <ActionIcon
                 onClick={() => {
                   setPuzzles([]);
-                  setSelectedDb(null);
+                  dispatch({ type: "RESET" });
                 }}
               >
                 <IconX />
@@ -270,10 +271,14 @@ function Puzzles({ id }: { id: string }) {
                 if (curPuzzle.completion === "incomplete") {
                   changeCompletion("incorrect");
                 }
-                for (let i = currentMove; i < curPuzzle.moves.length; i++) {
+                dispatch({
+                  type: "GO_TO_START",
+                });
+                for (let i = 0; i < curPuzzle.moves.length; i++) {
                   dispatch({
                     type: "MAKE_MOVE",
                     payload: parseUci(curPuzzle.moves[i]),
+                    mainline: true,
                   });
                   await new Promise((r) => setTimeout(r, 500));
                 }
@@ -291,17 +296,19 @@ function Puzzles({ id }: { id: string }) {
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         <Stack h="100%" gap="xs">
           <Paper withBorder p="md" mih="5rem">
-            <ChallengeHistory
-              challenges={puzzles.map((p) => ({
-                ...p,
-                label: p.rating.toString(),
-              }))}
-              current={currentPuzzle}
-              select={(i) => {
-                setCurrentPuzzle(i);
-                setPuzzle(puzzles[i]);
-              }}
-            />
+            <ScrollArea h="100%" offsetScrollbars>
+              <ChallengeHistory
+                challenges={puzzles.map((p) => ({
+                  ...p,
+                  label: p.rating.toString(),
+                }))}
+                current={currentPuzzle}
+                select={(i) => {
+                  setCurrentPuzzle(i);
+                  setPuzzle(puzzles[i]);
+                }}
+              />
+            </ScrollArea>
           </Paper>
           <Stack flex={1}>
             <GameNotation />

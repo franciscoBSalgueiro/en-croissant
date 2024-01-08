@@ -7,15 +7,17 @@ import { Chessground } from "@/chessground/Chessground";
 import { useAtomValue } from "jotai";
 import { showCoordinatesAtom } from "@/atoms/atoms";
 import { Chess, NormalMove, makeUci, parseSquare } from "chessops";
-import { parseFen } from "chessops/fen";
+import { parseFen, parsePiece } from "chessops/fen";
 import { chessgroundDests } from "chessops/compat";
 import {
   TreeDispatchContext,
   TreeStateContext,
 } from "../common/TreeStateContext";
-import { countMainPly, getNodeAtPath } from "@/utils/treeReducer";
+import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { moveToKey } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
+import equal from "fast-deep-equal";
+import { useForceUpdate } from "@mantine/hooks";
 
 function PuzzleBoard({
   puzzles,
@@ -32,6 +34,7 @@ function PuzzleBoard({
 }) {
   const tree = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
+  const reset = useForceUpdate();
 
   const currentNode = getNodeAtPath(tree.root, tree.position);
 
@@ -43,7 +46,27 @@ function PuzzleBoard({
 
   const [pos] = positionFromFen(currentNode.fen);
 
-  const currentMove = countMainPly(tree.root);
+  const treeIter = treeIteratorMainLine(tree.root);
+  treeIter.next();
+  let currentMove = 0;
+  if (puzzle) {
+    for (const { node } of treeIter) {
+      if (
+        node.move &&
+        makeUci({
+          from: parseSquare(node.move.from),
+          to: parseSquare(node.move.to),
+          promotion: node.move.promotion
+            ? parsePiece(node.move.promotion)?.role
+            : undefined,
+        }) === puzzle.moves[currentMove]
+      ) {
+        currentMove++;
+      } else {
+        break;
+      }
+    }
+  }
   const orientation = puzzle?.fen
     ? Chess.fromSetup(parseFen(puzzle.fen).unwrap()).unwrap().turn === "white"
       ? "black"
@@ -71,17 +94,20 @@ function PuzzleBoard({
       dispatch({
         type: "MAKE_MOVES",
         payload: newMoves,
+        mainline: true,
       });
     } else {
       dispatch({
         type: "MAKE_MOVE",
         payload: move,
-      })
+        changePosition: false,
+      });
       if (!ended) {
         changeCompletion("incorrect");
       }
       setEnded(true);
     }
+    reset();
   }
 
   return (
@@ -121,7 +147,10 @@ function PuzzleBoard({
             orientation={orientation}
             movable={{
               free: false,
-              color: tree.position.length === currentMove ? turn : undefined,
+              color:
+                puzzle && equal(tree.position, Array(currentMove).fill(0))
+                  ? turn
+                  : undefined,
               dests: dests,
               events: {
                 after: (orig, dest) => {

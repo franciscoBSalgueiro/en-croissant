@@ -420,7 +420,7 @@ function OpeningNameButton({ name, color }: { name: string; color: Color }) {
           headers,
           setTabs,
           setActiveTab,
-          position: Array.from(Array(countMainPly(tree.root)), () => 0),
+          position: Array(countMainPly(tree.root)).fill(0),
         });
         navigate("/boards");
       }}
