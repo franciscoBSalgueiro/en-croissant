@@ -36,22 +36,17 @@ import {
   selectedPuzzleDbAtom,
   tabsAtom,
 } from "@/atoms/atoms";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
+import { TreeDispatchContext } from "../common/TreeStateContext";
 import { parseUci } from "@/utils/chess";
 import GameNotation from "../boards/GameNotation";
 import MoveControls from "../common/MoveControls";
-import { countMainPly, defaultTree } from "@/utils/treeReducer";
+import { defaultTree } from "@/utils/treeReducer";
 import { createTab } from "@/utils/tabs";
 import { Chess } from "chessops";
 import { parseFen } from "chessops/fen";
 
 function Puzzles({ id }: { id: string }) {
-  const tree = useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatchContext);
-  const currentMove = countMainPly(tree.root);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
     key: id + "-puzzles",
     defaultValue: [],
@@ -283,10 +278,7 @@ function Puzzles({ id }: { id: string }) {
                   await new Promise((r) => setTimeout(r, 500));
                 }
               }}
-              disabled={
-                puzzles.length === 0 ||
-                currentMove === puzzles[currentPuzzle].moves.length
-              }
+              disabled={puzzles.length === 0}
             >
               View Solution
             </Button>
