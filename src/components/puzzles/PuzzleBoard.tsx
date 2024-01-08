@@ -6,7 +6,7 @@ import { chessboard } from "@/styles/Chessboard.css";
 import { Chessground } from "@/chessground/Chessground";
 import { useAtomValue } from "jotai";
 import { showCoordinatesAtom } from "@/atoms/atoms";
-import { Chess, NormalMove, makeUci, parseSquare } from "chessops";
+import { Chess, NormalMove, makeUci, parseSquare, parseUci } from "chessops";
 import { parseFen, parsePiece } from "chessops/fen";
 import { chessgroundDests } from "chessops/compat";
 import {
@@ -79,7 +79,13 @@ function PuzzleBoard({
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
   function checkMove(move: string) {
-    if (puzzle && puzzle.moves[currentMove] === move) {
+    if (!pos) return;
+    const newPos = pos.clone();
+    newPos.play(parseUci(move)!);
+    if (
+      puzzle &&
+      (puzzle.moves[currentMove] === move || newPos.isCheckmate())
+    ) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
           changeCompletion("correct");
