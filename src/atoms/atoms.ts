@@ -24,6 +24,7 @@ import { Session } from "../utils/session";
 import { OpponentSettings } from "@/components/boards/BoardGame";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 import { z } from "zod";
+import { getWinChance, normalizeScore } from "@/utils/score";
 
 export const enginesAtom = atomWithStorage<Engine[]>(
     "engines/engines.json",
@@ -286,9 +287,19 @@ export const bestMovesFamily = atomFamily((fen: string) =>
             );
             const moves = engineMoves.get(fen);
             if (moves) {
+                const bestWinChange = getWinChance(
+                    normalizeScore(moves[0].score, "white")
+                );
                 bestMoves.set(
                     n,
-                    moves.map((m) => m.uciMoves[0])
+                    moves
+                        .filter((m) => {
+                            const winChance = getWinChance(
+                                normalizeScore(m.score, "white")
+                            );
+                            return winChance >= bestWinChange - 5;
+                        })
+                        .map((m) => m.uciMoves[0])
                 );
             }
             n++;

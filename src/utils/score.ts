@@ -30,31 +30,26 @@ export function getWinChance(centipawns: number) {
     return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
 }
 
+export function normalizeScore(score: Score, color: Color): number {
+    let cp = score.value;
+    if (color == "black") {
+        cp *= -1;
+    }
+    if (score.type == "mate") {
+        cp = CP_CEILING * Math.sign(cp);
+    }
+    return minMax(cp, -CP_CEILING, CP_CEILING);
+}
+
 function normalizeScores(
     prev: Score,
     next: Score,
     color: Color
 ): { prevCP: number; nextCP: number } {
-    let prevCP = prev.value;
-    let nextCP = next.value;
-
-    if (color == "black") {
-        prevCP *= -1;
-        nextCP *= -1;
-    }
-
-    if (prev.type == "mate") {
-        prevCP = CP_CEILING * Math.sign(prevCP);
-    }
-    prevCP = minMax(prevCP, -CP_CEILING, CP_CEILING);
-
-    if (next.type == "mate") {
-        nextCP = CP_CEILING * Math.sign(nextCP);
-    }
-
-    nextCP = minMax(nextCP, -CP_CEILING, CP_CEILING);
-
-    return { prevCP, nextCP };
+    return {
+        prevCP: normalizeScore(prev, color),
+        nextCP: normalizeScore(next, color),
+    };
 }
 
 export function getAccuracy(prev: Score, next: Score, color: Color): number {
@@ -114,7 +109,11 @@ export function getAnnotation(
                 prevMoves[0].score,
                 color
             );
-            if (is_sacrifice && (getWinChance(scores.prevCP) < 90 || (prev?.type == "mate" && next.type == "mate"))) {
+            if (
+                is_sacrifice &&
+                (getWinChance(scores.prevCP) < 90 ||
+                    (prev?.type == "mate" && next.type == "mate"))
+            ) {
                 return "!!";
             }
             if (getWinChance(scores.nextCP) - getWinChance(scores.prevCP) > 5) {
