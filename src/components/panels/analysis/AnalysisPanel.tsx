@@ -100,7 +100,7 @@ function AnalysisPanel({
               {loadedEngines.length > 1 && (
                 <Paper withBorder p="xs" flex={1}>
                   <Group w="100%">
-                    <Stack w="8rem">
+                    <Stack w="6rem" gap="xs">
                       <Text ta="center" fw="bold">
                         Summary
                       </Text>
@@ -254,7 +254,7 @@ function EngineSummary({
   const score = curEval ? curEval[0].score : null;
 
   return (
-    <Card withBorder c={arrowColors[i].strong}>
+    <Card withBorder c={arrowColors[i].strong} p="xs">
       <Stack gap="xs" align="center">
         <Text
           fw="bold"
