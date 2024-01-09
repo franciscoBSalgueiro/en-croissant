@@ -87,9 +87,7 @@ function ProgressButton({
         {progress !== 0 && (
           <Progress
             pos="absolute"
-            w="100%"
             h="100%"
-            c="blue"
             value={progress}
             className={classes.progress}
             radius="sm"

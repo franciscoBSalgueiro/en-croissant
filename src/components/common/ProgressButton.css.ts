@@ -1,15 +1,14 @@
 import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
 
-export const finished = style({
-    backgroundColor: vars.colors.green[7],
-    color: vars.colors.gray[2],
-});
-
 export const progress = style({
-    position: "absolute",
+    top: "-1px",
+    left: "-1px",
+    right: "-1px",
+    bottom: "-1px",
     height: "auto",
     backgroundColor: "transparent",
+    color: vars.colors.primaryColors[7],
     zIndex: 0,
 });
 
