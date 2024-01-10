@@ -109,11 +109,7 @@ export function getAnnotation(
                 prevMoves[0].score,
                 color
             );
-            if (
-                is_sacrifice &&
-                (getWinChance(scores.prevCP) < 90 ||
-                    (prev?.type == "mate" && next.type == "mate"))
-            ) {
+            if (is_sacrifice) {
                 return "!!";
             }
             if (getWinChance(scores.nextCP) - getWinChance(scores.prevCP) > 5) {
