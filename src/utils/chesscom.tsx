@@ -8,61 +8,66 @@ import { error } from "tauri-plugin-log-api";
 import { ChildNode, PgnNodeData, defaultGame, makePgn } from "chessops/pgn";
 import { Chess } from "chessops";
 import { makeSan } from "chessops/san";
+import { z } from "zod";
+
 const baseURL = "https://api.chess.com";
 const headers = {
   "User-Agent": "EnCroissant",
 };
 
-type ChessComPerf = {
-  last: {
-    rating: number;
-    date: number;
-    rd: number;
-  };
-  record: {
-    win: number;
-    loss: number;
-    draw: number;
-  };
-};
+const ChessComPerf = z.object({
+  last: z.object({
+    rating: z.number(),
+    date: z.number(),
+    rd: z.number(),
+  }),
+  record: z.object({
+    win: z.number(),
+    loss: z.number(),
+    draw: z.number(),
+  }),
+});
 
-export type ChessComStats = {
-  chess_daily: ChessComPerf;
-  chess_rapid: ChessComPerf;
-  chess_blitz: ChessComPerf;
-  chess_bullet: ChessComPerf;
-};
+const ChessComStatsSchema = z.object({
+  chess_daily: ChessComPerf,
+  chess_rapid: ChessComPerf,
+  chess_blitz: ChessComPerf,
+  chess_bullet: ChessComPerf,
+});
+export type ChessComStats = z.infer<typeof ChessComStatsSchema>;
 
 type Archive = {
   archives: string[];
 };
 
-type ChessComPlayer = {
-  rating: number;
-  result: string;
-  username: string;
-};
+const ChessComPlayer = z.object({
+  rating: z.number(),
+  result: z.string(),
+  username: z.string(),
+});
 
-type ChessComGames = {
-  games: {
-    url: string;
-    pgn: string;
-    time_control: string;
-    end_time: number;
-    rated: boolean;
-    initial_setup: string;
-    fen: string;
-    rules: string;
-    white: ChessComPlayer;
-    black: ChessComPlayer;
-  }[];
-};
+const ChessComGames = z.object({
+  games: z.array(
+    z.object({
+      url: z.string(),
+      pgn: z.string(),
+      time_control: z.string(),
+      end_time: z.number(),
+      rated: z.boolean(),
+      initial_setup: z.string(),
+      fen: z.string(),
+      rules: z.string(),
+      white: ChessComPlayer,
+      black: ChessComPlayer,
+    })
+  ),
+});
 
 export async function getChessComAccount(
   player: string
 ): Promise<ChessComStats | null> {
   const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
-  const response = await fetch<ChessComStats>(url, { headers, method: "GET" });
+  const response = await fetch(url, { headers, method: "GET" });
   if (!response.ok) {
     error(
       `Failed to fetch Chess.com account: ${response.status} ${response.url}`
@@ -75,7 +80,21 @@ export async function getChessComAccount(
     });
     return null;
   }
-  return await response.data;
+  const data = await response.data;
+  const stats = ChessComStatsSchema.safeParse(data);
+  if (!stats.success) {
+    error(
+      `Invalid response for Chess.com account: ${response.status} ${response.url}`
+    );
+    notifications.show({
+      title: "Failed to fetch Chess.com account",
+      message: 'Invalid response for "' + player + '" on chess.com',
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
+  }
+  return stats.data;
 }
 
 async function getGameArchives(player: string) {
@@ -102,12 +121,30 @@ export async function downloadChessCom(
     if (archiveDate < approximateDate) {
       continue;
     }
-    const response = await fetch<ChessComGames>(archive, {
+    const response = await fetch(archive, {
       headers,
       method: "GET",
     });
-    const games = await response.data;
-    for (const game of games.games) {
+    const games = ChessComGames.safeParse(await response.data);
+
+    if (!games.success) {
+      error(
+        `Failed to fetch Chess.com games: ${response.status} ${response.url}`
+      );
+      notifications.show({
+        title: "Failed to fetch Chess.com games",
+        message:
+          'Could not find games for "' +
+          player +
+          '" on chess.com for ' +
+          archive,
+        color: "red",
+        icon: <IconX />,
+      });
+      return;
+    }
+
+    for (const game of games.data.games) {
       totalPGN += "\n" + game.pgn;
     }
   }
