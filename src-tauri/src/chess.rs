@@ -667,10 +667,10 @@ fn count_material(position: &Chess) -> i32 {
 
 fn piece_value(role: Role) -> i32 {
     match role {
-        Role::Pawn => 100,
-        Role::Knight => 350,
-        Role::Bishop => 350,
-        Role::Rook => 525,
+        Role::Pawn => 90,
+        Role::Knight => 300,
+        Role::Bishop => 300,
+        Role::Rook => 500,
         Role::Queen => 1000,
         _ => 0,
     }
