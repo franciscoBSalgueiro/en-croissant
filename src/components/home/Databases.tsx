@@ -114,7 +114,7 @@ function Databases() {
   const { data: databases } = useSWRImmutable<DatabaseInfo[]>(
     sessions.length === 0 ? null : ["personalDatabases", sessions],
     async () => {
-      const dbs = await getDatabases();
+      const dbs = (await getDatabases()).filter((db) => db.error === undefined);
       return dbs.filter((db) => isDatabaseFromSession(db, sessions));
     }
   );
