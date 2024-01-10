@@ -1,5 +1,7 @@
 use crate::error::Error;
-use shakmaty::{fen::Fen, san::SanPlus, CastlingMode, Chess, FromSetup, Move, Position};
+use shakmaty::{
+    fen::Fen, san::SanPlus, CastlingMode, Chess, FromSetup, Move, Position, PositionError,
+};
 
 pub fn encode_move(m: &Move, chess: &Chess) -> Result<u8, Error> {
     let moves = chess.legal_moves();
@@ -12,7 +14,9 @@ pub fn decode_move(byte: u8, chess: &Chess) -> Option<Move> {
 }
 
 pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<String, Error> {
-    let mut chess = Chess::from_setup(initial_fen.into(), CastlingMode::Standard).unwrap();
+    let mut chess = Chess::from_setup(initial_fen.into(), CastlingMode::Chess960)
+        .or_else(PositionError::ignore_too_much_material)
+        .unwrap();
     let mut moves = Vec::new();
     for byte in moves_bytes {
         let m = decode_move(byte, &chess).unwrap();

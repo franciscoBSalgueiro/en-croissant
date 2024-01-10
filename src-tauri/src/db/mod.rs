@@ -27,7 +27,9 @@ use diesel::{
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position};
+use shakmaty::{
+    fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
+};
 
 use rayon::prelude::*;
 use specta::Type;
@@ -324,7 +326,8 @@ impl Visitor for Importer {
                 let fen = Fen::from_ascii(value.as_bytes()).unwrap();
                 self.game.fen = Some(value.decode_utf8_lossy().into_owned());
                 self.game.position =
-                    Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard).unwrap();
+                    Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)
+                        .or_else(PositionError::ignore_too_much_material).unwrap();
             }
         }
     }
@@ -1094,7 +1097,8 @@ pub async fn get_players_game_info(
             games::white_elo,
             games::black_elo,
         ))
-        .filter(games::white_id.eq(id).or(games::black_id.eq(id)));
+        .filter(games::white_id.eq(id).or(games::black_id.eq(id)))
+        .filter(games::fen.is_null());
 
     type GameInfo = (
         i32,

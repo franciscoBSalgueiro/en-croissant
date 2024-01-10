@@ -50,7 +50,7 @@ const ChessComGames = z.object({
   games: z.array(
     z.object({
       url: z.string(),
-      pgn: z.string(),
+      pgn: z.string().optional(),
       time_control: z.string(),
       end_time: z.number(),
       rated: z.boolean(),
@@ -144,7 +144,7 @@ export async function downloadChessCom(
       return;
     }
 
-    for (const game of games.data.games) {
+    for (const game of games.data.games.filter((g) => g.pgn)) {
       totalPGN += "\n" + game.pgn;
     }
   }
