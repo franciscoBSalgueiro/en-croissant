@@ -42,12 +42,12 @@ const localEngineSchema = z.object({
     name: z.string(),
     version: z.string(),
     path: z.string(),
-    image: z.string().optional(),
-    elo: z.number().optional(),
-    downloadSize: z.number().optional(),
-    downloadLink: z.string().optional(),
-    loaded: z.boolean().optional(),
-    settings: engineSettingsSchema.optional(),
+    image: z.string().nullish(),
+    elo: z.number().nullish(),
+    downloadSize: z.number().nullish(),
+    downloadLink: z.string().nullish(),
+    loaded: z.boolean().nullish(),
+    settings: engineSettingsSchema.nullish(),
 });
 
 export type LocalEngine = z.infer<typeof localEngineSchema>;
@@ -56,9 +56,9 @@ const remoteEngineSchema = z.object({
     type: z.enum(["chessdb", "lichess"]),
     name: z.string(),
     url: z.string(),
-    image: z.string().optional(),
-    settings: engineSettingsSchema.optional(),
-    loaded: z.boolean().optional(),
+    image: z.string().nullish(),
+    settings: engineSettingsSchema.nullish(),
+    loaded: z.boolean().nullish(),
 });
 
 export type RemoteEngine = z.infer<typeof remoteEngineSchema>;

@@ -50,7 +50,7 @@ const ChessComGames = z.object({
   games: z.array(
     z.object({
       url: z.string(),
-      pgn: z.string().optional(),
+      pgn: z.string().nullish(),
       time_control: z.string(),
       end_time: z.number(),
       rated: z.boolean(),

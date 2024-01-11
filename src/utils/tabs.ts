@@ -10,8 +10,8 @@ export const tabSchema = z.object({
     name: z.string(),
     value: z.string(),
     type: z.enum(["new", "play", "analysis", "puzzles"]),
-    gameNumber: z.number().optional(),
-    file: fileMetadataSchema.optional(),
+    gameNumber: z.number().nullish(),
+    file: fileMetadataSchema.nullish(),
 });
 
 export type Tab = z.infer<typeof tabSchema>;
