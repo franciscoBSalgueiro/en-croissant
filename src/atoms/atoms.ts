@@ -297,7 +297,7 @@ export const bestMovesFamily = atomFamily((fen: string) =>
                 engineMovesFamily({ tab, engine: engine.name })
             );
             const moves = engineMoves.get(fen);
-            if (moves) {
+            if (moves && moves.length > 0) {
                 const bestWinChange = getWinChance(
                     normalizeScore(moves[0].score, "white")
                 );

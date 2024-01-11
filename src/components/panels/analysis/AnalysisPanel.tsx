@@ -251,7 +251,7 @@ function EngineSummary({
   );
 
   const curEval = ev.get(fen);
-  const score = curEval ? curEval[0].score : null;
+  const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (
     <Card withBorder c={arrowColors[i].strong} p="xs">

@@ -195,7 +195,7 @@ export async function getBestMoves(
   const data = await getCloudEvaluation(options.fen, options.multipv);
   return [
     100,
-    data.pvs.map((m, i) => {
+    data.pvs?.map((m, i) => {
       const uciMoves = m.moves.split(" ");
       const setup = parseFen(options.fen).unwrap();
       const pos = Chess.fromSetup(setup).unwrap();
@@ -216,7 +216,7 @@ export async function getBestMoves(
         sanMoves,
         uciMoves,
       };
-    }),
+    }) ?? [],
   ];
 }
 
@@ -242,6 +242,7 @@ async function getCloudEvaluation(fen: string, multipv: number) {
 
   const response = await fetch<LichessCloudData>(url.toString());
 
+  console.log({response});
   cache.set(`${fen}-${multipv}`, response.data);
   return response.data;
 }

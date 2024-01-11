@@ -82,12 +82,14 @@ export default function BestMovesComponent({
     })
   );
 
-  const engineVariations = useMemo(() => ev.get(fen) ?? [], [ev, fen]);
+  const engineVariations = useMemo(() => ev.get(fen) ?? null, [ev, fen]);
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
-  const depth = engineVariations[0]?.depth ?? 0;
-  const nps = Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
+  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
+  const nps = !engineVariations
+    ? 0
+    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const theme = useMantineTheme();
   const listeners = useRef<(() => void)[]>([]);
   const [progress, setProgress] = useState(0);
@@ -225,12 +227,11 @@ export default function BestMovesComponent({
                 {settings.enabled &&
                   !isGameOver &&
                   !error &&
-                  engineVariations.length === 0 && (
-                    <Code fz="xs">Loading...</Code>
-                  )}
+                  !engineVariations && <Code fz="xs">Loading...</Code>}
                 {progress < 100 &&
                   settings.enabled &&
                   !isGameOver &&
+                  engineVariations &&
                   engineVariations.length > 0 && (
                     <Tooltip label={"How fast the engine is running"}>
                       <Code fz="xs">{nps}k nodes/s</Code>
@@ -238,36 +239,38 @@ export default function BestMovesComponent({
                   )}
               </Group>
               <Group gap="lg">
-                {!isGameOver && engineVariations.length > 0 && (
-                  <>
-                    <Stack align="center" gap={0}>
-                      <Text
-                        size="0.7rem"
-                        tt="uppercase"
-                        fw={700}
-                        className={classes.subtitle}
-                      >
-                        Eval
-                      </Text>
-                      <Text fw="bold" fz="md">
-                        {formatScore(engineVariations[0].score, 1) ?? 0}
-                      </Text>
-                    </Stack>
-                    <Stack align="center" gap={0}>
-                      <Text
-                        size="0.7rem"
-                        tt="uppercase"
-                        fw={700}
-                        className={classes.subtitle}
-                      >
-                        Depth
-                      </Text>
-                      <Text fw="bold" fz="md">
-                        {depth}
-                      </Text>
-                    </Stack>
-                  </>
-                )}
+                {!isGameOver &&
+                  engineVariations &&
+                  engineVariations.length > 0 && (
+                    <>
+                      <Stack align="center" gap={0}>
+                        <Text
+                          size="0.7rem"
+                          tt="uppercase"
+                          fw={700}
+                          className={classes.subtitle}
+                        >
+                          Eval
+                        </Text>
+                        <Text fw="bold" fz="md">
+                          {formatScore(engineVariations[0].score, 1) ?? 0}
+                        </Text>
+                      </Stack>
+                      <Stack align="center" gap={0}>
+                        <Text
+                          size="0.7rem"
+                          tt="uppercase"
+                          fw={700}
+                          className={classes.subtitle}
+                        >
+                          Depth
+                        </Text>
+                        <Text fw="bold" fz="md">
+                          {depth}
+                        </Text>
+                      </Stack>
+                    </>
+                  )}
               </Group>
             </Group>
           </Accordion.Control>
@@ -336,9 +339,20 @@ export default function BestMovesComponent({
                   </Table.Td>
                 </Table.Tr>
               )}
+              {engineVariations &&
+                engineVariations.length === 0 &&
+                !isGameOver && (
+                  <Table.Tr>
+                    <Table.Td>
+                      <Text ta="center" my="lg">
+                        No analysis available
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
               {!isGameOver &&
                 !error &&
-                engineVariations.length === 0 &&
+                !engineVariations &&
                 (settings.enabled ? (
                   [...Array(settings.options.multipv)].map((_, i) => (
                     <Table.Tr key={i}>
@@ -358,6 +372,7 @@ export default function BestMovesComponent({
                 ))}
               {!isGameOver &&
                 !error &&
+                engineVariations &&
                 engineVariations.map((engineVariation, index) => {
                   return (
                     <AnalysisRow
