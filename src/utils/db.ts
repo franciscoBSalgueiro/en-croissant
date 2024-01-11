@@ -232,7 +232,7 @@ export async function getDefaultPuzzleDatabases(): Promise<PuzzleDatabase[]> {
         }
     );
     if (!data.ok) {
-        throw new Error("Failed to fetch engines");
+        throw new Error("Failed to fetch puzzle databases");
     }
     return data.data;
 }

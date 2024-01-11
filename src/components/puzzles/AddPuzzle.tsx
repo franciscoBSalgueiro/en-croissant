@@ -11,38 +11,29 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import ProgressButton from "../common/ProgressButton";
 import { getPuzzleDatabases, PuzzleDatabase } from "@/utils/puzzles";
+import useSWRImmutable from "swr/immutable";
 
 function AddPuzzle({
   puzzleDbs,
   opened,
   setOpened,
-  setLoading,
   setPuzzleDbs,
 }: {
   puzzleDbs: PuzzleDatabase[];
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setLoading: Dispatch<SetStateAction<boolean>>;
   setPuzzleDbs: Dispatch<SetStateAction<PuzzleDatabase[]>>;
 }) {
-  const [defaultdatabases, setDefaultDatabases] = useState<PuzzleDatabase[]>(
-    []
+  const { data: dbs, error } = useSWRImmutable(
+    "default_puzzle_databases",
+    getDefaultPuzzleDatabases
   );
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    getDefaultPuzzleDatabases()
-      .then((dbs) => {
-        setDefaultDatabases(dbs);
-      })
-      .catch(() => setError(true));
-  }, []);
 
   return (
     <Modal
@@ -52,15 +43,16 @@ function AddPuzzle({
     >
       <ScrollArea.Autosize mah={500} offsetScrollbars>
         <Stack>
-          {defaultdatabases.map((db, i) => (
-            <PuzzleDbCard
-              puzzleDb={db}
-              databaseId={i}
-              key={i}
-              setPuzzleDbs={setPuzzleDbs}
-              initInstalled={puzzleDbs.some((e) => e.title === db.title)}
-            />
-          ))}
+          {dbs &&
+            dbs.map((db, i) => (
+              <PuzzleDbCard
+                puzzleDb={db}
+                databaseId={i}
+                key={i}
+                setPuzzleDbs={setPuzzleDbs}
+                initInstalled={puzzleDbs.some((e) => e.title === db.title)}
+              />
+            ))}
           {error && (
             <Alert
               icon={<IconAlertCircle size="1rem" />}
@@ -101,12 +93,7 @@ function PuzzleDbCard({
   }
 
   return (
-    <Paper
-      withBorder
-      radius="md"
-      p={0}
-      key={puzzleDb.title}
-    >
+    <Paper withBorder radius="md" p={0} key={puzzleDb.title}>
       <Group wrap="nowrap" gap={0} grow>
         <Box p="md" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">

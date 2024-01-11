@@ -117,7 +117,6 @@ function Puzzles({ id }: { id: string }) {
   }
 
   const [addOpened, setAddOpened] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [progressive, setProgressive] = useState(false);
 
   const [, setTabs] = useAtom(tabsAtom);
@@ -141,7 +140,6 @@ function Puzzles({ id }: { id: string }) {
             puzzleDbs={puzzleDbs}
             opened={addOpened}
             setOpened={setAddOpened}
-            setLoading={setLoading}
             setPuzzleDbs={setPuzzleDbs}
           />
           <Group grow>
