@@ -4830,8 +4830,7 @@ checksum = "d92ccd67fb88503048c01b59152a04effd0782d035a83a6d256ce6085f08f4a3"
 [[package]]
 name = "vampirc-uci"
 version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced16af195de99405781df968745703aca931dc2062ef6e5ebed8b00f4c4e214"
+source = "git+https://github.com/franciscoBSalgueiro/vampirc-uci?branch=master#87c1f6a645752533163c4634e74aa749a79f19b5"
 dependencies = [
  "chrono",
  "pest",

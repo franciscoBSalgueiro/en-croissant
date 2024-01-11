@@ -37,7 +37,7 @@ pub enum EngineLog {
 #[derive(Debug)]
 pub struct EngineProcess {
     stdin: ChildStdin,
-    last_depth: u8,
+    last_depth: u32,
     best_moves: Vec<BestMoves>,
     last_best_moves: Vec<BestMoves>,
     last_progress: f32,
@@ -184,7 +184,7 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 #[serde(tag = "type", content = "value", rename_all = "camelCase")]
 pub enum Score {
     Cp(i32),
-    Mate(i8),
+    Mate(i32),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -199,7 +199,7 @@ pub struct AnalysisCacheKey {
 #[derivative(Default)]
 pub struct BestMoves {
     nodes: u32,
-    depth: u8,
+    depth: u32,
     #[derivative(Default(value = "Score::Cp(0)"))]
     score: Score,
     #[serde(rename = "uciMoves")]
@@ -337,7 +337,7 @@ pub struct EngineOption {
 #[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
 #[serde(tag = "t", content = "c")]
 pub enum GoMode {
-    Depth(u8),
+    Depth(u32),
     Time(u32),
     Nodes(u32),
     Infinite,
