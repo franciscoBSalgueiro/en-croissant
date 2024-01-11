@@ -3,9 +3,7 @@ export function formatNumber(value?: number): string {
     return Intl.NumberFormat().format(value);
 }
 
-export function formatBytes(bytes?: number, decimals = 2) {
-    if (!bytes) return "0 Bytes";
-
+export function formatBytes(bytes: number, decimals = 2) {
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];

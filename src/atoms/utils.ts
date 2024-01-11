@@ -62,13 +62,13 @@ export function createAsyncZodStorage<Value>(
     return {
         async getItem(key, initialValue) {
             const storedValue = await storage.getItem(key);
-            try {
-                return schema.parse(JSON.parse(storedValue ?? ""));
-            } catch (e) {
-                warn(`Invalid value for ${key}: ${storedValue}\n${e}`);
-                this.setItem(key, initialValue);    
-                return initialValue;
+            const res = schema.safeParse(JSON.parse(storedValue ?? ""));
+            if (res.success) {
+                return res.data;
             }
+            warn(`Invalid value for ${key}: ${storedValue}\n${res.error}`);
+            await this.setItem(key, initialValue);
+            return initialValue;
         },
         async setItem(key, value) {
             storage.setItem(key, JSON.stringify(value, null, 4));

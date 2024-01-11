@@ -26,10 +26,21 @@ import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 import { z } from "zod";
 import { getWinChance, normalizeScore } from "@/utils/score";
 
+const zodArray = <S>(itemSchema: z.ZodType<S>) => {
+    const catchValue = {} as never;
+
+    const res = z
+        .array(itemSchema.catch(catchValue))
+        .transform((a) => a.filter((o) => o !== catchValue))
+        .catch([]);
+
+    return res as z.ZodType<S[]>;
+};
+
 export const enginesAtom = atomWithStorage<Engine[]>(
     "engines/engines.json",
     [],
-    createAsyncZodStorage(z.array(engineSchema), fileStorage)
+    createAsyncZodStorage(zodArray(engineSchema), fileStorage)
 );
 
 const loadableEnginesAtom = loadable(enginesAtom);
@@ -349,7 +360,7 @@ export const allEnabledAtom = loadable(
                 const atom = tabEngineSettingsFamily({
                     tab: get(activeTabAtom)!,
                     engineName: engine.name,
-                    defaultSettings: engine.settings,
+                    defaultSettings: engine.settings ?? undefined,
                 });
                 return get(atom).enabled;
             });
@@ -366,7 +377,7 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
         const atom = tabEngineSettingsFamily({
             tab: get(activeTabAtom)!,
             engineName: engine.name,
-            defaultSettings: engine.settings,
+            defaultSettings: engine.settings ?? undefined,
         });
         set(atom, { ...get(atom), enabled: value });
     }

@@ -239,7 +239,7 @@ function EngineCard({
           </Group>
           <Group wrap="nowrap" gap="xs" mb="xs">
             <IconDatabase size="1rem" />
-            <Text size="xs">{formatBytes(engine.downloadSize)}</Text>
+            <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>
           <ProgressButton
             id={engineId}

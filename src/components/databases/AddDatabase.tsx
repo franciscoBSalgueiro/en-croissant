@@ -214,7 +214,7 @@ function DatabaseCard({
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 SIZE
               </Text>
-              <Text size="xs">{formatBytes(database.storage_size)}</Text>
+              <Text size="xs">{formatBytes(database.storage_size ?? 0)}</Text>
             </Stack>
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">

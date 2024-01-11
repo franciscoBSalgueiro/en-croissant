@@ -77,7 +77,7 @@ export default function BestMovesComponent({
   const [settings, setSettings] = useAtom(
     tabEngineSettingsFamily({
       engineName: engine.name,
-      defaultSettings: engine.settings,
+      defaultSettings: engine.settings ?? undefined,
       tab: activeTab!,
     })
   );

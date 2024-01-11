@@ -53,7 +53,7 @@ function EngineBox({
       style={{ cursor: "pointer" }}
     >
       <Group>
-        <Checkbox checked={engine.loaded} onChange={() => {}} />
+        <Checkbox checked={!!engine.loaded} onChange={() => {}} />
         {imageSrc ? (
           <Image src={imageSrc} alt={engine.name} h="2.5rem" />
         ) : engine.type !== "local" ? (

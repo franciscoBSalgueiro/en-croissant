@@ -147,7 +147,7 @@ export default function DatabasesPage() {
                   },
                   {
                     label: "Storage",
-                    value: item.error ? "???" : formatBytes(item.storage_size),
+                    value: item.error ? "???" : formatBytes(item.storage_size ?? 0),
                   },
                 ]}
               />
