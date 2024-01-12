@@ -136,14 +136,14 @@ export default function DatabasesPage() {
                 error={item.error}
                 Header={
                   <Group wrap="nowrap" justify="space-between">
-                    <Group wrap="nowrap">
+                    <Group wrap="nowrap" miw={0}>
                       <IconDatabase size="1.5rem" />
-                      <div>
+                      <Box miw={0}>
                         <Text fw={500}>{item.error ?? item.title}</Text>
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs" c="dimmed" style={{ wordWrap: "break-word"}}>
                           {item.error ? item.file : item.description}
                         </Text>
-                      </div>
+                      </Box>
                     </Group>
                     <Rating
                       value={referenceDatabase === item.file ? 1 : 0}
