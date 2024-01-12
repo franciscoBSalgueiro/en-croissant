@@ -4,6 +4,7 @@ import {
   Button,
   Checkbox,
   Group,
+  Rating,
   ScrollArea,
   SimpleGrid,
   Stack,
@@ -71,6 +72,15 @@ export default function DatabasesPage() {
     setDescription(selectedDatabase?.description ?? null);
   }, [selectedDatabase]);
 
+  function changeReferenceDatabase(file: string) {
+    invoke("clear_games");
+    if (file === referenceDatabase) {
+      setReferenceDatabase(null);
+    } else {
+      setReferenceDatabase(file);
+    }
+  }
+
   return (
     <Stack h="100%">
       <ConfirmModal
@@ -135,9 +145,13 @@ export default function DatabasesPage() {
                         </Text>
                       </div>
                     </Group>
-                    {referenceDatabase === item.file && (
-                      <IconStar size="1rem" />
-                    )}
+                    <Rating
+                      value={referenceDatabase === item.file ? 1 : 0}
+                      count={1}
+                      onChange={() => {
+                        changeReferenceDatabase(item.file);
+                      }}
+                    />
                   </Group>
                 }
                 stats={[
@@ -147,7 +161,9 @@ export default function DatabasesPage() {
                   },
                   {
                     label: "Storage",
-                    value: item.error ? "???" : formatBytes(item.storage_size ?? 0),
+                    value: item.error
+                      ? "???"
+                      : formatBytes(item.storage_size ?? 0),
                   },
                 ]}
               />
@@ -199,15 +215,7 @@ export default function DatabasesPage() {
                     label="Reference Database"
                     checked={isReference}
                     onChange={() => {
-                      if (isReference) {
-                        setReferenceDatabase(null);
-                        invoke("clear_games");
-                      } else {
-                        if (selectedDatabase.file !== referenceDatabase) {
-                          invoke("clear_games");
-                        }
-                        setReferenceDatabase(selectedDatabase.file);
-                      }
+                      changeReferenceDatabase(selectedDatabase.file);
                     }}
                   />
                 </>
