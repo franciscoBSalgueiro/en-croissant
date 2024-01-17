@@ -54,7 +54,7 @@ use crate::{
 };
 use tokio::sync::{RwLock, Semaphore};
 
-pub type GameData = (i32, Option<String>, Vec<u8>, i32, i32, i32);
+pub type GameData = (i32, Option<String>, Vec<u8>, Option<String>, i32, i32, i32);
 
 #[derive(Derivative)]
 #[derivative(Default)]

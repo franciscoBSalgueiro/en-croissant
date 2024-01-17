@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, Position, Setup};
+use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, FromSetup, Position, Setup};
 use std::{
     path::PathBuf,
     sync::{
@@ -165,9 +165,15 @@ pub struct PositionStats {
 
 fn get_move_after_match(
     move_blob: &Vec<u8>,
+    fen: &Option<String>,
     query: &PositionQuery,
 ) -> Result<Option<String>, Error> {
-    let mut chess = Chess::default();
+    let mut chess = if let Some(fen) = fen {
+        let fen = Fen::from_ascii(fen.as_bytes())?;
+        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)?
+    } else {
+        Chess::default()
+    };
 
     if query.matches(&chess) {
         if move_blob.is_empty() {
@@ -231,6 +237,7 @@ pub async fn search_position(
                 games::id,
                 games::result,
                 games::moves,
+                games::fen,
                 games::pawn_home,
                 games::white_material,
                 games::black_material,
@@ -248,7 +255,7 @@ pub async fn search_position(
     println!("start search on {tab_id}");
 
     games.par_iter().for_each(
-        |(id, result, game, end_pawn_home, white_material, black_material)| {
+        |(id, result, game, fen, end_pawn_home, white_material, black_material)| {
             if state.new_request.available_permits() == 0 {
                 return;
             }
@@ -271,7 +278,7 @@ pub async fn search_position(
                 .unwrap();
             }
             if query.can_reach(&end_material, *end_pawn_home as u16) {
-                if let Ok(Some(m)) = get_move_after_match(game, &query) {
+                if let Ok(Some(m)) = get_move_after_match(game, fen, &query) {
                     if sample_games.lock().unwrap().len() < 10 {
                         sample_games.lock().unwrap().push(*id);
                     }
@@ -358,6 +365,7 @@ pub async fn is_position_in_db(
                 games::id,
                 games::result,
                 games::moves,
+                games::fen,
                 games::pawn_home,
                 games::white_material,
                 games::black_material,
@@ -368,7 +376,7 @@ pub async fn is_position_in_db(
     }
 
     let exists = games.par_iter().any(
-        |(_id, _result, game, end_pawn_home, white_material, black_material)| {
+        |(_id, _result, game, fen, end_pawn_home, white_material, black_material)| {
             if state.new_request.available_permits() == 0 {
                 return false;
             }
@@ -377,7 +385,9 @@ pub async fn is_position_in_db(
                 black: *black_material as u8,
             };
             query.can_reach(&end_material, *end_pawn_home as u16)
-                && get_move_after_match(game, &query).unwrap_or(None).is_some()
+                && get_move_after_match(game, fen, &query)
+                    .unwrap_or(None)
+                    .is_some()
         },
     );
     info!("finished search in {:?}", start.elapsed());
@@ -484,18 +494,18 @@ mod tests {
 
         let query =
             PositionQuery::exact_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR").unwrap();
-        let result = get_move_after_match(&game, &query).unwrap();
+        let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
 
         let query =
             PositionQuery::exact_from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR").unwrap();
-        let result = get_move_after_match(&game, &query).unwrap();
+        let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e5".to_string()));
 
         let query =
             PositionQuery::exact_from_fen("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR")
                 .unwrap();
-        let result = get_move_after_match(&game, &query).unwrap();
+        let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("*".to_string()));
     }
 
@@ -504,7 +514,7 @@ mod tests {
         let game = vec![12, 12]; // 1. e4 e5
 
         let query = PositionQuery::partial_from_fen("8/pppppppp/8/8/8/8/PPPPPPPP/8").unwrap();
-        let result = get_move_after_match(&game, &query).unwrap();
+        let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
     }
 }
