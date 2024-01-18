@@ -128,15 +128,16 @@ piece.fading {
   pointer-events: none;
   opacity: 0.8;
   font-family: sans-serif;
-  font-size: 9px;
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 .cg-wrap coords.ranks {
-  left: 4px;
-  top: -20px;
+  left: 1%;
+  top: -4%;
   flex-flow: column-reverse;
   height: 100%;
-  width: 12px;
+  width: 1rem
 }
 
 .cg-wrap coords.ranks.black {
@@ -149,11 +150,11 @@ piece.fading {
 }
 
 .cg-wrap coords.files {
-  bottom: -4px;
-  left: 24px;
+  bottom: 1%;
+  left: 4.5%;
   flex-flow: row;
   width: 100%;
-  height: 16px;
+  height: 1rem;
   text-transform: uppercase;
   text-align: center;
 }
