@@ -31,12 +31,7 @@ impl PgnParser {
         self.reader.stream_position()
     }
 
-    fn offset_by_index(
-        &mut self,
-        n: usize,
-        state: &AppState,
-        file: &String,
-    ) -> io::Result<()> {
+    fn offset_by_index(&mut self, n: usize, state: &AppState, file: &String) -> io::Result<()> {
         let offset_index = n / GAME_OFFSET_FREQ;
         let n_left = n % GAME_OFFSET_FREQ;
 
@@ -62,7 +57,12 @@ impl PgnParser {
         }
 
         let mut line = String::new();
-        while let Ok(bytes) = self.reader.read_line(&mut line) {
+        loop {
+            let res = self.reader.read_line(&mut line);
+            if res.is_err() {
+                continue;
+            }
+            let bytes = res.unwrap();
             skipped += bytes;
             if bytes == 0 {
                 break;
@@ -87,7 +87,12 @@ impl PgnParser {
     fn read_game(&mut self) -> io::Result<String> {
         let mut new_game = false;
         self.game.clear();
-        while let Ok(bytes) = self.reader.read_line(&mut self.line) {
+        loop {
+            let res = self.reader.read_line(&mut self.line);
+            if res.is_err() {
+                continue;
+            }
+            let bytes = res.unwrap();
             if bytes == 0 {
                 break;
             }
