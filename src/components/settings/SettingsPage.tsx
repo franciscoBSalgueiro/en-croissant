@@ -6,7 +6,6 @@ import {
   percentageCoverageAtom,
   minimumGamesAtom,
   forcedEnPassantAtom,
-  pieceSetAtom,
   showDestsAtom,
   showCoordinatesAtom,
   nativeBarAtom,
@@ -25,7 +24,6 @@ import {
 } from "@mantine/core";
 import ColorControl from "./ColorControl";
 import SettingsNumberInput from "./SettingsNumberInput";
-import SettingsSelect from "./SettingsSelect";
 import SettingsSwitch from "./SettingsSwitch";
 import ThemeButton from "./ThemeButton";
 import { useLoaderData } from "react-router-dom";
@@ -43,39 +41,7 @@ import { useAtom } from "jotai";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { RESET } from "jotai/utils";
 import * as classes from "./SettingsPage.css";
-
-const pieceSets = [
-  { label: "Alpha", value: "alpha" },
-  { label: "Anarcandy", value: "anarcandy" },
-  { label: "California", value: "california" },
-  { label: "Cardinal", value: "cardinal" },
-  { label: "Cburnett", value: "cburnett" },
-  { label: "Chess7", value: "chess7" },
-  { label: "Chessnut", value: "chessnut" },
-  { label: "Companion", value: "companion" },
-  { label: "Disguised", value: "disguised" },
-  { label: "Dubrovny", value: "dubrovny" },
-  { label: "Fantasy", value: "fantasy" },
-  { label: "Fresca", value: "fresca" },
-  { label: "Gioco", value: "gioco" },
-  { label: "Governor", value: "governor" },
-  { label: "Horsey", value: "horsey" },
-  { label: "ICpieces", value: "icpieces" },
-  { label: "Kosal", value: "kosal" },
-  { label: "Leipzig", value: "leipzig" },
-  { label: "Letter", value: "letter" },
-  { label: "Libra", value: "libra" },
-  { label: "Maestro", value: "maestro" },
-  { label: "Merida", value: "merida" },
-  { label: "Pirouetti", value: "pirouetti" },
-  { label: "Pixel", value: "pixel" },
-  { label: "Reillycraig", value: "reillycraig" },
-  { label: "Riohacha", value: "riohacha" },
-  { label: "Shapes", value: "shapes" },
-  { label: "Spatial", value: "spatial" },
-  { label: "Staunty", value: "staunty" },
-  { label: "Tatiana", value: "tatiana" },
-];
+import PiecesSelect from "./PiecesSelect";
 
 export default function Page() {
   const version = useLoaderData() as string;
@@ -333,11 +299,7 @@ export default function Page() {
                     Pieces used on the boards
                   </Text>
                 </div>
-                <SettingsSelect
-                  data={pieceSets}
-                  atom={pieceSetAtom}
-                  placeholder="Select piece set"
-                />
+                <PiecesSelect />
               </Group>
               <Group
                 justify="space-between"
