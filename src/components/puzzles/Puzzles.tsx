@@ -179,6 +179,8 @@ function Puzzles({ id }: { id: string }) {
                 }))
                 .concat({ label: "+ Add new", value: "add" })}
               value={selectedDb}
+              clearable={false}
+              placeholder="Select database"
               onChange={(v) => {
                 if (v === "add") {
                   setAddOpened(true);
