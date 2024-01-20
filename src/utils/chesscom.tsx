@@ -29,10 +29,10 @@ const ChessComPerf = z.object({
 });
 
 const ChessComStatsSchema = z.object({
-  chess_daily: ChessComPerf,
-  chess_rapid: ChessComPerf,
-  chess_blitz: ChessComPerf,
-  chess_bullet: ChessComPerf,
+  chess_daily: ChessComPerf.optional(),
+  chess_rapid: ChessComPerf.optional(),
+  chess_blitz: ChessComPerf.optional(),
+  chess_bullet: ChessComPerf.optional(),
 });
 export type ChessComStats = z.infer<typeof ChessComStatsSchema>;
 
@@ -84,7 +84,7 @@ export async function getChessComAccount(
   const stats = ChessComStatsSchema.safeParse(data);
   if (!stats.success) {
     error(
-      `Invalid response for Chess.com account: ${response.status} ${response.url}`
+      `Invalid response for Chess.com account: ${response.status} ${response.url}\n${stats.error}`
     );
     notifications.show({
       title: "Failed to fetch Chess.com account",
