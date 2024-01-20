@@ -51,21 +51,12 @@ export const useThrottledEffect = (
     delay: number,
     deps: React.DependencyList
 ) => {
-    const lastRan = useRef(Date.now());
-
     useEffect(() => {
-        const handler = setTimeout(function () {
-            if (Date.now() - lastRan.current >= delay) {
-                callback();
-                lastRan.current = Date.now();
-            }
-        }, delay - (Date.now() - lastRan.current));
+        const handler = setTimeout(() => callback(), delay);
 
-        return () => {
-            clearTimeout(handler);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [delay, ...deps]);
+        return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [...(deps || []), delay]);
 };
 
 export function mean(arr: number[]): number {
