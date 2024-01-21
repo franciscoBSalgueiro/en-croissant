@@ -195,16 +195,19 @@ export async function getBestMoves(
 ): Promise<[number, BestMoves[]] | null> {
   const [pos] = positionFromFen(options.fen);
   if (!pos) {
-      return null;
+    return null;
   }
   for (const uci of options.moves) {
-      const m = parseUci(uci);
-      if (!m) {
-          return null;
-      }
-      pos.play(m);
+    const m = parseUci(uci);
+    if (!m) {
+      return null;
+    }
+    pos.play(m);
   }
-  const data = await getCloudEvaluation(makeFen(pos.toSetup()), options.multipv);
+  const data = await getCloudEvaluation(
+    makeFen(pos.toSetup()),
+    options.multipv
+  );
   return [
     100,
     data.pvs?.map((m, i) => {
@@ -302,12 +305,7 @@ export async function downloadLichess(
 
 export async function getLichessGame(gameId: string): Promise<string> {
   const response = await window.fetch(
-    `https://lichess.org/game/export/${gameId.slice(0, 8)}`,
-    {
-      headers: {
-        Accept: "application/json",
-      },
-    }
+    `https://lichess.org/game/export/${gameId.slice(0, 8)}`
   );
   if (!response.ok) {
     throw new Error(
