@@ -302,6 +302,7 @@ function BoardGame() {
           boardRef={boardRef}
           movable={movable}
           root={root}
+          position={position}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>

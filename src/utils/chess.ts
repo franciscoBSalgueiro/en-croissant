@@ -62,6 +62,20 @@ export interface MoveAnalysis {
     is_sacrifice: boolean;
 }
 
+// copied from chessops
+export const makeClk = (seconds: number): string => {
+    seconds = Math.max(0, seconds);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    seconds = (seconds % 3600) % 60;
+    return `${hours}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toLocaleString("en", {
+        minimumIntegerDigits: 2,
+        maximumFractionDigits: 3,
+    })}`;
+};
+
 export function getMoveText(
     tree: TreeNode,
     opt: {
@@ -93,8 +107,13 @@ export function getMoveText(
     if (opt.comments || opt.extraMarkups) {
         let content = "{";
 
-        if (opt.extraMarkups && tree.score !== null) {
-            content += `[%eval ${formatScore(tree.score)}] `;
+        if (opt.extraMarkups) {
+            if (tree.score !== null) {
+                content += `[%eval ${formatScore(tree.score)}] `;
+            }
+            if (tree.clock !== undefined) {
+                content += `[%clk ${makeClk(tree.clock)}] `;
+            }
         }
 
         if (opt.extraMarkups && tree.shapes.length > 0) {
@@ -352,6 +371,10 @@ function innerParsePGN(
                 root.shapes.push(...shapes);
             }
 
+            if (comment.clock) {
+                root.clock = comment.clock;
+            }
+
             root.commentText = comment.text;
             root.commentHTML = comment.text;
         } else if (token.type === "ParenOpen") {
@@ -407,11 +430,18 @@ function innerParsePGN(
     return tree;
 }
 
-export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeState> {
+export async function parsePGN(
+    pgn: string,
+    initialFen?: string
+): Promise<TreeState> {
     const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
 
     const headers = getPgnHeaders(tokens);
-    const tree = innerParsePGN(tokens, initialFen?.trim() || headers.fen.trim(), 0);
+    const tree = innerParsePGN(
+        tokens,
+        initialFen?.trim() || headers.fen.trim(),
+        0
+    );
     tree.headers = headers;
     tree.position = headers.start ?? [];
     return tree;
@@ -442,6 +472,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         Round,
         Start,
         Orientation,
+        TimeControl,
     } = Object.fromEntries(headersN);
 
     const headers: GameHeaders = {
@@ -458,8 +489,42 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         event: Event ?? "",
         start: JSON.parse(Start ?? "[]"),
         orientation: (Orientation as "white" | "black") ?? "white",
+        time_control: TimeControl,
     };
     return headers;
+}
+
+type TimeControlField = {
+    seconds: number;
+    increment?: number;
+    moves?: number;
+};
+
+type TimeControl = TimeControlField[];
+
+export function parseTimeControl(timeControl: string): TimeControl {
+    const fields = timeControl.split(":");
+    const timeControlFields: TimeControl = [];
+    for (const field of fields) {
+        const match = field.match(/(?:(\d+)\/)?(\d+)(?:\+(\d+))?/);
+        if (!match) {
+            continue;
+        }
+        const moves = match[1];
+        const seconds = match[2];
+        const increment = match[3];
+        const timeControlField: TimeControlField = {
+            seconds: parseInt(seconds),
+        };
+        if (increment) {
+            timeControlField.increment = parseInt(increment);
+        }
+        if (moves) {
+            timeControlField.moves = parseInt(moves);
+        }
+        timeControlFields.push(timeControlField);
+    }
+    return timeControlFields;
 }
 
 type ColorMap<T> = {

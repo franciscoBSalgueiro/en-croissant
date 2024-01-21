@@ -17,18 +17,20 @@ import {
   ANNOTATION_INFO,
   Annotation,
   getMaterialDiff,
+  makeClk,
   moveToKey,
   parseKeyboardMove,
+  parseTimeControl,
   parseUci,
 } from "@/utils/chess";
-import { Outcome } from "@/utils/db";
-import { GameHeaders, TreeNode } from "@/utils/treeReducer";
+import { GameHeaders, TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Avatar,
   Box,
   Group,
   Input,
+  Paper,
   Text,
   Tooltip,
   useMantineTheme,
@@ -50,7 +52,7 @@ import { TreeDispatchContext } from "../common/TreeStateContext";
 import { updateCardPerformance } from "../files/opening";
 import EvalBar from "./EvalBar";
 import PromotionModal from "./PromotionModal";
-import "./board.css";
+import * as classes from "./Board.css";
 import { match } from "ts-pattern";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import { keyMapAtom } from "@/atoms/keybinds";
@@ -69,6 +71,7 @@ import ShowMaterial from "../common/ShowMaterial";
 interface ChessboardProps {
   dirty: boolean;
   currentNode: TreeNode;
+  position: number[];
   arrows: Map<number, string[]>;
   headers: GameHeaders;
   root: TreeNode;
@@ -96,6 +99,7 @@ function Board({
   saveFile,
   addGame,
   root,
+  position,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
 
@@ -190,10 +194,7 @@ function Board({
           shapes.push({
             orig: from,
             dest: to,
-            brush:
-              j === 0
-                ? arrowColors[i].strong
-                : arrowColors[i].pale
+            brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
           });
         }
       }
@@ -294,10 +295,40 @@ function Board({
   const lightColor = theme.colors[color][6];
   const darkColor = theme.colors[color][8];
 
+  let { whiteSeconds, blackSeconds } = match(pos?.turn)
+    .with("white", () => ({
+      whiteSeconds: getNodeAtPath(root, position.slice(0, -1))?.clock,
+      blackSeconds: currentNode.clock,
+    }))
+    .with("black", () => ({
+      whiteSeconds: currentNode.clock,
+      blackSeconds: getNodeAtPath(root, position.slice(0, -1))?.clock,
+    }))
+    .otherwise(() => {
+      return {
+        whiteSeconds: undefined,
+        blackSeconds: undefined,
+      };
+    });
+  if (position.length <= 1 && headers.time_control) {
+    const timeControl = parseTimeControl(headers.time_control);
+    if (timeControl.length > 0) {
+      const seconds = timeControl[0].seconds;
+      if (!whiteSeconds) {
+        whiteSeconds = seconds;
+      }
+      if (!blackSeconds) {
+        blackSeconds = seconds;
+      }
+    }
+  }
+  const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
+  const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
+
   return (
     <>
-      <Box className="container">
-        <Box className="Board">
+      <Box className={classes.container}>
+        <Box className={classes.board}>
           <Box
             style={
               currentNode.annotation !== ""
@@ -420,25 +451,41 @@ function Board({
             />
           </Box>
         </Box>
-        <Box className="Top">
+        <Box className={classes.top}>
           {data && (
-            <Box px="sm">
+            <Group pb="0.2rem">
+              {topClock && (
+                <Paper px="sm" className={classes.clock}>
+                  <Text fz="lg" fw="bold">
+                    {makeClk(topClock)}
+                  </Text>
+                </Paper>
+              )}
               <ShowMaterial
                 diff={data.diff}
                 pieces={data.pieces}
                 color={orientation === "white" ? "black" : "white"}
               />
-            </Box>
+            </Group>
           )}
         </Box>
-        <Box className="Bottom" pt="xs">
-          <Group justify="space-between" px="sm">
+        <Box className={classes.bottom}>
+          <Group justify="space-between">
             {data && (
-              <ShowMaterial
-                diff={data.diff}
-                pieces={data.pieces}
-                color={orientation}
-              />
+              <Group>
+                {bottomClock && (
+                  <Paper px="sm" className={classes.clock}>
+                    <Text fz="lg" fw="bold">
+                      {makeClk(bottomClock)}
+                    </Text>
+                  </Paper>
+                )}
+                <ShowMaterial
+                  diff={data.diff}
+                  pieces={data.pieces}
+                  color={orientation}
+                />
+              </Group>
             )}
 
             {error && (
@@ -453,7 +500,7 @@ function Board({
             {controls}
           </Group>
         </Box>
-        <Box className="Eval">
+        <Box className={classes.evalStyle}>
           <EvalBar score={currentNode.score} orientation={orientation} />
         </Box>
       </Box>
@@ -468,8 +515,8 @@ function MoveInput({ currentNode }: { currentNode: TreeNode }) {
 
   return (
     <Input
+      placeholder="Enter move"
       size="sm"
-      w={80}
       onChange={(e) => {
         setMove(e.currentTarget.value);
         setError("");

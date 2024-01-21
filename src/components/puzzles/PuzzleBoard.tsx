@@ -18,6 +18,7 @@ import { moveToKey } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import equal from "fast-deep-equal";
 import { useForceUpdate } from "@mantine/hooks";
+import * as classes from "../boards/Board.css";
 
 function PuzzleBoard({
   puzzles,
@@ -118,7 +119,7 @@ function PuzzleBoard({
 
   return (
     <Box
-      className="container"
+      className={classes.container}
       style={{
         gridTemplateAreas: `
       "Board Board Board"
@@ -127,7 +128,7 @@ function PuzzleBoard({
     `,
       }}
     >
-      <Box className="Board">
+      <Box className={classes.board}>
         <Box className={chessboard}>
           <PromotionModal
             pendingMove={pendingMove}

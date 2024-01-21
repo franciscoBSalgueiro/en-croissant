@@ -126,6 +126,7 @@ function BoardAnalysis() {
           saveFile={saveFile}
           addGame={addGame}
           root={root}
+          position={position}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>

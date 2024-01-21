@@ -69,7 +69,7 @@ export default function ImportModal({
           onChange={(event) => setPgn(event.currentTarget.value)}
           label="PGN game"
           data-autofocus
-          minRows={10}
+          rows={10}
         />
       </>
     ))

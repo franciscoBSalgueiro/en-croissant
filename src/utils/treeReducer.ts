@@ -26,6 +26,7 @@ export interface TreeNode {
     annotation: Annotation;
     commentHTML: string;
     commentText: string;
+    clock?: number;
 }
 
 export type ListNode = {
@@ -158,6 +159,12 @@ export function headersToPGN(game: GameHeaders): string {
     }
     if (game.orientation) {
         headers += `[Orientation "${game.orientation}"]\n`;
+    }
+    if (game.time_control) {
+        headers += `[TimeControl "${game.time_control}"]\n`;
+    }
+    if (game.eco) {
+        headers += `[ECO "${game.eco}"]\n`;
     }
     return headers;
 }
