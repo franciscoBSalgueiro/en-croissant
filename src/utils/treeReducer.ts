@@ -362,6 +362,19 @@ function isThreeFoldRepetition(state: TreeState, fen: string) {
     return fens.filter((f) => f === fen.split(" - ")[0]).length >= 2;
 }
 
+function is50MoveRule(state: TreeState) {
+    let node = state.root;
+    let count = 0;
+    for (const i of state.position) {
+        count += 1
+        if (node.move?.captured || node.move?.promotion || node.move?.piece === "p") {
+            count = 0;
+        }
+        node = node.children[i];
+    }
+    return count >= 100;
+}
+
 function makeMove({
     state,
     move,
@@ -397,7 +410,7 @@ function makeMove({
         }
     }
 
-    if (isThreeFoldRepetition(state, chess.fen())) {
+    if (isThreeFoldRepetition(state, chess.fen()) || is50MoveRule(state)) {
         state.headers.result = "1/2-1/2";
     }
 
