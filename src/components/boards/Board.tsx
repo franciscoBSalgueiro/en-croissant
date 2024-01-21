@@ -101,20 +101,6 @@ function Board({
 
   const [pos, error] = positionFromFen(currentNode.fen);
 
-  if (pos !== null && pos.isEnd() && headers.result === "*") {
-    let newOutcome: Outcome = "1/2-1/2";
-    if (pos.isCheckmate()) {
-      newOutcome = pos.turn === "white" ? "0-1" : "1-0";
-    }
-    dispatch({
-      type: "SET_HEADERS",
-      payload: {
-        ...headers,
-        result: newOutcome,
-      },
-    });
-  }
-
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);

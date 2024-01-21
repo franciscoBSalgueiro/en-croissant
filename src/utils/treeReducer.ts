@@ -352,6 +352,16 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     return res;
 };
 
+function isThreeFoldRepetition(state: TreeState, fen: string) {
+    let node = state.root;
+    const fens = [INITIAL_FEN.split(" - ")[0]];
+    for (const i of state.position) {
+        node = node.children[i];
+        fens.push(node.fen.split(" - ")[0])
+    }
+    return fens.filter((f) => f === fen.split(" - ")[0]).length >= 2;
+}
+
 function makeMove({
     state,
     move,
@@ -378,6 +388,19 @@ function makeMove({
     } catch (e) {
         return;
     }
+    if (chess.isGameOver()) {
+        if (chess.isCheckmate()) {
+            state.headers.result = chess.turn() === "w" ? "0-1" : "1-0";
+        }
+        if (chess.isDraw()) {
+            state.headers.result = "1/2-1/2";
+        }
+    }
+
+    if (isThreeFoldRepetition(state, chess.fen())) {
+        state.headers.result = "1/2-1/2";
+    }
+
     const i = moveNode.children.findIndex((n) => n.move?.san === m.san);
     if (i !== -1) {
         if (changePosition) {

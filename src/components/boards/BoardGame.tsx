@@ -251,6 +251,10 @@ function BoardGame() {
 
   useEffect(() => {
     if (pos && gameState === "playing") {
+      if (headers.result !== "*") {
+        setGameState("gameOver");
+        return;
+      }
       const currentTurn = pos.turn;
       const player = currentTurn === "white" ? players.white : players.black;
 
