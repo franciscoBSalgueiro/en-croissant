@@ -45,7 +45,7 @@ import {
 } from "@/atoms/atoms";
 import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
-import { parseUci } from "@/utils/chess";
+import { getMainLine, parseUci } from "@/utils/chess";
 import { EngineSettings, LocalEngine } from "@/utils/engines";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
@@ -236,6 +236,7 @@ function BoardGame() {
   const mainLine = Array.from(treeIteratorMainLine(root));
   const currentNode = getNodeAtPath(root, position);
   const lastNode = mainLine[mainLine.length - 1].node;
+  const moves = getMainLine(root);
 
   const [pos, error] = useMemo(() => {
     return positionFromFen(lastNode.fen);
@@ -262,7 +263,7 @@ function BoardGame() {
         commands
           .getSingleBestMove(
             player.settings.go,
-            { ...player.settings.options, fen: lastNode.fen },
+            { ...player.settings.options, fen: root.fen, moves: moves},
             player.engine.path
           )
           .then((move) => {
