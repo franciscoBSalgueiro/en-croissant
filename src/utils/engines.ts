@@ -22,7 +22,7 @@ const goModeSchema: z.ZodSchema<GoMode> = z.union([
     }),
 ]);
 
-const engineOptionsSchema: z.ZodSchema<Omit<EngineOptions, "fen">> = z.object({
+const engineOptionsSchema: z.ZodSchema<Omit<EngineOptions, "fen" | "moves">> = z.object({
     multipv: z.number(),
     threads: z.number(),
     hash: z.number(),

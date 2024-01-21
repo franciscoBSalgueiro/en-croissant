@@ -60,6 +60,7 @@ interface BestMovesProps {
   id: number;
   engine: Engine;
   fen: string;
+  moves: string[];
   halfMoves: number;
 }
 
@@ -67,6 +68,7 @@ export default function BestMovesComponent({
   id,
   engine,
   fen,
+  moves,
   halfMoves,
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
@@ -82,19 +84,32 @@ export default function BestMovesComponent({
     })
   );
 
-  const engineVariations = useMemo(() => ev.get(fen) ?? null, [ev, fen]);
-
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
-  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
-  const nps = !engineVariations
-    ? 0
-    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
   const theme = useMantineTheme();
   const listeners = useRef<(() => void)[]>([]);
   const [progress, setProgress] = useState(0);
 
-  const searchingFen = threat ? swapMove(fen) : fen;
+  const { searchingFen, searchingMoves } = useMemo(
+    () =>
+      match(threat)
+        .with(true, () => ({ searchingFen: swapMove(fen), searchingMoves: [] }))
+        .with(false, () => ({
+          searchingFen: fen,
+          searchingMoves: moves,
+        }))
+        .exhaustive(),
+    [fen, moves, threat]
+  );
+
+  const engineVariations = useMemo(
+    () => ev.get(searchingFen + ":" + searchingMoves.join(",")),
+    [ev, searchingFen, searchingMoves]
+  );
+  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
+  const nps = !engineVariations
+    ? 0
+    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
 
   const [isGameOver, error] = useMemo(() => {
     const [pos, error] = positionFromFen(fen);
@@ -109,13 +124,14 @@ export default function BestMovesComponent({
           payload.engine === engine.name &&
           payload.tab === activeTab &&
           payload.fen === searchingFen &&
+          payload.moves.join(",") === searchingMoves.join(",") &&
           settings.enabled &&
           !isGameOver
         ) {
           startTransition(() => {
             setEngineVariation((prev) => {
               const newMap = new Map(prev);
-              newMap.set(searchingFen, ev);
+              newMap.set(searchingFen + ":" + searchingMoves.join(","), ev);
               return newMap;
             });
             setProgress(payload.progress);
@@ -139,6 +155,7 @@ export default function BestMovesComponent({
     settings.enabled,
     isGameOver,
     searchingFen,
+    searchingMoves,
     engine.name,
     setEngineVariation,
   ]);
@@ -162,6 +179,7 @@ export default function BestMovesComponent({
           }
         } else {
           getBestMoves(activeTab!, settings.go, {
+            moves: searchingMoves,
             fen: searchingFen,
             multipv: settings.options.multipv,
             hash: settings.options.hash,
@@ -172,7 +190,10 @@ export default function BestMovesComponent({
               const [progress, bestMoves] = moves;
               setEngineVariation((prev) => {
                 const newMap = new Map(prev);
-                newMap.set(searchingFen, bestMoves);
+                newMap.set(
+                  searchingFen + ":" + searchingMoves.join(","),
+                  bestMoves
+                );
                 return newMap;
               });
               setProgress(progress);
@@ -192,6 +213,7 @@ export default function BestMovesComponent({
       settings.go,
       threat,
       searchingFen,
+      searchingMoves,
       isGameOver,
     ]
   );

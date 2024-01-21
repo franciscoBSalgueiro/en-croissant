@@ -1,5 +1,8 @@
 import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { fetch } from "@tauri-apps/api/http";
+import { positionFromFen } from "./chessops";
+import { parseUci } from "chessops";
+import { makeFen } from "chessops/fen";
 
 const endpoint = "https://www.chessdb.cn/cdb.php";
 
@@ -30,7 +33,18 @@ export async function getBestMoves(
     _goMode: GoMode,
     options: EngineOptions
 ): Promise<[number, BestMoves[]] | null> {
-    const moves = await queryPosition(options.fen);
+    const [pos] = positionFromFen(options.fen);
+    if (!pos) {
+        return null;
+    }
+    for (const uci of options.moves) {
+        const m = parseUci(uci);
+        if (!m) {
+            return null;
+        }
+        pos.play(m);
+    }
+    const moves = await queryPosition(makeFen(pos.toSetup()));
     return [
         100,
         moves.slice(0, options.multipv).map((m, i) => ({

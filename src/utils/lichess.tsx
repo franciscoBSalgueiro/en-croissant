@@ -15,9 +15,10 @@ import {
   getMasterGamesQueryParams,
 } from "./lichess/lichessexplorer";
 import { BestMoves, EngineOptions, GoMode } from "@/bindings";
-import { Chess, parseUci } from "chessops";
-import { parseFen } from "chessops/fen";
+import { parseUci } from "chessops";
+import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
+import { positionFromFen } from "./chessops";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
@@ -192,13 +193,22 @@ export async function getBestMoves(
   _goMode: GoMode,
   options: EngineOptions
 ): Promise<[number, BestMoves[]] | null> {
-  const data = await getCloudEvaluation(options.fen, options.multipv);
+  const [pos] = positionFromFen(options.fen);
+  if (!pos) {
+      return null;
+  }
+  for (const uci of options.moves) {
+      const m = parseUci(uci);
+      if (!m) {
+          return null;
+      }
+      pos.play(m);
+  }
+  const data = await getCloudEvaluation(makeFen(pos.toSetup()), options.multipv);
   return [
     100,
     data.pvs?.map((m, i) => {
       const uciMoves = m.moves.split(" ");
-      const setup = parseFen(options.fen).unwrap();
-      const pos = Chess.fromSetup(setup).unwrap();
 
       const sanMoves = uciMoves.map((m) => {
         const move = parseUci(m)!;
@@ -242,7 +252,6 @@ async function getCloudEvaluation(fen: string, multipv: number) {
 
   const response = await fetch<LichessCloudData>(url.toString());
 
-  console.log({response});
   cache.set(`${fen}-${multipv}`, response.data);
   return response.data;
 }

@@ -18,7 +18,7 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { memo, useContext, useMemo } from "react";
-import { ANNOTATION_INFO, getGameStats } from "@/utils/chess";
+import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -65,6 +65,9 @@ function AnalysisPanel({
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
 
   const stats = useMemo(() => getGameStats(root), [root]);
+
+  const fen = root.fen;
+  const moves = getVariationLine(root, position);
 
   return (
     <Stack h="100%">
@@ -123,7 +126,8 @@ function AnalysisPanel({
                         <EngineSummary
                           key={engine.name}
                           engine={engine}
-                          fen={currentNode.fen}
+                          fen={fen}
+                          moves={moves}
                           i={i}
                         />
                       ))}
@@ -153,7 +157,8 @@ function AnalysisPanel({
                         <BestMoves
                           id={i}
                           engine={engine}
-                          fen={currentNode.fen}
+                          fen={fen}
+                          moves={moves}
                           halfMoves={currentNode.halfMoves}
                         />
                       </Accordion.Item>
@@ -239,10 +244,12 @@ function AnalysisPanel({
 function EngineSummary({
   engine,
   fen,
+  moves,
   i,
 }: {
   engine: Engine;
   fen: string;
+  moves: string[];
   i: number;
 }) {
   const activeTab = useAtomValue(activeTabAtom);
@@ -250,7 +257,7 @@ function EngineSummary({
     engineMovesFamily({ engine: engine.name, tab: activeTab! })
   );
 
-  const curEval = ev.get(fen);
+  const curEval = ev.get(fen + ":" + moves.join(","));
   const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (

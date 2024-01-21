@@ -28,9 +28,9 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async analyzeGame(moves: string[], engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
+async analyzeGame(engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
 try {
-    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { moves, engine, goMode, options }) };
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { engine, goMode, options }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -113,11 +113,11 @@ progress: "plugin:tauri-specta:progress"
 
 /** user-defined types **/
 
-export type AnalysisOptions = { fen: string; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
+export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
-export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; progress: number }
+export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type EngineOption = { name: string; value: string }
-export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; extraOptions: EngineOption[] }
+export type EngineOptions = { multipv: number; threads: number; hash: number; fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
 export type Progress = { id: string; progress: number }

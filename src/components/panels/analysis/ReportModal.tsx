@@ -59,11 +59,12 @@ function ReportModal({
     setInProgress(true);
     toggleReportingMode();
     commands
-      .analyzeGame(moves, form.values.engine, form.values.goMode, {
+      .analyzeGame(form.values.engine, form.values.goMode, {
         annotateNovelties: form.values.novelty,
         fen: initialFen,
         referenceDb,
         reversed: form.values.reversed,
+        moves
       })
       .then((analysis) => {
         const analysisData = unwrap(analysis);

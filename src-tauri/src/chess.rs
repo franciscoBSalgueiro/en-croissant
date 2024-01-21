@@ -108,10 +108,15 @@ impl EngineProcess {
 
     async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
         let fen: Fen = options.fen.parse()?;
-        let pos: Chess = match fen.into_position(CastlingMode::Standard) {
+        let mut pos: Chess = match fen.into_position(CastlingMode::Standard) {
             Ok(p) => p,
             Err(e) => e.ignore_too_much_material()?,
         };
+        for m in &options.moves {
+            let uci = Uci::from_ascii(m.as_bytes())?;
+            let mv = uci.to_move(&pos)?;
+            pos.play_unchecked(&mv);
+        }
         self.real_multipv = options.multipv.min(pos.legal_moves().len() as u16);
         if options.threads != self.options.threads {
             self.set_option("Threads", &options.threads).await?;
@@ -129,8 +134,8 @@ impl EngineProcess {
             }
         }
 
-        if options.fen != self.options.fen {
-            self.set_position(&options.fen).await?;
+        if options.fen != self.options.fen || options.moves != self.options.moves {
+            self.set_position(&options.fen, &options.moves).await?;
         }
         self.last_depth = 0;
         self.options = options.clone();
@@ -139,10 +144,16 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn set_position(&mut self, fen: &str) -> Result<(), Error> {
-        let msg = format!("position fen {}\n", fen);
+    async fn set_position(&mut self, fen: &str, moves: &Vec<String>) -> Result<(), Error> {
+        let msg = if moves.is_empty() {
+            format!("position fen {}\n", fen)
+        } else {
+            format!("position fen {} moves {}\n", fen, moves.join(" "))
+        };
+
         self.stdin.write_all(msg.as_bytes()).await?;
         self.options.fen = fen.to_string();
+        self.options.moves = moves.clone();
         self.logs.push(EngineLog::Gui(msg));
         Ok(())
     }
@@ -218,16 +229,26 @@ pub struct BestMovesPayload {
     pub engine: String,
     pub tab: String,
     pub fen: String,
+    pub moves: Vec<String>,
     pub progress: f64,
 }
 
-fn parse_uci_attrs(attrs: Vec<UciInfoAttribute>, fen: &Fen) -> Result<BestMoves, Error> {
+fn parse_uci_attrs(
+    attrs: Vec<UciInfoAttribute>,
+    fen: &Fen,
+    moves: &Vec<String>,
+) -> Result<BestMoves, Error> {
     let mut best_moves = BestMoves::default();
 
     let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
         Ok(p) => p,
         Err(e) => e.ignore_too_much_material()?,
     };
+    for m in moves {
+        let uci = Uci::from_ascii(m.as_bytes())?;
+        let mv = uci.to_move(&pos)?;
+        pos.play_unchecked(&mv);
+    }
     let turn = pos.turn();
 
     for a in attrs {
@@ -325,6 +346,7 @@ pub struct EngineOptions {
     pub hash: u16,
     #[derivative(Default(value = "Fen::default().to_string()"))]
     pub fen: String,
+    pub moves: Vec<String>,
     pub extra_options: Vec<EngineOption>,
 }
 
@@ -445,7 +467,9 @@ pub async fn get_best_moves(
         let mut proc = process.lock().await;
         match parse_one(&line) {
             UciMessage::Info(attrs) => {
-                if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
+                if let Ok(best_moves) =
+                    parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves)
+                {
                     let multipv = best_moves.multipv;
                     let cur_depth = best_moves.depth;
                     let cur_nodes = best_moves.nodes;
@@ -473,6 +497,7 @@ pub async fn get_best_moves(
                                     engine: id.clone(),
                                     tab: tab.clone(),
                                     fen: proc.options.fen.clone(),
+                                    moves: proc.options.moves.clone(),
                                     progress,
                                 }
                                 .emit_all(&app)?;
@@ -491,6 +516,7 @@ pub async fn get_best_moves(
                     engine: id.clone(),
                     tab: tab.clone(),
                     fen: proc.options.fen.clone(),
+                    moves: proc.options.moves.clone(),
                     progress: 100.0,
                 }
                 .emit_all(&app)?;
@@ -516,6 +542,7 @@ pub struct MoveAnalysis {
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisOptions {
     pub fen: String,
+    pub moves: Vec<String>,
     pub annotate_novelties: bool,
     pub reference_db: Option<PathBuf>,
     pub reversed: bool,
@@ -524,7 +551,6 @@ pub struct AnalysisOptions {
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(
-    moves: Vec<String>,
     engine: String,
     go_mode: GoMode,
     options: AnalysisOptions,
@@ -539,11 +565,11 @@ pub async fn analyze_game(
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
     let mut chess: Chess = fen.clone().into_position(CastlingMode::Standard)?;
-    let mut fens: Vec<(Fen, bool)> = vec![(fen, false)];
+    let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
-    moves.iter().for_each(|m| {
-        let san = San::from_ascii(m.as_bytes()).unwrap();
-        let m = san.to_move(&chess).unwrap();
+    options.moves.iter().enumerate().for_each(|(i, m)| {
+        let uci = Uci::from_ascii(m.as_bytes()).unwrap();
+        let m = uci.to_move(&chess).unwrap();
         let previous_pos = chess.clone();
         chess.play_unchecked(&m);
         let current_pos = chess.clone();
@@ -552,6 +578,7 @@ pub async fn analyze_game(
             let cur_eval = -naive_eval(&current_pos);
             fens.push((
                 Fen::from_position(current_pos, EnPassantMode::Legal),
+                options.moves.clone().into_iter().take(i + 1).collect(),
                 prev_eval > cur_eval + 100,
             ));
         }
@@ -563,7 +590,7 @@ pub async fn analyze_game(
 
     let mut novelty_found = false;
 
-    for (i, (fen, _)) in fens.iter().enumerate() {
+    for (i, (_, moves, _)) in fens.iter().enumerate() {
         app.emit_all(
             "report_progress",
             ProgressPayload {
@@ -577,7 +604,8 @@ pub async fn analyze_game(
             threads: 4,
             multipv: 2,
             hash: 16,
-            fen: fen.to_string(),
+            fen: options.fen.clone(),
+            moves: moves.clone(),
             extra_options: Vec::new(),
         })
         .await?;
@@ -588,7 +616,9 @@ pub async fn analyze_game(
         while let Ok(Some(line)) = reader.next_line().await {
             match parse_one(&line) {
                 UciMessage::Info(attrs) => {
-                    if let Ok(best_moves) = parse_uci_attrs(attrs, &proc.options.fen.parse()?) {
+                    if let Ok(best_moves) =
+                        parse_uci_attrs(attrs, &proc.options.fen.parse()?, moves)
+                    {
                         let multipv = best_moves.multipv;
                         let cur_depth = best_moves.depth;
                         if multipv as usize == proc.best_moves.len() + 1 {
@@ -624,7 +654,7 @@ pub async fn analyze_game(
         let fen = &fens[i].0;
         let query = PositionQuery::exact_from_fen(&fen.to_string())?;
 
-        analysis.is_sacrifice = fens[i].1;
+        analysis.is_sacrifice = fens[i].2;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
                 analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;

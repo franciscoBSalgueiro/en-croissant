@@ -18,8 +18,8 @@ import {
 import { MantineColor } from "@mantine/core";
 import { Score, commands } from "@/bindings";
 import { isPawns, parseComment } from "chessops/pgn";
-import { Color, Role, makeSquare } from "chessops";
-import { INITIAL_FEN, parseFen } from "chessops/fen";
+import { Color, Role, makeSquare, makeUci, parseSquare } from "chessops";
+import { INITIAL_FEN, parseFen, parsePiece } from "chessops/fen";
 
 export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
 
@@ -168,7 +168,35 @@ export function getMainLine(root: TreeNode): string[] {
     while (node.children.length > 0) {
         node = node.children[0];
         if (node.move) {
-            moves.push(node.move.san);
+            moves.push(
+                makeUci({
+                    from: parseSquare(node.move.from),
+                    to: parseSquare(node.move.to),
+                    promotion: node.move.promotion
+                        ? parsePiece(node.move.promotion)?.role
+                        : undefined,
+                })
+            );
+        }
+    }
+    return moves;
+}
+
+export function getVariationLine(root: TreeNode, position: number[]): string[] {
+    const moves = [];
+    let node = root;
+    for (const pos of position) {
+        node = node.children[pos];
+        if (node.move) {
+            moves.push(
+                makeUci({
+                    from: parseSquare(node.move.from),
+                    to: parseSquare(node.move.to),
+                    promotion: node.move.promotion
+                        ? parsePiece(node.move.promotion)?.role
+                        : undefined,
+                })
+            );
         }
     }
     return moves;

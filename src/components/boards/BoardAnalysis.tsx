@@ -38,7 +38,7 @@ import {
 import { saveToFile } from "@/utils/tabs";
 import EditingCard from "./EditingCard";
 import ReportModal from "../panels/analysis/ReportModal";
-import { getMainLine } from "@/utils/chess";
+import { getMainLine, getVariationLine } from "@/utils/chess";
 import { keyMapAtom } from "@/atoms/keybinds";
 
 function BoardAnalysis() {
@@ -55,7 +55,12 @@ function BoardAnalysis() {
   const { dirty, root, position, headers } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
 
-  const arrows = useAtomValue(bestMovesFamily(currentNode.fen));
+  const arrows = useAtomValue(
+    bestMovesFamily({
+      fen: root.fen,
+      gameMoves: getVariationLine(root, position),
+    })
+  );
 
   const saveFile = useCallback(async () => {
     saveToFile({

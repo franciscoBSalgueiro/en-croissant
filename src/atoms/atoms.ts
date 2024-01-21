@@ -284,39 +284,41 @@ export const engineMovesFamily = atomFamily(
 );
 
 // returns the best moves of each engine for the current position
-export const bestMovesFamily = atomFamily((fen: string) =>
-    atom<Map<number, string[]>>((get) => {
-        const tab = get(activeTabAtom);
-        if (!tab) return new Map();
-        const engines = get(loadableEnginesAtom);
-        if (!(engines.state === "hasData")) return new Map();
-        const bestMoves = new Map<number, string[]>();
-        let n = 0;
-        for (const engine of engines.data.filter((e) => e.loaded)) {
-            const engineMoves = get(
-                engineMovesFamily({ tab, engine: engine.name })
-            );
-            const moves = engineMoves.get(fen);
-            if (moves && moves.length > 0) {
-                const bestWinChange = getWinChance(
-                    normalizeScore(moves[0].score, "white")
+export const bestMovesFamily = atomFamily(
+    ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
+        atom<Map<number, string[]>>((get) => {
+            const tab = get(activeTabAtom);
+            if (!tab) return new Map();
+            const engines = get(loadableEnginesAtom);
+            if (!(engines.state === "hasData")) return new Map();
+            const bestMoves = new Map<number, string[]>();
+            let n = 0;
+            for (const engine of engines.data.filter((e) => e.loaded)) {
+                const engineMoves = get(
+                    engineMovesFamily({ tab, engine: engine.name })
                 );
-                bestMoves.set(
-                    n,
-                    moves
-                        .filter((m) => {
-                            const winChance = getWinChance(
-                                normalizeScore(m.score, "white")
-                            );
-                            return winChance >= bestWinChange - 5;
-                        })
-                        .map((m) => m.uciMoves[0])
-                );
+                const moves = engineMoves.get(fen + ":" + gameMoves.join(","));
+                if (moves && moves.length > 0) {
+                    const bestWinChange = getWinChance(
+                        normalizeScore(moves[0].score, "white")
+                    );
+                    bestMoves.set(
+                        n,
+                        moves
+                            .filter((m) => {
+                                const winChance = getWinChance(
+                                    normalizeScore(m.score, "white")
+                                );
+                                return winChance >= bestWinChange - 5;
+                            })
+                            .map((m) => m.uciMoves[0])
+                    );
+                }
+                n++;
             }
-            n++;
-        }
-        return bestMoves;
-    })
+            return bestMoves;
+        }),
+    (a, b) => a.fen === b.fen && a.gameMoves.join(",") === b.gameMoves.join(",")
 );
 
 export const tabEngineSettingsFamily = atomFamily(
