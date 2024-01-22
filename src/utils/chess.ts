@@ -121,24 +121,18 @@ export function getMoveText(
       const arrows = tree.shapes.filter((shape) => shape.dest !== undefined);
 
       if (squares.length > 0) {
-        content +=
-          "[%csl " +
-          squares
-            .map((shape) => {
-              return shape.brush[0].toUpperCase() + shape.orig;
-            })
-            .join(",") +
-          "]";
+        content += `[%csl ${squares
+          .map((shape) => {
+            return shape.brush[0].toUpperCase() + shape.orig;
+          })
+          .join(",")}]`;
       }
       if (arrows.length > 0) {
-        content +=
-          "[%cal " +
-          arrows
-            .map((shape) => {
-              return shape.brush[0].toUpperCase() + shape.orig + shape.dest;
-            })
-            .join(",") +
-          "]";
+        content += `[%cal ${arrows
+          .map((shape) => {
+            return shape.brush[0].toUpperCase() + shape.orig + shape.dest;
+          })
+          .join(",")}]`;
       }
     }
 
@@ -218,7 +212,7 @@ export function getPGN(
   }
   if (root && tree.fen !== INITIAL_FEN) {
     pgn += '[SetUp "1"]\n';
-    pgn += '[FEN "' + tree.fen + '"]\n';
+    pgn += `[FEN "${tree.fen}"]\n`;
   }
   pgn += "\n";
   if (root && tree.commentText !== null) {
@@ -268,7 +262,7 @@ export function getPGN(
     });
   }
   if (root) {
-    pgn += " " + headers?.result ?? "*";
+    pgn += ` ${headers?.result}` ?? "*";
   }
   return pgn.trim();
 }
@@ -333,9 +327,8 @@ export async function getOpening(
       return "";
     }
     return getOpening(root, position.slice(0, -1));
-  } else {
-    return res.data;
   }
+  return res.data;
 }
 
 type Token =
@@ -422,7 +415,6 @@ function innerParsePGN(
         prevNode.children.push(newTree.root.children[0]);
       }
     } else if (token.type === "ParenClose") {
-      continue;
     } else if (token.type === "Nag") {
       root.annotation = NAG_INFO.get(token.value) || "";
     } else if (token.type === "San") {
@@ -600,7 +592,7 @@ export function getGameStats(tree: TreeNode) {
         blackAnnotations[tree.annotation]++;
       }
     }
-    const color = tree.halfMoves % 2 == 1 ? "white" : "black";
+    const color = tree.halfMoves % 2 === 1 ? "white" : "black";
     if (tree.score) {
       cplosses[color].push(getCPLoss(prevScore, tree.score, color));
       accuracies[color].push(getAccuracy(prevScore, tree.score, color));

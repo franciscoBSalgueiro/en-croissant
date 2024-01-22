@@ -43,16 +43,15 @@ function AddPuzzle({
     >
       <ScrollArea.Autosize mah={500} offsetScrollbars>
         <Stack>
-          {dbs &&
-            dbs.map((db, i) => (
-              <PuzzleDbCard
-                puzzleDb={db}
-                databaseId={i}
-                key={i}
-                setPuzzleDbs={setPuzzleDbs}
-                initInstalled={puzzleDbs.some((e) => e.title === db.title)}
-              />
-            ))}
+          {dbs?.map((db, i) => (
+            <PuzzleDbCard
+              puzzleDb={db}
+              databaseId={i}
+              key={i}
+              setPuzzleDbs={setPuzzleDbs}
+              initInstalled={puzzleDbs.some((e) => e.title === db.title)}
+            />
+          ))}
           {error && (
             <Alert
               icon={<IconAlertCircle size="1rem" />}
@@ -83,7 +82,7 @@ function PuzzleDbCard({
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(await appDataDir(), "puzzles", name + ".db3");
+    const path = await resolve(await appDataDir(), "puzzles", `${name}.db3`);
     await invoke("download_file", {
       id,
       url,

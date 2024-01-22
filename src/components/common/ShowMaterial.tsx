@@ -47,7 +47,7 @@ export default function ShowMaterial({
         {compare(pieces.r) && rooks}
         {compare(pieces.q) && queens}
       </Group>
-      {compare(diff) && "+" + Math.abs(diff)}
+      {compare(diff) && `+${Math.abs(diff)}`}
     </Group>
   );
 }

@@ -74,7 +74,7 @@ export async function getChessComAccount(
     );
     notifications.show({
       title: "Failed to fetch Chess.com account",
-      message: 'Could not find account "' + player + '" on chess.com',
+      message: `Could not find account "${player}" on chess.com`,
       color: "red",
       icon: <IconX />,
     });
@@ -88,7 +88,7 @@ export async function getChessComAccount(
     );
     notifications.show({
       title: "Failed to fetch Chess.com account",
-      message: 'Invalid response for "' + player + '" on chess.com',
+      message: `Invalid response for "${player}" on chess.com`,
       color: "red",
       icon: <IconX />,
     });
@@ -133,11 +133,7 @@ export async function downloadChessCom(
       );
       notifications.show({
         title: "Failed to fetch Chess.com games",
-        message:
-          'Could not find games for "' +
-          player +
-          '" on chess.com for ' +
-          archive,
+        message: `Could not find games for "${player}" on chess.com for ${archive}`,
         color: "red",
         icon: <IconX />,
       });
@@ -145,11 +141,11 @@ export async function downloadChessCom(
     }
 
     for (const game of games.data.games.filter((g) => g.pgn)) {
-      totalPGN += "\n" + game.pgn;
+      totalPGN += `\n${game.pgn}`;
     }
   }
   writeTextFile(
-    await resolve(await appDataDir(), "db", player + "_chesscom.pgn"),
+    await resolve(await appDataDir(), "db", `${player}_chesscom.pgn`),
     totalPGN,
   );
 }

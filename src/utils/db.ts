@@ -206,7 +206,7 @@ export function useDefaultDatabases(opened: boolean) {
     opened ? "default-dbs" : null,
     async () => {
       const data = await fetch<DatabaseInfo[]>(
-        `https://www.encroissant.org/databases`,
+        "https://www.encroissant.org/databases",
         {
           method: "GET",
         },
@@ -226,7 +226,7 @@ export function useDefaultDatabases(opened: boolean) {
 
 export async function getDefaultPuzzleDatabases(): Promise<PuzzleDatabase[]> {
   const data = await fetch<PuzzleDatabase[]>(
-    `https://www.encroissant.org/puzzle_databases`,
+    "https://www.encroissant.org/puzzle_databases",
     {
       method: "GET",
     },

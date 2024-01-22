@@ -93,7 +93,7 @@ function GameSelectorAccordion({
       return;
     }
 
-    const data = await read_games(currentTab!.file!.path, page, page);
+    const data = await read_games(currentTab?.file?.path, page, page);
     const tree = await parsePGN(data[0]);
     dispatch({
       type: "SET_STATE",
@@ -110,13 +110,13 @@ function GameSelectorAccordion({
 
     setMissingMoves((prev) => ({
       ...prev,
-      [currentTab!.value]: null,
+      [currentTab?.value]: null,
     }));
   }
 
   async function deleteGame(index: number) {
     await invoke("delete_game", {
-      file: currentTab!.file!.path,
+      file: currentTab?.file?.path,
       n: index,
     });
     setCurrentTab((prev) => {

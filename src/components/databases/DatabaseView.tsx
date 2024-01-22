@@ -20,7 +20,7 @@ function DatabaseView() {
       {database && (
         <Stack h="100%" style={{ overflow: "hidden" }}>
           <Group align="center">
-            <Link onClick={() => setDatabase(null)} to={`/databases`}>
+            <Link onClick={() => setDatabase(null)} to={"/databases"}>
               <ActionIcon variant="default">
                 <IconArrowBackUp size="1rem" />
               </ActionIcon>

@@ -48,7 +48,7 @@ import PuzzleBoard from "./PuzzleBoard";
 function Puzzles({ id }: { id: string }) {
   const dispatch = useContext(TreeDispatchContext);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
-    key: id + "-puzzles",
+    key: `${id}-puzzles`,
     defaultValue: [],
   });
   const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);

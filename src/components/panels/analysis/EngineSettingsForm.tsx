@@ -56,7 +56,7 @@ function EngineSettingsForm({
     const defaultPath = await resolve(
       await appDataDir(),
       "presets",
-      engineName + ".json",
+      `${engineName}.json`,
     );
     const file = await save({
       defaultPath,
@@ -272,7 +272,7 @@ function AdvancedOptions({
                     newGo.t = v as "Depth" | "Time" | "Nodes" | "Infinite";
                     if (v === "Infinite") {
                       /// @ts-expect-error idk how to please ts here
-                      delete newGo.c;
+                      newGo.c = undefined;
                     }
                     return {
                       ...prev,

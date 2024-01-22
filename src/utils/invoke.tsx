@@ -12,7 +12,7 @@ export async function invoke<T>(
     return await invokeTauri<T>(name, payload);
   } catch (e) {
     if (typeof e === "string") {
-      if (allowedErrors && allowedErrors(e)) {
+      if (allowedErrors?.(e)) {
         return Promise.reject(e);
       }
       error(e);
@@ -32,14 +32,13 @@ type Result<T, E> = { status: "ok"; data: T } | { status: "error"; error: E };
 export function unwrap<T>(result: Result<T, string>): T {
   if (result.status === "ok") {
     return result.data;
-  } else {
-    error(result.error);
-    notifications.show({
-      title: "Error",
-      message: result.error,
-      color: "red",
-      icon: <IconX />,
-    });
-    throw result.error;
   }
+  error(result.error);
+  notifications.show({
+    title: "Error",
+    message: result.error,
+    color: "red",
+    icon: <IconX />,
+  });
+  throw result.error;
 }

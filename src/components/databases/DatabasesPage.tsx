@@ -89,7 +89,7 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          invoke("delete_database", { file: selectedDatabase!.file }).then(
+          invoke("delete_database", { file: selectedDatabase?.file }).then(
             () => {
               getDatabases().then((dbs) => {
                 setDatabases(dbs);
@@ -191,7 +191,7 @@ export default function DatabasesPage() {
                     <Text td="underline" span>
                       Reason:
                     </Text>
-                    {" " + selectedDatabase.error}
+                    {` ${selectedDatabase.error}`}
                   </Text>
 
                   <Text>

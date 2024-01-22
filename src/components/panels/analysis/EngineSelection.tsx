@@ -30,9 +30,10 @@ function EngineBox({
   const activeTab = useAtomValue(activeTabAtom);
 
   const { data: imageSrc } = useSWRImmutable(engine.image, async (image) => {
-    if (image && image.startsWith("http")) {
+    if (image?.startsWith("http")) {
       return image;
-    } else if (image) {
+    }
+    if (image) {
       return await convertFileSrc(image);
     }
   });

@@ -43,8 +43,8 @@ function fillMissingMonths(
   data: { name: string; data: MonthData }[],
 ): { name: string; data: { count: number; avg_elo: number | null } }[] {
   if (data.length === 0) return data;
-  const startDate = new Date(data[0].name + "-01");
-  const endDate = new Date(data[data.length - 1].name + "-01");
+  const startDate = new Date(`${data[0].name}-01`);
+  const endDate = new Date(`${data[data.length - 1].name}-01`);
   const months = [];
   const currDate = startDate;
 
@@ -58,9 +58,8 @@ function fillMissingMonths(
     const foundMonth = data.find((obj) => obj.name === month);
     if (foundMonth) {
       return foundMonth;
-    } else {
-      return { name: month, data: { count: 0, avg_elo: null } };
     }
+    return { name: month, data: { count: 0, avg_elo: null } };
   });
 
   return newData;

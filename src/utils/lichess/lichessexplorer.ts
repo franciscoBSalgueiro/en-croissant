@@ -38,16 +38,16 @@ export function getLichessGamesQueryParams(
       queryParams.push(`since=${getDateQueryString(options.since)}`);
     if (options.until)
       queryParams.push(`until=${getDateQueryString(options.until)}`);
-    if (options.moves != undefined && 0 <= options.moves)
+    if (options.moves !== undefined && 0 <= options.moves)
       queryParams.push(`moves=${options.moves}`);
     if (
-      options.topGames != undefined &&
+      options.topGames !== undefined &&
       0 <= options.topGames &&
       options.topGames <= 4
     )
       queryParams.push(`topGames=${options.topGames}`);
     if (
-      options.recentGames != undefined &&
+      options.recentGames !== undefined &&
       0 <= options.recentGames &&
       options.recentGames <= 4
     )
@@ -68,10 +68,10 @@ export function getMasterGamesQueryParams(
       queryParams.push(`since=${getDateQueryString(options.since)}`);
     if (options.until)
       queryParams.push(`until=${getDateQueryString(options.until)}`);
-    if (options.moves != undefined && 0 <= options.moves)
+    if (options.moves !== undefined && 0 <= options.moves)
       queryParams.push(`moves=${options.moves}`);
     if (
-      options.topGames != undefined &&
+      options.topGames !== undefined &&
       0 <= options.topGames &&
       options.topGames <= 15
     )

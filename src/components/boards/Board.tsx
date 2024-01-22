@@ -370,8 +370,8 @@ function Board({
               cancelMove={() => setPendingMove(null)}
               confirmMove={(p) => {
                 makeMove({
-                  from: pendingMove!.from,
-                  to: pendingMove!.to,
+                  from: pendingMove?.from,
+                  to: pendingMove?.to,
                   promotion: p,
                 });
               }}
@@ -593,7 +593,7 @@ function AnnotationHint({
                     dy="1"
                     floodOpacity="0.3"
                     stdDeviation="0"
-                  ></feDropShadow>
+                  />
                 </filter>
               </defs>
               <g>{glyphToSvg[annotation]}</g>

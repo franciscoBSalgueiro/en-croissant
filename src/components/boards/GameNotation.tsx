@@ -338,7 +338,7 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
         </Box>
       </>
     );
-  else return <></>;
+  return <></>;
 }
 
 export default memo(GameNotation);

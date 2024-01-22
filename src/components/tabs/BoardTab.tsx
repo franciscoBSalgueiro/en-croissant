@@ -62,14 +62,14 @@ export function BoardTab({
             </ActionIcon>
           }
           onPointerDown={(e) => {
-            if (e.button == 0) {
+            if (e.button === 0) {
               setActiveTab(tab.value);
             }
           }}
           onDoubleClick={() => toggleRenaming(true)}
           onAuxClick={(e) => {
             // middle button click
-            if (e.button == 1) {
+            if (e.button === 1) {
               closeTab(tab.value);
             }
           }}

@@ -91,16 +91,15 @@ function AddDatabase({
           )}
           <ScrollArea.Autosize h={500} offsetScrollbars>
             <Stack>
-              {defaultDatabases &&
-                defaultDatabases.map((db, i) => (
-                  <DatabaseCard
-                    database={db}
-                    databaseId={i}
-                    key={i}
-                    setDatabases={setDatabases}
-                    initInstalled={databases.some((e) => e.title === db.title)}
-                  />
-                ))}
+              {defaultDatabases?.map((db, i) => (
+                <DatabaseCard
+                  database={db}
+                  databaseId={i}
+                  key={i}
+                  setDatabases={setDatabases}
+                  initInstalled={databases.some((e) => e.title === db.title)}
+                />
+              ))}
               {error && (
                 <Alert
                   icon={<IconAlertCircle size="1rem" />}
@@ -180,7 +179,7 @@ function DatabaseCard({
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(await appDataDir(), "db", name + ".db3");
+    const path = await resolve(await appDataDir(), "db", `${name}.db3`);
     await invoke("download_file", {
       id,
       url,

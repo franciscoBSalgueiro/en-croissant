@@ -49,10 +49,15 @@ export async function openingReport({
 
   for (const item of tree) {
     setProgress((i++ / tree.length) * 100);
+    let isIgnored = false;
     for (const p of ignoredPositions) {
       if (isPrefix(p, item.position)) {
-        continue;
+        isIgnored = true;
+        break;
       }
+    }
+    if (isIgnored) {
+      continue;
     }
 
     if (

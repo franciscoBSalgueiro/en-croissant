@@ -127,7 +127,7 @@ function Databases() {
     databases ? ["personalInfo", databases] : null,
     async () => {
       const newInfo: PersonalInfo[] = await Promise.all(
-        databases!.map(async (db, i) => {
+        databases?.map(async (db, i) => {
           let player: Player | null = null;
           const players = await query_players(db.file, {
             name: db.username,

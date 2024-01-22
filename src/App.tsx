@@ -321,7 +321,7 @@ function ErrorBoundary() {
       )}
       <Group>
         {error instanceof Error && (
-          <CopyButton value={error.message + "\n" + error.stack}>
+          <CopyButton value={`${error.message}\n${error.stack}`}>
             {({ copied, copy }) => (
               <Button color={copied ? "teal" : undefined} onClick={copy}>
                 {copied ? "Copied" : "Copy stack strace"}
@@ -372,9 +372,9 @@ export default function App() {
       const detach = await attachConsole();
 
       const matches = await getMatches();
-      if (matches.args["file"].occurrences > 0) {
-        if (typeof matches.args["file"].value !== "string") return;
-        const file = matches.args["file"].value;
+      if (matches.args.file.occurrences > 0) {
+        if (typeof matches.args.file.value !== "string") return;
+        const file = matches.args.file.value;
         router.navigate("/boards", { replace: true });
         openFile(file, setTabs, setActiveTab);
       }

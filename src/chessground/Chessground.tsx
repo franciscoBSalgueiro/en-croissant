@@ -9,10 +9,10 @@ export function Chessground(props: Config) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ref && ref.current && !api) {
+    if (ref?.current && !api) {
       const chessgroundApi = NativeChessground(ref.current, props);
       setApi(chessgroundApi);
-    } else if (ref && ref.current && api) {
+    } else if (ref?.current && api) {
       api.set(props);
     }
   }, [api, props, ref]);

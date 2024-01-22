@@ -46,9 +46,8 @@ function AnalysisRow({
             const move_number = Math.ceil(total_moves / 2);
             return (
               <React.Fragment key={index + move}>
-                {(index === 0 || is_white) && (
-                  <>{`${move_number.toString()}${is_white ? "." : "..."}`}</>
-                )}
+                {(index === 0 || is_white) &&
+                  `${move_number.toString()}${is_white ? "." : "..."}`}
                 <MoveCell
                   move={move}
                   isCurrentVariation={false}
@@ -73,7 +72,7 @@ function AnalysisRow({
         <ActionIcon
           style={{
             transition: "transform 200ms ease",
-            transform: open ? `rotate(180deg)` : "none",
+            transform: open ? "rotate(180deg)" : "none",
           }}
           onClick={() => setOpen(!open)}
         >
