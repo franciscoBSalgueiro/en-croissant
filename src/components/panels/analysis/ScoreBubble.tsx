@@ -1,6 +1,6 @@
-import { Box, Text } from "@mantine/core";
-import { formatScore } from "@/utils/score";
 import { Score } from "@/bindings";
+import { formatScore } from "@/utils/score";
+import { Box, Text } from "@mantine/core";
 
 function ScoreBubble({ size, score }: { size: "sm" | "md"; score: Score }) {
   const text = formatScore(score);

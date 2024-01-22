@@ -1,3 +1,5 @@
+import { currentTabAtom } from "@/atoms/atoms";
+import { Annotation } from "@/utils/chess";
 import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
 import {
@@ -6,12 +8,10 @@ import {
   IconFlag,
   IconX,
 } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
-import { Annotation } from "@/utils/chess";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
-import { useAtomValue } from "jotai";
-import { currentTabAtom } from "@/atoms/atoms";
 
 function CompleteMoveCell({
   movePath,

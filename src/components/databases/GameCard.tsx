@@ -1,5 +1,5 @@
-import { Divider, Paper, Stack } from "@mantine/core";
 import { NormalizedGame } from "@/utils/db";
+import { Divider, Paper, Stack } from "@mantine/core";
 import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
 

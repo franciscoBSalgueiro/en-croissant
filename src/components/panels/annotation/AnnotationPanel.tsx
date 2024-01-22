@@ -1,4 +1,10 @@
 import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
+import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import {
   ActionIcon,
   Group,
   ScrollArea,
@@ -7,12 +13,6 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { memo, useContext } from "react";
-import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
-import { getNodeAtPath } from "@/utils/treeReducer";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
 import AnnotationEditor from "./AnnotationEditor";
 
 const SymbolButton = memo(function SymbolButton({

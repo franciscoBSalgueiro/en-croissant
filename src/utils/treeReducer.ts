@@ -1,12 +1,12 @@
+import { BestMoves, Score } from "@/bindings";
 import { Chess, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
+import { INITIAL_FEN, parseFen } from "chessops/fen";
+import { match } from "ts-pattern";
 import { Annotation } from "./chess";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
-import { match } from "ts-pattern";
-import { BestMoves, Score } from "@/bindings";
-import { INITIAL_FEN, parseFen } from "chessops/fen";
 
 export interface TreeState {
   root: TreeNode;

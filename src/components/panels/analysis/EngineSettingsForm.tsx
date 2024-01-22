@@ -1,4 +1,5 @@
 import { enginesAtom } from "@/atoms/atoms";
+import { EngineSettings } from "@/utils/engines";
 import {
   ActionIcon,
   Button,
@@ -14,9 +15,6 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import React, { memo, useState } from "react";
-import DepthSlider from "./DepthSlider";
-import LinesSlider from "./LinesSlider";
 import {
   IconDownload,
   IconPlus,
@@ -24,13 +22,15 @@ import {
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
-import HashSlider from "./HashSlider";
-import { save, open } from "@tauri-apps/api/dialog";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { open, save } from "@tauri-apps/api/dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
+import React, { memo, useState } from "react";
 import CoresSlider from "./CoresSlider";
-import { EngineSettings } from "@/utils/engines";
+import DepthSlider from "./DepthSlider";
+import HashSlider from "./HashSlider";
+import LinesSlider from "./LinesSlider";
 
 interface EngineSettingsProps {
   engineName: string;

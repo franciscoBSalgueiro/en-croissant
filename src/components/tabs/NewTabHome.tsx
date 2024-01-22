@@ -7,10 +7,10 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Button, Card, SimpleGrid, Stack, Text } from "@mantine/core";
 
-import { useState } from "react";
+import { tabsAtom } from "@/atoms/atoms";
 import { Tab } from "@/utils/tabs";
 import { useAtom } from "jotai";
-import { tabsAtom } from "@/atoms/atoms";
+import { useState } from "react";
 import ImportModal from "./ImportModal";
 
 export default function NewTabHome({ id }: { id: string }) {

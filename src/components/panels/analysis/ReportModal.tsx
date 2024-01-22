@@ -1,3 +1,8 @@
+import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
+import { GoMode, commands } from "@/bindings";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { LocalEngine } from "@/utils/engines";
+import { unwrap } from "@/utils/invoke";
 import {
   Button,
   Checkbox,
@@ -8,13 +13,8 @@ import {
   Stack,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { memo, useContext } from "react";
-import { unwrap } from "@/utils/invoke";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { useAtomValue } from "jotai";
-import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
-import { GoMode, commands } from "@/bindings";
-import { LocalEngine } from "@/utils/engines";
+import { memo, useContext } from "react";
 
 function ReportModal({
   initialFen,

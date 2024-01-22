@@ -1,18 +1,18 @@
-import { ActionIcon, Group, Text } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
-import { useCallback, useEffect } from "react";
-import InfiniteLoader from "react-window-infinite-loader";
+import { currentPracticingAtom } from "@/atoms/atoms";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { getGameName } from "@/utils/treeReducer";
-import ConfirmModal from "@/components/common/ConfirmModal";
+import { ActionIcon, Group, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { useSetAtom } from "jotai";
-import { currentPracticingAtom } from "@/atoms/atoms";
+import { IconX } from "@tabler/icons-react";
 import cx from "clsx";
+import { useSetAtom } from "jotai";
+import { useCallback, useEffect } from "react";
+import InfiniteLoader from "react-window-infinite-loader";
 import * as classes from "./GameSelector.css";
-import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 
 export default function GameSelector({
   games,

@@ -1,15 +1,16 @@
 import {
-  showArrowsAtom,
-  moveInputAtom,
   autoPromoteAtom,
   autoSaveAtom,
-  percentageCoverageAtom,
-  minimumGamesAtom,
   forcedEnPassantAtom,
-  showDestsAtom,
-  showCoordinatesAtom,
+  minimumGamesAtom,
+  moveInputAtom,
   nativeBarAtom,
+  percentageCoverageAtom,
+  showArrowsAtom,
+  showCoordinatesAtom,
+  showDestsAtom,
 } from "@/atoms/atoms";
+import { keyMapAtom } from "@/atoms/keybinds";
 import {
   ActionIcon,
   Card,
@@ -22,11 +23,6 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import ColorControl from "./ColorControl";
-import SettingsNumberInput from "./SettingsNumberInput";
-import SettingsSwitch from "./SettingsSwitch";
-import ThemeButton from "./ThemeButton";
-import { useLoaderData } from "react-router-dom";
 import {
   IconBook,
   IconBrush,
@@ -35,13 +31,17 @@ import {
   IconKeyboard,
   IconReload,
 } from "@tabler/icons-react";
+import { useAtom } from "jotai";
+import { RESET } from "jotai/utils";
+import { useLoaderData } from "react-router-dom";
+import ColorControl from "./ColorControl";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
-import { useAtom } from "jotai";
-import { keyMapAtom } from "@/atoms/keybinds";
-import { RESET } from "jotai/utils";
-import * as classes from "./SettingsPage.css";
 import PiecesSelect from "./PiecesSelect";
+import SettingsNumberInput from "./SettingsNumberInput";
+import * as classes from "./SettingsPage.css";
+import SettingsSwitch from "./SettingsSwitch";
+import ThemeButton from "./ThemeButton";
 
 export default function Page() {
   const version = useLoaderData() as string;

@@ -12,6 +12,8 @@ import { Tab, genID, tabSchema } from "@/utils/tabs";
 import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import { MantineColor } from "@mantine/core";
 
+import { OpponentSettings } from "@/components/boards/BoardGame";
+import { getWinChance, normalizeScore } from "@/utils/score";
 import { PrimitiveAtom, atom } from "jotai";
 import {
   atomFamily,
@@ -20,11 +22,9 @@ import {
   loadable,
 } from "jotai/utils";
 import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
-import { Session } from "../utils/session";
-import { OpponentSettings } from "@/components/boards/BoardGame";
-import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 import { z } from "zod";
-import { getWinChance, normalizeScore } from "@/utils/score";
+import { Session } from "../utils/session";
+import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;

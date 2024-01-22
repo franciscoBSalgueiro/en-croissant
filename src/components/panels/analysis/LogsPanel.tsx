@@ -1,24 +1,24 @@
 import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
+import { commands } from "@/bindings";
+import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
+import { LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import {
-  Group,
-  Text,
-  SegmentedControl,
   ActionIcon,
-  Table,
-  Select,
   Box,
+  Group,
+  SegmentedControl,
+  Select,
   Stack,
+  Table,
+  Text,
 } from "@mantine/core";
 import { IconFileExport, IconRefresh } from "@tabler/icons-react";
+import { save } from "@tauri-apps/api/dialog";
+import { writeTextFile } from "@tauri-apps/api/fs";
 import { useAtomValue } from "jotai";
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
-import { commands } from "@/bindings";
-import { LocalEngine } from "@/utils/engines";
-import { save } from "@tauri-apps/api/dialog";
-import { writeTextFile } from "@tauri-apps/api/fs";
-import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);

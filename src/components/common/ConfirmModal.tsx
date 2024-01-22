@@ -1,4 +1,4 @@
-import { Modal, Stack, Group, Button, Text } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 
 function ConfirmModal({
   title,

@@ -1,3 +1,5 @@
+import { enginesAtom } from "@/atoms/atoms";
+import { Engine } from "@/utils/engines";
 import {
   ActionIcon,
   Box,
@@ -10,6 +12,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import {
   IconCloud,
   IconEdit,
@@ -17,17 +20,14 @@ import {
   IconRobot,
   IconX,
 } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
-import { Engine } from "@/utils/engines";
-import OpenFolderButton from "../common/OpenFolderButton";
-import AddEngine from "./AddEngine";
-import { useToggle } from "@mantine/hooks";
-import ConfirmModal from "../common/ConfirmModal";
-import EditEngine from "./EditEngine";
 import { exists } from "@tauri-apps/api/fs";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
-import { enginesAtom } from "@/atoms/atoms";
+import { useEffect, useState } from "react";
+import ConfirmModal from "../common/ConfirmModal";
+import OpenFolderButton from "../common/OpenFolderButton";
+import AddEngine from "./AddEngine";
+import EditEngine from "./EditEngine";
 
 export default function EnginesPage() {
   const engines = useAtomValue(enginesAtom);

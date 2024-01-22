@@ -1,10 +1,10 @@
+import { squareToCoordinates } from "@/utils/chessops";
 import { ActionIcon, SimpleGrid } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
-import { memo } from "react";
-import Piece from "../common/Piece";
 import { Color } from "chessground/types";
 import { NormalMove, Role } from "chessops";
-import { squareToCoordinates } from "@/utils/chessops";
+import { memo } from "react";
+import Piece from "../common/Piece";
 
 const PromotionModal = memo(function PromotionModal({
   pendingMove,

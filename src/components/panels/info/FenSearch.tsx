@@ -1,4 +1,6 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { chessopsError } from "@/utils/chessops";
+import { invoke } from "@/utils/invoke";
 import {
   Combobox,
   Group,
@@ -8,10 +10,8 @@ import {
   Text,
   useCombobox,
 } from "@mantine/core";
-import { invoke } from "@/utils/invoke";
-import { useState, useContext, useEffect, useRef } from "react";
 import { FenError, parseFen } from "chessops/fen";
-import { chessopsError } from "@/utils/chessops";
+import { useContext, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 
 export default function FenSearch({ currentFen }: { currentFen: string }) {

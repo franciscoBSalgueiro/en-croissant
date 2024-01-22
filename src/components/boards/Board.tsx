@@ -11,6 +11,7 @@ import {
   showCoordinatesAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
+import { keyMapAtom } from "@/atoms/keybinds";
 import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
 import {
@@ -23,6 +24,12 @@ import {
   parseTimeControl,
   parseUci,
 } from "@/utils/chess";
+import {
+  chessopsError,
+  forceEnPassant,
+  positionFromFen,
+  squareToCoordinates,
+} from "@/utils/chessops";
 import { GameHeaders, TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -35,7 +42,6 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
-import { useHotkeys } from "react-hotkeys-hook";
 import {
   IconDeviceFloppy,
   IconEdit,
@@ -46,27 +52,21 @@ import {
 } from "@tabler/icons-react";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useContext, useMemo, useState } from "react";
-import { TreeDispatchContext } from "../common/TreeStateContext";
-import { updateCardPerformance } from "../files/opening";
-import EvalBar from "./EvalBar";
-import PromotionModal from "./PromotionModal";
-import * as classes from "./Board.css";
-import { match } from "ts-pattern";
-import { arrowColors } from "../panels/analysis/BestMoves";
-import { keyMapAtom } from "@/atoms/keybinds";
 import { NormalMove, Square, SquareName, parseSquare } from "chessops";
 import { chessgroundDests } from "chessops/compat";
-import { makeSan } from "chessops/san";
-import {
-  forceEnPassant,
-  chessopsError,
-  squareToCoordinates,
-  positionFromFen,
-} from "@/utils/chessops";
 import { makeFen, parseFen } from "chessops/fen";
+import { makeSan } from "chessops/san";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { memo, useContext, useMemo, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { match } from "ts-pattern";
 import ShowMaterial from "../common/ShowMaterial";
+import { TreeDispatchContext } from "../common/TreeStateContext";
+import { updateCardPerformance } from "../files/opening";
+import { arrowColors } from "../panels/analysis/BestMoves";
+import * as classes from "./Board.css";
+import EvalBar from "./EvalBar";
+import PromotionModal from "./PromotionModal";
 
 interface ChessboardProps {
   dirty: boolean;

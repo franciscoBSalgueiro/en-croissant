@@ -1,4 +1,18 @@
 import {
+  activeTabAtom,
+  allEnabledAtom,
+  currentAnalysisTabAtom,
+  enableAllAtom,
+  engineMovesFamily,
+  enginesAtom,
+} from "@/atoms/atoms";
+import EvalChart from "@/components/common/EvalChart";
+import ProgressButton from "@/components/common/ProgressButton";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
+import { Engine } from "@/utils/engines";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import {
   Accordion,
   Box,
   Button,
@@ -17,27 +31,13 @@ import {
   IconPlayerPause,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
-import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
-import { getNodeAtPath } from "@/utils/treeReducer";
-import ProgressButton from "@/components/common/ProgressButton";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
+import React from "react";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
-import React from "react";
-import {
-  activeTabAtom,
-  allEnabledAtom,
-  currentAnalysisTabAtom,
-  enableAllAtom,
-  engineMovesFamily,
-  enginesAtom,
-} from "@/atoms/atoms";
-import { useAtom, useAtomValue } from "jotai";
 import LogsPanel from "./LogsPanel";
-import EvalChart from "@/components/common/EvalChart";
 import ScoreBubble from "./ScoreBubble";
-import { Engine } from "@/utils/engines";
 
 function AnalysisPanel({
   toggleReportingMode,

@@ -1,3 +1,7 @@
+import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
+import { DatabaseInfo, getDatabases } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { invoke } from "@/utils/invoke";
 import {
   Badge,
   Box,
@@ -9,25 +13,21 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Textarea,
   TextInput,
+  Textarea,
   Title,
   Tooltip,
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconDatabase, IconStar } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { DatabaseInfo, getDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { Link } from "react-router-dom";
+import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
 import ConvertButton from "./ConvertButton";
-import { useAtom } from "jotai";
-import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
-import ConfirmModal from "../common/ConfirmModal";
 
 export default function DatabasesPage() {
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);

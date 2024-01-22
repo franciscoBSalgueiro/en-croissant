@@ -1,9 +1,9 @@
-import { Group, Code, ActionIcon, Divider, Text, Tooltip } from "@mantine/core";
-import { IconReload } from "@tabler/icons-react";
+import { currentTabAtom } from "@/atoms/atoms";
 import { count_pgn_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
+import { ActionIcon, Code, Divider, Group, Text, Tooltip } from "@mantine/core";
+import { IconReload } from "@tabler/icons-react";
 import { useAtom } from "jotai";
-import { currentTabAtom } from "@/atoms/atoms";
 
 function FileInfo({
   setGames,

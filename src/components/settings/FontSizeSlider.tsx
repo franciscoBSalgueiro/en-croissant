@@ -1,7 +1,7 @@
 import { fontSizeAtom } from "@/atoms/atoms";
 import { Slider } from "@mantine/core";
 import { useAtom } from "jotai";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function FontSizeSlider() {
   const [fontSize, setFontSize] = useAtom(fontSizeAtom);

@@ -1,6 +1,6 @@
+import { Sides } from "@/utils/db";
 import { Box, Menu, UnstyledButton } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { Sides } from "@/utils/db";
 import * as classes from "./SideInput.css";
 
 const data = [

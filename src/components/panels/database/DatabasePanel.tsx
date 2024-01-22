@@ -1,15 +1,4 @@
 import {
-  Alert,
-  Group,
-  ScrollArea,
-  SegmentedControl,
-  Stack,
-  Tabs,
-  Text,
-} from "@mantine/core";
-import { memo, useEffect } from "react";
-import { Opening, searchPosition } from "@/utils/db";
-import {
   currentDbTabAtom,
   currentDbTypeAtom,
   currentLichessOptionsAtom,
@@ -18,27 +7,38 @@ import {
   currentTabAtom,
   referenceDbAtom,
 } from "@/atoms/atoms";
-import { useAtom, useAtomValue } from "jotai";
+import { Opening, searchPosition } from "@/utils/db";
+import { formatNumber } from "@/utils/format";
 import {
   convertToNormalized,
   getLichessGames,
   getMasterGames,
 } from "@/utils/lichess";
-import GamesTable from "./GamesTable";
-import OpeningsTable from "./OpeningsTable";
-import { match } from "ts-pattern";
-import useSWR from "swr/immutable";
-import { useDebouncedValue } from "@mantine/hooks";
-import NoDatabaseWarning from "./NoDatabaseWarning";
-import { formatNumber } from "@/utils/format";
-import DatabaseLoader from "./DatabaseLoader";
 import {
   LichessGamesOptions,
   MasterGamesOptions,
 } from "@/utils/lichess/lichessexplorer";
+import {
+  Alert,
+  Group,
+  ScrollArea,
+  SegmentedControl,
+  Stack,
+  Tabs,
+  Text,
+} from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
+import { useAtom, useAtomValue } from "jotai";
+import { memo, useEffect } from "react";
+import useSWR from "swr/immutable";
+import { match } from "ts-pattern";
+import DatabaseLoader from "./DatabaseLoader";
+import GamesTable from "./GamesTable";
+import NoDatabaseWarning from "./NoDatabaseWarning";
+import OpeningsTable from "./OpeningsTable";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
-import MasterOptionsPanel from "./options/MastersOptionsPanel";
 import LocalOptionsPanel from "./options/LocalOptionsPanel";
+import MasterOptionsPanel from "./options/MastersOptionsPanel";
 
 type DBType =
   | { type: "local"; options: LocalOptions }

@@ -1,6 +1,6 @@
 import { currentTabAtom } from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
-import { Modal, Stack, Group, Button, Text } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useContext } from "react";
 import { TreeDispatchContext } from "../common/TreeStateContext";

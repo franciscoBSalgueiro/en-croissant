@@ -8,9 +8,9 @@ import {
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
+import cx from "clsx";
 import { NavLink } from "react-router-dom";
 import * as classes from "./Sidebar.css";
-import cx from "clsx";
 
 interface NavbarLinkProps {
   icon: Icon;

@@ -1,4 +1,5 @@
-import { Progress, Text } from "@mantine/core";
+import { sessionsAtom } from "@/atoms/atoms";
+import { events, MonthData, Results, commands } from "@/bindings";
 import {
   DatabaseInfo as PlainDatabaseInfo,
   Player,
@@ -6,14 +7,13 @@ import {
   getDatabases,
   query_players,
 } from "@/utils/db";
-import { useAtomValue } from "jotai";
-import { sessionsAtom } from "@/atoms/atoms";
-import { Session } from "@/utils/session";
-import PersonalPlayerCard from "./PersonalCard";
-import useSWRImmutable from "swr/immutable";
-import { MonthData, Results, commands, events } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
+import { Session } from "@/utils/session";
+import { Progress, Text } from "@mantine/core";
+import { useAtomValue } from "jotai";
 import { useState } from "react";
+import useSWRImmutable from "swr/immutable";
+import PersonalPlayerCard from "./PersonalCard";
 
 interface DatabaseInfo extends PlainDatabaseInfo {
   username?: string;

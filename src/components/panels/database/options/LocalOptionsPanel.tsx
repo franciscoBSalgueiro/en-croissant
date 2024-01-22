@@ -1,18 +1,18 @@
+import { currentLocalOptionsAtom } from "@/atoms/atoms";
+import { Chessground } from "@/chessground/Chessground";
 import PiecesGrid from "@/components/boards/PiecesGrid";
 import {
-  Text,
-  Stack,
-  Group,
-  Button,
   Box,
+  Button,
+  Group,
   SegmentedControl,
+  Stack,
+  Text,
 } from "@mantine/core";
-import { useRef } from "react";
-import { Chessground } from "@/chessground/Chessground";
-import { useAtom } from "jotai";
-import { currentLocalOptionsAtom } from "@/atoms/atoms";
-import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
 import { parseSquare } from "chessops";
+import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
+import { useAtom } from "jotai";
+import { useRef } from "react";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
   const boardRef = useRef(null);

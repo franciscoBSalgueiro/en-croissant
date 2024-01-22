@@ -1,8 +1,8 @@
-import useSWR from "swr";
-import { invoke, unwrap } from "./invoke";
-import { fetch } from "@tauri-apps/api/http";
 import { BestMoves, EngineOptions, GoMode, commands } from "@/bindings";
+import { fetch } from "@tauri-apps/api/http";
+import useSWR from "swr";
 import { z } from "zod";
+import { invoke, unwrap } from "./invoke";
 
 const goModeSchema: z.ZodSchema<GoMode> = z.union([
   z.object({

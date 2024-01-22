@@ -4,9 +4,7 @@ export const commands = {
   async closeSplashscreen(): Promise<null> {
     return await TAURI_INVOKE("plugin:tauri-specta|close_splashscreen");
   },
-  async findFidePlayer(
-    player: string,
-  ): Promise<
+  async findFidePlayer(player: string): Promise<
     __Result__<
       {
         fideid: number;

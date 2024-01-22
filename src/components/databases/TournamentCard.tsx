@@ -1,11 +1,11 @@
-import { ActionIcon, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
-import { IconEye } from "@tabler/icons-react";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
-import { useEffect, useState } from "react";
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { NormalizedGame, Tournament, getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
+import { ActionIcon, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
+import { IconEye } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function PlayerCard({

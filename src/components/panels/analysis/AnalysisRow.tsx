@@ -1,11 +1,11 @@
-import { Flex, ActionIcon, Table, rem } from "@mantine/core";
-import { useState, useContext } from "react";
 import { Score } from "@/bindings";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import ScoreBubble from "./ScoreBubble";
-import React from "react";
+import { ActionIcon, Flex, Table, rem } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
+import { useContext, useState } from "react";
+import React from "react";
+import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({
   score,

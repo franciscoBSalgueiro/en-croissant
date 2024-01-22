@@ -1,11 +1,11 @@
 import { PiecesCount } from "@/utils/chess";
 import { Group } from "@mantine/core";
 import {
+  IconChessBishopFilled,
   IconChessFilled,
   IconChessKnightFilled,
-  IconChessBishopFilled,
-  IconChessRookFilled,
   IconChessQueenFilled,
+  IconChessRookFilled,
 } from "@tabler/icons-react";
 import { Color } from "chessops";
 

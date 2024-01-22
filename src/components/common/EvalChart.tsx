@@ -1,21 +1,21 @@
-import { useContext } from "react";
-import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
+import { ANNOTATION_INFO } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
+import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
+import { formatScore } from "@/utils/score";
+import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
+import { AreaChart } from "@mantine/charts";
 import {
   Box,
   LoadingOverlay,
   Paper,
-  useMantineTheme,
   Text,
+  useMantineTheme,
 } from "@mantine/core";
 import { Stack } from "@mantine/core";
-import { AreaChart } from "@mantine/charts";
-import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
-import { ANNOTATION_INFO } from "@/utils/chess";
-import { formatScore } from "@/utils/score";
-import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
-import { positionFromFen } from "@/utils/chessops";
-import * as classes from "./EvalChart.css";
+import { useContext } from "react";
 import { CategoricalChartState } from "recharts/types/chart/generateCategoricalChart";
+import * as classes from "./EvalChart.css";
+import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
 
 interface EvalChartProps {
   isAnalysing: boolean;

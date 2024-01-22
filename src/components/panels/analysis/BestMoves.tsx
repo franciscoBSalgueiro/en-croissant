@@ -3,9 +3,14 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { EngineOptions, GoMode, events } from "@/bindings";
+import { events, EngineOptions, GoMode } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
 import { swapMove } from "@/utils/chessops";
+import { chessopsError, positionFromFen } from "@/utils/chessops";
+import { Engine, LocalEngine, stopEngine } from "@/utils/engines";
+import { getBestMoves as localGetBestMoves } from "@/utils/engines";
+import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import {
@@ -39,15 +44,10 @@ import {
   useRef,
   useState,
 } from "react";
-import AnalysisRow from "./AnalysisRow";
-import EngineSettingsForm from "./EngineSettingsForm";
-import { Engine, LocalEngine, stopEngine } from "@/utils/engines";
-import { chessopsError, positionFromFen } from "@/utils/chessops";
-import * as classes from "./BestMoves.css";
 import { match } from "ts-pattern";
-import { getBestMoves as localGetBestMoves } from "@/utils/engines";
-import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
-import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
+import AnalysisRow from "./AnalysisRow";
+import * as classes from "./BestMoves.css";
+import EngineSettingsForm from "./EngineSettingsForm";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },

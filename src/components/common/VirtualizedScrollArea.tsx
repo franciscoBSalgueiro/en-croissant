@@ -1,8 +1,8 @@
-import { FixedSizeList, FixedSizeListProps } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { RefObject, useRef } from "react";
 import { ScrollArea } from "@mantine/core";
 import { mergeRefs } from "@mantine/hooks";
+import { RefObject, useRef } from "react";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList, FixedSizeListProps } from "react-window";
 
 export default function VirtualizedScrollArea(
   props: Omit<FixedSizeListProps, "height" | "width"> & {

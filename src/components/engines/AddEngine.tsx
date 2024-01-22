@@ -1,3 +1,7 @@
+import { enginesAtom } from "@/atoms/atoms";
+import { LocalEngine, RemoteEngine, useDefaultEngines } from "@/utils/engines";
+import { formatBytes } from "@/utils/format";
+import { invoke } from "@/utils/invoke";
 import {
   Alert,
   Box,
@@ -17,16 +21,12 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
+import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
-import { LocalEngine, RemoteEngine, useDefaultEngines } from "@/utils/engines";
-import { formatBytes } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
-import ProgressButton from "../common/ProgressButton";
 import useSWR from "swr";
 import { match } from "ts-pattern";
+import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
-import { useAtom } from "jotai";
-import { enginesAtom } from "@/atoms/atoms";
 
 function AddEngine({
   opened,

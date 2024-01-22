@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import {
   formatScore,
   getAccuracy,
@@ -5,7 +6,6 @@ import {
   getCPLoss,
   getWinChance,
 } from "../score";
-import { test, expect } from "vitest";
 
 test("should format a positive cp score correctly", () => {
   expect(formatScore({ type: "cp", value: 50 })).toBe("+0.50");

@@ -1,22 +1,22 @@
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { read_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
-  Stack,
-  Badge,
-  Group,
-  Text,
   ActionIcon,
-  Tooltip,
+  Badge,
   Box,
+  Group,
+  Stack,
+  Text,
+  Tooltip,
 } from "@mantine/core";
-import { FileMetadata } from "./file";
-import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
+import { IconEdit, IconEye } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { IconEdit, IconEye } from "@tabler/icons-react";
-import GameSelector from "../panels/info/GameSelector";
-import GamePreview from "../databases/GamePreview";
 import { useNavigate } from "react-router-dom";
+import GamePreview from "../databases/GamePreview";
+import GameSelector from "../panels/info/GameSelector";
+import { FileMetadata } from "./file";
 
 function FileCard({
   selected,

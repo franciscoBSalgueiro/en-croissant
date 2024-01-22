@@ -1,5 +1,5 @@
-import { Badge, DefaultMantineColor } from "@mantine/core";
 import { Speed } from "@/utils/db";
+import { Badge, DefaultMantineColor } from "@mantine/core";
 import { match } from "ts-pattern";
 
 function SpeeedBadge({ speed }: { speed: Speed }) {

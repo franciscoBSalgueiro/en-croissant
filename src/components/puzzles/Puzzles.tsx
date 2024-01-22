@@ -1,4 +1,21 @@
 import {
+  activeTabAtom,
+  currentPuzzleAtom,
+  selectedPuzzleDbAtom,
+  tabsAtom,
+} from "@/atoms/atoms";
+import { commands } from "@/bindings";
+import { parseUci } from "@/utils/chess";
+import { unwrap } from "@/utils/invoke";
+import {
+  Completion,
+  Puzzle,
+  PuzzleDatabase,
+  getPuzzleDatabases,
+} from "@/utils/puzzles";
+import { createTab } from "@/utils/tabs";
+import { defaultTree } from "@/utils/treeReducer";
+import {
   ActionIcon,
   Button,
   Center,
@@ -17,33 +34,16 @@ import {
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
-import { useContext, useEffect, useState } from "react";
-import { unwrap } from "@/utils/invoke";
-import {
-  Completion,
-  Puzzle,
-  PuzzleDatabase,
-  getPuzzleDatabases,
-} from "@/utils/puzzles";
-import PuzzleBoard from "./PuzzleBoard";
-import AddPuzzle from "./AddPuzzle";
-import ChallengeHistory from "../common/ChallengeHistory";
-import { commands } from "@/bindings";
-import { useAtom, useSetAtom } from "jotai";
-import {
-  activeTabAtom,
-  currentPuzzleAtom,
-  selectedPuzzleDbAtom,
-  tabsAtom,
-} from "@/atoms/atoms";
-import { TreeDispatchContext } from "../common/TreeStateContext";
-import { parseUci } from "@/utils/chess";
-import GameNotation from "../boards/GameNotation";
-import MoveControls from "../common/MoveControls";
-import { defaultTree } from "@/utils/treeReducer";
-import { createTab } from "@/utils/tabs";
 import { Chess } from "chessops";
 import { parseFen } from "chessops/fen";
+import { useAtom, useSetAtom } from "jotai";
+import { useContext, useEffect, useState } from "react";
+import GameNotation from "../boards/GameNotation";
+import ChallengeHistory from "../common/ChallengeHistory";
+import MoveControls from "../common/MoveControls";
+import { TreeDispatchContext } from "../common/TreeStateContext";
+import AddPuzzle from "./AddPuzzle";
+import PuzzleBoard from "./PuzzleBoard";
 
 function Puzzles({ id }: { id: string }) {
   const dispatch = useContext(TreeDispatchContext);

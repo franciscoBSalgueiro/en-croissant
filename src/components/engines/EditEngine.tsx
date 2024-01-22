@@ -1,9 +1,9 @@
+import { enginesAtom } from "@/atoms/atoms";
+import { LocalEngine } from "@/utils/engines";
 import { Modal } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { LocalEngine } from "@/utils/engines";
-import EngineForm from "./EngineForm";
-import { enginesAtom } from "@/atoms/atoms";
 import { useAtom } from "jotai";
+import EngineForm from "./EngineForm";
 
 export default function EditEngine({
   initialEngine,

@@ -1,10 +1,10 @@
 import {
-  Modal,
-  Stack,
-  TextInput,
-  SimpleGrid,
   Button,
+  Modal,
+  SimpleGrid,
+  Stack,
   Text,
+  TextInput,
 } from "@mantine/core";
 import {
   BaseDirectory,
@@ -12,7 +12,7 @@ import {
   renameFile,
   writeTextFile,
 } from "@tauri-apps/api/fs";
-import { resolve, documentDir } from "@tauri-apps/api/path";
+import { documentDir, resolve } from "@tauri-apps/api/path";
 import { useState } from "react";
 import GenericCard from "../common/GenericCard";
 import { FileMetadata, FileType } from "./file";

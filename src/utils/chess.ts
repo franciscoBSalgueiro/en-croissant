@@ -1,25 +1,25 @@
-import { warn } from "tauri-plugin-log-api";
+import { Score, commands } from "@/bindings";
+import { MantineColor } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
 import { Chess, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
 import { Key } from "chessground/types";
-import { Outcome } from "./db";
-import { harmonicMean, mean } from "./misc";
-import { formatScore, getAccuracy, getCPLoss, INITIAL_SCORE } from "./score";
-import {
-  createNode,
-  defaultTree,
-  GameHeaders,
-  getNodeAtPath,
-  headersToPGN,
-  TreeNode,
-  TreeState,
-} from "./treeReducer";
-import { MantineColor } from "@mantine/core";
-import { Score, commands } from "@/bindings";
-import { isPawns, parseComment } from "chessops/pgn";
 import { Color, Role, makeSquare, makeUci, parseSquare } from "chessops";
 import { INITIAL_FEN, parseFen, parsePiece } from "chessops/fen";
+import { isPawns, parseComment } from "chessops/pgn";
+import { warn } from "tauri-plugin-log-api";
+import { Outcome } from "./db";
+import { harmonicMean, mean } from "./misc";
+import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
+import {
+  GameHeaders,
+  TreeNode,
+  TreeState,
+  createNode,
+  defaultTree,
+  getNodeAtPath,
+  headersToPGN,
+} from "./treeReducer";
 
 export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
 

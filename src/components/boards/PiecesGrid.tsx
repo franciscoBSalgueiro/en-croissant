@@ -1,7 +1,7 @@
 import { SimpleGrid } from "@mantine/core";
-import Piece from "../common/Piece";
-import { ROLES, COLORS, parseSquare } from "chessops";
+import { COLORS, ROLES, parseSquare } from "chessops";
 import { makeFen, parseFen } from "chessops/fen";
+import Piece from "../common/Piece";
 
 function PiecesGrid({
   fen,

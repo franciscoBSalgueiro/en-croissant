@@ -1,8 +1,8 @@
+import * as classes from "@/components/common/GenericCard.css";
 import { Box, Loader, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import * as classes from "@/components/common/GenericCard.css";
 
 type Progress = {
   total: number;

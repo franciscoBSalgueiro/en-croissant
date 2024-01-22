@@ -1,9 +1,9 @@
-import { useAtom } from "jotai";
+import { sessionsAtom } from "@/atoms/atoms";
 import { getChessComAccount, getStats } from "@/utils/chesscom";
 import { DatabaseInfo } from "@/utils/db";
 import { getLichessAccount } from "@/utils/lichess";
+import { useAtom } from "jotai";
 import { AccountCard } from "../home/AccountCard";
-import { sessionsAtom } from "@/atoms/atoms";
 
 function AccountCards({
   databases,
