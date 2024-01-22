@@ -146,7 +146,9 @@ export default function BestMovesComponent({
     }
     waitForMove();
     return () => {
-      listeners.current.forEach((unlisten) => unlisten());
+      for (const unlisten of listeners.current) {
+        unlisten();
+      }
     };
   }, [
     activeTab,

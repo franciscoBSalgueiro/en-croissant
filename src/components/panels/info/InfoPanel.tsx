@@ -93,7 +93,9 @@ function GameSelectorAccordion({
       return;
     }
 
-    const data = await read_games(currentTab?.file?.path, page, page);
+    if (!currentTab?.file) return;
+
+    const data = await read_games(currentTab.file.path, page, page);
     const tree = await parsePGN(data[0]);
     dispatch({
       type: "SET_STATE",

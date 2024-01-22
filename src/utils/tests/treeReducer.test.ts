@@ -66,7 +66,7 @@ function expectState({
   initialState,
   expectedState,
 }: {
-  res: void | TreeState;
+  res: TreeState | void;
   initialState: TreeState;
   expectedState: TreeState;
 }) {

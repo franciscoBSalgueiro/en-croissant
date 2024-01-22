@@ -126,8 +126,9 @@ function Databases() {
   } = useSWRImmutable<PersonalInfo[]>(
     databases ? ["personalInfo", databases] : null,
     async () => {
+      if (!databases) return [];
       const newInfo: PersonalInfo[] = await Promise.all(
-        databases?.map(async (db, i) => {
+        databases.map(async (db, i) => {
           let player: Player | null = null;
           const players = await query_players(db.file, {
             name: db.username,

@@ -99,6 +99,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
                   }}
                 >
                   <span
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: this is a comment
                     dangerouslySetInnerHTML={{
                       __html: root.commentHTML,
                     }}

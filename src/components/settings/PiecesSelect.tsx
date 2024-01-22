@@ -78,6 +78,8 @@ export default function PiecesSelect() {
     </Combobox.Option>
   ));
 
+  const selected = pieceSets.find((p) => p.value === pieceSet);
+
   return (
     <Combobox
       store={combobox}
@@ -96,11 +98,8 @@ export default function PiecesSelect() {
           multiline
           w="10rem"
         >
-          {pieceSet ? (
-            <SelectOption
-              label={pieceSets.find((p) => p.value === pieceSet)?.label}
-              piece
-            />
+          {selected ? (
+            <SelectOption label={selected.label} piece />
           ) : (
             <Input.Placeholder>Pick value</Input.Placeholder>
           )}

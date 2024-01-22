@@ -63,7 +63,7 @@ function CompleteMoveCell({
           fontSize: "80%",
         }}
       >
-        {hasNumber && <>{`${moveNumber.toString()}${isWhite ? "." : "..."}`}</>}
+        {hasNumber && `${moveNumber.toString()}${isWhite ? "." : "..."}`}
         {move && (
           <Menu opened={open} width={200}>
             <Menu.Target>
@@ -142,6 +142,7 @@ function CompleteMoveCell({
           }}
         >
           <span
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: this is a comment
             dangerouslySetInnerHTML={{
               __html: commentHTML,
             }}

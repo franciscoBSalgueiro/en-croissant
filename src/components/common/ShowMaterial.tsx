@@ -8,6 +8,7 @@ import {
   IconChessRookFilled,
 } from "@tabler/icons-react";
 import { Color } from "chessops";
+import { match } from "ts-pattern";
 
 export default function ShowMaterial({
   pieces,
@@ -18,9 +19,10 @@ export default function ShowMaterial({
   color: Color;
   diff: number;
 }) {
-  let compare;
-  if (color === "white") compare = (v: number) => v > 0;
-  else compare = (v: number) => v < 0;
+  const compare = match(color)
+    .with("white", () => (v: number) => v > 0)
+    .with("black", () => (v: number) => v < 0)
+    .exhaustive();
 
   const pawns = [...Array(Math.abs(pieces.p)).keys()].map((i) => (
     <IconChessFilled size="1.3rem" key={i} />
