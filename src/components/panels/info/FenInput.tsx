@@ -16,7 +16,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
 
   const [setup, error] = parseFen(currentFen).unwrap(
     (v) => [v, null],
-    (e) => [null, e]
+    (e) => [null, e],
   );
   let whiteCastling: Castlingrights = { k: false, q: false };
   let blackCastling: Castlingrights = { k: false, q: false };
@@ -35,12 +35,12 @@ function FenInput({ currentFen }: { currentFen: string }) {
   function setCastlingRights(
     color: "w" | "b",
     side: "q" | "k",
-    value: boolean
+    value: boolean,
   ) {
     if (setup) {
       setup.castlingRights = setup.castlingRights.set(
         squareFromCoords(side === "q" ? 0 : 7, color === "w" ? 0 : 7)!,
-        value
+        value,
       );
       dispatch({
         type: "SET_FEN",

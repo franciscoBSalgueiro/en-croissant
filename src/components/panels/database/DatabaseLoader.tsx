@@ -31,7 +31,7 @@ function DatabaseLoader({
           } else {
             setProgress(payload.progress);
           }
-        }
+        },
       );
     }
     getProgress();

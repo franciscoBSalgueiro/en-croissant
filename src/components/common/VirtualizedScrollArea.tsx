@@ -7,7 +7,7 @@ import { mergeRefs } from "@mantine/hooks";
 export default function VirtualizedScrollArea(
   props: Omit<FixedSizeListProps, "height" | "width"> & {
     listRef?: any;
-  }
+  },
 ) {
   const listRef = useRef<FixedSizeList>(null);
 

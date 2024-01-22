@@ -139,7 +139,7 @@ function PuzzleBoard({
                   from: pendingMove!.from,
                   to: pendingMove!.to,
                   promotion: p,
-                })
+                }),
               );
               setPendingMove(null);
             }}

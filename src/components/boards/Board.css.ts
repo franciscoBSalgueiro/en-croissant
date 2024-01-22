@@ -2,43 +2,43 @@ import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
 
 export const container = style({
-    display: "grid",
-    gridTemplateColumns: "min-content 1fr",
-    gridTemplateRows: "0.1fr 2.5fr 0.1fr",
-    gap: "0.2rem 1rem",
-    gridAutoFlow: "row",
-    gridTemplateAreas: `
+  display: "grid",
+  gridTemplateColumns: "min-content 1fr",
+  gridTemplateRows: "0.1fr 2.5fr 0.1fr",
+  gap: "0.2rem 1rem",
+  gridAutoFlow: "row",
+  gridTemplateAreas: `
       ". Top Top"
       "Eval Board Board"
       ". Bottom Bottom"
     `,
-    overflow: "hidden",
-    height: "100%",
+  overflow: "hidden",
+  height: "100%",
 });
 
 export const board = style({
-    gridArea: "Board",
-    overflow: "hidden",
+  gridArea: "Board",
+  overflow: "hidden",
 });
 
 export const top = style({
-    gridArea: "Top",
+  gridArea: "Top",
 });
 
 export const bottom = style({
-    gridArea: "Bottom",
+  gridArea: "Bottom",
 });
 
 export const evalStyle = style({
-    gridArea: "Eval",
+  gridArea: "Eval",
 });
 
 export const clock = style({
-    color: vars.colors.black,
-    [vars.lightSelector]: {
-        backgroundColor: vars.colors.gray[2],
-    },
-    [vars.darkSelector]: {
-        backgroundColor: vars.colors.gray[4],
-    },
+  color: vars.colors.black,
+  [vars.lightSelector]: {
+    backgroundColor: vars.colors.gray[2],
+  },
+  [vars.darkSelector]: {
+    backgroundColor: vars.colors.gray[4],
+  },
 });

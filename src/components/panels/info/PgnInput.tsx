@@ -36,7 +36,7 @@ function PgnInput() {
         variations: true,
         extraMarkups: true,
       }),
-    [root, headers]
+    [root, headers],
   );
 
   const pgn = useMemo(
@@ -48,7 +48,7 @@ function PgnInput() {
         variations: options.variations,
         extraMarkups: options.extraMarkups,
       }),
-    [root, headers, options]
+    [root, headers, options],
   );
 
   const [tmp, setTmp] = useState(pgn);

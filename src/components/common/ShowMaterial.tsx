@@ -1,6 +1,12 @@
 import { PiecesCount } from "@/utils/chess";
 import { Group } from "@mantine/core";
-import { IconChessFilled, IconChessKnightFilled, IconChessBishopFilled, IconChessRookFilled, IconChessQueenFilled } from "@tabler/icons-react";
+import {
+  IconChessFilled,
+  IconChessKnightFilled,
+  IconChessBishopFilled,
+  IconChessRookFilled,
+  IconChessQueenFilled,
+} from "@tabler/icons-react";
 import { Color } from "chessops";
 
 export default function ShowMaterial({
@@ -41,7 +47,7 @@ export default function ShowMaterial({
         {compare(pieces.r) && rooks}
         {compare(pieces.q) && queens}
       </Group>
-      {compare(diff) && ("+" + Math.abs(diff))}
+      {compare(diff) && "+" + Math.abs(diff)}
     </Group>
   );
 }

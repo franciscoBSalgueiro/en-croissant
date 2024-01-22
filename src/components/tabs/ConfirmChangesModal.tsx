@@ -19,7 +19,7 @@ function ConfirmChangesModal({
 
   function save() {
     const { root, headers } = JSON.parse(
-      sessionStorage.getItem(currentTab?.value || "") || "{}"
+      sessionStorage.getItem(currentTab?.value || "") || "{}",
     );
     saveToFile({
       setCurrentTab,

@@ -32,7 +32,7 @@ function ReportModal({
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
   const localEngines = engines.filter(
-    (e): e is LocalEngine => e.type === "local"
+    (e): e is LocalEngine => e.type === "local",
   );
   const dispatch = useContext(TreeDispatchContext);
 
@@ -64,7 +64,7 @@ function ReportModal({
         fen: initialFen,
         referenceDb,
         reversed: form.values.reversed,
-        moves
+        moves,
       })
       .then((analysis) => {
         const analysisData = unwrap(analysis);

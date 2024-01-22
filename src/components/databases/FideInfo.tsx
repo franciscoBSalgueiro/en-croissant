@@ -39,7 +39,7 @@ function FideInfo({
     data: player,
     error,
     isLoading,
-  } = useSWR((!fileExists || !opened) ? null : name, async (name) => {
+  } = useSWR(!fileExists || !opened ? null : name, async (name) => {
     const res = await commands.findFidePlayer(name);
     if (res.status === "ok") {
       return res.data;

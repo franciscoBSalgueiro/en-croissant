@@ -127,8 +127,8 @@ function EngineSelection() {
                                 (await prev).map((e) =>
                                   e.name === engine.name
                                     ? { ...e, loaded: !e.loaded }
-                                    : e
-                                )
+                                    : e,
+                                ),
                               );
                             }}
                           />

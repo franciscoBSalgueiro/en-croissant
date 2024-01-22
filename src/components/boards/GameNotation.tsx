@@ -125,8 +125,8 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
                   {headers.result === "1/2-1/2"
                     ? "Draw"
                     : headers.result === "1-0"
-                    ? "White wins"
-                    : "Black wins"}
+                      ? "White wins"
+                      : "Black wins"}
                 </Text>
               </Text>
             )}
@@ -220,11 +220,11 @@ const RenderVariationTree = memo(
               showComments={showComments}
               isCurrentVariation={shallowEqual(
                 [...path, variations.indexOf(variation)],
-                currentPath
+                currentPath,
               )}
               isStart={shallowEqual(
                 [...path, variations.indexOf(variation)],
-                start
+                start,
               )}
               first
             />
@@ -289,12 +289,12 @@ const RenderVariationTree = memo(
         !isPrefix(next.path.slice(0, -1), next.currentPath) &&
         shallowEqual(
           getNodeAtPath(next.tree, next.path),
-          getNodeAtPath(prev.tree, prev.path)
+          getNodeAtPath(prev.tree, prev.path),
         )) ||
         (!isPrefix(next.path, next.currentPath) &&
           !isPrefix(next.path, prev.currentPath)))
     );
-  }
+  },
 );
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {

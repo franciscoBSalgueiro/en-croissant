@@ -45,7 +45,7 @@ function AddDatabase({
     await invoke("convert_pgn", { file: path, title, description }).catch(
       () => {
         setLoading(false);
-      }
+      },
     );
     setDatabases(await getDatabases());
     setLoading(false);
@@ -190,12 +190,7 @@ function DatabaseCard({
   }
 
   return (
-    <Paper
-      withBorder
-      radius="md"
-      p={0}
-      key={database.title}
-    >
+    <Paper withBorder radius="md" p={0} key={database.title}>
       <Group wrap="nowrap" gap={0} grow>
         <Box p="md" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
@@ -243,7 +238,7 @@ function DatabaseCard({
               downloadDatabase(
                 databaseId,
                 database.downloadLink!,
-                database.title!
+                database.title!,
               )
             }
             inProgress={inProgress}

@@ -60,7 +60,7 @@ function EnginesSelect({
   setEngine: (engine: LocalEngine | null) => void;
 }) {
   const engines = useAtomValue(enginesAtom).filter(
-    (e): e is LocalEngine => e.type === "local"
+    (e): e is LocalEngine => e.type === "local",
   );
 
   useEffect(() => {
@@ -170,7 +170,7 @@ function OpponentForm({
                       : {
                           ...prev,
                           settings: fn(prev.settings),
-                        }
+                        },
                   )
                 }
                 minimal={true}
@@ -187,7 +187,7 @@ function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
 
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
-    "white"
+    "white",
   );
   function cycleColor() {
     setInputColor((prev) =>
@@ -195,7 +195,7 @@ function BoardGame() {
         .with("white", () => "black" as const)
         .with("black", () => "random" as const)
         .with("random", () => "white" as const)
-        .exhaustive()
+        .exhaustive(),
     );
   }
 
@@ -228,8 +228,8 @@ function BoardGame() {
   function changeToAnalysisMode() {
     setTabs((prev) =>
       prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab
-      )
+        tab.value === activeTab ? { ...tab, type: "analysis" } : tab,
+      ),
     );
   }
   const mainLine = Array.from(treeIteratorMainLine(root));
@@ -264,7 +264,7 @@ function BoardGame() {
           player.engine.path,
           activeTab! + currentTurn,
           player.settings.go,
-          { ...player.settings.options, fen: root.fen, moves: moves }
+          { ...player.settings.options, fen: root.fen, moves: moves },
         );
       }
     }

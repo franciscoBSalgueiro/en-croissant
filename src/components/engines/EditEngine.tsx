@@ -37,7 +37,7 @@ export default function EditEngine({
         form={form}
         onSubmit={(values) => {
           setEngines(async (prev) =>
-            (await prev).map((e) => (e === initialEngine ? values : e))
+            (await prev).map((e) => (e === initialEngine ? values : e)),
           );
           setOpened(false);
         }}

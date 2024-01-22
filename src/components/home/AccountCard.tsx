@@ -185,7 +185,7 @@ export function AccountCard({
                 const p = await resolve(
                   await appDataDir(),
                   "db",
-                  `${title}_${type}.pgn`
+                  `${title}_${type}.pgn`,
                 );
                 convert(p, lastGameDate).catch(() => {
                   setLoading(false);

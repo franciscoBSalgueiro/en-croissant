@@ -71,11 +71,11 @@ const EvalChart = (props: EvalChartProps) => {
     const allNodes = treeIteratorMainLine(root);
     const withoutRoot = skipWhile(
       allNodes,
-      (node: ListNode) => node.position.length == 0
+      (node: ListNode) => node.position.length == 0,
     );
     const withMoves = takeWhile(
       withoutRoot,
-      (node: ListNode) => node.node.move != undefined
+      (node: ListNode) => node.node.move != undefined,
     );
     return [...withMoves];
   }
@@ -100,8 +100,12 @@ const EvalChart = (props: EvalChartProps) => {
   }
 
   function gradientOffset(data: DataPoint[]) {
-    const dataMax = Math.max(...data.map((i) => i.yValue !== "none" ? i.yValue : 0));
-    const dataMin = Math.min(...data.map((i) => i.yValue !== "none" ? i.yValue : 0));
+    const dataMax = Math.max(
+      ...data.map((i) => (i.yValue !== "none" ? i.yValue : 0)),
+    );
+    const dataMin = Math.min(
+      ...data.map((i) => (i.yValue !== "none" ? i.yValue : 0)),
+    );
 
     if (dataMax <= 0) return 0;
     if (dataMin >= 0) return 1;
@@ -120,7 +124,10 @@ const EvalChart = (props: EvalChartProps) => {
       const dataPoint: DataPoint = payload[0].payload;
       return (
         <Paper px="md" py="sm" withBorder shadow="md" radius="md">
-          <Text className={classes.tooltipTitle} c={dataPoint.color === "gray" ? undefined : dataPoint.color }>
+          <Text
+            className={classes.tooltipTitle}
+            c={dataPoint.color === "gray" ? undefined : dataPoint.color}
+          >
             {dataPoint.name}
           </Text>
           <Text>{dataPoint.evalText}</Text>
@@ -147,7 +154,7 @@ const EvalChart = (props: EvalChartProps) => {
 
   const data = [...getData()];
   const currentPositionName = data.find((point) =>
-    arrayEquals(point.movePath, position)
+    arrayEquals(point.movePath, position),
   )?.name;
   const colouroffset = gradientOffset(data);
 
@@ -177,7 +184,7 @@ const EvalChart = (props: EvalChartProps) => {
             {
               x: currentPositionName,
               color: theme.colors[theme.primaryColor][7],
-            }
+            },
           ]}
           areaChartProps={{
             onClick: onChartClick,

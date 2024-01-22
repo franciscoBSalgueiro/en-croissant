@@ -44,7 +44,11 @@ function AboutModal({
 
       <br />
 
-      <Anchor href="https://www.encroissant.org" target="_blank" rel="noreferrer">
+      <Anchor
+        href="https://www.encroissant.org"
+        target="_blank"
+        rel="noreferrer"
+      >
         www.encroissant.org
       </Anchor>
     </Modal>

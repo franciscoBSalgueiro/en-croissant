@@ -146,7 +146,7 @@ function Board({
       root,
       headers,
       game: currentTab?.gameNumber || 0,
-    })
+    }),
   );
   const setInvisible = useSetAtom(currentInvisibleAtom);
 
@@ -270,7 +270,13 @@ function Board({
         </Tooltip>
       </ActionIcon.Group>
     ),
-    [disableVariations, saveFile, toggleEditingMode, toggleOrientation, addGame]
+    [
+      disableVariations,
+      saveFile,
+      toggleEditingMode,
+      toggleOrientation,
+      addGame,
+    ],
   );
   const data = getMaterialDiff(currentNode.fen);
   const practiceLock =
@@ -280,14 +286,14 @@ function Board({
     return practiceLock
       ? undefined
       : editingMode
-      ? "both"
-      : match(movable)
-          .with("white", () => "white" as const)
-          .with("black", () => "black" as const)
-          .with("turn", () => turn)
-          .with("both", () => "both" as const)
-          .with("none", () => undefined)
-          .exhaustive();
+        ? "both"
+        : match(movable)
+            .with("white", () => "white" as const)
+            .with("black", () => "black" as const)
+            .with("turn", () => turn)
+            .with("both", () => "both" as const)
+            .with("none", () => undefined)
+            .exhaustive();
   }, [practiceLock, editingMode, movable, turn]);
 
   const theme = useMantineTheme();
@@ -383,8 +389,8 @@ function Board({
                   editingMode || viewOnly
                     ? undefined
                     : disableVariations && currentNode.children.length > 0
-                    ? undefined
-                    : dests,
+                      ? undefined
+                      : dests,
                 showDests,
                 events: {
                   after: (orig, dest, metadata) => {

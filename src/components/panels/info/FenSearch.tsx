@@ -52,7 +52,7 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
           name: string;
           fen: string;
         }[]
-      >("search_opening_name", { query: search })
+      >("search_opening_name", { query: search }),
   );
 
   const exactOptionMatch = data?.some((item) => item.fen === search);

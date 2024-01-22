@@ -77,9 +77,7 @@ export default function NewTabHome({ id }: { id: string }) {
   return (
     <>
       <ImportModal openModal={openModal} setOpenModal={setOpenModal} />
-      <SimpleGrid
-        cols={{ base: 1, sm: 2, lg: 4 }}
-      >
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
         {cards.map((card) => (
           <Card shadow="sm" p="lg" radius="md" withBorder key={card.title}>
             <Stack align="center" h="100%" justify="space-between">

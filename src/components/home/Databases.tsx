@@ -30,7 +30,7 @@ function getSessionUsername(session: Session): string {
 
 function isDatabaseFromSession(db: DatabaseInfo, sessions: Session[]) {
   const session = sessions.find((session) =>
-    db.filename.includes(getSessionUsername(session))
+    db.filename.includes(getSessionUsername(session)),
   );
 
   if (session !== undefined) {
@@ -60,7 +60,7 @@ function sumGamesPlayed(lists: [string, Results][][]) {
 
   return Array.from(openingCounts.entries()).sort(
     (a, b) =>
-      b[1].won + b[1].draw + b[1].lost - a[1].won - a[1].draw - a[1].lost
+      b[1].won + b[1].draw + b[1].lost - a[1].won - a[1].draw - a[1].lost,
   );
 }
 
@@ -92,7 +92,7 @@ function joinMonthData(data: [string, MonthData][][]) {
   }
 
   return Array.from(monthCounts.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0])
+    a[0].localeCompare(b[0]),
   );
 }
 
@@ -116,7 +116,7 @@ function Databases() {
     async () => {
       const dbs = (await getDatabases()).filter((db) => db.error === undefined);
       return dbs.filter((db) => isDatabaseFromSession(db, sessions));
-    }
+    },
   );
 
   const {
@@ -141,13 +141,13 @@ function Databases() {
             throw new Error("Player not found");
           }
           const info = unwrap(
-            await commands.getPlayersGameInfo(db.file, player.id)
+            await commands.getPlayersGameInfo(db.file, player.id),
           );
           return { db, info };
-        })
+        }),
       );
       return newInfo;
-    }
+    },
   );
 
   const [progress, setProgress] = useState(0);

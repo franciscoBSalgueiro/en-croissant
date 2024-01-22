@@ -15,7 +15,7 @@ interface MoveCellProps {
 
 const MoveCell = forwardRef(function MoveCell(
   props: MoveCellProps,
-  ref: ForwardedRef<HTMLButtonElement>
+  ref: ForwardedRef<HTMLButtonElement>,
 ) {
   const color = ANNOTATION_INFO[props.annotation].color;
   const theme = useMantineTheme();

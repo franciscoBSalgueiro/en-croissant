@@ -40,7 +40,7 @@ import { unwrap } from "@/utils/invoke";
 import { Color } from "chessops";
 
 function fillMissingMonths(
-  data: { name: string; data: MonthData }[]
+  data: { name: string; data: MonthData }[],
 ): { name: string; data: { count: number; avg_elo: number | null } }[] {
   if (data.length === 0) return data;
   const startDate = new Date(data[0].name + "-01");
@@ -67,17 +67,25 @@ function fillMissingMonths(
 }
 
 function mergeYears(
-  data: { name: string; data: { count: number; avg_elo: number | null } }[]
+  data: { name: string; data: { count: number; avg_elo: number | null } }[],
 ) {
   // group by year in the same format
-  const grouped = data.reduce((acc, curr) => {
-    const year = curr.name.slice(0, 4);
-    if (!acc[year]) {
-      acc[year] = [];
-    }
-    acc[year].push(curr);
-    return acc;
-  }, {} as { [key: string]: { name: string; data: { count: number; avg_elo: number | null } }[] });
+  const grouped = data.reduce(
+    (acc, curr) => {
+      const year = curr.name.slice(0, 4);
+      if (!acc[year]) {
+        acc[year] = [];
+      }
+      acc[year].push(curr);
+      return acc;
+    },
+    {} as {
+      [key: string]: {
+        name: string;
+        data: { count: number; avg_elo: number | null };
+      }[];
+    },
+  );
 
   // sum up the games per year
   const summed = Object.entries(grouped).map(([year, months]) => {
@@ -289,7 +297,7 @@ function DateChart({
         name: month,
         data,
       }))
-      .sort((a, b) => a.name.localeCompare(b.name)) ?? []
+      .sort((a, b) => a.name.localeCompare(b.name)) ?? [],
   );
 
   if (selectedYear) {

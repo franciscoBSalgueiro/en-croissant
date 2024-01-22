@@ -34,7 +34,7 @@ function PiecesGrid({
             }}
             orientation={orientation}
           />
-        ))
+        )),
       )}
     </SimpleGrid>
   );

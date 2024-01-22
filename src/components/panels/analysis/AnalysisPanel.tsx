@@ -54,7 +54,7 @@ function AnalysisPanel({
   const engines = useAtomValue(enginesAtom);
   const loadedEngines = useMemo(
     () => engines.filter((e) => e.loaded),
-    [engines]
+    [engines],
   );
 
   const [, enable] = useAtom(enableAllAtom);
@@ -254,7 +254,7 @@ function EngineSummary({
 }) {
   const activeTab = useAtomValue(activeTabAtom);
   const [ev] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! })
+    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
 
   const curEval = ev.get(fen + ":" + moves.join(","));
@@ -326,7 +326,7 @@ const GameStats = memo(
       shallowEqual(prev.whiteAnnotations, next.whiteAnnotations) &&
       shallowEqual(prev.blackAnnotations, next.blackAnnotations)
     );
-  }
+  },
 );
 
 function AccuracyCard({
