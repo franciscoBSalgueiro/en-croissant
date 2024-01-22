@@ -1,3 +1,6 @@
+import { currentInvisibleAtom } from "@/atoms/atoms";
+import { isPrefix } from "@/utils/misc";
+import { TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -22,15 +25,12 @@ import {
   IconMinus,
   IconPlus,
 } from "@tabler/icons-react";
+import { INITIAL_FEN } from "chessops/fen";
+import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
-import { isPrefix } from "@/utils/misc";
-import { getNodeAtPath, TreeNode } from "@/utils/treeReducer";
 import { TreeStateContext } from "../common/TreeStateContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
-import { useAtom, useAtomValue } from "jotai";
-import { currentInvisibleAtom } from "@/atoms/atoms";
-import { INITIAL_FEN } from "chessops/fen";
 
 function GameNotation({ topBar }: { topBar?: boolean }) {
   const { headers, position, root } = useContext(TreeStateContext);

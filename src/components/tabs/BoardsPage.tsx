@@ -1,26 +1,26 @@
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { commands } from "@/bindings";
+import { unwrap } from "@/utils/invoke";
+import { Tab, createTab, genID } from "@/utils/tabs";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { createTab, genID, Tab } from "@/utils/tabs";
+import { atom, useAtom, useAtomValue } from "jotai";
+import { useCallback, useEffect } from "react";
+import { match } from "ts-pattern";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
 import { TreeStateProvider } from "../common/TreeStateContext";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
-import NewTabHome from "./NewTabHome";
-import { useCallback, useEffect } from "react";
-import { atom, useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import ConfirmChangesModal from "./ConfirmChangesModal";
-import { match } from "ts-pattern";
-import { commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import NewTabHome from "./NewTabHome";
 
-import "react-mosaic-component/react-mosaic-component.css";
+import { keyMapAtom } from "@/atoms/keybinds";
 import "@/styles/react-mosaic.css";
 import { Mosaic, MosaicNode } from "react-mosaic-component";
-import { keyMapAtom } from "@/atoms/keybinds";
+import "react-mosaic-component/react-mosaic-component.css";
 import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {

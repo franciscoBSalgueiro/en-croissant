@@ -1,5 +1,5 @@
-import { style } from "@vanilla-extract/css";
 import { vars } from "@/styles/theme";
+import { style } from "@vanilla-extract/css";
 
 export const tooltip = style({
   margin: 0,

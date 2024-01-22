@@ -1,3 +1,9 @@
+import { currentPgnOptionsAtom } from "@/atoms/atoms";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
+import { getPGN, parsePGN } from "@/utils/chess";
 import {
   ActionIcon,
   Box,
@@ -11,16 +17,10 @@ import {
   Tooltip,
   rem,
 } from "@mantine/core";
-import { useContext, useEffect, useMemo, useState } from "react";
-import { getPGN, parsePGN } from "@/utils/chess";
-import { useAtom } from "jotai";
-import { currentPgnOptionsAtom } from "@/atoms/atoms";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
 import deepEqual from "fast-deep-equal";
+import { useAtom } from "jotai";
+import { useContext, useEffect, useMemo, useState } from "react";
 
 function PgnInput() {
   const { root, headers, position } = useContext(TreeStateContext);

@@ -3,12 +3,12 @@ import { IconX } from "@tabler/icons-react";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { decodeTCN } from "./tcn";
-import { error } from "tauri-plugin-log-api";
-import { ChildNode, PgnNodeData, defaultGame, makePgn } from "chessops/pgn";
 import { Chess } from "chessops";
+import { ChildNode, PgnNodeData, defaultGame, makePgn } from "chessops/pgn";
 import { makeSan } from "chessops/san";
+import { error } from "tauri-plugin-log-api";
 import { z } from "zod";
+import { decodeTCN } from "./tcn";
 
 const baseURL = "https://api.chess.com";
 const headers = {

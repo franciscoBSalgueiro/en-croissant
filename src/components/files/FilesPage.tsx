@@ -1,7 +1,4 @@
-import { readDir, removeFile } from "@tauri-apps/api/fs";
-import { documentDir, resolve } from "@tauri-apps/api/path";
-import React, { useEffect, useMemo, useState } from "react";
-import GenericCard from "../common/GenericCard";
+import { capitalize } from "@/utils/format";
 import {
   Button,
   Center,
@@ -13,15 +10,18 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
-import OpenFolderButton from "../common/OpenFolderButton";
-import ConfirmModal from "../common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
-import { readFileMetadata, FileMetadata, FileType } from "./file";
-import FileCard from "./FileCard";
+import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
+import { readDir, removeFile } from "@tauri-apps/api/fs";
+import { documentDir, resolve } from "@tauri-apps/api/path";
 import Fuse from "fuse.js";
+import React, { useEffect, useMemo, useState } from "react";
+import ConfirmModal from "../common/ConfirmModal";
+import GenericCard from "../common/GenericCard";
+import OpenFolderButton from "../common/OpenFolderButton";
+import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
-import { capitalize } from "@/utils/format";
+import { FileMetadata, FileType, readFileMetadata } from "./file";
 
 const FILE_TYPES: FileType[] = [
   "game",

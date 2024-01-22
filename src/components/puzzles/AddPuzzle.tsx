@@ -1,3 +1,7 @@
+import { getDefaultPuzzleDatabases } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { invoke } from "@/utils/invoke";
+import { PuzzleDatabase, getPuzzleDatabases } from "@/utils/puzzles";
 import {
   Alert,
   Box,
@@ -12,12 +16,8 @@ import {
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useState } from "react";
-import { getDefaultPuzzleDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
-import ProgressButton from "../common/ProgressButton";
-import { getPuzzleDatabases, PuzzleDatabase } from "@/utils/puzzles";
 import useSWRImmutable from "swr/immutable";
+import ProgressButton from "../common/ProgressButton";
 
 function AddPuzzle({
   puzzleDbs,

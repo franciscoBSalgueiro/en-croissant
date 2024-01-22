@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { Player, PlayerGameInfo } from "@/utils/db";
-import PersonalPlayerCard from "../home/PersonalCard";
-import { Loader } from "@mantine/core";
 import { commands } from "@/bindings";
+import { Player, PlayerGameInfo } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
+import { Loader } from "@mantine/core";
+import { useEffect, useState } from "react";
+import PersonalPlayerCard from "../home/PersonalCard";
 
 function PlayerCard({ player, file }: { player: Player; file: string }) {
   const [info, setInfo] = useState<PlayerGameInfo | null>(null);

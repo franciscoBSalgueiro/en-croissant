@@ -1,3 +1,6 @@
+import { selectedDatabaseAtom } from "@/atoms/atoms";
+import GameTable from "@/components/databases/GameTable";
+import PlayerTable from "@/components/databases/PlayerTable";
 import { ActionIcon, Box, Group, Stack, Tabs, Title } from "@mantine/core";
 import {
   IconArrowBackUp,
@@ -5,12 +8,9 @@ import {
   IconTrophy,
   IconUser,
 } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
-import GameTable from "@/components/databases/GameTable";
-import PlayerTable from "@/components/databases/PlayerTable";
-import TournamentTable from "./TournamentTable";
 import { useAtom } from "jotai";
-import { selectedDatabaseAtom } from "@/atoms/atoms";
+import { Link } from "react-router-dom";
+import TournamentTable from "./TournamentTable";
 
 function DatabaseView() {
   const [database, setDatabase] = useAtom(selectedDatabaseAtom);

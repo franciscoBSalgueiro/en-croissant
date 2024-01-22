@@ -1,6 +1,6 @@
+import { getOpening } from "@/utils/chess";
 import { Text } from "@mantine/core";
 import { useContext, useEffect, useState } from "react";
-import { getOpening } from "@/utils/chess";
 import { TreeStateContext } from "../common/TreeStateContext";
 
 function OpeningName() {

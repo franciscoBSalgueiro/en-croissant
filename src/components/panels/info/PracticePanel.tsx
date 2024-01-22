@@ -15,12 +15,12 @@ import {
   getStats,
 } from "@/components/files/opening";
 import {
-  Text,
   ActionIcon,
-  Group,
-  Stack,
   Button,
+  Group,
   RingProgress,
+  Stack,
+  Text,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";

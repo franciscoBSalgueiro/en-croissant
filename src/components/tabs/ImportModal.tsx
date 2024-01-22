@@ -8,19 +8,19 @@ import {
 } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
-import { useState } from "react";
+import { currentTabAtom } from "@/atoms/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
+import { chessopsError } from "@/utils/chessops";
 import { count_pgn_games, read_games } from "@/utils/db";
 import { getLichessGame } from "@/utils/lichess";
-import FileInput from "../common/FileInput";
-import { useAtom } from "jotai";
-import { currentTabAtom } from "@/atoms/atoms";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
-import { FileMetadata } from "../files/file";
-import { match } from "ts-pattern";
 import { parseFen } from "chessops/fen";
-import { chessopsError } from "@/utils/chessops";
+import { useAtom } from "jotai";
+import { useState } from "react";
+import { match } from "ts-pattern";
+import FileInput from "../common/FileInput";
+import { FileMetadata } from "../files/file";
 
 type ImportType = "PGN" | "Link" | "FEN";
 

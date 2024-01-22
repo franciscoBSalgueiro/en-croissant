@@ -1,3 +1,4 @@
+import { invoke } from "@/utils/invoke";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
@@ -14,32 +15,31 @@ import {
   useRef,
   useState,
 } from "react";
-import { invoke } from "@/utils/invoke";
 
-import { getNodeAtPath } from "@/utils/treeReducer";
-import MoveControls from "../common/MoveControls";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
-import AnalysisPanel from "../panels/analysis/AnalysisPanel";
-import AnnotationPanel from "../panels/annotation/AnnotationPanel";
-import DatabasePanel from "../panels/database/DatabasePanel";
-import InfoPanel from "../panels/info/InfoPanel";
-import Board from "./Board";
-import GameNotation from "./GameNotation";
-import { useAtom, useAtomValue } from "jotai";
 import {
   autoSaveAtom,
   bestMovesFamily,
   currentTabAtom,
   currentTabSelectedAtom,
 } from "@/atoms/atoms";
-import { saveToFile } from "@/utils/tabs";
-import EditingCard from "./EditingCard";
-import ReportModal from "../panels/analysis/ReportModal";
-import { getMainLine, getVariationLine } from "@/utils/chess";
 import { keyMapAtom } from "@/atoms/keybinds";
+import { getMainLine, getVariationLine } from "@/utils/chess";
+import { saveToFile } from "@/utils/tabs";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import { useAtom, useAtomValue } from "jotai";
+import MoveControls from "../common/MoveControls";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
+import AnalysisPanel from "../panels/analysis/AnalysisPanel";
+import ReportModal from "../panels/analysis/ReportModal";
+import AnnotationPanel from "../panels/annotation/AnnotationPanel";
+import DatabasePanel from "../panels/database/DatabasePanel";
+import InfoPanel from "../panels/info/InfoPanel";
+import Board from "./Board";
+import EditingCard from "./EditingCard";
+import GameNotation from "./GameNotation";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();

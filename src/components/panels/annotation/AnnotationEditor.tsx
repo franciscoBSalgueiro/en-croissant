@@ -1,10 +1,10 @@
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { RichTextEditor } from "@mantine/tiptap";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { memo, useContext } from "react";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 
 function AnnotationEditor({
   commentHTML,

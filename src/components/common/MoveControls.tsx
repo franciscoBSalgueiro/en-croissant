@@ -1,15 +1,15 @@
+import { keyMapAtom } from "@/atoms/keybinds";
 import { ActionIcon, Group } from "@mantine/core";
-import { useHotkeys } from "react-hotkeys-hook";
 import {
   IconChevronLeft,
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
 } from "@tabler/icons-react";
-import { memo, useContext } from "react";
-import { TreeDispatchContext } from "./TreeStateContext";
-import { keyMapAtom } from "@/atoms/keybinds";
 import { useAtomValue } from "jotai";
+import { memo, useContext } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { TreeDispatchContext } from "./TreeStateContext";
 
 function MoveControls({
   goToStart,

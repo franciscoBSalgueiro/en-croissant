@@ -1,43 +1,43 @@
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { MonthData, commands } from "@/bindings";
+import { parsePGN } from "@/utils/chess";
+import { PlayerGameInfo } from "@/utils/db";
+import { unwrap } from "@/utils/invoke";
+import { createTab } from "@/utils/tabs";
+import { countMainPly, defaultTree } from "@/utils/treeReducer";
 import {
+  ActionIcon,
+  Box,
+  Divider,
+  Group,
   Paper,
   Progress,
   Stack,
+  Tabs,
   Text,
   Tooltip as MTTooltip,
-  ActionIcon,
-  Box,
-  Tabs,
-  useMantineTheme,
   useMantineColorScheme,
-  Group,
-  Divider,
+  useMantineTheme,
 } from "@mantine/core";
+import { IconInfoCircle } from "@tabler/icons-react";
+import { Color } from "chessops";
+import { useAtom } from "jotai";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bar,
   CartesianGrid,
   ComposedChart,
-  Line,
   Legend,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { PlayerGameInfo } from "@/utils/db";
-import { IconInfoCircle } from "@tabler/icons-react";
-import FideInfo from "../databases/FideInfo";
-import { MonthData, commands } from "@/bindings";
 import VirtualizedScrollArea from "../common/VirtualizedScrollArea";
+import FideInfo from "../databases/FideInfo";
 import * as classes from "./PersonalCard.css";
-import { createTab } from "@/utils/tabs";
-import { useNavigate } from "react-router-dom";
-import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
-import { useAtom } from "jotai";
-import { countMainPly, defaultTree } from "@/utils/treeReducer";
-import { parsePGN } from "@/utils/chess";
-import { unwrap } from "@/utils/invoke";
-import { Color } from "chessops";
 
 function fillMissingMonths(
   data: { name: string; data: MonthData }[],

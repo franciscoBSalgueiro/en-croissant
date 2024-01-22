@@ -1,3 +1,9 @@
+import DatabaseView from "@/components/databases/DatabaseView";
+import EnginesPage from "@/components/engines/EnginesPage";
+import FilesPage from "@/components/files/FilesPage";
+import HomePage from "@/components/home/HomePage";
+import SettingsPage from "@/components/settings/SettingsPage";
+import BoardsPage from "@/components/tabs/BoardsPage";
 import {
   ActionIcon,
   Anchor,
@@ -12,20 +18,17 @@ import {
   Title,
   localStorageColorSchemeManager,
 } from "@mantine/core";
-import { SideBar } from "./components/Sidebar";
-import { Helmet } from "react-helmet";
 import { Notifications } from "@mantine/notifications";
-import SettingsPage from "@/components/settings/SettingsPage";
-import FilesPage from "@/components/files/FilesPage";
-import EnginesPage from "@/components/engines/EnginesPage";
-import BoardsPage from "@/components/tabs/BoardsPage";
-import DatabaseView from "@/components/databases/DatabaseView";
-import HomePage from "@/components/home/HomePage";
 import { getVersion } from "@tauri-apps/api/app";
-import { attachConsole } from "tauri-plugin-log-api";
 import { getMatches } from "@tauri-apps/api/cli";
 import { appWindow } from "@tauri-apps/api/window";
+import { Helmet } from "react-helmet";
+import { attachConsole } from "tauri-plugin-log-api";
+import { SideBar } from "./components/Sidebar";
 
+import { ask, message, open } from "@tauri-apps/api/dialog";
+import { useAtom, useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
 import {
   Outlet,
   Route,
@@ -36,10 +39,6 @@ import {
   useNavigate,
   useRouteError,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
-import DatabasesPage from "./components/databases/DatabasesPage";
-import { useAtom, useAtomValue } from "jotai";
-import { ask, message, open } from "@tauri-apps/api/dialog";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -48,29 +47,30 @@ import {
   primaryColorAtom,
   tabsAtom,
 } from "./atoms/atoms";
+import DatabasesPage from "./components/databases/DatabasesPage";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
 
-import "@mantine/core/styles.css";
-import "@mantine/notifications/styles.css";
-import "@mantine/dates/styles.css";
-import "@mantine/tiptap/styles.css";
 import "@mantine/charts/styles.css";
+import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/notifications/styles.css";
+import "@mantine/tiptap/styles.css";
 
 import "mantine-datatable/styles.css";
 
 import "@/styles/global.css";
 
-import { commands } from "./bindings";
-import TopBar from "./components/TopBar";
-import { openFile } from "./utils/files";
-import { useHotkeys } from "react-hotkeys-hook";
-import { keyMapAtom } from "./atoms/keybinds";
-import { createTab } from "./utils/tabs";
 import { listen } from "@tauri-apps/api/event";
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
+import { useHotkeys } from "react-hotkeys-hook";
+import { keyMapAtom } from "./atoms/keybinds";
+import { commands } from "./bindings";
 import AboutModal from "./components/About";
+import TopBar from "./components/TopBar";
+import { openFile } from "./utils/files";
+import { createTab } from "./utils/tabs";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",

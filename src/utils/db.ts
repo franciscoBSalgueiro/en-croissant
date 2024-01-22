@@ -1,10 +1,10 @@
-import useSWR from "swr";
+import { MonthData, Results } from "@/bindings";
+import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
+import useSWR from "swr";
 import { invoke } from "./invoke";
 import { PuzzleDatabase } from "./puzzles";
-import { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { MonthData, Results } from "@/bindings";
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 

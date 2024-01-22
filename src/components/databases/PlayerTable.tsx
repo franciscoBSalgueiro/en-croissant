@@ -1,3 +1,4 @@
+import { DatabaseInfo, Player, query_players } from "@/utils/db";
 import {
   ActionIcon,
   Center,
@@ -8,14 +9,13 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { useHotkeys } from "react-hotkeys-hook";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
-import { DatabaseInfo, Player, query_players } from "@/utils/db";
+import { useHotkeys } from "react-hotkeys-hook";
+import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";
 import * as classes from "./styles.css";
-import GridLayout from "./GridLayout";
 
 function PlayerTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;

@@ -1,3 +1,12 @@
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import {
+  DatabaseInfo,
+  NormalizedGame,
+  Outcome,
+  Sides,
+  query_games,
+} from "@/utils/db";
+import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
   Box,
@@ -13,23 +22,14 @@ import {
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye } from "@tabler/icons-react";
+import { useAtom, useSetAtom } from "jotai";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
-import {
-  DatabaseInfo,
-  NormalizedGame,
-  Outcome,
-  Sides,
-  query_games,
-} from "@/utils/db";
-import { createTab } from "@/utils/tabs";
+import { useNavigate } from "react-router-dom";
 import GameCard from "./GameCard";
+import GridLayout from "./GridLayout";
 import { SearchInput } from "./SearchInput";
 import * as classes from "./styles.css";
-import { useAtom, useSetAtom } from "jotai";
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { useNavigate } from "react-router-dom";
-import GridLayout from "./GridLayout";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;

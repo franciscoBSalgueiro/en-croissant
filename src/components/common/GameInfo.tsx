@@ -1,14 +1,14 @@
+import { Outcome } from "@/utils/db";
+import { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
+import cx from "clsx";
 import dayjs from "dayjs";
 import { memo, useContext, useState } from "react";
-import { GameHeaders } from "@/utils/treeReducer";
-import { TreeDispatchContext } from "./TreeStateContext";
-import { Outcome } from "@/utils/db";
 import FideInfo from "../databases/FideInfo";
-import * as classes from "./GameInfo.css";
 import { ContentEditable } from "../tabs/ContentEditable";
-import cx from "clsx";
+import * as classes from "./GameInfo.css";
+import { TreeDispatchContext } from "./TreeStateContext";
 
 function GameInfo({
   headers,

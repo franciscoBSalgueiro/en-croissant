@@ -1,7 +1,7 @@
 import { Chess } from "chess.js";
-import treeReducer, { TreeState, defaultTree } from "../treeReducer";
-import { test, expect } from "vitest";
+import { expect, test } from "vitest";
 import { MoveAnalysis } from "../chess";
+import treeReducer, { TreeState, defaultTree } from "../treeReducer";
 
 const chess = new Chess();
 const e4 = chess.move("e4");

@@ -1,3 +1,8 @@
+import { downloadChessCom } from "@/utils/chesscom";
+import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
+import { capitalize } from "@/utils/format";
+import { invoke } from "@/utils/invoke";
+import { downloadLichess } from "@/utils/lichess";
 import {
   ActionIcon,
   Card,
@@ -18,14 +23,9 @@ import {
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";
-import { downloadChessCom } from "@/utils/chesscom";
-import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
-import { downloadLichess } from "@/utils/lichess";
-import { invoke } from "@/utils/invoke";
+import { info } from "tauri-plugin-log-api";
 import LichessLogo from "./LichessLogo";
 import * as classes from "./styles.css";
-import { info } from "tauri-plugin-log-api";
-import { capitalize } from "@/utils/format";
 
 interface AccountCardProps {
   type: "lichess" | "chesscom";

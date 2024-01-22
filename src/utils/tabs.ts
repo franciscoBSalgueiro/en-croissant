@@ -1,10 +1,10 @@
 import { FileMetadata, fileMetadataSchema } from "@/components/files/file";
-import { getPGN, parsePGN } from "./chess";
-import { GameHeaders, TreeNode } from "./treeReducer";
-import { invoke } from "./invoke";
-import { documentDir, resolve } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/api/dialog";
+import { documentDir, resolve } from "@tauri-apps/api/path";
 import { z } from "zod";
+import { getPGN, parsePGN } from "./chess";
+import { invoke } from "./invoke";
+import { GameHeaders, TreeNode } from "./treeReducer";
 
 export const tabSchema = z.object({
   name: z.string(),

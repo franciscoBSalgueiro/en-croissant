@@ -1,20 +1,20 @@
-import { Box, Group, Stack, Text } from "@mantine/core";
-import { useContext } from "react";
 import { Chessground } from "@/chessground/Chessground";
-import MoveControls from "../common/MoveControls";
-import GameNotation from "../boards/GameNotation";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
-import { useImmerReducer } from "use-immer";
+import { parsePGN } from "@/utils/chess";
 import treeReducer, {
   GameHeaders,
   TreeState,
   getNodeAtPath,
 } from "@/utils/treeReducer";
-import { parsePGN } from "@/utils/chess";
+import { Box, Group, Stack, Text } from "@mantine/core";
+import { useContext } from "react";
 import useSWRImmutable from "swr/immutable";
+import { useImmerReducer } from "use-immer";
+import GameNotation from "../boards/GameNotation";
+import MoveControls from "../common/MoveControls";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "../common/TreeStateContext";
 
 function GamePreviewWrapper({
   pgn,

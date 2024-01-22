@@ -1,8 +1,8 @@
 import { BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { fetch } from "@tauri-apps/api/http";
-import { positionFromFen } from "./chessops";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
+import { positionFromFen } from "./chessops";
 
 const endpoint = "https://www.chessdb.cn/cdb.php";
 

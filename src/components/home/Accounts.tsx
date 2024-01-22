@@ -1,3 +1,8 @@
+import { sessionsAtom } from "@/atoms/atoms";
+import { getChessComAccount } from "@/utils/chesscom";
+import { DatabaseInfo, getDatabases } from "@/utils/db";
+import { invoke } from "@/utils/invoke";
+import { getLichessAccount } from "@/utils/lichess";
 import {
   Button,
   Checkbox,
@@ -8,14 +13,9 @@ import {
   TextInput,
 } from "@mantine/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useRef, useState } from "react";
-import { getChessComAccount } from "@/utils/chesscom";
-import { DatabaseInfo, getDatabases } from "@/utils/db";
-import { getLichessAccount } from "@/utils/lichess";
-import { invoke } from "@/utils/invoke";
-import AccountCards from "../common/AccountCards";
 import { useAtom } from "jotai";
-import { sessionsAtom } from "@/atoms/atoms";
+import { useEffect, useRef, useState } from "react";
+import AccountCards from "../common/AccountCards";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);

@@ -1,30 +1,30 @@
-import { Accordion, ScrollArea, Stack, Text, Group, Box } from "@mantine/core";
-import { useContext, useMemo, useState } from "react";
-import { getNodeAtPath } from "@/utils/treeReducer";
-import GameInfo from "@/components/common/GameInfo";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
-import GameSelector from "./GameSelector";
-import PgnInput from "./PgnInput";
-import FileInfo from "./FileInfo";
-import { read_games } from "@/utils/db";
-import { parsePGN } from "@/utils/chess";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   currentPracticingAtom,
   currentTabAtom,
   missingMovesAtom,
 } from "@/atoms/atoms";
-import { invoke } from "@tauri-apps/api";
-import { formatNumber } from "@/utils/format";
-import RepertoireInfo from "./RepertoireInfo";
-import { useToggle } from "@mantine/hooks";
+import GameInfo from "@/components/common/GameInfo";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
+import { parsePGN } from "@/utils/chess";
+import { read_games } from "@/utils/db";
+import { formatNumber } from "@/utils/format";
 import { getTreeStats } from "@/utils/repertoire";
-import PracticePanel from "./PracticePanel";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import { Accordion, Box, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
+import { invoke } from "@tauri-apps/api";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useContext, useMemo, useState } from "react";
 import FenSearch from "./FenSearch";
+import FileInfo from "./FileInfo";
+import GameSelector from "./GameSelector";
+import PgnInput from "./PgnInput";
+import PracticePanel from "./PracticePanel";
+import RepertoireInfo from "./RepertoireInfo";
 
 function InfoPanel() {
   const tree = useContext(TreeStateContext);

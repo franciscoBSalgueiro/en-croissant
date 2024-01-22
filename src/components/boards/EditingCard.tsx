@@ -1,12 +1,12 @@
 import { Card, CloseButton, Divider } from "@mantine/core";
-import FenInput from "../panels/info/FenInput";
-import PiecesGrid from "./PiecesGrid";
+import { useContext } from "react";
 import {
   TreeDispatchContext,
   TreeStateContext,
 } from "../common/TreeStateContext";
-import { useContext } from "react";
+import FenInput from "../panels/info/FenInput";
 import * as classes from "./EditingCard.css";
+import PiecesGrid from "./PiecesGrid";
 
 function EditingCard({
   fen,

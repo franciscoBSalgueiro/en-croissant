@@ -1,12 +1,12 @@
 import { LocalEngine } from "@/utils/engines";
-import { TextInput, NumberInput, Input, Button, Text } from "@mantine/core";
+import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
 import { UseFormReturnType } from "@mantine/form";
 import { invoke } from "@tauri-apps/api";
-import FileInput from "../common/FileInput";
 import { open } from "@tauri-apps/api/dialog";
-import useSWR from "swr";
 import { platform } from "@tauri-apps/api/os";
+import useSWR from "swr";
 import { match } from "ts-pattern";
+import FileInput from "../common/FileInput";
 
 export default function EngineForm({
   onSubmit,

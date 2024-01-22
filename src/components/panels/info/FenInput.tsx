@@ -1,10 +1,10 @@
-import { Checkbox, Group, Select, Stack, Text } from "@mantine/core";
-import { memo, useContext } from "react";
-import { swapMove } from "@/utils/chessops";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import FenSearch from "./FenSearch";
+import { swapMove } from "@/utils/chessops";
+import { Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { makeFen, parseFen } from "chessops/fen";
 import { squareFromCoords } from "chessops/util";
+import { memo, useContext } from "react";
+import FenSearch from "./FenSearch";
 
 type Castlingrights = {
   k: boolean;

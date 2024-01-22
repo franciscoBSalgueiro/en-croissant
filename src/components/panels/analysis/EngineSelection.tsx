@@ -1,23 +1,23 @@
+import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
+import { Engine, stopEngine } from "@/utils/engines";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Button,
   Center,
   Checkbox,
-  Image,
+  Collapse,
   Group,
+  Image,
+  Paper,
   Stack,
   Text,
-  Paper,
-  Collapse,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconCloud, IconRobot, IconSettings } from "@tabler/icons-react";
-import { Link } from "react-router-dom";
-import { memo } from "react";
-import { Engine, stopEngine } from "@/utils/engines";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
-import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { memo } from "react";
+import { Link } from "react-router-dom";
 import useSWRImmutable from "swr/immutable";
 
 function EngineBox({

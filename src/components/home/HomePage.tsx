@@ -1,6 +1,6 @@
+import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
 import Accounts from "./Accounts";
 import Databases from "./Databases";
-import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
 
 function HomePage() {
   return (

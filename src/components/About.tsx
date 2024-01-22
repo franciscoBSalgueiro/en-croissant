@@ -1,7 +1,7 @@
 import { Anchor, Modal, Text } from "@mantine/core";
+import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
+import { arch, type, version as OSVersion } from "@tauri-apps/api/os";
 import { useEffect, useState } from "react";
-import { getVersion, getTauriVersion } from "@tauri-apps/api/app";
-import { type, arch, version as OSVersion } from "@tauri-apps/api/os";
 
 function AboutModal({
   opened,

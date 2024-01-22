@@ -1,24 +1,24 @@
-import { Box } from "@mantine/core";
-import { useContext, useState } from "react";
-import { Completion, Puzzle } from "@/utils/puzzles";
-import PromotionModal from "../boards/PromotionModal";
-import { chessboard } from "@/styles/Chessboard.css";
-import { Chessground } from "@/chessground/Chessground";
-import { useAtomValue } from "jotai";
 import { showCoordinatesAtom } from "@/atoms/atoms";
+import { Chessground } from "@/chessground/Chessground";
+import { chessboard } from "@/styles/Chessboard.css";
+import { moveToKey } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
+import { Completion, Puzzle } from "@/utils/puzzles";
+import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
+import { Box } from "@mantine/core";
+import { useForceUpdate } from "@mantine/hooks";
 import { Chess, NormalMove, makeUci, parseSquare, parseUci } from "chessops";
-import { parseFen, parsePiece } from "chessops/fen";
 import { chessgroundDests } from "chessops/compat";
+import { parseFen, parsePiece } from "chessops/fen";
+import equal from "fast-deep-equal";
+import { useAtomValue } from "jotai";
+import { useContext, useState } from "react";
+import * as classes from "../boards/Board.css";
+import PromotionModal from "../boards/PromotionModal";
 import {
   TreeDispatchContext,
   TreeStateContext,
 } from "../common/TreeStateContext";
-import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
-import { moveToKey } from "@/utils/chess";
-import { positionFromFen } from "@/utils/chessops";
-import equal from "fast-deep-equal";
-import { useForceUpdate } from "@mantine/hooks";
-import * as classes from "../boards/Board.css";
 
 function PuzzleBoard({
   puzzles,

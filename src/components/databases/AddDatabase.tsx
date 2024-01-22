@@ -1,3 +1,6 @@
+import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { invoke } from "@/utils/invoke";
 import {
   Alert,
   Box,
@@ -19,9 +22,6 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useState } from "react";
-import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 

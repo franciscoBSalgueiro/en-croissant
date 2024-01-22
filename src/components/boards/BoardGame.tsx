@@ -1,4 +1,16 @@
 import {
+  activeTabAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
+  enginesAtom,
+  tabsAtom,
+} from "@/atoms/atoms";
+import { events, commands } from "@/bindings";
+import { getMainLine, parseUci } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
+import { EngineSettings, LocalEngine } from "@/utils/engines";
+import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
+import {
   ActionIcon,
   Box,
   Button,
@@ -19,6 +31,8 @@ import {
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { INITIAL_FEN } from "chessops/fen";
+import { useAtom, useAtomValue } from "jotai";
 import {
   Suspense,
   useContext,
@@ -27,30 +41,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
+import { match } from "ts-pattern";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import {
   TreeDispatchContext,
   TreeStateContext,
 } from "../common/TreeStateContext";
+import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
 import GameNotation from "./GameNotation";
-import {
-  activeTabAtom,
-  currentGameStateAtom,
-  currentPlayersAtom,
-  enginesAtom,
-  tabsAtom,
-} from "@/atoms/atoms";
-import { useAtom, useAtomValue } from "jotai";
-import { match } from "ts-pattern";
-import { getMainLine, parseUci } from "@/utils/chess";
-import { EngineSettings, LocalEngine } from "@/utils/engines";
-import { commands, events } from "@/bindings";
-import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
-import { INITIAL_FEN } from "chessops/fen";
-import { positionFromFen } from "@/utils/chessops";
 
 function EnginesSelect({
   engine,

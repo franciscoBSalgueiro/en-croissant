@@ -3,7 +3,7 @@ import { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { Group, Progress, Text } from "@mantine/core";
 import { DataTable } from "mantine-datatable";
-import { useContext, memo } from "react";
+import { memo, useContext } from "react";
 
 function OpeningsTable({
   openings,

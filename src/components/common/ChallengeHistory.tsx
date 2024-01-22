@@ -1,6 +1,6 @@
 import { Completion } from "@/utils/puzzles";
-import { Group, ActionIcon, Stack, Text } from "@mantine/core";
-import { IconCheck, IconX, IconDots } from "@tabler/icons-react";
+import { ActionIcon, Group, Stack, Text } from "@mantine/core";
+import { IconCheck, IconDots, IconX } from "@tabler/icons-react";
 import { match } from "ts-pattern";
 
 type Challenge = {

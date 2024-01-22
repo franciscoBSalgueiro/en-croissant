@@ -1,24 +1,24 @@
 import {
+  ActionIcon,
   Badge,
+  Card,
+  Center,
   Group,
   Modal,
-  Text,
   Stack,
-  Card,
+  Text,
   Tooltip,
-  ActionIcon,
-  Center,
 } from "@mantine/core";
-import * as Flags from "mantine-flagpack";
 import { IconCloud } from "@tabler/icons-react";
+import * as Flags from "mantine-flagpack";
 
-import COUNTRIES from "./countries.json";
-import useSWR from "swr/immutable";
-import { useEffect, useState } from "react";
-import { BaseDirectory, exists } from "@tauri-apps/api/fs";
-import ProgressButton from "../common/ProgressButton";
-import { invoke } from "@tauri-apps/api";
 import { commands } from "@/bindings";
+import { invoke } from "@tauri-apps/api";
+import { BaseDirectory, exists } from "@tauri-apps/api/fs";
+import { useEffect, useState } from "react";
+import useSWR from "swr/immutable";
+import ProgressButton from "../common/ProgressButton";
+import COUNTRIES from "./countries.json";
 
 const flags = Object.entries(Flags).map(([key, value]) => ({
   key: key.replace("Flag", ""),

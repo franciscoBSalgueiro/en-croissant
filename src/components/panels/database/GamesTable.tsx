@@ -1,7 +1,7 @@
-import { tabsAtom, activeTabAtom } from "@/atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { NormalizedGame } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
-import { useMantineTheme, ActionIcon, Text } from "@mantine/core";
+import { ActionIcon, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";

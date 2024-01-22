@@ -1,4 +1,4 @@
-import { Group, Stack } from "@mantine/core";
+import { currentLichessOptionsAtom } from "@/atoms/atoms";
 import ToggleButtonGroup, {
   ToggleButtonGroupOption,
 } from "@/components/common/ToggleButtonGroup";
@@ -6,7 +6,9 @@ import {
   LichessGameSpeed,
   LichessRating,
 } from "@/utils/lichess/lichessexplorer";
-import { match } from "ts-pattern";
+import { Group, Stack } from "@mantine/core";
+import { MonthPickerInput } from "@mantine/dates";
+import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconChevronRight,
   IconChevronsRight,
@@ -15,11 +17,9 @@ import {
   IconHourglassHigh,
   IconSend,
 } from "@tabler/icons-react";
-import { MonthPickerInput } from "@mantine/dates";
-import { currentLichessOptionsAtom } from "@/atoms/atoms";
 import { useAtom } from "jotai";
-import { useDebouncedValue } from "@mantine/hooks";
 import { useEffect, useState } from "react";
+import { match } from "ts-pattern";
 
 const LichessOptionsPanel = () => {
   const [originalOptions, setOriginalOptions] = useAtom(

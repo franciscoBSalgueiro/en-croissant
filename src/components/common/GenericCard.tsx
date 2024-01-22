@@ -1,7 +1,7 @@
 import { Box, Stack, Text } from "@mantine/core";
+import cx from "clsx";
 import { ReactNode } from "react";
 import * as classes from "./GenericCard.css";
-import cx from "clsx";
 
 type Props<T> = {
   id: T;

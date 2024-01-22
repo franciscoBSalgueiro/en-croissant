@@ -1,7 +1,7 @@
-import { Box, rgba, useMantineTheme } from "@mantine/core";
-import { ForwardedRef, forwardRef } from "react";
 import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
+import { Box, rgba, useMantineTheme } from "@mantine/core";
 import { IconFlag } from "@tabler/icons-react";
+import { ForwardedRef, forwardRef } from "react";
 import * as classes from "./MoveCell.css";
 
 interface MoveCellProps {
