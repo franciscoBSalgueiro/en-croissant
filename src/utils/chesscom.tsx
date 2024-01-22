@@ -181,7 +181,7 @@ export async function getChesscomGame(gameURL: string) {
   const chess = Chess.default();
 
   let lastNode = game.moves;
-  moves.forEach((move) => {
+  for (const move of moves) {
     const m = decodeTCN(move);
     lastNode.children.push(
       new ChildNode({
@@ -190,7 +190,7 @@ export async function getChesscomGame(gameURL: string) {
     );
     chess.play(m);
     lastNode = lastNode.children[0];
-  });
+  }
 
   return makePgn(game);
 }

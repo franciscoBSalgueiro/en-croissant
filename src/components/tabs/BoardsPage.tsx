@@ -1,4 +1,5 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { keyMapAtom } from "@/atoms/keybinds";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 import { Tab, createTab, genID } from "@/utils/tabs";
@@ -8,6 +9,7 @@ import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect } from "react";
+import { Mosaic, MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -17,10 +19,9 @@ import { BoardTab } from "./BoardTab";
 import ConfirmChangesModal from "./ConfirmChangesModal";
 import NewTabHome from "./NewTabHome";
 
-import { keyMapAtom } from "@/atoms/keybinds";
-import "@/styles/react-mosaic.css";
-import { Mosaic, MosaicNode } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
+
+import "@/styles/react-mosaic.css";
 import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
@@ -36,7 +37,7 @@ export default function BoardsPage() {
         setActiveTab,
       });
     }
-  }, [tabs]);
+  }, [tabs, setActiveTab, setTabs]);
 
   const closeTab = useCallback(
     async (value: string | null, forced?: boolean) => {

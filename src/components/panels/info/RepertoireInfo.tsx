@@ -23,7 +23,6 @@ function RepertoireInfo() {
   const currentTab = useAtomValue(currentTabAtom);
 
   const [allMissingMoves, setMissingMoves] = useAtom(missingMovesAtom);
-  const missingMoves = allMissingMoves[currentTab?.value];
   const [loading, setLoading] = useState(false);
   const dispatch = useContext(TreeDispatchContext);
   const [progress, setProgress] = useState(0);
@@ -31,9 +30,17 @@ function RepertoireInfo() {
   const minimumGames = useAtomValue(minimumGamesAtom);
   const setPracticing = useSetAtom(currentPracticingAtom);
 
+  if (!currentTab) {
+    return null;
+  }
+  const missingMoves = allMissingMoves[currentTab.value];
+
   function searchForMissingMoves() {
     if (!referenceDb) {
       throw Error("No refernce database selected");
+    }
+    if (!currentTab) {
+      throw Error("No current tab");
     }
     setLoading(true);
     openingReport({
@@ -47,7 +54,7 @@ function RepertoireInfo() {
     }).then((missingMoves) => {
       setMissingMoves((prev) => ({
         ...prev,
-        [currentTab?.value]: missingMoves,
+        [currentTab.value]: missingMoves,
       }));
       setLoading(false);
     });
@@ -62,7 +69,7 @@ function RepertoireInfo() {
           allowDeselect={false}
           value={headers.orientation || "white"}
           variant="unstyled"
-          rightSection={<></>}
+          rightSection={null}
           rightSectionWidth={0}
           onChange={(value) =>
             dispatch({

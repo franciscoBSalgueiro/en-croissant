@@ -88,11 +88,12 @@ function AccountCards({
         }
         if (session.chessCom?.stats) {
           let totalGames = 0;
-          Object.values(session.chessCom.stats).forEach((stat) => {
-            if (stat.record)
+          for (const stat of Object.values(session.chessCom.stats)) {
+            if (stat.record) {
               totalGames +=
                 stat.record.win + stat.record.loss + stat.record.draw;
-          });
+            }
+          }
           return (
             <AccountCard
               key={session.chessCom.username}
@@ -116,12 +117,14 @@ function AccountCards({
                 );
               }}
               reload={async () => {
+                if (!session.chessCom) return;
                 const stats = await getChessComAccount(
                   session.chessCom?.username,
                 );
                 if (!stats) return;
                 setSessions((sessions) =>
                   sessions.map((s) =>
+                    session.chessCom &&
                     s.chessCom?.username === session.chessCom?.username
                       ? {
                           ...s,

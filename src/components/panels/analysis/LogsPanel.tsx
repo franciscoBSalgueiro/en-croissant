@@ -115,7 +115,7 @@ export default function LogsPanel() {
         >
           {({ index, style }) => (
             <Table.Tr style={style}>
-              <LogLine log={filteredData?.[index]} />
+              <LogLine log={filteredData![index]} />
             </Table.Tr>
           )}
         </VirtualizedScrollArea>

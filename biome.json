@@ -7,6 +7,22 @@
         "indentWidth": 2,
         "lineWidth": 80,
         "lineEnding": "lf",
-        "ignore": []
+        "ignore": ["src/bindings.ts"]
+    },
+    "linter": {
+        "rules": {
+            "style": {
+                "noNonNullAssertion": "warn"
+            },
+            "correctness": {
+                "useExhaustiveDependencies": "warn"
+            },
+            "suspicious": {
+                "noArrayIndexKey": "warn",
+                "noExplicitAny": "warn",
+                "noConfusingVoidType": "off"
+            }
+        },
+        "ignore": ["src/bindings.ts"]
     }
 }

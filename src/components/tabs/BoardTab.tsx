@@ -25,7 +25,8 @@ export function BoardTab({
   const [open, toggleOpen] = useToggle();
   const [renaming, toggleRenaming] = useToggle();
   const ref = useClickOutside(() => {
-    toggleOpen(false), toggleRenaming(false);
+    toggleOpen(false);
+    toggleRenaming(false);
   });
 
   useHotkeys([

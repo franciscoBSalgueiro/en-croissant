@@ -271,6 +271,11 @@ function Board({
       </ActionIcon.Group>
     ),
     [
+      activeTab,
+      autoSave,
+      dirty,
+      keyMap,
+      currentTab?.type,
       disableVariations,
       saveFile,
       toggleEditingMode,
@@ -369,11 +374,13 @@ function Board({
               pendingMove={pendingMove}
               cancelMove={() => setPendingMove(null)}
               confirmMove={(p) => {
-                makeMove({
-                  from: pendingMove?.from,
-                  to: pendingMove?.to,
-                  promotion: p,
-                });
+                if (pendingMove) {
+                  makeMove({
+                    from: pendingMove.from,
+                    to: pendingMove.to,
+                    promotion: p,
+                  });
+                }
               }}
               turn={turn}
               orientation={orientation}
@@ -585,7 +592,8 @@ function AnnotationHint({
             color={color}
             variant="filled"
           >
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <svg viewBox="0 0 100 100" width="100%">
+              <title>{annotation}</title>
               <defs>
                 <filter id="shadow">
                   <feDropShadow

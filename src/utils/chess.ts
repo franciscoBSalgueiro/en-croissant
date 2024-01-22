@@ -64,16 +64,17 @@ export interface MoveAnalysis {
 
 // copied from chessops
 export const makeClk = (seconds: number): string => {
-  seconds = Math.max(0, seconds);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  seconds = (seconds % 3600) % 60;
-  return `${hours}:${minutes
-    .toString()
-    .padStart(2, "0")}:${seconds.toLocaleString("en", {
-    minimumIntegerDigits: 2,
-    maximumFractionDigits: 3,
-  })}`;
+  let s = Math.max(0, seconds);
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  s = (s % 3600) % 60;
+  return `${hours}:${minutes.toString().padStart(2, "0")}:${s.toLocaleString(
+    "en",
+    {
+      minimumIntegerDigits: 2,
+      maximumFractionDigits: 3,
+    },
+  )}`;
 };
 
 export function getMoveText(
@@ -245,10 +246,8 @@ export function getPGN(
       isFirst: root,
     });
   }
-  if (variationsPGN.length >= 1) {
-    variationsPGN.forEach((variation) => {
-      pgn += ` (${variation}) `;
-    });
+  for (const variation of variationsPGN) {
+    pgn += ` (${variation}) `;
   }
 
   if (tree.children.length > 0) {
@@ -476,6 +475,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     White,
     BlackElo,
     WhiteElo,
+    // biome-ignore lint/suspicious/noShadowRestrictedNames: this is a name from the PGN standard
     Date,
     Site,
     Event,
@@ -544,7 +544,7 @@ type ColorMap<T> = {
 };
 
 /* traverse the main line and get the average centipawn loss for each player*/
-export function getGameStats(tree: TreeNode) {
+export function getGameStats(root: TreeNode) {
   const whiteAnnotations = {
     "??": 0,
     "?": 0,
@@ -563,7 +563,7 @@ export function getGameStats(tree: TreeNode) {
     "!?": 0,
   };
 
-  if (tree.children.length === 0) {
+  if (root.children.length === 0) {
     return {
       whiteCPL: 0,
       blackCPL: 0,
@@ -574,7 +574,7 @@ export function getGameStats(tree: TreeNode) {
     };
   }
 
-  let prevScore: Score = tree.score ?? INITIAL_SCORE;
+  let prevScore: Score = root.score ?? INITIAL_SCORE;
   const cplosses: ColorMap<number[]> = {
     white: [],
     black: [],
@@ -583,20 +583,21 @@ export function getGameStats(tree: TreeNode) {
     white: [],
     black: [],
   };
-  while (tree.children.length > 0) {
-    tree = tree.children[0];
-    if (tree.annotation) {
-      if (tree.halfMoves % 2 === 1) {
-        whiteAnnotations[tree.annotation]++;
+  let node = root;
+  while (node.children.length > 0) {
+    node = node.children[0];
+    if (node.annotation) {
+      if (node.halfMoves % 2 === 1) {
+        whiteAnnotations[node.annotation]++;
       } else {
-        blackAnnotations[tree.annotation]++;
+        blackAnnotations[node.annotation]++;
       }
     }
-    const color = tree.halfMoves % 2 === 1 ? "white" : "black";
-    if (tree.score) {
-      cplosses[color].push(getCPLoss(prevScore, tree.score, color));
-      accuracies[color].push(getAccuracy(prevScore, tree.score, color));
-      prevScore = tree.score;
+    const color = node.halfMoves % 2 === 1 ? "white" : "black";
+    if (node.score) {
+      cplosses[color].push(getCPLoss(prevScore, node.score, color));
+      accuracies[color].push(getAccuracy(prevScore, node.score, color));
+      prevScore = node.score;
     }
   }
   const whiteCPL = mean(cplosses.white);

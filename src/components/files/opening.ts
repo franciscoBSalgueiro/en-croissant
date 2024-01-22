@@ -21,7 +21,11 @@ export function buildFromTree(
   const cards: Card[] = [];
   const iterator = treeIterator(tree);
   for (const item of iterator) {
-    if (item.node.children.length === 0 || isPrefix(item.position, start)) {
+    if (
+      item.node.children.length === 0 ||
+      isPrefix(item.position, start) ||
+      !item.node.children[0].move
+    ) {
       continue;
     }
     if (
@@ -93,18 +97,18 @@ export function updateCardPerformance(
     const newCards = [...cards];
     const card = newCards[i];
     if (isRecalled) {
-      match(card.level)
-        .with("unseen", () => (card.level = "learning"))
-        .with("learning", () => (card.level = "reviewing"))
-        .with("reviewing", () => (card.level = "mastered"))
-        .with("mastered", () => (card.level = "mastered"))
+      card.level = match(card.level)
+        .with("unseen", () => "learning" as const)
+        .with("learning", () => "reviewing" as const)
+        .with("reviewing", () => "mastered" as const)
+        .with("mastered", () => "mastered" as const)
         .exhaustive();
     } else {
-      match(card.level)
-        .with("unseen", () => (card.level = "unseen"))
-        .with("learning", () => (card.level = "unseen"))
-        .with("reviewing", () => (card.level = "learning"))
-        .with("mastered", () => (card.level = "reviewing"))
+      card.level = match(card.level)
+        .with("unseen", () => "unseen" as const)
+        .with("learning", () => "unseen" as const)
+        .with("reviewing", () => "learning" as const)
+        .with("mastered", () => "reviewing" as const)
         .exhaustive();
     }
     card.repetitions++;

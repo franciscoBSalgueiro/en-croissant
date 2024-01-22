@@ -60,8 +60,8 @@ export default function PieceComponent({
     <Draggable
       position={{ x: 0, y: 0 }}
       onStop={(e) => {
-        e = e as MouseEvent;
-        handleDrop({ x: e.clientX, y: e.clientY });
+        const { clientX, clientY } = e as MouseEvent;
+        handleDrop({ x: clientX, y: clientY });
       }}
       scale={1}
     >

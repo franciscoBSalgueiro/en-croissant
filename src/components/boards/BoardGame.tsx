@@ -67,7 +67,7 @@ function EnginesSelect({
     if (engines.length > 0 && engine === null) {
       setEngine(engines[0]);
     }
-  }, [engine, engines, setEngine]);
+  }, [engine, engines[0], setEngine]);
 
   return (
     <Suspense>
@@ -80,7 +80,7 @@ function EnginesSelect({
         }))}
         value={engine?.path ?? ""}
         onChange={(e) => {
-          setEngine(engines.find((engine) => engine.path === e)!);
+          setEngine(engines.find((engine) => engine.path === e) ?? null);
         }}
       />
     </Suspense>
@@ -245,7 +245,7 @@ function BoardGame() {
     if (pos?.isEnd()) {
       setGameState("gameOver");
     }
-  }, [activeTab, lastNode.fen, pos, setGameState]);
+  }, [pos, setGameState]);
 
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
@@ -262,19 +262,16 @@ function BoardGame() {
         commands.getBestMoves(
           currentTurn,
           player.engine.path,
-          activeTab! + currentTurn,
+          activeTab + currentTurn,
           player.settings.go,
           { ...player.settings.options, fen: root.fen, moves: moves },
         );
       }
     }
   }, [
-    position,
     gameState,
     pos,
     players,
-    lastNode.fen,
-    dispatch,
     headers.result,
     setGameState,
     activeTab,
@@ -306,9 +303,11 @@ function BoardGame() {
     }
     waitForMove();
     return () => {
-      listeners.current.forEach((unlisten) => unlisten());
+      for (const unlisten of listeners.current) {
+        unlisten();
+      }
     };
-  }, [activeTab, dispatch, pos?.turn, root.fen, moves]);
+  }, [activeTab, dispatch, pos, root.fen, moves]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
