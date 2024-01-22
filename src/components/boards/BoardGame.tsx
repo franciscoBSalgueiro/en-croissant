@@ -47,8 +47,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 import { getMainLine, parseUci } from "@/utils/chess";
 import { EngineSettings, LocalEngine } from "@/utils/engines";
-import { commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
+import { commands, events } from "@/bindings";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import { INITIAL_FEN } from "chessops/fen";
 import { positionFromFen } from "@/utils/chessops";
@@ -246,7 +245,7 @@ function BoardGame() {
     if (pos && pos.isEnd()) {
       setGameState("gameOver");
     }
-  }, [lastNode.fen]);
+  }, [activeTab, lastNode.fen, pos, setGameState]);
 
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
@@ -260,21 +259,56 @@ function BoardGame() {
       const player = currentTurn === "white" ? players.white : players.black;
 
       if (player.type === "engine" && player.engine) {
-        commands
-          .getSingleBestMove(
-            player.settings.go,
-            { ...player.settings.options, fen: root.fen, moves: moves},
-            player.engine.path
-          )
-          .then((move) => {
-            dispatch({
-              type: "APPEND_MOVE",
-              payload: parseUci(unwrap(move)),
-            });
-          });
+        commands.getBestMoves(
+          currentTurn,
+          player.engine.path,
+          activeTab! + currentTurn,
+          player.settings.go,
+          { ...player.settings.options, fen: root.fen, moves: moves }
+        );
       }
     }
-  }, [position, gameState, pos, players, lastNode.fen, dispatch]);
+  }, [
+    position,
+    gameState,
+    pos,
+    players,
+    lastNode.fen,
+    dispatch,
+    headers.result,
+    setGameState,
+    activeTab,
+    root.fen,
+    moves,
+  ]);
+
+  const listeners = useRef<(() => void)[]>([]);
+  useEffect(() => {
+    async function waitForMove() {
+      const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
+        console.log(payload);
+        const ev = payload.bestLines;
+        if (
+          payload.progress === 100 &&
+          payload.engine === pos?.turn &&
+          payload.tab === activeTab + pos.turn &&
+          payload.fen === root.fen &&
+          payload.moves.join(",") === moves.join(",") &&
+          !pos?.isEnd()
+        ) {
+          dispatch({
+            type: "APPEND_MOVE",
+            payload: parseUci(ev[0].uciMoves[0]),
+          });
+        }
+      });
+      listeners.current.push(unlisten);
+    }
+    waitForMove();
+    return () => {
+      listeners.current.forEach((unlisten) => unlisten());
+    };
+  }, [activeTab, dispatch, pos?.turn, root.fen, moves]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {

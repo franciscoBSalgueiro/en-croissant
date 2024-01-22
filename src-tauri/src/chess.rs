@@ -374,7 +374,7 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
         .map(|x| x.key().clone())
         .collect();
     for key in keys.clone() {
-        if key.0 == tab {
+        if key.0.starts_with(&tab) {
             {
                 let process = state.engine_processes.get_mut(&key).unwrap();
                 let mut process = process.lock().await;
@@ -813,38 +813,6 @@ mod tests {
     fn eval_opera_game2() {
         let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 1 14");
         assert_eq!(naive_eval(&position), 0);
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn get_single_best_move(
-    go_mode: GoMode,
-    options: EngineOptions,
-    engine: String,
-    app: tauri::AppHandle,
-) -> Result<String, Error> {
-    let mut path = PathBuf::from(&engine);
-    path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        path,
-        Some(BaseDirectory::AppData),
-    )?;
-
-    let (mut process, mut reader) = EngineProcess::new(path).await?;
-    process.set_options(options.clone()).await?;
-    process.go(&go_mode).await?;
-
-    loop {
-        if let Some(line) = reader.next_line().await? {
-            if line.starts_with("bestmove") {
-                let m = line.split_whitespace().nth(1).unwrap();
-                info!("bestmove {}", m);
-                return Ok(m.to_string());
-            }
-        }
     }
 }
 
