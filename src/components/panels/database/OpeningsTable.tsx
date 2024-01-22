@@ -52,7 +52,12 @@ function OpeningsTable({
           accessor: "move",
           width: 100,
           render: ({ move }) => {
-            if (move === "*") return <Text fz="sm" fs="italic">Game end</Text>;
+            if (move === "*")
+              return (
+                <Text fz="sm" fs="italic">
+                  Game end
+                </Text>
+              );
             return <Text fz="sm">{move}</Text>;
           },
         },
@@ -64,7 +69,9 @@ function OpeningsTable({
             const percentage = (total / grandTotal) * 100;
             return (
               <Group>
-                {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
+                {move !== "Total" && (
+                  <Text fz="sm">{percentage.toFixed(0)}%</Text>
+                )}
                 <Text fz="sm" flex={1} ta="right">
                   {formatNumber(total)}
                 </Text>

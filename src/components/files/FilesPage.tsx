@@ -43,7 +43,7 @@ function FilesPage() {
       new Fuse(files, {
         keys: ["name"],
       }),
-    [files]
+    [files],
   );
 
   let filteredFiles = files;
@@ -65,7 +65,7 @@ function FilesPage() {
         const filesInfo = await Promise.all(
           files
             .filter((f) => f.name?.endsWith(".pgn"))
-            .map((f) => readFileMetadata(f.name || "", f.path))
+            .map((f) => readFileMetadata(f.name || "", f.path)),
         );
         setFiles(filesInfo);
       });
@@ -133,7 +133,7 @@ function FilesPage() {
                 key={type}
                 onChange={(v) =>
                   setFilter((filter) =>
-                    v ? type : filter === type ? null : filter
+                    v ? type : filter === type ? null : filter,
                   )
                 }
                 checked={filter === type}

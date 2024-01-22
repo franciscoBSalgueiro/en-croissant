@@ -41,7 +41,7 @@ function AnnotationEditor({
         });
       },
     },
-    [commentHTML]
+    [commentHTML],
   );
 
   return (
@@ -79,5 +79,5 @@ export default memo(
   AnnotationEditor,
   (prevProps, nextProps) =>
     prevProps.path === nextProps.path ||
-    prevProps.commentHTML === nextProps.commentHTML
+    prevProps.commentHTML === nextProps.commentHTML,
 );

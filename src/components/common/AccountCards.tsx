@@ -49,7 +49,7 @@ function AccountCards({
               type="lichess"
               database={
                 databases.find(
-                  (db) => db.filename === account.username + "_lichess.db3"
+                  (db) => db.filename === account.username + "_lichess.db3",
                 ) ?? null
               }
               title={account.username}
@@ -57,7 +57,7 @@ function AccountCards({
               total={totalGames}
               logout={() => {
                 setSessions((sessions) =>
-                  sessions.filter((s) => s.lichess?.account.id !== account.id)
+                  sessions.filter((s) => s.lichess?.account.id !== account.id),
                 );
               }}
               setDatabases={setDatabases}
@@ -71,15 +71,15 @@ function AccountCards({
                   sessions.map((s) =>
                     s.lichess?.account.id === account.id
                       ? {
-                        ...s,
-                        lichess: {
-                          account: account,
-                          accessToken: lichessSession.accessToken,
-                        },
-                        updatedAt: Date.now(),
-                      }
-                      : s
-                  )
+                          ...s,
+                          lichess: {
+                            account: account,
+                            accessToken: lichessSession.accessToken,
+                          },
+                          updatedAt: Date.now(),
+                        }
+                      : s,
+                  ),
                 );
               }}
               stats={stats}
@@ -90,7 +90,8 @@ function AccountCards({
           let totalGames = 0;
           Object.values(session.chessCom.stats).forEach((stat) => {
             if (stat.record)
-              totalGames += stat.record.win + stat.record.loss + stat.record.draw;
+              totalGames +=
+                stat.record.win + stat.record.loss + stat.record.draw;
           });
           return (
             <AccountCard
@@ -100,7 +101,8 @@ function AccountCards({
               database={
                 databases.find(
                   (db) =>
-                    db.filename === session.chessCom?.username + "_chesscom.db3"
+                    db.filename ===
+                    session.chessCom?.username + "_chesscom.db3",
                 ) ?? null
               }
               updatedAt={session.updatedAt}
@@ -109,28 +111,28 @@ function AccountCards({
               logout={() => {
                 setSessions((sessions) =>
                   sessions.filter(
-                    (s) => s.chessCom?.username !== session.chessCom?.username
-                  )
+                    (s) => s.chessCom?.username !== session.chessCom?.username,
+                  ),
                 );
               }}
               reload={async () => {
                 const stats = await getChessComAccount(
-                  session.chessCom!.username
+                  session.chessCom!.username,
                 );
                 if (!stats) return;
                 setSessions((sessions) =>
                   sessions.map((s) =>
                     s.chessCom?.username === session.chessCom?.username
                       ? {
-                        ...s,
-                        chessCom: {
-                          username: session.chessCom!.username,
-                          stats,
-                        },
-                        updatedAt: Date.now(),
-                      }
-                      : s
-                  )
+                          ...s,
+                          chessCom: {
+                            username: session.chessCom!.username,
+                            stats,
+                          },
+                          updatedAt: Date.now(),
+                        }
+                      : s,
+                  ),
                 );
               }}
               setDatabases={setDatabases}

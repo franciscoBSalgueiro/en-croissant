@@ -62,7 +62,7 @@ function GameInfo({
             data-placeholder="Unknown Event"
             className={cx(
               classes.contentEditable,
-              !event && classes.contentEditablePlaceholder
+              !event && classes.contentEditablePlaceholder,
             )}
             onChange={(e) => {
               dispatch({
@@ -144,7 +144,7 @@ function GameInfo({
               <ContentEditable
                 className={cx(
                   classes.contentEditable,
-                  !site && classes.contentEditablePlaceholder
+                  !site && classes.contentEditablePlaceholder,
                 )}
                 data-placeholder="Unknown Site"
                 html={site}

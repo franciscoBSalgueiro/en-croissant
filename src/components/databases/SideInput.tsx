@@ -24,8 +24,8 @@ export function SideInput({
       (sides === "BlackWhite" && label === "Opponent")
       ? data[0]
       : sides === "Any"
-      ? data[2]
-      : data[1]
+        ? data[2]
+        : data[1],
   );
   const items = data.map((item) => (
     <Menu.Item
@@ -66,8 +66,8 @@ export function SideInput({
       (sides === "BlackWhite" && label === "Opponent")
         ? data[0]
         : sides === "Any"
-        ? data[2]
-        : data[1];
+          ? data[2]
+          : data[1];
     setSelected(newSelected);
   }, [sides]);
 

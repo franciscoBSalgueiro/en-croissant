@@ -40,7 +40,7 @@ function PracticePanel() {
       root,
       headers,
       game: currentTab?.gameNumber || 0,
-    })
+    }),
   );
 
   const stats = getStats(deck);
@@ -143,7 +143,7 @@ function PracticePanel() {
           const cards = buildFromTree(
             root,
             headers.orientation || "white",
-            headers.start || []
+            headers.start || [],
           );
           setDeck(cards);
           toggleResetModal();

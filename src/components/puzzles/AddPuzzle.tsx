@@ -32,7 +32,7 @@ function AddPuzzle({
 }) {
   const { data: dbs, error } = useSWRImmutable(
     "default_puzzle_databases",
-    getDefaultPuzzleDatabases
+    getDefaultPuzzleDatabases,
   );
 
   return (
@@ -135,7 +135,7 @@ function PuzzleDbCard({
               downloadDatabase(
                 databaseId,
                 puzzleDb.downloadLink!,
-                puzzleDb.title
+                puzzleDb.title,
               )
             }
             inProgress={inProgress}

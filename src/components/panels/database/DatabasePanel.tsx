@@ -53,7 +53,7 @@ export type LocalOptions = {
 
 function sortOpenings(openings: Opening[]) {
   return openings.sort(
-    (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white)
+    (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white),
   );
 }
 
@@ -99,7 +99,7 @@ function DatabasePanel({ fen }: { fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
   const [lichessOptions, setLichessOptions] = useAtom(
-    currentLichessOptionsAtom
+    currentLichessOptionsAtom,
   );
   const [masterOptions, setMasterOptions] = useAtom(currentMasterOptionsAtom);
   const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
@@ -143,7 +143,7 @@ function DatabasePanel({ fen }: { fen: string }) {
   const [tabType, setTabType] = useAtom(currentDbTabAtom);
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
-    0
+    0,
   );
 
   return (
@@ -162,7 +162,7 @@ function DatabasePanel({ fen }: { fen: string }) {
         />
         <Text>
           {formatNumber(
-            Math.max(grandTotal || 0, openingData?.games.length || 0)
+            Math.max(grandTotal || 0, openingData?.games.length || 0),
           )}{" "}
           matches
         </Text>

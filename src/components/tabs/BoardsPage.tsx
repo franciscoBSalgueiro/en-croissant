@@ -62,7 +62,7 @@ export default function BoardsPage() {
         unwrap(await commands.killEngines(value));
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab]
+    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
   );
 
   function selectTab(index: number) {
@@ -94,10 +94,10 @@ export default function BoardsPage() {
             return { ...tab, name };
           }
           return tab;
-        })
+        }),
       );
     },
-    [setTabs]
+    [setTabs],
   );
 
   const duplicateTab = useCallback(
@@ -110,7 +110,7 @@ export default function BoardsPage() {
       if (sessionStorage.getItem(value + "-tree")) {
         sessionStorage.setItem(
           id + "-tree",
-          sessionStorage.getItem(value + "-tree") || ""
+          sessionStorage.getItem(value + "-tree") || "",
         );
       }
 
@@ -126,7 +126,7 @@ export default function BoardsPage() {
         setActiveTab(id);
       }
     },
-    [tabs, setTabs, setActiveTab]
+    [tabs, setTabs, setActiveTab],
   );
 
   const keyMap = useAtomValue(keyMapAtom);

@@ -26,7 +26,7 @@ export default function LogsPanel() {
     .filter((e): e is LocalEngine => e.type === "local")
     .filter((e) => e.loaded);
   const [engine, setEngine] = useState<LocalEngine | undefined>(
-    localEngines[0]
+    localEngines[0],
   );
 
   const viewport = useRef<HTMLDivElement>(null);
@@ -37,7 +37,7 @@ export default function LogsPanel() {
       return engine
         ? unwrap(await commands.getEngineLogs(engine.path, activeTab!))
         : undefined;
-    }
+    },
   );
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function LogsPanel() {
         if (filter === "gui") return line.type === "gui";
         if (filter === "engine") return line.type === "engine";
       }),
-    [data, filter]
+    [data, filter],
   );
 
   async function exportLogs() {
@@ -133,7 +133,7 @@ const Inner = forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>(
         </Table>
       </div>
     );
-  }
+  },
 );
 
 type Log = { type: "gui"; value: string } | { type: "engine"; value: string };

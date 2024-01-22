@@ -59,7 +59,7 @@ function BoardAnalysis() {
     bestMovesFamily({
       fen: root.fen,
       gameMoves: getVariationLine(root, position),
-    })
+    }),
   );
 
   const saveFile = useCallback(async () => {
@@ -105,7 +105,7 @@ function BoardAnalysis() {
   ]);
 
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
-    currentTabSelectedAtom
+    currentTabSelectedAtom,
   );
 
   return (

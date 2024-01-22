@@ -74,14 +74,14 @@ export default function BestMovesComponent({
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
   const [ev, setEngineVariation] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! })
+    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
   const [settings, setSettings] = useAtom(
     tabEngineSettingsFamily({
       engineName: engine.name,
       defaultSettings: engine.settings ?? undefined,
       tab: activeTab!,
-    })
+    }),
   );
 
   const [settingsOn, toggleSettingsOn] = useToggle();
@@ -99,12 +99,12 @@ export default function BestMovesComponent({
           searchingMoves: moves,
         }))
         .exhaustive(),
-    [fen, moves, threat]
+    [fen, moves, threat],
   );
 
   const engineVariations = useMemo(
     () => ev.get(searchingFen + ":" + searchingMoves.join(",")),
-    [ev, searchingFen, searchingMoves]
+    [ev, searchingFen, searchingMoves],
   );
   const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
   const nps = !engineVariations
@@ -164,7 +164,7 @@ export default function BestMovesComponent({
     .with(
       "local",
       () => (fen: string, goMode: GoMode, options: EngineOptions) =>
-        localGetBestMoves(engine as LocalEngine, fen, goMode, options)
+        localGetBestMoves(engine as LocalEngine, fen, goMode, options),
     )
     .with("chessdb", () => chessdbGetBestMoves)
     .with("lichess", () => lichessGetBestMoves)
@@ -192,7 +192,7 @@ export default function BestMovesComponent({
                 const newMap = new Map(prev);
                 newMap.set(
                   searchingFen + ":" + searchingMoves.join(","),
-                  bestMoves
+                  bestMoves,
                 );
                 return newMap;
               });
@@ -215,7 +215,7 @@ export default function BestMovesComponent({
       searchingFen,
       searchingMoves,
       isGameOver,
-    ]
+    ],
   );
 
   return useMemo(
@@ -427,6 +427,6 @@ export default function BestMovesComponent({
       toggleThreat,
       toggleSettingsOn,
       halfMoves,
-    ]
+    ],
   );
 }

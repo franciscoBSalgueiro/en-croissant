@@ -33,7 +33,7 @@ export default function DatabasesPage() {
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useState<DatabaseInfo | null>(
-    null
+    null,
   );
   const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
@@ -42,7 +42,7 @@ export default function DatabasesPage() {
   const [title, setTitle] = useState(selectedDatabase?.title ?? null);
   const [debouncedTitle] = useDebouncedValue(title, 100);
   const [description, setDescription] = useState(
-    selectedDatabase?.description ?? null
+    selectedDatabase?.description ?? null,
   );
   const [debouncedDescription] = useDebouncedValue(description, 100);
   const [deleteModal, toggleDeleteModal] = useToggle();
@@ -95,7 +95,7 @@ export default function DatabasesPage() {
                 setDatabases(dbs);
                 setSelectedDatabase(null);
               });
-            }
+            },
           );
           toggleDeleteModal();
         }}
@@ -140,7 +140,11 @@ export default function DatabasesPage() {
                       <IconDatabase size="1.5rem" />
                       <Box miw={0}>
                         <Text fw={500}>{item.error ?? item.title}</Text>
-                        <Text size="xs" c="dimmed" style={{ wordWrap: "break-word"}}>
+                        <Text
+                          size="xs"
+                          c="dimmed"
+                          style={{ wordWrap: "break-word" }}
+                        >
                           {item.error ? item.file : item.description}
                         </Text>
                       </Box>

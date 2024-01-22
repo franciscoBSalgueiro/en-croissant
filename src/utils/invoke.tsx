@@ -6,7 +6,7 @@ import { error } from "tauri-plugin-log-api";
 export async function invoke<T>(
   name: string,
   payload?: Record<string, unknown>,
-  allowedErrors?: (s: string) => boolean
+  allowedErrors?: (s: string) => boolean,
 ): Promise<T> {
   try {
     return await invokeTauri<T>(name, payload);

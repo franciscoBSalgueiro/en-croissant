@@ -1,4 +1,11 @@
-import { ActionIcon, Group, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { memo, useContext } from "react";
 import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
 import { getNodeAtPath } from "@/utils/treeReducer";

@@ -59,18 +59,18 @@ const ChessComGames = z.object({
       rules: z.string(),
       white: ChessComPlayer,
       black: ChessComPlayer,
-    })
+    }),
   ),
 });
 
 export async function getChessComAccount(
-  player: string
+  player: string,
 ): Promise<ChessComStats | null> {
   const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
   const response = await fetch(url, { headers, method: "GET" });
   if (!response.ok) {
     error(
-      `Failed to fetch Chess.com account: ${response.status} ${response.url}`
+      `Failed to fetch Chess.com account: ${response.status} ${response.url}`,
     );
     notifications.show({
       title: "Failed to fetch Chess.com account",
@@ -84,7 +84,7 @@ export async function getChessComAccount(
   const stats = ChessComStatsSchema.safeParse(data);
   if (!stats.success) {
     error(
-      `Invalid response for Chess.com account: ${response.status} ${response.url}\n${stats.error}`
+      `Invalid response for Chess.com account: ${response.status} ${response.url}\n${stats.error}`,
     );
     notifications.show({
       title: "Failed to fetch Chess.com account",
@@ -105,14 +105,14 @@ async function getGameArchives(player: string) {
 
 export async function downloadChessCom(
   player: string,
-  timestamp: number | null
+  timestamp: number | null,
 ) {
   let totalPGN = "";
   const timestampDate = new Date(timestamp ?? 0);
   const approximateDate = new Date(
     timestampDate.getFullYear(),
     timestampDate.getMonth(),
-    1
+    1,
   );
   const archives = await getGameArchives(player);
   for (const archive of archives.archives) {
@@ -129,7 +129,7 @@ export async function downloadChessCom(
 
     if (!games.success) {
       error(
-        `Failed to fetch Chess.com games: ${response.status} ${response.url}`
+        `Failed to fetch Chess.com games: ${response.status} ${response.url}`,
       );
       notifications.show({
         title: "Failed to fetch Chess.com games",
@@ -150,7 +150,7 @@ export async function downloadChessCom(
   }
   writeTextFile(
     await resolve(await appDataDir(), "db", player + "_chesscom.pgn"),
-    totalPGN
+    totalPGN,
   );
 }
 
@@ -179,7 +179,8 @@ export async function getChesscomGame(gameURL: string) {
     return "";
   }
   const game = defaultGame<PgnNodeData>(
-    () => new Map(Object.entries(pgnHeaders).map(([k, v]) => [k, v.toString()]))
+    () =>
+      new Map(Object.entries(pgnHeaders).map(([k, v]) => [k, v.toString()])),
   );
   const chess = Chess.default();
 
@@ -189,7 +190,7 @@ export async function getChesscomGame(gameURL: string) {
     lastNode.children.push(
       new ChildNode({
         san: makeSan(chess, m),
-      })
+      }),
     );
     chess.play(m);
     lastNode = lastNode.children[0];

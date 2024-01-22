@@ -52,7 +52,7 @@ export function CreateModal({
     await writeTextFile(file, "");
     await writeTextFile(
       file.replace(".pgn", ".info"),
-      JSON.stringify(metadata)
+      JSON.stringify(metadata),
     );
     setFiles((files) => [
       ...files,
@@ -141,7 +141,7 @@ export function EditModal({
     const newPGNPath = await resolve(
       await documentDir(),
       "EnCroissant",
-      filename + ".pgn"
+      filename + ".pgn",
     );
 
     try {
@@ -150,14 +150,14 @@ export function EditModal({
         "EnCroissant/" + filename + ".pgn",
         {
           dir: BaseDirectory.Document,
-        }
+        },
       );
       await renameFile(
         "EnCroissant/" + metadata.name + ".info",
         "EnCroissant/" + filename + ".info",
         {
           dir: BaseDirectory.Document,
-        }
+        },
       );
     } catch {
       await renameFile(
@@ -165,21 +165,21 @@ export function EditModal({
         "documents/" + filename + ".pgn",
         {
           dir: BaseDirectory.AppData,
-        }
+        },
       );
       await renameFile(
         "documents/" + metadata.name + ".info",
         "documents/" + filename + ".info",
         {
           dir: BaseDirectory.AppData,
-        }
+        },
       );
     }
 
     setFiles((files) =>
       [
         ...files.filter(
-          (v) => v.path !== metadata.path && v.path !== metadataPath
+          (v) => v.path !== metadata.path && v.path !== metadataPath,
         ),
         {
           ...metadata,
@@ -188,7 +188,7 @@ export function EditModal({
           numGames: metadata.numGames,
           metadata: newMetadata,
         },
-      ].sort((a, b) => a.name.localeCompare(b.name))
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     );
     setSelected((selected) =>
       selected?.path === metadata.path
@@ -199,7 +199,7 @@ export function EditModal({
             numGames: metadata.numGames,
             metadata: newMetadata,
           }
-        : selected
+        : selected,
     );
 
     setError("");

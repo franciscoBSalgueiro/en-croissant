@@ -4,120 +4,120 @@ import { BestMoves, Score } from "@/bindings";
 import { Color } from "chessops";
 
 export const INITIAL_SCORE: Score = {
-    type: "cp",
-    value: 15,
+  type: "cp",
+  value: 15,
 };
 
 const CP_CEILING = 1000;
 
 export function formatScore(score: Score, precision = 2): string {
-    let scoreText = "";
-    if (score.type === "cp") {
-        scoreText = Math.abs(score.value / 100).toFixed(precision);
-    } else {
-        scoreText = "M" + Math.abs(score.value);
-    }
-    if (score.value > 0) {
-        scoreText = "+" + scoreText;
-    }
-    if (score.value < 0) {
-        scoreText = "-" + scoreText;
-    }
-    return scoreText;
+  let scoreText = "";
+  if (score.type === "cp") {
+    scoreText = Math.abs(score.value / 100).toFixed(precision);
+  } else {
+    scoreText = "M" + Math.abs(score.value);
+  }
+  if (score.value > 0) {
+    scoreText = "+" + scoreText;
+  }
+  if (score.value < 0) {
+    scoreText = "-" + scoreText;
+  }
+  return scoreText;
 }
 
 export function getWinChance(centipawns: number) {
-    return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
+  return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
 }
 
 export function normalizeScore(score: Score, color: Color): number {
-    let cp = score.value;
-    if (color == "black") {
-        cp *= -1;
-    }
-    if (score.type == "mate") {
-        cp = CP_CEILING * Math.sign(cp);
-    }
-    return minMax(cp, -CP_CEILING, CP_CEILING);
+  let cp = score.value;
+  if (color == "black") {
+    cp *= -1;
+  }
+  if (score.type == "mate") {
+    cp = CP_CEILING * Math.sign(cp);
+  }
+  return minMax(cp, -CP_CEILING, CP_CEILING);
 }
 
 function normalizeScores(
-    prev: Score,
-    next: Score,
-    color: Color
+  prev: Score,
+  next: Score,
+  color: Color,
 ): { prevCP: number; nextCP: number } {
-    return {
-        prevCP: normalizeScore(prev, color),
-        nextCP: normalizeScore(next, color),
-    };
+  return {
+    prevCP: normalizeScore(prev, color),
+    nextCP: normalizeScore(next, color),
+  };
 }
 
 export function getAccuracy(prev: Score, next: Score, color: Color): number {
-    const { prevCP, nextCP } = normalizeScores(prev, next, color);
-    return minMax(
-        103.1668 *
-            Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
-            3.1669 +
-            1,
-        0,
-        100
-    );
+  const { prevCP, nextCP } = normalizeScores(prev, next, color);
+  return minMax(
+    103.1668 *
+      Math.exp(-0.04354 * (getWinChance(prevCP) - getWinChance(nextCP))) -
+      3.1669 +
+      1,
+    0,
+    100,
+  );
 }
 
 export function getCPLoss(prev: Score, next: Score, color: Color): number {
-    const { prevCP, nextCP } = normalizeScores(prev, next, color);
+  const { prevCP, nextCP } = normalizeScores(prev, next, color);
 
-    return Math.max(0, prevCP - nextCP);
+  return Math.max(0, prevCP - nextCP);
 }
 
 export function getAnnotation(
-    prevprev: Score | null,
-    prev: Score | null,
-    next: Score,
-    color: Color,
-    prevMoves: BestMoves[],
-    is_sacrifice?: boolean,
-    move?: string
+  prevprev: Score | null,
+  prev: Score | null,
+  next: Score,
+  color: Color,
+  prevMoves: BestMoves[],
+  is_sacrifice?: boolean,
+  move?: string,
 ): Annotation {
-    const { prevCP, nextCP } = normalizeScores(
-        prev || { type: "cp", value: 0 },
-        next,
-        color
+  const { prevCP, nextCP } = normalizeScores(
+    prev || { type: "cp", value: 0 },
+    next,
+    color,
+  );
+  const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
+
+  if (winChanceDiff > 20) {
+    return "??";
+  } else if (winChanceDiff > 10) {
+    return "?";
+  } else if (winChanceDiff > 5) {
+    return "?!";
+  }
+
+  if (prevMoves.length > 1) {
+    const scores = normalizeScores(
+      prevMoves[0].score,
+      prevMoves[1].score,
+      color,
     );
-    const winChanceDiff = getWinChance(prevCP) - getWinChance(nextCP);
-
-    if (winChanceDiff > 20) {
-        return "??";
-    } else if (winChanceDiff > 10) {
-        return "?";
-    } else if (winChanceDiff > 5) {
-        return "?!";
+    if (
+      getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
+      move === prevMoves[0].sanMoves[0]
+    ) {
+      const scores = normalizeScores(
+        prevprev || { type: "cp", value: 0 },
+        prevMoves[0].score,
+        color,
+      );
+      if (is_sacrifice) {
+        return "!!";
+      }
+      if (getWinChance(scores.nextCP) - getWinChance(scores.prevCP) > 5) {
+        return "!";
+      }
+    } else if (is_sacrifice && nextCP > -200) {
+      return "!?";
     }
-
-    if (prevMoves.length > 1) {
-        const scores = normalizeScores(
-            prevMoves[0].score,
-            prevMoves[1].score,
-            color
-        );
-        if (
-            getWinChance(scores.prevCP) - getWinChance(scores.nextCP) > 10 &&
-            move === prevMoves[0].sanMoves[0]
-        ) {
-            const scores = normalizeScores(
-                prevprev || { type: "cp", value: 0 },
-                prevMoves[0].score,
-                color
-            );
-            if (is_sacrifice) {
-                return "!!";
-            }
-            if (getWinChance(scores.nextCP) - getWinChance(scores.prevCP) > 5) {
-                return "!";
-            }
-        } else if (is_sacrifice && nextCP > -200) {
-            return "!?";
-        }
-    }
-    return "";
+  }
+  return "";
 }

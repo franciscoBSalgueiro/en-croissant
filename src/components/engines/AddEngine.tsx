@@ -37,7 +37,7 @@ function AddEngine({
 }) {
   const [allEngines, setEngines] = useAtom(enginesAtom);
   const engines = allEngines.filter(
-    (e): e is LocalEngine => e.type === "local"
+    (e): e is LocalEngine => e.type === "local",
   );
 
   const { data: os } = useSWR("os", async () => {
@@ -203,7 +203,7 @@ function EngineCard({
       const enginePath = await join(
         appDataDirPath,
         "engines",
-        ...engine.path.split("/")
+        ...engine.path.split("/"),
       );
       await invoke("set_file_as_executable", { path: enginePath });
       setEngines(async (prev) => [
@@ -215,7 +215,7 @@ function EngineCard({
         },
       ]);
     },
-    [engine, setEngines]
+    [engine, setEngines],
   );
 
   return (

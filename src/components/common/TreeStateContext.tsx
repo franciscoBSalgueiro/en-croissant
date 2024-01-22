@@ -8,7 +8,7 @@ import treeReducer, {
 
 export const TreeStateContext = createContext<TreeState>(defaultTree());
 export const TreeDispatchContext = createContext<React.Dispatch<TreeAction>>(
-  () => undefined
+  () => undefined,
 );
 
 function getTreeFromSessionStorage(id: string): TreeState {
@@ -31,7 +31,7 @@ export function TreeStateProvider({
   const [treeState, dispatch] = useImmerReducer(
     treeReducer,
     id,
-    getTreeFromSessionStorage
+    getTreeFromSessionStorage,
   );
 
   useEffect(() => {

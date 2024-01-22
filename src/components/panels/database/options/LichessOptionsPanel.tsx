@@ -23,7 +23,7 @@ import { useEffect, useState } from "react";
 
 const LichessOptionsPanel = () => {
   const [originalOptions, setOriginalOptions] = useAtom(
-    currentLichessOptionsAtom
+    currentLichessOptionsAtom,
   );
   const [options, setOptions] = useState(originalOptions);
   const [debouncedOptions] = useDebouncedValue(options, 500);
@@ -49,7 +49,7 @@ const LichessOptionsPanel = () => {
   ];
 
   function mapTimeControl(
-    speed: LichessGameSpeed
+    speed: LichessGameSpeed,
   ): ToggleButtonGroupOption<LichessGameSpeed> {
     const name = `${speed.charAt(0).toUpperCase()}${speed.slice(1)}`;
     const icon = match(speed)
@@ -69,7 +69,7 @@ const LichessOptionsPanel = () => {
   }
 
   function mapRatingOption(
-    rating: LichessRating
+    rating: LichessRating,
   ): ToggleButtonGroupOption<LichessRating> {
     const name = rating == 0 ? "400" : rating.toString();
     return {

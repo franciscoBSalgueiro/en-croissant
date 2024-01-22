@@ -56,7 +56,7 @@ function ProgressButton({
           } else {
             setProgress(payload.progress);
           }
-        }
+        },
       );
     }
     getProgress();

@@ -109,7 +109,7 @@ function EngineRow({ item }: { item: Engine }) {
         onClose={toggleDeleteModal}
         onConfirm={() =>
           setEngines(async (prev) =>
-            (await prev).filter((e) => e.name !== item.name)
+            (await prev).filter((e) => e.name !== item.name),
           )
         }
       />

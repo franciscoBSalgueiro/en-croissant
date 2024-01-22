@@ -118,7 +118,7 @@ type PositionGames = {
 }[];
 
 export async function convertToNormalized(
-  data: PositionGames
+  data: PositionGames,
 ): Promise<NormalizedGame[]> {
   return await Promise.all(
     data.map(async (game, i) => {
@@ -136,7 +136,7 @@ export async function convertToNormalized(
         // ply_count: root,
       };
       return normalized;
-    })
+    }),
   );
 }
 
@@ -175,7 +175,7 @@ export async function getLichessAccount({
   }
   if (!response.ok) {
     error(
-      `Failed to fetch Lichess account: ${response.status} ${response.url}`
+      `Failed to fetch Lichess account: ${response.status} ${response.url}`,
     );
     notifications.show({
       title: "Failed to fetch Lichess account",
@@ -191,7 +191,7 @@ export async function getLichessAccount({
 export async function getBestMoves(
   _tab: string,
   _goMode: GoMode,
-  options: EngineOptions
+  options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
   const [pos] = positionFromFen(options.fen);
   if (!pos) {
@@ -206,7 +206,7 @@ export async function getBestMoves(
   }
   const data = await getCloudEvaluation(
     makeFen(pos.toSetup()),
-    options.multipv
+    options.multipv,
   );
   return [
     100,
@@ -260,14 +260,14 @@ async function getCloudEvaluation(fen: string, multipv: number) {
 }
 
 export async function getLichessGames(
-  options: LichessGamesOptions
+  options: LichessGamesOptions,
 ): Promise<PositionData> {
   const url = `${explorerURL}/lichess?${getLichessGamesQueryParams(options)}`;
   return (await fetch<PositionData>(url)).data;
 }
 
 export async function getMasterGames(
-  options: MasterGamesOptions
+  options: MasterGamesOptions,
 ): Promise<PositionData> {
   const url = `${explorerURL}/masters?${getMasterGamesQueryParams(options)}`;
   return (await fetch<PositionData>(url)).data;
@@ -276,11 +276,11 @@ export async function getMasterGames(
 export async function getPlayerGames(
   fen: string,
   player: string,
-  color: Color
+  color: Color,
 ) {
   return (
     await fetch(
-      `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`
+      `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`,
     )
   ).data;
 }
@@ -288,7 +288,7 @@ export async function getPlayerGames(
 export async function downloadLichess(
   player: string,
   timestamp: number | null,
-  token?: string
+  token?: string,
 ) {
   let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true`;
   if (timestamp) {
@@ -305,11 +305,11 @@ export async function downloadLichess(
 
 export async function getLichessGame(gameId: string): Promise<string> {
   const response = await window.fetch(
-    `https://lichess.org/game/export/${gameId.slice(0, 8)}`
+    `https://lichess.org/game/export/${gameId.slice(0, 8)}`,
   );
   if (!response.ok) {
     throw new Error(
-      `Failed to load lichess game ${gameId} - ${response.statusText}`
+      `Failed to load lichess game ${gameId} - ${response.statusText}`,
     );
   }
   return await response.text();

@@ -68,10 +68,10 @@ function Puzzles({ id }: { id: string }) {
   });
 
   const wonPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === "correct"
+    (puzzle) => puzzle.completion === "correct",
   );
   const lostPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === "incorrect"
+    (puzzle) => puzzle.completion === "incorrect",
   );
   const averageWonRating =
     wonPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
@@ -239,7 +239,7 @@ function Puzzles({ id }: { id: string }) {
                       fen: puzzles[currentPuzzle]?.fen,
                       orientation:
                         Chess.fromSetup(
-                          parseFen(puzzles[currentPuzzle].fen).unwrap()
+                          parseFen(puzzles[currentPuzzle].fen).unwrap(),
                         ).unwrap().turn === "white"
                           ? "black"
                           : "white",

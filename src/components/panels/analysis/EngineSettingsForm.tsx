@@ -56,7 +56,7 @@ function EngineSettingsForm({
     const defaultPath = await resolve(
       await appDataDir(),
       "presets",
-      engineName + ".json"
+      engineName + ".json",
     );
     const file = await save({
       defaultPath,

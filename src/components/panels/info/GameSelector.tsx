@@ -45,7 +45,7 @@ export default function GameSelector({
       });
       setGames(newGames);
     },
-    [games, path, setGames]
+    [games, path, setGames],
   );
 
   useEffect(() => {

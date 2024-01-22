@@ -4,37 +4,37 @@ import { invoke } from "./invoke";
 export type Completion = "correct" | "incorrect" | "incomplete";
 
 export interface Puzzle {
-    fen: string;
-    moves: string[];
-    rating: number;
-    rating_deviation: number;
-    popularity: number;
-    nb_plays: number;
-    completion: Completion;
+  fen: string;
+  moves: string[];
+  rating: number;
+  rating_deviation: number;
+  popularity: number;
+  nb_plays: number;
+  completion: Completion;
 }
 
 export interface PuzzleDatabase {
-    title: string;
-    description: string;
-    puzzle_count: number;
-    storage_size: number;
-    path: string;
-    downloadLink?: string;
+  title: string;
+  description: string;
+  puzzle_count: number;
+  storage_size: number;
+  path: string;
+  downloadLink?: string;
 }
 
 export async function getPuzzleDatabase(path: string): Promise<PuzzleDatabase> {
-    const db = await invoke<PuzzleDatabase>("get_puzzle_db_info", {
-        file: path,
-    });
-    return db;
+  const db = await invoke<PuzzleDatabase>("get_puzzle_db_info", {
+    file: path,
+  });
+  return db;
 }
 
 export async function getPuzzleDatabases(): Promise<PuzzleDatabase[]> {
-    const files = await readDir("puzzles", { dir: BaseDirectory.AppData });
-    const dbs = files.filter((file) => file.name?.endsWith(".db3"));
-    return (
-        await Promise.all(
-            dbs.map((db) => getPuzzleDatabase(db.path).catch(() => null))
-        )
-    ).filter((db) => db !== null) as PuzzleDatabase[];
+  const files = await readDir("puzzles", { dir: BaseDirectory.AppData });
+  const dbs = files.filter((file) => file.name?.endsWith(".db3"));
+  return (
+    await Promise.all(
+      dbs.map((db) => getPuzzleDatabase(db.path).catch(() => null)),
+    )
+  ).filter((db) => db !== null) as PuzzleDatabase[];
 }

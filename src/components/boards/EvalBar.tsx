@@ -18,8 +18,8 @@ function EvalBar({
       score.type === "cp"
         ? getWinChance(score.value)
         : score.value > 0
-        ? 100
-        : 0;
+          ? 100
+          : 0;
 
     ScoreBars = [
       <Box
