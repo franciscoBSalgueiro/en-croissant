@@ -16,9 +16,8 @@ function getTreeFromSessionStorage(id: string): TreeState {
   if (treeState) {
     const parsed = JSON.parse(treeState);
     return parsed;
-  } else {
-    return defaultTree();
   }
+  return defaultTree();
 }
 
 export function TreeStateProvider({

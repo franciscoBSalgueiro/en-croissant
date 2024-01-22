@@ -98,7 +98,7 @@ export default function PiecesSelect() {
         >
           {pieceSet ? (
             <SelectOption
-              label={pieceSets.find((p) => p.value === pieceSet)!.label}
+              label={pieceSets.find((p) => p.value === pieceSet)?.label}
               piece
             />
           ) : (

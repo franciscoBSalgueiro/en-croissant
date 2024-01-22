@@ -130,10 +130,9 @@ export async function saveToFile({
   await invoke("write_game", {
     file: filePath,
     n: tab?.gameNumber || 0,
-    pgn:
-      getPGN(root, {
-        headers,
-      }) + "\n\n",
+    pgn: `${getPGN(root, {
+      headers,
+    })}\n\n`,
   });
   markAsSaved();
 }

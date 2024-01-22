@@ -179,7 +179,7 @@ export async function getLichessAccount({
     );
     notifications.show({
       title: "Failed to fetch Lichess account",
-      message: 'Could not find account "' + username + '" on lichess.org',
+      message: `Could not find account "${username}" on lichess.org`,
       color: "red",
       icon: <IconX />,
     });
@@ -294,7 +294,7 @@ export async function downloadLichess(
   if (timestamp) {
     url += `&since=${timestamp}`;
   }
-  const path = await resolve(await appDataDir(), "db", player + "_lichess.pgn");
+  const path = await resolve(await appDataDir(), "db", `${player}_lichess.pgn`);
   await invoke("download_file", {
     id: 1,
     url,

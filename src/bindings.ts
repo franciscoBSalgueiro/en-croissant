@@ -39,7 +39,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async getBestMoves(
@@ -62,7 +62,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async analyzeGame(
@@ -86,7 +86,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async stopEngine(
@@ -103,7 +103,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async killEngines(tab: string): Promise<__Result__<null, string>> {
@@ -114,7 +114,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async getEngineLogs(
@@ -136,7 +136,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async memorySize(): Promise<number> {
@@ -171,7 +171,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async setMenuVisisble(state: boolean): Promise<null> {
@@ -192,7 +192,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async getOpeningFromName(name: string): Promise<__Result__<string, string>> {
@@ -205,7 +205,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
   async getPlayersGameInfo(
@@ -234,7 +234,7 @@ export const commands = {
       };
     } catch (e) {
       if (e instanceof Error) throw e;
-      else return { status: "error", error: e as any };
+      return { status: "error", error: e as any };
     }
   },
 };

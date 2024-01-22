@@ -39,9 +39,8 @@ function ToggleButtonGroup<T>(props: ToggleButtonGroupProps<T>) {
                 {getButton(option)}
               </Tooltip>
             );
-          } else {
-            return getButton(option);
           }
+          return getButton(option);
         })}
       </Group>
     </InputWrapper>

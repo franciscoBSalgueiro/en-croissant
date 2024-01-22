@@ -91,15 +91,14 @@ function AddEngine({
           )}
           <ScrollArea.Autosize mah={500} offsetScrollbars>
             <Stack>
-              {defaultEngines &&
-                defaultEngines.map((engine, i) => (
-                  <EngineCard
-                    engine={engine}
-                    engineId={i}
-                    key={i}
-                    initInstalled={engines.some((e) => e.name === engine.name)}
-                  />
-                ))}
+              {defaultEngines?.map((engine, i) => (
+                <EngineCard
+                  engine={engine}
+                  engineId={i}
+                  key={i}
+                  initInstalled={engines.some((e) => e.name === engine.name)}
+                />
+              ))}
               {error && (
                 <Alert
                   icon={<IconAlertCircle size="1rem" />}

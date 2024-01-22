@@ -29,7 +29,7 @@ export default function BoardsPage() {
   const [saveModalOpened, toggleSaveModal] = useToggle();
 
   useEffect(() => {
-    if (tabs.length == 0) {
+    if (tabs.length === 0) {
       createTab({
         tab: { name: "New Tab", type: "new" },
         setTabs,
@@ -46,7 +46,8 @@ export default function BoardsPage() {
         if (tabState && closedTab?.file && tabState.dirty && !forced) {
           toggleSaveModal();
           return;
-        } else if (value === activeTab) {
+        }
+        if (value === activeTab) {
           const index = tabs.findIndex((tab) => tab.value === value);
           if (tabs.length > 1) {
             if (index === tabs.length - 1) {
@@ -107,10 +108,10 @@ export default function BoardsPage() {
       if (sessionStorage.getItem(value)) {
         sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
       }
-      if (sessionStorage.getItem(value + "-tree")) {
+      if (sessionStorage.getItem(`${value}-tree`)) {
         sessionStorage.setItem(
-          id + "-tree",
-          sessionStorage.getItem(value + "-tree") || "",
+          `${id}-tree`,
+          sessionStorage.getItem(`${value}-tree`) || "",
         );
       }
 

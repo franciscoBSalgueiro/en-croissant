@@ -103,7 +103,7 @@ export default function BestMovesComponent({
   );
 
   const engineVariations = useMemo(
-    () => ev.get(searchingFen + ":" + searchingMoves.join(",")),
+    () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
     [ev, searchingFen, searchingMoves],
   );
   const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
@@ -131,7 +131,7 @@ export default function BestMovesComponent({
           startTransition(() => {
             setEngineVariation((prev) => {
               const newMap = new Map(prev);
-              newMap.set(searchingFen + ":" + searchingMoves.join(","), ev);
+              newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
               return newMap;
             });
             setProgress(payload.progress);
@@ -191,7 +191,7 @@ export default function BestMovesComponent({
               setEngineVariation((prev) => {
                 const newMap = new Map(prev);
                 newMap.set(
-                  searchingFen + ":" + searchingMoves.join(","),
+                  `${searchingFen}:${searchingMoves.join(",")}`,
                   bestMoves,
                 );
                 return newMap;

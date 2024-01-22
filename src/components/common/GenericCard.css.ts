@@ -51,7 +51,7 @@ export const error = style({
 });
 
 export const selected = style({
-  borderColor: `var(--mantine-primary-color-filled) !important`,
+  borderColor: "var(--mantine-primary-color-filled) !important",
 
   ":hover": {
     borderColor: "var(--mantine-primary-color-filled)",

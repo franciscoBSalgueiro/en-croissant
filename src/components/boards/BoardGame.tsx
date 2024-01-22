@@ -74,7 +74,7 @@ function EnginesSelect({
       <Select
         label="Engine"
         allowDeselect={false}
-        data={engines!.map((engine) => ({
+        data={engines?.map((engine) => ({
           label: engine.name,
           value: engine.path,
         }))}
@@ -242,7 +242,7 @@ function BoardGame() {
   }, [lastNode.fen]);
 
   useEffect(() => {
-    if (pos && pos.isEnd()) {
+    if (pos?.isEnd()) {
       setGameState("gameOver");
     }
   }, [activeTab, lastNode.fen, pos, setGameState]);
@@ -313,13 +313,14 @@ function BoardGame() {
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
       return "turn";
-    } else if (players.white.type === "human") {
-      return "white";
-    } else if (players.black.type === "human") {
-      return "black";
-    } else {
-      return "none";
     }
+    if (players.white.type === "human") {
+      return "white";
+    }
+    if (players.black.type === "human") {
+      return "black";
+    }
+    return "none";
   }, [players]);
 
   return (

@@ -31,7 +31,7 @@ export function buildFromTree(
       cards.push({
         fen: item.node.fen,
         position: item.position,
-        answer: item.node.children[0].move!.san,
+        answer: item.node.children[0].move?.san,
         repetitions: 0,
         level: "unseen",
       });

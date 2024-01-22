@@ -71,7 +71,7 @@ const LichessOptionsPanel = () => {
   function mapRatingOption(
     rating: LichessRating,
   ): ToggleButtonGroupOption<LichessRating> {
-    const name = rating == 0 ? "400" : rating.toString();
+    const name = rating === 0 ? "400" : rating.toString();
     return {
       content: <span>{name}</span>,
       name: name,

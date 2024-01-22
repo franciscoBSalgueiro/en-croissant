@@ -136,8 +136,8 @@ function PuzzleBoard({
             confirmMove={(p) => {
               checkMove(
                 makeUci({
-                  from: pendingMove!.from,
-                  to: pendingMove!.to,
+                  from: pendingMove?.from,
+                  to: pendingMove?.to,
                   promotion: p,
                 }),
               );

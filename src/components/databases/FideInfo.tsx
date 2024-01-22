@@ -43,9 +43,8 @@ function FideInfo({
     const res = await commands.findFidePlayer(name);
     if (res.status === "ok") {
       return res.data;
-    } else {
-      throw new Error(res.error);
     }
+    throw new Error(res.error);
   });
 
   const country = COUNTRIES.find((c) => c.ioc === player?.country);
@@ -93,7 +92,7 @@ function FideInfo({
             </Group>
 
             <a
-              href={"https://ratings.fide.com/profile/" + player.fideid}
+              href={`https://ratings.fide.com/profile/${player.fideid}`}
               target="_blank"
               rel="noreferrer"
             >
@@ -128,7 +127,7 @@ function FideInfo({
               <Text fz="sm">{player.blitz_rating || "Not Rated"}</Text>
             </Card>
           </Group>
-          <div></div>
+          <div />
         </Stack>
       ) : (
         <Center>

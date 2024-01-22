@@ -45,10 +45,9 @@ function PlayerCard({
     if (sort.direction === "asc") {
       /// @ts-expect-error we know they're the same type
       return a[key] > b[key] ? 1 : -1;
-    } else {
-      /// @ts-expect-error we know they're the same type
-      return a[key] < b[key] ? 1 : -1;
     }
+    /// @ts-expect-error we know they're the same type
+    return a[key] < b[key] ? 1 : -1;
   });
 
   return (

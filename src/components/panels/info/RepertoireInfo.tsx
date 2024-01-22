@@ -23,7 +23,7 @@ function RepertoireInfo() {
   const currentTab = useAtomValue(currentTabAtom);
 
   const [allMissingMoves, setMissingMoves] = useAtom(missingMovesAtom);
-  const missingMoves = allMissingMoves[currentTab!.value];
+  const missingMoves = allMissingMoves[currentTab?.value];
   const [loading, setLoading] = useState(false);
   const dispatch = useContext(TreeDispatchContext);
   const [progress, setProgress] = useState(0);
@@ -47,7 +47,7 @@ function RepertoireInfo() {
     }).then((missingMoves) => {
       setMissingMoves((prev) => ({
         ...prev,
-        [currentTab!.value]: missingMoves,
+        [currentTab?.value]: missingMoves,
       }));
       setLoading(false);
     });

@@ -85,7 +85,7 @@ function AnalysisPanel({
         <Tabs.List>
           <Tabs.Tab value="engines">Engines</Tabs.Tab>
           <Tabs.Tab value="report">Report</Tabs.Tab>
-          <Tabs.Tab value="logs" disabled={loadedEngines.length == 0}>
+          <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
             Logs
           </Tabs.Tab>
         </Tabs.List>
@@ -257,7 +257,7 @@ function EngineSummary({
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
 
-  const curEval = ev.get(fen + ":" + moves.join(","));
+  const curEval = ev.get(`${fen}:${moves.join(",")}`);
   const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (

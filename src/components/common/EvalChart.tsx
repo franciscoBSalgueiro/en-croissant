@@ -38,16 +38,18 @@ const EvalChart = (props: EvalChartProps) => {
   function getYValue(node: TreeNode): number | undefined {
     if (node.score) {
       let cp: number = node.score.value;
-      if (node.score.type == "mate") {
+      if (node.score.type === "mate") {
         cp = node.score.value > 0 ? Infinity : -Infinity;
       }
       return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
-    } else if (node.children.length == 0) {
+    }
+    if (node.children.length === 0) {
       const [pos, error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) {
-          return node.move!.color == "w" ? 1 : -1;
-        } else if (pos.isStalemate()) {
+          return node.move?.color === "w" ? 1 : -1;
+        }
+        if (pos.isStalemate()) {
           return 0;
         }
       }
@@ -57,11 +59,12 @@ const EvalChart = (props: EvalChartProps) => {
   function getEvalText(node: TreeNode): string {
     if (node.score) {
       return `Advantage: ${formatScore(node.score)}`;
-    } else if (node.children.length == 0) {
+    }
+    if (node.children.length === 0) {
       const [pos, error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) return "Checkmate";
-        else if (pos.isStalemate()) return "Stalemate";
+        if (pos.isStalemate()) return "Stalemate";
       }
     }
     return "Not analysed";
@@ -71,11 +74,11 @@ const EvalChart = (props: EvalChartProps) => {
     const allNodes = treeIteratorMainLine(root);
     const withoutRoot = skipWhile(
       allNodes,
-      (node: ListNode) => node.position.length == 0,
+      (node: ListNode) => node.position.length === 0,
     );
     const withMoves = takeWhile(
       withoutRoot,
-      (node: ListNode) => node.node.move != undefined,
+      (node: ListNode) => node.node.move !== undefined,
     );
     return [...withMoves];
   }
@@ -138,12 +141,7 @@ const EvalChart = (props: EvalChartProps) => {
   };
 
   const onChartClick = (data: CategoricalChartState) => {
-    if (
-      data &&
-      data.activePayload &&
-      data.activePayload.length &&
-      data.activePayload[0].payload
-    ) {
+    if (data?.activePayload?.length && data.activePayload[0].payload) {
       const dataPoint: DataPoint = data.activePayload[0].payload;
       dispatch({
         type: "GO_TO_MOVE",
@@ -161,7 +159,7 @@ const EvalChart = (props: EvalChartProps) => {
   return (
     <Stack>
       <Box pos="relative">
-        <LoadingOverlay visible={props.isAnalysing == true} />
+        <LoadingOverlay visible={props.isAnalysing === true} />
         <AreaChart
           h={150}
           curveType="monotone"

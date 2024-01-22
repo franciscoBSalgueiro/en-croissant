@@ -92,7 +92,7 @@ export function AccountCard({
   const [lastGameDate, setLastGameDate] = useState<number | null>(null);
 
   async function convert(filepath: string, timestamp: number | null) {
-    info("converting " + filepath + " " + timestamp);
+    info(`converting ${filepath} ${timestamp}`);
     await invoke("convert_pgn", {
       file: filepath,
       timestamp,
@@ -140,7 +140,7 @@ export function AccountCard({
                 {title}
               </Text>
               <Text mt={5} size="sm" c="dimmed">
-                {"Last Updated: " + new Date(updatedAt).toLocaleDateString()}
+                {`Last Updated: ${new Date(updatedAt).toLocaleDateString()}`}
               </Text>
             </div>
           </Group>

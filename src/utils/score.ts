@@ -15,13 +15,13 @@ export function formatScore(score: Score, precision = 2): string {
   if (score.type === "cp") {
     scoreText = Math.abs(score.value / 100).toFixed(precision);
   } else {
-    scoreText = "M" + Math.abs(score.value);
+    scoreText = `M${Math.abs(score.value)}`;
   }
   if (score.value > 0) {
-    scoreText = "+" + scoreText;
+    scoreText = `+${scoreText}`;
   }
   if (score.value < 0) {
-    scoreText = "-" + scoreText;
+    scoreText = `-${scoreText}`;
   }
   return scoreText;
 }
@@ -32,10 +32,10 @@ export function getWinChance(centipawns: number) {
 
 export function normalizeScore(score: Score, color: Color): number {
   let cp = score.value;
-  if (color == "black") {
+  if (color === "black") {
     cp *= -1;
   }
-  if (score.type == "mate") {
+  if (score.type === "mate") {
     cp = CP_CEILING * Math.sign(cp);
   }
   return minMax(cp, -CP_CEILING, CP_CEILING);
@@ -88,9 +88,11 @@ export function getAnnotation(
 
   if (winChanceDiff > 20) {
     return "??";
-  } else if (winChanceDiff > 10) {
+  }
+  if (winChanceDiff > 10) {
     return "?";
-  } else if (winChanceDiff > 5) {
+  }
+  if (winChanceDiff > 5) {
     return "?!";
   }
 

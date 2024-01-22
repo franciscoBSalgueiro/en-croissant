@@ -30,7 +30,7 @@ function FileInfo({
               variant="outline"
               size="sm"
               onClick={() =>
-                count_pgn_games(tab.file!.path).then((v) => {
+                count_pgn_games(tab.file?.path).then((v) => {
                   setCurrentTab((prev) => {
                     prev.file!.numGames = v;
                     return { ...prev };

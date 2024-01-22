@@ -40,7 +40,7 @@ export function CreateModal({
 
   async function addFile() {
     const dir = await resolve(await documentDir(), "EnCroissant");
-    const file = await resolve(dir, filename + ".pgn");
+    const file = await resolve(dir, `${filename}.pgn`);
     if (await exists(file)) {
       setError("File already exists");
       return;
@@ -141,35 +141,35 @@ export function EditModal({
     const newPGNPath = await resolve(
       await documentDir(),
       "EnCroissant",
-      filename + ".pgn",
+      `${filename}.pgn`,
     );
 
     try {
       await renameFile(
-        "EnCroissant/" + metadata.name + ".pgn",
-        "EnCroissant/" + filename + ".pgn",
+        `EnCroissant/${metadata.name}.pgn`,
+        `EnCroissant/${filename}.pgn`,
         {
           dir: BaseDirectory.Document,
         },
       );
       await renameFile(
-        "EnCroissant/" + metadata.name + ".info",
-        "EnCroissant/" + filename + ".info",
+        `EnCroissant/${metadata.name}.info`,
+        `EnCroissant/${filename}.info`,
         {
           dir: BaseDirectory.Document,
         },
       );
     } catch {
       await renameFile(
-        "documents/" + metadata.name + ".pgn",
-        "documents/" + filename + ".pgn",
+        `documents/${metadata.name}.pgn`,
+        `documents/${filename}.pgn`,
         {
           dir: BaseDirectory.AppData,
         },
       );
       await renameFile(
-        "documents/" + metadata.name + ".info",
-        "documents/" + filename + ".info",
+        `documents/${metadata.name}.info`,
+        `documents/${filename}.info`,
         {
           dir: BaseDirectory.AppData,
         },

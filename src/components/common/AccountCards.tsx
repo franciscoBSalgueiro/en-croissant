@@ -16,7 +16,7 @@ function AccountCards({
   return (
     <>
       {sessions.map((session) => {
-        if (session.lichess && session.lichess.account) {
+        if (session.lichess?.account) {
           const account = session.lichess.account;
           const lichessSession = session.lichess;
           const totalGames =
@@ -49,7 +49,7 @@ function AccountCards({
               type="lichess"
               database={
                 databases.find(
-                  (db) => db.filename === account.username + "_lichess.db3",
+                  (db) => db.filename === `${account.username}_lichess.db3`,
                 ) ?? null
               }
               title={account.username}
@@ -86,7 +86,7 @@ function AccountCards({
             />
           );
         }
-        if (session.chessCom && session.chessCom.stats) {
+        if (session.chessCom?.stats) {
           let totalGames = 0;
           Object.values(session.chessCom.stats).forEach((stat) => {
             if (stat.record)
@@ -102,7 +102,7 @@ function AccountCards({
                 databases.find(
                   (db) =>
                     db.filename ===
-                    session.chessCom?.username + "_chesscom.db3",
+                    `${session.chessCom?.username}_chesscom.db3`,
                 ) ?? null
               }
               updatedAt={session.updatedAt}
@@ -117,7 +117,7 @@ function AccountCards({
               }}
               reload={async () => {
                 const stats = await getChessComAccount(
-                  session.chessCom!.username,
+                  session.chessCom?.username,
                 );
                 if (!stats) return;
                 setSessions((sessions) =>
@@ -126,7 +126,7 @@ function AccountCards({
                       ? {
                           ...s,
                           chessCom: {
-                            username: session.chessCom!.username,
+                            username: session.chessCom?.username,
                             stats,
                           },
                           updatedAt: Date.now(),
