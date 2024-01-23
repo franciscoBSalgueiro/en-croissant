@@ -48,9 +48,10 @@ function fillMissingMonths(
   const months = [];
   const currDate = startDate;
 
+  months.push(currDate.toISOString().slice(0, 7));
   while (currDate <= endDate) {
-    months.push(currDate.toISOString().slice(0, 7));
     currDate.setMonth(currDate.getMonth() + 1);
+    months.push(currDate.toISOString().slice(0, 7));
   }
 
   const newData = months.map((month) => {
