@@ -134,14 +134,16 @@ function PuzzleBoard({
             pendingMove={pendingMove}
             cancelMove={() => setPendingMove(null)}
             confirmMove={(p) => {
-              checkMove(
-                makeUci({
-                  from: pendingMove?.from,
-                  to: pendingMove?.to,
-                  promotion: p,
-                }),
-              );
-              setPendingMove(null);
+              if (pendingMove) {
+                checkMove(
+                  makeUci({
+                    from: pendingMove.from,
+                    to: pendingMove.to,
+                    promotion: p,
+                  }),
+                );
+                setPendingMove(null);
+              }
             }}
             turn={turn}
             orientation={orientation}
