@@ -1,20 +1,24 @@
-<p align="center">
-  <a href="#">
-    
+<br />
+<div align="center">
+  <a href="https://github.com/gabrielvicenteYT/placeholdermcforafullguide">
+    <img width="80" height="80" src="https://github.com/franciscoBSalgueiro/en-croissant/blob/master/src-tauri/icons/icon.png" alt="Logo">
   </a>
-  <p align="center">
-   <img width="150" height="150" src="https://github.com/franciscoBSalgueiro/en-croissant/blob/master/src-tauri/icons/icon.png" alt="Logo">
-  </p>
-  <h1 align="center"><b>En Croissant</b></h1>
-  <p align="center">
-  A Modern Chess Database.
-    <br />
-    <a href="https://encroissant.org"><strong>encroissant.org</strong></a>
-    <br />
-    <br />
-  </p>
-</p>
 
+<h3 align="center">En Croissant</h3>
+
+  <p align="center">
+    A modern Chess database.
+    <br />
+    <a href="https://www.encroissant.org/docs"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://discord.gg/tdYzfDbSSW">Discord Server</a>
+    ·
+    <a href="https://github.com/franciscoBSalgueiro/en-croissant/pulls">Pull Requests</a>
+    ·
+    <a href="https://github.com/franciscoBSalgueiro/en-croissant/issues">Issues</a>
+  </p>
+</div>
 
 En-Croissant is a free cross-platform chess GUI and analysis tool. It comes with a database, a powerful position search engine, opening explorer, and much more.
 
