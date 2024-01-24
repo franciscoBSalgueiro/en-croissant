@@ -630,7 +630,7 @@ dependencies = [
  "bitflags 1.3.2",
  "clap_lex",
  "indexmap",
- "strsim",
+ "strsim 0.10.0",
  "termcolor",
  "textwrap",
 ]
@@ -902,7 +902,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim",
+ "strsim 0.10.0",
  "syn 2.0.37",
 ]
 
@@ -1090,7 +1090,7 @@ dependencies = [
  "oauth2",
  "once_cell",
  "pgn-reader",
- "quick-xml 0.30.0",
+ "quick-xml 0.31.0",
  "rand 0.8.5",
  "rayon",
  "reqwest",
@@ -1099,7 +1099,7 @@ dependencies = [
  "serde_json",
  "shakmaty",
  "specta",
- "strsim",
+ "strsim 0.11.0",
  "sysinfo",
  "tar",
  "tauri",
@@ -3115,9 +3115,9 @@ dependencies = [
 
 [[package]]
 name = "quick-xml"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eff6510e86862b57b210fd8cbe8ed3f0d7d600b9c2863cd4549a2e033c66e956"
+checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
 dependencies = [
  "memchr",
  "serde",
@@ -3960,6 +3960,12 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "strsim"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ee073c9e4cd00e28217186dbe12796d692868f432bf2e97ee73bed0c56dfa01"
 
 [[package]]
 name = "subtle"

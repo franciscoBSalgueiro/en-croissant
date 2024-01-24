@@ -7,7 +7,7 @@ use bincode::{config, Decode, Encode};
 use quick_xml::de::from_reader;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
-use strsim::jaro_winkler;
+use strsim::{jaro_winkler, sorensen_dice};
 use tauri::{
     api::path::{app_config_dir, resolve_path, BaseDirectory},
     Manager,
@@ -164,7 +164,9 @@ pub async fn find_fide_player(
     let mut best_match_score = 0.0;
 
     for fide_player in (*fide_players).iter() {
-        let score = jaro_winkler(&player, &fide_player.name);
+        let sorenson_score = sorensen_dice(&player, &fide_player.name);
+        let jaro_score = jaro_winkler(&player, &fide_player.name);
+        let score = sorenson_score.max(jaro_score);
         if score > best_match_score {
             best_match = Some(fide_player);
             best_match_score = score;
