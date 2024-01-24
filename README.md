@@ -9,14 +9,14 @@
   <p align="center">
     A modern Chess database.
     <br />
-    <a href="https://www.encroissant.org/docs"><strong>Explore the docs »</strong></a>
+    <a href="https://www.encroissant.org"><strong>encroissant.org</strong></a>
     <br />
     <br />
     <a href="https://discord.gg/tdYzfDbSSW">Discord Server</a>
     ·
-    <a href="https://github.com/franciscoBSalgueiro/en-croissant/pulls">Pull Requests</a>
-    ·
-    <a href="https://github.com/franciscoBSalgueiro/en-croissant/issues">Issues</a>
+    <a href="https://www.encroissant.org/download">Download</a>
+    .
+    <a href="https://www.encroissant.org/docs">Explore the docs</a>
   </p>
 </div>
 
