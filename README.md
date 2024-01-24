@@ -1,7 +1,7 @@
 <br />
 <div align="center">
-  <a href="https://github.com/gabrielvicenteYT/placeholdermcforafullguide">
-    <img width="80" height="80" src="https://github.com/franciscoBSalgueiro/en-croissant/blob/master/src-tauri/icons/icon.png" alt="Logo">
+  <a href="https://github.com/franciscoBSalgueiro/en-croissant">
+    <img width="115" height="115" src="https://github.com/franciscoBSalgueiro/en-croissant/blob/master/src-tauri/icons/icon.png" alt="Logo">
   </a>
 
 <h3 align="center">En Croissant</h3>
