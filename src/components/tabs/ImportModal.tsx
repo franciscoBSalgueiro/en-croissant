@@ -15,7 +15,7 @@ import { chessopsError } from "@/utils/chessops";
 import { count_pgn_games, read_games } from "@/utils/db";
 import { getLichessGame } from "@/utils/lichess";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
-import { parseFen } from "chessops/fen";
+import { makeFen, parseFen } from "chessops/fen";
 import { useAtom } from "jotai";
 import { useState } from "react";
 import { match } from "ts-pattern";
@@ -175,15 +175,16 @@ export default function ImportModal({
               };
             });
           } else if (importType === "FEN") {
-            const res = parseFen(fen);
+            const res = parseFen(fen.trim());
             if (res.isErr) {
               setFenError(chessopsError(res.error));
               return;
             }
             setFenError("");
+            const parsedFen = makeFen(res.value);
             setCurrentTab((prev) => {
-              const tree = defaultTree(fen.trim());
-              tree.headers.fen = fen.trim();
+              const tree = defaultTree(parsedFen);
+              tree.headers.fen = parsedFen;
               sessionStorage.setItem(prev.value, JSON.stringify(tree));
               return {
                 ...prev,

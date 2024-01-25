@@ -35,6 +35,7 @@ import {
   IconSettings,
   IconTargetArrow,
 } from "@tabler/icons-react";
+import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import {
   memo,
@@ -49,7 +50,6 @@ import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm from "./EngineSettingsForm";
-import equal from "fast-deep-equal";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },
