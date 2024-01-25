@@ -37,6 +37,7 @@ import {
 } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import {
+  memo,
   startTransition,
   useContext,
   useEffect,
@@ -48,6 +49,7 @@ import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm from "./EngineSettingsForm";
+import equal from "fast-deep-equal";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },
@@ -64,7 +66,7 @@ interface BestMovesProps {
   halfMoves: number;
 }
 
-export default function BestMovesComponent({
+function BestMovesComponent({
   id,
   engine,
   fen,
@@ -117,60 +119,57 @@ export default function BestMovesComponent({
   }, [fen]);
 
   useEffect(() => {
-    async function waitForMove() {
-      const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
-        const ev = payload.bestLines;
-        if (
-          payload.engine === engine.name &&
-          payload.tab === activeTab &&
-          payload.fen === searchingFen &&
-          payload.moves.join(",") === searchingMoves.join(",") &&
-          settings.enabled &&
-          !isGameOver
-        ) {
-          startTransition(() => {
-            setEngineVariation((prev) => {
-              const newMap = new Map(prev);
-              newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
-              return newMap;
-            });
-            setProgress(payload.progress);
-            dispatch({
-              type: "SET_SCORE",
-              payload: ev[0].score,
-            });
+    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
+      const ev = payload.bestLines;
+      if (
+        payload.engine === engine.name &&
+        payload.tab === activeTab &&
+        payload.fen === searchingFen &&
+        payload.moves.join(",") === searchingMoves.join(",") &&
+        settings.enabled &&
+        !isGameOver
+      ) {
+        startTransition(() => {
+          setEngineVariation((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
+            return newMap;
           });
-        }
-      });
-      listeners.current.push(unlisten);
-    }
-    waitForMove();
-    return () => {
-      for (const unlisten of listeners.current) {
-        unlisten();
+          setProgress(payload.progress);
+          dispatch({
+            type: "SET_SCORE",
+            payload: ev[0].score,
+          });
+        });
       }
+    });
+    return () => {
+      unlisten.then((f) => f());
     };
   }, [
     activeTab,
     dispatch,
-    id,
     settings.enabled,
     isGameOver,
     searchingFen,
-    searchingMoves,
+    JSON.stringify(searchingMoves),
     engine.name,
     setEngineVariation,
   ]);
 
-  const getBestMoves = match(engine.type)
-    .with(
-      "local",
-      () => (fen: string, goMode: GoMode, options: EngineOptions) =>
-        localGetBestMoves(engine as LocalEngine, fen, goMode, options),
-    )
-    .with("chessdb", () => chessdbGetBestMoves)
-    .with("lichess", () => lichessGetBestMoves)
-    .exhaustive();
+  const getBestMoves = useMemo(
+    () =>
+      match(engine.type)
+        .with(
+          "local",
+          () => (fen: string, goMode: GoMode, options: EngineOptions) =>
+            localGetBestMoves(engine as LocalEngine, fen, goMode, options),
+        )
+        .with("chessdb", () => chessdbGetBestMoves)
+        .with("lichess", () => lichessGetBestMoves)
+        .exhaustive(),
+    [engine.type, engine],
+  );
 
   useThrottledEffect(
     () => {
@@ -213,10 +212,13 @@ export default function BestMovesComponent({
       settings.enabled,
       settings.options,
       settings.go,
-      threat,
       searchingFen,
-      searchingMoves,
+      JSON.stringify(searchingMoves),
       isGameOver,
+      activeTab,
+      getBestMoves,
+      setEngineVariation,
+      engine,
     ],
   );
 
@@ -432,3 +434,13 @@ export default function BestMovesComponent({
     ],
   );
 }
+
+export default memo(BestMovesComponent, (prev, next) => {
+  return (
+    prev.id === next.id &&
+    prev.engine === next.engine &&
+    prev.fen === next.fen &&
+    equal(prev.moves, next.moves) &&
+    prev.halfMoves === next.halfMoves
+  );
+});
