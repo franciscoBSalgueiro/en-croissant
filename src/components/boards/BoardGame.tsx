@@ -279,33 +279,26 @@ function BoardGame() {
     moves,
   ]);
 
-  const listeners = useRef<(() => void)[]>([]);
   useEffect(() => {
-    async function waitForMove() {
-      const unlisten = await events.bestMovesPayload.listen(({ payload }) => {
-        console.log(payload);
-        const ev = payload.bestLines;
-        if (
-          payload.progress === 100 &&
-          payload.engine === pos?.turn &&
-          payload.tab === activeTab + pos.turn &&
-          payload.fen === root.fen &&
-          payload.moves.join(",") === moves.join(",") &&
-          !pos?.isEnd()
-        ) {
-          dispatch({
-            type: "APPEND_MOVE",
-            payload: parseUci(ev[0].uciMoves[0]),
-          });
-        }
-      });
-      listeners.current.push(unlisten);
-    }
-    waitForMove();
-    return () => {
-      for (const unlisten of listeners.current) {
-        unlisten();
+    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
+      console.log(payload);
+      const ev = payload.bestLines;
+      if (
+        payload.progress === 100 &&
+        payload.engine === pos?.turn &&
+        payload.tab === activeTab + pos.turn &&
+        payload.fen === root.fen &&
+        payload.moves.join(",") === moves.join(",") &&
+        !pos?.isEnd()
+      ) {
+        dispatch({
+          type: "APPEND_MOVE",
+          payload: parseUci(ev[0].uciMoves[0]),
+        });
       }
+    });
+    return () => {
+      unlisten.then((f) => f());
     };
   }, [activeTab, dispatch, pos, root.fen, moves]);
 

@@ -89,7 +89,6 @@ function BestMovesComponent({
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
   const theme = useMantineTheme();
-  const listeners = useRef<(() => void)[]>([]);
   const [progress, setProgress] = useState(0);
 
   const { searchingFen, searchingMoves } = useMemo(
