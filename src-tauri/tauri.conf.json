@@ -33,6 +33,7 @@
           "https://www.chess.com/**",
           "https://lichess.org/**",
           "https://explorer.lichess.ovh/**",
+          "https://tablebase.lichess.ovh/**",
           "https://www.chessdb.cn/**"
         ]
       },

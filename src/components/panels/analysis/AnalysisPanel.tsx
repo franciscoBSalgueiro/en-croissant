@@ -10,6 +10,7 @@ import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
+import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import {
@@ -21,6 +22,7 @@ import {
   Group,
   Paper,
   ScrollArea,
+  Space,
   Stack,
   Tabs,
   Text,
@@ -38,6 +40,7 @@ import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
 import ScoreBubble from "./ScoreBubble";
+import TablebaseInfo from "./TablebaseInfo";
 
 function AnalysisPanel({
   toggleReportingMode,
@@ -68,6 +71,7 @@ function AnalysisPanel({
 
   const fen = root.fen;
   const moves = getVariationLine(root, position);
+  const [pos] = positionFromFen(currentNode.fen);
 
   return (
     <Stack h="100%">
@@ -100,6 +104,14 @@ function AnalysisPanel({
         >
           <>
             <ScrollArea offsetScrollbars>
+              {pos &&
+                (getPiecesCount(pos) <= 7 ||
+                  (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
+                  <>
+                    <TablebaseInfo fen={currentNode.fen} turn={pos.turn} />
+                  </>
+                )}
+              <Space h="sm" />
               {loadedEngines.length > 1 && (
                 <Paper withBorder p="xs" flex={1}>
                   <Group w="100%">

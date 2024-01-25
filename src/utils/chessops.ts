@@ -94,3 +94,26 @@ export function forceEnPassant(
   }
   return dests;
 }
+
+export function getPiecesCount(pos: Chess) {
+  return (
+    pos.board.pawn.size() +
+    pos.board.knight.size() +
+    pos.board.bishop.size() +
+    pos.board.rook.size() +
+    pos.board.queen.size() +
+    pos.board.king.size()
+  );
+}
+
+export function hasCaptures(pos: Chess) {
+  const dests = pos.allDests();
+  for (const to of dests.values()) {
+    for (const square of to) {
+      if (pos.board.get(square)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}

@@ -281,7 +281,6 @@ function BoardGame() {
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      console.log(payload);
       const ev = payload.bestLines;
       if (
         payload.progress === 100 &&

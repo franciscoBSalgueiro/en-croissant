@@ -22,6 +22,35 @@ import { countMainPly } from "./treeReducer";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
+const tablebaseURL = "https://tablebase.lichess.ovh";
+
+type TablebaseData = {
+  checkmate: boolean;
+  stalemate: boolean;
+  variant_win: boolean;
+  variant_loss: boolean;
+  insufficient_material: boolean;
+  dtz: number;
+  precise_dtz: number;
+  dtm: number;
+  category: "win" | "loss" | "draw" | "unknown";
+  moves: TablebaseMove[];
+};
+
+type TablebaseMove = {
+  uci: string;
+  san: string;
+  zeroing: boolean;
+  checkmate: boolean;
+  stalemate: boolean;
+  variant_win: boolean;
+  variant_loss: boolean;
+  insufficient_material: boolean;
+  dtz: number;
+  precise_dtz: number;
+  dtm: number;
+  category: "win" | "loss";
+};
 
 type LichessPerf = {
   games: number;
@@ -313,4 +342,12 @@ export async function getLichessGame(gameId: string): Promise<string> {
     );
   }
   return await response.text();
+}
+
+export async function getTablebaseInfo(fen: string) {
+  const res = await fetch<TablebaseData>(`${tablebaseURL}/standard?fen=${fen}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load tablebase info for ${fen} - ${res.status}`);
+  }
+  return res.data;
 }
