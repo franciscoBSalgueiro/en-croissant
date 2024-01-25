@@ -35,6 +35,8 @@ import {
   IconSettings,
   IconTargetArrow,
 } from "@tabler/icons-react";
+import { parseUci } from "chessops";
+import { makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -112,10 +114,20 @@ function BestMovesComponent({
     ? 0
     : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
 
-  const [isGameOver, error] = useMemo(() => {
-    const [pos, error] = positionFromFen(fen);
-    return [pos?.isEnd() ?? false, error];
-  }, [fen]);
+  const [pos, error] = positionFromFen(fen);
+  if (pos) {
+    for (const uci of moves) {
+      const move = parseUci(uci);
+      if (!move) {
+        console.log("Invalid move", uci);
+        break;
+      }
+      pos.play(move);
+    }
+  }
+
+  const isGameOver = pos?.isEnd() ?? false;
+  const finalFen = pos ? makeFen(pos.toSetup()) : null;
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
@@ -397,6 +409,7 @@ function BestMovesComponent({
                 ))}
               {!isGameOver &&
                 !error &&
+                finalFen &&
                 engineVariations &&
                 engineVariations.map((engineVariation, index) => {
                   return (
@@ -406,6 +419,7 @@ function BestMovesComponent({
                       score={engineVariation.score}
                       halfMoves={halfMoves}
                       threat={threat}
+                      fen={finalFen}
                     />
                   );
                 })}

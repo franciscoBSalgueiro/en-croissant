@@ -6,6 +6,7 @@ import {
   moveInputAtom,
   nativeBarAtom,
   percentageCoverageAtom,
+  previewBoardOnHoverAtom,
   showArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
@@ -161,6 +162,22 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={autoSaveAtom} />
+              </Group>
+
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Preview Board</Text>
+                  <Text size="xs" c="dimmed">
+                    Show a preview of the board when hovering over a move in the
+                    engine analysis
+                  </Text>
+                </div>
+                <SettingsSwitch atom={previewBoardOnHoverAtom} />
               </Group>
             </Tabs.Panel>
 
