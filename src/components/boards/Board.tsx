@@ -38,6 +38,7 @@ import {
   Group,
   Input,
   Paper,
+  Progress,
   Text,
   Tooltip,
   useMantineTheme,
@@ -306,6 +307,9 @@ function Board({
   const lightColor = theme.colors[color][6];
   const darkColor = theme.colors[color][8];
 
+  const timeControl = headers.time_control
+    ? parseTimeControl(headers.time_control)
+    : null;
   let { whiteSeconds, blackSeconds } = match(pos?.turn)
     .with("white", () => ({
       whiteSeconds: getNodeAtPath(root, position.slice(0, -1))?.clock,
@@ -321,8 +325,7 @@ function Board({
         blackSeconds: undefined,
       };
     });
-  if (position.length <= 1 && headers.time_control) {
-    const timeControl = parseTimeControl(headers.time_control);
+  if (position.length <= 1 && timeControl) {
     if (timeControl.length > 0) {
       const seconds = timeControl[0].seconds;
       if (!whiteSeconds) {
@@ -333,8 +336,13 @@ function Board({
       }
     }
   }
+
   const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
+  const topProgress =
+    timeControl && topClock ? topClock / timeControl[0].seconds : 0;
   const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
+  const bottomProgress =
+    timeControl && bottomClock ? bottomClock / timeControl[0].seconds : 0;
 
   return (
     <>
@@ -468,10 +476,27 @@ function Board({
           {data && (
             <Group pb="0.2rem">
               {topClock && (
-                <Paper px="sm" className={classes.clock}>
-                  <Text fz="lg" fw="bold">
+                <Paper
+                  className={
+                    orientation === "white"
+                      ? classes.blackClock
+                      : classes.whiteClock
+                  }
+                  styles={{
+                    root: {
+                      opacity: turn !== orientation ? 0.5 : 1,
+                    },
+                  }}
+                >
+                  <Text fz="lg" fw="bold" px="xs">
                     {makeClk(topClock)}
                   </Text>
+                  <Progress
+                    size="xs"
+                    w="100%"
+                    value={topProgress * 100}
+                    animated={turn === orientation}
+                  />
                 </Paper>
               )}
               <ShowMaterial
@@ -487,10 +512,27 @@ function Board({
             {data && (
               <Group>
                 {bottomClock && (
-                  <Paper px="sm" className={classes.clock}>
-                    <Text fz="lg" fw="bold">
+                  <Paper
+                    className={
+                      orientation === "black"
+                        ? classes.blackClock
+                        : classes.whiteClock
+                    }
+                    styles={{
+                      root: {
+                        opacity: turn === orientation ? 0.5 : 1,
+                      },
+                    }}
+                  >
+                    <Text fz="lg" fw="bold" px="xs">
                       {makeClk(bottomClock)}
                     </Text>
+                    <Progress
+                      size="xs"
+                      w="100%"
+                      value={bottomProgress * 100}
+                      animated={turn !== orientation}
+                    />
                   </Paper>
                 )}
                 <ShowMaterial
