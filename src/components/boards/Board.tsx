@@ -484,7 +484,7 @@ function Board({
                   }
                   styles={{
                     root: {
-                      opacity: turn !== orientation ? 0.5 : 1,
+                      opacity: turn === orientation ? 0.5 : 1,
                     },
                   }}
                 >
@@ -495,7 +495,7 @@ function Board({
                     size="xs"
                     w="100%"
                     value={topProgress * 100}
-                    animated={turn === orientation}
+                    animated={turn !== orientation}
                   />
                 </Paper>
               )}
@@ -520,7 +520,7 @@ function Board({
                     }
                     styles={{
                       root: {
-                        opacity: turn === orientation ? 0.5 : 1,
+                        opacity: turn !== orientation ? 0.5 : 1,
                       },
                     }}
                   >
@@ -531,7 +531,7 @@ function Board({
                       size="xs"
                       w="100%"
                       value={bottomProgress * 100}
-                      animated={turn !== orientation}
+                      animated={turn === orientation}
                     />
                   </Paper>
                 )}
