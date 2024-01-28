@@ -56,7 +56,7 @@ export default function EngineForm({
 
       <TextInput
         label="Name"
-        placeholder="Auto"
+        placeholder="Autodetect"
         withAsterisk
         {...form.getInputProps("name")}
       />

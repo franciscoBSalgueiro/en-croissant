@@ -31,16 +31,18 @@ import { shallowEqual } from "@mantine/hooks";
 import {
   IconChevronsRight,
   IconPlayerPause,
+  IconSettings,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
 import BestMoves, { arrowColors } from "./BestMoves";
-import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { useNavigate } from "react-router-dom";
 
 function AnalysisPanel({
   toggleReportingMode,
@@ -54,7 +56,7 @@ function AnalysisPanel({
   const { root, position } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
 
-  const engines = useAtomValue(enginesAtom);
+  const [engines, setEngines] = useAtom(enginesAtom);
   const loadedEngines = useMemo(
     () => engines.filter((e) => e.loaded),
     [engines],
@@ -72,6 +74,7 @@ function AnalysisPanel({
   const fen = root.fen;
   const moves = getVariationLine(root, position);
   const [pos] = positionFromFen(currentNode.fen);
+  const navigate = useNavigate();
 
   return (
     <Stack h="100%">
@@ -95,7 +98,6 @@ function AnalysisPanel({
         </Tabs.List>
         <Tabs.Panel
           value="engines"
-          pt="xs"
           style={{
             overflow: "hidden",
             display: tab === "engines" ? "flex" : "none",
@@ -109,9 +111,9 @@ function AnalysisPanel({
                   (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
                   <>
                     <TablebaseInfo fen={currentNode.fen} turn={pos.turn} />
+                    <Space h="sm" />
                   </>
                 )}
-              <Space h="sm" />
               {loadedEngines.length > 1 && (
                 <Paper withBorder p="xs" flex={1}>
                   <Group w="100%">
@@ -163,21 +165,75 @@ function AnalysisPanel({
                     },
                   }}
                 >
-                  {loadedEngines.map((engine, i) => {
-                    return (
-                      <Accordion.Item key={engine.name} value={engine.name}>
-                        <BestMoves
-                          id={i}
-                          engine={engine}
-                          fen={fen}
-                          moves={moves}
-                          halfMoves={currentNode.halfMoves}
-                        />
-                      </Accordion.Item>
-                    );
-                  })}
+                  <DragDropContext
+                    onDragEnd={({ destination, source }) =>
+                      destination?.index !== undefined &&
+                      setEngines(async (prev) => {
+                        const result = Array.from(await prev);
+                        const prevLoaded = result.filter((e) => e.loaded);
+                        const [removed] = prevLoaded.splice(source.index, 1);
+                        prevLoaded.splice(destination.index, 0, removed);
+
+                        result.forEach((e, i) => {
+                          if (e.loaded) {
+                            result[i] = prevLoaded.shift()!;
+                          }
+                        });
+                        return result;
+                      })
+                    }
+                  >
+                    <Droppable droppableId="droppable" direction="vertical">
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          <Stack w="100%">
+                            {loadedEngines.map((engine, i) => (
+                              <Draggable
+                                key={engine.name + i.toString()}
+                                draggableId={engine.name}
+                                index={i}
+                              >
+                                {(provided) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                  >
+                                    <Accordion.Item
+                                      value={engine.name}
+                                    >
+                                      <BestMoves
+                                        id={i}
+                                        engine={engine}
+                                        fen={fen}
+                                        moves={moves}
+                                        halfMoves={currentNode.halfMoves}
+                                      />
+                                    </Accordion.Item>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                          </Stack>
+
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                 </Accordion>
-                <EngineSelection />
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    navigate("/engines");
+                  }}
+                  leftSection={<IconSettings size="0.875rem" />}
+                >
+                  Manage Engines
+                </Button>
               </Stack>
             </ScrollArea>
           </>

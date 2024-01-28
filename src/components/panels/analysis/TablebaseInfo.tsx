@@ -40,8 +40,6 @@ function TablebaseInfo({
     return 0;
   });
 
-  console.log(sortedMoves);
-
   return (
     <Paper withBorder>
       <Accordion
