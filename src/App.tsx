@@ -23,7 +23,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { getMatches } from "@tauri-apps/api/cli";
 import { appWindow } from "@tauri-apps/api/window";
 import { Helmet } from "react-helmet";
-import { attachConsole } from "tauri-plugin-log-api";
+import { attachConsole, info } from "tauri-plugin-log-api";
 import { SideBar } from "./components/Sidebar";
 
 import { ask, message, open } from "@tauri-apps/api/dialog";
@@ -370,13 +370,16 @@ export default function App() {
     (async () => {
       await commands.closeSplashscreen();
       const detach = await attachConsole();
+      info("React app started successfully");
 
       const matches = await getMatches();
       if (matches.args.file.occurrences > 0) {
-        if (typeof matches.args.file.value !== "string") return;
-        const file = matches.args.file.value;
-        router.navigate("/boards", { replace: true });
-        openFile(file, setTabs, setActiveTab);
+        info(`Opening file from command line: ${matches.args.file.value}`);
+        if (typeof matches.args.file.value === "string") {
+          const file = matches.args.file.value;
+          router.navigate("/boards", { replace: true });
+          openFile(file, setTabs, setActiveTab);
+        }
       }
 
       return () => {

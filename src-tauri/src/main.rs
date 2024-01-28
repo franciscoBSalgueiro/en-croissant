@@ -172,7 +172,9 @@ fn main() {
         )
         .plugin(specta_builder)
         .setup(|app| {
-            // Check if all the required directories exist, and create them if they don't
+            log::info!("Setting up application");
+
+            log::info!("Checking for required directories");
             for (dir, path) in REQUIRED_DIRS.iter() {
                 let path = resolve_path(
                     &app.config(),
@@ -183,11 +185,13 @@ fn main() {
                 );
                 if let Ok(path) = path {
                     if !Path::new(&path).exists() {
+                        log::info!("Creating directory {}", path.to_string_lossy());
                         create_dir_all(&path).unwrap();
                     }
                 };
             }
 
+            log::info!("Checking for required files");
             for (dir, path) in REQUIRED_FILES.iter() {
                 let path = resolve_path(
                     &app.config(),
@@ -198,6 +202,7 @@ fn main() {
                 )
                 .unwrap();
                 if !Path::new(&path).exists() {
+                    log::info!("Creating file {}", path.to_string_lossy());
                     std::fs::write(&path, "").unwrap();
                 }
             }

@@ -38,6 +38,9 @@ export function createZodStorage<Value>(
   return {
     getItem(key, initialValue) {
       const storedValue = storage.getItem(key);
+      if (storedValue === null) {
+        return initialValue;
+      }
       try {
         return schema.parse(JSON.parse(storedValue ?? ""));
       } catch {
