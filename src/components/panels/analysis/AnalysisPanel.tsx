@@ -15,12 +15,13 @@ import { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   Accordion,
-  Box,
+  ActionIcon,
   Button,
   Card,
   Grid,
   Group,
   Paper,
+  Popover,
   ScrollArea,
   Space,
   Stack,
@@ -31,6 +32,7 @@ import { shallowEqual } from "@mantine/hooks";
 import {
   IconChevronsRight,
   IconPlayerPause,
+  IconSelector,
   IconSettings,
   IconZoomCheck,
 } from "@tabler/icons-react";
@@ -43,6 +45,7 @@ import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { useNavigate } from "react-router-dom";
+import EngineSelection from "./EngineSelection";
 
 function AnalysisPanel({
   toggleReportingMode,
@@ -202,9 +205,7 @@ function AnalysisPanel({
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                   >
-                                    <Accordion.Item
-                                      value={engine.name}
-                                    >
+                                    <Accordion.Item value={engine.name}>
                                       <BestMoves
                                         id={i}
                                         engine={engine}
@@ -225,15 +226,29 @@ function AnalysisPanel({
                     </Droppable>
                   </DragDropContext>
                 </Accordion>
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    navigate("/engines");
-                  }}
-                  leftSection={<IconSettings size="0.875rem" />}
-                >
-                  Manage Engines
-                </Button>
+                <Group gap="xs">
+                  <Button
+                    flex={1}
+                    variant="default"
+                    onClick={() => {
+                      navigate("/engines");
+                    }}
+                    leftSection={<IconSettings size="0.875rem" />}
+                  >
+                    Manage Engines
+                  </Button>
+                  <Popover width={250} position="top-end" shadow="md">
+                    <Popover.Target>
+                      <ActionIcon variant="default" size="lg">
+                        <IconSelector />
+                      </ActionIcon>
+                    </Popover.Target>
+
+                    <Popover.Dropdown>
+                      <EngineSelection />
+                    </Popover.Dropdown>
+                  </Popover>
+                </Group>
               </Stack>
             </ScrollArea>
           </>
@@ -329,7 +344,7 @@ function EngineSummary({
   const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (
-    <Card withBorder c={arrowColors[i].strong} p="xs">
+    <Card withBorder c={arrowColors[i]?.strong} p="xs">
       <Stack gap="xs" align="center">
         <Text
           fw="bold"
