@@ -2,6 +2,7 @@ import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import { Engine, stopEngine } from "@/utils/engines";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
+  Box,
   Button,
   Center,
   Checkbox,
@@ -13,7 +14,12 @@ import {
   Text,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { IconCloud, IconRobot, IconSettings } from "@tabler/icons-react";
+import {
+  IconCloud,
+  IconGripVertical,
+  IconRobot,
+  IconSettings,
+} from "@tabler/icons-react";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
@@ -42,7 +48,7 @@ function EngineBox({
     <Paper
       withBorder
       p="sm"
-      w="16rem"
+      w="100%"
       mb="xs"
       h="4rem"
       onClick={() => {
@@ -53,7 +59,7 @@ function EngineBox({
       }}
       style={{ cursor: "pointer" }}
     >
-      <Group>
+      <Group wrap="nowrap">
         <Checkbox checked={!!engine.loaded} onChange={() => {}} />
         {imageSrc ? (
           <Image src={imageSrc} alt={engine.name} h="2.5rem" />
@@ -107,7 +113,7 @@ function EngineSelection() {
           <Droppable droppableId="droppable" direction="vertical">
             {(provided) => (
               <div ref={provided.innerRef} {...provided.droppableProps}>
-                <Stack gap={0} align="center">
+                <Stack gap={0} align="center" w="100%">
                   {engines.map((engine, i) => (
                     <Draggable
                       key={engine.name}
@@ -119,20 +125,28 @@ function EngineSelection() {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
+                          style={{
+                            ...provided.draggableProps.style,
+                            width: "95%",
+                          }}
                         >
-                          <EngineBox
-                            key={engine.name}
-                            engine={engine}
-                            toggleEnabled={() => {
-                              setEngines(async (prev) =>
-                                (await prev).map((e) =>
-                                  e.name === engine.name
-                                    ? { ...e, loaded: !e.loaded }
-                                    : e,
-                                ),
-                              );
-                            }}
-                          />
+                          <Group wrap="nowrap">
+                            <IconGripVertical />
+                            <Box>
+                              <EngineBox
+                                engine={engine}
+                                toggleEnabled={() => {
+                                  setEngines(async (prev) =>
+                                    (await prev).map((e) =>
+                                      e.name === engine.name
+                                        ? { ...e, loaded: !e.loaded }
+                                        : e,
+                                    ),
+                                  );
+                                }}
+                              />
+                            </Box>
+                          </Group>
                         </div>
                       )}
                     </Draggable>

@@ -30,6 +30,7 @@ import {
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
+  IconGripVertical,
   IconPlayerPause,
   IconPlayerPlay,
   IconSettings,
@@ -330,11 +331,21 @@ function BestMovesComponent({
             <ActionIcon
               size="lg"
               onClick={() => toggleSettingsOn()}
-              mr={8}
               mt="auto"
               mb="auto"
             >
               <IconSettings size="1rem" />
+            </ActionIcon>
+            <ActionIcon
+              size="lg"
+              mr={8}
+              mt="auto"
+              mb="auto"
+              style={{
+                cursor: "grab",
+              }}
+            >
+              <IconGripVertical size="1rem" />
             </ActionIcon>
           </ActionIcon.Group>
         </Box>
