@@ -1,18 +1,13 @@
 import { enginesAtom } from "@/atoms/atoms";
 import { LocalEngine } from "@/utils/engines";
-import { Modal } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useAtom } from "jotai";
 import EngineForm from "./EngineForm";
 
 export default function EditEngine({
   initialEngine,
-  opened,
-  setOpened,
 }: {
   initialEngine: LocalEngine;
-  opened: boolean;
-  setOpened: (opened: boolean) => void;
 }) {
   const [engines, setEngines] = useAtom(enginesAtom);
   const form = useForm<LocalEngine>({
@@ -31,17 +26,14 @@ export default function EditEngine({
   });
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title="Edit Engine">
-      <EngineForm
-        submitLabel="Save"
-        form={form}
-        onSubmit={(values) => {
-          setEngines(async (prev) =>
-            (await prev).map((e) => (e === initialEngine ? values : e)),
-          );
-          setOpened(false);
-        }}
-      />
-    </Modal>
+    <EngineForm
+      submitLabel="Save"
+      form={form}
+      onSubmit={(values) => {
+        setEngines(async (prev) =>
+          (await prev).map((e) => (e === initialEngine ? values : e)),
+        );
+      }}
+    />
   );
 }
