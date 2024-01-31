@@ -1,7 +1,9 @@
 name: Release
 on:
   push:
-    tags:
+    branches:
+      - master
+    tags-ignore:
       - "v*"
   workflow_dispatch:
 
@@ -52,8 +54,8 @@ jobs:
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "v__VERSION__"
+          tagName: ${{ github.ref_name }}-beta
+          releaseName: "v__VERSION__-beta"
           releaseBody: "See the assets to download and install this version."
-          releaseDraft: true
-          prerelease: false
+          releaseDraft: false
+          prerelease: true
