@@ -92,6 +92,14 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getEngineConfig(path: string) : Promise<__Result__<{ name: string; options: UciOptionConfig[] }, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_engine_config", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -115,6 +123,78 @@ export type MonthData = { count: number; avg_elo: number }
 export type Progress = { id: string; progress: number }
 export type Results = { won: number; lost: number; draw: number }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
+/**
+ * Represents a UCI option definition.
+ */
+export type UciOptionConfig = 
+/**
+ * The option of type `check` (a boolean).
+ */
+{ type: "check"; value: { 
+/**
+ * The name of the option.
+ */
+name: string; 
+/**
+ * The default value of this `bool` property.
+ */
+default: boolean | null } } | 
+/**
+ * The option of type `spin` (a signed integer).
+ */
+{ type: "spin"; value: { 
+/**
+ * The name of the option.
+ */
+name: string; 
+/**
+ * The default value of this integer property.
+ */
+default: bigint | null; 
+/**
+ * The minimal value of this integer property.
+ */
+min: bigint | null; 
+/**
+ * The maximal value of this integer property.
+ */
+max: bigint | null } } | 
+/**
+ * The option of type `combo` (a list of strings).
+ */
+{ type: "combo"; value: { 
+/**
+ * The name of the option.
+ */
+name: string; 
+/**
+ * The default value for this list of strings.
+ */
+default: string | null; 
+/**
+ * The list of acceptable strings.
+ */
+var: string[] } } | 
+/**
+ * The option of type `button` (an action).
+ */
+{ type: "button"; value: { 
+/**
+ * The name of the option.
+ */
+name: string } } | 
+/**
+ * The option of type `string` (a string, unsurprisingly).
+ */
+{ type: "string"; value: { 
+/**
+ * The name of the option.
+ */
+name: string; 
+/**
+ * The default value of this string option.
+ */
+default: string | null } }
 
 /** tauri-specta globals **/
 

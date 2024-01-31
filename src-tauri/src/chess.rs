@@ -18,7 +18,7 @@ use tokio::{
     process::{Child, ChildStdin, ChildStdout, Command},
     sync::Mutex,
 };
-use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage};
+use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage, UciOptionConfig};
 
 use crate::{
     db::{is_position_in_db, PositionQuery},
@@ -816,18 +816,37 @@ mod tests {
     }
 }
 
+#[derive(Type, Default, Serialize, Debug)]
+pub struct EngineConfig {
+    pub name: String,
+    pub options: Vec<UciOptionConfig>,
+}
+
 #[tauri::command]
-pub async fn get_engine_name(path: PathBuf) -> Result<String, Error> {
+#[specta::specta]
+pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
     let mut child = start_engine(path)?;
     let (mut stdin, mut stdout) = get_handles(&mut child)?;
 
     send_command(&mut stdin, "uci\n").await;
 
+    let mut config = EngineConfig::default();
+
     loop {
         if let Some(line) = stdout.next_line().await? {
             if let UciMessage::Id { name, author: _ } = parse_one(&line) {
-                return Ok(name.unwrap_or_default());
+                if let Some(name) = name {
+                    config.name = name;
+                }
+            }
+            if let UciMessage::Option(opt) = parse_one(&line) {
+                config.options.push(opt);
+            }
+            if let UciMessage::UciOk = parse_one(&line) {
+                break;
             }
         }
     }
+    println!("{:?}", config);
+    Ok(config)
 }

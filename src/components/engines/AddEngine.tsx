@@ -19,14 +19,12 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
-import { platform } from "@tauri-apps/api/os";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
-import useSWR from "swr";
-import { match } from "ts-pattern";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
+import { usePlatform } from "@/utils/files";
 
 function AddEngine({
   opened,
@@ -40,17 +38,7 @@ function AddEngine({
     (e): e is LocalEngine => e.type === "local",
   );
 
-  const { data: os } = useSWR("os", async () => {
-    const p = await platform();
-    const os = match(p)
-      .with("win32", () => "windows" as const)
-      .with("linux", () => "linux" as const)
-      .with("darwin", () => "macos" as const)
-      .otherwise(() => {
-        throw Error("OS not supported");
-      });
-    return os;
-  });
+  const { os } = usePlatform();
 
   const { defaultEngines, error, isLoading } = useDefaultEngines(os, opened);
 

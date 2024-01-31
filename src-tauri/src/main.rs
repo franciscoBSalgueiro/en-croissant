@@ -25,6 +25,7 @@ use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
 use oauth::AuthState;
+use specta::ts::{BigIntExportBehavior, ExportConfig};
 use sysinfo::SystemExt;
 use tauri::{
     api::path::{resolve_path, BaseDirectory},
@@ -33,9 +34,7 @@ use tauri::{
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
 use tauri_plugin_log::LogTarget;
 
-use crate::chess::{
-    analyze_game, get_engine_logs, get_engine_name, kill_engines, stop_engine,
-};
+use crate::chess::{analyze_game, get_engine_config, get_engine_logs, kill_engines, stop_engine};
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
     get_players_game_info, get_tournaments, search_position,
@@ -109,6 +108,7 @@ const LOG_TARGETS: [LogTarget; 2] = [LogTarget::Stdout, LogTarget::LogDir];
 fn main() {
     let specta_builder = {
         let specta_builder = tauri_specta::ts::builder()
+            .config(ExportConfig::new().bigint(BigIntExportBehavior::BigInt))
             .commands(tauri_specta::collect_commands!(
                 close_splashscreen,
                 find_fide_player,
@@ -124,6 +124,7 @@ fn main() {
                 get_opening_from_fen,
                 get_opening_from_name,
                 get_players_game_info,
+                get_engine_config,
             ))
             .events(tauri_specta::collect_events!(BestMovesPayload, Progress));
 
@@ -224,7 +225,6 @@ fn main() {
             search_position,
             is_bmi2_compatible,
             clear_games,
-            get_engine_name,
             set_file_as_executable,
             count_pgn_games,
             read_games,

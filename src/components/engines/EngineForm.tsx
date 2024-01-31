@@ -1,12 +1,12 @@
 import { LocalEngine } from "@/utils/engines";
 import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
 import { UseFormReturnType } from "@mantine/form";
-import { invoke } from "@tauri-apps/api";
 import { open } from "@tauri-apps/api/dialog";
-import { platform } from "@tauri-apps/api/os";
-import useSWR from "swr";
 import { match } from "ts-pattern";
 import FileInput from "../common/FileInput";
+import { commands } from "@/bindings";
+import { unwrap } from "@/utils/invoke";
+import { usePlatform } from "@/utils/files";
 
 export default function EngineForm({
   onSubmit,
@@ -17,17 +17,7 @@ export default function EngineForm({
   form: UseFormReturnType<LocalEngine, (values: LocalEngine) => LocalEngine>;
   submitLabel: string;
 }) {
-  const { data: os } = useSWR("os", async () => {
-    const p = await platform();
-    const os = match(p)
-      .with("win32", () => "windows" as const)
-      .with("linux", () => "linux" as const)
-      .with("darwin", () => "macos" as const)
-      .otherwise(() => {
-        throw Error("OS not supported");
-      });
-    return os;
-  });
+  const { os } = usePlatform();
 
   const filters = match(os)
     .with("windows", () => [{ name: "Executable Files", extensions: ["exe"] }])
@@ -46,11 +36,11 @@ export default function EngineForm({
             filters,
           });
           if (!selected) return;
-          const name: string = await invoke("get_engine_name", {
-            path: selected as string,
-          });
+          const config = unwrap(
+            await commands.getEngineConfig(selected as string),
+          );
           form.setFieldValue("path", selected as string);
-          form.setFieldValue("name", name);
+          form.setFieldValue("name", config.name);
         }}
       />
 
