@@ -3,52 +3,40 @@ import { Engine, LocalEngine } from "@/utils/engines";
 import {
   ActionIcon,
   Box,
-  Button,
   Center,
   Checkbox,
+  Divider,
   FileInput,
   Group,
   Image,
   NumberInput,
-  Rating,
   ScrollArea,
   Select,
   SimpleGrid,
   Stack,
-  Table,
   Text,
   TextInput,
   Title,
 } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
 import {
   IconCloud,
-  IconDatabase,
-  IconEdit,
+  IconPhotoPlus,
   IconPlus,
   IconRobot,
-  IconX,
 } from "@tabler/icons-react";
 import { exists } from "@tauri-apps/api/fs";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
-import { useAtom, useAtomValue } from "jotai";
-import { useEffect, useState } from "react";
-import ConfirmModal from "../common/ConfirmModal";
+import { useAtomValue } from "jotai";
+import { useState } from "react";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
-import EditEngine from "./EditEngine";
 import useSWRImmutable from "swr/immutable";
-import { DataTable } from "mantine-datatable";
 
-import { formatNumber, formatBytes } from "@/utils/format";
 import GenericCard from "../common/GenericCard";
-import ConvertButton from "../databases/ConvertButton";
 import * as classes from "@/components/common/GenericCard.css";
-import EngineForm from "./EngineForm";
 import { unwrap } from "@/utils/invoke";
 import { commands } from "@/bindings";
 import { P, match } from "ts-pattern";
-import useSWR from "swr";
 
 export default function EnginesPage() {
   const engines = useAtomValue(enginesAtom);
@@ -181,51 +169,109 @@ function EngineSettings({ engine }: { engine: LocalEngine }) {
   const { data: options } = useSWRImmutable(
     ["engine-config", engine.path],
     async ([, path]) => {
-      console.log({ path });
       const res = await commands.getEngineConfig(path);
-      console.log({ res });
       return unwrap(await commands.getEngineConfig(path));
     },
   );
 
-  console.log({ engine, options });
-
   return (
     <ScrollArea h="100%" offsetScrollbars>
-      <Text>Engine settings</Text>
-      <SimpleGrid cols={2}>
-        {options?.options.map((option) => {
-          return match(option)
-            .with({ type: "check", value: P.select() }, (v) => {
-              return <Checkbox label={v.name} checked={!!v.default} />;
-            })
-            .with({ type: "spin", value: P.select() }, (v) => {
-              return (
-                <NumberInput
-                  label={v.name}
-                  description={`(${v.min} - ${v.max})`}
-                  min={Number(v.min)}
-                  max={Number(v.max)}
-                  value={Number(v.default)}
-                />
-              );
-            })
-            .with({ type: "combo", value: P.select() }, (v) => {
-              return <Select label={v.name} data={v.var} value={v.default} />;
-            })
-            .with({ type: "string", value: P.select() }, (v) => {
-              if (
-                v.name.toLowerCase().includes("file") ||
-                v.name.toLowerCase().includes("path")
-              ) {
-                const file = v.default ? new File([v.default], v.default) : null;
-                return <FileInput label={v.name} value={file} />;
-              }
-              return <TextInput label={v.name} value={v.default || ""} />;
-            })
-            .otherwise(() => null);
-        })}
-      </SimpleGrid>
+      <Stack>
+        <Divider variant="dashed" label="General settings" />
+        <Group grow align="start" wrap="nowrap">
+          <Stack>
+            <Group wrap="nowrap" w="100%">
+              <TextInput flex={1} label="Name" value={engine.name} />
+              <TextInput
+                label="Version"
+                w="5rem"
+                value={engine.version}
+                placeholder="?"
+              />
+            </Group>
+            <Group grow>
+              <NumberInput
+                label="ELO"
+                value={engine.elo || undefined}
+                min={0}
+                placeholder="Unknown"
+              />
+            </Group>
+            <Checkbox label="Enabled" checked={!!engine.loaded} />
+          </Stack>
+          <Center>
+            {engine.image ? (
+              <Image
+                src={engine.image}
+                alt={engine.name}
+                mah="10rem"
+                maw="100%"
+              />
+            ) : (
+              <ActionIcon
+                size="10rem"
+                variant="subtle"
+                styles={{
+                  root: {
+                    border: "1px dashed",
+                  },
+                }}
+              >
+                <IconPhotoPlus size="2.5rem" />
+              </ActionIcon>
+            )}
+          </Center>
+        </Group>
+        <Divider variant="dashed" label="Advanced settings" />
+        <SimpleGrid cols={2}>
+          {options?.options
+            .filter(
+              (option) => option.type !== "check" && option.type !== "button",
+            )
+            .map((option) => {
+              return match(option)
+                .with({ type: "spin", value: P.select() }, (v) => {
+                  return (
+                    <NumberInput
+                      label={v.name}
+                      min={Number(v.min)}
+                      max={Number(v.max)}
+                      value={Number(v.default)}
+                    />
+                  );
+                })
+                .with({ type: "combo", value: P.select() }, (v) => {
+                  return (
+                    <Select label={v.name} data={v.var} value={v.default} />
+                  );
+                })
+                .with({ type: "string", value: P.select() }, (v) => {
+                  if (
+                    v.name.toLowerCase().includes("file") ||
+                    v.name.toLowerCase().includes("path")
+                  ) {
+                    const file = v.default
+                      ? new File([v.default], v.default)
+                      : null;
+                    return <FileInput label={v.name} value={file} />;
+                  }
+                  return <TextInput label={v.name} value={v.default || ""} />;
+                })
+                .otherwise(() => null);
+            })}
+        </SimpleGrid>
+        <SimpleGrid cols={2}>
+          {options?.options
+            .filter((option) => option.type === "check")
+            .map((option) => (
+              <Checkbox
+                label={option.value.name}
+                /// @ts-ignore
+                checked={!!option.value.default}
+              />
+            ))}
+        </SimpleGrid>
+      </Stack>
     </ScrollArea>
   );
 }
