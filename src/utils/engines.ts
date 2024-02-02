@@ -22,19 +22,12 @@ const goModeSchema: z.ZodSchema<GoMode> = z.union([
   }),
 ]);
 
-const engineOptionsSchema: z.ZodSchema<Omit<EngineOptions, "fen" | "moves">> =
+const engineSettingsSchema = z.array(
   z.object({
-    multipv: z.number(),
-    threads: z.number(),
-    hash: z.number(),
-    extraOptions: z.array(z.object({ name: z.string(), value: z.string() })),
-  });
-
-const engineSettingsSchema = z.object({
-  enabled: z.boolean(),
-  go: goModeSchema,
-  options: engineOptionsSchema,
-});
+    name: z.string(),
+    value: z.string().or(z.number()).or(z.boolean()).nullable(),
+  }),
+);
 
 export type EngineSettings = z.infer<typeof engineSettingsSchema>;
 
@@ -48,6 +41,8 @@ const localEngineSchema = z.object({
   downloadSize: z.number().nullish(),
   downloadLink: z.string().nullish(),
   loaded: z.boolean().nullish(),
+  go: goModeSchema.nullish(),
+  enabled: z.boolean().nullish(),
   settings: engineSettingsSchema.nullish(),
 });
 
@@ -58,8 +53,8 @@ const remoteEngineSchema = z.object({
   name: z.string(),
   url: z.string(),
   image: z.string().nullish(),
-  settings: engineSettingsSchema.nullish(),
   loaded: z.boolean().nullish(),
+  enabled: z.boolean().nullish(),
 });
 
 export type RemoteEngine = z.infer<typeof remoteEngineSchema>;
