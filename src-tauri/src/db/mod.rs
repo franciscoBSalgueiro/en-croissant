@@ -325,9 +325,14 @@ impl Visitor for Importer {
             } else {
                 let fen = Fen::from_ascii(value.as_bytes()).unwrap();
                 self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                self.game.position =
+                if let Ok(setup) =
                     Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)
-                        .or_else(PositionError::ignore_too_much_material).unwrap();
+                        .or_else(PositionError::ignore_too_much_material)
+                {
+                    self.game.position = setup;
+                } else {
+                    self.skip = true;
+                }
             }
         }
     }

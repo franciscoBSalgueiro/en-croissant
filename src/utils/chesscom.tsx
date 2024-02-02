@@ -6,7 +6,7 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Chess } from "chessops";
 import { ChildNode, PgnNodeData, defaultGame, makePgn } from "chessops/pgn";
 import { makeSan } from "chessops/san";
-import { error } from "tauri-plugin-log-api";
+import { error, info } from "tauri-plugin-log-api";
 import { z } from "zod";
 import { decodeTCN } from "./tcn";
 
@@ -107,7 +107,6 @@ export async function downloadChessCom(
   player: string,
   timestamp: number | null,
 ) {
-  let totalPGN = "";
   const timestampDate = new Date(timestamp ?? 0);
   const approximateDate = new Date(
     timestampDate.getFullYear(),
@@ -115,12 +114,22 @@ export async function downloadChessCom(
     1,
   );
   const archives = await getGameArchives(player);
+  const file = await resolve(
+    await appDataDir(),
+    "db",
+    `${player}_chesscom.pgn`,
+  );
+  info(`Found ${archives.archives.length} archives for ${player}`);
+  writeTextFile(file, "", {
+    append: false,
+  });
   for (const archive of archives.archives) {
     const [year, month] = archive.split("/").slice(-2);
     const archiveDate = new Date(parseInt(year), parseInt(month) - 1);
     if (archiveDate < approximateDate) {
       continue;
     }
+    info(`Fetching games for ${player} from ${archive}`);
     const response = await fetch(archive, {
       headers,
       method: "GET",
@@ -140,14 +149,10 @@ export async function downloadChessCom(
       return;
     }
 
-    for (const game of games.data.games.filter((g) => g.pgn)) {
-      totalPGN += `\n${game.pgn}`;
-    }
+    writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
+      append: true,
+    });
   }
-  writeTextFile(
-    await resolve(await appDataDir(), "db", `${player}_chesscom.pgn`),
-    totalPGN,
-  );
 }
 
 export async function getChesscomGame(gameURL: string) {
