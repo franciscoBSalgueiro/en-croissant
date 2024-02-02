@@ -5,7 +5,7 @@ import {
   enginesAtom,
   tabsAtom,
 } from "@/atoms/atoms";
-import { events, commands } from "@/bindings";
+import { events, commands, GoMode } from "@/bindings";
 import { getMainLine, parseUci } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { EngineSettings, LocalEngine } from "@/utils/engines";
@@ -95,6 +95,7 @@ export type OpponentSettings =
   | {
       type: "engine";
       engine: LocalEngine | null;
+      go: GoMode;
       settings: EngineSettings;
     };
 
@@ -112,19 +113,11 @@ function OpponentForm({
       setOpponent({
         type: "engine",
         engine: null,
-        settings: {
-          go: {
-            t: "Time",
-            c: 2000,
-          },
-          enabled: false,
-          options: {
-            threads: 2,
-            multipv: 1,
-            hash: 16,
-            extraOptions: [],
-          },
+        go: {
+          t: "Time",
+          c: 2000,
         },
+        settings: [],
       });
     }
   }
@@ -263,8 +256,15 @@ function BoardGame() {
           currentTurn,
           player.engine.path,
           activeTab + currentTurn,
-          player.settings.go,
-          { ...player.settings.options, fen: root.fen, moves: moves },
+          player.go,
+          {
+            fen: root.fen,
+            moves: moves,
+            extraOptions: player.settings.map((s) => ({
+              ...s,
+              value: s.value?.toString() ?? "",
+            })),
+          },
         );
       }
     }

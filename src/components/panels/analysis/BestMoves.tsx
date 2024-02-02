@@ -194,9 +194,6 @@ function BestMovesComponent({
           getBestMoves(activeTab!, settings.go, {
             moves: searchingMoves,
             fen: searchingFen,
-            multipv: settings.options.multipv,
-            hash: settings.options.hash,
-            threads: settings.options.threads,
             extraOptions: settings.options.extraOptions,
           }).then((moves) => {
             if (moves) {

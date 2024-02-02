@@ -117,16 +117,14 @@ impl EngineProcess {
             let mv = uci.to_move(&pos)?;
             pos.play_unchecked(&mv);
         }
-        self.real_multipv = options.multipv.min(pos.legal_moves().len() as u16);
-        if options.threads != self.options.threads {
-            self.set_option("Threads", &options.threads).await?;
-        }
-        if options.multipv != self.options.multipv {
-            self.set_option("MultiPV", &options.multipv).await?;
-        }
-        if options.hash != self.options.hash {
-            self.set_option("Hash", options.hash).await?;
-        }
+        let multipv = options
+            .extra_options
+            .iter()
+            .find(|x| x.name == "MultiPV")
+            .map(|x| x.value.parse().unwrap_or(1))
+            .unwrap_or(1);
+
+        self.real_multipv = multipv.min(pos.legal_moves().len() as u16);
 
         for option in &options.extra_options {
             if !self.options.extra_options.contains(option) {
@@ -341,9 +339,9 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
 #[serde(rename_all = "camelCase")]
 #[derivative(Default)]
 pub struct EngineOptions {
-    pub multipv: u16,
-    pub threads: u16,
-    pub hash: u16,
+    // pub multipv: u16,
+    // pub threads: u16,
+    // pub hash: u16,
     #[derivative(Default(value = "Fen::default().to_string()"))]
     pub fen: String,
     pub moves: Vec<String>,
@@ -601,12 +599,15 @@ pub async fn analyze_game(
         )?;
 
         proc.set_options(EngineOptions {
-            threads: 4,
-            multipv: 2,
-            hash: 16,
+            // threads: 4,
+            // multipv: 2,
+            // hash: 16,
             fen: options.fen.clone(),
             moves: moves.clone(),
-            extra_options: Vec::new(),
+            extra_options: vec![EngineOption {
+                name: "MultiPV".to_string(),
+                value: "2".to_string(),
+            }],
         })
         .await?;
 
