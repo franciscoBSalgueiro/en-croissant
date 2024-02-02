@@ -1,10 +1,10 @@
+import { platform } from "@tauri-apps/api/os";
 import useSWR from "swr";
+import { match } from "ts-pattern";
 import { parsePGN } from "./chess";
 import { count_pgn_games, read_games } from "./db";
 import { Tab, createTab } from "./tabs";
 import { getGameName } from "./treeReducer";
-import { platform } from "@tauri-apps/api/os";
-import { match } from "ts-pattern";
 
 export function usePlatform() {
   const r = useSWR("os", async () => {

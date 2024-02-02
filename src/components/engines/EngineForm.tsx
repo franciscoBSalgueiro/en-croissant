@@ -1,12 +1,12 @@
+import { commands } from "@/bindings";
 import { LocalEngine } from "@/utils/engines";
+import { usePlatform } from "@/utils/files";
+import { unwrap } from "@/utils/invoke";
 import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
 import { UseFormReturnType } from "@mantine/form";
 import { open } from "@tauri-apps/api/dialog";
 import { match } from "ts-pattern";
 import FileInput from "../common/FileInput";
-import { commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
-import { usePlatform } from "@/utils/files";
 
 export default function EngineForm({
   onSubmit,

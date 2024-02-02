@@ -1,4 +1,5 @@
 import { enginesAtom } from "@/atoms/atoms";
+import { GoMode } from "@/bindings";
 import { EngineSettings } from "@/utils/engines";
 import {
   ActionIcon,
@@ -31,7 +32,6 @@ import CoresSlider from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
-import { GoMode } from "@/bindings";
 
 interface EngineSettingsProps {
   engineName: string;

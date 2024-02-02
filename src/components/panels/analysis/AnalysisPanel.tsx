@@ -13,6 +13,7 @@ import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
   ActionIcon,
@@ -39,13 +40,12 @@ import {
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import BestMoves, { arrowColors } from "./BestMoves";
+import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { useNavigate } from "react-router-dom";
-import EngineSelection from "./EngineSelection";
 
 function AnalysisPanel({
   toggleReportingMode,
