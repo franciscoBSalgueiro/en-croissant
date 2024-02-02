@@ -1,24 +1,19 @@
 import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
+import LocalImage from "@/components/common/LocalImage";
 import { Engine, stopEngine } from "@/utils/engines";
 import {
   Center,
   Checkbox,
   Group,
-  Image,
   Paper,
   ScrollArea,
   Stack,
   Text,
 } from "@mantine/core";
-import {
-  IconCloud,
-  IconRobot,
-} from "@tabler/icons-react";
-import { convertFileSrc } from "@tauri-apps/api/tauri";
+import { IconCloud, IconRobot } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
 import { Link } from "react-router-dom";
-import useSWRImmutable from "swr/immutable";
 
 function EngineBox({
   engine,
@@ -28,15 +23,6 @@ function EngineBox({
   toggleEnabled: () => void;
 }) {
   const activeTab = useAtomValue(activeTabAtom);
-
-  const { data: imageSrc } = useSWRImmutable(engine.image, async (image) => {
-    if (image?.startsWith("http")) {
-      return image;
-    }
-    if (image) {
-      return await convertFileSrc(image);
-    }
-  });
 
   return (
     <Paper
@@ -54,8 +40,8 @@ function EngineBox({
     >
       <Group wrap="nowrap">
         <Checkbox checked={!!engine.loaded} onChange={() => {}} />
-        {imageSrc ? (
-          <Image src={imageSrc} alt={engine.name} h="1.5rem" />
+        {engine.image ? (
+          <LocalImage src={engine.image} alt={engine.name} h="1.5rem" />
         ) : engine.type !== "local" ? (
           <IconCloud size="1.5rem" />
         ) : (
