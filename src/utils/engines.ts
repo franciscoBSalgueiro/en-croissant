@@ -55,6 +55,8 @@ const remoteEngineSchema = z.object({
   image: z.string().nullish(),
   loaded: z.boolean().nullish(),
   enabled: z.boolean().nullish(),
+  multipv: z.number().nullish(),
+  settings: engineSettingsSchema.nullish(),
 });
 
 export type RemoteEngine = z.infer<typeof remoteEngineSchema>;

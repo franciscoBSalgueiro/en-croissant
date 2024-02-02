@@ -47,15 +47,22 @@ export async function getBestMoves(
   const moves = await queryPosition(makeFen(pos.toSetup()));
   return [
     100,
-    moves.slice(0, options.multipv).map((m, i) => ({
-      score: { type: "cp", value: m.score },
-      nodes: 0,
-      depth: m.depth ?? 0,
-      multipv: i + 1,
-      nps: 0,
-      sanMoves: m.san,
-      uciMoves: m.uci,
-    })),
+    moves
+      .slice(
+        0,
+        parseInt(
+          options.extraOptions.find((o) => o.name === "MultiPV")?.value ?? "1",
+        ),
+      )
+      .map((m, i) => ({
+        score: { type: "cp", value: m.score },
+        nodes: 0,
+        depth: m.depth ?? 0,
+        multipv: i + 1,
+        nps: 0,
+        sanMoves: m.san,
+        uciMoves: m.uci,
+      })),
   ];
 }
 

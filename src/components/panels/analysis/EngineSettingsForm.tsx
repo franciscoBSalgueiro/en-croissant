@@ -31,11 +31,18 @@ import CoresSlider from "./CoresSlider";
 import DepthSlider from "./DepthSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
+import { GoMode } from "@/bindings";
 
 interface EngineSettingsProps {
   engineName: string;
-  settings: EngineSettings;
-  setSettings: (fn: (prev: EngineSettings) => EngineSettings) => void;
+  settings: { enabled: boolean; go: GoMode; settings: EngineSettings };
+  setSettings: (
+    fn: (prev: { enabled: boolean; go: GoMode; settings: EngineSettings }) => {
+      enabled: boolean;
+      go: GoMode;
+      settings: EngineSettings;
+    },
+  ) => void;
   color?: MantineColor;
   minimal?: boolean;
   remote: boolean;
@@ -49,70 +56,12 @@ function EngineSettingsForm({
   minimal,
   remote,
 }: EngineSettingsProps) {
-  const [advancedOptions, setAdvancedOptions] = useState(false);
-  const [, setEngines] = useAtom(enginesAtom);
-
-  async function saveSettings() {
-    const defaultPath = await resolve(
-      await appDataDir(),
-      "presets",
-      `${engineName}.json`,
-    );
-    const file = await save({
-      defaultPath,
-      filters: [{ name: "JSON", extensions: ["json"] }],
-    });
-    if (!file) return;
-    const json = JSON.stringify(settings);
-    await writeTextFile(file, json);
-    setEngines(async (prev) => {
-      const newEngines = (await prev).map((e) => {
-        if (e.name === engineName) {
-          return {
-            ...e,
-            settings: settings,
-          };
-        }
-        return e;
-      });
-      return newEngines;
-    });
-  }
-
-  async function loadSettings() {
-    const configsDirectory = await resolve(await appDataDir(), "presets");
-    const file = await open({
-      defaultPath: configsDirectory,
-      filters: [{ name: "JSON", extensions: ["json"] }],
-    });
-    if (typeof file !== "string") return;
-    const data = await readTextFile(file);
-    if (!data) return;
-    const json = JSON.parse(data);
-    setSettings(() => json);
-    setEngines(async (prev) => {
-      const newEngines = (await prev).map((e) => {
-        if (e.name === engineName) {
-          return {
-            ...e,
-            settings: json,
-          };
-        }
-        return e;
-      });
-      return newEngines;
-    });
-  }
+  const multipv = settings.settings.find((o) => o.name === "MultiPV");
+  const threads = settings.settings.find((o) => o.name === "Threads");
+  const hash = settings.settings.find((o) => o.name === "Hash");
 
   return (
     <>
-      <AdvancedOptions
-        opened={advancedOptions}
-        setOpened={setAdvancedOptions}
-        settings={settings}
-        setSettings={setSettings}
-        minimal={minimal}
-      />
       <Stack pt="sm">
         <Stack>
           {remote ? (
@@ -151,82 +100,70 @@ function EngineSettingsForm({
             </Group>
           )}
 
-          {!minimal && (
+          {!minimal && multipv && (
             <Group grow>
               <Text size="sm" fw="bold">
                 Number of Lines
               </Text>
               <LinesSlider
-                value={settings.options.multipv}
+                value={Number(multipv.value || 1)}
                 setValue={(v) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    options: { ...prev.options, multipv: v },
-                  }))
+                  setSettings((prev) => {
+                    return {
+                      ...prev,
+                      settings: prev.settings.map((o) =>
+                        o.name === "MultiPV" ? { ...o, value: v || 1 } : o,
+                      ),
+                    };
+                  })
                 }
                 color={color}
               />
             </Group>
           )}
 
-          {!remote && (
+          {!remote && threads && (
             <>
               <Group grow>
                 <Text size="sm" fw="bold">
                   Number of cores
                 </Text>
                 <CoresSlider
-                  value={settings.options.threads}
+                  value={Number(threads.value || 1)}
                   setValue={(v) =>
                     setSettings((prev) => ({
                       ...prev,
-                      options: { ...prev.options, threads: v },
+                      settings: prev.settings.map((o) =>
+                        o.name === "Threads" ? { ...o, value: v || 1 } : o,
+                      ),
                     }))
                   }
                   color={color}
                 />
               </Group>
 
-              <Group grow>
-                <Text size="sm" fw="bold">
-                  Size of Hash
-                </Text>
-                <HashSlider
-                  value={settings.options.hash}
-                  setValue={(v) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      options: { ...prev.options, hash: v },
-                    }))
-                  }
-                  color={color}
-                />
-              </Group>
+              {hash && (
+                <Group grow>
+                  <Text size="sm" fw="bold">
+                    Size of Hash
+                  </Text>
+                  <HashSlider
+                    value={Number(hash.value || 1)}
+                    setValue={(v) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        settings: prev.settings.map((o) =>
+                          o.name === "Hash" ? { ...o, value: v || 1 } : o,
+                        ),
+                      }))
+                    }
+                    color={color}
+                  />
+                </Group>
+              )}
             </>
           )}
         </Stack>
-
-        {!remote && (
-          <Group gap={0}>
-            <Tooltip label="Load settings">
-              <ActionIcon onClick={() => loadSettings()}>
-                <IconUpload size="1rem" />
-              </ActionIcon>
-            </Tooltip>
-
-            <Tooltip label="Save settings">
-              <ActionIcon onClick={() => saveSettings()}>
-                <IconDownload size="1rem" />
-              </ActionIcon>
-            </Tooltip>
-
-            <Tooltip label="Advanced Options">
-              <ActionIcon onClick={() => setAdvancedOptions(true)}>
-                <IconSettings size="1rem" />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        )}
       </Stack>
     </>
   );
@@ -241,12 +178,23 @@ function AdvancedOptions({
 }: {
   opened: boolean;
   setOpened: React.Dispatch<React.SetStateAction<boolean>>;
-  settings: EngineSettings;
-  setSettings: (fn: (prev: EngineSettings) => EngineSettings) => void;
+  settings: { enabled: boolean; go: GoMode; settings: EngineSettings };
+  setSettings: (
+    fn: (prev: { enabled: boolean; go: GoMode; settings: EngineSettings }) => {
+      enabled: boolean;
+      go: GoMode;
+      settings: EngineSettings;
+    },
+  ) => void;
   minimal?: boolean;
 }) {
   const goTypes = ["Depth", { label: "Time (ms)", value: "Time" }, "Nodes"];
   if (!minimal) goTypes.push("Infinite");
+
+  const multipv = settings.settings.find((o) => o.name === "MultiPV");
+  const threads = settings.settings.find((o) => o.name === "Threads");
+  const hash = settings.settings.find((o) => o.name === "Hash");
+
   return (
     <Modal
       title="Engine Options"
@@ -302,118 +250,71 @@ function AdvancedOptions({
               )}
             </Table.Td>
           </Table.Tr>
-          <Table.Tr>
-            <Table.Td>Threads</Table.Td>
-            <Table.Td>
-              <NumberInput
-                min={1}
-                value={settings.options.threads}
-                onChange={(v) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    options: { ...prev.options, threads: (v || 1) as number },
-                  }))
-                }
-              />
-            </Table.Td>
-          </Table.Tr>
-          {!minimal && (
+          {threads && (
             <Table.Tr>
-              <Table.Td>MultiPV</Table.Td>
+              <Table.Td>Threads</Table.Td>
               <Table.Td>
                 <NumberInput
                   min={1}
-                  value={settings.options.multipv}
+                  value={Number(threads.value || 1)}
                   onChange={(v) =>
                     setSettings((prev) => ({
                       ...prev,
-                      options: { ...prev.options, multipv: (v || 1) as number },
+                      settings: prev.settings.map((o) =>
+                        o.name === "Threads"
+                          ? { ...o, value: (v || 1).toString() }
+                          : o,
+                      ),
                     }))
                   }
                 />
               </Table.Td>
             </Table.Tr>
           )}
-          <Table.Tr>
-            <Table.Td>Hash Size</Table.Td>
-            <Table.Td>
-              <NumberInput
-                min={1}
-                value={settings.options.hash}
-                onChange={(v) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    options: { ...prev.options, hash: (v || 1) as number },
-                  }))
-                }
-              />
-            </Table.Td>
-          </Table.Tr>
-          {settings.options.extraOptions.map((option, i) => (
-            <Table.Tr key={i}>
+          {!minimal && multipv && (
+            <Table.Tr>
+              <Table.Td>MultiPV</Table.Td>
               <Table.Td>
-                <TextInput
-                  value={option.name}
-                  onChange={(e) => {
-                    const newOptions = settings.options.extraOptions;
-                    newOptions[i].name = e.currentTarget.value;
+                <NumberInput
+                  min={1}
+                  value={Number(multipv.value || 1)}
+                  onChange={(v) =>
                     setSettings((prev) => ({
                       ...prev,
-                      extraOptions: newOptions,
-                    }));
-                  }}
+                      settings: prev.settings.map((o) =>
+                        o.name === "MultiPV"
+                          ? { ...o, value: (v || 1).toString() }
+                          : o,
+                      ),
+                    }))
+                  }
                 />
               </Table.Td>
+            </Table.Tr>
+          )}
+          {hash && (
+            <Table.Tr>
+              <Table.Td>Hash Size</Table.Td>
               <Table.Td>
-                <Group wrap="nowrap" gap={0}>
-                  <TextInput
-                    value={option.value}
-                    onChange={(e) => {
-                      const newOptions = settings.options.extraOptions;
-                      newOptions[i].value = e.currentTarget.value;
-                      setSettings((prev) => ({
-                        ...prev,
-                        extraOptions: newOptions,
-                      }));
-                    }}
-                  />
-                  {/* Remove button */}
-                  <ActionIcon
-                    onClick={() => {
-                      const newOptions = settings.options.extraOptions;
-                      newOptions.splice(i, 1);
-                      setSettings((prev) => ({
-                        ...prev,
-                        extraOptions: newOptions,
-                      }));
-                    }}
-                  >
-                    <IconX size="0.875rem" />
-                  </ActionIcon>
-                </Group>
+                <NumberInput
+                  min={1}
+                  value={Number(hash.value || 1)}
+                  onChange={(v) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      settings: prev.settings.map((o) =>
+                        o.name === "Hash"
+                          ? { ...o, value: (v || 1).toString() }
+                          : o,
+                      ),
+                    }))
+                  }
+                />
               </Table.Td>
             </Table.Tr>
-          ))}
+          )}
         </Table.Tbody>
       </Table>
-
-      <Center pt="xs">
-        <Button
-          leftSection={<IconPlus size="1rem" />}
-          variant="default"
-          size="xs"
-          onClick={() => {
-            const newOptions = settings.options.extraOptions;
-            newOptions.push({ name: "", value: "" });
-            setSettings((prev) => ({
-              ...prev,
-              extraOptions: newOptions,
-            }));
-          }}
-        >
-          Add option
-        </Button>
-      </Center>
     </Modal>
   );
 }

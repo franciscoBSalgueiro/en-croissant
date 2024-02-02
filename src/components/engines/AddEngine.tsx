@@ -199,6 +199,7 @@ function EngineCard({
           ...engine,
           type: "local",
           path: enginePath,
+          loaded: true,
         },
       ]);
     },

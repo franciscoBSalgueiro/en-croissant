@@ -235,7 +235,9 @@ export async function getBestMoves(
   }
   const data = await getCloudEvaluation(
     makeFen(pos.toSetup()),
-    options.multipv,
+    parseInt(
+      options.extraOptions.find((o) => o.name === "MultiPV")?.value ?? "1",
+    ),
   );
   return [
     100,

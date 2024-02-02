@@ -24,7 +24,11 @@ export default function EngineForm({
     .otherwise(() => []);
 
   return (
-    <form onSubmit={form.onSubmit(async (values) => onSubmit(values))}>
+    <form
+      onSubmit={form.onSubmit(async (values) =>
+        onSubmit({ ...values, loaded: true }),
+      )}
+    >
       <FileInput
         label="Binary file"
         description="Click to select the binary file"
