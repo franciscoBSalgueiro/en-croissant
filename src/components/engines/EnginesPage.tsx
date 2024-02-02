@@ -28,19 +28,19 @@ import {
 import { exists } from "@tauri-apps/api/fs";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import useSWRImmutable from "swr/immutable";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
-import useSWRImmutable from "swr/immutable";
 
-import GenericCard from "../common/GenericCard";
+import { UciOptionConfig, commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
 import { unwrap } from "@/utils/invoke";
-import { UciOptionConfig, commands } from "@/bindings";
-import { P, match } from "ts-pattern";
-import { open } from "@tauri-apps/api/dialog";
-import LocalImage from "../common/LocalImage";
-import ConfirmModal from "../common/ConfirmModal";
 import { useToggle } from "@mantine/hooks";
+import { open } from "@tauri-apps/api/dialog";
+import { P, match } from "ts-pattern";
+import ConfirmModal from "../common/ConfirmModal";
+import GenericCard from "../common/GenericCard";
+import LocalImage from "../common/LocalImage";
 
 export default function EnginesPage() {
   const engines = useAtomValue(enginesAtom);

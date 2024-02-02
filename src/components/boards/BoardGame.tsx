@@ -5,7 +5,7 @@ import {
   enginesAtom,
   tabsAtom,
 } from "@/atoms/atoms";
-import { events, commands, GoMode } from "@/bindings";
+import { events, GoMode, commands } from "@/bindings";
 import { getMainLine, parseUci } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { EngineSettings, LocalEngine } from "@/utils/engines";
