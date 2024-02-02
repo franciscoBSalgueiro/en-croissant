@@ -155,16 +155,23 @@ function OpponentForm({
               <EngineSettingsForm
                 remote={false}
                 engineName={opponent.engine.name}
-                settings={opponent.settings}
+                settings={{
+                  go: opponent.go,
+                  settings: opponent.settings,
+                  enabled: true,
+                }}
                 setSettings={(fn) =>
-                  setOpponent((prev) =>
-                    prev.type === "human"
-                      ? prev
-                      : {
-                          ...prev,
-                          settings: fn(prev.settings),
-                        },
-                  )
+                  setOpponent((prev) => {
+                    if (prev.type === "human") {
+                      return prev;
+                    }
+                    const newSettings = fn({
+                      go: prev.go,
+                      settings: prev.settings,
+                      enabled: true,
+                    });
+                    return { ...prev, ...newSettings };
+                  })
                 }
                 minimal={true}
               />

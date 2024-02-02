@@ -194,7 +194,11 @@ function BestMovesComponent({
           getBestMoves(activeTab!, settings.go, {
             moves: searchingMoves,
             fen: searchingFen,
-            extraOptions: settings.options.extraOptions,
+            extraOptions:
+              settings.settings?.map((s) => ({
+                name: s.name,
+                value: s.value?.toString() || "",
+              })) ?? [],
           }).then((moves) => {
             if (moves) {
               const [progress, bestMoves] = moves;
@@ -219,7 +223,7 @@ function BestMovesComponent({
     50,
     [
       settings.enabled,
-      settings.options,
+      JSON.stringify(settings.settings),
       settings.go,
       searchingFen,
       JSON.stringify(searchingMoves),
@@ -399,7 +403,12 @@ function BestMovesComponent({
                 !error &&
                 !engineVariations &&
                 (settings.enabled ? (
-                  [...Array(settings.options.multipv)].map((_, i) => (
+                  [
+                    ...Array(
+                      settings.settings.find((s) => s.name === "MultiPV")
+                        ?.value ?? 1,
+                    ),
+                  ].map((_, i) => (
                     <Table.Tr key={i}>
                       <Table.Td>
                         <Skeleton height={35} radius="xl" p={5} />

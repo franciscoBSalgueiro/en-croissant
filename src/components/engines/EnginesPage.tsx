@@ -3,6 +3,7 @@ import { Engine, LocalEngine } from "@/utils/engines";
 import {
   ActionIcon,
   Box,
+  Button,
   Center,
   Checkbox,
   Divider,
@@ -38,6 +39,8 @@ import { UciOptionConfig, commands } from "@/bindings";
 import { P, match } from "ts-pattern";
 import { open } from "@tauri-apps/api/dialog";
 import LocalImage from "../common/LocalImage";
+import ConfirmModal from "../common/ConfirmModal";
+import { useToggle } from "@mantine/hooks";
 
 export default function EnginesPage() {
   const engines = useAtomValue(enginesAtom);
@@ -105,7 +108,7 @@ export default function EnginesPage() {
         {selectedEngine === null || selected === null ? (
           <Text ta="center">No engine selected</Text>
         ) : selectedEngine.type === "local" ? (
-          <EngineSettings selected={selected} />
+          <EngineSettings selected={selected} setSelected={setSelected} />
         ) : (
           <Stack>
             <Text ta="center" fw="bold" fz="lg">
@@ -119,7 +122,10 @@ export default function EnginesPage() {
   );
 }
 
-function EngineSettings({ selected }: { selected: number }) {
+function EngineSettings({
+  selected,
+  setSelected,
+}: { selected: number; setSelected: (v: number | null) => void }) {
   const [engines, setEngines] = useAtom(enginesAtom);
   const engine = engines[selected] as LocalEngine;
   const { data: options } = useSWRImmutable(
@@ -137,15 +143,30 @@ function EngineSettings({ selected }: { selected: number }) {
     });
   }
 
-  // if (options) {
-  //   for (const option of engine.settings || []) {
-  //     const opt = options.options.find((o) => o.value.name === option.name);
-  //     if (opt && opt.type !== "button") {
-  //       // @ts-ignore
-  //       opt.value.value = option.value || opt.value.default;
-  //     }
-  //   }
-  // }
+  useEffect(() => {
+    if (options) {
+      const required = ["MultiPV", "Threads", "Hash"];
+      const settings = [...(engine.settings || [])];
+      const missing = required.filter(
+        (field) => !settings.find((setting) => setting.name === field),
+      );
+      for (const field of required) {
+        if (!settings.find((setting) => setting.name === field)) {
+          const option = options.options.find(
+            (option) => option.value.name === field,
+          );
+          if (option) {
+            // @ts-ignore
+            settings.push({ name: field, value: option.value.default });
+          }
+        }
+      }
+      if (missing.length > 0) {
+        setEngine({ ...engine, settings });
+      }
+    }
+  }, [options, engine.settings]);
+
   const completeOptions: any =
     options?.options
       .filter((option) => option.type !== "button")
@@ -188,7 +209,8 @@ function EngineSettings({ selected }: { selected: number }) {
     } else {
       newSettings.push({ name, value });
     }
-    if (value !== def) {
+    console.log(name, value, def);
+    if (value !== def || ["MultiPV", "Threads", "Hash"].includes(name)) {
       setEngine({
         ...engine,
         settings: newSettings,
@@ -200,6 +222,8 @@ function EngineSettings({ selected }: { selected: number }) {
       });
     }
   }
+
+  const [deleteModal, toggleDeleteModal] = useToggle();
 
   return (
     <ScrollArea h="100%" offsetScrollbars>
@@ -287,6 +311,7 @@ function EngineSettings({ selected }: { selected: number }) {
                 .with({ type: "spin", value: P.select() }, (v: any) => {
                   return (
                     <NumberInput
+                      key={v.name}
                       label={v.name}
                       min={Number(v.min)}
                       max={Number(v.max)}
@@ -298,6 +323,7 @@ function EngineSettings({ selected }: { selected: number }) {
                 .with({ type: "combo", value: P.select() }, (v: any) => {
                   return (
                     <Select
+                      key={v.name}
                       label={v.name}
                       data={v.var}
                       value={v.value}
@@ -313,17 +339,23 @@ function EngineSettings({ selected }: { selected: number }) {
                     const file = v.value ? new File([v.value], v.value) : null;
                     return (
                       <FileInput
+                        key={v.name}
                         clearable
                         label={v.name}
                         value={file}
-                        onChange={(e) =>
-                          setSetting(v.name, e?.name || null, v.default)
-                        }
+                        onClick={async () => {
+                          const selected = await open({
+                            multiple: false,
+                          });
+                          if (!selected) return;
+                          setSetting(v.name, selected as string, v.default);
+                        }}
                       />
                     );
                   }
                   return (
                     <TextInput
+                      key={v.name}
                       label={v.name}
                       value={v.value || ""}
                       onChange={(e) =>
@@ -341,6 +373,7 @@ function EngineSettings({ selected }: { selected: number }) {
             .map((o: any) => {
               return (
                 <Checkbox
+                  key={o.value.name}
                   label={o.value.name}
                   checked={!!o.value.value}
                   onChange={(e) =>
@@ -355,6 +388,28 @@ function EngineSettings({ selected }: { selected: number }) {
               );
             })}
         </SimpleGrid>
+
+        <Group justify="end">
+          <Button color="red" onClick={() => toggleDeleteModal()}>
+            Remove
+          </Button>
+        </Group>
+        <ConfirmModal
+          title={"Remove Engine"}
+          description={
+            "Are you sure you want to remove this engine from En Croissant?"
+          }
+          opened={deleteModal}
+          onClose={toggleDeleteModal}
+          onConfirm={() => {
+            setEngines(async (prev) =>
+              (await prev).filter((e) => e.name !== engine.name),
+            );
+            setSelected(null);
+            toggleDeleteModal();
+          }}
+          confirmLabel="Remove"
+        />
       </Stack>
     </ScrollArea>
   );

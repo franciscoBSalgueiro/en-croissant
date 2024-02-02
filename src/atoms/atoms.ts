@@ -1,4 +1,4 @@
-import { BestMoves } from "@/bindings";
+import { BestMoves, GoMode } from "@/bindings";
 import { Card, buildFromTree } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
@@ -335,23 +335,11 @@ export const tabEngineSettingsFamily = atomFamily(
     engineName: string;
     defaultSettings?: EngineSettings;
   }) => {
-    return atom<EngineSettings>(
-      defaultSettings
-        ? { ...defaultSettings, enabled: false }
-        : {
-            enabled: false,
-            go: {
-              t: "Depth",
-              c: 24,
-            },
-            options: {
-              threads: 2,
-              multipv: 3,
-              hash: 16,
-              extraOptions: [],
-            },
-          },
-    );
+    return atom<{ enabled: boolean; settings: EngineSettings; go: GoMode }>({
+      enabled: false,
+      settings: defaultSettings || [],
+      go: { t: "Depth", c: 24 },
+    });
   },
   (a, b) => a.tab === b.tab && a.engineName === b.engineName,
 );
@@ -366,7 +354,8 @@ export const allEnabledAtom = loadable(
         const atom = tabEngineSettingsFamily({
           tab: get(activeTabAtom)!,
           engineName: engine.name,
-          defaultSettings: engine.settings ?? undefined,
+          defaultSettings:
+            engine.type === "local" ? engine.settings || [] : undefined,
         });
         return get(atom).enabled;
       });
@@ -383,7 +372,8 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
     const atom = tabEngineSettingsFamily({
       tab: get(activeTabAtom)!,
       engineName: engine.name,
-      defaultSettings: engine.settings ?? undefined,
+      defaultSettings:
+        engine.type === "local" ? engine.settings || [] : undefined,
     });
     set(atom, { ...get(atom), enabled: value });
   }
