@@ -1,5 +1,5 @@
-import { commands } from "@/bindings";
-import { LocalEngine } from "@/utils/engines";
+import { UciOptionConfig, commands } from "@/bindings";
+import { LocalEngine, requiredEngineSettings } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { unwrap } from "@/utils/invoke";
 import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
@@ -7,6 +7,7 @@ import { UseFormReturnType } from "@mantine/form";
 import { open } from "@tauri-apps/api/dialog";
 import { match } from "ts-pattern";
 import FileInput from "../common/FileInput";
+import { useRef } from "react";
 
 export default function EngineForm({
   onSubmit,
@@ -18,6 +19,16 @@ export default function EngineForm({
   submitLabel: string;
 }) {
   const { os } = usePlatform();
+  const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(
+    null,
+  );
+  const settings = config.current?.options
+    .filter((o) => requiredEngineSettings.includes(o.value.name))
+    .map((o) => ({
+      name: o.value.name,
+      // @ts-expect-error
+      value: o.value.default,
+    }));
 
   const filters = match(os)
     .with("windows", () => [{ name: "Executable Files", extensions: ["exe"] }])
@@ -26,7 +37,7 @@ export default function EngineForm({
   return (
     <form
       onSubmit={form.onSubmit(async (values) =>
-        onSubmit({ ...values, loaded: true }),
+        onSubmit({ ...values, loaded: true, settings: settings || [] }),
       )}
     >
       <FileInput
@@ -40,11 +51,11 @@ export default function EngineForm({
             filters,
           });
           if (!selected) return;
-          const config = unwrap(
+          config.current = unwrap(
             await commands.getEngineConfig(selected as string),
           );
           form.setFieldValue("path", selected as string);
-          form.setFieldValue("name", config.name);
+          form.setFieldValue("name", config.current.name);
         }}
       />
 
