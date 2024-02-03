@@ -203,7 +203,6 @@ function AnalysisPanel({
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
                                   >
                                     <Accordion.Item value={engine.name}>
                                       <BestMoves
@@ -212,6 +211,7 @@ function AnalysisPanel({
                                         fen={fen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}
+                                        dragHandleProps={provided.dragHandleProps}
                                       />
                                     </Accordion.Item>
                                   </div>

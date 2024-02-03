@@ -67,6 +67,7 @@ interface BestMovesProps {
   fen: string;
   moves: string[];
   halfMoves: number;
+  dragHandleProps: any;
 }
 
 function BestMovesComponent({
@@ -75,6 +76,7 @@ function BestMovesComponent({
   fen,
   moves,
   halfMoves,
+  dragHandleProps,
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
@@ -345,6 +347,7 @@ function BestMovesComponent({
               style={{
                 cursor: "grab",
               }}
+              {...dragHandleProps}
             >
               <IconGripVertical size="1rem" />
             </ActionIcon>
