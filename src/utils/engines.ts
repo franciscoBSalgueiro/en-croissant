@@ -4,6 +4,8 @@ import useSWR from "swr";
 import { z } from "zod";
 import { invoke, unwrap } from "./invoke";
 
+export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
+
 const goModeSchema: z.ZodSchema<GoMode> = z.union([
   z.object({
     t: z.literal("Depth"),

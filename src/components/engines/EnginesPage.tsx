@@ -1,5 +1,5 @@
 import { enginesAtom } from "@/atoms/atoms";
-import { Engine, LocalEngine } from "@/utils/engines";
+import { Engine, LocalEngine, requiredEngineSettings } from "@/utils/engines";
 import {
   ActionIcon,
   Box,
@@ -145,12 +145,11 @@ function EngineSettings({
 
   useEffect(() => {
     if (options) {
-      const required = ["MultiPV", "Threads", "Hash"];
       const settings = [...(engine.settings || [])];
-      const missing = required.filter(
+      const missing = requiredEngineSettings.filter(
         (field) => !settings.find((setting) => setting.name === field),
       );
-      for (const field of required) {
+      for (const field of requiredEngineSettings) {
         if (!settings.find((setting) => setting.name === field)) {
           const option = options.options.find(
             (option) => option.value.name === field,
@@ -210,7 +209,7 @@ function EngineSettings({
       newSettings.push({ name, value });
     }
     console.log(name, value, def);
-    if (value !== def || ["MultiPV", "Threads", "Hash"].includes(name)) {
+    if (value !== def || requiredEngineSettings.includes(name)) {
       setEngine({
         ...engine,
         settings: newSettings,

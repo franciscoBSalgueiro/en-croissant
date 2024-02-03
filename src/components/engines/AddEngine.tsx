@@ -1,8 +1,13 @@
 import { enginesAtom } from "@/atoms/atoms";
-import { LocalEngine, RemoteEngine, useDefaultEngines } from "@/utils/engines";
+import {
+  LocalEngine,
+  RemoteEngine,
+  requiredEngineSettings,
+  useDefaultEngines,
+} from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { invoke, unwrap } from "@/utils/invoke";
 import {
   Alert,
   Box,
@@ -25,6 +30,7 @@ import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
+import { commands } from "@/bindings";
 
 function AddEngine({
   opened,
@@ -151,7 +157,17 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             onClick={() => {
               setEngines(async (prev) => [
                 ...(await prev),
-                { ...engine, type: engine.type, loaded: true },
+                {
+                  ...engine,
+                  type: engine.type,
+                  loaded: true,
+                  settings: [
+                    {
+                      name: "MultiPV",
+                      value: "1",
+                    },
+                  ],
+                },
               ]);
             }}
           >
@@ -192,6 +208,7 @@ function EngineCard({
         "engines",
         ...engine.path.split("/"),
       );
+      const config = unwrap(await commands.getEngineConfig(enginePath));
       await invoke("set_file_as_executable", { path: enginePath });
       setEngines(async (prev) => [
         ...(await prev),
@@ -200,6 +217,13 @@ function EngineCard({
           type: "local",
           path: enginePath,
           loaded: true,
+          settings: config.options
+            .filter((o) => requiredEngineSettings.includes(o.value.name))
+            .map((o) => ({
+              name: o.value.name,
+              // @ts-expect-error
+              value: o.value.default,
+            })),
         },
       ]);
     },
