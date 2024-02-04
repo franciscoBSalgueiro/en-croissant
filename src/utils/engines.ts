@@ -57,7 +57,6 @@ const remoteEngineSchema = z.object({
   image: z.string().nullish(),
   loaded: z.boolean().nullish(),
   enabled: z.boolean().nullish(),
-  multipv: z.number().nullish(),
   go: goModeSchema.nullish(),
   settings: engineSettingsSchema.nullish(),
 });
