@@ -6,15 +6,22 @@ import TimeInput from "./TimeInput";
 function GoModeInput({
   goMode,
   setGoMode,
+  gameMode,
 }: {
   goMode: GoMode | null;
   setGoMode: (v: GoMode) => void;
+  gameMode?: boolean;
 }) {
+  const timeTypes = ["Time", "Depth", "Nodes"];
+  if (!gameMode) {
+    timeTypes.push("Infinite");
+  }
+
   return (
     <Group>
       <SegmentedControl
-        data={["Time", "Depth", "Nodes", "Infinite"]}
-        value={goMode?.t || "Infinite"}
+        data={timeTypes}
+        value={goMode?.t || (gameMode ? "Time" : "Infinite")}
         onChange={(v) => {
           const newGo = match<string | null, GoMode>(v)
             .with("Depth", () => ({ t: "Depth", c: 20 }))

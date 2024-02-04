@@ -154,6 +154,7 @@ function OpponentForm({
             {opponent.engine && (
               <EngineSettingsForm
                 remote={false}
+                gameMode
                 engineName={opponent.engine.name}
                 settings={{
                   go: opponent.go,

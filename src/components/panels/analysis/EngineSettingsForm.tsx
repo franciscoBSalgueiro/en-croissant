@@ -31,6 +31,7 @@ interface EngineSettingsProps {
   color?: MantineColor;
   minimal?: boolean;
   remote: boolean;
+  gameMode?: boolean;
 }
 
 function EngineSettingsForm({
@@ -40,6 +41,7 @@ function EngineSettingsForm({
   color,
   minimal,
   remote,
+  gameMode,
 }: EngineSettingsProps) {
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
@@ -49,6 +51,7 @@ function EngineSettingsForm({
     <Stack>
       {!remote && (
         <GoModeInput
+          gameMode={gameMode}
           goMode={settings.go}
           setGoMode={(v) => setSettings((prev) => ({ ...prev, go: v }))}
         />
