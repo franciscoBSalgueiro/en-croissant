@@ -12,7 +12,6 @@ import {
   NumberInput,
   Paper,
   ScrollArea,
-  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
@@ -27,13 +26,13 @@ import {
   IconRobot,
 } from "@tabler/icons-react";
 import { exists } from "@tauri-apps/api/fs";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 
-import { GoMode, UciOptionConfig, commands } from "@/bindings";
+import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
 import { unwrap } from "@/utils/invoke";
 import { useToggle } from "@mantine/hooks";
@@ -42,11 +41,11 @@ import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import LocalImage from "../common/LocalImage";
-import TimeInput from "../common/TimeInput";
 import GoModeInput from "../common/GoModeInput";
+import LinesSlider from "../panels/analysis/LinesSlider";
 
 export default function EnginesPage() {
-  const engines = useAtomValue(enginesAtom);
+  const [engines, setEngines] = useAtom(enginesAtom);
   const [opened, setOpened] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
 
@@ -108,18 +107,73 @@ export default function EnginesPage() {
             </Box>
           </SimpleGrid>
         </ScrollArea>
-        {selectedEngine === null || selected === null ? (
-          <Text ta="center">No engine selected</Text>
-        ) : selectedEngine.type === "local" ? (
-          <EngineSettings selected={selected} setSelected={setSelected} />
-        ) : (
-          <Stack>
-            <Text ta="center" fw="bold" fz="lg">
-              {selectedEngine.type === "lichess" ? "Lichess Cloud" : "ChessDB"}
-            </Text>
-            <Text>{selectedEngine.url}</Text>
-          </Stack>
-        )}
+        <Paper withBorder p="md" h="100%">
+          {selectedEngine === null || selected === null ? (
+            <Text ta="center">No engine selected</Text>
+          ) : selectedEngine.type === "local" ? (
+            <EngineSettings selected={selected} setSelected={setSelected} />
+          ) : (
+            <Stack>
+              <Divider variant="dashed" label="General settings" />
+
+              <TextInput
+                w="50%"
+                label="Name"
+                value={selectedEngine.name}
+                onChange={(e) => {
+                  setEngines(async (prev) => {
+                    const copy = [...(await prev)];
+                    copy[selected].name = e.currentTarget.value;
+                    return copy;
+                  });
+                }}
+              />
+
+              <Checkbox
+                label="Enabled"
+                checked={!!selectedEngine.loaded}
+                onChange={(e) =>
+                  setEngines(async (prev) => {
+                    const copy = [...(await prev)];
+                    copy[selected].loaded = e.currentTarget.checked;
+                    return copy;
+                  })
+                }
+              />
+
+              <Divider variant="dashed" label="Advanced Settings" />
+              <Stack w="50%">
+                <Text fw="bold">Number of lines</Text>
+                <LinesSlider
+                  value={
+                    Number(
+                      selectedEngine.settings?.find(
+                        (setting) => setting.name === "MultiPV",
+                      )?.value,
+                    ) || 1
+                  }
+                  setValue={(v) => {
+                    setEngines(async (prev) => {
+                      const copy = [...(await prev)];
+                      const setting = copy[selected].settings?.find(
+                        (setting) => setting.name === "MultiPV",
+                      );
+                      if (setting) {
+                        setting.value = v;
+                      } else {
+                        copy[selected].settings?.push({
+                          name: "MultiPV",
+                          value: v,
+                        });
+                      }
+                      return copy;
+                    });
+                  }}
+                />
+              </Stack>
+            </Stack>
+          )}
+        </Paper>
       </Group>
     </Stack>
   );
@@ -167,7 +221,7 @@ function EngineSettings({
         setEngine({ ...engine, settings });
       }
     }
-  }, [options, engine.settings]);
+  }, [options]);
 
   const completeOptions: any =
     options?.options
