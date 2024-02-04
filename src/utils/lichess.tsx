@@ -243,11 +243,12 @@ export async function getBestMoves(
     100,
     data.pvs?.map((m, i) => {
       const uciMoves = m.moves.split(" ");
+      const posCopy = pos.clone();
 
       const sanMoves = uciMoves.map((m) => {
         const move = parseUci(m)!;
-        const san = makeSan(pos, move);
-        pos.play(move);
+        const san = makeSan(posCopy, move);
+        posCopy.play(move);
         return san;
       });
 
