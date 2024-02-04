@@ -1,37 +1,20 @@
-import { enginesAtom } from "@/atoms/atoms";
 import { GoMode } from "@/bindings";
 import { EngineSettings } from "@/utils/engines";
 import {
-  ActionIcon,
-  Button,
-  Center,
   Group,
   MantineColor,
   Modal,
   NumberInput,
   Select,
-  Stack,
+  SimpleGrid,
   Table,
   Text,
-  TextInput,
-  Tooltip,
 } from "@mantine/core";
-import {
-  IconDownload,
-  IconPlus,
-  IconSettings,
-  IconUpload,
-  IconX,
-} from "@tabler/icons-react";
-import { open, save } from "@tauri-apps/api/dialog";
-import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { useAtom } from "jotai";
-import React, { memo, useState } from "react";
+import React, { memo } from "react";
 import CoresSlider from "./CoresSlider";
-import DepthSlider from "./DepthSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
+import GoModeInput from "@/components/common/GoModeInput";
 
 interface EngineSettingsProps {
   engineName: string;
@@ -61,111 +44,78 @@ function EngineSettingsForm({
   const hash = settings.settings.find((o) => o.name === "Hash");
 
   return (
-    <>
-      <Stack pt="sm">
-        <Stack>
-          {remote ? (
-            <></>
-          ) : settings.go.t === "Infinite" || settings.go.t === "Depth" ? (
-            <Group grow>
-              <Text size="sm" fw="bold">
-                Depth
-              </Text>
-              <DepthSlider
-                value={settings.go}
-                setValue={(v) => setSettings((prev) => ({ ...prev, go: v }))}
-                color={color}
-              />
-            </Group>
-          ) : (
-            <Group grow>
-              <Text size="sm" fw="bold" pt={7}>
-                {settings.go.t === "Time" ? "Time (ms)" : "Nodes"}
-              </Text>
-              <NumberInput
-                min={1}
-                value={settings.go.c}
-                onChange={(v) =>
-                  setSettings((prev) => {
-                    return {
-                      ...prev,
-                      go: {
-                        ...prev.go,
-                        c: (v || 1) as number,
-                      },
-                    };
-                  })
-                }
-              />
-            </Group>
-          )}
+    <SimpleGrid cols={1}>
+      {!remote && (
+        <GoModeInput
+          goMode={settings.go}
+          setGoMode={(v) => setSettings((prev) => ({ ...prev, go: v }))}
+        />
+      )}
 
-          {!minimal && multipv && (
+      {!minimal && multipv && (
+        <Group grow>
+          <Text size="sm" fw="bold">
+            Number of Lines
+          </Text>
+          <LinesSlider
+            value={Number(multipv.value || 1)}
+            setValue={(v) =>
+              setSettings((prev) => {
+                return {
+                  ...prev,
+                  settings: prev.settings.map((o) =>
+                    o.name === "MultiPV" ? { ...o, value: v || 1 } : o,
+                  ),
+                };
+              })
+            }
+            color={color}
+          />
+        </Group>
+      )}
+
+      {!remote && threads && (
+        <>
+          <Group grow>
+            <Text size="sm" fw="bold">
+              Number of cores
+            </Text>
+            <CoresSlider
+              value={Number(threads.value || 1)}
+              setValue={(v) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  settings: prev.settings.map((o) =>
+                    o.name === "Threads" ? { ...o, value: v || 1 } : o,
+                  ),
+                }))
+              }
+              color={color}
+            />
+          </Group>
+
+          {hash && (
             <Group grow>
               <Text size="sm" fw="bold">
-                Number of Lines
+                Size of Hash
               </Text>
-              <LinesSlider
-                value={Number(multipv.value || 1)}
+              <HashSlider
+                value={Number(hash.value || 1)}
                 setValue={(v) =>
-                  setSettings((prev) => {
-                    return {
-                      ...prev,
-                      settings: prev.settings.map((o) =>
-                        o.name === "MultiPV" ? { ...o, value: v || 1 } : o,
-                      ),
-                    };
-                  })
+                  setSettings((prev) => ({
+                    ...prev,
+                    settings: prev.settings.map((o) =>
+                      o.name === "Hash" ? { ...o, value: v || 1 } : o,
+                    ),
+                  }))
                 }
                 color={color}
               />
             </Group>
           )}
-
-          {!remote && threads && (
-            <>
-              <Group grow>
-                <Text size="sm" fw="bold">
-                  Number of cores
-                </Text>
-                <CoresSlider
-                  value={Number(threads.value || 1)}
-                  setValue={(v) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      settings: prev.settings.map((o) =>
-                        o.name === "Threads" ? { ...o, value: v || 1 } : o,
-                      ),
-                    }))
-                  }
-                  color={color}
-                />
-              </Group>
-
-              {hash && (
-                <Group grow>
-                  <Text size="sm" fw="bold">
-                    Size of Hash
-                  </Text>
-                  <HashSlider
-                    value={Number(hash.value || 1)}
-                    setValue={(v) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        settings: prev.settings.map((o) =>
-                          o.name === "Hash" ? { ...o, value: v || 1 } : o,
-                        ),
-                      }))
-                    }
-                    color={color}
-                  />
-                </Group>
-              )}
-            </>
-          )}
-        </Stack>
-      </Stack>
-    </>
+        </>
+      )}
+    </SimpleGrid>
   );
 }
 
