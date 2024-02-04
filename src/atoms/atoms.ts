@@ -330,15 +330,17 @@ export const tabEngineSettingsFamily = atomFamily(
     tab,
     engineName,
     defaultSettings,
+    defaultGo,
   }: {
     tab: string;
     engineName: string;
     defaultSettings?: EngineSettings;
+    defaultGo?: GoMode;
   }) => {
     return atom<{ enabled: boolean; settings: EngineSettings; go: GoMode }>({
       enabled: false,
       settings: defaultSettings || [],
-      go: { t: "Depth", c: 24 },
+      go: defaultGo || { t: "Infinite" },
     });
   },
   (a, b) => a.tab === b.tab && a.engineName === b.engineName,
@@ -356,6 +358,7 @@ export const allEnabledAtom = loadable(
           engineName: engine.name,
           defaultSettings:
             engine.type === "local" ? engine.settings || [] : undefined,
+          defaultGo: engine.go ?? undefined,
         });
         return get(atom).enabled;
       });
@@ -374,6 +377,7 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
       engineName: engine.name,
       defaultSettings:
         engine.type === "local" ? engine.settings || [] : undefined,
+      defaultGo: engine.go ?? undefined,
     });
     set(atom, { ...get(atom), enabled: value });
   }

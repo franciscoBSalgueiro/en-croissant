@@ -1,17 +1,19 @@
+import { enginesAtom } from "@/atoms/atoms";
 import { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
 import { EngineSettings } from "@/utils/engines";
 import {
+  ActionIcon,
   Group,
   MantineColor,
-  Modal,
-  NumberInput,
-  Select,
-  SimpleGrid,
-  Table,
+  Stack,
   Text,
+  Tooltip,
 } from "@mantine/core";
+import { IconReload, IconSettings } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import React, { memo } from "react";
+import { useNavigate } from "react-router-dom";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
@@ -44,7 +46,7 @@ function EngineSettingsForm({
   const hash = settings.settings.find((o) => o.name === "Hash");
 
   return (
-    <SimpleGrid cols={1}>
+    <Stack>
       {!remote && (
         <GoModeInput
           goMode={settings.go}
@@ -115,20 +117,20 @@ function EngineSettingsForm({
           )}
         </>
       )}
-    </SimpleGrid>
+      <Group>
+        <ReloadSettings engine={engineName} setSettings={setSettings} />
+
+        <AdvancedSettings engineName={engineName} />
+      </Group>
+    </Stack>
   );
 }
 
-function AdvancedOptions({
-  opened,
-  setOpened,
-  settings,
+function ReloadSettings({
+  engine,
   setSettings,
-  minimal,
 }: {
-  opened: boolean;
-  setOpened: React.Dispatch<React.SetStateAction<boolean>>;
-  settings: { enabled: boolean; go: GoMode; settings: EngineSettings };
+  engine: string;
   setSettings: (
     fn: (prev: { enabled: boolean; go: GoMode; settings: EngineSettings }) => {
       enabled: boolean;
@@ -136,136 +138,44 @@ function AdvancedOptions({
       settings: EngineSettings;
     },
   ) => void;
-  minimal?: boolean;
 }) {
-  const goTypes = ["Depth", { label: "Time (ms)", value: "Time" }, "Nodes"];
-  if (!minimal) goTypes.push("Infinite");
+  const engines = useAtomValue(enginesAtom);
+  const engineDefault = engines.find((o) => o.name === engine)!;
+  return (
+    <Tooltip label="Reset to engine default">
+      <ActionIcon
+        size="xs"
+        onClick={() => {
+          setSettings((prev) => ({
+            ...prev,
+            go: engineDefault.go || prev.go,
+            settings: engineDefault.settings || prev.settings,
+          }));
+        }}
+      >
+        <IconReload />
+      </ActionIcon>
+    </Tooltip>
+  );
+}
 
-  const multipv = settings.settings.find((o) => o.name === "MultiPV");
-  const threads = settings.settings.find((o) => o.name === "Threads");
-  const hash = settings.settings.find((o) => o.name === "Hash");
+function AdvancedSettings({ engineName }: { engineName: string }) {
+  const navigate = useNavigate();
+  const engines = useAtomValue(enginesAtom);
 
   return (
-    <Modal
-      title="Engine Options"
-      opened={opened}
-      onClose={() => setOpened(false)}
-    >
-      <Table>
-        <Table.Tbody>
-          <Table.Tr>
-            <Table.Td>
-              <Select
-                allowDeselect={false}
-                variant="unstyled"
-                comboboxProps={{
-                  position: "bottom",
-                  middlewares: { flip: false, shift: false },
-                }}
-                data={goTypes}
-                value={settings.go.t}
-                onChange={(v) =>
-                  setSettings((prev) => {
-                    const newGo = prev.go;
-                    newGo.t = v as "Depth" | "Time" | "Nodes" | "Infinite";
-                    if (v === "Infinite") {
-                      /// @ts-expect-error idk how to please ts here
-                      newGo.c = undefined;
-                    }
-                    return {
-                      ...prev,
-                      go: newGo,
-                    };
-                  })
-                }
-              />
-            </Table.Td>
-            <Table.Td>
-              {settings.go.t !== "Infinite" && (
-                <NumberInput
-                  min={1}
-                  value={settings.go.c}
-                  onChange={(v) =>
-                    setSettings((prev) => {
-                      return {
-                        ...prev,
-                        go: {
-                          ...prev.go,
-                          c: (v || 1) as number,
-                        },
-                      };
-                    })
-                  }
-                />
-              )}
-            </Table.Td>
-          </Table.Tr>
-          {threads && (
-            <Table.Tr>
-              <Table.Td>Threads</Table.Td>
-              <Table.Td>
-                <NumberInput
-                  min={1}
-                  value={Number(threads.value || 1)}
-                  onChange={(v) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      settings: prev.settings.map((o) =>
-                        o.name === "Threads"
-                          ? { ...o, value: (v || 1).toString() }
-                          : o,
-                      ),
-                    }))
-                  }
-                />
-              </Table.Td>
-            </Table.Tr>
-          )}
-          {!minimal && multipv && (
-            <Table.Tr>
-              <Table.Td>MultiPV</Table.Td>
-              <Table.Td>
-                <NumberInput
-                  min={1}
-                  value={Number(multipv.value || 1)}
-                  onChange={(v) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      settings: prev.settings.map((o) =>
-                        o.name === "MultiPV"
-                          ? { ...o, value: (v || 1).toString() }
-                          : o,
-                      ),
-                    }))
-                  }
-                />
-              </Table.Td>
-            </Table.Tr>
-          )}
-          {hash && (
-            <Table.Tr>
-              <Table.Td>Hash Size</Table.Td>
-              <Table.Td>
-                <NumberInput
-                  min={1}
-                  value={Number(hash.value || 1)}
-                  onChange={(v) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      settings: prev.settings.map((o) =>
-                        o.name === "Hash"
-                          ? { ...o, value: (v || 1).toString() }
-                          : o,
-                      ),
-                    }))
-                  }
-                />
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
-    </Modal>
+    <Tooltip label="Advanced settings">
+      <ActionIcon
+        size="xs"
+        onClick={() =>
+          navigate(
+            `/engines?load=${engines.findIndex((o) => o.name === engineName)}`,
+          )
+        }
+      >
+        <IconSettings />
+      </ActionIcon>
+    </Tooltip>
   );
 }
 

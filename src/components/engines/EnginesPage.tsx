@@ -37,6 +37,7 @@ import * as classes from "@/components/common/GenericCard.css";
 import { unwrap } from "@/utils/invoke";
 import { useToggle } from "@mantine/hooks";
 import { open } from "@tauri-apps/api/dialog";
+import { useSearchParams } from "react-router-dom";
 import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
@@ -47,7 +48,16 @@ import LinesSlider from "../panels/analysis/LinesSlider";
 export default function EnginesPage() {
   const [engines, setEngines] = useAtom(enginesAtom);
   const [opened, setOpened] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [params, setParams] = useSearchParams();
+  const selected = params.get("load") ? Number(params.get("load")) : null;
+  const setSelected = (v: number | null) => {
+    if (v === null) {
+      params.delete("load");
+    } else {
+      params.set("load", v.toString());
+    }
+    setParams(params);
+  };
 
   const selectedEngine = selected !== null ? engines[selected] : null;
 
