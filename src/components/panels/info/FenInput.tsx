@@ -1,7 +1,7 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { swapMove } from "@/utils/chessops";
-import { Checkbox, Group, Select, Stack, Text } from "@mantine/core";
-import { makeFen, parseFen } from "chessops/fen";
+import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
+import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { squareFromCoords } from "chessops/util";
 import { memo, useContext } from "react";
 import FenSearch from "./FenSearch";
@@ -55,23 +55,51 @@ function FenInput({ currentFen }: { currentFen: string }) {
         <Stack style={{ flexGrow: 1 }}>
           <Text fw="bold">FEN</Text>
           <FenSearch currentFen={currentFen} />
-          <Select
-            allowDeselect={false}
-            data={[
-              { label: "White to move", value: "white" },
-              { label: "Black to move", value: "black" },
-            ]}
-            value={setup?.turn || "white"}
-            onChange={(value) => {
-              if (setup) {
-                const newFen = swapMove(currentFen, value as "white" | "black");
+          <Group>
+            <Button
+              variant="default"
+              onClick={() => {
                 dispatch({
                   type: "SET_FEN",
-                  payload: newFen,
+                  payload: INITIAL_FEN,
                 });
-              }
-            }}
-          />
+              }}
+            >
+              Start
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                dispatch({
+                  type: "SET_FEN",
+                  payload: EMPTY_FEN,
+                });
+              }}
+            >
+              Empty
+            </Button>
+            <Select
+              flex={1}
+              allowDeselect={false}
+              data={[
+                { label: "White to move", value: "white" },
+                { label: "Black to move", value: "black" },
+              ]}
+              value={setup?.turn || "white"}
+              onChange={(value) => {
+                if (setup) {
+                  const newFen = swapMove(
+                    currentFen,
+                    value as "white" | "black",
+                  );
+                  dispatch({
+                    type: "SET_FEN",
+                    payload: newFen,
+                  });
+                }
+              }}
+            />
+          </Group>
         </Stack>
         <Group>
           <Stack>
