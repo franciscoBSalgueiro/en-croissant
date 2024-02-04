@@ -1,5 +1,10 @@
 import { enginesAtom } from "@/atoms/atoms";
-import { Engine, LocalEngine, requiredEngineSettings } from "@/utils/engines";
+import {
+  Engine,
+  LocalEngine,
+  engineSchema,
+  requiredEngineSettings,
+} from "@/utils/engines";
 import {
   ActionIcon,
   Box,
@@ -9,11 +14,14 @@ import {
   Divider,
   FileInput,
   Group,
+  JsonInput,
+  Modal,
   NumberInput,
   Paper,
   ScrollArea,
   Select,
   SimpleGrid,
+  Space,
   Stack,
   Text,
   TextInput,
@@ -291,6 +299,7 @@ function EngineSettings({
   }
 
   const [deleteModal, toggleDeleteModal] = useToggle();
+  const [jsonModal, toggleJSONModal] = useToggle();
 
   return (
     <ScrollArea h="100%" offsetScrollbars>
@@ -468,7 +477,11 @@ function EngineSettings({
         </SimpleGrid>
 
         <Group justify="end">
+          <Button variant="default" onClick={() => toggleJSONModal(true)}>
+            Edit JSON
+          </Button>
           <Button
+            variant="default"
             onClick={() =>
               setEngine({
                 ...engine,
@@ -507,7 +520,63 @@ function EngineSettings({
           confirmLabel="Remove"
         />
       </Stack>
+      <JSONModal
+        key={engine.name}
+        opened={jsonModal}
+        toggleOpened={toggleJSONModal}
+        engine={engine}
+        setEngine={(v) =>
+          setEngines(async (prev) => {
+            const copy = [...(await prev)];
+            copy[selected] = v;
+            return copy;
+          })
+        }
+      />
     </ScrollArea>
+  );
+}
+
+function JSONModal({
+  opened,
+  toggleOpened,
+  engine,
+  setEngine,
+}: {
+  opened: boolean;
+  toggleOpened: () => void;
+  engine: Engine;
+  setEngine: (v: Engine) => void;
+}) {
+  const [value, setValue] = useState(JSON.stringify(engine, null, 2));
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Modal opened={opened} onClose={toggleOpened} title="Edit JSON" size="xl">
+      <JsonInput
+        autosize
+        value={value}
+        onChange={(e) => {
+          setValue(e);
+          setError(null);
+        }}
+        error={error}
+      />
+      <Space h="md" />
+      <Button
+        onClick={() => {
+          const parseRes = engineSchema.safeParse(JSON.parse(value));
+          if (parseRes.success) {
+            setEngine(parseRes.data);
+            setError(null);
+            toggleOpened();
+          } else {
+            setError("Invalid Configuration"); // TODO: show better error message
+          }
+        }}
+      >
+        Save
+      </Button>
+    </Modal>
   );
 }
 
