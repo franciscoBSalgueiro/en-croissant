@@ -12,6 +12,7 @@ import {
   NumberInput,
   Paper,
   ScrollArea,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
@@ -32,7 +33,7 @@ import useSWRImmutable from "swr/immutable";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
 
-import { UciOptionConfig, commands } from "@/bindings";
+import { GoMode, UciOptionConfig, commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
 import { unwrap } from "@/utils/invoke";
 import { useToggle } from "@mantine/hooks";
@@ -41,6 +42,8 @@ import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import LocalImage from "../common/LocalImage";
+import TimeInput from "../common/TimeInput";
+import GoModeInput from "../common/GoModeInput";
 
 export default function EnginesPage() {
   const engines = useAtomValue(enginesAtom);
@@ -301,6 +304,12 @@ function EngineSettings({
             )}
           </Center>
         </Group>
+        <Divider variant="dashed" label="Search settings" />
+        <GoModeInput
+          goMode={engine.go || null}
+          setGoMode={(v) => setEngine({ ...engine, go: v })}
+        />
+
         <Divider variant="dashed" label="Advanced settings" />
         <SimpleGrid cols={2}>
           {completeOptions

@@ -73,6 +73,7 @@ function EngineSelection() {
         <Stack gap="xs" align="center" w="100%">
           {engines.map((engine) => (
             <EngineBox
+              key={engine.name}
               engine={engine}
               toggleEnabled={() => {
                 setEngines(async (prev) =>
