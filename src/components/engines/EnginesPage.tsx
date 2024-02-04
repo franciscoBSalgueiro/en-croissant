@@ -463,6 +463,24 @@ function EngineSettings({
         </SimpleGrid>
 
         <Group justify="end">
+          <Button
+            onClick={() =>
+              setEngine({
+                ...engine,
+                settings: options?.options
+                  .filter((option) =>
+                    requiredEngineSettings.includes(option.value.name),
+                  )
+                  .map((option) => ({
+                    name: option.value.name,
+                    // @ts-ignore
+                    value: option.value.default,
+                  })),
+              })
+            }
+          >
+            Reset to default
+          </Button>
           <Button color="red" onClick={() => toggleDeleteModal()}>
             Remove
           </Button>
