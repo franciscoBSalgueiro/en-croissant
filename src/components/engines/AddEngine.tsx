@@ -1,4 +1,5 @@
 import { enginesAtom } from "@/atoms/atoms";
+import { commands } from "@/bindings";
 import {
   LocalEngine,
   RemoteEngine,
@@ -30,7 +31,6 @@ import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
-import { commands } from "@/bindings";
 
 function AddEngine({
   opened,

@@ -40,8 +40,8 @@ import { open } from "@tauri-apps/api/dialog";
 import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
-import LocalImage from "../common/LocalImage";
 import GoModeInput from "../common/GoModeInput";
+import LocalImage from "../common/LocalImage";
 import LinesSlider from "../panels/analysis/LinesSlider";
 
 export default function EnginesPage() {

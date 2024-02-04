@@ -211,7 +211,9 @@ function AnalysisPanel({
                                         fen={fen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}
-                                        dragHandleProps={provided.dragHandleProps}
+                                        dragHandleProps={
+                                          provided.dragHandleProps
+                                        }
                                       />
                                     </Accordion.Item>
                                   </div>

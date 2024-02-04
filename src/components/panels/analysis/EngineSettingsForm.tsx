@@ -1,4 +1,5 @@
 import { GoMode } from "@/bindings";
+import GoModeInput from "@/components/common/GoModeInput";
 import { EngineSettings } from "@/utils/engines";
 import {
   Group,
@@ -14,7 +15,6 @@ import React, { memo } from "react";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
-import GoModeInput from "@/components/common/GoModeInput";
 
 interface EngineSettingsProps {
   engineName: string;
