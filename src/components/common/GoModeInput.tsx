@@ -11,9 +11,8 @@ function GoModeInput({
   setGoMode: (v: GoMode) => void;
 }) {
   return (
-    <Group grow>
+    <Group>
       <SegmentedControl
-        maw="50%"
         data={["Time", "Depth", "Nodes", "Infinite"]}
         value={goMode?.t || "Infinite"}
         onChange={(v) => {

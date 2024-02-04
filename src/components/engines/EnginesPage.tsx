@@ -59,7 +59,8 @@ export default function EnginesPage() {
     setParams(params);
   };
 
-  const selectedEngine = selected !== null ? engines[selected] : null;
+  const selectedEngine =
+    typeof selected === "number" ? engines[selected] || null : null;
 
   return (
     <Stack h="100%" px="lg" pb="lg">
@@ -488,15 +489,16 @@ function EngineSettings({
 }
 
 function EngineName({ engine }: { engine: Engine }) {
-  const { data: fileExists } = useSWRImmutable(
+  const { data: fileExists, isLoading } = useSWRImmutable(
     ["file-exists", engine.type === "local" ? engine.path : null],
     async ([, path]) => {
+      if (path === null) return false;
       if (engine.type !== "local") return true;
-      return await exists(path!);
+      return await exists(path);
     },
   );
 
-  const hasError = engine.type === "local" && !fileExists;
+  const hasError = engine.type === "local" && !isLoading && !fileExists;
 
   return (
     <Group wrap="nowrap">
