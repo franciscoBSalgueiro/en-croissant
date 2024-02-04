@@ -423,6 +423,11 @@ function EngineSettings({
                           if (!selected) return;
                           setSetting(v.name, selected as string, v.default);
                         }}
+                        onChange={(e) => {
+                          if (e === null) {
+                            setSetting(v.name, null, v.default);
+                          }
+                        }}
                       />
                     );
                   }
