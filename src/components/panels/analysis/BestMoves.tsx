@@ -87,6 +87,7 @@ function BestMovesComponent({
     tabEngineSettingsFamily({
       engineName: engine.name,
       defaultSettings: engine.settings ?? undefined,
+      defaultGo: engine.go ?? undefined,
       tab: activeTab!,
     }),
   );

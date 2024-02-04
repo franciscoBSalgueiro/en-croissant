@@ -15,7 +15,7 @@ function GoModeInput({
       <SegmentedControl
         maw="50%"
         data={["Time", "Depth", "Nodes", "Infinite"]}
-        value={goMode?.t || "Time"}
+        value={goMode?.t || "Infinite"}
         onChange={(v) => {
           const newGo = match<string | null, GoMode>(v)
             .with("Depth", () => ({ t: "Depth", c: 20 }))
@@ -26,7 +26,7 @@ function GoModeInput({
           setGoMode(newGo);
         }}
       />
-      {match(goMode || { t: "Time", c: 8000 })
+      {match(goMode || { t: "Infinite" })
         .with({ t: "Depth" }, (v) => (
           <NumberInput
             min={1}
