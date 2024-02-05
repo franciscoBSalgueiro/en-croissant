@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { useContext } from "react";
 import useSWRImmutable from "swr/immutable";
-import { match } from "ts-pattern";
+import { P, match } from "ts-pattern";
 import * as classes from "./TablebaseInfo.css";
 
 function TablebaseInfo({
@@ -116,12 +116,8 @@ function OutcomeBadge({
   const normalizedCategory = match(category)
     .with("win", () => (turn === "white" ? "White wins" : "Black wins"))
     .with("loss", () => (turn === "white" ? "Black wins" : "White wins"))
-    .with("draw", () => "draw")
-    .with("blessed-loss", () => "draw")
-    .with("cursed-win", () => "draw")
-    .with("maybe-loss", () => "unknown")
-    .with("maybe-win", () => "unknown")
-    .with("unknown", () => "unknown")
+    .with(P.union("draw", "blessed-loss", "cursed-win"), () => "Draw")
+    .with(P.union("unknown", "maybe-win", "maybe-loss"), () => "Unknown")
     .exhaustive();
 
   const color = match(category)
