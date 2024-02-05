@@ -23,7 +23,7 @@ use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage, UciOptionConfig};
 use crate::{
     db::{is_position_in_db, PositionQuery},
     error::Error,
-    fs::ProgressPayload,
+    fs::DownloadProgress,
     AppState,
 };
 
@@ -591,7 +591,7 @@ pub async fn analyze_game(
     for (i, (_, moves, _)) in fens.iter().enumerate() {
         app.emit_all(
             "report_progress",
-            ProgressPayload {
+            DownloadProgress {
                 progress: (i as f64 / fens.len() as f64) * 100.0,
                 id: 0,
                 finished: false,
@@ -669,7 +669,7 @@ pub async fn analyze_game(
     }
     app.emit_all(
         "report_progress",
-        ProgressPayload {
+        DownloadProgress {
             progress: 1.0,
             id: 0,
             finished: true,

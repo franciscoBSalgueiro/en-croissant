@@ -106,6 +106,7 @@ async function getGameArchives(player: string) {
 export async function downloadChessCom(
   player: string,
   timestamp: number | null,
+  setProgress: (progress: number) => void,
 ) {
   const timestampDate = new Date(timestamp ?? 0);
   const approximateDate = new Date(
@@ -123,12 +124,13 @@ export async function downloadChessCom(
   writeTextFile(file, "", {
     append: false,
   });
-  for (const archive of archives.archives) {
+  const filteredArchives = archives.archives.filter((archive) => {
     const [year, month] = archive.split("/").slice(-2);
     const archiveDate = new Date(parseInt(year), parseInt(month) - 1);
-    if (archiveDate < approximateDate) {
-      continue;
-    }
+    return archiveDate >= approximateDate;
+  });
+
+  for (const archive of filteredArchives) {
     info(`Fetching games for ${player} from ${archive}`);
     const response = await fetch(archive, {
       headers,
@@ -152,6 +154,9 @@ export async function downloadChessCom(
     writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
       append: true,
     });
+    setProgress(
+      (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
+    );
   }
 }
 

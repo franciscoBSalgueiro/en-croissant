@@ -105,10 +105,12 @@ try {
 
 export const events = __makeEvents__<{
 bestMovesPayload: BestMovesPayload,
-progress: Progress
+databaseProgress: DatabaseProgress,
+downloadProgress: DownloadProgress
 }>({
 bestMovesPayload: "plugin:tauri-specta:best-moves-payload",
-progress: "plugin:tauri-specta:progress"
+databaseProgress: "plugin:tauri-specta:database-progress",
+downloadProgress: "plugin:tauri-specta:download-progress"
 })
 
 /** user-defined types **/
@@ -116,11 +118,12 @@ progress: "plugin:tauri-specta:progress"
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
+export type DatabaseProgress = { id: string; progress: number }
+export type DownloadProgress = { progress: number; id: bigint; finished: boolean }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
-export type Progress = { id: string; progress: number }
 export type Results = { won: number; lost: number; draw: number }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
 /**

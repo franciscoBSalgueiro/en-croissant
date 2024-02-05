@@ -11,7 +11,7 @@ import { unwrap } from "@/utils/invoke";
 import { Session } from "@/utils/session";
 import { Progress, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "./PersonalCard";
 
@@ -139,7 +139,7 @@ function Databases() {
           if (players.data.length > 0) {
             player = players.data[0];
           } else {
-            throw new Error("Player not found");
+            throw "Player not found in database";
           }
           const info = unwrap(
             await commands.getPlayersGameInfo(db.file, player.id),
@@ -152,9 +152,11 @@ function Databases() {
   );
 
   const [progress, setProgress] = useState(0);
-  events.progress.listen((e) => {
-    setProgress(e.payload.progress);
-  });
+  useEffect(() => {
+    events.databaseProgress.listen((e) => {
+      setProgress(e.payload.progress);
+    });
+  }, []);
 
   return (
     <>

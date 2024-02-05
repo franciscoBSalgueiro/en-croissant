@@ -1076,7 +1076,7 @@ pub struct MonthData {
 }
 
 #[derive(Serialize, Debug, Clone, Type, tauri_specta::Event)]
-pub struct Progress {
+pub struct DatabaseProgress {
     pub id: String,
     pub progress: f64,
 }
@@ -1230,7 +1230,7 @@ pub async fn get_players_game_info(
 
             let p = progress.fetch_add(1, Ordering::Relaxed);
             if p % 1000 == 0 || p == info.len() - 1 {
-                let _ = Progress {
+                let _ = DatabaseProgress {
                     id: id.to_string(),
                     progress: (p as f64 / info.len() as f64) * 100_f64,
                 }

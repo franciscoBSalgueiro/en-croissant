@@ -20,7 +20,7 @@ use std::{fs::create_dir_all, path::Path};
 
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
-use db::{NormalizedGame, PositionQuery, PositionStats, Progress};
+use db::{DatabaseProgress, NormalizedGame, PositionQuery, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
@@ -40,7 +40,7 @@ use crate::db::{
     get_players_game_info, get_tournaments, search_position,
 };
 use crate::fide::{download_fide_db, find_fide_player};
-use crate::fs::{append_to_file, set_file_as_executable};
+use crate::fs::{append_to_file, set_file_as_executable, DownloadProgress};
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -126,7 +126,11 @@ fn main() {
                 get_players_game_info,
                 get_engine_config,
             ))
-            .events(tauri_specta::collect_events!(BestMovesPayload, Progress));
+            .events(tauri_specta::collect_events!(
+                BestMovesPayload,
+                DatabaseProgress,
+                DownloadProgress
+            ));
 
         #[cfg(debug_assertions)]
         let specta_builder = specta_builder.path("../src/bindings.ts");

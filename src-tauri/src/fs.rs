@@ -6,6 +6,9 @@ use std::{
 
 use log::info;
 use reqwest::{header::HeaderMap, Client};
+use specta::Type;
+use tauri_specta::Event;
+
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
@@ -14,8 +17,8 @@ use tauri::Manager;
 
 use crate::error::Error;
 
-#[derive(Clone, serde::Serialize)]
-pub struct ProgressPayload {
+#[derive(Clone, Type, serde::Serialize, Event)]
+pub struct DownloadProgress {
     pub progress: f64,
     pub id: u64,
     pub finished: bool,
@@ -29,6 +32,7 @@ pub async fn download_file(
     app: tauri::AppHandle,
     token: Option<String>,
     finalize: Option<bool>,
+    total_size: Option<u32>,
 ) -> Result<(), Error> {
     let finalize = finalize.unwrap_or(true);
     info!("Downloading file from {}", url);
@@ -42,7 +46,11 @@ pub async fn download_file(
         req = req.headers(header_map);
     }
     let res = req.send().await?;
-    let total_size = res.content_length();
+    let total_size = if let Some(total_size) = total_size {
+        Some(total_size as u64)
+    } else {
+        res.content_length()
+    };
 
     let mut file: Vec<u8> = Vec::new();
     let mut downloaded: u64 = 0;
@@ -53,16 +61,14 @@ pub async fn download_file(
         file.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
         if let Some(total_size) = total_size {
-            let progress = (downloaded as f64 / total_size as f64) * 100.0;
+            let progress = ((downloaded as f64 / total_size as f64) * 100.0).min(100.0);
             // println!("Downloaded {}%", progress);
-            app.emit_all(
-                "download_progress",
-                ProgressPayload {
-                    progress,
-                    id,
-                    finished: false,
-                },
-            )?;
+            DownloadProgress {
+                progress,
+                id,
+                finished: false,
+            }
+            .emit_all(&app)?;
         }
     }
 
@@ -82,7 +88,7 @@ pub async fn download_file(
     if finalize {
         app.emit_all(
             "download_progress",
-            ProgressPayload {
+            DownloadProgress {
                 progress: 100.0,
                 id,
                 finished: true,

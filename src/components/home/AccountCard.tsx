@@ -1,3 +1,4 @@
+import { events } from "@/bindings";
 import { downloadChessCom } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
@@ -8,6 +9,7 @@ import {
   Card,
   Group,
   Loader,
+  Progress,
   Stack,
   Text,
   Tooltip,
@@ -89,6 +91,7 @@ export function AccountCard({
     );
   });
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [lastGameDate, setLastGameDate] = useState<number | null>(null);
 
   async function convert(filepath: string, timestamp: number | null) {
@@ -126,9 +129,9 @@ export function AccountCard({
   }, [database]);
 
   return (
-    <Card withBorder p="lg" radius="md" className={classes.card}>
-      <Group grow>
-        <div>
+    <Card withBorder p="lg" pos="relative" radius="md" className={classes.card}>
+      <Group grow align="start">
+        <Stack>
           <Group>
             {type === "lichess" ? (
               <LichessLogo />
@@ -144,67 +147,87 @@ export function AccountCard({
               </Text>
             </div>
           </Group>
-          <Group mt="1.5rem">
+        </Stack>
+        <Stack gap="xs">
+          <Group justify="right">
+            <Tooltip label="Update stats">
+              <ActionIcon onClick={() => reload()}>
+                <IconRefresh size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Download games">
+              <ActionIcon
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  if (type === "lichess") {
+                    await downloadLichess(
+                      title,
+                      lastGameDate,
+                      total - downloadedGames,
+                      setProgress,
+                      token,
+                    );
+                  } else {
+                    await downloadChessCom(title, lastGameDate, setProgress);
+                  }
+                  const p = await resolve(
+                    await appDataDir(),
+                    "db",
+                    `${title}_${type}.pgn`,
+                  );
+                  convert(p, lastGameDate).catch(() => {
+                    setLoading(false);
+                  });
+                }}
+              >
+                {loading ? (
+                  <Loader size="1rem" />
+                ) : (
+                  <IconDownload size="1rem" />
+                )}
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Remove account">
+              <ActionIcon onClick={() => logout()}>
+                <IconX size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+
+          <Group ta="center" justify="right">
             <div>
-              <Text fw="bold" fz="xl">
-                {total}
-              </Text>
+              <Text fw="bold">{total}</Text>
               <Text size="xs" c="dimmed">
-                Total Games
+                Games
               </Text>
             </div>
 
             <div>
               <Tooltip label={`${downloadedGames} games`}>
-                <Text fw="bold" fz="xl">
-                  {percentage}%
-                </Text>
+                <Text fw="bold">{percentage}%</Text>
               </Tooltip>
               <Text size="xs" c="dimmed">
-                Downloaded Games
+                Downloaded
               </Text>
             </div>
           </Group>
-        </div>
-        <Stack align="end" justify="flex-start">
-          <Tooltip label="Update stats">
-            <ActionIcon onClick={() => reload()}>
-              <IconRefresh size="1rem" />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Download games">
-            <ActionIcon
-              disabled={loading}
-              onClick={async () => {
-                setLoading(true);
-                if (type === "lichess") {
-                  await downloadLichess(title, lastGameDate, token);
-                } else {
-                  await downloadChessCom(title, lastGameDate);
-                }
-                const p = await resolve(
-                  await appDataDir(),
-                  "db",
-                  `${title}_${type}.pgn`,
-                );
-                convert(p, lastGameDate).catch(() => {
-                  setLoading(false);
-                });
-              }}
-            >
-              {loading ? <Loader size="1rem" /> : <IconDownload size="1rem" />}
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Remove account">
-            <ActionIcon onClick={() => logout()}>
-              <IconX size="1rem" />
-            </ActionIcon>
-          </Tooltip>
         </Stack>
       </Group>
       <Group grow mt="lg">
         {items}
       </Group>
+      {loading && (
+        <Progress
+          pos="absolute"
+          bottom={0}
+          left={0}
+          w="100%"
+          value={progress || 100}
+          animated
+          size="xs"
+        />
+      )}
     </Card>
   );
 }

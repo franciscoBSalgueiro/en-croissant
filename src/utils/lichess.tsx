@@ -1,4 +1,4 @@
-import { BestMoves, EngineOptions, GoMode } from "@/bindings";
+import { events, BestMoves, EngineOptions, GoMode } from "@/bindings";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { Response, fetch } from "@tauri-apps/api/http";
@@ -330,6 +330,8 @@ export async function getPlayerGames(
 export async function downloadLichess(
   player: string,
   timestamp: number | null,
+  games: number,
+  setProgress: (progress: number) => void,
   token?: string,
 ) {
   let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true`;
@@ -337,11 +339,20 @@ export async function downloadLichess(
     url += `&since=${timestamp}`;
   }
   const path = await resolve(await appDataDir(), "db", `${player}_lichess.pgn`);
+
+  const id = Math.floor(Math.random() * 1000000);
+  await events.downloadProgress.listen((e) => {
+    if (Number(e.payload.id) === id) {
+      setProgress(e.payload.progress);
+    }
+  });
+
   await invoke("download_file", {
-    id: 1,
+    id,
     url,
     path,
     token,
+    totalSize: games * 900, // aprox size of a game
   });
 }
 

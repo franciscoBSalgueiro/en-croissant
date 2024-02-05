@@ -99,6 +99,7 @@ pub async fn download_fide_db(
         app.clone(),
         None,
         Some(false),
+        None,
     )
     .await?;
 
@@ -121,7 +122,7 @@ pub async fn download_fide_db(
 
     app.emit_all(
         "download_progress",
-        crate::fs::ProgressPayload {
+        crate::fs::DownloadProgress {
             progress: 100.0,
             id: 0,
             finished: true,
