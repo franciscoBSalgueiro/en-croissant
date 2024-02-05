@@ -24,6 +24,16 @@ const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
 const tablebaseURL = "https://tablebase.lichess.ovh";
 
+export type TablebaseCategory =
+  | "win"
+  | "unknown"
+  | "maybe-win"
+  | "cursed-win"
+  | "draw"
+  | "blessed-loss"
+  | "maybe-loss"
+  | "loss";
+
 type TablebaseData = {
   checkmate: boolean;
   stalemate: boolean;
@@ -33,11 +43,11 @@ type TablebaseData = {
   dtz: number;
   precise_dtz: number;
   dtm: number;
-  category: "win" | "loss" | "draw" | "unknown";
+  category: TablebaseCategory;
   moves: TablebaseMove[];
 };
 
-type TablebaseMove = {
+export type TablebaseMove = {
   uci: string;
   san: string;
   zeroing: boolean;
@@ -49,7 +59,7 @@ type TablebaseMove = {
   dtz: number;
   precise_dtz: number;
   dtm: number;
-  category: "win" | "loss";
+  category: TablebaseCategory;
 };
 
 type LichessPerf = {

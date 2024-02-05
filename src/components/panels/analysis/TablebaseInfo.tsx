@@ -1,5 +1,5 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { getTablebaseInfo } from "@/utils/lichess";
+import { TablebaseCategory, getTablebaseInfo } from "@/utils/lichess";
 import {
   Accordion,
   Badge,
@@ -56,7 +56,7 @@ function TablebaseInfo({
               {isLoading && <Text ta="center">Loading...</Text>}
               {error && <Text ta="center">Error: {error.message}</Text>}
               {data && (
-                <OutcomeBadge outcome={data.category} turn={turn} wins />
+                <OutcomeBadge category={data.category} turn={turn} wins />
               )}
             </Group>
           </Accordion.Control>
@@ -82,9 +82,10 @@ function TablebaseInfo({
                           {m.san}
                         </Text>
                         <OutcomeBadge
-                          outcome={m.category}
+                          category={m.category}
+                          dtz={m.dtz}
+                          dtm={m.dtm}
                           turn={turn === "white" ? "black" : "white"}
-                          wins={false}
                         />
                       </Group>
                     </Paper>
@@ -100,38 +101,55 @@ function TablebaseInfo({
 }
 
 function OutcomeBadge({
-  outcome,
+  category,
   turn,
   wins,
+  dtz,
+  dtm,
 }: {
-  outcome: "win" | "loss" | "draw" | "unknown";
+  category: TablebaseCategory;
   turn: "white" | "black";
-  wins: boolean;
+  wins?: boolean;
+  dtz?: number;
+  dtm?: number;
 }) {
-  const color = match(outcome)
+  const normalizedCategory = match(category)
+    .with("win", () => (turn === "white" ? "White wins" : "Black wins"))
+    .with("loss", () => (turn === "white" ? "Black wins" : "White wins"))
+    .with("draw", () => "draw")
+    .with("blessed-loss", () => "draw")
+    .with("cursed-win", () => "draw")
+    .with("maybe-loss", () => "unknown")
+    .with("maybe-win", () => "unknown")
+    .with("unknown", () => "unknown")
+    .exhaustive();
+
+  const color = match(category)
     .with("win", () => (turn === "white" ? "white" : "black"))
     .with("loss", () => (turn === "white" ? "black" : "white"))
-    .with("draw", () => "gray")
-    .with("unknown", () => "gray")
-    .exhaustive();
-  const label = match(outcome)
-    .with(
-      "win",
-      () => (turn === "white" ? "White" : "Black") + (wins ? " wins" : ""),
-    )
-    .with(
-      "loss",
-      () => (turn === "white" ? "Black" : "White") + (wins ? " wins" : ""),
-    )
-    .with("draw", () => "Draw")
-    .with("unknown", () => "Unknown")
-    .exhaustive();
+    .otherwise(() => "gray");
+
+  const label = wins
+    ? normalizedCategory
+    : match(category)
+        .with("draw", () => "Draw")
+        .with("unknown", () => "Unknown")
+        .otherwise(() => (dtm ? `DTM ${Math.abs(dtm)}` : `DTZ ${dtz}`));
+
   return (
-    <Stack px="xs" py="xs" align="center" justify="center">
+    <Group p="xs">
       <Badge autoContrast color={color}>
         {label}
       </Badge>
-    </Stack>
+      {["blessed-loss", "cursed-win", "maybe-win", "maybe-loss"].includes(
+        category,
+      ) &&
+        wins && (
+          <Text c="dimmed" fz="xs">
+            *due to the 50-move rule
+          </Text>
+        )}
+    </Group>
   );
 }
 

@@ -284,7 +284,6 @@ function EngineSettings({
     } else {
       newSettings.push({ name, value });
     }
-    console.log(name, value, def);
     if (value !== def || requiredEngineSettings.includes(name)) {
       setEngine({
         ...engine,
