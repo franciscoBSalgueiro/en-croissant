@@ -1,9 +1,9 @@
 use log::info;
-use serde::{Deserialize, Serialize, ser::SerializeStruct};
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position, Setup};
 
 use lazy_static::lazy_static;
-use strsim::jaro_winkler;
+use strsim::{jaro_winkler, sorensen_dice};
 
 use crate::error::Error;
 
@@ -68,33 +68,30 @@ pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
 
 #[tauri::command]
 pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
-    let mut best_matches: Vec<(Opening, f64)> = Vec::new();
+    let lower_query = query.to_lowercase();
+    let scores = OPENINGS
+        .iter()
+        .map(|opening| {
+            let lower_name = opening.name.to_lowercase();
+            let sorenson_score = sorensen_dice(&lower_query, &lower_name);
+            let jaro_score = jaro_winkler(&lower_query, &lower_name);
+            let score = sorenson_score.max(jaro_score);
+            (opening.clone(), score)
+        })
+        .collect::<Vec<_>>();
+    let mut best_matches = scores
+        .into_iter()
+        .filter(|(_, score)| *score > 0.8)
+        .collect::<Vec<_>>();
 
-    for opening in OPENINGS.iter() {
-        if best_matches.iter().any(|(m, _)| m.name == opening.name) {
-            continue;
-        }
+    best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
-        let score = jaro_winkler(&query, &opening.name);
-
-        if best_matches.len() < 15 {
-            best_matches.push((opening.clone(), score));
-            best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-        } else if let Some(min_score) = best_matches.last().map(|(_, s)| *s) {
-            if score > min_score {
-                best_matches.pop();
-                best_matches.push((opening.clone(), score));
-                best_matches.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-            }
-        }
-    }
-
-    if !best_matches.is_empty() {
-        let best_matches_names = best_matches.iter().map(|(o, _)| o.clone()).collect();
-        Ok(best_matches_names)
-    } else {
-        Err(Error::NoMatchFound)
-    }
+    let best_matches_names = best_matches
+        .iter()
+        .map(|(o, _)| o.clone())
+        .take(15)
+        .collect();
+    Ok(best_matches_names)
 }
 
 lazy_static! {
