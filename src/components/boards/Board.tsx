@@ -55,10 +55,9 @@ import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
 import { NormalMove, Square, SquareName, parseSquare } from "chessops";
 import { chessgroundDests } from "chessops/compat";
-import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { match } from "ts-pattern";
 import ShowMaterial from "../common/ShowMaterial";
@@ -344,6 +343,17 @@ function Board({
   const bottomProgress =
     timeControl && bottomClock ? bottomClock / timeControl[0].seconds : 0;
 
+  const [boardFen, setBoardFen] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editingMode && boardFen && boardFen !== currentNode.fen) {
+      dispatch({
+        type: "SET_FEN",
+        payload: boardFen,
+      });
+    }
+  }, [boardFen, editingMode, dispatch]);
+
   return (
     <>
       <Box className={classes.container}>
@@ -394,8 +404,10 @@ function Board({
               orientation={orientation}
             />
             <Chessground
+              setBoardFen={setBoardFen}
               orientation={orientation}
               fen={currentNode.fen}
+              animation={{ enabled: !editingMode }}
               coordinates={showCoordinates}
               movable={{
                 free: editingMode,
@@ -409,15 +421,7 @@ function Board({
                 showDests,
                 events: {
                   after: (orig, dest, metadata) => {
-                    if (editingMode) {
-                      const setup = parseFen(currentNode.fen).unwrap();
-                      const p = setup.board.take(parseSquare(orig)!)!;
-                      setup.board.set(parseSquare(dest)!, p);
-                      dispatch({
-                        type: "SET_FEN",
-                        payload: makeFen(setup),
-                      });
-                    } else {
+                    if (!editingMode) {
                       const from = parseSquare(orig)!;
                       const to = parseSquare(dest)!;
 
@@ -452,9 +456,12 @@ function Board({
               }}
               turnColor={turn}
               check={pos?.isCheck()}
-              lastMove={moveToKey(currentNode.move)}
+              lastMove={editingMode ? undefined : moveToKey(currentNode.move)}
               premovable={{
                 enabled: false,
+              }}
+              draggable={{
+                deleteOnDropOff: editingMode,
               }}
               drawable={{
                 enabled: true,
