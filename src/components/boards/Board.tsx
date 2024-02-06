@@ -503,6 +503,11 @@ function Board({
                     w="100%"
                     value={topProgress * 100}
                     animated={turn !== orientation}
+                    styles={{
+                      section: {
+                        animationDirection: "reverse",
+                      },
+                    }}
                   />
                 </Paper>
               )}
@@ -539,6 +544,11 @@ function Board({
                       w="100%"
                       value={bottomProgress * 100}
                       animated={turn === orientation}
+                      styles={{
+                        section: {
+                          animationDirection: "reverse",
+                        },
+                      }}
                     />
                   </Paper>
                 )}
