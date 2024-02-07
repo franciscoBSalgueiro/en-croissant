@@ -69,7 +69,9 @@ async function fetchOpening(db: DBType, tab: string) {
           black: move.black,
           draw: move.draws,
         })),
-        games: await convertToNormalized(data.topGames),
+        games: await convertToNormalized(
+          data.topGames || data.recentGames || [],
+        ),
       };
     })
     .with({ type: "lch_master" }, async ({ options }) => {
@@ -81,7 +83,9 @@ async function fetchOpening(db: DBType, tab: string) {
           black: move.black,
           draw: move.draws,
         })),
-        games: await convertToNormalized(data.topGames),
+        games: await convertToNormalized(
+          data.topGames || data.recentGames || [],
+        ),
       };
     })
     .with({ type: "local" }, async ({ options }) => {
@@ -131,16 +135,16 @@ function DatabasePanel({ fen }: { fen: string }) {
     .exhaustive();
 
   const tab = useAtomValue(currentTabAtom);
+  const [tabType, setTabType] = useAtom(currentDbTabAtom);
 
   const {
     data: openingData,
     isLoading,
     error,
-  } = useSWR([dbType], async ([dbType]) => {
+  } = useSWR(tabType !== "options" ? dbType : null, async (dbType: DBType) => {
     return fetchOpening(dbType, tab?.value || "");
   });
 
-  const [tabType, setTabType] = useAtom(currentDbTabAtom);
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0,
@@ -160,12 +164,15 @@ function DatabasePanel({ fen }: { fen: string }) {
             setDb(value as "local" | "lch_all" | "lch_master")
           }
         />
-        <Text>
-          {formatNumber(
-            Math.max(grandTotal || 0, openingData?.games.length || 0),
-          )}{" "}
-          matches
-        </Text>
+
+        {tabType !== "options" && (
+          <Text>
+            {formatNumber(
+              Math.max(grandTotal || 0, openingData?.games.length || 0),
+            )}{" "}
+            matches
+          </Text>
+        )}
       </Group>
 
       <DatabaseLoader isLoading={isLoading} tab={tab?.value ?? null} />

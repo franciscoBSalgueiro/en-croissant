@@ -197,6 +197,7 @@ const lichessOptionsFamily = atomFamily((tab: string) =>
     fen: "",
     ratings: [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
     speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
+    color: "white",
   }),
 );
 export const currentLichessOptionsAtom = tabValue(lichessOptionsFamily);

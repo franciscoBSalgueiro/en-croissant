@@ -6,7 +6,7 @@ import {
   LichessGameSpeed,
   LichessRating,
 } from "@/utils/lichess/lichessexplorer";
-import { Group, Stack } from "@mantine/core";
+import { Group, Select, Stack, TextInput } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
@@ -141,6 +141,29 @@ const LichessOptionsPanel = () => {
             setOptions({ ...options, until: value ?? undefined })
           }
           clearable
+        />
+      </Group>
+      <Group grow>
+        <TextInput
+          label="Player"
+          placeholder="Player's username"
+          value={options.player ?? ""}
+          onChange={(e) =>
+            setOptions({ ...options, player: e.currentTarget.value })
+          }
+        />
+        <Select
+          label="Color"
+          placeholder="Select color"
+          data={[
+            { label: "White", value: "white" },
+            { label: "Black", value: "black" },
+          ]}
+          value={options.color}
+          onChange={(v) =>
+            setOptions({ ...options, color: v as "white" | "black" })
+          }
+          clearable={false}
         />
       </Group>
     </Stack>

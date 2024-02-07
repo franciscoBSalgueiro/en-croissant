@@ -9,6 +9,8 @@ export type LichessGamesOptions = {
   moves?: number;
   topGames?: number;
   recentGames?: number;
+  player?: string;
+  color: "white" | "black";
 };
 
 export type MasterGamesOptions = {
@@ -26,34 +28,39 @@ export function getLichessGamesQueryParams(
   const getDateQueryString = (date: Date) =>
     `${date.getFullYear()}-${date.getMonth() + 1}`;
 
-  const queryParams: string[] = [];
+  const params = new URLSearchParams();
+
   if (options) {
-    queryParams.push(`fen=${options.fen}`);
-    if (options.variant) queryParams.push(`variant=${options.variant}`);
+    if (options.fen) params.append("fen", options.fen);
+    if (options.player && options.color) {
+      params.append("player", options.player);
+      params.append("color", options.color);
+    }
+    if (options.variant) params.append("variant", options.variant);
     if (options.speeds && options.speeds.length > 0)
-      queryParams.push(`speeds=${options.speeds.join(",")}`);
+      params.append("speeds", options.speeds.join(","));
     if (options.ratings && options.ratings.length > 0)
-      queryParams.push(`ratings=${options.ratings.join(",")}`);
+      params.append("ratings", options.ratings.join(","));
     if (options.since)
-      queryParams.push(`since=${getDateQueryString(options.since)}`);
+      params.append("since", getDateQueryString(options.since));
     if (options.until)
-      queryParams.push(`until=${getDateQueryString(options.until)}`);
+      params.append("until", getDateQueryString(options.until));
     if (options.moves !== undefined && 0 <= options.moves)
-      queryParams.push(`moves=${options.moves}`);
+      params.append("moves", options.moves.toString());
     if (
       options.topGames !== undefined &&
       0 <= options.topGames &&
       options.topGames <= 4
     )
-      queryParams.push(`topGames=${options.topGames}`);
+      params.append("topGames", options.topGames.toString());
     if (
       options.recentGames !== undefined &&
       0 <= options.recentGames &&
       options.recentGames <= 4
     )
-      queryParams.push(`recentGames=${options.recentGames}`);
+      params.append("recentGames", options.recentGames.toString());
   }
-  return queryParams.join("&");
+  return params.toString();
 }
 
 export function getMasterGamesQueryParams(

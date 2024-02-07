@@ -8,6 +8,7 @@ import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { error } from "tauri-plugin-log-api";
+import { P, match } from "ts-pattern";
 import { parsePGN } from "./chess";
 import { positionFromFen } from "./chessops";
 import { NormalizedGame } from "./db";
@@ -191,8 +192,8 @@ type PositionData = {
     black: number;
     draws: number;
   }[];
-  recentGames: PositionGames;
-  topGames: PositionGames;
+  recentGames?: PositionGames;
+  topGames?: PositionGames;
 };
 
 export async function getLichessAccount({
@@ -304,8 +305,16 @@ async function getCloudEvaluation(fen: string, multipv: number) {
 export async function getLichessGames(
   options: LichessGamesOptions,
 ): Promise<PositionData> {
-  const url = `${explorerURL}/lichess?${getLichessGamesQueryParams(options)}`;
-  return (await fetch<PositionData>(url)).data;
+  const url = match(options.player)
+    .with(
+      P.union(undefined, ""),
+      () => `${explorerURL}/lichess?${getLichessGamesQueryParams(options)}`,
+    )
+    .otherwise(
+      () => `${explorerURL}/player?${getLichessGamesQueryParams(options)}`,
+    );
+  const res = await fetch<PositionData>(url);
+  return res.data;
 }
 
 export async function getMasterGames(
