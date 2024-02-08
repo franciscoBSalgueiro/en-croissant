@@ -942,6 +942,8 @@ pub async fn get_players(
 
     let mut sql_query = players::table.into_boxed();
     let mut count_query = players::table.into_boxed();
+    sql_query = sql_query.filter(players::name.is_not("Unknown"));
+    count_query = count_query.filter(players::name.is_not("Unknown"));
 
     if let Some(name) = query.name {
         sql_query = sql_query.filter(players::name.like(format!("%{}%", name)));
@@ -1013,6 +1015,8 @@ pub async fn get_tournaments(
 
     let mut sql_query = events::table.into_boxed();
     let mut count_query = events::table.into_boxed();
+    sql_query = sql_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
+    count_query = count_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
 
     if let Some(name) = query.name {
         sql_query = sql_query.filter(events::name.like(format!("%{}%", name)));
