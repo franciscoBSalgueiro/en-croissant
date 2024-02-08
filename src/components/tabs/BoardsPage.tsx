@@ -22,6 +22,7 @@ import NewTabHome from "./NewTabHome";
 import "react-mosaic-component/react-mosaic-component.css";
 
 import "@/styles/react-mosaic.css";
+import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
@@ -271,7 +272,7 @@ interface WindowsState {
   currentNode: MosaicNode<ViewId> | null;
 }
 
-const windowsStateAtom = atom<WindowsState>({
+const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
   currentNode: {
     direction: "row",
     first: "left",
