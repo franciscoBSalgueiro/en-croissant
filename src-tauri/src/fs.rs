@@ -86,14 +86,12 @@ pub async fn download_file(
     }
 
     if finalize {
-        app.emit_all(
-            "download_progress",
-            DownloadProgress {
-                progress: 100.0,
-                id,
-                finished: true,
-            },
-        )?;
+        DownloadProgress {
+            progress: 100.0,
+            id,
+            finished: true,
+        }
+        .emit_all(&app)?;
     }
     // remove_file(&path).await;
     Ok(())

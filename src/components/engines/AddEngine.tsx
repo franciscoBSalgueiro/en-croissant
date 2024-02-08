@@ -1,5 +1,5 @@
 import { enginesAtom } from "@/atoms/atoms";
-import { commands } from "@/bindings";
+import { events, commands } from "@/bindings";
 import {
   LocalEngine,
   RemoteEngine,
@@ -255,7 +255,7 @@ function EngineCard({
           </Group>
           <ProgressButton
             id={engineId}
-            progressEvent="download_progress"
+            progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
               completed: "Installed",

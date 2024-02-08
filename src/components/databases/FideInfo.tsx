@@ -12,7 +12,7 @@ import {
 import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
 
-import { commands } from "@/bindings";
+import { events, commands } from "@/bindings";
 import { invoke } from "@tauri-apps/api";
 import { BaseDirectory, exists } from "@tauri-apps/api/fs";
 import { useEffect, useState } from "react";
@@ -67,7 +67,7 @@ function FideInfo({
           <ProgressButton
             id={0}
             initInstalled={false}
-            progressEvent={"download_progress"}
+            progressEvent={events.downloadProgress}
             onClick={() => invoke("download_fide_db")}
             labels={{
               completed: "Downloaded",

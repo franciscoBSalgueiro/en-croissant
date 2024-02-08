@@ -546,6 +546,13 @@ pub struct AnalysisOptions {
     pub reversed: bool,
 }
 
+#[derive(Clone, Type, serde::Serialize, Event)]
+pub struct ReportProgress {
+    pub progress: f64,
+    pub id: u64,
+    pub finished: bool,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(
@@ -589,14 +596,12 @@ pub async fn analyze_game(
     let mut novelty_found = false;
 
     for (i, (_, moves, _)) in fens.iter().enumerate() {
-        app.emit_all(
-            "report_progress",
-            DownloadProgress {
-                progress: (i as f64 / fens.len() as f64) * 100.0,
-                id: 0,
-                finished: false,
-            },
-        )?;
+        ReportProgress {
+            progress: (i as f64 / fens.len() as f64) * 100.0,
+            id: 0,
+            finished: false,
+        }
+        .emit_all(&app)?;
 
         proc.set_options(EngineOptions {
             // threads: 4,
@@ -667,14 +672,12 @@ pub async fn analyze_game(
             }
         }
     }
-    app.emit_all(
-        "report_progress",
-        DownloadProgress {
-            progress: 1.0,
-            id: 0,
-            finished: true,
-        },
-    )?;
+    ReportProgress {
+        progress: 100.0,
+        id: 0,
+        finished: true,
+    }
+    .emit_all(&app)?;
     Ok(analysis)
 }
 

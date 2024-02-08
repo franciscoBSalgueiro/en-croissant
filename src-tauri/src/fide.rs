@@ -12,8 +12,9 @@ use tauri::{
     api::path::{app_config_dir, resolve_path, BaseDirectory},
     Manager,
 };
+use tauri_specta::Event;
 
-use crate::error::Error;
+use crate::{error::Error, fs::DownloadProgress};
 use crate::{fs::download_file, AppState};
 
 #[derive(Debug, Deserialize, Serialize, Type, Clone, Decode, Encode)]
@@ -120,14 +121,12 @@ pub async fn download_fide_db(
     let mut fide_players = state.fide_players.write().await;
     *fide_players = players_list.players;
 
-    app.emit_all(
-        "download_progress",
-        crate::fs::DownloadProgress {
-            progress: 100.0,
-            id: 0,
-            finished: true,
-        },
-    )?;
+    DownloadProgress {
+        progress: 100.0,
+        id: 0,
+        finished: true,
+    }
+    .emit_all(&app)?;
 
     remove_file(&xml_path)?;
 

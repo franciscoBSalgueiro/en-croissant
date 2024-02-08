@@ -106,11 +106,13 @@ try {
 export const events = __makeEvents__<{
 bestMovesPayload: BestMovesPayload,
 databaseProgress: DatabaseProgress,
-downloadProgress: DownloadProgress
+downloadProgress: DownloadProgress,
+reportProgress: ReportProgress
 }>({
 bestMovesPayload: "plugin:tauri-specta:best-moves-payload",
 databaseProgress: "plugin:tauri-specta:database-progress",
-downloadProgress: "plugin:tauri-specta:download-progress"
+downloadProgress: "plugin:tauri-specta:download-progress",
+reportProgress: "plugin:tauri-specta:report-progress"
 })
 
 /** user-defined types **/
@@ -124,6 +126,7 @@ export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type GoMode = { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
+export type ReportProgress = { progress: number; id: bigint; finished: boolean }
 export type Results = { won: number; lost: number; draw: number }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
 /**

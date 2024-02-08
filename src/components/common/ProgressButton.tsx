@@ -1,18 +1,18 @@
 import { Button, Progress, useMantineTheme } from "@mantine/core";
-import { listen } from "@tauri-apps/api/event";
+import { EventCallback, UnlistenFn, listen } from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
 import * as classes from "./ProgressButton.css";
 
-type ProgressPayload = {
-  id: number;
+type Payload = {
+  id: bigint;
   progress: number;
   finished: boolean;
 };
 
-type Props = {
+type Props<T> = {
   id: number;
   initInstalled: boolean;
-  progressEvent: string;
+  progressEvent: { listen: (handler: EventCallback<T>) => Promise<UnlistenFn> };
   onClick: (id: number) => void;
   leftIcon?: React.ReactNode;
   labels: {
@@ -27,7 +27,7 @@ type Props = {
   setInProgress: (inProgress: boolean) => void;
 };
 
-function ProgressButton({
+function ProgressButton<T extends Payload>({
   id,
   initInstalled,
   progressEvent,
@@ -38,28 +38,24 @@ function ProgressButton({
   redoable,
   inProgress,
   setInProgress,
-}: Props) {
+}: Props<T>) {
   const [progress, setProgress] = useState(0);
   const [completed, setCompleted] = useState(initInstalled);
 
   useEffect(() => {
-    async function getProgress() {
-      const unlisten = await listen<ProgressPayload>(
-        progressEvent,
-        async ({ payload }) => {
-          if (payload.id !== id) return;
-          if (payload.finished) {
-            setInProgress(false);
-            setCompleted(true);
-            setProgress(0);
-            unlisten();
-          } else {
-            setProgress(payload.progress);
-          }
-        },
-      );
-    }
-    getProgress();
+    const unlisten = progressEvent.listen(async ({ payload }) => {
+      if (Number(payload.id) !== id) return;
+      if (payload.finished) {
+        setInProgress(false);
+        setCompleted(true);
+        setProgress(0);
+      } else {
+        setProgress(payload.progress);
+      }
+    });
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   let label: string;

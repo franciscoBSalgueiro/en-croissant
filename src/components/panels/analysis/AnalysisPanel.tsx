@@ -6,6 +6,7 @@ import {
   engineMovesFamily,
   enginesAtom,
 } from "@/atoms/atoms";
+import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -289,7 +290,7 @@ function AnalysisPanel({
                     leftIcon={<IconZoomCheck size="0.875rem" />}
                     onClick={() => toggleReportingMode()}
                     initInstalled={false}
-                    progressEvent="report_progress"
+                    progressEvent={events.reportProgress}
                     labels={{
                       action: "Generate report",
                       completed: "Report generated",
