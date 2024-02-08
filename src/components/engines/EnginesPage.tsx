@@ -413,10 +413,7 @@ function EngineSettings({
                   );
                 })
                 .with({ type: "string", value: P.select() }, (v: any) => {
-                  if (
-                    v.name.toLowerCase().includes("file") ||
-                    v.name.toLowerCase().includes("path")
-                  ) {
+                  if (v.name.toLowerCase().includes("file")) {
                     const file = v.value ? new File([v.value], v.value) : null;
                     return (
                       <FileInput
