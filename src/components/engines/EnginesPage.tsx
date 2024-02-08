@@ -151,13 +151,14 @@ export default function EnginesPage() {
               <Checkbox
                 label="Enabled"
                 checked={!!selectedEngine.loaded}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const checked = e.currentTarget.checked;
                   setEngines(async (prev) => {
                     const copy = [...(await prev)];
-                    copy[selected].loaded = e.currentTarget.checked;
+                    copy[selected].loaded = checked;
                     return copy;
-                  })
-                }
+                  });
+                }}
               />
 
               <Divider variant="dashed" label="Advanced Settings" />
@@ -190,6 +191,22 @@ export default function EnginesPage() {
                   }}
                 />
               </Stack>
+
+              <Group justify="right">
+                <Button
+                  color="red"
+                  onClick={() => {
+                    setEngines(async (prev) => {
+                      const copy = [...(await prev)];
+                      copy.splice(selected, 1);
+                      return copy;
+                    });
+                    setSelected(null);
+                  }}
+                >
+                  Remove
+                </Button>
+              </Group>
             </Stack>
           )}
         </Paper>
