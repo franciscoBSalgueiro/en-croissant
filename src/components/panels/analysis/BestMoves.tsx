@@ -37,7 +37,7 @@ import {
   IconTargetArrow,
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
-import { makeFen } from "chessops/fen";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -97,27 +97,6 @@ function BestMovesComponent({
   const theme = useMantineTheme();
   const [progress, setProgress] = useState(0);
 
-  const { searchingFen, searchingMoves } = useMemo(
-    () =>
-      match(threat)
-        .with(true, () => ({ searchingFen: swapMove(fen), searchingMoves: [] }))
-        .with(false, () => ({
-          searchingFen: fen,
-          searchingMoves: moves,
-        }))
-        .exhaustive(),
-    [fen, moves, threat],
-  );
-
-  const engineVariations = useMemo(
-    () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
-    [ev, searchingFen, searchingMoves],
-  );
-  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
-  const nps = !engineVariations
-    ? 0
-    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
-
   const [pos, error] = positionFromFen(fen);
   if (pos) {
     for (const uci of moves) {
@@ -131,7 +110,31 @@ function BestMovesComponent({
   }
 
   const isGameOver = pos?.isEnd() ?? false;
-  const finalFen = pos ? makeFen(pos.toSetup()) : null;
+  const finalFen = useMemo(() => (pos ? makeFen(pos.toSetup()) : null), [pos]);
+
+  const { searchingFen, searchingMoves } = useMemo(
+    () =>
+      match(threat)
+        .with(true, () => ({
+          searchingFen: swapMove(finalFen || INITIAL_FEN),
+          searchingMoves: [],
+        }))
+        .with(false, () => ({
+          searchingFen: fen,
+          searchingMoves: moves,
+        }))
+        .exhaustive(),
+    [fen, moves, threat, finalFen],
+  );
+
+  const engineVariations = useMemo(
+    () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
+    [ev, searchingFen, searchingMoves],
+  );
+  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
+  const nps = !engineVariations
+    ? 0
+    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
@@ -148,6 +151,11 @@ function BestMovesComponent({
           setEngineVariation((prev) => {
             const newMap = new Map(prev);
             newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
+            if (threat) {
+              newMap.delete(`${fen}:${moves.join(",")}`);
+            } else if (finalFen) {
+              newMap.delete(`${swapMove(finalFen)}:`);
+            }
             return newMap;
           });
           setProgress(payload.progress);
@@ -440,7 +448,7 @@ function BestMovesComponent({
                       score={engineVariation.score}
                       halfMoves={halfMoves}
                       threat={threat}
-                      fen={finalFen}
+                      fen={threat ? swapMove(finalFen) : finalFen}
                     />
                   );
                 })}

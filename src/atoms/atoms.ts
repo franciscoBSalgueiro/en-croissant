@@ -13,7 +13,10 @@ import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import { MantineColor } from "@mantine/core";
 
 import { OpponentSettings } from "@/components/boards/BoardGame";
+import { positionFromFen, swapMove } from "@/utils/chessops";
 import { getWinChance, normalizeScore } from "@/utils/score";
+import { parseUci } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { PrimitiveAtom, atom } from "jotai";
 import {
   atomFamily,
@@ -302,7 +305,18 @@ export const bestMovesFamily = atomFamily(
         const engineMoves = get(
           engineMovesFamily({ tab, engine: engine.name }),
         );
-        const moves = engineMoves.get(`${fen}:${gameMoves.join(",")}`);
+        const [pos] = positionFromFen(fen);
+        let finalFen = INITIAL_FEN;
+        if (pos) {
+          for (const move of gameMoves) {
+            const m = parseUci(move);
+            pos.play(m!);
+          }
+          finalFen = makeFen(pos.toSetup());
+        }
+        const moves =
+          engineMoves.get(`${swapMove(finalFen)}:`) ||
+          engineMoves.get(`${fen}:${gameMoves.join(",")}`);
         if (moves && moves.length > 0) {
           const bestWinChange = getWinChance(
             normalizeScore(moves[0].score, "white"),
