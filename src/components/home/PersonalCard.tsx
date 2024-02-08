@@ -1,4 +1,4 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, sessionsAtom, tabsAtom } from "@/atoms/atoms";
 import { MonthData, commands } from "@/bindings";
 import { parsePGN } from "@/utils/chess";
 import { PlayerGameInfo } from "@/utils/db";
@@ -9,9 +9,11 @@ import {
   ActionIcon,
   Box,
   Divider,
+  Flex,
   Group,
   Paper,
   Progress,
+  Select,
   Stack,
   Tabs,
   Text,
@@ -21,7 +23,7 @@ import {
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { Color } from "chessops";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -109,9 +111,11 @@ function zip<T>(a: T[], b: T[]) {
 
 function PersonalPlayerCard({
   name,
+  setName,
   info,
 }: {
   name: string;
+  setName?: (name: string) => void;
   info: PlayerGameInfo;
 }) {
   const total = info ? info.won + info.lost + info.draw : 0;
@@ -127,6 +131,14 @@ function PersonalPlayerCard({
   }, 0);
 
   const [opened, setOpened] = useState(false);
+  const sessions = useAtomValue(sessionsAtom);
+  const players = Array.from(
+    new Set(
+      sessions.map(
+        (s) => s.player || s.lichess?.username || s.chessCom?.username || "",
+      ),
+    ),
+  );
 
   return (
     <Paper
@@ -149,11 +161,29 @@ function PersonalPlayerCard({
             </ActionIcon>
           </MTTooltip>
         )}
-        <Stack align="center" w="100%">
-          <Text fz="lg" fw={500}>
+        {setName ? (
+          <Flex justify="center">
+            <Select
+              variant="unstyled"
+              value={name}
+              data={players}
+              onChange={(e) => setName(e || "")}
+              clearable={false}
+              rightSection={<div />}
+              fw="bold"
+              styles={{
+                input: {
+                  textAlign: "center",
+                  fontSize: "1.25rem",
+                },
+              }}
+            />
+          </Flex>
+        ) : (
+          <Text fz="lg" fw={500} ta="center">
             {name}
           </Text>
-        </Stack>
+        )}
       </Box>
       <Tabs
         keepMounted={false}

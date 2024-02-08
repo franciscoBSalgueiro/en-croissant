@@ -31,3 +31,14 @@ export const lead = style({
   fontSize: 22,
   lineHeight: 1,
 });
+
+export const accordion = style({
+  ":hover": {
+    [vars.lightSelector]: {
+      backgroundColor: vars.colors.gray[0],
+    },
+    [vars.darkSelector]: {
+      backgroundColor: vars.colors.dark[6],
+    },
+  },
+});

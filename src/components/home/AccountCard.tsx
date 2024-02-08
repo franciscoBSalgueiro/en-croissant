@@ -1,10 +1,10 @@
-import { events } from "@/bindings";
 import { downloadChessCom } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import { downloadLichess } from "@/utils/lichess";
 import {
+  Accordion,
   ActionIcon,
   Card,
   Group,
@@ -75,7 +75,9 @@ export function AccountCard({
       <Card key={stat.label} withBorder p="xs">
         <Group align="baseline" justify="space-between">
           <div>
-            <Text fw="bold">{stat.value}</Text>
+            <Text fw="bold" fz="sm">
+              {stat.value}
+            </Text>
             <Text size="xs" c="dimmed">
               {capitalize(stat.label)}
             </Text>
@@ -129,105 +131,120 @@ export function AccountCard({
   }, [database]);
 
   return (
-    <Card withBorder p="lg" pos="relative" radius="md" className={classes.card}>
-      <Group grow align="start">
+    <Accordion.Item value={type + title}>
+      <Group
+        justify="space-between"
+        wrap="nowrap"
+        pos="relative"
+        pl="sm"
+        className={classes.accordion}
+      >
         <Stack>
-          <Group>
+          <Group wrap="nowrap">
             {type === "lichess" ? (
               <LichessLogo />
             ) : (
-              <img width={35} height={35} src="/chesscom.png" alt="chess.com" />
+              <img width={30} height={30} src="/chesscom.png" alt="chess.com" />
             )}
             <div>
-              <Text size="xl" fw="bold">
-                {title}
-              </Text>
-              <Text mt={5} size="sm" c="dimmed">
-                {`Last Updated: ${new Date(updatedAt).toLocaleDateString()}`}
-              </Text>
+              <Group wrap="nowrap">
+                <Text size="md" fw="bold">
+                  {title}
+                </Text>
+              </Group>
+              <ActionIcon.Group>
+                <Tooltip label="Update stats">
+                  <ActionIcon onClick={() => reload()}>
+                    <IconRefresh size="1rem" />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Download games">
+                  <ActionIcon
+                    disabled={loading}
+                    onClick={async () => {
+                      setLoading(true);
+                      if (type === "lichess") {
+                        await downloadLichess(
+                          title,
+                          lastGameDate,
+                          total - downloadedGames,
+                          setProgress,
+                          token,
+                        );
+                      } else {
+                        await downloadChessCom(
+                          title,
+                          lastGameDate,
+                          setProgress,
+                        );
+                      }
+                      const p = await resolve(
+                        await appDataDir(),
+                        "db",
+                        `${title}_${type}.pgn`,
+                      );
+                      convert(p, lastGameDate).catch(() => {
+                        setLoading(false);
+                      });
+                    }}
+                  >
+                    {loading ? (
+                      <Loader size="1rem" />
+                    ) : (
+                      <IconDownload size="1rem" />
+                    )}
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Remove account">
+                  <ActionIcon onClick={() => logout()}>
+                    <IconX size="1rem" />
+                  </ActionIcon>
+                </Tooltip>
+              </ActionIcon.Group>
             </div>
           </Group>
         </Stack>
-        <Stack gap="xs">
-          <Group justify="right">
-            <Tooltip label="Update stats">
-              <ActionIcon onClick={() => reload()}>
-                <IconRefresh size="1rem" />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Download games">
-              <ActionIcon
-                disabled={loading}
-                onClick={async () => {
-                  setLoading(true);
-                  if (type === "lichess") {
-                    await downloadLichess(
-                      title,
-                      lastGameDate,
-                      total - downloadedGames,
-                      setProgress,
-                      token,
-                    );
-                  } else {
-                    await downloadChessCom(title, lastGameDate, setProgress);
-                  }
-                  const p = await resolve(
-                    await appDataDir(),
-                    "db",
-                    `${title}_${type}.pgn`,
-                  );
-                  convert(p, lastGameDate).catch(() => {
-                    setLoading(false);
-                  });
-                }}
-              >
-                {loading ? (
-                  <Loader size="1rem" />
-                ) : (
-                  <IconDownload size="1rem" />
-                )}
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Remove account">
-              <ActionIcon onClick={() => logout()}>
-                <IconX size="1rem" />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
+        <Accordion.Control>
+          <Stack gap="xs">
+            <Group ta="center" justify="right">
+              <div>
+                <Text fw="bold">{total}</Text>
+                <Text size="xs" c="dimmed">
+                  Games
+                </Text>
+              </div>
 
-          <Group ta="center" justify="right">
-            <div>
-              <Text fw="bold">{total}</Text>
-              <Text size="xs" c="dimmed">
-                Games
-              </Text>
-            </div>
+              <div>
+                <Tooltip label={`${downloadedGames} games`}>
+                  <Text fw="bold">{percentage}%</Text>
+                </Tooltip>
+                <Text size="xs" c="dimmed">
+                  Downloaded
+                </Text>
+              </div>
+            </Group>
+          </Stack>
+        </Accordion.Control>
 
-            <div>
-              <Tooltip label={`${downloadedGames} games`}>
-                <Text fw="bold">{percentage}%</Text>
-              </Tooltip>
-              <Text size="xs" c="dimmed">
-                Downloaded
-              </Text>
-            </div>
-          </Group>
-        </Stack>
+        {loading && (
+          <Progress
+            pos="absolute"
+            bottom={0}
+            left={0}
+            w="100%"
+            value={progress || 100}
+            animated
+            size="xs"
+          />
+        )}
       </Group>
-      <Group grow mt="lg">
-        {items}
-      </Group>
-      {loading && (
-        <Progress
-          pos="absolute"
-          bottom={0}
-          left={0}
-          w="100%"
-          value={progress || 100}
-          animated
-          size="xs"
-        />
-      )}
-    </Card>
+
+      <Accordion.Panel p={0}>
+        <Group grow>{items}</Group>
+        <Text mt="xs" size="xs" c="dimmed" ta="right">
+          ({`last update: ${new Date(updatedAt).toLocaleDateString()}`})
+        </Text>
+      </Accordion.Panel>
+    </Accordion.Item>
   );
 }

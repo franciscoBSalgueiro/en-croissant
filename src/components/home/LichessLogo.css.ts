@@ -2,8 +2,8 @@ import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
 
 export const logo = style({
-  width: 35,
-  height: 35,
+  width: 30,
+  height: 30,
   borderRadius: vars.radius.sm,
   overflow: "hidden",
   [vars.lightSelector]: {

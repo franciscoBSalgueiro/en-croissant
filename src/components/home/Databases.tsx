@@ -9,7 +9,7 @@ import {
 } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
 import { Session } from "@/utils/session";
-import { Progress, Text } from "@mantine/core";
+import { Flex, Progress, Select, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
@@ -111,6 +111,36 @@ function combinePlayerInfo(playerInfos: PlayerGameInfo[]) {
 function Databases() {
   const sessions = useAtomValue(sessionsAtom);
 
+  const players = Array.from(
+    new Set(
+      sessions.map(
+        (s) => s.player || s.lichess?.username || s.chessCom?.username || "",
+      ),
+    ),
+  );
+  const playerDbNames = players.map((name) => ({
+    name,
+    databases: sessions
+      .filter(
+        (s) =>
+          s.player === name ||
+          s.lichess?.username === name ||
+          s.chessCom?.username === name,
+      )
+      .map((s) =>
+        s.chessCom
+          ? `${s.chessCom.username} Chess.com`
+          : `${s.lichess?.username} Lichess`,
+      ),
+  }));
+
+  const [name, setName] = useState("");
+  useEffect(() => {
+    if (sessions.length > 0) {
+      setName(sessions[0].player || getSessionUsername(sessions[0]));
+    }
+  }, [sessions]);
+
   const { data: databases } = useSWRImmutable<DatabaseInfo[]>(
     sessions.length === 0 ? null : ["personalDatabases", sessions],
     async () => {
@@ -124,28 +154,31 @@ function Databases() {
     isLoading,
     error,
   } = useSWRImmutable<PersonalInfo[]>(
-    databases ? ["personalInfo", databases] : null,
+    databases && name ? ["personalInfo", name, databases] : null,
     async () => {
-      if (!databases) return [];
+      const playerDbs = playerDbNames.find((p) => p.name === name)?.databases;
+      if (!databases || !playerDbs) return [];
       const newInfo: PersonalInfo[] = await Promise.all(
-        databases.map(async (db, i) => {
-          let player: Player | null = null;
-          const players = await query_players(db.file, {
-            name: db.username,
-            pageSize: 1,
-            direction: "asc",
-            sort: "id",
-          });
-          if (players.data.length > 0) {
-            player = players.data[0];
-          } else {
-            throw "Player not found in database";
-          }
-          const info = unwrap(
-            await commands.getPlayersGameInfo(db.file, player.id),
-          );
-          return { db, info };
-        }),
+        databases
+          .filter((db) => playerDbs.includes(db.title || ""))
+          .map(async (db, i) => {
+            let player: Player | null = null;
+            const players = await query_players(db.file, {
+              name: db.username,
+              pageSize: 1,
+              direction: "asc",
+              sort: "id",
+            });
+            if (players.data.length > 0) {
+              player = players.data[0];
+            } else {
+              throw "Player not found in database";
+            }
+            const info = unwrap(
+              await commands.getPlayersGameInfo(db.file, player.id),
+            );
+            return { db, info };
+          }),
       );
       return newInfo;
     },
@@ -172,12 +205,32 @@ function Databases() {
       {error && <Text ta="center">Error loading databases: {error}</Text>}
       {personalInfo &&
         (personalInfo.length === 0 ? (
-          <Text ta="center" fw="bold" my="auto" fz="lg">
-            No databases found
-          </Text>
+          <>
+            <Flex justify="center">
+              <Select
+                variant="unstyled"
+                value={name}
+                data={players}
+                onChange={(e) => setName(e || "")}
+                clearable={false}
+                rightSection={<div />}
+                fw="bold"
+                styles={{
+                  input: {
+                    textAlign: "center",
+                    fontSize: "1.25rem",
+                  },
+                }}
+              />
+            </Flex>
+            <Text ta="center" fw="bold" my="auto" fz="lg">
+              No databases found
+            </Text>
+          </>
         ) : (
           <PersonalPlayerCard
-            name={"Stats"}
+            name={name}
+            setName={setName}
             info={combinePlayerInfo(personalInfo.map((i) => i.info))}
           />
         ))}

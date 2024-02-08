@@ -3,7 +3,7 @@ import { LichessAccount } from "./lichess";
 
 type LichessSession = {
   accessToken?: string;
-  username?: string;
+  username: string;
   account: LichessAccount;
 };
 
@@ -15,5 +15,6 @@ type ChessComSession = {
 export type Session = {
   lichess?: LichessSession;
   chessCom?: ChessComSession;
+  player?: string;
   updatedAt: number;
 };

@@ -4,18 +4,22 @@ import { DatabaseInfo, getDatabases } from "@/utils/db";
 import { invoke } from "@/utils/invoke";
 import { getLichessAccount } from "@/utils/lichess";
 import {
+  Autocomplete,
   Button,
   Checkbox,
+  Group,
+  InputWrapper,
   Modal,
-  ScrollArea,
-  Select,
   Stack,
   TextInput,
 } from "@mantine/core";
+import { IconPlus } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import AccountCards from "../common/AccountCards";
+import GenericCard from "../common/GenericCard";
+import LichessLogo from "./LichessLogo";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);
@@ -55,7 +59,14 @@ function Accounts() {
         if (!account) return;
         setSessions((sessions) => [
           ...sessions,
-          { lichess: { accessToken: token, account }, updatedAt: Date.now() },
+          {
+            lichess: {
+              accessToken: token,
+              account,
+              username: account.username,
+            },
+            updatedAt: Date.now(),
+          },
         ]);
       });
     }
@@ -65,14 +76,15 @@ function Accounts() {
 
   return (
     <>
-      <ScrollArea>
-        <Stack>
-          <AccountCards databases={databases} setDatabases={setDatabases} />
-        </Stack>
-      </ScrollArea>
-      <Button h="2.5rem" onClick={() => setOpen(true)}>
-        Add Account
-      </Button>
+      <AccountCards databases={databases} setDatabases={setDatabases} />
+      <Group>
+        <Button
+          rightSection={<IconPlus size="1rem" />}
+          onClick={() => setOpen(true)}
+        >
+          Add Account
+        </Button>
+      </Group>
       <AccountModal
         open={open}
         setOpen={setOpen}
@@ -104,9 +116,16 @@ function AccountModal({
   addLichess: (username: string, withLogin: boolean) => void;
   addChessCom: (username: string) => void;
 }) {
+  const sessions = useAtomValue(sessionsAtom);
   const [username, setUsername] = useState("");
   const [website, setWebsite] = useState<"lichess" | "chesscom">("lichess");
   const [withLogin, setWithLogin] = useState(false);
+
+  const players = new Set(
+    sessions.map(
+      (s) => s.player || s.lichess?.username || s.chessCom?.username || "",
+    ),
+  );
 
   function addAccount() {
     if (website === "lichess") {
@@ -126,18 +145,43 @@ function AccountModal({
         }}
       >
         <Stack>
-          <Select
-            allowDeselect={false}
-            label="Website"
-            placeholder="Select website"
-            data={[
-              { label: "Lichess", value: "lichess" },
-              { label: "Chess.com", value: "chesscom" },
-            ]}
-            value={website}
-            onChange={(v) => setWebsite(v as "lichess" | "chesscom")}
-            required
+          <Autocomplete
+            label="Name"
+            data={Array.from(players)}
+            placeholder="Select player"
           />
+          <InputWrapper label="Website" required>
+            <Group grow>
+              <GenericCard
+                id={"lichess"}
+                isSelected={website === "lichess"}
+                setSelected={() => setWebsite("lichess")}
+                Header={
+                  <Group>
+                    <LichessLogo />
+                    Lichess
+                  </Group>
+                }
+              />
+              <GenericCard
+                id={"chesscom"}
+                isSelected={website === "chesscom"}
+                setSelected={() => setWebsite("chesscom")}
+                Header={
+                  <Group>
+                    <img
+                      width={30}
+                      height={30}
+                      src="/chesscom.png"
+                      alt="chess.com"
+                    />
+                    Chess.com
+                  </Group>
+                }
+              />
+            </Group>
+          </InputWrapper>
+
           <TextInput
             label="Username"
             placeholder="Enter your username"
