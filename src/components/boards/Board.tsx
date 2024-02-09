@@ -187,6 +187,7 @@ function Board({
       dispatch({
         type: "MAKE_MOVE",
         payload: san,
+        clock: pos.turn === "white" ? whiteTime : blackTime,
       });
       setPendingMove(null);
     }

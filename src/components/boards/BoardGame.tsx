@@ -407,7 +407,7 @@ function BoardGame() {
         dispatch({
           type: "APPEND_MOVE",
           payload: parseUci(ev[0].uciMoves[0]),
-          clock: (pos.turn === "white" ? whiteTime : blackTime)! / 1000,
+          clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
       }
     });
