@@ -116,10 +116,10 @@ function ReportModal({
             />
             <NumberInput
               min={1}
-              value={form.values.goMode.c}
+              value={form.values.goMode.c as number}
               onChange={(v) =>
                 form.setFieldValue("goMode", {
-                  ...form.values.goMode,
+                  ...(form.values.goMode as any),
                   c: (v || 1) as number,
                 })
               }

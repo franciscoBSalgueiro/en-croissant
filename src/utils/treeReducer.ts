@@ -210,6 +210,7 @@ export type TreeAction =
             promotion?: string;
           }
         | string;
+      clock?: number;
     }
   | { type: "MAKE_MOVES"; payload: string[]; mainline?: boolean }
   | { type: "GO_TO_START" }
@@ -261,7 +262,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     .with({ type: "MAKE_MOVE" }, ({ payload, changePosition, mainline }) => {
       makeMove({ state, move: payload, last: false, changePosition, mainline });
     })
-    .with({ type: "APPEND_MOVE" }, ({ payload }) => {
+    .with({ type: "APPEND_MOVE" }, ({ payload, clock }) => {
+      const node = getNodeAtPath(state.root, state.position);
+      if (!node) return;
+      node.clock = clock;
       makeMove({ state, move: payload, last: true });
     })
     .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {

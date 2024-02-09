@@ -390,6 +390,9 @@ function BoardGame() {
     moves,
   ]);
 
+  const [whiteTime, setWhiteTime] = useState<number | null>(null);
+  const [blackTime, setBlackTime] = useState<number | null>(null);
+
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       const ev = payload.bestLines;
@@ -404,13 +407,14 @@ function BoardGame() {
         dispatch({
           type: "APPEND_MOVE",
           payload: parseUci(ev[0].uciMoves[0]),
+          clock: (pos.turn === "white" ? whiteTime : blackTime)! / 1000,
         });
       }
     });
     return () => {
       unlisten.then((f) => f());
     };
-  }, [activeTab, dispatch, pos, root.fen, moves]);
+  }, [activeTab, dispatch, pos, root.fen, moves, whiteTime, blackTime]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -426,8 +430,6 @@ function BoardGame() {
   }, [players]);
 
   const [sameTimeControl, setSameTimeControl] = useState(true);
-  const [whiteTime, setWhiteTime] = useState<number | null>(null);
-  const [blackTime, setBlackTime] = useState<number | null>(null);
 
   const [intervalId, setIntervalId] = useState<ReturnType<
     typeof setInterval
