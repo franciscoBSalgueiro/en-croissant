@@ -514,6 +514,7 @@ function Board({
                   styles={{
                     root: {
                       opacity: turn === orientation ? 0.5 : 1,
+                      transition: "opacity 0.15s",
                     },
                   }}
                 >
@@ -555,6 +556,7 @@ function Board({
                     styles={{
                       root: {
                         opacity: turn !== orientation ? 0.5 : 1,
+                        transition: "opacity 0.15s",
                       },
                     }}
                   >
