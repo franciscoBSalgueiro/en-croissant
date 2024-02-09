@@ -7,8 +7,9 @@ type TimeType = "ms" | "s" | "m" | "h";
 function TimeInput({
   value,
   setValue,
-}: { value: number; setValue: (v: GoMode) => void }) {
-  const [timeType, setTimeType] = useState<TimeType>("ms");
+  defaultType,
+}: { value: number; setValue: (v: GoMode) => void; defaultType?: TimeType }) {
+  const [timeType, setTimeType] = useState<TimeType>(defaultType ?? "ms");
   const displayedValue = match(timeType)
     .with("ms", () => value)
     .with("s", () => value / 1000)
@@ -18,7 +19,7 @@ function TimeInput({
 
   return (
     <NumberInput
-      min={1}
+      min={0}
       decimalScale={2}
       allowDecimal={false}
       hideControls

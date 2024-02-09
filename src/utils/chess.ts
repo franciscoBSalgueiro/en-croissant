@@ -506,13 +506,13 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
   return headers;
 }
 
-type TimeControlField = {
+export type TimeControlField = {
   seconds: number;
   increment?: number;
   moves?: number;
 };
 
-type TimeControl = TimeControlField[];
+export type TimeControl = TimeControlField[];
 
 export function parseTimeControl(timeControl: string): TimeControl {
   const fields = timeControl.split(":");
@@ -526,10 +526,10 @@ export function parseTimeControl(timeControl: string): TimeControl {
     const seconds = match[2];
     const increment = match[3];
     const timeControlField: TimeControlField = {
-      seconds: parseInt(seconds),
+      seconds: parseInt(seconds) * 1000,
     };
     if (increment) {
-      timeControlField.increment = parseInt(increment);
+      timeControlField.increment = parseInt(increment) * 1000;
     }
     if (moves) {
       timeControlField.moves = parseInt(moves);

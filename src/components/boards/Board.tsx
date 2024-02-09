@@ -17,6 +17,7 @@ import { chessboard } from "@/styles/Chessboard.css";
 import {
   ANNOTATION_INFO,
   Annotation,
+  TimeControlField,
   getMaterialDiff,
   makeClk,
   moveToKey,
@@ -83,6 +84,10 @@ interface ChessboardProps {
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
   addGame?: () => void;
+  whiteTime?: number;
+  blackTime?: number;
+  whiteTc?: TimeControlField;
+  blackTc?: TimeControlField;
 }
 
 function Board({
@@ -100,6 +105,10 @@ function Board({
   addGame,
   root,
   position,
+  whiteTime,
+  blackTime,
+  whiteTc,
+  blackTc,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
 
@@ -326,7 +335,7 @@ function Board({
     });
   if (position.length <= 1 && timeControl) {
     if (timeControl.length > 0) {
-      const seconds = timeControl[0].seconds;
+      const seconds = timeControl[0].seconds / 1000;
       if (!whiteSeconds) {
         whiteSeconds = seconds;
       }
@@ -335,13 +344,26 @@ function Board({
       }
     }
   }
+  if (whiteTime) {
+    whiteSeconds = whiteTime / 1000;
+  }
+  if (blackTime) {
+    blackSeconds = blackTime / 1000;
+  }
 
   const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
+  const topTc = orientation === "black" ? whiteTc : blackTc;
   const topProgress =
-    timeControl && topClock ? topClock / timeControl[0].seconds : 0;
+    (topTc || timeControl) && topClock
+      ? topClock / ((topTc?.seconds ?? timeControl![0].seconds) / 1000)
+      : 0;
+
   const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
+  const bottomTc = orientation === "black" ? blackTc : whiteTc;
   const bottomProgress =
-    timeControl && bottomClock ? bottomClock / timeControl[0].seconds : 0;
+    (topTc || timeControl) && bottomClock
+      ? bottomClock / ((bottomTc?.seconds ?? timeControl![0].seconds) / 1000)
+      : 0;
 
   const [boardFen, setBoardFen] = useState<string | null>(null);
 
@@ -496,7 +518,7 @@ function Board({
                   }}
                 >
                   <Text fz="lg" fw="bold" px="xs">
-                    {makeClk(topClock)}
+                    {formatClock(topClock)}
                   </Text>
                   <Progress
                     size="xs"
@@ -537,7 +559,7 @@ function Board({
                     }}
                   >
                     <Text fz="lg" fw="bold" px="xs">
-                      {makeClk(bottomClock)}
+                      {formatClock(bottomClock)}
                     </Text>
                     <Progress
                       size="xs"
@@ -726,5 +748,23 @@ const glyphToSvg = {
     </>
   ),
 } as const;
+
+function formatClock(seconds: number) {
+  let s = Math.max(0, seconds);
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  s = (s % 3600) % 60;
+
+  let timeString = `${minutes.toString().padStart(2, "0")}`;
+  if (hours > 0) {
+    timeString = `${hours}:${timeString}`;
+  }
+  if (seconds < 60) {
+    timeString += `:${s.toFixed(1).padStart(4, "0")}`;
+  } else {
+    timeString += `:${Math.floor(s).toString().padStart(2, "0")}`;
+  }
+  return timeString;
+}
 
 export default memo(Board);

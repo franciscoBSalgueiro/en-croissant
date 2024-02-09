@@ -162,6 +162,17 @@ impl EngineProcess {
             GoMode::Depth(depth) => format!("go depth {}\n", depth),
             GoMode::Time(time) => format!("go movetime {}\n", time),
             GoMode::Nodes(nodes) => format!("go nodes {}\n", nodes),
+            GoMode::PlayersTime(PlayersTime {
+                white,
+                black,
+                winc,
+                binc,
+            }) => {
+                format!(
+                    "go wtime {} btime {} winc {} binc {}\n",
+                    white, black, winc, binc
+                )
+            }
             GoMode::Infinite => "go infinite\n".to_string(),
         };
         self.stdin.write_all(msg.as_bytes()).await?;
@@ -357,10 +368,19 @@ pub struct EngineOption {
 #[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
 #[serde(tag = "t", content = "c")]
 pub enum GoMode {
+    PlayersTime(PlayersTime),
     Depth(u32),
     Time(u32),
     Nodes(u32),
     Infinite,
+}
+
+#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+pub struct PlayersTime {
+    white: u32,
+    black: u32,
+    winc: u32,
+    binc: u32,
 }
 
 #[tauri::command]
@@ -488,6 +508,7 @@ pub async fn get_best_moves(
                                     GoMode::Nodes(nodes) => {
                                         (cur_nodes as f64 / nodes as f64) * 100.0
                                     }
+                                    GoMode::PlayersTime(_) => 99.99,
                                     GoMode::Infinite => 99.99,
                                 };
                                 BestMovesPayload {
