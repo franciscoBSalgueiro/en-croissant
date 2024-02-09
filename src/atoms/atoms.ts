@@ -319,14 +319,14 @@ export const bestMovesFamily = atomFamily(
           engineMoves.get(`${fen}:${gameMoves.join(",")}`);
         if (moves && moves.length > 0) {
           const bestWinChange = getWinChance(
-            normalizeScore(moves[0].score, "white"),
+            normalizeScore(moves[0].score, pos?.turn || "white"),
           );
           bestMoves.set(
             n,
             moves
               .filter((m) => {
                 const winChance = getWinChance(
-                  normalizeScore(m.score, "white"),
+                  normalizeScore(m.score, pos?.turn || "white"),
                 );
                 return winChance >= bestWinChange - 5;
               })
