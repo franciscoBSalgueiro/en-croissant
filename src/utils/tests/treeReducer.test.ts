@@ -1,25 +1,28 @@
 import { Chess } from "chess.js";
+import { parseUci } from "chessops";
 import { expect, test } from "vitest";
-import { MoveAnalysis } from "../chess";
 import treeReducer, { TreeState, defaultTree } from "../treeReducer";
 
 const chess = new Chess();
-const e4 = chess.move("e4");
-const d5 = chess.move("d5");
+const e4 = parseUci("e2e4")!;
+const d5 = parseUci("d7d5")!;
 const treeE4D5: () => TreeState = () => ({
   ...defaultTree(),
   position: [0, 0],
   root: {
     fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     move: null,
+    san: null,
     children: [
       {
         fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
         move: e4,
+        san: "e4",
         children: [
           {
             fen: "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
             move: d5,
+            san: "d5",
             children: [],
             score: null,
             depth: null,
@@ -40,7 +43,8 @@ const treeE4D5: () => TreeState = () => ({
       },
       {
         fen: "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
-        move: new Chess().move("d4"),
+        move: parseUci("d2d4")!,
+        san: "d4",
         children: [],
         score: null,
         depth: null,
@@ -183,10 +187,12 @@ test("should handle MAKE_MOVE", () => {
     root: {
       fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       move: null,
+      san: null,
       children: [
         {
           fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          move: new Chess().move("e4"),
+          move: e4,
+          san: "e4",
           children: [],
           score: null,
           depth: null,
@@ -209,10 +215,7 @@ test("should handle MAKE_MOVE", () => {
   expectState({
     res: treeReducer(initialState, {
       type: "MAKE_MOVE",
-      payload: {
-        from: "e2",
-        to: "e4",
-      },
+      payload: e4,
     }),
     initialState,
     expectedState,
@@ -549,36 +552,17 @@ test("promote 2", () => {
     root: {
       fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       move: null,
+      san: null,
       children: [
         {
           fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          move: {
-            color: "w",
-            piece: "p",
-            from: "e2",
-            to: "e4",
-            san: "e4",
-            flags: "b",
-            lan: "e2e4",
-            before: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            after: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          },
+          move: e4,
+          san: "e4",
           children: [
             {
               fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              move: {
-                color: "b",
-                piece: "p",
-                from: "e7",
-                to: "e5",
-                san: "e5",
-                flags: "b",
-                lan: "e7e5",
-                before:
-                  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-                after:
-                  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              },
+              move: parseUci("e7e5")!,
+              san: "e5",
               children: [],
               score: null,
               depth: null,
@@ -590,19 +574,8 @@ test("promote 2", () => {
             },
             {
               fen: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              move: {
-                color: "b",
-                piece: "p",
-                from: "e7",
-                to: "e6",
-                san: "e6",
-                flags: "n",
-                lan: "e7e6",
-                before:
-                  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-                after:
-                  "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              },
+              move: parseUci("d7d6")!,
+              san: "d6",
               children: [],
               score: null,
               depth: null,
@@ -646,36 +619,17 @@ test("promote 2", () => {
     root: {
       fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       move: null,
+      san: null,
       children: [
         {
           fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          move: {
-            color: "w",
-            piece: "p",
-            from: "e2",
-            to: "e4",
-            san: "e4",
-            flags: "b",
-            lan: "e2e4",
-            before: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            after: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          },
+          move: e4,
+          san: "e4",
           children: [
             {
               fen: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              move: {
-                color: "b",
-                piece: "p",
-                from: "e7",
-                to: "e6",
-                san: "e6",
-                flags: "n",
-                lan: "e7e6",
-                before:
-                  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-                after:
-                  "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              },
+              move: parseUci("d7d6")!,
+              san: "d6",
               children: [],
               score: null,
               depth: null,
@@ -687,19 +641,8 @@ test("promote 2", () => {
             },
             {
               fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              move: {
-                color: "b",
-                piece: "p",
-                from: "e7",
-                to: "e5",
-                san: "e5",
-                flags: "b",
-                lan: "e7e5",
-                before:
-                  "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-                after:
-                  "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-              },
+              move: parseUci("e7e5")!,
+              san: "e5",
               children: [],
               score: null,
               depth: null,

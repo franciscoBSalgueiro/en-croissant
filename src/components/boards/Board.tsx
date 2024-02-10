@@ -19,11 +19,8 @@ import {
   Annotation,
   TimeControlField,
   getMaterialDiff,
-  makeClk,
-  moveToKey,
   parseKeyboardMove,
   parseTimeControl,
-  parseUci,
 } from "@/utils/chess";
 import {
   chessopsError,
@@ -54,8 +51,15 @@ import {
 } from "@tabler/icons-react";
 import { DrawShape } from "chessground/draw";
 import { Color } from "chessground/types";
-import { NormalMove, Square, SquareName, parseSquare } from "chessops";
-import { chessgroundDests } from "chessops/compat";
+import {
+  NormalMove,
+  Square,
+  SquareName,
+  makeSquare,
+  parseSquare,
+  parseUci,
+} from "chessops";
+import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
@@ -179,14 +183,14 @@ function Board({
         setInvisible(false);
         dispatch({
           type: "MAKE_MOVE",
-          payload: san,
+          payload: move,
         });
         setPendingMove(null);
       }
     } else {
       dispatch({
         type: "MAKE_MOVE",
-        payload: san,
+        payload: move,
         clock: pos.turn === "white" ? whiteTime : blackTime,
       });
       setPendingMove(null);
@@ -199,7 +203,9 @@ function Board({
     for (const [i, moves] of entries) {
       if (i < 4) {
         for (const [j, move] of moves.entries()) {
-          const { from, to } = parseUci(move);
+          const m = parseUci(move)! as NormalMove;
+          const from = makeSquare(m.from)!;
+          const to = makeSquare(m.to)!;
           if (shapes.find((s) => s.orig === from && s.dest === to)) continue;
           shapes.push({
             orig: from,
@@ -407,7 +413,7 @@ function Board({
             {currentNode.annotation && currentNode.move && (
               <AnnotationHint
                 orientation={orientation}
-                square={parseSquare(currentNode.move.to)}
+                square={currentNode.move.to}
                 annotation={currentNode.annotation}
               />
             )}
@@ -479,7 +485,13 @@ function Board({
               }}
               turnColor={turn}
               check={pos?.isCheck()}
-              lastMove={editingMode ? undefined : moveToKey(currentNode.move)}
+              lastMove={
+                editingMode
+                  ? undefined
+                  : currentNode.move
+                    ? chessgroundMove(currentNode.move)
+                    : undefined
+              }
               premovable={{
                 enabled: false,
               }}

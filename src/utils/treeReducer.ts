@@ -1,9 +1,11 @@
 import { BestMoves, Score } from "@/bindings";
-import { Chess, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
-import { INITIAL_FEN, parseFen } from "chessops/fen";
+import { Move, isNormal } from "chessops";
+import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
+import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { Annotation } from "./chess";
+import { positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
@@ -18,6 +20,7 @@ export interface TreeState {
 export interface TreeNode {
   fen: string;
   move: Move | null;
+  san: string | null;
   children: TreeNode[];
   score: Score | null;
   depth: number | null;
@@ -73,6 +76,7 @@ export function defaultTree(fen?: string): TreeState {
     root: {
       fen: fen?.trim() ?? INITIAL_FEN,
       move: null,
+      san: null,
       children: [],
       score: null,
       depth: null,
@@ -97,15 +101,18 @@ export function defaultTree(fen?: string): TreeState {
 export function createNode({
   fen,
   move,
+  san,
   halfMoves,
 }: {
   move: Move;
+  san: string;
   fen: string;
   halfMoves: number;
 }): TreeNode {
   return {
     fen,
     move,
+    san,
     children: [],
     score: null,
     depth: null,
@@ -191,26 +198,14 @@ export type TreeAction =
   | { type: "SET_START"; payload: number[] }
   | {
       type: "MAKE_MOVE";
-      payload:
-        | {
-            from: Square;
-            to: Square;
-            promotion?: string;
-          }
-        | string;
+      payload: Move | string;
       changePosition?: boolean;
       mainline?: boolean;
       clock?: number;
     }
   | {
       type: "APPEND_MOVE";
-      payload:
-        | {
-            from: Square;
-            to: Square;
-            promotion?: string;
-          }
-        | string;
+      payload: Move;
       clock?: number;
     }
   | { type: "MAKE_MOVES"; payload: string[]; mainline?: boolean }
@@ -263,6 +258,15 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     .with(
       { type: "MAKE_MOVE" },
       ({ payload, changePosition, mainline, clock }) => {
+        if (typeof payload === "string") {
+          const node = getNodeAtPath(state.root, state.position);
+          if (!node) return;
+          const [pos] = positionFromFen(node.fen);
+          if (!pos) return;
+          const move = parseSan(pos, payload);
+          if (!move) return;
+          payload = move;
+        }
         if (clock) {
           const node = getNodeAtPath(state.root, state.position);
           if (!node) return;
@@ -287,8 +291,13 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {
       state.dirty = true;
+      const [pos] = positionFromFen(state.root.fen);
+      if (!pos) return;
       for (const move of payload) {
-        makeMove({ state, move, last: false, mainline });
+        const m = parseSan(pos, move);
+        if (!m) return;
+        pos.play(m);
+        makeMove({ state, move: m, last: false, mainline });
       }
     })
     .with({ type: "GO_TO_START" }, () => {
@@ -395,10 +404,14 @@ function is50MoveRule(state: TreeState) {
   let count = 0;
   for (const i of state.position) {
     count += 1;
+    const [pos] = positionFromFen(node.fen);
+    if (!pos) return false;
     if (
-      node.move?.captured ||
-      node.move?.promotion ||
-      node.move?.piece === "p"
+      node.move &&
+      isNormal(node.move) &&
+      (node.move.promotion ||
+        pos.board.get(node.move.to) ||
+        pos.board.get(node.move.from)?.role === "pawn")
     ) {
       count = 0;
     }
@@ -415,7 +428,7 @@ function makeMove({
   mainline = false,
 }: {
   state: TreeState;
-  move: { from: Square; to: Square; promotion?: string } | string;
+  move: Move;
   last: boolean;
   changePosition?: boolean;
   mainline?: boolean;
@@ -426,27 +439,26 @@ function makeMove({
     : state.position;
   const moveNode = getNodeAtPath(state.root, position);
   if (!moveNode) return;
-  const chess = new Chess(moveNode.fen);
-  let m: Move;
-  try {
-    m = chess.move(move);
-  } catch (e) {
-    return;
-  }
-  if (chess.isGameOver()) {
-    if (chess.isCheckmate()) {
-      state.headers.result = chess.turn() === "w" ? "0-1" : "1-0";
+  const [pos] = positionFromFen(moveNode.fen);
+  if (!pos) return;
+  const san = makeSan(pos, move);
+  pos.play(move);
+  if (pos.isEnd()) {
+    if (pos.isCheckmate()) {
+      state.headers.result = pos.turn === "white" ? "0-1" : "1-0";
     }
-    if (chess.isDraw()) {
+    if (pos.isStalemate() || pos.isInsufficientMaterial()) {
       state.headers.result = "1/2-1/2";
     }
   }
 
-  if (isThreeFoldRepetition(state, chess.fen()) || is50MoveRule(state)) {
+  const newFen = makeFen(pos.toSetup());
+
+  if (isThreeFoldRepetition(state, newFen) || is50MoveRule(state)) {
     state.headers.result = "1/2-1/2";
   }
 
-  const i = moveNode.children.findIndex((n) => n.move?.san === m.san);
+  const i = moveNode.children.findIndex((n) => n.move === move);
   if (i !== -1) {
     if (changePosition) {
       if (state.position === position) {
@@ -458,8 +470,9 @@ function makeMove({
   } else {
     state.dirty = true;
     const newMoveNode = createNode({
-      fen: chess.fen(),
-      move: m,
+      fen: newFen,
+      move,
+      san,
       halfMoves: moveNode.halfMoves + 1,
     });
     if (mainline) {
@@ -533,7 +546,8 @@ function addAnalysis(
   const setup = parseFen(state.root.fen).unwrap();
   const initialColor = setup.turn;
   while (cur !== undefined && i < analysis.length) {
-    if (!new Chess(cur.fen).isGameOver()) {
+    const [pos] = positionFromFen(cur.fen);
+    if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
       cur.score = analysis[i].best[0].score;
       if (analysis[i].novelty) {
         cur.commentHTML = "Novelty";
@@ -559,7 +573,7 @@ function addAnalysis(
         color,
         prevMoves,
         analysis[i].is_sacrifice,
-        cur.move?.san ?? "",
+        cur.move ? makeSan(pos, cur.move) : "",
       );
     }
     cur = cur.children[0];

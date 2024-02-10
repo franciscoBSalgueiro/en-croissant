@@ -9,6 +9,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { parseUci } from "chessops";
 import { useContext } from "react";
 import useSWRImmutable from "swr/immutable";
 import { P, match } from "ts-pattern";
@@ -72,7 +73,7 @@ function TablebaseInfo({
                       onClick={() => {
                         dispatch({
                           type: "MAKE_MOVE",
-                          payload: m.san,
+                          payload: parseUci(m.uci)!,
                         });
                       }}
                       className={classes.info}

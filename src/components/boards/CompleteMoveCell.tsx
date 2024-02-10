@@ -29,7 +29,7 @@ function CompleteMoveCell({
   commentHTML: string;
   annotation: Annotation;
   showComments: boolean;
-  move?: string;
+  move?: string | null;
   first?: boolean;
   isCurrentVariation: boolean;
   isStart: boolean;

@@ -6,7 +6,7 @@ import {
   tabsAtom,
 } from "@/atoms/atoms";
 import { events, GoMode, commands } from "@/bindings";
-import { TimeControlField, getMainLine, parseUci } from "@/utils/chess";
+import { TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { EngineSettings, LocalEngine } from "@/utils/engines";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
@@ -33,6 +33,7 @@ import {
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -406,7 +407,7 @@ function BoardGame() {
       ) {
         dispatch({
           type: "APPEND_MOVE",
-          payload: parseUci(ev[0].uciMoves[0]),
+          payload: parseUci(ev[0].uciMoves[0])!,
           clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
       }

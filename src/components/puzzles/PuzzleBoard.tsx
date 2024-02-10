@@ -1,14 +1,20 @@
 import { showCoordinatesAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
-import { moveToKey } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
-import { Chess, NormalMove, makeUci, parseSquare, parseUci } from "chessops";
-import { chessgroundDests } from "chessops/compat";
+import {
+  Chess,
+  Move,
+  NormalMove,
+  makeUci,
+  parseSquare,
+  parseUci,
+} from "chessops";
+import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen, parsePiece } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
@@ -52,16 +58,7 @@ function PuzzleBoard({
   let currentMove = 0;
   if (puzzle) {
     for (const { node } of treeIter) {
-      if (
-        node.move &&
-        makeUci({
-          from: parseSquare(node.move.from),
-          to: parseSquare(node.move.to),
-          promotion: node.move.promotion
-            ? parsePiece(node.move.promotion)?.role
-            : undefined,
-        }) === puzzle.moves[currentMove]
-      ) {
+      if (node.move && makeUci(node.move) === puzzle.moves[currentMove]) {
         currentMove++;
       } else {
         break;
@@ -79,14 +76,12 @@ function PuzzleBoard({
   const turn = pos?.turn || "white";
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
-  function checkMove(move: string) {
+  function checkMove(move: Move) {
     if (!pos) return;
     const newPos = pos.clone();
-    newPos.play(parseUci(move)!);
-    if (
-      puzzle &&
-      (puzzle.moves[currentMove] === move || newPos.isCheckmate())
-    ) {
+    const uci = makeUci(move);
+    newPos.play(move);
+    if (puzzle && (puzzle.moves[currentMove] === uci || newPos.isCheckmate())) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
           changeCompletion("correct");
@@ -135,13 +130,7 @@ function PuzzleBoard({
             cancelMove={() => setPendingMove(null)}
             confirmMove={(p) => {
               if (pendingMove) {
-                checkMove(
-                  makeUci({
-                    from: pendingMove.from,
-                    to: pendingMove.to,
-                    promotion: p,
-                  }),
-                );
+                checkMove({ ...pendingMove, promotion: p });
                 setPendingMove(null);
               }
             }}
@@ -173,12 +162,14 @@ function PuzzleBoard({
                   ) {
                     setPendingMove(move);
                   } else {
-                    checkMove(makeUci(move));
+                    checkMove(move);
                   }
                 },
               },
             }}
-            lastMove={moveToKey(currentNode.move)}
+            lastMove={
+              currentNode.move ? chessgroundMove(currentNode.move) : undefined
+            }
             turnColor={turn}
             fen={currentNode.fen}
             check={pos?.isCheck()}

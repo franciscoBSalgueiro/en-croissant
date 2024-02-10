@@ -94,7 +94,7 @@ export async function openingReport({
     // Check if there's any opening with a 5% or more frequency that isn't a child of item.node
     for (const opening of filteredOpenings) {
       const child = item.node.children.find(
-        (child) => child.move?.san === opening.move,
+        (child) => child.san === opening.move,
       );
       if (!child && opening.move !== "*") {
         missingMoves.push({
