@@ -180,6 +180,9 @@ function tabValue<T extends object | string | boolean | number>(
 
 // Per tab settings
 
+const evalOpenFamily = atomFamily((tab: string) => atom(true));
+export const currentEvalOpenAtom = tabValue(evalOpenFamily);
+
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 

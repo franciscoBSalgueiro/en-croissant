@@ -14,4 +14,5 @@ export const keyMapAtom = atomWithStorage("keybinds", {
   DELETE_MOVE: { name: "Delete move", keys: "delete" },
   CYCLE_TABS: { name: "Cycle tabs", keys: "ctrl+tab" },
   REVERSE_CYCLE_TABS: { name: "Reverse cycle tabs", keys: "ctrl+shift+tab" },
+  TOGGLE_EVAL_BAR: { name: "Toggle Eval Bar and Arrows", keys: "z" },
 });

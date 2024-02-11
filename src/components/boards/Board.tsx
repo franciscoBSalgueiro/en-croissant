@@ -1,6 +1,7 @@
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  currentEvalOpenAtom,
   currentInvisibleAtom,
   currentPracticingAtom,
   currentTabAtom,
@@ -45,6 +46,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import {
+  IconChevronRight,
   IconDeviceFloppy,
   IconEdit,
   IconPlus,
@@ -148,6 +150,7 @@ function Board({
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const practicing = useAtomValue(currentPracticingAtom);
+  const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
@@ -194,7 +197,7 @@ function Board({
   }
 
   let shapes: DrawShape[] = [];
-  if (showArrows && arrows.size > 0) {
+  if (showArrows && evalOpen && arrows.size > 0) {
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
     for (const [i, moves] of entries) {
       if (i < 4) {
@@ -376,6 +379,8 @@ function Board({
       });
     }
   }, [boardFen, editingMode, dispatch]);
+
+  useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
   return (
     <>
@@ -598,7 +603,16 @@ function Board({
           </Group>
         </Box>
         <Box className={classes.evalStyle}>
-          <EvalBar score={currentNode.score} orientation={orientation} />
+          {!evalOpen && (
+            <ActionIcon h="100%" size="1rem" onClick={() => setEvalOpen(true)}>
+              <IconChevronRight />
+            </ActionIcon>
+          )}
+          {evalOpen && (
+            <Box onClick={() => setEvalOpen(false)} h="100%">
+              <EvalBar score={currentNode.score} orientation={orientation} />
+            </Box>
+          )}
         </Box>
       </Box>
     </>
