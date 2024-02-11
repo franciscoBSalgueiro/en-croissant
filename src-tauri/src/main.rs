@@ -86,7 +86,7 @@ const REQUIRED_FILES: &[(BaseDirectory, &str, &str)] =
 
 #[tauri::command]
 #[specta::specta]
-fn close_splashscreen(window: Window) {
+async fn close_splashscreen(window: Window) -> Result<(), String> {
     window
         .get_window("main")
         .expect("no window labeled 'main' found")
@@ -97,6 +97,7 @@ fn close_splashscreen(window: Window) {
         .expect("no window labeled 'main' found")
         .show()
         .unwrap();
+    Ok(())
 }
 
 #[cfg(debug_assertions)]
