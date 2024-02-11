@@ -329,7 +329,7 @@ function BoardGame() {
   const mainLine = Array.from(treeIteratorMainLine(root));
   const currentNode = getNodeAtPath(root, position);
   const lastNode = mainLine[mainLine.length - 1].node;
-  const moves = getMainLine(root);
+  const moves = useMemo(() => getMainLine(root), [root]);
 
   const [pos, error] = useMemo(() => {
     return positionFromFen(lastNode.fen);
