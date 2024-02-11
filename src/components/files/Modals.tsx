@@ -13,6 +13,7 @@ import {
   writeTextFile,
 } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
+import { defaultGame, makePgn } from "chessops/pgn";
 import { useState } from "react";
 import GenericCard from "../common/GenericCard";
 import { FileMetadata, FileType } from "./file";
@@ -49,7 +50,7 @@ export function CreateModal({
       type: filetype,
       tags: [],
     };
-    await writeTextFile(file, "");
+    await writeTextFile(file, makePgn(defaultGame()));
     await writeTextFile(
       file.replace(".pgn", ".info"),
       JSON.stringify(metadata),
@@ -59,7 +60,7 @@ export function CreateModal({
       {
         name: filename,
         path: file,
-        numGames: 0,
+        numGames: 1,
         metadata,
       },
     ]);
