@@ -101,7 +101,9 @@ impl<'de> Deserialize<'de> for PositionQuery {
 impl PositionQuery {
     fn matches(&self, position: &Chess) -> bool {
         match self {
-            PositionQuery::Exact(ref data) => data.position.board() == position.board(),
+            PositionQuery::Exact(ref data) => {
+                data.position.board() == position.board() && data.position.turn() == position.turn()
+            }
             PositionQuery::Partial(ref data) => {
                 let query_board = &data.piece_positions.board;
                 let tested_board = position.board();
