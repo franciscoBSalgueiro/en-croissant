@@ -34,7 +34,12 @@ function Accounts() {
     await invoke("authenticate", { username });
   }
 
-  async function addLichess(username: string, withLogin: boolean) {
+  async function addLichess(
+    player: string,
+    username: string,
+    withLogin: boolean,
+  ) {
+    const p = player !== "" ? player : username;
     if (withLogin) {
       login(username);
     } else {
@@ -44,7 +49,7 @@ function Accounts() {
       if (!account) return;
       setSessions((sessions) => [
         ...sessions,
-        { lichess: { username, account }, updatedAt: Date.now() },
+        { lichess: { username, account }, player: p, updatedAt: Date.now() },
       ]);
     }
   }
@@ -89,12 +94,17 @@ function Accounts() {
         open={open}
         setOpen={setOpen}
         addLichess={addLichess}
-        addChessCom={(u) => {
-          getChessComAccount(u).then((stats) => {
+        addChessCom={(player, username) => {
+          getChessComAccount(username).then((stats) => {
+            const p = player !== "" ? player : username;
             if (!stats) return;
             setSessions((sessions) => [
               ...sessions,
-              { chessCom: { username: u, stats }, updatedAt: Date.now() },
+              {
+                chessCom: { username, stats },
+                player: p,
+                updatedAt: Date.now(),
+              },
             ]);
           });
         }}
@@ -113,11 +123,12 @@ function AccountModal({
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
-  addLichess: (username: string, withLogin: boolean) => void;
-  addChessCom: (username: string) => void;
+  addLichess: (player: string, username: string, withLogin: boolean) => void;
+  addChessCom: (player: string, username: string) => void;
 }) {
   const sessions = useAtomValue(sessionsAtom);
   const [username, setUsername] = useState("");
+  const [player, setPlayer] = useState<string>("");
   const [website, setWebsite] = useState<"lichess" | "chesscom">("lichess");
   const [withLogin, setWithLogin] = useState(false);
 
@@ -129,9 +140,9 @@ function AccountModal({
 
   function addAccount() {
     if (website === "lichess") {
-      addLichess(username, withLogin);
+      addLichess(player, username, withLogin);
     } else {
-      addChessCom(username);
+      addChessCom(player, username);
     }
     setOpen(false);
   }
@@ -148,6 +159,8 @@ function AccountModal({
           <Autocomplete
             label="Name"
             data={Array.from(players)}
+            value={player}
+            onChange={(value) => setPlayer(value)}
             placeholder="Select player"
           />
           <InputWrapper label="Website" required>
