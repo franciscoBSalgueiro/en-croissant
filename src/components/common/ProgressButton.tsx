@@ -76,7 +76,7 @@ function ProgressButton<T extends Payload>({
           onClick(id);
         }}
         color={completed ? "green" : theme.primaryColor}
-        disabled={(completed && !redoable) || disabled}
+        disabled={((inProgress || completed) && !redoable) || disabled}
         leftSection={leftIcon}
       >
         <div className={classes.label}>{label}</div>
