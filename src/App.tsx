@@ -101,13 +101,13 @@ function RootLayout() {
       filters: [{ name: "PGN file", extensions: ["pgn"] }],
     });
     if (typeof selected === "string") {
-      navigate("/boards");
+      navigate("/");
       openFile(selected, setTabs, setActiveTab);
     }
   }
 
   function createNewTab() {
-    navigate("/boards");
+    navigate("/");
     createTab({
       tab: { name: "New Tab", type: "new" },
       setTabs,
@@ -258,7 +258,16 @@ function RootLayout() {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<RootLayout />} errorElement={<ErrorBoundary />}>
-      <Route index element={<HomePage />} errorElement={<ErrorBoundary />} />
+      <Route
+        path="/"
+        element={<BoardsPage />}
+        errorElement={<ErrorBoundary />}
+      />
+      <Route
+        path="accounts"
+        element={<HomePage />}
+        errorElement={<ErrorBoundary />}
+      />
       <Route
         path="settings"
         element={<SettingsPage />}
@@ -293,11 +302,6 @@ const router = createBrowserRouter(
       <Route
         path="engines"
         element={<EnginesPage />}
-        errorElement={<ErrorBoundary />}
-      />
-      <Route
-        path="boards"
-        element={<BoardsPage />}
         errorElement={<ErrorBoundary />}
       />
     </Route>,
@@ -377,7 +381,7 @@ export default function App() {
         info(`Opening file from command line: ${matches.args.file.value}`);
         if (typeof matches.args.file.value === "string") {
           const file = matches.args.file.value;
-          router.navigate("/boards", { replace: true });
+          router.navigate("/", { replace: true });
           openFile(file, setTabs, setActiveTab);
         }
       }

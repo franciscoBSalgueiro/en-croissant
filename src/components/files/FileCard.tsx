@@ -61,7 +61,7 @@ function FileCard({
       fileInfo: selected,
       gameNumber: page,
     });
-    navigate("/boards");
+    navigate("/");
   }
 
   return (

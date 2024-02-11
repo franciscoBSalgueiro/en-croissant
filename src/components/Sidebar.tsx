@@ -37,8 +37,8 @@ function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
 }
 
 const linksdata = [
-  { icon: IconUser, label: "User", url: "/" },
-  { icon: IconChess, label: "Board", url: "/boards" },
+  { icon: IconChess, label: "Board", url: "/" },
+  { icon: IconUser, label: "User", url: "/accounts" },
   { icon: IconFiles, label: "Files", url: "/files" },
   {
     icon: IconDatabase,

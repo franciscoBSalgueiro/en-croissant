@@ -460,7 +460,7 @@ function OpeningNameButton({ name, color }: { name: string; color: Color }) {
           setActiveTab,
           position: Array(countMainPly(tree.root)).fill(0),
         });
-        navigate("/boards");
+        navigate("/");
       }}
     >
       {name}

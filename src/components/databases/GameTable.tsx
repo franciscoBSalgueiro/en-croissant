@@ -264,7 +264,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                         pgn: game.moves,
                         headers: game,
                       });
-                      navigate("/boards");
+                      navigate("/");
                     }}
                   >
                     <IconEye size="1rem" stroke={1.5} />
