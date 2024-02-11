@@ -57,7 +57,7 @@ function AnalysisPanel({
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const { root, position } = useContext(TreeStateContext);
+  const { root, position, headers } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
 
   const [engines, setEngines] = useAtom(enginesAtom);
@@ -214,6 +214,9 @@ function AnalysisPanel({
                                         halfMoves={currentNode.halfMoves}
                                         dragHandleProps={
                                           provided.dragHandleProps
+                                        }
+                                        orientation={
+                                          headers.orientation || "white"
                                         }
                                       />
                                     </Accordion.Item>

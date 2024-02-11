@@ -68,6 +68,7 @@ interface BestMovesProps {
   moves: string[];
   halfMoves: number;
   dragHandleProps: any;
+  orientation: "white" | "black";
 }
 
 function BestMovesComponent({
@@ -77,6 +78,7 @@ function BestMovesComponent({
   moves,
   halfMoves,
   dragHandleProps,
+  orientation,
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
@@ -449,6 +451,7 @@ function BestMovesComponent({
                       halfMoves={halfMoves}
                       threat={threat}
                       fen={threat ? swapMove(finalFen) : finalFen}
+                      orientation={orientation}
                     />
                   );
                 })}
@@ -473,6 +476,7 @@ function BestMovesComponent({
       toggleThreat,
       toggleSettingsOn,
       halfMoves,
+      orientation,
     ],
   );
 }
@@ -483,6 +487,7 @@ export default memo(BestMovesComponent, (prev, next) => {
     prev.engine === next.engine &&
     prev.fen === next.fen &&
     equal(prev.moves, next.moves) &&
-    prev.halfMoves === next.halfMoves
+    prev.halfMoves === next.halfMoves &&
+    prev.orientation === next.orientation
   );
 });
