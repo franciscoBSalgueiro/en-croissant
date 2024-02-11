@@ -20,12 +20,14 @@ function AnalysisRow({
   halfMoves,
   threat,
   fen,
+  orientation,
 }: {
   score: Score;
   moves: string[];
   halfMoves: number;
   threat: boolean;
   fen: string;
+  orientation: "white" | "black";
 }) {
   const [open, setOpen] = useState<boolean>(false);
 
@@ -67,6 +69,7 @@ function AnalysisRow({
               halfMoves={halfMoves}
               threat={threat}
               fen={fen}
+              orientation={orientation}
             />
           ))}
         </Flex>
@@ -93,6 +96,7 @@ function BoardPopover({
   halfMoves,
   threat,
   fen,
+  orientation,
 }: {
   san: string;
   index: number;
@@ -100,6 +104,7 @@ function BoardPopover({
   halfMoves: number;
   threat: boolean;
   fen: string;
+  orientation: "white" | "black";
 }) {
   const [opened, { close, open }] = useDisclosure(false);
   const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
@@ -144,7 +149,12 @@ function BoardPopover({
       <Popover.Dropdown
         style={{ pointerEvents: "none", transitionDuration: "0ms" }}
       >
-        <Chessground fen={fen} coordinates={false} viewOnly />
+        <Chessground
+          fen={fen}
+          coordinates={false}
+          viewOnly
+          orientation={orientation}
+        />
       </Popover.Dropdown>
     </Popover>
   );
