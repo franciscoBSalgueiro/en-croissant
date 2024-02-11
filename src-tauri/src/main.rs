@@ -81,8 +81,8 @@ const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
     (BaseDirectory::Document, "EnCroissant"),
 ];
 
-const REQUIRED_FILES: &[(BaseDirectory, &str)] =
-    &[(BaseDirectory::AppData, "engines/engines.json")];
+const REQUIRED_FILES: &[(BaseDirectory, &str, &str)] =
+    &[(BaseDirectory::AppData, "engines/engines.json", "[]")];
 
 #[tauri::command]
 #[specta::specta]
@@ -198,7 +198,7 @@ fn main() {
             }
 
             log::info!("Checking for required files");
-            for (dir, path) in REQUIRED_FILES.iter() {
+            for (dir, path, contents) in REQUIRED_FILES.iter() {
                 let path = resolve_path(
                     &app.config(),
                     app.package_info(),
@@ -209,7 +209,7 @@ fn main() {
                 .unwrap();
                 if !Path::new(&path).exists() {
                     log::info!("Creating file {}", path.to_string_lossy());
-                    std::fs::write(&path, "").unwrap();
+                    std::fs::write(&path, contents).unwrap();
                 }
             }
 
