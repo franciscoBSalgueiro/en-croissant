@@ -154,12 +154,14 @@ fn main() {
     let view_menu = Submenu::new("View", Menu::new().add_item(reload));
 
     let clear_saved_data = CustomMenuItem::new("clear_saved_data".to_string(), "Clear saved data");
+    let open_logs = CustomMenuItem::new("open_logs".to_string(), "Open logs");
     let check_updates = CustomMenuItem::new("check_updates".to_string(), "Check for updates");
     let about = CustomMenuItem::new("about".to_string(), "About");
     let help_menu = Submenu::new(
         "Help",
         Menu::new()
             .add_item(clear_saved_data)
+            .add_item(open_logs)
             .add_item(check_updates)
             .add_item(about),
     );
