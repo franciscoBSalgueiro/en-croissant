@@ -9,7 +9,7 @@
     "tauri": "tauri",
     "format": "biome format --write ./src",
     "test": "vitest run",
-    "lint": "biome check ./src",
+    "lint": "tsc --noEmit && biome check ./src",
     "lint:fix": "biome check --apply ./src"
   },
   "dependencies": {

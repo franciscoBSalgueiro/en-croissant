@@ -1,13 +1,12 @@
 import { Score, commands } from "@/bindings";
 import { MantineColor } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
-import { Chess, Move, Square } from "chess.js";
 import { DrawShape } from "chessground/draw";
-import { Key } from "chessground/types";
-import { Color, Role, makeSquare, makeUci, parseSquare } from "chessops";
-import { INITIAL_FEN, parseFen, parsePiece } from "chessops/fen";
+import { Color, Role, makeSquare, makeUci } from "chessops";
+import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
-import { warn } from "tauri-plugin-log-api";
+import { makeSan, parseSan } from "chessops/san";
+import { positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { harmonicMean, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
@@ -90,7 +89,7 @@ export function getMoveText(
   const moveNumber = Math.ceil(tree.halfMoves / 2);
   let moveText = "";
 
-  if (tree.move) {
+  if (tree.san) {
     if (isBlack) {
       if (opt.isFirst) {
         moveText += `${moveNumber}... `;
@@ -98,7 +97,7 @@ export function getMoveText(
     } else {
       moveText += `${moveNumber}. `;
     }
-    moveText += tree.move.san;
+    moveText += tree.san;
     if (opt.glyphs) {
       moveText += tree.annotation;
     }
@@ -155,15 +154,7 @@ export function getMainLine(root: TreeNode): string[] {
   while (node.children.length > 0) {
     node = node.children[0];
     if (node.move) {
-      moves.push(
-        makeUci({
-          from: parseSquare(node.move.from),
-          to: parseSquare(node.move.to),
-          promotion: node.move.promotion
-            ? parsePiece(node.move.promotion)?.role
-            : undefined,
-        }),
-      );
+      moves.push(makeUci(node.move));
     }
   }
   return moves;
@@ -175,15 +166,7 @@ export function getVariationLine(root: TreeNode, position: number[]): string[] {
   for (const pos of position) {
     node = node.children[pos];
     if (node.move) {
-      moves.push(
-        makeUci({
-          from: parseSquare(node.move.from),
-          to: parseSquare(node.move.to),
-          promotion: node.move.promotion
-            ? parsePiece(node.move.promotion)?.role
-            : undefined,
-        }),
-      );
+      moves.push(makeUci(node.move));
     }
   }
   return moves;
@@ -265,16 +248,6 @@ export function getPGN(
   }
   return pgn.trim();
 }
-export function moveToKey(move: Move | null) {
-  return move ? ([move.from, move.to] as Key[]) : [];
-}
-
-export function parseUci(move: string) {
-  const from = move.substring(0, 2) as Square;
-  const to = move.substring(2, 4) as Square;
-  const promotion = move.length === 5 ? move[4] : undefined;
-  return { from, to, promotion };
-}
 
 export function parseKeyboardMove(san: string, fen: string) {
   function cleanSan(san: string) {
@@ -288,28 +261,20 @@ export function parseKeyboardMove(san: string, fen: string) {
     return san;
   }
 
-  function makeMove(fen: string, san: string) {
-    const chess = new Chess(fen);
-    const move = chess.move(san);
-    if (move) {
-      return {
-        from: move.from as Square,
-        to: move.to as Square,
-        promotion: move.promotion,
-      };
-    }
+  const [pos] = positionFromFen(fen);
+  if (!pos) {
     return null;
   }
-  try {
-    return makeMove(fen, san);
-  } catch (e) {
-    try {
-      return makeMove(fen, cleanSan(san));
-    } catch (e) {
-      warn(e as string);
-      return null;
-    }
+  const move = parseSan(pos, san);
+  if (move) {
+    return move;
   }
+  const newSan = cleanSan(san);
+  const newMove = parseSan(pos, newSan);
+  if (newMove) {
+    return newMove;
+  }
+  return null;
 }
 
 export async function getOpening(
@@ -417,17 +382,21 @@ function innerParsePGN(
     } else if (token.type === "Nag") {
       root.annotation = NAG_INFO.get(token.value) || "";
     } else if (token.type === "San") {
-      const chess = new Chess(root.fen);
-      let m: Move;
-      try {
-        m = chess.move(token.value);
-      } catch (error) {
+      const [pos, error] = positionFromFen(root.fen);
+      if (error) {
         continue;
       }
+      const move = parseSan(pos, token.value);
+      if (!move) {
+        continue;
+      }
+      const san = makeSan(pos, move);
+      pos.play(move);
 
       const newTree = createNode({
-        fen: chess.fen(),
-        move: m,
+        fen: makeFen(pos.toSetup()),
+        move,
+        san,
         halfMoves: root.halfMoves + 1,
       });
       root.children.push(newTree);

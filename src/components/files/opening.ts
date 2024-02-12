@@ -24,7 +24,7 @@ export function buildFromTree(
     if (
       item.node.children.length === 0 ||
       isPrefix(item.position, start) ||
-      !item.node.children[0].move
+      !item.node.children[0].san
     ) {
       continue;
     }
@@ -35,7 +35,7 @@ export function buildFromTree(
       cards.push({
         fen: item.node.fen,
         position: item.position,
-        answer: item.node.children[0].move?.san,
+        answer: item.node.children[0].san,
         repetitions: 0,
         level: "unseen",
       });

@@ -5,7 +5,6 @@ import {
   tabsAtom,
 } from "@/atoms/atoms";
 import { commands } from "@/bindings";
-import { parseUci } from "@/utils/chess";
 import { unwrap } from "@/utils/invoke";
 import {
   Completion,
@@ -34,7 +33,7 @@ import {
 } from "@mantine/core";
 import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
-import { Chess } from "chessops";
+import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useState } from "react";
@@ -82,7 +81,7 @@ function Puzzles({ id }: { id: string }) {
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
     dispatch({ type: "SET_FEN", payload: puzzle.fen });
-    dispatch({ type: "MAKE_MOVE", payload: parseUci(puzzle.moves[0]) });
+    dispatch({ type: "MAKE_MOVE", payload: parseUci(puzzle.moves[0])! });
   }
 
   function generatePuzzle(db: string) {
@@ -272,7 +271,7 @@ function Puzzles({ id }: { id: string }) {
                 for (let i = 0; i < curPuzzle.moves.length; i++) {
                   dispatch({
                     type: "MAKE_MOVE",
-                    payload: parseUci(curPuzzle.moves[i]),
+                    payload: parseUci(curPuzzle.moves[i])!,
                     mainline: true,
                   });
                   await new Promise((r) => setTimeout(r, 500));

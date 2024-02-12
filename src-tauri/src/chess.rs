@@ -108,7 +108,7 @@ impl EngineProcess {
 
     async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
         let fen: Fen = options.fen.parse()?;
-        let mut pos: Chess = match fen.into_position(CastlingMode::Standard) {
+        let mut pos: Chess = match fen.into_position(CastlingMode::Chess960) {
             Ok(p) => p,
             Err(e) => e.ignore_too_much_material()?,
         };
@@ -249,7 +249,7 @@ fn parse_uci_attrs(
 ) -> Result<BestMoves, Error> {
     let mut best_moves = BestMoves::default();
 
-    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Standard) {
+    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Chess960) {
         Ok(p) => p,
         Err(e) => e.ignore_too_much_material()?,
     };
@@ -586,7 +586,7 @@ pub async fn analyze_game(
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
 
-    let mut chess: Chess = fen.clone().into_position(CastlingMode::Standard)?;
+    let mut chess: Chess = fen.clone().into_position(CastlingMode::Chess960)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
     options.moves.iter().enumerate().for_each(|(i, m)| {
@@ -780,7 +780,7 @@ mod tests {
 
     fn pos(fen: &str) -> Chess {
         let fen: Fen = fen.parse().unwrap();
-        Chess::from_setup(fen.into_setup(), CastlingMode::Standard).unwrap()
+        Chess::from_setup(fen.into_setup(), CastlingMode::Chess960).unwrap()
     }
 
     #[test]

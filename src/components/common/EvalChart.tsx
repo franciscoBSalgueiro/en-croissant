@@ -47,7 +47,7 @@ const EvalChart = (props: EvalChartProps) => {
       const [pos, error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) {
-          return node.move?.color === "w" ? 1 : -1;
+          return pos?.turn === "white" ? 1 : -1;
         }
         if (pos.isStalemate()) {
           return 0;
@@ -87,13 +87,13 @@ const EvalChart = (props: EvalChartProps) => {
     const nodes = getNodes();
     for (let i = 0; i < nodes.length; i++) {
       const currentNode = nodes[i];
-      const move = currentNode.node.move!;
       const yValue = getYValue(currentNode.node);
+      const [pos] = positionFromFen(currentNode.node.fen);
 
       yield {
         name: `${Math.ceil(currentNode.node.halfMoves / 2)}.${
-          move.color === "w" ? "" : ".."
-        } ${move.san}${currentNode.node.annotation}`,
+          pos?.turn === "white" ? "" : ".."
+        } ${currentNode.node.san}${currentNode.node.annotation}`,
         evalText: getEvalText(currentNode.node),
         yValue: yValue ?? "none",
         movePath: currentNode.position,

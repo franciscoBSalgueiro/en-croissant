@@ -46,7 +46,7 @@ pub enum PositionQuery {
 impl PositionQuery {
     pub fn exact_from_fen(fen: &str) -> Result<PositionQuery, Error> {
         let position: Chess =
-            Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Standard)?;
+            Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Chess960)?;
         let pawn_home = get_pawn_home(position.board());
         let material = get_material_count(position.board());
         Ok(PositionQuery::Exact(ExactData {
@@ -172,7 +172,7 @@ fn get_move_after_match(
 ) -> Result<Option<String>, Error> {
     let mut chess = if let Some(fen) = fen {
         let fen = Fen::from_ascii(fen.as_bytes())?;
-        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)?
+        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)?
     } else {
         Chess::default()
     };
@@ -415,7 +415,7 @@ mod tests {
     fn assert_partial_match(fen1: &str, fen2: &str) {
         let query = PositionQuery::partial_from_fen(fen1).unwrap();
         let fen = Fen::from_ascii(fen2.as_bytes()).unwrap();
-        let chess = Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard).unwrap();
+        let chess = Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960).unwrap();
         assert!(query.matches(&chess));
     }
 
