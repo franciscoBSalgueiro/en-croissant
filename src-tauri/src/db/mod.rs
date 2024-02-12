@@ -463,9 +463,7 @@ pub async fn convert_pgn(
                 let elapsed = start.elapsed().as_millis() as u32;
                 app.emit_all("convert_progress", (i, elapsed)).unwrap();
             }
-            if !game.moves.is_empty() {
-                game.insert_to_db(db)?;
-            }
+            game.insert_to_db(db)?;
         }
         Ok(())
     })?;
