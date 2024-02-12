@@ -2,7 +2,14 @@ import { Score, commands } from "@/bindings";
 import { MantineColor } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
 import { DrawShape } from "chessground/draw";
-import { Color, Role, makeSquare, makeUci } from "chessops";
+import {
+  Color,
+  NormalMove,
+  Role,
+  makeSquare,
+  makeUci,
+  parseSquare,
+} from "chessops";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
@@ -163,12 +170,33 @@ export function getMainLine(root: TreeNode): string[] {
 export function getVariationLine(root: TreeNode, position: number[]): string[] {
   const moves = [];
   let node = root;
+  const [chess] = positionFromFen(root.fen);
+  if (!chess) {
+    return [];
+  }
   for (const pos of position) {
     node = node.children[pos];
     if (node.move) {
-      moves.push(makeUci(node.move));
+      const move = node.move as NormalMove;
+      const uci = makeUci(node.move);
+      const square = parseSquare(uci.substring(0, 2))!;
+      const kingRole = chess.board.get(square)?.role;
+
+      if (kingRole === "king") {
+        if (uci.endsWith("h1") || uci.endsWith("a1")) {
+          moves.push(uci.endsWith("h1") ? "e1g1" : "e1c1");
+        } else if (uci.endsWith("h8") || uci.endsWith("a8")) {
+          moves.push(uci.endsWith("h8") ? "e8g8" : "e8c8");
+        } else {
+          moves.push(uci);
+        }
+      } else {
+        moves.push(uci);
+      }
+      chess.play(move);
     }
   }
+  console.log(moves);
   return moves;
 }
 
