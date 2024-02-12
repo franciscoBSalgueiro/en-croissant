@@ -350,10 +350,6 @@ async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
 #[serde(rename_all = "camelCase")]
 #[derivative(Default)]
 pub struct EngineOptions {
-    // pub multipv: u16,
-    // pub threads: u16,
-    // pub hash: u16,
-    #[derivative(Default(value = "Fen::default().to_string()"))]
     pub fen: String,
     pub moves: Vec<String>,
     pub extra_options: Vec<EngineOption>,
