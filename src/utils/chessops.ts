@@ -2,14 +2,17 @@ import {
   Chess,
   Color,
   IllegalSetup,
+  Move,
   PositionError,
   Square,
   SquareName,
   makeSquare,
+  parseUci,
   squareFile,
   squareRank,
 } from "chessops";
 import { FenError, InvalidFen, makeFen, parseFen } from "chessops/fen";
+import { parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 
 export function positionFromFen(
@@ -116,4 +119,18 @@ export function hasCaptures(pos: Chess) {
     }
   }
   return false;
+}
+
+export function parseSanOrUci(pos: Chess, sanOrUci: string): Move | null {
+  const sanParsed = parseSan(pos, sanOrUci);
+  if (sanParsed) {
+    return sanParsed;
+  }
+
+  const uciParsed = parseUci(sanOrUci);
+  if (uciParsed) {
+    return uciParsed;
+  }
+
+  return null;
 }

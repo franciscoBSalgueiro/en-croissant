@@ -13,7 +13,7 @@ import {
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
-import { positionFromFen } from "./chessops";
+import { parseSanOrUci, positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { harmonicMean, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
@@ -293,12 +293,12 @@ export function parseKeyboardMove(san: string, fen: string) {
   if (!pos) {
     return null;
   }
-  const move = parseSan(pos, san);
+  const move = parseSanOrUci(pos, san);
   if (move) {
     return move;
   }
   const newSan = cleanSan(san);
-  const newMove = parseSan(pos, newSan);
+  const newMove = parseSanOrUci(pos, newSan);
   if (newMove) {
     return newMove;
   }

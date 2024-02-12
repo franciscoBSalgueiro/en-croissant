@@ -5,7 +5,7 @@ import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { Annotation } from "./chess";
-import { positionFromFen } from "./chessops";
+import { parseSanOrUci, positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
@@ -295,7 +295,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
       const [pos] = positionFromFen(node.fen);
       if (!pos) return;
       for (const move of payload) {
-        const m = parseSan(pos, move);
+        const m = parseSanOrUci(pos, move);
         if (!m) return;
         pos.play(m);
         makeMove({ state, move: m, last: false, mainline });
