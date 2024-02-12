@@ -443,6 +443,7 @@ function makeMove({
   const [pos] = positionFromFen(moveNode.fen);
   if (!pos) return;
   const san = makeSan(pos, move);
+  if (san === "--") return; // invalid move
   pos.play(move);
   if (pos.isEnd()) {
     if (pos.isCheckmate()) {
