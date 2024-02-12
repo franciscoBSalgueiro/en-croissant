@@ -183,9 +183,9 @@ export function getVariationLine(root: TreeNode, position: number[]): string[] {
       const kingRole = chess.board.get(square)?.role;
 
       if (kingRole === "king") {
-        if (uci.endsWith("h1") || uci.endsWith("a1")) {
+        if (uci === "e1h1" || uci === "e1a1") {
           moves.push(uci.endsWith("h1") ? "e1g1" : "e1c1");
-        } else if (uci.endsWith("h8") || uci.endsWith("a8")) {
+        } else if (uci === "e8h8" || uci === "e8a8") {
           moves.push(uci.endsWith("h8") ? "e8g8" : "e8c8");
         } else {
           moves.push(uci);
