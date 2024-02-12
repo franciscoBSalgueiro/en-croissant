@@ -1,8 +1,7 @@
 import { commands } from "@/bindings";
-import { Player, PlayerGameInfo } from "@/utils/db";
+import { Player } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
-import { Center, Group, Loader, Paper, Stack, Text } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { Center, Loader, Paper, Stack, Text } from "@mantine/core";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "../home/PersonalCard";
 

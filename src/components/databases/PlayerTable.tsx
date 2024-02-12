@@ -19,7 +19,7 @@ import * as classes from "./styles.css";
 
 function PlayerTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
-  const [players, setplayers] = useState<Player[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [count, setCount] = useState(0);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,7 +46,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
       direction: sort.direction,
     }).then((res) => {
       setLoading(false);
-      setplayers(res.data);
+      setPlayers(res.data);
       setCount(res.count);
     });
   }, [name, range, limit, file]);
@@ -63,7 +63,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
       direction: sort.direction,
     }).then((res) => {
       setLoading(false);
-      setplayers(res.data);
+      setPlayers(res.data);
       setCount(res.count);
     });
   }, [activePage, sort]);
@@ -161,7 +161,7 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
         />
       }
       preview={
-        selectedPlayer !== null ? (
+        selectedPlayer !== null && players[selectedPlayer] ? (
           <PlayerCard player={players[selectedPlayer]} file={database.file} />
         ) : (
           <Center h="100%">

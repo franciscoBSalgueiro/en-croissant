@@ -122,7 +122,7 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
         />
       }
       preview={
-        selected !== null ? (
+        selected !== null && tournaments[selected] ? (
           <TournamentCard
             tournament={tournaments[selected]}
             file={database.file}

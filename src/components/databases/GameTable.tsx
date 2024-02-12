@@ -319,7 +319,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
           />
         }
         preview={
-          selectedGame !== null ? (
+          selectedGame !== null && games[selectedGame] ? (
             <GameCard game={games[selectedGame]} />
           ) : (
             <Center h="100%">
