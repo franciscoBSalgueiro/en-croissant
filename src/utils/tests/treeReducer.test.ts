@@ -1,9 +1,7 @@
-import { Chess } from "chess.js";
 import { parseUci } from "chessops";
 import { expect, test } from "vitest";
 import treeReducer, { TreeState, defaultTree } from "../treeReducer";
 
-const chess = new Chess();
 const e4 = parseUci("e2e4")!;
 const d5 = parseUci("d7d5")!;
 const treeE4D5: () => TreeState = () => ({

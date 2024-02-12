@@ -35,7 +35,6 @@
     "@tiptap/react": "2.1.13",
     "@tiptap/starter-kit": "2.1.13",
     "@vitejs/plugin-react-swc": "^3.5.0",
-    "chess.js": "1.0.0-beta.6",
     "chessground": "^8.3.10",
     "chessops": "^0.12.8",
     "clsx": "^2.0.0",
