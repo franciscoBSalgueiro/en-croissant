@@ -27,6 +27,7 @@ import { attachConsole, info } from "tauri-plugin-log-api";
 import { SideBar } from "./components/Sidebar";
 
 import { ask, message, open } from "@tauri-apps/api/dialog";
+import { open as shellOpen } from "@tauri-apps/api/shell";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import {
@@ -63,6 +64,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { listen } from "@tauri-apps/api/event";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { useHotkeys } from "react-hotkeys-hook";
 import { keyMapAtom } from "./atoms/keybinds";
@@ -185,6 +187,19 @@ function RootLayout() {
                 location.reload();
               }
             });
+          },
+        },
+        {
+          label: "Open Logs",
+          id: "logs",
+          action: async () => {
+            const appDataDirPath = await appDataDir();
+            const path = await resolve(
+              appDataDirPath,
+              "logs",
+              "en-croissant.log",
+            );
+            await shellOpen(path);
           },
         },
         { label: "divider" },
