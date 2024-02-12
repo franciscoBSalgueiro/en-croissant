@@ -291,7 +291,8 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {
       state.dirty = true;
-      const [pos] = positionFromFen(state.root.fen);
+      const node = getNodeAtPath(state.root, state.position);
+      const [pos] = positionFromFen(node.fen);
       if (!pos) return;
       for (const move of payload) {
         const m = parseSan(pos, move);
@@ -458,7 +459,7 @@ function makeMove({
     state.headers.result = "1/2-1/2";
   }
 
-  const i = moveNode.children.findIndex((n) => n.move === move);
+  const i = moveNode.children.findIndex((n) => n.san === san);
   if (i !== -1) {
     if (changePosition) {
       if (state.position === position) {

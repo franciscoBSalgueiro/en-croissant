@@ -88,9 +88,8 @@ export function getMoveText(
   const isBlack = tree.halfMoves % 2 === 0;
   const moveNumber = Math.ceil(tree.halfMoves / 2);
   let moveText = "";
-  const [pos] = positionFromFen(tree.fen);
 
-  if (tree.move && pos) {
+  if (tree.san) {
     if (isBlack) {
       if (opt.isFirst) {
         moveText += `${moveNumber}... `;
@@ -98,7 +97,7 @@ export function getMoveText(
     } else {
       moveText += `${moveNumber}. `;
     }
-    moveText += makeSan(pos, tree.move);
+    moveText += tree.san;
     if (opt.glyphs) {
       moveText += tree.annotation;
     }
