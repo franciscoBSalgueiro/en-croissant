@@ -1,6 +1,6 @@
 import { events } from "@/bindings";
 import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
+import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
 import {
   Alert,
@@ -149,6 +149,14 @@ function AddDatabase({
                 const filename = selected.split(/(\\|\/)/g).pop();
                 if (filename) {
                   form.setFieldValue("filename", filename);
+                  if (!form.values.title) {
+                    form.setFieldValue(
+                      "title",
+                      capitalize(
+                        filename.replaceAll(/[_-]/g, " ").replace(".pgn", ""),
+                      ),
+                    );
+                  }
                 }
               }}
               filename={form.values.filename}
