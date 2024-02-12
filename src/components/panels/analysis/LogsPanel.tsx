@@ -109,6 +109,7 @@ export default function LogsPanel() {
       )}
       <Box w="100%" flex={1}>
         <VirtualizedScrollArea
+          key={filteredData?.length}
           itemCount={filteredData?.length || 0}
           itemSize={30}
           innerElementType={Inner}
