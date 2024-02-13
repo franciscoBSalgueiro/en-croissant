@@ -1,4 +1,7 @@
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
 import { chessopsError } from "@/utils/chessops";
 import { invoke } from "@/utils/invoke";
 import {
@@ -21,14 +24,22 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
 
   const [error, setError] = useState<FenError | undefined>(undefined);
   const dispatch = useContext(TreeDispatchContext);
+  const { headers } = useContext(TreeStateContext);
 
-  function addFen(fen: string) {
+  function addFen(fen: string, chess960: boolean) {
     if (fen) {
       const res = parseFen(fen);
       if (res.isErr) {
         setError(res.error);
       } else {
-        dispatch({ type: "SET_FEN", payload: fen });
+        dispatch({
+          type: "SET_HEADERS",
+          payload: {
+            ...headers,
+            fen,
+            variant: chess960 ? "Chess960" : undefined,
+          },
+        });
         setError(undefined);
       }
     }
@@ -78,10 +89,10 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
       withinPortal={true}
       onOptionSubmit={(val) => {
         if (val === "$create") {
-          addFen(search);
+          addFen(search, data?.some((item) => item.fen === search) || false);
           setValue(search);
         } else {
-          addFen(val);
+          addFen(val, data?.some((item) => item.fen === val) || false);
           setValue(val);
           setSearch(val);
         }
@@ -112,7 +123,10 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
               prev.current !== "ArrowDown" &&
               prev.current !== "ArrowUp"
             ) {
-              addFen(search);
+              addFen(
+                search,
+                data?.some((item) => item.fen === search) || false,
+              );
               combobox.closeDropdown();
             }
             prev.current = event.nativeEvent.code;

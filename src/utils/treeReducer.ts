@@ -141,6 +141,7 @@ export type GameHeaders = {
   eco?: string;
   white_material?: number;
   black_material?: number;
+  variant?: string;
   // Repertoire headers
   start?: number[];
   orientation?: "white" | "black";
@@ -172,6 +173,9 @@ export function headersToPGN(game: GameHeaders): string {
   }
   if (game.eco) {
     headers += `[ECO "${game.eco}"]\n`;
+  }
+  if (game.variant) {
+    headers += `[Variant "${game.variant}"]\n`;
   }
   return headers;
 }

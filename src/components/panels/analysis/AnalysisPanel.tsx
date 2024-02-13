@@ -74,9 +74,13 @@ function AnalysisPanel({
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
 
   const stats = useMemo(() => getGameStats(root), [root]);
+  const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
 
   const fen = root.fen;
-  const moves = getVariationLine(root, position);
+  const moves = useMemo(
+    () => getVariationLine(root, position, is960),
+    [root, position, is960],
+  );
   const [pos] = positionFromFen(currentNode.fen);
   const navigate = useNavigate();
 
@@ -218,6 +222,7 @@ function AnalysisPanel({
                                         orientation={
                                           headers.orientation || "white"
                                         }
+                                        chess960={is960}
                                       />
                                     </Accordion.Item>
                                   </div>

@@ -69,6 +69,7 @@ interface BestMovesProps {
   halfMoves: number;
   dragHandleProps: any;
   orientation: "white" | "black";
+  chess960: boolean;
 }
 
 function BestMovesComponent({
@@ -79,6 +80,7 @@ function BestMovesComponent({
   halfMoves,
   dragHandleProps,
   orientation,
+  chess960,
 }: BestMovesProps) {
   const dispatch = useContext(TreeDispatchContext);
   const activeTab = useAtomValue(activeTabAtom);
@@ -204,14 +206,18 @@ function BestMovesComponent({
             stopEngine(engine, activeTab!);
           }
         } else {
+          const options =
+            settings.settings?.map((s) => ({
+              name: s.name,
+              value: s.value?.toString() || "",
+            })) ?? [];
+          if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
+            options.push({ name: "UCI_Chess960", value: "true" });
+          }
           getBestMoves(activeTab!, settings.go, {
             moves: searchingMoves,
             fen: searchingFen,
-            extraOptions:
-              settings.settings?.map((s) => ({
-                name: s.name,
-                value: s.value?.toString() || "",
-              })) ?? [],
+            extraOptions: options,
           }).then((moves) => {
             if (moves) {
               const [progress, bestMoves] = moves;

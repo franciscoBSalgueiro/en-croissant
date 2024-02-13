@@ -2,17 +2,12 @@ import { Score, commands } from "@/bindings";
 import { MantineColor } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
 import { DrawShape } from "chessground/draw";
-import {
-  Color,
-  NormalMove,
-  Role,
-  makeSquare,
-  makeUci,
-  parseSquare,
-} from "chessops";
+import { Color, Role, makeSquare, makeUci } from "chessops";
+import { castlingSide, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
+import { match } from "ts-pattern";
 import { parseSanOrUci, positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { harmonicMean, mean } from "./misc";
@@ -167,7 +162,11 @@ export function getMainLine(root: TreeNode): string[] {
   return moves;
 }
 
-export function getVariationLine(root: TreeNode, position: number[]): string[] {
+export function getVariationLine(
+  root: TreeNode,
+  position: number[],
+  chess960?: boolean,
+): string[] {
   const moves = [];
   let node = root;
   const [chess] = positionFromFen(root.fen);
@@ -177,26 +176,22 @@ export function getVariationLine(root: TreeNode, position: number[]): string[] {
   for (const pos of position) {
     node = node.children[pos];
     if (node.move) {
-      const move = node.move as NormalMove;
-      const uci = makeUci(node.move);
-      const square = parseSquare(uci.substring(0, 2))!;
-      const kingRole = chess.board.get(square)?.role;
-
-      if (kingRole === "king") {
-        if (uci === "e1h1" || uci === "e1a1") {
-          moves.push(uci.endsWith("h1") ? "e1g1" : "e1c1");
-        } else if (uci === "e8h8" || uci === "e8a8") {
-          moves.push(uci.endsWith("h8") ? "e8g8" : "e8c8");
-        } else {
-          moves.push(uci);
-        }
+      const side = castlingSide(chess, node.move);
+      const frcMove = normalizeMove(chess, node.move);
+      if (side && !chess960) {
+        const standardMove = match(makeUci(frcMove))
+          .with("e1h1", () => "e1g1")
+          .with("e1a1", () => "e1c1")
+          .with("e8h8", () => "e8g8")
+          .with("e8a8", () => "e8c8")
+          .otherwise((v) => v);
+        moves.push(standardMove);
       } else {
-        moves.push(uci);
+        moves.push(makeUci(frcMove));
       }
-      chess.play(move);
+      chess.play(frcMove);
     }
   }
-  console.log(moves);
   return moves;
 }
 
@@ -482,6 +477,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     Start,
     Orientation,
     TimeControl,
+    Variant,
   } = Object.fromEntries(headersN);
 
   const headers: GameHeaders = {
@@ -499,6 +495,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     start: JSON.parse(Start ?? "[]"),
     orientation: (Orientation as "white" | "black") ?? "white",
     time_control: TimeControl,
+    variant: Variant,
   };
   return headers;
 }
