@@ -4,8 +4,10 @@ import {
   IllegalSetup,
   Move,
   PositionError,
+  Setup,
   Square,
   SquareName,
+  SquareSet,
   makeSquare,
   parseUci,
   squareFile,
@@ -13,6 +15,7 @@ import {
 } from "chessops";
 import { FenError, InvalidFen, makeFen, parseFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
+import { squareFromCoords } from "chessops/util";
 import { match } from "ts-pattern";
 
 export function positionFromFen(
@@ -133,4 +136,36 @@ export function parseSanOrUci(pos: Chess, sanOrUci: string): Move | null {
   }
 
   return null;
+}
+
+export function getCastlingSquare(
+  setup: Setup,
+  color: "w" | "b",
+  side: "q" | "k",
+) {
+  const kingSquare = (color === "w" ? setup.board.white : setup.board.black)
+    .intersect(setup.board.king)
+    .singleSquare();
+  if (kingSquare === undefined) {
+    return;
+  }
+
+  let possibleRookSquares = SquareSet.empty();
+  for (let file = 0; file < 8; file++) {
+    const newSquare = squareFromCoords(file, squareRank(kingSquare));
+    if (newSquare === undefined) {
+      continue;
+    }
+    if (side === "q" && file < squareFile(kingSquare)) {
+      possibleRookSquares = possibleRookSquares.set(newSquare, true);
+    } else if (side === "k" && file > squareFile(kingSquare)) {
+      possibleRookSquares = possibleRookSquares.set(newSquare, true);
+    }
+  }
+
+  const rookSquares = (color === "w" ? setup.board.white : setup.board.black)
+    .intersect(setup.board.rook)
+    .intersect(possibleRookSquares);
+
+  return rookSquares.first();
 }
