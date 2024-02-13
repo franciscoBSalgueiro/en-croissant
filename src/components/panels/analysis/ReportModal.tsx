@@ -58,14 +58,25 @@ function ReportModal({
   function analyze() {
     setInProgress(true);
     toggleReportingMode();
+    const engine = localEngines.find((e) => e.path === form.values.engine);
+    const engineSettings = (engine?.settings ?? []).map((s) => ({
+      ...s,
+      value: s.value?.toString() ?? "",
+    }));
+
     commands
-      .analyzeGame(form.values.engine, form.values.goMode, {
-        annotateNovelties: form.values.novelty,
-        fen: initialFen,
-        referenceDb,
-        reversed: form.values.reversed,
-        moves,
-      })
+      .analyzeGame(
+        form.values.engine,
+        form.values.goMode,
+        {
+          annotateNovelties: form.values.novelty,
+          fen: initialFen,
+          referenceDb,
+          reversed: form.values.reversed,
+          moves,
+        },
+        engineSettings,
+      )
       .then((analysis) => {
         const analysisData = unwrap(analysis);
         dispatch({

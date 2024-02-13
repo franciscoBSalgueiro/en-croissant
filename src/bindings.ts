@@ -25,9 +25,9 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async analyzeGame(engine: string, goMode: GoMode, options: AnalysisOptions) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
+async analyzeGame(engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
 try {
-    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { engine, goMode, options }) };
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { engine, goMode, options, uciOptions }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

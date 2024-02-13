@@ -576,6 +576,7 @@ pub async fn analyze_game(
     engine: String,
     go_mode: GoMode,
     options: AnalysisOptions,
+    uci_options: Vec<EngineOption>,
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, Error> {
@@ -620,16 +621,24 @@ pub async fn analyze_game(
         }
         .emit_all(&app)?;
 
-        proc.set_options(EngineOptions {
-            // threads: 4,
-            // multipv: 2,
-            // hash: 16,
-            fen: options.fen.clone(),
-            moves: moves.clone(),
-            extra_options: vec![EngineOption {
+        let mut extra_options = uci_options.clone();
+        if !extra_options.iter().any(|x| x.name == "MultiPV") {
+            extra_options.push(EngineOption {
                 name: "MultiPV".to_string(),
                 value: "2".to_string(),
-            }],
+            });
+        } else {
+            extra_options.iter_mut().for_each(|x| {
+                if x.name == "MultiPV" {
+                    x.value = "2".to_string();
+                }
+            });
+        }
+
+        proc.set_options(EngineOptions {
+            fen: options.fen.clone(),
+            moves: moves.clone(),
+            extra_options,
         })
         .await?;
 
