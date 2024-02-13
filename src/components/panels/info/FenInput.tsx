@@ -26,12 +26,24 @@ function FenInput({ currentFen }: { currentFen: string }) {
     const blackKingSquare = getCastlingSquare(setup, "b", "k");
     const blackQueenSquare = getCastlingSquare(setup, "b", "q");
     whiteCastling = {
-      k: whiteKingSquare ? setup.castlingRights.has(whiteKingSquare) : false,
-      q: whiteQueenSquare ? setup.castlingRights.has(whiteQueenSquare) : false,
+      k:
+        whiteKingSquare !== undefined
+          ? setup.castlingRights.has(whiteKingSquare)
+          : false,
+      q:
+        whiteQueenSquare !== undefined
+          ? setup.castlingRights.has(whiteQueenSquare)
+          : false,
     };
     blackCastling = {
-      k: blackKingSquare ? setup.castlingRights.has(blackKingSquare) : false,
-      q: blackQueenSquare ? setup.castlingRights.has(blackQueenSquare) : false,
+      k:
+        blackKingSquare !== undefined
+          ? setup.castlingRights.has(blackKingSquare)
+          : false,
+      q:
+        blackQueenSquare !== undefined
+          ? setup.castlingRights.has(blackQueenSquare)
+          : false,
     };
   }
 

@@ -42,3 +42,13 @@ test("should get the correct castling square in FRC 600", () => {
   expect(getCastlingSquare(setup, "b", "k")).toBe(parseSquare("f8"));
   expect(getCastlingSquare(setup, "b", "q")).toBe(parseSquare("a8"));
 });
+
+test("should get the correct castling square in FRC 608", () => {
+  const setup = parseFen(
+    "rqnkrnbb/pppppppp/8/8/8/8/PPPPPPPP/RQNKRNBB w EAea - 0 1",
+  ).unwrap();
+  expect(getCastlingSquare(setup, "w", "k")).toBe(parseSquare("e1"));
+  expect(getCastlingSquare(setup, "w", "q")).toBe(parseSquare("a1"));
+  expect(getCastlingSquare(setup, "b", "k")).toBe(parseSquare("e8"));
+  expect(getCastlingSquare(setup, "b", "q")).toBe(parseSquare("a8"));
+});
