@@ -1,8 +1,9 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { swapMove } from "@/utils/chessops";
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
+import { Setup, SquareSet } from "chessops";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
-import { squareFromCoords } from "chessops/util";
+import { squareFile, squareFromCoords, squareRank } from "chessops/util";
 import { memo, useContext } from "react";
 import FenSearch from "./FenSearch";
 
@@ -21,14 +22,46 @@ function FenInput({ currentFen }: { currentFen: string }) {
   let whiteCastling: Castlingrights = { k: false, q: false };
   let blackCastling: Castlingrights = { k: false, q: false };
 
+  function getCastlingSquare(setup: Setup, color: "w" | "b", side: "q" | "k") {
+    const kingSquare = (color === "w" ? setup.board.white : setup.board.black)
+      .intersect(setup.board.king)
+      .singleSquare();
+    if (kingSquare === undefined) {
+      return;
+    }
+
+    let possibleRookSquares = SquareSet.empty();
+    for (let file = 0; file < 8; file++) {
+      const newSquare = squareFromCoords(file, squareRank(kingSquare));
+      if (!newSquare) {
+        continue;
+      }
+      if (side === "q" && file < squareFile(kingSquare)) {
+        possibleRookSquares = possibleRookSquares.set(newSquare, true);
+      } else if (side === "k" && file > squareFile(kingSquare)) {
+        possibleRookSquares = possibleRookSquares.set(newSquare, true);
+      }
+    }
+
+    const rookSquares = (color === "w" ? setup.board.white : setup.board.black)
+      .intersect(setup.board.rook)
+      .intersect(possibleRookSquares);
+
+    return rookSquares.first();
+  }
+
   if (setup) {
+    const whiteKingSquare = getCastlingSquare(setup, "w", "k");
+    const whiteQueenSquare = getCastlingSquare(setup, "w", "q");
+    const blackKingSquare = getCastlingSquare(setup, "b", "k");
+    const blackQueenSquare = getCastlingSquare(setup, "b", "q");
     whiteCastling = {
-      k: setup.castlingRights.has(squareFromCoords(7, 0)!),
-      q: setup.castlingRights.has(squareFromCoords(0, 0)!),
+      k: whiteKingSquare ? setup.castlingRights.has(whiteKingSquare) : false,
+      q: whiteQueenSquare ? setup.castlingRights.has(whiteQueenSquare) : false,
     };
     blackCastling = {
-      k: setup.castlingRights.has(squareFromCoords(7, 7)!),
-      q: setup.castlingRights.has(squareFromCoords(0, 7)!),
+      k: blackKingSquare ? setup.castlingRights.has(blackKingSquare) : false,
+      q: blackQueenSquare ? setup.castlingRights.has(blackQueenSquare) : false,
     };
   }
 
@@ -38,14 +71,14 @@ function FenInput({ currentFen }: { currentFen: string }) {
     value: boolean,
   ) {
     if (setup) {
-      setup.castlingRights = setup.castlingRights.set(
-        squareFromCoords(side === "q" ? 0 : 7, color === "w" ? 0 : 7)!,
-        value,
-      );
-      dispatch({
-        type: "SET_FEN",
-        payload: makeFen(setup),
-      });
+      const castlingSquare = getCastlingSquare(setup, color, side);
+      if (castlingSquare !== undefined) {
+        setup.castlingRights = setup.castlingRights.set(castlingSquare, value);
+        dispatch({
+          type: "SET_FEN",
+          payload: makeFen(setup),
+        });
+      }
     }
   }
 
