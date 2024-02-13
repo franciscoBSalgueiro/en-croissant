@@ -9,7 +9,11 @@ import { events, GoMode, commands } from "@/bindings";
 import { TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { EngineSettings, LocalEngine } from "@/utils/engines";
-import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
+import {
+  GameHeaders,
+  getNodeAtPath,
+  treeIteratorMainLine,
+} from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -596,7 +600,7 @@ function BoardGame() {
                         setBlackTime(players.black.timeControl.seconds);
                       }
                       setPlayers(players);
-                      const newHeaders: any = {
+                      const newHeaders: Partial<GameHeaders> = {
                         white:
                           (players.white.type === "human"
                             ? players.white.name
@@ -608,9 +612,13 @@ function BoardGame() {
                         time_control: undefined,
                       };
                       if (sameTimeControl && players.white.timeControl) {
-                        newHeaders.timeControl = `${players.white.timeControl.seconds}`;
+                        newHeaders.time_control = `${
+                          players.white.timeControl.seconds / 1000
+                        }`;
                         if (players.white.timeControl.increment) {
-                          newHeaders.timeControl += `+${players.white.timeControl.increment}`;
+                          newHeaders.time_control += `+${
+                            players.white.timeControl.increment / 1000
+                          }`;
                         }
                       }
                       dispatch({
