@@ -107,7 +107,8 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
           }}
           onKeyDown={(event) => {
             if (
-              event.nativeEvent.code === "Enter" &&
+              (event.nativeEvent.code === "Enter" ||
+                event.nativeEvent.code === "NumpadEnter") &&
               prev.current !== "ArrowDown" &&
               prev.current !== "ArrowUp"
             ) {

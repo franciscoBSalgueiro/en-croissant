@@ -41,6 +41,14 @@ const TSV_DATA: [&[u8]; 5] = [
     include_bytes!("../data/e.tsv"),
 ];
 
+const FISCHER_RANDOM_DATA: &[u8] = include_bytes!("../data/frc.tsv");
+
+#[derive(Deserialize)]
+struct FischerRandomRecord {
+    name: String,
+    fen: String,
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn get_opening_from_fen(fen: &str) -> Result<String, Error> {
@@ -130,6 +138,19 @@ lazy_static! {
                     pgn: Some(record.pgn),
                 });
             }
+        }
+        let mut rdr = csv::ReaderBuilder::new()
+            .delimiter(b'\t')
+            .from_reader(FISCHER_RANDOM_DATA);
+        for result in rdr.deserialize() {
+            let record: FischerRandomRecord = result.expect("Failed to deserialize opening");
+            let fen: Fen = record.fen.parse().expect("Failed to parse fen");
+            positions.push(Opening {
+                eco: "FRC".to_string(),
+                name: record.name,
+                setup: fen.into_setup(),
+                pgn: None,
+            });
         }
         positions
     };
