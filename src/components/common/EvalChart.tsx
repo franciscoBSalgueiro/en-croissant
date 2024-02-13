@@ -47,7 +47,7 @@ const EvalChart = (props: EvalChartProps) => {
       const [pos, error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) {
-          return pos?.turn === "white" ? 1 : -1;
+          return pos?.turn === "white" ? -1 : 1;
         }
         if (pos.isStalemate()) {
           return 0;
