@@ -1,17 +1,13 @@
 use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
 
 use derivative::Derivative;
-use log::info;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::San, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode,
+    fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode,
     Position, Role,
 };
 use specta::Type;
-use tauri::{
-    api::path::{resolve_path, BaseDirectory},
-    Manager,
-};
 use tauri_specta::Event;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
@@ -66,6 +62,14 @@ impl EngineProcess {
         let mut logs = Vec::new();
 
         let mut stdin = child.stdin.take().ok_or(Error::NoStdin)?;
+
+        tokio::spawn(async move {
+            let mut stderr = BufReader::new(child.stderr.take().unwrap()).lines();
+            while let Some(line) = stderr.next_line().await.unwrap() {
+                error!("{}", &line);
+            }
+        });
+
         let mut lines = BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines();
 
         let _ = stdin.write_all("uci\n".as_bytes()).await;
