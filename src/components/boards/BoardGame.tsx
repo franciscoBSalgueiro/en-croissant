@@ -502,12 +502,12 @@ function BoardGame() {
       const intervalId = setInterval(decrementTime, 100);
       if (pos?.turn === "black" && whiteTime !== null) {
         setWhiteTime(
-          (prev) => prev! + (players.black.timeControl?.increment ?? 0),
+          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
         );
       }
       if (pos?.turn === "white" && blackTime !== null) {
         setBlackTime(
-          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
+          (prev) => prev! + (players.black.timeControl?.increment ?? 0),
         );
       }
       setIntervalId(intervalId);
