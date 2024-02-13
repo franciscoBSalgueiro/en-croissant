@@ -250,6 +250,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     .with({ type: "SET_HEADERS" }, ({ payload }) => {
       state.dirty = true;
       state.headers = payload;
+      if (payload.fen && payload.fen !== state.root.fen) {
+        state.root = defaultTree(payload.fen).root;
+        state.position = [];
+      }
     })
     .with({ type: "SET_ORIENTATION" }, ({ payload }) => {
       state.dirty = true;
