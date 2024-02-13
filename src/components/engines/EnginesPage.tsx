@@ -599,7 +599,8 @@ function EngineName({ engine }: { engine: Engine }) {
     async ([, path]) => {
       if (path === null) return false;
       if (engine.type !== "local") return true;
-      return await exists(path);
+      const res = await commands.fileExists(path);
+      return res.status === "ok";
     },
   );
 

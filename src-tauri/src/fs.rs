@@ -13,7 +13,6 @@ use tauri_specta::Event;
 use std::os::unix::fs::PermissionsExt;
 
 use futures_util::StreamExt;
-use tauri::Manager;
 
 use crate::error::Error;
 
@@ -146,4 +145,10 @@ pub async fn append_to_file(path: String, text: String) -> Result<(), Error> {
     let mut file = std::fs::OpenOptions::new().append(true).open(path)?;
     file.write_all(text.as_bytes())?;
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn file_exists(path: String) -> Result<bool, Error> {
+    Ok(Path::new(&path).exists())
 }
