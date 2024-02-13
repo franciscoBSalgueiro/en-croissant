@@ -157,13 +157,14 @@ export function getMainLine(root: TreeNode, is960: boolean): string[] {
       position.push(0);
     }
   }
-  return getVariationLine(root, position, is960);
+  return getVariationLine(root, position, is960, true);
 }
 
 export function getVariationLine(
   root: TreeNode,
   position: number[],
   chess960?: boolean,
+  includeLastMove = false,
 ): string[] {
   const moves = [];
   let node = root;
@@ -189,6 +190,9 @@ export function getVariationLine(
       }
       chess.play(frcMove);
     }
+  }
+  if (includeLastMove && node.children.length > 0) {
+    moves.push(makeUci(node.children[0].move!));
   }
   return moves;
 }
