@@ -150,16 +150,14 @@ export function getMoveText(
   return moveText;
 }
 
-export function getMainLine(root: TreeNode): string[] {
-  const moves = [];
-  let node = root;
-  while (node.children.length > 0) {
-    node = node.children[0];
+export function getMainLine(root: TreeNode, is960: boolean): string[] {
+  const position = [];
+  for (let node = root; node.children.length > 0; node = node.children[0]) {
     if (node.move) {
-      moves.push(makeUci(node.move));
+      position.push(0);
     }
   }
-  return moves;
+  return getVariationLine(root, position, is960);
 }
 
 export function getVariationLine(

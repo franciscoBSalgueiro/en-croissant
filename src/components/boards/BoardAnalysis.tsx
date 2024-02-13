@@ -113,7 +113,7 @@ function BoardAnalysis() {
       <Suspense>
         <ReportModal
           initialFen={root.fen}
-          moves={getMainLine(root)}
+          moves={getMainLine(root, headers.variant === "Chess960")}
           reportingMode={reportingMode}
           toggleReportingMode={toggleReportingMode}
           setInProgress={setInProgress}
