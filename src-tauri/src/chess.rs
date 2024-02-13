@@ -73,6 +73,13 @@ impl EngineProcess {
         while let Some(line) = lines.next_line().await? {
             logs.push(EngineLog::Engine(line.clone()));
             if line == "uciok" {
+                stdin.write_all("isready\n".as_bytes()).await;
+                while let Some(line_is_ready) = lines.next_line().await? {
+                    logs.push(EngineLog::Engine(line.clone()));
+                    if line_is_ready == "readyok" {
+                        break;
+                    }
+                }
                 break;
             }
         }
