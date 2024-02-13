@@ -361,19 +361,29 @@ function Board({
     blackSeconds = blackTime / 1000;
   }
 
+  function calculateProgress(clock?: number, tc?: TimeControlField) {
+    if (!clock) {
+      return 0;
+    }
+    if (tc) {
+      return clock / (tc.seconds / 1000);
+    }
+    if (timeControl) {
+      return clock / (timeControl[0].seconds / 1000);
+    }
+    if (root.children.length > 0 && root.children[0].clock) {
+      return clock / root.children[0].clock;
+    }
+    return 0;
+  }
+
   const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
   const topTc = orientation === "black" ? whiteTc : blackTc;
-  const topProgress =
-    (topTc || timeControl) && topClock
-      ? topClock / ((topTc?.seconds ?? timeControl![0].seconds) / 1000)
-      : 0;
+  const topProgress = calculateProgress(topClock, topTc);
 
   const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
   const bottomTc = orientation === "black" ? blackTc : whiteTc;
-  const bottomProgress =
-    (topTc || timeControl) && bottomClock
-      ? bottomClock / ((bottomTc?.seconds ?? timeControl![0].seconds) / 1000)
-      : 0;
+  const bottomProgress = calculateProgress(bottomClock, bottomTc);
 
   const [boardFen, setBoardFen] = useState<string | null>(null);
 

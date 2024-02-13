@@ -464,6 +464,15 @@ function BoardGame() {
   }, [gameState, whiteTime, setGameState, dispatch, headers]);
 
   useEffect(() => {
+    if (gameState !== "playing") {
+      if (intervalId) {
+        clearInterval(intervalId);
+        setIntervalId(null);
+      }
+    }
+  }, [gameState, intervalId]);
+
+  useEffect(() => {
     if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
       setGameState("gameOver");
       dispatch({
@@ -629,6 +638,8 @@ function BoardGame() {
                 <Button
                   onClick={() => {
                     setGameState("settingUp");
+                    setWhiteTime(null);
+                    setBlackTime(null);
                     dispatch({
                       type: "SET_FEN",
                       payload: INITIAL_FEN,

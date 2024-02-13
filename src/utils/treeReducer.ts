@@ -103,16 +103,19 @@ export function createNode({
   move,
   san,
   halfMoves,
+  clock,
 }: {
   move: Move;
   san: string;
   fen: string;
   halfMoves: number;
+  clock?: number;
 }): TreeNode {
   return {
     fen,
     move,
     san,
+    clock: clock ? clock / 1000 : undefined,
     children: [],
     score: null,
     depth: null,
@@ -275,27 +278,18 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
           if (!move) return;
           payload = move;
         }
-        if (clock) {
-          const node = getNodeAtPath(state.root, state.position);
-          if (!node) return;
-          node.clock = clock / 1000;
-        }
         makeMove({
           state,
           move: payload,
           last: false,
           changePosition,
           mainline,
+          clock,
         });
       },
     )
     .with({ type: "APPEND_MOVE" }, ({ payload, clock }) => {
-      if (clock) {
-        const node = getNodeAtPath(state.root, state.position);
-        if (!node) return;
-        node.clock = clock / 1000;
-      }
-      makeMove({ state, move: payload, last: true });
+      makeMove({ state, move: payload, last: true, clock });
     })
     .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {
       state.dirty = true;
@@ -435,12 +429,14 @@ function makeMove({
   last,
   changePosition = true,
   mainline = false,
+  clock,
 }: {
   state: TreeState;
   move: Move;
   last: boolean;
   changePosition?: boolean;
   mainline?: boolean;
+  clock?: number;
 }) {
   const mainLine = Array.from(treeIteratorMainLine(state.root));
   const position = last
@@ -484,6 +480,7 @@ function makeMove({
       move,
       san,
       halfMoves: moveNode.halfMoves + 1,
+      clock,
     });
     if (mainline) {
       moveNode.children.unshift(newMoveNode);
