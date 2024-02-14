@@ -70,6 +70,8 @@ export function countMainPly(node: TreeNode): number {
 }
 
 export function defaultTree(fen?: string): TreeState {
+  const [pos] = positionFromFen(fen ?? INITIAL_FEN);
+
   return {
     dirty: false,
     position: [],
@@ -80,7 +82,7 @@ export function defaultTree(fen?: string): TreeState {
       children: [],
       score: null,
       depth: null,
-      halfMoves: 0,
+      halfMoves: pos?.turn === "black" ? 1 : 0,
       shapes: [],
       annotation: "",
       commentHTML: "",

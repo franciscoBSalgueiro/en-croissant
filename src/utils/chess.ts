@@ -442,10 +442,14 @@ export async function parsePGN(
   const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
 
   const headers = getPgnHeaders(tokens);
+  const fen = initialFen?.trim() || headers.fen.trim();
+
+  const [pos] = positionFromFen(fen);
+
   const tree = innerParsePGN(
     tokens,
     initialFen?.trim() || headers.fen.trim(),
-    0,
+    pos?.turn === "black" ? 1 : 0,
   );
   tree.headers = headers;
   tree.position = headers.start ?? [];
