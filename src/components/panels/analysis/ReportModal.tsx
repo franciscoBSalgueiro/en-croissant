@@ -13,8 +13,15 @@ import {
   Stack,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useAtomValue } from "jotai";
-import { memo, useContext } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { memo, useContext, useEffect } from "react";
+
+const reportSettingsAtom = atomWithStorage("report-settings", {
+  novelty: true,
+  reversed: true,
+  goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
+});
 
 function ReportModal({
   tab,
@@ -38,12 +45,17 @@ function ReportModal({
   );
   const dispatch = useContext(TreeDispatchContext);
 
+  useEffect(() => {
+    if (!form.values.engine && localEngines.length > 0) {
+      form.setFieldValue("engine", localEngines[0].path);
+    }
+  }, [localEngines.length]);
+  const [reportSettings, setReportSettings] = useAtom(reportSettingsAtom);
+
   const form = useForm({
     initialValues: {
-      engine: localEngines[0]?.path ?? "",
-      novelty: true,
-      reversed: true,
-      goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
+      ...reportSettings,
+      engine: "",
     },
 
     validate: {
@@ -58,6 +70,7 @@ function ReportModal({
   });
 
   function analyze() {
+    setReportSettings(form.values);
     setInProgress(true);
     toggleReportingMode();
     const engine = localEngines.find((e) => e.path === form.values.engine);
