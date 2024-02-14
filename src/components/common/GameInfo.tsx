@@ -172,9 +172,7 @@ function GameInfo({
                   type: "SET_HEADERS",
                   payload: {
                     ...headers,
-                    date: dayjs(date, "YYYY.MM.DD").isValid()
-                      ? dayjs(date, "YYYY.MM.DD").format("YYYY.MM.DD")
-                      : undefined,
+                    date: date ? dayjs(date).format("YYYY.MM.DD") : undefined,
                   },
                 });
               }}
