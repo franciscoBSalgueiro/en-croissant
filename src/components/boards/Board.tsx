@@ -377,6 +377,13 @@ function Board({
     return 0;
   }
 
+  const hasClock =
+    whiteTime !== undefined ||
+    blackTime !== undefined ||
+    headers.time_control !== undefined ||
+    whiteTc !== undefined ||
+    blackTc !== undefined;
+
   const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
   const topTc = orientation === "black" ? whiteTc : blackTc;
   const topProgress = calculateProgress(topClock, topTc);
@@ -540,7 +547,7 @@ function Board({
         <Box className={classes.top}>
           {data && (
             <Group pb="0.2rem">
-              {topClock && (
+              {hasClock && (
                 <Paper
                   className={
                     orientation === "white"
@@ -549,13 +556,14 @@ function Board({
                   }
                   styles={{
                     root: {
+                      visibility: topClock ? "visible" : "hidden",
                       opacity: turn === orientation ? 0.5 : 1,
                       transition: "opacity 0.15s",
                     },
                   }}
                 >
                   <Text fz="lg" fw="bold" px="xs">
-                    {formatClock(topClock)}
+                    {topClock ? formatClock(topClock) : "0:00"}
                   </Text>
                   <Progress
                     size="xs"
@@ -582,7 +590,7 @@ function Board({
           <Group justify="space-between">
             {data && (
               <Group>
-                {bottomClock && (
+                {hasClock && (
                   <Paper
                     className={
                       orientation === "black"
@@ -592,12 +600,13 @@ function Board({
                     styles={{
                       root: {
                         opacity: turn !== orientation ? 0.5 : 1,
+                        visibility: bottomClock ? "visible" : "hidden",
                         transition: "opacity 0.15s",
                       },
                     }}
                   >
                     <Text fz="lg" fw="bold" px="xs">
-                      {formatClock(bottomClock)}
+                      {bottomClock ? formatClock(bottomClock) : "0:00"}
                     </Text>
                     <Progress
                       size="xs"
