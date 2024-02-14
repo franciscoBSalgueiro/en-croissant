@@ -239,9 +239,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Forced en-passant</Text>
+                  <Text>Forced En Croissant</Text>
                   <Text size="xs" c="dimmed">
-                    {"Forces you to play en-passant, if it's a legal move."}
+                    {"Forces you to play En Croissant, if it's a legal move."}
                   </Text>
                 </div>
                 <SettingsSwitch atom={forcedEnPassantAtom} />
