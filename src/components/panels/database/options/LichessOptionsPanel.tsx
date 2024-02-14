@@ -1,4 +1,4 @@
-import { currentLichessOptionsAtom } from "@/atoms/atoms";
+import { lichessOptionsAtom } from "@/atoms/atoms";
 import ToggleButtonGroup, {
   ToggleButtonGroupOption,
 } from "@/components/common/ToggleButtonGroup";
@@ -22,9 +22,7 @@ import { useEffect, useState } from "react";
 import { match } from "ts-pattern";
 
 const LichessOptionsPanel = () => {
-  const [originalOptions, setOriginalOptions] = useAtom(
-    currentLichessOptionsAtom,
-  );
+  const [originalOptions, setOriginalOptions] = useAtom(lichessOptionsAtom);
   const [options, setOptions] = useState(originalOptions);
   const [debouncedOptions] = useDebouncedValue(options, 500);
 

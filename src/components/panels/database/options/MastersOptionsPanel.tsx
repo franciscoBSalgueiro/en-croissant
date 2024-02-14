@@ -1,10 +1,10 @@
-import { currentMasterOptionsAtom } from "@/atoms/atoms";
+import { masterOptionsAtom } from "@/atoms/atoms";
 import { Group } from "@mantine/core";
 import { YearPickerInput } from "@mantine/dates";
 import { useAtom } from "jotai";
 
 const MasterOptionsPanel = () => {
-  const [options, setOptions] = useAtom(currentMasterOptionsAtom);
+  const [options, setOptions] = useAtom(masterOptionsAtom);
   return (
     <Group grow>
       <YearPickerInput

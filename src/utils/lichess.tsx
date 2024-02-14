@@ -303,24 +303,30 @@ async function getCloudEvaluation(fen: string, multipv: number) {
 }
 
 export async function getLichessGames(
+  fen: string,
   options: LichessGamesOptions,
 ): Promise<PositionData> {
   const url = match(options.player)
     .with(
       P.union(undefined, ""),
-      () => `${explorerURL}/lichess?${getLichessGamesQueryParams(options)}`,
+      () =>
+        `${explorerURL}/lichess?${getLichessGamesQueryParams(fen, options)}`,
     )
     .otherwise(
-      () => `${explorerURL}/player?${getLichessGamesQueryParams(options)}`,
+      () => `${explorerURL}/player?${getLichessGamesQueryParams(fen, options)}`,
     );
   const res = await fetch<PositionData>(url);
   return res.data;
 }
 
 export async function getMasterGames(
+  fen: string,
   options: MasterGamesOptions,
 ): Promise<PositionData> {
-  const url = `${explorerURL}/masters?${getMasterGamesQueryParams(options)}`;
+  const url = `${explorerURL}/masters?${getMasterGamesQueryParams(
+    fen,
+    options,
+  )}`;
   return (await fetch<PositionData>(url)).data;
 }
 

@@ -1,6 +1,5 @@
 export type LichessGamesOptions = {
   //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerLichess
-  fen: string;
   variant?: LichessVariant;
   speeds?: LichessGameSpeed[];
   ratings?: LichessRating[];
@@ -15,7 +14,6 @@ export type LichessGamesOptions = {
 
 export type MasterGamesOptions = {
   //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerMaster
-  fen: string;
   since?: Date;
   until?: Date;
   moves?: number;
@@ -23,6 +21,7 @@ export type MasterGamesOptions = {
 };
 
 export function getLichessGamesQueryParams(
+  fen: string,
   options: LichessGamesOptions | undefined,
 ): string {
   const getDateQueryString = (date: Date) =>
@@ -31,7 +30,7 @@ export function getLichessGamesQueryParams(
   const params = new URLSearchParams();
 
   if (options) {
-    if (options.fen) params.append("fen", options.fen);
+    params.append("fen", fen);
     if (options.player && options.color) {
       params.append("player", options.player);
       params.append("color", options.color);
@@ -64,13 +63,14 @@ export function getLichessGamesQueryParams(
 }
 
 export function getMasterGamesQueryParams(
+  fen: string,
   options: MasterGamesOptions | undefined,
 ): string {
   const getDateQueryString = (date: Date) => date.getFullYear().toString();
 
   const queryParams: string[] = [];
   if (options) {
-    queryParams.push(`fen=${options.fen}`);
+    queryParams.push(`fen=${fen}`);
     if (options.since)
       queryParams.push(`since=${getDateQueryString(options.since)}`);
     if (options.until)

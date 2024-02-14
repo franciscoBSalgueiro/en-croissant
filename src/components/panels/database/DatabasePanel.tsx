@@ -1,10 +1,10 @@
 import {
   currentDbTabAtom,
   currentDbTypeAtom,
-  currentLichessOptionsAtom,
   currentLocalOptionsAtom,
-  currentMasterOptionsAtom,
   currentTabAtom,
+  lichessOptionsAtom,
+  masterOptionsAtom,
   referenceDbAtom,
 } from "@/atoms/atoms";
 import { Opening, searchPosition } from "@/utils/db";
@@ -42,8 +42,8 @@ import MasterOptionsPanel from "./options/MastersOptionsPanel";
 
 type DBType =
   | { type: "local"; options: LocalOptions }
-  | { type: "lch_all"; options: LichessGamesOptions }
-  | { type: "lch_master"; options: MasterGamesOptions };
+  | { type: "lch_all"; options: LichessGamesOptions; fen: string }
+  | { type: "lch_master"; options: MasterGamesOptions; fen: string };
 
 export type LocalOptions = {
   path: string | null;
@@ -58,10 +58,9 @@ function sortOpenings(openings: Opening[]) {
 }
 
 async function fetchOpening(db: DBType, tab: string) {
-  if (db.options.fen === "") return { openings: [], games: [] };
   return match(db)
-    .with({ type: "lch_all" }, async ({ options }) => {
-      const data = await getLichessGames(options);
+    .with({ type: "lch_all" }, async ({ fen, options }) => {
+      const data = await getLichessGames(fen, options);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -74,8 +73,8 @@ async function fetchOpening(db: DBType, tab: string) {
         ),
       };
     })
-    .with({ type: "lch_master" }, async ({ options }) => {
-      const data = await getMasterGames(options);
+    .with({ type: "lch_master" }, async ({ fen, options }) => {
+      const data = await getMasterGames(fen, options);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -102,20 +101,14 @@ async function fetchOpening(db: DBType, tab: string) {
 function DatabasePanel({ fen }: { fen: string }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
-  const [lichessOptions, setLichessOptions] = useAtom(
-    currentLichessOptionsAtom,
-  );
-  const [masterOptions, setMasterOptions] = useAtom(currentMasterOptionsAtom);
+  const [lichessOptions, setLichessOptions] = useAtom(lichessOptionsAtom);
+  const [masterOptions, setMasterOptions] = useAtom(masterOptionsAtom);
   const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
   const [db, setDb] = useAtom(currentDbTypeAtom);
 
   useEffect(() => {
     if (db === "local") {
       setLocalOptions((q) => ({ ...q, fen: debouncedFen }));
-    } else if (db === "lch_all") {
-      setLichessOptions((q) => ({ ...q, fen: debouncedFen }));
-    } else if (db === "lch_master") {
-      setMasterOptions((q) => ({ ...q, fen: debouncedFen }));
     }
   }, [debouncedFen, setLocalOptions, setMasterOptions, setLichessOptions, db]);
 
@@ -130,8 +123,16 @@ function DatabasePanel({ fen }: { fen: string }) {
       type: v,
       options: localOptions,
     }))
-    .with("lch_all", (v) => ({ type: v, options: lichessOptions }))
-    .with("lch_master", (v) => ({ type: v, options: masterOptions }))
+    .with("lch_all", (v) => ({
+      type: v,
+      options: lichessOptions,
+      fen: debouncedFen,
+    }))
+    .with("lch_master", (v) => ({
+      type: v,
+      options: masterOptions,
+      fen: debouncedFen,
+    }))
     .exhaustive();
 
   const tab = useAtomValue(currentTabAtom);
