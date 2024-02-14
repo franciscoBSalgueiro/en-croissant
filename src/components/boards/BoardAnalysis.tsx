@@ -206,6 +206,7 @@ function BoardAnalysis() {
             >
               <Suspense>
                 <AnalysisPanel
+                  tabId={currentTab?.value || ""}
                   toggleReportingMode={toggleReportingMode}
                   inProgress={inProgress}
                   setInProgress={setInProgress}

@@ -56,7 +56,7 @@ function ProgressButton<T extends Payload>({
     return () => {
       unlisten.then((f) => f());
     };
-  }, []);
+  }, [id]);
 
   let label: string;
   if (completed) {

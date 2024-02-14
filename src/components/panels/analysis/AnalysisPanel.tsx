@@ -49,10 +49,12 @@ import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 
 function AnalysisPanel({
+  tabId,
   toggleReportingMode,
   inProgress,
   setInProgress,
 }: {
+  tabId: string;
   toggleReportingMode: () => void;
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
@@ -292,7 +294,7 @@ function AnalysisPanel({
                 )}
                 <div>
                   <ProgressButton
-                    id={`report_${tab}`}
+                    id={`report_${tabId}`}
                     redoable
                     disabled={root.children.length === 0}
                     leftIcon={<IconZoomCheck size="0.875rem" />}
