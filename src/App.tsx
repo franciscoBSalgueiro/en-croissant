@@ -385,6 +385,13 @@ export default function App() {
     commands.setMenuVisisble(isNative);
   }, [isNative]);
 
+  // For some reason the above useEffect doesn't work on startup
+  useEffect(() => {
+    setTimeout(() => {
+      commands.setMenuVisisble(isNative);
+    }, 100);
+  }, []);
+
   useEffect(() => {
     (async () => {
       await commands.closeSplashscreen();
