@@ -309,10 +309,6 @@ impl Visitor for Importer {
             self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"UTCTime" {
             self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"WhiteTitle" || key == b"BlackTitle" {
-            if value.as_bytes() == b"BOT" {
-                self.skip = true;
-            }
         } else if key == b"Site" {
             self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Event" {
