@@ -132,7 +132,9 @@ function FideInfo({
       ) : (
         <Center>
           <Text fz="lg" pb="lg">
-            {error && "Player not found"}
+            {error
+              ? `There was an error searching for player: ${error.message}`
+              : "Player not found"}
           </Text>
         </Center>
       )}
