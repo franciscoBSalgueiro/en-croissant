@@ -42,6 +42,7 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
+import { mergeRefs, useElementSize } from "@mantine/hooks";
 import {
   IconChevronRight,
   IconDeviceFloppy,
@@ -419,10 +420,27 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
+  const {
+    ref: sizeRef,
+    width: boardWith,
+    height: boardHeight,
+  } = useElementSize();
+
+  const ref = mergeRefs(boardRef, sizeRef);
+
   return (
     <>
       <Box className={classes.container}>
         <Box className={classes.board}>
+          {currentNode.annotation && currentNode.move && square && (
+            <Box w={boardWith} h={boardHeight} pos="absolute">
+              <AnnotationHint
+                orientation={orientation}
+                square={square}
+                annotation={currentNode.annotation}
+              />
+            </Box>
+          )}
           <Box
             style={
               currentNode.annotation !== ""
@@ -433,7 +451,7 @@ function Board({
                 : undefined
             }
             className={chessboard}
-            ref={boardRef}
+            ref={ref}
             onWheel={(e) => {
               if (e.deltaY > 0) {
                 dispatch({
@@ -446,13 +464,6 @@ function Board({
               }
             }}
           >
-            {currentNode.annotation && currentNode.move && square && (
-              <AnnotationHint
-                orientation={orientation}
-                square={square}
-                annotation={currentNode.annotation}
-              />
-            )}
             <PromotionModal
               pendingMove={pendingMove}
               cancelMove={() => setPendingMove(null)}
