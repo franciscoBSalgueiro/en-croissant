@@ -18,7 +18,6 @@ export const container = style({
 
 export const board = style({
   gridArea: "Board",
-  overflow: "hidden",
 });
 
 export const top = style({
