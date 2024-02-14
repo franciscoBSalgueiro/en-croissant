@@ -186,9 +186,13 @@ function Databases() {
 
   const [progress, setProgress] = useState(0);
   useEffect(() => {
-    events.databaseProgress.listen((e) => {
+    const unlisten = events.databaseProgress.listen((e) => {
       setProgress(e.payload.progress);
     });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   return (

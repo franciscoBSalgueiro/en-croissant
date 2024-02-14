@@ -25,9 +25,9 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async analyzeGame(engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
+async analyzeGame(id: string, engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
 try {
-    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { engine, goMode, options, uciOptions }) };
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { id, engine, goMode, options, uciOptions }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -134,13 +134,13 @@ export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties:
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type DatabaseProgress = { id: string; progress: number }
-export type DownloadProgress = { progress: number; id: bigint; finished: boolean }
+export type DownloadProgress = { progress: number; id: string; finished: boolean }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
-export type ReportProgress = { progress: number; id: bigint; finished: boolean }
+export type ReportProgress = { progress: number; id: string; finished: boolean }
 export type Results = { won: number; lost: number; draw: number }
 export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
 /**

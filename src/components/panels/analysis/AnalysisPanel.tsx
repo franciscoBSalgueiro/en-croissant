@@ -292,7 +292,7 @@ function AnalysisPanel({
                 )}
                 <div>
                   <ProgressButton
-                    id={0}
+                    id={`report_${tab}`}
                     redoable
                     disabled={root.children.length === 0}
                     leftIcon={<IconZoomCheck size="0.875rem" />}

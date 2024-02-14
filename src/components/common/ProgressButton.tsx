@@ -4,16 +4,16 @@ import { memo, useEffect, useState } from "react";
 import * as classes from "./ProgressButton.css";
 
 type Payload = {
-  id: bigint;
+  id: string;
   progress: number;
   finished: boolean;
 };
 
 type Props<T> = {
-  id: number;
+  id: string;
   initInstalled: boolean;
   progressEvent: { listen: (handler: EventCallback<T>) => Promise<UnlistenFn> };
-  onClick: (id: number) => void;
+  onClick: (id: string) => void;
   leftIcon?: React.ReactNode;
   labels: {
     completed: string;
@@ -44,7 +44,7 @@ function ProgressButton<T extends Payload>({
 
   useEffect(() => {
     const unlisten = progressEvent.listen(async ({ payload }) => {
-      if (Number(payload.id) !== id) return;
+      if (payload.id !== id) return;
       if (payload.finished) {
         setInProgress(false);
         setCompleted(true);

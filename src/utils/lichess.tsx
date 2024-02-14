@@ -349,15 +349,8 @@ export async function downloadLichess(
   }
   const path = await resolve(await appDataDir(), "db", `${player}_lichess.pgn`);
 
-  const id = Math.floor(Math.random() * 1000000);
-  await events.downloadProgress.listen((e) => {
-    if (Number(e.payload.id) === id) {
-      setProgress(e.payload.progress);
-    }
-  });
-
   await invoke("download_file", {
-    id,
+    id: `lichess_${player}`,
     url,
     path,
     token,

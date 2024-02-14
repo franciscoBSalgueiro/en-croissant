@@ -112,6 +112,7 @@ function BoardAnalysis() {
     <>
       <Suspense>
         <ReportModal
+          tab={currentTab?.value || ""}
           initialFen={root.fen}
           moves={getMainLine(root, headers.variant === "Chess960")}
           reportingMode={reportingMode}

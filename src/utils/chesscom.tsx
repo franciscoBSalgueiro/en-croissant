@@ -1,3 +1,4 @@
+import { events } from "@/bindings";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { writeTextFile } from "@tauri-apps/api/fs";
@@ -106,7 +107,6 @@ async function getGameArchives(player: string) {
 export async function downloadChessCom(
   player: string,
   timestamp: number | null,
-  setProgress: (progress: number) => void,
 ) {
   const timestampDate = new Date(timestamp ?? 0);
   const approximateDate = new Date(
@@ -154,10 +154,18 @@ export async function downloadChessCom(
     writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
       append: true,
     });
-    setProgress(
-      (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
-    );
+    events.downloadProgress.emit({
+      finished: false,
+      id: `chesscom_${player}`,
+      progress:
+        (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
+    });
   }
+  events.downloadProgress.emit({
+    finished: false,
+    id: `chesscom_${player}`,
+    progress: 100,
+  });
 }
 
 export async function getChesscomGame(gameURL: string) {

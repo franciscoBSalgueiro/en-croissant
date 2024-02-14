@@ -4,8 +4,8 @@ use derivative::Derivative;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode,
-    Position, Role,
+    fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode, Position,
+    Role,
 };
 use specta::Type;
 use tauri_specta::Event;
@@ -19,7 +19,6 @@ use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage, UciOptionConfig};
 use crate::{
     db::{is_position_in_db, PositionQuery},
     error::Error,
-    fs::DownloadProgress,
     AppState,
 };
 
@@ -578,13 +577,14 @@ pub struct AnalysisOptions {
 #[derive(Clone, Type, serde::Serialize, Event)]
 pub struct ReportProgress {
     pub progress: f64,
-    pub id: u64,
+    pub id: String,
     pub finished: bool,
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(
+    id: String,
     engine: String,
     go_mode: GoMode,
     options: AnalysisOptions,
@@ -628,7 +628,7 @@ pub async fn analyze_game(
     for (i, (_, moves, _)) in fens.iter().enumerate() {
         ReportProgress {
             progress: (i as f64 / fens.len() as f64) * 100.0,
-            id: 0,
+            id: id.clone(),
             finished: false,
         }
         .emit_all(&app)?;
@@ -712,7 +712,7 @@ pub async fn analyze_game(
     }
     ReportProgress {
         progress: 100.0,
-        id: 0,
+        id: id.clone(),
         finished: true,
     }
     .emit_all(&app)?;

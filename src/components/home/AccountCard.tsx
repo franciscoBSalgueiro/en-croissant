@@ -1,3 +1,4 @@
+import { events } from "@/bindings";
 import { downloadChessCom } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
@@ -103,9 +104,29 @@ export function AccountCard({
       timestamp,
       title: title + (type === "lichess" ? " Lichess" : " Chess.com"),
     });
-    setLoading(false);
-    setDatabases(await getDatabases());
+    events.downloadProgress.emit({
+      id: `${type}_${title}`,
+      progress: 100,
+      finished: true,
+    });
   }
+
+  useEffect(() => {
+    const unlisten = events.downloadProgress.listen(async (e) => {
+      if (e.payload.id === `${type}_${title}`) {
+        setProgress(e.payload.progress);
+        if (e.payload.finished) {
+          setLoading(false);
+          setDatabases(await getDatabases());
+        } else {
+          setLoading(true);
+        }
+      }
+    });
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [setDatabases]);
 
   const downloadedGames = database?.game_count ?? 0;
   const percentage = ((downloadedGames / total) * 100).toFixed(2);
@@ -172,11 +193,7 @@ export function AccountCard({
                           token,
                         );
                       } else {
-                        await downloadChessCom(
-                          title,
-                          lastGameDate,
-                          setProgress,
-                        );
+                        await downloadChessCom(title, lastGameDate);
                       }
                       const p = await resolve(
                         await appDataDir(),

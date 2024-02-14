@@ -17,12 +17,14 @@ import { useAtomValue } from "jotai";
 import { memo, useContext } from "react";
 
 function ReportModal({
+  tab,
   initialFen,
   moves,
   reportingMode,
   toggleReportingMode,
   setInProgress,
 }: {
+  tab: string;
   initialFen: string;
   moves: string[];
   reportingMode: boolean;
@@ -66,6 +68,7 @@ function ReportModal({
 
     commands
       .analyzeGame(
+        `report_${tab}`,
         form.values.engine,
         form.values.goMode,
         {

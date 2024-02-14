@@ -195,7 +195,7 @@ function EngineCard({
       setInProgress(true);
       const path = await resolve(await appDataDir(), "engines");
       await invoke("download_file", {
-        id,
+        id: `engine_${id}`,
         url,
         path,
       });
@@ -254,7 +254,7 @@ function EngineCard({
             <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>
           <ProgressButton
-            id={engineId}
+            id={`engine_${engineId}`}
             progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{

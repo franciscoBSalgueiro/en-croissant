@@ -19,13 +19,13 @@ use crate::error::Error;
 #[derive(Clone, Type, serde::Serialize, Event)]
 pub struct DownloadProgress {
     pub progress: f64,
-    pub id: u64,
+    pub id: String,
     pub finished: bool,
 }
 
 #[tauri::command]
 pub async fn download_file(
-    id: u64,
+    id: String,
     url: String,
     path: PathBuf,
     app: tauri::AppHandle,
@@ -64,7 +64,7 @@ pub async fn download_file(
             // println!("Downloaded {}%", progress);
             DownloadProgress {
                 progress,
-                id,
+                id: id.clone(),
                 finished: false,
             }
             .emit_all(&app)?;

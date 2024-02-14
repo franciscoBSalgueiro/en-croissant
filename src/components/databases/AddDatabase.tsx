@@ -190,7 +190,7 @@ function DatabaseCard({
     setInProgress(true);
     const path = await resolve(await appDataDir(), "db", `${name}.db3`);
     await invoke("download_file", {
-      id,
+      id: `db_${id}`,
       url,
       path,
     });
@@ -233,7 +233,7 @@ function DatabaseCard({
             </Stack>
           </Group>
           <ProgressButton
-            id={databaseId}
+            id={`db_${databaseId}`}
             progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{

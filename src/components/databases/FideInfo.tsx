@@ -65,7 +65,7 @@ function FideInfo({
         <Stack>
           No FIDE database installed
           <ProgressButton
-            id={0}
+            id="fide_db"
             initInstalled={false}
             progressEvent={events.downloadProgress}
             onClick={() => invoke("download_fide_db")}
