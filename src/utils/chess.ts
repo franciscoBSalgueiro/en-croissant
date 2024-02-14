@@ -111,7 +111,11 @@ export function getMoveText(
 
     if (opt.extraMarkups) {
       if (tree.score !== null) {
-        content += `[%eval ${formatScore(tree.score)}] `;
+        if (tree.score.type === "cp") {
+          content += `[%eval ${formatScore(tree.score)}] `;
+        } else {
+          content += `[%eval #${tree.score.value}] `;
+        }
       }
       if (tree.clock !== undefined) {
         content += `[%clk ${makeClk(tree.clock)}] `;
