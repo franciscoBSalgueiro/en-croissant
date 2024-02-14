@@ -398,6 +398,20 @@ function Board({
 
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
+  const square = match(currentNode)
+    .with({ san: "O-O" }, ({ halfMoves }) =>
+      parseSquare(halfMoves % 2 === 1 ? "g1" : "g8"),
+    )
+    .with({ san: "O-O-O" }, ({ halfMoves }) =>
+      parseSquare(halfMoves % 2 === 1 ? "c1" : "c8"),
+    )
+    .otherwise((node) => node.move?.to);
+
+  const lastMove =
+    currentNode.move && square
+      ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
+      : undefined;
+
   return (
     <>
       <Box className={classes.container}>
@@ -425,10 +439,10 @@ function Board({
               }
             }}
           >
-            {currentNode.annotation && currentNode.move && (
+            {currentNode.annotation && currentNode.move && square && (
               <AnnotationHint
                 orientation={orientation}
-                square={currentNode.move.to}
+                square={square}
                 annotation={currentNode.annotation}
               />
             )}
@@ -500,13 +514,7 @@ function Board({
               }}
               turnColor={turn}
               check={pos?.isCheck()}
-              lastMove={
-                editingMode
-                  ? undefined
-                  : currentNode.move
-                    ? chessgroundMove(currentNode.move)
-                    : undefined
-              }
+              lastMove={editingMode ? undefined : lastMove}
               premovable={{
                 enabled: false,
               }}
