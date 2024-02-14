@@ -208,8 +208,8 @@ function EngineCard({
         "engines",
         ...engine.path.split("/"),
       );
-      const config = unwrap(await commands.getEngineConfig(enginePath));
       await invoke("set_file_as_executable", { path: enginePath });
+      const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
         ...(await prev),
         {
