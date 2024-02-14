@@ -552,8 +552,6 @@ function addAnalysis(
 ) {
   let cur = state.root;
   let i = 0;
-  const setup = parseFen(state.root.fen).unwrap();
-  const initialColor = setup.turn;
   while (cur !== undefined && i < analysis.length) {
     const [pos] = positionFromFen(cur.fen);
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
@@ -573,8 +571,7 @@ function addAnalysis(
         prevprevScore = analysis[i - 2].best[0].score;
       }
       const curScore = analysis[i].best[0].score;
-      const color =
-        i % 2 === (initialColor === "white" ? 1 : 0) ? "white" : "black";
+      const color = cur.halfMoves % 2 === 1 ? "white" : "black";
       cur.annotation = getAnnotation(
         prevprevScore,
         prevScore,
@@ -582,7 +579,7 @@ function addAnalysis(
         color,
         prevMoves,
         analysis[i].is_sacrifice,
-        cur.move ? makeSan(pos, cur.move) : "",
+        cur.san || "",
       );
     }
     cur = cur.children[0];
