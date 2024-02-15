@@ -34,7 +34,9 @@ use tauri::{
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
 use tauri_plugin_log::LogTarget;
 
-use crate::chess::{analyze_game, get_engine_config, get_engine_logs, kill_engines, stop_engine};
+use crate::chess::{
+    analyze_game, get_engine_config, get_engine_logs, kill_engine, kill_engines, stop_engine,
+};
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
     get_players_game_info, get_tournaments, search_position,
@@ -116,6 +118,7 @@ fn main() {
                 get_best_moves,
                 analyze_game,
                 stop_engine,
+                kill_engine,
                 kill_engines,
                 get_engine_logs,
                 memory_size,
