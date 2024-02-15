@@ -180,6 +180,7 @@ function tabValue<T extends object | string | boolean | number>(
 
 // Puzzles
 export const hidePuzzleRatingAtom = atomWithStorage<boolean>("hide-puzzle-rating", false);
+export const progressivePuzzlesAtom = atomWithStorage<boolean>("progressive-puzzles", false);
 
 // Per tab settings
 

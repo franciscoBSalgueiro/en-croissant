@@ -4,6 +4,7 @@ import {
   selectedPuzzleDbAtom,
   tabsAtom,
   hidePuzzleRatingAtom,
+  progressivePuzzlesAtom,
 } from "@/atoms/atoms";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
@@ -117,8 +118,8 @@ function Puzzles({ id }: { id: string }) {
   }
 
   const [addOpened, setAddOpened] = useState(false);
-  const [progressive, setProgressive] = useState(false);
 
+  const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
 
   const [, setTabs] = useAtom(tabsAtom);
