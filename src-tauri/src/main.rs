@@ -52,6 +52,7 @@ use crate::{
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
+use window_shadows::set_shadow;
 
 pub type GameData = (i32, Option<String>, Vec<u8>, Option<String>, i32, i32, i32);
 
@@ -227,6 +228,9 @@ fn main() {
                     std::fs::write(&path, contents).unwrap();
                 }
             }
+
+            #[cfg(any(windows, target_os = "macos"))]
+            set_shadow(&app.get_window("main").unwrap(), true).unwrap();
 
             Ok(())
         })

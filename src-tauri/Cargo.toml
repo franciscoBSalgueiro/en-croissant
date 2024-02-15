@@ -56,6 +56,7 @@ oauth2 = "4.4.2"
 axum = "0.6.20"
 tar = "0.4.40"
 sysinfo = "0.29.10"
+window-shadows = "0.2.2"
 
 [features]
 # by default Tauri runs in production mode
