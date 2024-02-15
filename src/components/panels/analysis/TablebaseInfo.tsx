@@ -79,7 +79,7 @@ function TablebaseInfo({
                       className={classes.info}
                     >
                       <Group gap="xs" justify="space-between" wrap="nowrap">
-                        <Text c="white" fz="0.9rem" fw={600} ta="center">
+                        <Text fz="0.9rem" fw={600} ta="center">
                           {m.san}
                         </Text>
                         <OutcomeBadge
