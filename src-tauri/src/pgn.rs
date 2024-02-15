@@ -3,6 +3,8 @@ use std::{
     io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
+use lazy_static::lazy_static;
+use regex::Regex;
 
 use crate::{error::Error, AppState};
 
@@ -13,6 +15,10 @@ struct PgnParser {
     line: String,
     game: String,
     start: u64,
+}
+
+lazy_static! {
+    static ref GAME_TERMINATION_MARKER : Regex = Regex::new(r"\s+(1-0|0-1|1/2-1/2|\*)$").unwrap();
 }
 
 impl PgnParser {
@@ -67,7 +73,7 @@ impl PgnParser {
             if bytes == 0 {
                 break;
             }
-            if line.starts_with('[') {
+            if line.starts_with("[Event") {
                 if new_game {
                     count += 1;
                     if count == n {
@@ -85,7 +91,7 @@ impl PgnParser {
     }
 
     fn read_game(&mut self) -> io::Result<String> {
-        let mut new_game = false;
+        let mut new_game = true;
         self.game.clear();
         loop {
             let res = self.reader.read_line(&mut self.line);
@@ -96,15 +102,16 @@ impl PgnParser {
             if bytes == 0 {
                 break;
             }
-            if self.line.starts_with('[') {
-                if new_game {
-                    break;
-                }
-            } else {
-                new_game = true;
-            }
             self.game.push_str(&self.line);
+
+            if is_end_of_game(&self.line) {
+                new_game = false;
+            }
+
             self.line.clear();
+            if (!new_game) {
+                break;
+            }
         }
         Ok(self.game.clone())
     }
@@ -239,4 +246,44 @@ pub async fn write_game(
     write_to_end(&mut tmpf, &mut file_w)?;
 
     Ok(())
+}
+
+pub fn is_end_of_game(line: &str) -> bool {
+    GAME_TERMINATION_MARKER.is_match(line.trim())
+}
+
+#[test]
+fn test_gtm_white_won() {
+    let s = String::from("1. e4 f5 2. d4 g5 1-0");
+    assert!(is_end_of_game(&*s))
+}
+
+#[test]
+fn test_gtm_black_won() {
+    let s = String::from("1. e4 f5 2. d4 g5 0-1");
+    assert!(is_end_of_game(&*s))
+}
+
+#[test]
+fn test_gtm_draw() {
+    let s = String::from("1. e4 f5 2. d4 g5 1/2-1/2 ");
+    assert!(is_end_of_game(&*s))
+}
+
+#[test]
+fn test_gtm_unknown() {
+    let s = String::from("1. e4 f5 2. d4 g5 *\n");
+    assert!(is_end_of_game(&*s))
+}
+
+#[test]
+fn test_weird_gtm() {
+    let s = String::from("1. e4 f5 2. d4 g5 11-0\n");
+    assert!(!is_end_of_game(&*s))
+}
+
+#[test]
+fn test_no_gtm() {
+    let s = String::from("1. e4 f5 2. d4 g5\n");
+    assert!(!is_end_of_game(&*s))
 }
