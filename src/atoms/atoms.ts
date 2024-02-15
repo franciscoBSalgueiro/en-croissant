@@ -178,6 +178,9 @@ function tabValue<T extends object | string | boolean | number>(
   );
 }
 
+// Puzzles
+export const hidePuzzleRatingAtom = atomWithStorage<boolean>("hide-puzzle-rating", false);
+
 // Per tab settings
 
 const evalOpenFamily = atomFamily((tab: string) => atom(true));

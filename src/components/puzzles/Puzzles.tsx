@@ -3,6 +3,7 @@ import {
   currentPuzzleAtom,
   selectedPuzzleDbAtom,
   tabsAtom,
+  hidePuzzleRatingAtom,
 } from "@/atoms/atoms";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
@@ -118,6 +119,8 @@ function Puzzles({ id }: { id: string }) {
   const [addOpened, setAddOpened] = useState(false);
   const [progressive, setProgressive] = useState(false);
 
+  const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
+
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
@@ -147,7 +150,10 @@ function Puzzles({ id }: { id: string }) {
                 Puzzle Rating
               </Text>
               <Text fw={500} size="xl">
-                {puzzles[currentPuzzle]?.rating}
+                {(puzzles[currentPuzzle]?.completion === "incomplete")
+                  ? hideRating ? '?' : puzzles[currentPuzzle]?.rating
+                  : puzzles[currentPuzzle]?.rating
+                }
               </Text>
             </div>
             {averageWonRating && (
@@ -206,6 +212,16 @@ function Puzzles({ id }: { id: string }) {
                   checked={progressive}
                   onChange={(event) =>
                     setProgressive(event.currentTarget.checked)
+                  }
+                />
+              </Center>
+            </Input.Wrapper>
+            <Input.Wrapper label="Hide Rating">
+              <Center>
+                <Checkbox
+                  checked={hideRating}
+                  onChange={(event) =>
+                    setHideRating(event.currentTarget.checked)
                   }
                 />
               </Center>
