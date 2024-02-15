@@ -115,6 +115,7 @@ function BoardAnalysis() {
           tab={currentTab?.value || ""}
           initialFen={root.fen}
           moves={getMainLine(root, headers.variant === "Chess960")}
+          is960={headers.variant === "Chess960"}
           reportingMode={reportingMode}
           toggleReportingMode={toggleReportingMode}
           setInProgress={setInProgress}

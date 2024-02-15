@@ -27,6 +27,7 @@ function ReportModal({
   tab,
   initialFen,
   moves,
+  is960,
   reportingMode,
   toggleReportingMode,
   setInProgress,
@@ -34,6 +35,7 @@ function ReportModal({
   tab: string;
   initialFen: string;
   moves: string[];
+  is960: boolean;
   reportingMode: boolean;
   toggleReportingMode: () => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
@@ -78,6 +80,10 @@ function ReportModal({
       ...s,
       value: s.value?.toString() ?? "",
     }));
+
+    if (is960 && !engineSettings.find((o) => o.name === "UCI_Chess960")) {
+      engineSettings.push({ name: "UCI_Chess960", value: "true" });
+    }
 
     commands
       .analyzeGame(
