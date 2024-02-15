@@ -264,7 +264,10 @@ export async function getBestMoves(
       });
 
       return {
-        score: { type: "cp", value: m.cp },
+        score:
+          "cp" in m
+            ? { type: "cp", value: m.cp }
+            : { type: "mate", value: m.mate },
         nodes: data.knodes * 1000,
         depth: data.depth,
         multipv: i + 1,
@@ -282,10 +285,17 @@ type LichessCloudData = {
   fen: string;
   knodes: number;
   depth: number;
-  pvs: {
-    moves: string;
-    cp: number;
-  }[];
+  pvs: (LichessCp | LichessMate)[];
+};
+
+type LichessCp = {
+  cp: number;
+  moves: string;
+};
+
+type LichessMate = {
+  mate: number;
+  moves: string;
 };
 
 async function getCloudEvaluation(fen: string, multipv: number) {
