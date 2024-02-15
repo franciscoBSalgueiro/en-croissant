@@ -1,10 +1,10 @@
 import {
   activeTabAtom,
   currentPuzzleAtom,
-  selectedPuzzleDbAtom,
-  tabsAtom,
   hidePuzzleRatingAtom,
   progressivePuzzlesAtom,
+  selectedPuzzleDbAtom,
+  tabsAtom,
 } from "@/atoms/atoms";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
@@ -151,10 +151,11 @@ function Puzzles({ id }: { id: string }) {
                 Puzzle Rating
               </Text>
               <Text fw={500} size="xl">
-                {(puzzles[currentPuzzle]?.completion === "incomplete")
-                  ? hideRating ? '?' : puzzles[currentPuzzle]?.rating
-                  : puzzles[currentPuzzle]?.rating
-                }
+                {puzzles[currentPuzzle]?.completion === "incomplete"
+                  ? hideRating
+                    ? "?"
+                    : puzzles[currentPuzzle]?.rating
+                  : puzzles[currentPuzzle]?.rating}
               </Text>
             </div>
             {averageWonRating && (
