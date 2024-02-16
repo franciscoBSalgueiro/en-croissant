@@ -416,7 +416,7 @@ function Board({
     .otherwise((node) => node.move?.to);
 
   const lastMove =
-    currentNode.move && square
+    currentNode.move && square !== undefined
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
@@ -432,15 +432,17 @@ function Board({
     <>
       <Box className={classes.container}>
         <Box className={classes.board}>
-          {currentNode.annotation && currentNode.move && square && (
-            <Box w={boardWith} h={boardHeight} pos="absolute">
-              <AnnotationHint
-                orientation={orientation}
-                square={square}
-                annotation={currentNode.annotation}
-              />
-            </Box>
-          )}
+          {currentNode.annotation &&
+            currentNode.move &&
+            square !== undefined && (
+              <Box w={boardWith} h={boardHeight} pos="absolute">
+                <AnnotationHint
+                  orientation={orientation}
+                  square={square}
+                  annotation={currentNode.annotation}
+                />
+              </Box>
+            )}
           <Box
             style={
               currentNode.annotation !== ""
