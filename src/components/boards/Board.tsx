@@ -6,6 +6,7 @@ import {
   currentPracticingAtom,
   currentTabAtom,
   deckAtomFamily,
+  fontSizeAtom,
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
@@ -420,11 +421,15 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
-  const {
+  let {
     ref: sizeRef,
     width: boardWith,
     height: boardHeight,
   } = useElementSize();
+
+  const fontSize = useAtomValue(fontSizeAtom);
+  boardWith = boardWith * (1 / (fontSize / 100));
+  boardHeight = boardHeight * (1 / (fontSize / 100));
 
   const ref = mergeRefs(boardRef, sizeRef);
 
