@@ -5,6 +5,7 @@ import {
   Stack,
   Text,
   TextInput,
+  Textarea,
 } from "@mantine/core";
 import {
   BaseDirectory,
@@ -30,13 +31,16 @@ export function CreateModal({
   opened,
   setOpened,
   setFiles,
+  setSelected,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
   setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
 }) {
   const [filename, setFilename] = useState("");
   const [filetype, setFiletype] = useState<FileType>("game");
+  const [pgn, setPgn] = useState("");
   const [error, setError] = useState("");
 
   async function addFile() {
@@ -50,20 +54,19 @@ export function CreateModal({
       type: filetype,
       tags: [],
     };
-    await writeTextFile(file, makePgn(defaultGame()));
+    await writeTextFile(file, pgn || makePgn(defaultGame()));
     await writeTextFile(
       file.replace(".pgn", ".info"),
       JSON.stringify(metadata),
     );
-    setFiles((files) => [
-      ...files,
-      {
-        name: filename,
-        path: file,
-        numGames: 1,
-        metadata,
-      },
-    ]);
+    const newFile = {
+      name: filename,
+      path: file,
+      numGames: 1,
+      metadata,
+    };
+    setFiles((files) => [...files, newFile]);
+    setSelected(newFile);
     setError("");
     setOpened(false);
     setFilename("");
@@ -103,6 +106,14 @@ export function CreateModal({
               />
             ))}
           </SimpleGrid>
+
+          <Textarea
+            value={pgn}
+            onChange={(event) => setPgn(event.currentTarget.value)}
+            label="PGN game"
+            placeholder="Leave empty to start from scratch"
+            rows={10}
+          />
 
           <Button style={{ marginTop: "1rem" }} type="submit">
             Create

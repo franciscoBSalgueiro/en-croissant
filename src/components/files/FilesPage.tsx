@@ -83,6 +83,7 @@ function FilesPage() {
         opened={createModal}
         setOpened={toggleCreateModal}
         setFiles={setFiles}
+        setSelected={setSelected}
       />
       {selected && (
         <EditModal
