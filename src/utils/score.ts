@@ -1,6 +1,7 @@
 import { BestMoves, Score } from "@/bindings";
 import { minMax } from "@tiptap/react";
 import { Color } from "chessops";
+import { match } from "ts-pattern";
 import { Annotation } from "./chess";
 
 export const INITIAL_SCORE: Score = {
@@ -11,17 +12,18 @@ export const INITIAL_SCORE: Score = {
 const CP_CEILING = 1000;
 
 export function formatScore(score: Score, precision = 2): string {
-  let scoreText = "";
-  if (score.type === "cp") {
-    scoreText = Math.abs(score.value / 100).toFixed(precision);
-  } else {
-    scoreText = `M${Math.abs(score.value)}`;
-  }
-  if (score.value > 0) {
-    scoreText = `+${scoreText}`;
-  }
-  if (score.value < 0) {
-    scoreText = `-${scoreText}`;
+  let scoreText = match(score.type)
+    .with("cp", () => Math.abs(score.value / 100).toFixed(precision))
+    .with("mate", () => `M${Math.abs(score.value)}`)
+    .with("dtz", () => `DTZ${Math.abs(score.value)}`)
+    .exhaustive();
+  if (score.type !== "dtz") {
+    if (score.value > 0) {
+      scoreText = `+${scoreText}`;
+    }
+    if (score.value < 0) {
+      scoreText = `-${scoreText}`;
+    }
   }
   return scoreText;
 }

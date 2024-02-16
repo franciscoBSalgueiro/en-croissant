@@ -84,7 +84,7 @@ function TablebaseInfo({
                         </Text>
                         <OutcomeBadge
                           category={m.category}
-                          dtz={m.dtz}
+                          dtz={Math.abs(m.dtz)}
                           dtm={m.dtm}
                           turn={turn === "white" ? "black" : "white"}
                         />

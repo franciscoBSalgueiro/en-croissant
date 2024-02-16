@@ -76,15 +76,14 @@ function chessDBevalToScore(score: number): Score {
   }
   if (Math.abs(score) > 200_00) {
     return {
-      type: "mate",
-      value:
-        Math.floor((250_00 - Math.abs(score) + 1) / 2) * (score > 0 ? 1 : -1),
+      type: "dtz",
+      value: (250_00 - Math.abs(score)) * (score > 0 ? 1 : -1),
     };
   }
   if (Math.abs(score) > 150_00) {
     return {
-      type: "cp",
-      value: 0,
+      type: "dtz",
+      value: (200_00 - Math.abs(score)) * (score > 0 ? 1 : -1),
     };
   }
 
