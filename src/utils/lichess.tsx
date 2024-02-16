@@ -9,7 +9,7 @@ import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { error } from "tauri-plugin-log-api";
 import { P, match } from "ts-pattern";
-import { parsePGN } from "./chess";
+import { parsePGN, uciNormalize } from "./chess";
 import { positionFromFen } from "./chessops";
 import { NormalizedGame } from "./db";
 import { invoke } from "./invoke";
@@ -255,10 +255,20 @@ export async function getBestMoves(
     data.pvs?.map((m, i) => {
       const uciMoves = m.moves.split(" ");
       const posCopy = pos.clone();
+      const normalizedUciMoves: string[] = [];
 
       const sanMoves = uciMoves.map((m) => {
         const move = parseUci(m)!;
         const san = makeSan(posCopy, move);
+        normalizedUciMoves.push(
+          uciNormalize(
+            posCopy,
+            move,
+            options.extraOptions.some(
+              (o) => o.name === "UCI_Chess960" && o.value === "true",
+            ),
+          ),
+        );
         posCopy.play(move);
         return san;
       });
@@ -273,7 +283,7 @@ export async function getBestMoves(
         multipv: i + 1,
         nps: 0,
         sanMoves,
-        uciMoves,
+        uciMoves: normalizedUciMoves,
       };
     }) ?? [],
   ];

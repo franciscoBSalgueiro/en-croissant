@@ -165,7 +165,7 @@ export function getMainLine(root: TreeNode, is960: boolean): string[] {
 }
 
 // outputs the correct uci move for castling in chess960 and standard chess
-function uciNormalize(chess: Chess, move: Move, chess960?: boolean) {
+export function uciNormalize(chess: Chess, move: Move, chess960?: boolean) {
   const side = castlingSide(chess, move);
   const frcMove = normalizeMove(chess, move);
   if (side && !chess960) {
