@@ -141,48 +141,46 @@ fn main() {
         specta_builder.into_plugin()
     };
 
-    let new_tab = CustomMenuItem::new("new_tab".to_string(), "New tab");
-    let open_file = CustomMenuItem::new("open_file".to_string(), "Open file");
-    let file_menu = Submenu::new(
-        "File",
-        Menu::new()
-            .add_item(new_tab)
-            .add_item(open_file)
-            .add_native_item(MenuItem::Quit),
-    );
-
-    let reload = CustomMenuItem::new("reload".to_string(), "Reload");
-
-    let view_menu = Submenu::new("View", Menu::new().add_item(reload));
-
-    let clear_saved_data = CustomMenuItem::new("clear_saved_data".to_string(), "Clear saved data");
-    let open_logs = CustomMenuItem::new("open_logs".to_string(), "Open logs");
-    let check_updates = CustomMenuItem::new("check_updates".to_string(), "Check for updates");
-    let about = CustomMenuItem::new("about".to_string(), "About");
-    let help_menu = Submenu::new(
-        "Help",
-        Menu::new()
-            .add_item(clear_saved_data)
-            .add_item(open_logs)
-            .add_item(check_updates)
-            .add_item(about),
-    );
-
     let menu = Menu::new()
-        .add_submenu(file_menu)
-        .add_submenu(view_menu)
-        .add_submenu(help_menu);
-
-    #[cfg(target_os = "macos")]
-    let menu = menu
-        .add_native_item(MenuItem::Separator)
-        .add_native_item(MenuItem::Undo)
-        .add_native_item(MenuItem::Redo)
-        .add_native_item(MenuItem::Separator)
-        .add_native_item(MenuItem::Cut)
-        .add_native_item(MenuItem::Copy)
-        .add_native_item(MenuItem::Paste)
-        .add_native_item(MenuItem::SelectAll);
+        .add_submenu(Submenu::new(
+            "File",
+            Menu::new()
+                .add_item(CustomMenuItem::new("new_tab".to_string(), "New tab"))
+                .add_item(CustomMenuItem::new("open_file".to_string(), "Open file"))
+                .add_native_item(MenuItem::Quit),
+        ))
+        .add_submenu(Submenu::new(
+            "Edit",
+            Menu::new()
+                .add_native_item(MenuItem::Undo)
+                .add_native_item(MenuItem::Redo)
+                .add_native_item(MenuItem::Separator)
+                .add_native_item(MenuItem::Cut)
+                .add_native_item(MenuItem::Copy)
+                .add_native_item(MenuItem::Paste)
+                .add_native_item(MenuItem::SelectAll),
+        ))
+        .add_submenu(Submenu::new(
+            "View",
+            Menu::new()
+                .add_item(CustomMenuItem::new("reload".to_string(), "Reload"))
+                .add_native_item(MenuItem::EnterFullScreen)
+                .add_native_item(MenuItem::Minimize),
+        ))
+        .add_submenu(Submenu::new(
+            "Help",
+            Menu::new()
+                .add_item(CustomMenuItem::new(
+                    "clear_saved_data".to_string(),
+                    "Clear saved data",
+                ))
+                .add_item(CustomMenuItem::new("open_logs".to_string(), "Open logs"))
+                .add_item(CustomMenuItem::new(
+                    "check_for_updates".to_string(),
+                    "Check for updates",
+                ))
+                .add_item(CustomMenuItem::new("about".to_string(), "About")),
+        ));
 
     tauri::Builder::default()
         .menu(menu)
