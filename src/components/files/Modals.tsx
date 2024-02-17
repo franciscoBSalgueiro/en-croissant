@@ -1,3 +1,4 @@
+import { createFile } from "@/utils/files";
 import {
   Button,
   Modal,
@@ -7,14 +8,8 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
-import {
-  BaseDirectory,
-  exists,
-  renameFile,
-  writeTextFile,
-} from "@tauri-apps/api/fs";
+import { BaseDirectory, renameFile, writeTextFile } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
-import { defaultGame, makePgn } from "chessops/pgn";
 import { useState } from "react";
 import GenericCard from "../common/GenericCard";
 import { FileMetadata, FileType } from "./file";
@@ -44,27 +39,13 @@ export function CreateModal({
   const [error, setError] = useState("");
 
   async function addFile() {
-    const dir = await resolve(await documentDir(), "EnCroissant");
-    const file = await resolve(dir, `${filename}.pgn`);
-    if (await exists(file)) {
-      setError("File already exists");
-      return;
-    }
-    const metadata = {
-      type: filetype,
-      tags: [],
-    };
-    await writeTextFile(file, pgn || makePgn(defaultGame()));
-    await writeTextFile(
-      file.replace(".pgn", ".info"),
-      JSON.stringify(metadata),
-    );
-    const newFile = {
-      name: filename,
-      path: file,
-      numGames: 1,
-      metadata,
-    };
+    const newFile = await createFile({
+      filename,
+      filetype,
+      pgn,
+      setError,
+    });
+    if (!newFile) return;
     setFiles((files) => [...files, newFile]);
     setSelected(newFile);
     setError("");

@@ -1,8 +1,13 @@
 import {
   Button,
+  Checkbox,
   Divider,
+  FileInput,
+  Group,
   Modal,
-  Select,
+  SimpleGrid,
+  Stack,
+  Text,
   TextInput,
   Textarea,
 } from "@mantine/core";
@@ -13,16 +18,25 @@ import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
 import { chessopsError } from "@/utils/chessops";
 import { count_pgn_games, read_games } from "@/utils/db";
+import { createFile } from "@/utils/files";
 import { getLichessGame } from "@/utils/lichess";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtom } from "jotai";
 import { useState } from "react";
 import { match } from "ts-pattern";
-import FileInput from "../common/FileInput";
-import { FileMetadata } from "../files/file";
+import GenericCard from "../common/GenericCard";
+import { FileMetadata, FileType } from "../files/file";
 
 type ImportType = "PGN" | "Link" | "FEN";
+
+const FILE_TYPES = [
+  { label: "Game", value: "game" },
+  { label: "Repertoire", value: "repertoire" },
+  { label: "Tournament", value: "tournament" },
+  { label: "Puzzle", value: "puzzle" },
+  { label: "Other", value: "other" },
+] as const;
 
 export default function ImportModal({
   openModal,
@@ -36,42 +50,96 @@ export default function ImportModal({
   const [file, setFile] = useState<string | null>(null);
   const [link, setLink] = useState("");
   const [importType, setImportType] = useState<ImportType>("PGN");
+  const [filetype, setFiletype] = useState<FileType>("game");
   const [loading, setLoading] = useState(false);
   const [, setCurrentTab] = useAtom(currentTabAtom);
   const [fenError, setFenError] = useState("");
 
+  const [save, setSave] = useState(false);
+  const [filename, setFilename] = useState("");
+  const [error, setError] = useState("");
+
   const Input = match(importType)
     .with("PGN", () => (
-      <>
-        <FileInput
-          label="PGN file"
-          description={"Click to select a PGN file."}
-          onClick={async () => {
-            const selected = (await open({
-              multiple: false,
+      <Stack>
+        <div>
+          <FileInput
+            label="PGN file"
+            description={"Click to select a PGN file."}
+            onClick={async () => {
+              const selected = (await open({
+                multiple: false,
 
-              filters: [
-                {
-                  name: "PGN file",
-                  extensions: ["pgn"],
-                },
-              ],
-            })) as string;
-            setFile(selected);
-          }}
-          disabled={pgn !== ""}
-          filename={file}
+                filters: [
+                  {
+                    name: "PGN file",
+                    extensions: ["pgn"],
+                  },
+                ],
+              })) as string;
+              setFile(selected);
+              setFilename(
+                selected
+                  .split(/(\\|\/)/g)
+                  .pop()
+                  ?.replace(".pgn", "") || "",
+              );
+            }}
+            value={new File([new Blob()], file || "")}
+            onChange={(e) => {
+              if (e === null) {
+                setFile(null);
+                setFilename("");
+              }
+            }}
+            disabled={pgn !== ""}
+          />
+          <Divider pt="xs" label="OR" labelPosition="center" />
+          <Textarea
+            value={pgn}
+            disabled={file !== null}
+            onChange={(event) => setPgn(event.currentTarget.value)}
+            label="PGN game"
+            data-autofocus
+            rows={8}
+          />
+        </div>
+
+        <Checkbox
+          label="Save to collection"
+          checked={save}
+          onChange={(e) => setSave(e.currentTarget.checked)}
         />
-        <Divider label="OR" labelPosition="center" />
-        <Textarea
-          value={pgn}
-          disabled={file !== null}
-          onChange={(event) => setPgn(event.currentTarget.value)}
-          label="PGN game"
-          data-autofocus
-          rows={10}
-        />
-      </>
+
+        {save && (
+          <>
+            <TextInput
+              label="Name"
+              placeholder="Enter your filename"
+              required
+              value={filename}
+              onChange={(e) => setFilename(e.currentTarget.value)}
+              error={error}
+            />
+
+            <Text fz="sm" fw="bold">
+              File type
+            </Text>
+
+            <SimpleGrid cols={3}>
+              {FILE_TYPES.map((v) => (
+                <GenericCard
+                  key={v.value}
+                  id={v.value}
+                  isSelected={filetype === v.value}
+                  setSelected={setFiletype}
+                  Header={<Text ta="center">{v.label}</Text>}
+                />
+              ))}
+            </SimpleGrid>
+          </>
+        )}
+      </Stack>
     ))
     .with("Link", () => (
       <TextInput
@@ -104,15 +172,28 @@ export default function ImportModal({
       onClose={() => setOpenModal(false)}
       title="Import game"
     >
-      <Select
-        allowDeselect={false}
-        label="Type of import"
-        placeholder="Pick one"
-        mb="lg"
-        data={["PGN", "Link", "FEN"]}
-        value={importType}
-        onChange={(v) => setImportType(v as ImportType)}
-      />
+      <Group grow mb="sm">
+        <GenericCard
+          id={"PGN"}
+          isSelected={importType === "PGN"}
+          setSelected={setImportType}
+          Header={<Text ta="center">PGN</Text>}
+        />
+
+        <GenericCard
+          id={"Link"}
+          isSelected={importType === "Link"}
+          setSelected={setImportType}
+          Header={<Text ta="center">Online</Text>}
+        />
+
+        <GenericCard
+          id={"FEN"}
+          isSelected={importType === "FEN"}
+          setSelected={setImportType}
+          Header={<Text ta="center">FEN</Text>}
+        />
+      </Group>
 
       {Input}
 
@@ -133,15 +214,15 @@ export default function ImportModal({
                 input = (await read_games(file, 0, 0))[0];
                 setLoading(false);
 
-                fileInfo = {
-                  metadata: {
-                    tags: [],
-                    type: "game",
-                  },
-                  name: file,
-                  path: file,
-                  numGames: count,
-                };
+                const newFile = await createFile({
+                  filename,
+                  filetype,
+                  pgn: input,
+                  setError,
+                });
+                if (!newFile) return;
+
+                fileInfo = newFile;
               }
               const tree = await parsePGN(input);
               setCurrentTab((prev) => {

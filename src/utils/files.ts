@@ -1,4 +1,7 @@
+import { exists, writeTextFile } from "@tauri-apps/api/fs";
 import { platform } from "@tauri-apps/api/os";
+import { documentDir, resolve } from "@tauri-apps/api/path";
+import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
 import { match } from "ts-pattern";
 import { parsePGN } from "./chess";
@@ -49,4 +52,35 @@ export async function openFile(
     pgn: input,
     fileInfo,
   });
+}
+
+export async function createFile({
+  filename,
+  filetype,
+  pgn,
+  setError,
+}: {
+  filename: string;
+  filetype: "game" | "repertoire" | "tournament" | "puzzle" | "other";
+  pgn?: string;
+  setError: React.Dispatch<React.SetStateAction<string>>;
+}) {
+  const dir = await resolve(await documentDir(), "EnCroissant");
+  const file = await resolve(dir, `${filename}.pgn`);
+  if (await exists(file)) {
+    setError("File already exists");
+    return;
+  }
+  const metadata = {
+    type: filetype,
+    tags: [],
+  };
+  await writeTextFile(file, pgn || makePgn(defaultGame()));
+  await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
+  return {
+    name: filename,
+    path: file,
+    numGames: 1,
+    metadata,
+  };
 }
