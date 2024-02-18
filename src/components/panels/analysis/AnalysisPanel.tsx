@@ -43,6 +43,7 @@ import { memo, useContext, useMemo } from "react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import BestMoves, { arrowColors } from "./BestMoves";
+import Comments from "./Comments";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
 import ScoreBubble from "./ScoreBubble";
@@ -317,6 +318,7 @@ function AnalysisPanel({
                   startAnalysis={() => toggleReportingMode()}
                 />
               </Paper>
+              <Comments />
               <GameStats {...stats} />
             </Stack>
           </ScrollArea>

@@ -12,10 +12,12 @@ import {
   showArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  showReportArrowsAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
+import { getComment } from "@/utils/analysis";
 import {
   ANNOTATION_INFO,
   Annotation,
@@ -65,6 +67,7 @@ import {
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
+import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -125,6 +128,7 @@ function Board({
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
+  const showReportArrows = useAtomValue(showReportArrowsAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
@@ -202,9 +206,28 @@ function Board({
     }
   }
 
+  const parentNode = getNodeAtPath(
+    root,
+    position.slice(0, position.length - 1),
+  );
+  const [parentPos] = positionFromFen(parentNode.fen);
+  const comment =
+    parentPos && currentNode.move
+      ? getComment(parentPos, currentNode.move)
+      : null;
+
   let shapes: DrawShape[] = [];
-  if (showArrows && evalOpen && arrows.size > 0) {
+  if (showArrows && evalOpen && (arrows.size > 0 || comment?.arrows.length)) {
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
+    if (showReportArrows && comment?.arrows.length) {
+      for (const arrow of comment.arrows) {
+        shapes.push({
+          orig: arrow.slice(0, 2) as SquareName,
+          dest: arrow.slice(2) as SquareName,
+          brush: "primary",
+        });
+      }
+    }
     for (const [i, moves] of entries) {
       if (i < 4) {
         for (const [j, move] of moves.entries()) {

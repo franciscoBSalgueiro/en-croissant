@@ -48,3 +48,12 @@ export function formatMove(orientation: string) {
 export function capitalize(str: string) {
   return `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
 }
+
+export function joinWithAnd(arr: string[]) {
+  if (arr.length === 0) return "";
+  if (arr.length === 1) return arr[0];
+  if (arr.length === 2) return `${arr[0]} and ${arr[1]}`;
+  return `${arr.slice(0, arr.length - 1).join(", ")}, and ${
+    arr[arr.length - 1]
+  }`;
+}

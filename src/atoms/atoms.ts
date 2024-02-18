@@ -13,9 +13,10 @@ import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import { MantineColor } from "@mantine/core";
 
 import { OpponentSettings } from "@/components/boards/BoardGame";
+import { Comment, getComment } from "@/utils/analysis";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import { getWinChance, normalizeScore } from "@/utils/score";
-import { parseUci } from "chessops";
+import { Move, isNormal, parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { PrimitiveAtom, atom } from "jotai";
 import {
@@ -101,6 +102,10 @@ export const fontSizeAtom = atomWithStorage(
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
+export const showReportArrowsAtom = atomWithStorage<boolean>(
+  "show-report-arrows",
+  false,
+);
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>(
