@@ -10,6 +10,7 @@ import {
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
+  showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
@@ -81,7 +82,7 @@ interface ChessboardProps {
   dirty: boolean;
   currentNode: TreeNode;
   position: number[];
-  arrows: Map<number, string[]>;
+  arrows: Map<number, string[][]>;
   headers: GameHeaders;
   root: TreeNode;
   editingMode: boolean;
@@ -125,6 +126,7 @@ function Board({
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
+  const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
@@ -203,20 +205,42 @@ function Board({
   }
 
   let shapes: DrawShape[] = [];
-  if (showArrows && evalOpen && arrows.size > 0) {
+  if (showArrows && evalOpen && arrows.size > 0 && pos) {
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
     for (const [i, moves] of entries) {
       if (i < 4) {
-        for (const [j, move] of moves.entries()) {
-          const m = parseUci(move)! as NormalMove;
-          const from = makeSquare(m.from)!;
-          const to = makeSquare(m.to)!;
-          if (shapes.find((s) => s.orig === from && s.dest === to)) continue;
-          shapes.push({
-            orig: from,
-            dest: to,
-            brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
-          });
+        for (const [j, pv] of moves.entries()) {
+          const posClone = pos.clone();
+          let prevSquare = null;
+          for (const [ii, uci] of pv.entries()) {
+            const m = parseUci(uci)! as NormalMove;
+
+            posClone.play(m);
+            const from = makeSquare(m.from)!;
+            const to = makeSquare(m.to)!;
+            if (prevSquare === null) {
+              prevSquare = from;
+            }
+            if (
+              ii === 0 ||
+              (showConsecutiveArrows && j === 0 && ii % 2 === 0)
+            ) {
+              if (
+                ii < 5 && // max 3 arrows
+                !shapes.find((s) => s.orig === from && s.dest === to) &&
+                prevSquare === from
+              ) {
+                shapes.push({
+                  orig: from,
+                  dest: to,
+                  brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
+                });
+                prevSquare = to;
+              } else {
+                break;
+              }
+            }
+          }
         }
       }
     }

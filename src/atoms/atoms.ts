@@ -101,6 +101,10 @@ export const fontSizeAtom = atomWithStorage(
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
+export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
+  "show-consecutive-arrows",
+  false,
+);
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>(
@@ -304,12 +308,12 @@ export const engineMovesFamily = atomFamily(
 // returns the best moves of each engine for the current position
 export const bestMovesFamily = atomFamily(
   ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
-    atom<Map<number, string[]>>((get) => {
+    atom<Map<number, string[][]>>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return new Map();
       const engines = get(loadableEnginesAtom);
       if (!(engines.state === "hasData")) return new Map();
-      const bestMoves = new Map<number, string[]>();
+      const bestMoves = new Map<number, string[][]>();
       let n = 0;
       for (const engine of engines.data.filter((e) => e.loaded)) {
         const engineMoves = get(
@@ -340,7 +344,7 @@ export const bestMovesFamily = atomFamily(
                 );
                 return winChance >= bestWinChange - 5;
               })
-              .map((m) => m.uciMoves[0]),
+              .map((m) => m.uciMoves),
           );
         }
         n++;

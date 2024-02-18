@@ -8,6 +8,7 @@ import {
   percentageCoverageAtom,
   previewBoardOnHoverAtom,
   showArrowsAtom,
+  showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
 } from "@/atoms/atoms";
@@ -105,6 +106,22 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
+              </Group>
+
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Consecutive Arrows</Text>
+                  <Text size="xs" c="dimmed">
+                    Show multiple arrows for the best line, if it involves
+                    moving the same piece several times
+                  </Text>
+                </div>
+                <SettingsSwitch atom={showConsecutiveArrowsAtom} />
               </Group>
               <Group
                 justify="space-between"
