@@ -1,4 +1,6 @@
+import { commands } from "@/bindings";
 import { count_pgn_games } from "@/utils/db";
+import { unwrap } from "@/utils/invoke";
 import { exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 import { z } from "zod";
 
@@ -24,6 +26,7 @@ export const fileMetadataSchema = z.object({
   path: z.string(),
   numGames: z.number(),
   metadata: fileInfoMetadataSchema,
+  lastModified: z.number(),
 });
 
 export type FileMetadata = z.infer<typeof fileMetadataSchema>;
@@ -48,6 +51,13 @@ export async function readFileMetadata(
     };
     await writeTextFile(metadataPath, JSON.stringify(metadata));
   }
+  const fileMetadata = unwrap(await commands.getFileMetadata(path));
   const numGames = await count_pgn_games(path);
-  return { path, name: name.replace(".pgn", ""), numGames, metadata };
+  return {
+    path,
+    name: name.replace(".pgn", ""),
+    numGames,
+    metadata,
+    lastModified: fileMetadata.last_modified,
+  };
 }

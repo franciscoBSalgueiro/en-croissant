@@ -14,6 +14,7 @@ import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { readDir, removeFile } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
+import dayjs from "dayjs";
 import Fuse from "fuse.js";
 import React, { useEffect, useMemo, useState } from "react";
 import ConfirmModal from "../common/ConfirmModal";
@@ -153,8 +154,13 @@ function FilesPage() {
                   isSelected={selected?.name === file.name}
                   setSelected={setSelected}
                   Header={
-                    <Group wrap="nowrap">
+                    <Group wrap="nowrap" justify="space-between">
                       <Text fw={500}>{file.name}</Text>
+                      <Text c="dimmed" fz="sm">
+                        {dayjs(file.lastModified * 1000).format(
+                          "YYYY-MM-DD HH:mm",
+                        )}
+                      </Text>
                     </Group>
                   }
                 />

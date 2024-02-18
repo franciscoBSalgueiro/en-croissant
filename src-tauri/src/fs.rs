@@ -152,3 +152,20 @@ pub async fn append_to_file(path: String, text: String) -> Result<(), Error> {
 pub async fn file_exists(path: String) -> Result<bool, Error> {
     Ok(Path::new(&path).exists())
 }
+
+#[derive(Debug, Type, serde::Serialize)]
+pub struct FileMetadata {
+    pub last_modified: u32,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_file_metadata(path: String) -> Result<FileMetadata, Error> {
+    let metadata = std::fs::metadata(path)?;
+    let last_modified = metadata
+        .modified()?
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)?;
+    Ok(FileMetadata {
+        last_modified: last_modified.as_secs() as u32,
+    })
+}

@@ -123,6 +123,7 @@ export async function saveToFile({
             tags: [],
             type: "game",
           },
+          lastModified: Date.now(),
         },
       };
     });

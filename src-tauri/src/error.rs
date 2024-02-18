@@ -54,6 +54,9 @@ pub enum Error {
     #[error(transparent)]
     R2d2(#[from] diesel::r2d2::PoolError),
 
+    #[error(transparent)]
+    SystemTime(#[from] std::time::SystemTimeError),
+
     #[error("No stdin")]
     NoStdin,
 

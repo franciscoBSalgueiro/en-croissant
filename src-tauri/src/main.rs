@@ -48,7 +48,7 @@ use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
     db::{edit_db_info, get_db_info, get_games, get_players},
-    fs::{download_file, file_exists},
+    fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
@@ -128,6 +128,7 @@ fn main() {
                 get_players_game_info,
                 get_engine_config,
                 file_exists,
+                get_file_metadata,
             ))
             .events(tauri_specta::collect_events!(
                 BestMovesPayload,
