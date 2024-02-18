@@ -411,3 +411,5 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
     set(atom, { ...get(atom), enabled: value });
   }
 });
+
+export const enableBoardScrollAtom = atom(true);

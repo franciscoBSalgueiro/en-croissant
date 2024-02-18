@@ -1,6 +1,7 @@
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  enableBoardScrollAtom,
   forcedEnPassantAtom,
   minimumGamesAtom,
   moveInputAtom,
@@ -195,6 +196,20 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={previewBoardOnHoverAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Scroll Through Moves</Text>
+                  <Text size="xs" c="dimmed">
+                    Enable or disable scrolling through moves on the chessboard
+                  </Text>
+                </div>
+                <SettingsSwitch atom={enableBoardScrollAtom} />
               </Group>
             </Tabs.Panel>
 
