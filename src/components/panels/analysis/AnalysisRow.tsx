@@ -3,10 +3,13 @@ import { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
 import { ActionIcon, Box, Flex, Popover, Table } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
+import { Key } from "chessground/types";
+import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import { useAtomValue } from "jotai";
@@ -42,7 +45,9 @@ function AnalysisRow({
       if (!move) break;
       pos.play(move);
       const fen = makeFen(pos.toSetup());
-      moveInfo.push({ fen, san });
+      const lastMove = chessgroundMove(move);
+      const isCheck = pos.isCheck();
+      moveInfo.push({ fen, san, lastMove, isCheck });
     }
   }
 
@@ -61,7 +66,7 @@ function AnalysisRow({
             alignItems: "center",
           }}
         >
-          {moveInfo.map(({ san, fen }, index) => (
+          {moveInfo.map(({ san, fen, lastMove, isCheck }, index) => (
             <BoardPopover
               san={san}
               index={index}
@@ -70,6 +75,8 @@ function AnalysisRow({
               threat={threat}
               fen={fen}
               orientation={orientation}
+              lastMove={lastMove}
+              isCheck={isCheck}
             />
           ))}
         </Flex>
@@ -91,6 +98,8 @@ function AnalysisRow({
 
 function BoardPopover({
   san,
+  lastMove,
+  isCheck,
   index,
   moves,
   halfMoves,
@@ -99,6 +108,8 @@ function BoardPopover({
   orientation,
 }: {
   san: string;
+  lastMove: Key[];
+  isCheck: boolean;
   index: number;
   moves: string[];
   halfMoves: number;
@@ -148,12 +159,22 @@ function BoardPopover({
       </Popover.Target>
       <Popover.Dropdown
         style={{ pointerEvents: "none", transitionDuration: "0ms" }}
+        className={chessboard}
       >
         <Chessground
           fen={fen}
           coordinates={false}
           viewOnly
           orientation={orientation}
+          lastMove={lastMove}
+          turnColor={is_white ? "black" : "white"}
+          check={isCheck}
+          drawable={{
+            enabled: true,
+            visible: true,
+            defaultSnapToValidMove: true,
+            eraseOnClick: true,
+          }}
         />
       </Popover.Dropdown>
     </Popover>
