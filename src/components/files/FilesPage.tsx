@@ -5,7 +5,6 @@ import {
   Chip,
   Group,
   Input,
-  ScrollArea,
   Stack,
   Text,
   Title,
@@ -14,12 +13,11 @@ import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { readDir, removeFile } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
-import dayjs from "dayjs";
-import Fuse from "fuse.js";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
-import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
+import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
 import { FileMetadata, FileType, readFileMetadata } from "./file";
@@ -32,47 +30,61 @@ const FILE_TYPES: FileType[] = [
   "other",
 ];
 
+export type MetadataOrEntry = {
+  name: string;
+  path: string;
+  children?: MetadataOrEntry[];
+} & Partial<FileMetadata>;
+
+async function processFiles(
+  files: MetadataOrEntry[],
+): Promise<MetadataOrEntry[]> {
+  const filesInfo = await Promise.all(
+    files.map((f) => readFileMetadata(f.name, f.path, f.children)),
+  );
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.children) {
+      filesInfo[i] = {
+        name: file.name || "",
+        path: file.path,
+        children: await processFiles(file.children),
+      };
+    }
+  }
+  return filesInfo.filter((f) => f !== null) as MetadataOrEntry[];
+}
+
+const useFileDirectory = () => {
+  const { data, error, isLoading, mutate } = useSWR(
+    "file-directory",
+    async () => {
+      const dir = await resolve(await documentDir(), "EnCroissant");
+      const files = await readDir(dir, { recursive: true });
+      const filesInfo = await processFiles(files as MetadataOrEntry[]);
+
+      return filesInfo;
+    },
+  );
+  return {
+    files: data,
+    isLoading,
+    error,
+    mutate,
+  };
+};
+
 function FilesPage() {
-  const [files, setFiles] = useState<FileMetadata[]>([]);
+  const { files, isLoading, error, mutate } = useFileDirectory();
+
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FileMetadata | null>(null);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const [filter, setFilter] = useState<FileType | null>(null);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(files, {
-        keys: ["name"],
-      }),
-    [files],
-  );
-
-  let filteredFiles = files;
-  if (search) {
-    filteredFiles = fuse.search(search).map((r) => r.item);
-  }
-  if (filter) {
-    filteredFiles = filteredFiles.filter((f) => f.metadata.type === filter);
-  }
-
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
-
-  useEffect(() => {
-    async function loadFiles() {
-      const dir = await resolve(await documentDir(), "EnCroissant");
-      readDir(dir).then(async (files) => {
-        const filesInfo = await Promise.all(
-          files
-            .filter((f) => f.name?.endsWith(".pgn"))
-            .map((f) => readFileMetadata(f.name || "", f.path)),
-        );
-        setFiles(filesInfo);
-      });
-    }
-    loadFiles();
-  }, []);
 
   useEffect(() => {
     setGames(new Map());
@@ -80,18 +92,22 @@ function FilesPage() {
 
   return (
     <Stack h="100%">
-      <CreateModal
-        opened={createModal}
-        setOpened={toggleCreateModal}
-        setFiles={setFiles}
-        setSelected={setSelected}
-      />
-      {selected && (
+      {files && (
+        <CreateModal
+          opened={createModal}
+          setOpened={toggleCreateModal}
+          files={files}
+          setFiles={mutate}
+          setSelected={setSelected}
+        />
+      )}
+      {selected && files && (
         <EditModal
           key={selected.name}
           opened={editModal}
           setOpened={toggleEditModal}
-          setFiles={setFiles}
+          files={files}
+          setFiles={mutate}
           setSelected={setSelected}
           metadata={selected}
         />
@@ -145,28 +161,14 @@ function FilesPage() {
             ))}
           </Group>
 
-          <ScrollArea flex={1} offsetScrollbars>
-            <Stack>
-              {filteredFiles.map((file) => (
-                <GenericCard
-                  key={file.name}
-                  id={file}
-                  isSelected={selected?.name === file.name}
-                  setSelected={setSelected}
-                  Header={
-                    <Group wrap="nowrap" justify="space-between">
-                      <Text fw={500}>{file.name}</Text>
-                      <Text c="dimmed" fz="sm">
-                        {dayjs(file.lastModified * 1000).format(
-                          "YYYY-MM-DD HH:mm",
-                        )}
-                      </Text>
-                    </Group>
-                  }
-                />
-              ))}
-            </Stack>
-          </ScrollArea>
+          <DirectoryTable
+            files={files}
+            isLoading={isLoading}
+            setSelectedFile={setSelected}
+            selectedFile={selected}
+            search={search}
+            filter={filter || ""}
+          />
         </Stack>
 
         {selected ? (
@@ -179,7 +181,7 @@ function FilesPage() {
               onConfirm={async () => {
                 await removeFile(selected.path);
                 await removeFile(selected.path.replace(".pgn", ".info"));
-                setFiles(files.filter((file) => file.name !== selected.name));
+                mutate(files?.filter((file) => file.name !== selected.name));
                 toggleDeleteModal();
                 setSelected(null);
               }}

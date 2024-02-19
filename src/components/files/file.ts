@@ -1,7 +1,12 @@
 import { commands } from "@/bindings";
 import { count_pgn_games } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
-import { exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
+import {
+  FileEntry,
+  exists,
+  readTextFile,
+  writeTextFile,
+} from "@tauri-apps/api/fs";
 import { z } from "zod";
 
 const fileTypeSchema = z.enum([
@@ -39,7 +44,18 @@ export type FileData = {
 export async function readFileMetadata(
   name: string,
   path: string,
-): Promise<FileMetadata> {
+  children?: FileEntry[],
+): Promise<FileMetadata | FileEntry | null> {
+  if (children) {
+    return {
+      name,
+      path,
+      children,
+    };
+  }
+  if (!name.endsWith(".pgn")) {
+    return null;
+  }
   const metadataPath = path.replace(".pgn", ".info");
   let metadata: FileInfoMetadata;
   if (await exists(metadataPath)) {

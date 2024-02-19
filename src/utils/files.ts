@@ -40,6 +40,7 @@ export async function openFile(
     name: file,
     path: file,
     numGames: count,
+    lastModified: new Date().getUTCSeconds(),
   };
   const tree = await parsePGN(input);
   createTab({
@@ -82,5 +83,6 @@ export async function createFile({
     path: file,
     numGames: 1,
     metadata,
+    lastModified: new Date().getUTCSeconds(),
   };
 }

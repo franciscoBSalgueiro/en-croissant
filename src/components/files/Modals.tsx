@@ -12,6 +12,7 @@ import { BaseDirectory, renameFile, writeTextFile } from "@tauri-apps/api/fs";
 import { documentDir, resolve } from "@tauri-apps/api/path";
 import { useState } from "react";
 import GenericCard from "../common/GenericCard";
+import { MetadataOrEntry } from "./FilesPage";
 import { FileMetadata, FileType } from "./file";
 
 const FILE_TYPES = [
@@ -25,12 +26,14 @@ const FILE_TYPES = [
 export function CreateModal({
   opened,
   setOpened,
+  files,
   setFiles,
   setSelected,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
+  files: MetadataOrEntry[];
+  setFiles: (files: MetadataOrEntry[]) => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
 }) {
   const [filename, setFilename] = useState("");
@@ -46,7 +49,7 @@ export function CreateModal({
       setError,
     });
     if (!newFile) return;
-    setFiles((files) => [...files, newFile]);
+    setFiles([...files, newFile]);
     setSelected(newFile);
     setError("");
     setOpened(false);
@@ -108,13 +111,15 @@ export function CreateModal({
 export function EditModal({
   opened,
   setOpened,
+  files,
   setFiles,
   setSelected,
   metadata,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
+  files: MetadataOrEntry[];
+  setFiles: (files: MetadataOrEntry[]) => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
   metadata: FileMetadata;
 }) {
@@ -169,7 +174,7 @@ export function EditModal({
       );
     }
 
-    setFiles((files) =>
+    setFiles(
       [
         ...files.filter(
           (v) => v.path !== metadata.path && v.path !== metadataPath,
@@ -181,7 +186,7 @@ export function EditModal({
           numGames: metadata.numGames,
           metadata: newMetadata,
         },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => (a.name || "").localeCompare(b.name || "")),
     );
     setSelected((selected) =>
       selected?.path === metadata.path
