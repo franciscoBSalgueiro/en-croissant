@@ -52,7 +52,6 @@ use crate::{
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
-use window_shadows::set_shadow;
 
 pub type GameData = (i32, Option<String>, Vec<u8>, Option<String>, i32, i32, i32);
 
