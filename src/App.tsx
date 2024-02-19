@@ -21,15 +21,13 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { getVersion } from "@tauri-apps/api/app";
 import { getMatches } from "@tauri-apps/api/cli";
-import { appWindow } from "@tauri-apps/api/window";
-import { Helmet } from "react-helmet";
-import { attachConsole, info } from "tauri-plugin-log-api";
-import { SideBar } from "./components/Sidebar";
-
 import { ask, message, open } from "@tauri-apps/api/dialog";
 import { open as shellOpen } from "@tauri-apps/api/shell";
+import { appWindow } from "@tauri-apps/api/window";
 import { useAtom, useAtomValue } from "jotai";
+import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet";
 import {
   Outlet,
   Route,
@@ -40,6 +38,7 @@ import {
   useNavigate,
   useRouteError,
 } from "react-router-dom";
+import { attachConsole, info } from "tauri-plugin-log-api";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -48,6 +47,7 @@ import {
   primaryColorAtom,
   tabsAtom,
 } from "./atoms/atoms";
+import { SideBar } from "./components/Sidebar";
 import DatabasesPage from "./components/databases/DatabasesPage";
 
 import "@/styles/chessgroundBaseOverride.css";
@@ -59,6 +59,7 @@ import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/tiptap/styles.css";
 
+import "mantine-contextmenu/styles.css";
 import "mantine-datatable/styles.css";
 
 import "@/styles/global.css";
@@ -449,8 +450,10 @@ export default function App() {
           },
         }}
       >
-        <Notifications />
-        <RouterProvider router={router} />
+        <ContextMenuProvider>
+          <Notifications />
+          <RouterProvider router={router} />
+        </ContextMenuProvider>
       </MantineProvider>
     </>
   );

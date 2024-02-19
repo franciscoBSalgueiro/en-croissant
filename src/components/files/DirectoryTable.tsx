@@ -1,11 +1,18 @@
+import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
+import { createTab } from "@/utils/tabs";
 import { Box } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { IconChevronRight, IconEye, IconTrash } from "@tabler/icons-react";
+import { removeDir, removeFile } from "@tauri-apps/api/fs";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import Fuse from "fuse.js";
+import { useAtom, useSetAtom } from "jotai";
+import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, DataTableSortStatus } from "mantine-datatable";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as classes from "./DirectoryTable.css";
 import { MetadataOrEntry } from "./FilesPage";
 import { FileMetadata } from "./file";
@@ -45,6 +52,7 @@ function recursiveSort(
 export default function DirectoryTable({
   files,
   isLoading,
+  setFiles,
   selectedFile,
   setSelectedFile,
   search,
@@ -52,6 +60,7 @@ export default function DirectoryTable({
 }: {
   files: MetadataOrEntry[] | undefined;
   isLoading: boolean;
+  setFiles: (files: MetadataOrEntry[]) => void;
   selectedFile: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   search: string;
@@ -112,8 +121,9 @@ export default function DirectoryTable({
     <Table
       files={filteredFiles}
       isLoading={isLoading}
+      setFiles={setFiles}
       depth={0}
-      selectedId={selectedFile?.path || null}
+      selected={selectedFile}
       setSelectedFile={setSelectedFile}
       sort={sort}
       setSort={setSort}
@@ -125,7 +135,8 @@ function Table({
   files,
   isLoading,
   depth,
-  selectedId,
+  setFiles,
+  selected,
   setSelectedFile,
   sort,
   setSort,
@@ -133,7 +144,8 @@ function Table({
   files: MetadataOrEntry[];
   isLoading: boolean;
   depth: number;
-  selectedId: string | null;
+  setFiles: (files: MetadataOrEntry[]) => void;
+  selected: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   sort: DataTableSortStatus<MetadataOrEntry>;
   setSort: React.Dispatch<
@@ -143,6 +155,30 @@ function Table({
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const expandedFiles = expandedIds.filter((id) =>
     files?.find((f) => f.path === id && f.children),
+  );
+  const navigate = useNavigate();
+  const [, setTabs] = useAtom(tabsAtom);
+  const setActiveTab = useSetAtom(activeTabAtom);
+
+  const { showContextMenu } = useContextMenu();
+
+  const openFile = useCallback(
+    async (record: FileMetadata) => {
+      const pgn = await read_games(record.path, 0, 0);
+      createTab({
+        tab: {
+          name: record?.name || "Untitled",
+          type: "analysis",
+        },
+        setTabs,
+        setActiveTab,
+        pgn: pgn[0] || "",
+        fileInfo: record,
+        gameNumber: 0,
+      });
+      navigate("/");
+    },
+    [selected, setActiveTab, setTabs, navigate],
   );
 
   return (
@@ -158,9 +194,13 @@ function Table({
       }}
       idAccessor="path"
       rowClassName={(record) =>
-        record.path === selectedId ? classes.selected : ""
+        record.path === selected?.path ? classes.selected : ""
       }
       sortStatus={sort}
+      onRowDoubleClick={({ record }) => {
+        if (record.children) return;
+        openFile(record as FileMetadata);
+      }}
       onSortStatusChange={setSort}
       columns={[
         {
@@ -215,8 +255,9 @@ function Table({
             <Table
               files={record.children}
               isLoading={isLoading}
+              setFiles={setFiles}
               depth={depth + 1}
-              selectedId={selectedId}
+              selected={selected}
               setSelectedFile={setSelectedFile}
               sort={sort}
               setSort={setSort}
@@ -227,6 +268,33 @@ function Table({
         if (!record.children) {
           setSelectedFile(record as FileMetadata);
         }
+      }}
+      onRowContextMenu={({ record, event }) => {
+        return showContextMenu([
+          {
+            key: "open-file",
+            icon: <IconEye size={16} />,
+            disabled: !!record.children,
+            onClick: () => {
+              if (record.children) return;
+              openFile(record as FileMetadata);
+            },
+          },
+          {
+            key: "delete-file",
+            icon: <IconTrash size={16} />,
+            title: "Delete",
+            color: "red",
+            onClick: async () => {
+              if (record.children) {
+                await removeDir(record.path, { recursive: true });
+              } else {
+                await removeFile(record.path);
+              }
+              setFiles(files?.filter((f) => record.path.includes(f.path)));
+            },
+          },
+        ])(event);
       }}
     />
   );

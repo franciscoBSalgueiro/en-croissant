@@ -163,6 +163,7 @@ function FilesPage() {
 
           <DirectoryTable
             files={files}
+            setFiles={mutate}
             isLoading={isLoading}
             setSelectedFile={setSelected}
             selectedFile={selected}
