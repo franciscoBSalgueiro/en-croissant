@@ -6,6 +6,7 @@ import {
   currentPracticingAtom,
   currentTabAtom,
   deckAtomFamily,
+  enableBoardScrollAtom,
   fontSizeAtom,
   forcedEnPassantAtom,
   moveInputAtom,
@@ -419,6 +420,7 @@ function Board({
   const bottomProgress = calculateProgress(bottomClock, bottomTc);
 
   const [boardFen, setBoardFen] = useState<string | null>(null);
+  const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
 
   useEffect(() => {
     if (editingMode && boardFen && boardFen !== currentNode.fen) {
@@ -484,14 +486,16 @@ function Board({
             className={chessboard}
             ref={ref}
             onWheel={(e) => {
-              if (e.deltaY > 0) {
-                dispatch({
-                  type: "GO_TO_NEXT",
-                });
-              } else {
-                dispatch({
-                  type: "GO_TO_PREVIOUS",
-                });
+              if (enableBoardScroll) {
+                if (e.deltaY > 0) {
+                  dispatch({
+                    type: "GO_TO_NEXT",
+                  });
+                } else {
+                  dispatch({
+                    type: "GO_TO_PREVIOUS",
+                  });
+                }
               }
             }}
           >

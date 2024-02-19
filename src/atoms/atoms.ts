@@ -111,6 +111,10 @@ export const previewBoardOnHoverAtom = atomWithStorage<boolean>(
   "preview-board-on-hover",
   true,
 );
+export const enableBoardScrollAtom = atomWithStorage<boolean>(
+  "board-scroll",
+  true,
+);
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<boolean>(
   "show-coordinates",
