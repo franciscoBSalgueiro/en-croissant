@@ -76,7 +76,7 @@ impl EngineProcess {
         while let Some(line) = lines.next_line().await? {
             logs.push(EngineLog::Engine(line.clone()));
             if line == "uciok" {
-                stdin.write_all("isready\n".as_bytes()).await;
+              let _ =  stdin.write_all("isready\n".as_bytes()).await;
                 logs.push(EngineLog::Gui("isready\n".to_string()));
                 while let Some(line_is_ready) = lines.next_line().await? {
                     logs.push(EngineLog::Engine(line_is_ready.clone()));
