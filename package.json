@@ -4,8 +4,10 @@
   "version": "0.9.2",
   "type": "module",
   "scripts": {
-    "start": "vite",
-    "build": "tsc --noEmit && vite build",
+    "start-vite": "vite",
+    "build-vite": "tsc --noEmit && vite build",
+    "build": "tauri build -b none",
+    "dev": "tauri dev",
     "tauri": "tauri",
     "format": "biome format --write ./src",
     "test": "vitest run",
