@@ -138,10 +138,10 @@ function BestMovesComponent({
     () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
     [ev, searchingFen, searchingMoves],
   );
-  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
-  const nps = !engineVariations
-    ? 0
-    : Math.floor(engineVariations[0].nps / 1000);
+
+  const isComputed = engineVariations && engineVariations.length > 0;
+  const depth = isComputed ? engineVariations[0].depth : 0;
+  const nps = isComputed ? Math.floor(engineVariations[0].nps / 1000) : 0;
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
