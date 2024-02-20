@@ -3,13 +3,16 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { events, EngineOptions, GoMode } from "@/bindings";
+import { EngineOptions, GoMode, events } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
-import { swapMove } from "@/utils/chessops";
-import { chessopsError, positionFromFen } from "@/utils/chessops";
-import { Engine, LocalEngine, stopEngine } from "@/utils/engines";
-import { getBestMoves as localGetBestMoves } from "@/utils/engines";
+import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
+import {
+  Engine,
+  LocalEngine,
+  getBestMoves as localGetBestMoves,
+  stopEngine,
+} from "@/utils/engines";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
@@ -138,7 +141,7 @@ function BestMovesComponent({
   const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
   const nps = !engineVariations
     ? 0
-    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
+    : Math.floor(engineVariations[0].nps / 1000);
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
