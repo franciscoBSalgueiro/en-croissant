@@ -3,7 +3,7 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { EngineOptions, GoMode, events } from "@/bindings";
+import { events, EngineOptions, GoMode } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
