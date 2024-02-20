@@ -216,7 +216,6 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 pub enum Score {
     Cp(i32),
     Mate(i32),
-    Dtz(i32),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -322,7 +321,6 @@ fn parse_uci_attrs(
         best_moves.score = match best_moves.score {
             Score::Cp(x) => Score::Cp(-x),
             Score::Mate(x) => Score::Mate(-x),
-            Score::Dtz(x) => Score::Dtz(-x),
         };
     }
 
