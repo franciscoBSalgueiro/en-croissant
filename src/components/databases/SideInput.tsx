@@ -18,7 +18,6 @@ export function SideInput({
   sides: Sides;
   setSides: (val: Sides) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   const [selected, setSelected] = useState(
     (sides === "WhiteBlack" && label === "Player") ||
       (sides === "BlackWhite" && label === "Opponent")
@@ -72,7 +71,7 @@ export function SideInput({
   }, [sides]);
 
   return (
-    <Menu onOpen={() => setOpened(true)} onClose={() => setOpened(false)}>
+    <Menu>
       <Menu.Target>
         <UnstyledButton className={classes.control}>
           <Box

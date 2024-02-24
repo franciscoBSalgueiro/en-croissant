@@ -13,6 +13,7 @@ type Props<T> = {
     value: string;
   }[];
   Header: ReactNode;
+  onDoubleClick?: () => void;
 };
 
 export default function GenericCard<T>({
@@ -22,6 +23,7 @@ export default function GenericCard<T>({
   error,
   stats,
   Header,
+  onDoubleClick,
 }: Props<T>) {
   return (
     <>
@@ -31,6 +33,7 @@ export default function GenericCard<T>({
           [classes.error]: !!error,
         })}
         onClick={() => setSelected(id)}
+        onDoubleClick={onDoubleClick}
       >
         <Stack h="100%" justify="space-between">
           {Header}

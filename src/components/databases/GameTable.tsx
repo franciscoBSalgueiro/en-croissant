@@ -28,7 +28,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
-import { SearchInput } from "./SearchInput";
+import { PlayerSearchInput } from "./PlayerSearchInput";
+import { SideInput } from "./SideInput";
 import * as classes from "./styles.css";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
@@ -171,17 +172,27 @@ function GameTable({ database }: { database: DatabaseInfo }) {
           <Flex style={{ gap: 20 }}>
             <Box style={{ flexGrow: 1 }}>
               <Group grow>
-                <SearchInput
+                <PlayerSearchInput
                   setValue={setPlayer1}
-                  sides={sides}
-                  setSides={setSides}
+                  rightSection={
+                    <SideInput
+                      sides={sides}
+                      setSides={setSides}
+                      label="Player"
+                    />
+                  }
                   label="Player"
                   file={file}
                 />
-                <SearchInput
+                <PlayerSearchInput
                   setValue={setplayer2}
-                  sides={sides}
-                  setSides={setSides}
+                  rightSection={
+                    <SideInput
+                      sides={sides}
+                      setSides={setSides}
+                      label="Opponent"
+                    />
+                  }
                   label="Opponent"
                   file={file}
                 />

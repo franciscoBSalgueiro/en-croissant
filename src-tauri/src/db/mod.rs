@@ -499,6 +499,7 @@ pub struct DatabaseInfo {
     title: String,
     description: String,
     player_count: usize,
+    event_count: usize,
     game_count: usize,
     storage_size: usize,
     filename: String,
@@ -541,6 +542,9 @@ pub async fn get_db_info(
     let game_count_info: Info = info::table.filter(info::name.eq("GameCount")).first(db)?;
     let game_count = game_count_info.value.unwrap().parse::<usize>()?;
 
+    let event_count_info: Info = info::table.filter(info::name.eq("EventCount")).first(db)?;
+    let event_count = event_count_info.value.unwrap().parse::<usize>()?;
+
     let title = match info::table
         .filter(info::name.eq("Title"))
         .first(db)
@@ -568,6 +572,7 @@ pub async fn get_db_info(
         description,
         player_count,
         game_count,
+        event_count,
         storage_size,
         filename: filename.to_string(),
         indexed: is_indexed,
@@ -1282,6 +1287,82 @@ pub async fn delete_database(
 
     // delete file
     remove_file(path_str)?;
+    Ok(())
+}
+
+type DuplicateGame = (i32, i32, Option<String>, Option<String>, i64);
+
+#[tauri::command]
+pub async fn detect_duplicated_games(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<DuplicateGame>, Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let duplicated_games: Vec<DuplicateGame> = games::table
+        .group_by((
+            games::white_id,
+            games::black_id,
+            games::date,
+            games::time,
+            games::moves,
+        ))
+        .having(diesel::dsl::count(games::id).gt(1))
+        .select((
+            games::white_id,
+            games::black_id,
+            games::date,
+            games::time,
+            diesel::dsl::count(games::id),
+        ))
+        .limit(100)
+        .load::<DuplicateGame>(db)?;
+
+    Ok(duplicated_games)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn merge_players(
+    file: PathBuf,
+    player1: i32,
+    player2: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    // Check if the players never played against each other
+    let count: i64 = games::table
+        .filter(games::white_id.eq(player1).and(games::black_id.eq(player2)))
+        .or_filter(games::white_id.eq(player2).and(games::black_id.eq(player1)))
+        .limit(1)
+        .count()
+        .get_result(db)?;
+
+    if count > 0 {
+        return Err(Error::NotDistinctPlayers);
+    }
+
+    diesel::update(games::table.filter(games::white_id.eq(player1)))
+        .set(games::white_id.eq(player2))
+        .execute(db)?;
+    diesel::update(games::table.filter(games::black_id.eq(player1)))
+        .set(games::black_id.eq(player2))
+        .execute(db)?;
+
+    diesel::delete(players::table.filter(players::id.eq(player1))).execute(db)?;
+
+    let player_count: i64 = players::table.count().get_result(db)?;
+    diesel::insert_into(info::table)
+        .values((
+            info::name.eq("PlayerCount"),
+            info::value.eq(player_count.to_string()),
+        ))
+        .on_conflict(info::name)
+        .do_update()
+        .set(info::value.eq(player_count.to_string()))
+        .execute(db)?;
+
     Ok(())
 }
 

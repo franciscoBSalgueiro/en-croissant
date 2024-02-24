@@ -1,13 +1,16 @@
 import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
+import { commands } from "@/bindings";
 import { DatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { invoke, unwrap } from "@/utils/invoke";
 import {
-  Badge,
   Box,
   Button,
   Checkbox,
+  Divider,
   Group,
+  Loader,
+  Paper,
   Rating,
   ScrollArea,
   SimpleGrid,
@@ -19,22 +22,22 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
-import { IconDatabase, IconStar } from "@tabler/icons-react";
+import { IconArrowRight, IconDatabase } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
 import ConvertButton from "./ConvertButton";
+import { PlayerSearchInput } from "./PlayerSearchInput";
 
 export default function DatabasesPage() {
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedDatabase, setSelectedDatabase] = useState<DatabaseInfo | null>(
-    null,
-  );
+  const [selected, setSelected] = useState<string | null>(null);
+  const selectedDatabase = databases.find((db) => db.file === selected) ?? null;
   const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
@@ -80,6 +83,7 @@ export default function DatabasesPage() {
       setReferenceDatabase(file);
     }
   }
+  const navigate = useNavigate();
 
   return (
     <Stack h="100%">
@@ -93,7 +97,7 @@ export default function DatabasesPage() {
             () => {
               getDatabases().then((dbs) => {
                 setDatabases(dbs);
-                setSelectedDatabase(null);
+                setSelected(null);
               });
             },
           );
@@ -129,11 +133,15 @@ export default function DatabasesPage() {
           >
             {databases.map((item) => (
               <GenericCard
-                id={item}
+                id={item.file}
                 key={item.filename}
                 isSelected={selectedDatabase?.filename === item.filename}
-                setSelected={setSelectedDatabase}
+                setSelected={setSelected}
                 error={item.error}
+                onDoubleClick={() => {
+                  navigate("/databases/view");
+                  setStorageSelected(item);
+                }}
                 Header={
                   <Group wrap="nowrap" justify="space-between">
                     <Group wrap="nowrap" miw={0}>
@@ -176,83 +184,219 @@ export default function DatabasesPage() {
           </SimpleGrid>
         </ScrollArea>
 
-        {selectedDatabase === null ? (
-          <Text ta="center">No database selected</Text>
-        ) : (
-          <Box mx={30}>
-            <Stack>
-              {selectedDatabase.error ? (
-                <>
-                  <Text fz="lg" fw="bold">
-                    There was an error loading this database
-                  </Text>
-
-                  <Text>
-                    <Text td="underline" span>
-                      Reason:
-                    </Text>
-                    {` ${selectedDatabase.error}`}
-                  </Text>
-
-                  <Text>
-                    Check if the file exists and that it is not corrupted.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Group>
-                    {selectedDatabase.indexed && <Badge>Indexed</Badge>}
-                    {isReference && <Badge>Reference</Badge>}
-                  </Group>
-                  <TextInput
-                    label="Title"
-                    value={title ?? ""}
-                    onChange={(e) => setTitle(e.currentTarget.value)}
-                    error={title === "" && "Name is required"}
-                  />
-                  <Textarea
-                    label="Description"
-                    value={description ?? ""}
-                    onChange={(e) => setDescription(e.currentTarget.value)}
-                  />
-                  <Checkbox
-                    label="Reference Database"
-                    checked={isReference}
-                    onChange={() => {
-                      changeReferenceDatabase(selectedDatabase.file);
-                    }}
-                  />
-                </>
-              )}
-              <Group>
-                {!selectedDatabase.error && (
+        <Paper withBorder p="md" h="100%">
+          {selectedDatabase === null ? (
+            <Text ta="center">No database selected</Text>
+          ) : (
+            <ScrollArea h="100%" offsetScrollbars>
+              <Stack>
+                {selectedDatabase.error ? (
                   <>
-                    <Link
-                      to="/databases/view"
-                      onClick={() => setStorageSelected(selectedDatabase)}
-                    >
-                      <Button>Explore</Button>
-                    </Link>
-                    <IndexButton
+                    <Text fz="lg" fw="bold">
+                      There was an error loading this database
+                    </Text>
+
+                    <Text>
+                      <Text td="underline" span>
+                        Reason:
+                      </Text>
+                      {` ${selectedDatabase.error}`}
+                    </Text>
+
+                    <Text>
+                      Check if the file exists and that it is not corrupted.
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Divider variant="dashed" label="General settings" />
+                    <TextInput
+                      label="Title"
+                      value={title ?? ""}
+                      onChange={(e) => setTitle(e.currentTarget.value)}
+                      error={title === "" && "Name is required"}
+                    />
+                    <Textarea
+                      label="Description"
+                      value={description ?? ""}
+                      onChange={(e) => setDescription(e.currentTarget.value)}
+                    />
+                    <Checkbox
+                      label="Reference Database"
+                      checked={isReference}
+                      onChange={() => {
+                        changeReferenceDatabase(selectedDatabase.file);
+                      }}
+                    />
+                    <IndexInput
                       indexed={selectedDatabase.indexed}
                       file={selectedDatabase.file}
                       setDatabases={setDatabases}
                     />
+
+                    <Divider variant="dashed" label="Data" />
+                    <Group grow>
+                      <Stack gap={0} justify="center" ta="center">
+                        <Text size="md" tt="uppercase" fw="bold" c="dimmed">
+                          Games
+                        </Text>
+                        <Text fw={700} size="lg">
+                          {formatNumber(selectedDatabase.game_count)}
+                        </Text>
+                      </Stack>
+                      <Stack gap={0} justify="center" ta="center">
+                        <Text size="md" tt="uppercase" fw="bold" c="dimmed">
+                          Players
+                        </Text>
+                        <Text fw={700} size="lg">
+                          {formatNumber(selectedDatabase.player_count)}
+                        </Text>
+                      </Stack>
+                      <Stack gap={0} justify="center" ta="center">
+                        <Text size="md" tt="uppercase" fw="bold" c="dimmed">
+                          Events
+                        </Text>
+                        <Text fw={700} size="lg">
+                          {formatNumber(selectedDatabase.event_count)}
+                        </Text>
+                      </Stack>
+                    </Group>
+
+                    <div>
+                      {!selectedDatabase.error && (
+                        <Button
+                          component={Link}
+                          to="/databases/view"
+                          onClick={() => setStorageSelected(selectedDatabase)}
+                          fullWidth
+                        >
+                          Explore
+                        </Button>
+                      )}
+                    </div>
                   </>
                 )}
-                <Button onClick={() => toggleDeleteModal()} color="red">
-                  Delete
-                </Button>
-              </Group>
-            </Stack>
-          </Box>
-        )}
+
+                <Divider variant="dashed" label="Advanced settings" />
+
+                {!selectedDatabase.error && (
+                  <AdvancedSettings selectedDatabase={selectedDatabase} />
+                )}
+
+                <Group justify="right">
+                  {!selectedDatabase.error && (
+                    <>
+                      {/* <Button
+                        variant="default"
+                        loading={loading}
+                        onClick={() => {
+                          invoke("detect_duplicated_games", {
+                            file: selectedDatabase.file,
+                          }).then((payload) => {
+                            console.log(payload);
+                          });
+                        }}
+                      >
+                        Detect Duplicates
+                      </Button> */}
+
+                      <Button
+                        variant="default"
+                        loading={loading}
+                        onClick={() => {
+                          setLoading(true);
+                          invoke("export_to_pgn", {
+                            file: selectedDatabase.file,
+                          }).then(() => {
+                            setLoading(false);
+                          });
+                        }}
+                      >
+                        Export to PGN
+                      </Button>
+                    </>
+                  )}
+                  <Button onClick={() => toggleDeleteModal()} color="red">
+                    Delete
+                  </Button>
+                </Group>
+              </Stack>
+            </ScrollArea>
+          )}
+        </Paper>
       </Group>
     </Stack>
   );
 }
 
-function IndexButton({
+function AdvancedSettings({
+  selectedDatabase,
+}: {
+  selectedDatabase: DatabaseInfo;
+}) {
+  return (
+    <Stack>
+      <PlayerMerger selectedDatabase={selectedDatabase} />
+    </Stack>
+  );
+}
+
+function PlayerMerger({
+  selectedDatabase,
+}: {
+  selectedDatabase: DatabaseInfo;
+}) {
+  const [player1, setPlayer1] = useState<number | undefined>(undefined);
+  const [player2, setPlayer2] = useState<number | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+
+  async function mergePlayers() {
+    if (player1 === undefined || player2 === undefined) {
+      return;
+    }
+    setLoading(true);
+    const res = await commands.mergePlayers(
+      selectedDatabase.file,
+      player1,
+      player2,
+    );
+    setLoading(false);
+    unwrap(res);
+  }
+
+  return (
+    <Stack>
+      <Text fz="lg" fw="bold">
+        Merge Players
+      </Text>
+      <Text fz="sm">
+        This will replace all occurrences of the first player with the second
+        player in the database.
+      </Text>
+      <Group grow>
+        <PlayerSearchInput
+          label="Player 1"
+          file={selectedDatabase.file}
+          setValue={setPlayer1}
+        />
+        <Button
+          loading={loading}
+          onClick={mergePlayers}
+          rightSection={<IconArrowRight size="1rem" />}
+        >
+          Merge
+        </Button>
+        <PlayerSearchInput
+          label="Player 2"
+          file={selectedDatabase.file}
+          setValue={setPlayer2}
+        />
+      </Group>
+    </Stack>
+  );
+}
+
+function IndexInput({
   indexed,
   file,
   setDatabases,
@@ -263,43 +407,29 @@ function IndexButton({
 }) {
   const [loading, setLoading] = useToggle();
   return (
-    <Tooltip label="Indexes are used to speed up the search process, but they take up extra space.">
-      {indexed ? (
-        <Button
-          loading={loading}
-          onClick={() => {
+    <Group>
+      <Tooltip label="Indexes are used to speed up the search process, but they take up extra space.">
+        <Checkbox
+          label="Indexed"
+          disabled={loading}
+          checked={indexed}
+          onChange={(e) => {
             setLoading(true);
-            invoke("delete_indexes", {
-              file,
-            }).then(() => {
+            invoke(
+              e.currentTarget.checked ? "create_indexes" : "delete_indexes",
+              {
+                file,
+              },
+            ).then(() => {
               getDatabases().then((dbs) => {
                 setDatabases(dbs);
                 setLoading(false);
               });
             });
           }}
-          color="red"
-        >
-          Delete Indexes
-        </Button>
-      ) : (
-        <Button
-          loading={loading}
-          onClick={() => {
-            setLoading(true);
-            invoke("create_indexes", {
-              file,
-            }).then(() => {
-              getDatabases().then((dbs) => {
-                setDatabases(dbs);
-                setLoading(false);
-              });
-            });
-          }}
-        >
-          Create Indexes
-        </Button>
-      )}
-    </Tooltip>
+        />
+      </Tooltip>
+      {loading && <Loader size="sm" />}
+    </Group>
   );
 }

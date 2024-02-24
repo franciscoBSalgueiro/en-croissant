@@ -121,6 +121,14 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async mergePlayers(file: string, player1: number, player2: number) : Promise<__Result__<null, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|merge_players", { file, player1, player2 }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

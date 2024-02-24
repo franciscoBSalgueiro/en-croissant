@@ -1,20 +1,17 @@
-import { Player, Sides, query_players } from "@/utils/db";
+import { Player, query_players } from "@/utils/db";
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { useState } from "react";
-import { SideInput } from "./SideInput";
+import { ReactNode, useState } from "react";
 
-export function SearchInput({
+export function PlayerSearchInput({
   label,
   file,
-  sides,
-  setSides,
+  rightSection,
   setValue,
 }: {
   label: string;
   file: string;
-  sides: Sides;
-  setSides: (val: Sides) => void;
+  rightSection?: ReactNode;
   setValue: (val: number | undefined) => void;
 }) {
   const [tempValue, setTempValue] = useState("");
@@ -47,9 +44,7 @@ export function SearchInput({
       value={tempValue}
       data={data.map((player) => player.name)}
       onChange={handleChange}
-      rightSection={
-        <SideInput sides={sides} setSides={setSides} label={label} />
-      }
+      rightSection={rightSection}
       leftSection={<IconSearch size="1rem" />}
       placeholder={label}
     />

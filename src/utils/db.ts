@@ -19,6 +19,7 @@ export interface DatabaseInfo {
   filename: string;
   game_count?: number;
   player_count?: number;
+  event_count?: number;
   storage_size?: number;
   downloadLink?: string;
   error?: string;

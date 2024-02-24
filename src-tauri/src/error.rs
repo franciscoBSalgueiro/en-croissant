@@ -83,6 +83,9 @@ pub enum Error {
 
     #[error("No puzzles")]
     NoPuzzles,
+
+    #[error("Players aren't the same. They have played against each other")]
+    NotDistinctPlayers,
 }
 
 impl serde::Serialize for Error {

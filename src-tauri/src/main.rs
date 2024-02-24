@@ -47,7 +47,9 @@ use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
-    db::{edit_db_info, get_db_info, get_games, get_players},
+    db::{
+        detect_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
+    },
     fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
@@ -129,6 +131,7 @@ fn main() {
                 get_engine_config,
                 file_exists,
                 get_file_metadata,
+                merge_players,
             ))
             .events(tauri_specta::collect_events!(
                 BestMovesPayload,
@@ -242,6 +245,7 @@ fn main() {
             get_db_info,
             get_puzzle_db_info,
             edit_db_info,
+            detect_duplicated_games,
             authenticate,
             delete_database,
             convert_pgn,
