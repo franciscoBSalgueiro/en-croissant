@@ -374,8 +374,8 @@ function PlayerMerger({
         Merge Players
       </Text>
       <Text fz="sm">
-        This will replace all occurrences of the first player with the second
-        player in the database.
+        Replace all occurrences of the first player with the second player in
+        the database.
       </Text>
       <Group grow>
         <PlayerSearchInput
@@ -414,8 +414,8 @@ function DuplicateRemover({
         Batch Delete
       </Text>
       <Text fz="sm">
-        This will delete games from the database. These operations are
-        irreversible.
+        These actions will irreversibly remove games from the database. Use with
+        caution.
       </Text>
       <Group>
         <Button

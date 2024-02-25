@@ -36,7 +36,6 @@ function GamePreviewWrapper({
 
   return (
     <>
-      {isLoading && <Text ta="center">Loading...</Text>}
       {parsedGame && (
         <GamePreview
           key={pgn}
@@ -71,7 +70,11 @@ function GamePreview({
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
-        {showOpening && <Text fz="sm">{opening}</Text>}
+        {showOpening && (
+          <Text h="2.5rem" fz="sm">
+            {opening}
+          </Text>
+        )}
         <Group grow h="100%" style={{ overflow: "hidden" }}>
           <PreviewBoard />
           {!hideControls && (
