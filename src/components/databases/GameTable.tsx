@@ -199,32 +199,20 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             highlightOnHover
             records={games}
             fetching={isLoading}
+            onRowDoubleClick={({ record }) => {
+              createTab({
+                tab: {
+                  name: `${record.white} - ${record.black}`,
+                  type: "analysis",
+                },
+                setTabs,
+                setActiveTab,
+                pgn: record.moves,
+                headers: record,
+              });
+              navigate("/");
+            }}
             columns={[
-              {
-                accessor: "open",
-                title: "Open",
-                render: (game) => (
-                  <ActionIcon
-                    variant="subtle"
-                    color={theme.primaryColor}
-                    onClick={() => {
-                      createTab({
-                        tab: {
-                          name: `${game.white} - ${game.black}`,
-                          type: "analysis",
-                        },
-                        setTabs,
-                        setActiveTab,
-                        pgn: game.moves,
-                        headers: game,
-                      });
-                      navigate("/");
-                    }}
-                  >
-                    <IconEye size="1rem" stroke={1.5} />
-                  </ActionIcon>
-                ),
-              },
               {
                 accessor: "white",
                 render: ({ white, white_elo }) => (
@@ -257,27 +245,8 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                 render: ({ result }) => result.replaceAll("1/2", "½"),
               },
               { accessor: "ply_count", title: "Plies", sortable: true },
-              {
-                accessor: "actions",
-                render: (game) => {
-                  return (
-                    <>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => {
-                          invoke("delete_db_game", {
-                            file,
-                            gameId: game.id,
-                          }).then(() => mutate());
-                        }}
-                      >
-                        <IconTrash size="1rem" stroke={1.5} />
-                      </ActionIcon>
-                    </>
-                  );
-                },
-              },
+              { accessor: "event" },
+              { accessor: "site" },
             ]}
             rowClassName={(_, i) =>
               i === selectedGame ? classes.selected : ""
@@ -309,7 +278,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
         }
         preview={
           selectedGame !== null && games[selectedGame] ? (
-            <GameCard game={games[selectedGame]} />
+            <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
           ) : (
             <Center h="100%">
               <Text>No game selected</Text>

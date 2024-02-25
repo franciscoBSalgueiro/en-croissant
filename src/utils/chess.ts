@@ -154,14 +154,18 @@ export function getMoveText(
   return moveText;
 }
 
-export function getMainLine(root: TreeNode, is960: boolean): string[] {
+export function getLastMainlinePosition(root: TreeNode): number[] {
   const position = [];
   for (let node = root; node.children.length > 0; node = node.children[0]) {
     if (node.move) {
       position.push(0);
     }
   }
-  return getVariationLine(root, position, is960, true);
+  return position;
+}
+
+export function getMainLine(root: TreeNode, is960: boolean): string[] {
+  return getVariationLine(root, getLastMainlinePosition(root), is960, true);
 }
 
 // outputs the correct uci move for castling in chess960 and standard chess
