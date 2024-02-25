@@ -43,6 +43,8 @@ function PlayerCard({
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: games, isLoading } = useSWRImmutable(
     ["tournament-games", file, tournament.id],
@@ -102,6 +104,11 @@ function PlayerCard({
       a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
   );
 
+  const paginatedGames = sortedGames.slice(
+    (page - 1) * 25,
+    (page - 1) * 25 + 25,
+  );
+
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
       <Stack h="100%">
@@ -123,7 +130,13 @@ function PlayerCard({
               fetching={isLoading}
               withTableBorder
               highlightOnHover
-              records={sortedGames}
+              records={paginatedGames}
+              totalRecords={sortedGames.length}
+              recordsPerPage={pageSize}
+              onRecordsPerPageChange={setPageSize}
+              recordsPerPageOptions={[10, 25, 50]}
+              page={page}
+              onPageChange={setPage}
               sortStatus={sort}
               onSortStatusChange={setSort}
               columns={[

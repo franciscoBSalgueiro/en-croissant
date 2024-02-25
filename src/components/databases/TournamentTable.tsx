@@ -126,6 +126,7 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
           <TournamentCard
             tournament={tournaments[selected]}
             file={database.file}
+            key={tournaments[selected].id}
           />
         ) : (
           <Center h="100%">
