@@ -13,6 +13,7 @@ import {
   getBestMoves as localGetBestMoves,
   stopEngine,
 } from "@/utils/engines";
+import { formatNodes } from "@/utils/format";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
@@ -141,7 +142,7 @@ function BestMovesComponent({
 
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
-  const nps = isComputed ? Math.floor(engineVariations[0].nps / 1000) : 0;
+  const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
@@ -295,7 +296,7 @@ function BestMovesComponent({
                   engineVariations &&
                   engineVariations.length > 0 && (
                     <Tooltip label={"How fast the engine is running"}>
-                      <Code fz="xs">{nps}k nodes/s</Code>
+                      <Code fz="xs">{nps} nodes/s</Code>
                     </Tooltip>
                   )}
               </Group>

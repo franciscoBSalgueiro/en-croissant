@@ -48,3 +48,8 @@ export function formatMove(orientation: string) {
 export function capitalize(str: string) {
   return `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
 }
+
+export function formatNodes(nodes: number) {
+  if (nodes < 1000) return nodes.toFixed(0);
+  return `${(nodes / 1000).toFixed(0)}k`;
+}
