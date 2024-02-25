@@ -8,10 +8,10 @@ import {
   Box,
   LoadingOverlay,
   Paper,
+  Stack,
   Text,
   useMantineTheme,
 } from "@mantine/core";
-import { Stack } from "@mantine/core";
 import { useContext } from "react";
 import { CategoricalChartState } from "recharts/types/chart/generateCategoricalChart";
 import * as classes from "./EvalChart.css";
