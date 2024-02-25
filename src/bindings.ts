@@ -158,7 +158,7 @@ export type MonthData = { count: number; avg_elo: number }
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type ReportProgress = { progress: number; id: string; finished: boolean }
 export type Results = { won: number; lost: number; draw: number }
-export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
+export type Score = { type: "cp"; value: number } | { type: "mate"; value: number } | { type: "dtz"; value: number }
 /**
  * Represents a UCI option definition.
  */

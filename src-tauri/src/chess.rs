@@ -76,7 +76,7 @@ impl EngineProcess {
         while let Some(line) = lines.next_line().await? {
             logs.push(EngineLog::Engine(line.clone()));
             if line == "uciok" {
-              let _ =  stdin.write_all("isready\n".as_bytes()).await;
+                let _ = stdin.write_all("isready\n".as_bytes()).await;
                 logs.push(EngineLog::Gui("isready\n".to_string()));
                 while let Some(line_is_ready) = lines.next_line().await? {
                     logs.push(EngineLog::Engine(line_is_ready.clone()));
@@ -216,6 +216,8 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 pub enum Score {
     Cp(i32),
     Mate(i32),
+    #[allow(dead_code)]
+    Dtz(i32),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -321,6 +323,7 @@ fn parse_uci_attrs(
         best_moves.score = match best_moves.score {
             Score::Cp(x) => Score::Cp(-x),
             Score::Mate(x) => Score::Mate(-x),
+            _ => unreachable!(),
         };
     }
 
