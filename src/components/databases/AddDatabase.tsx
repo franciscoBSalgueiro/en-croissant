@@ -23,6 +23,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Dispatch, SetStateAction, useState } from "react";
+import { KeyedMutator } from "swr";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
@@ -37,7 +38,7 @@ function AddDatabase({
   opened: boolean;
   setOpened: (opened: boolean) => void;
   setLoading: Dispatch<SetStateAction<boolean>>;
-  setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
+  setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
@@ -179,7 +180,7 @@ function DatabaseCard({
   databaseId,
   initInstalled,
 }: {
-  setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
+  setDatabases: KeyedMutator<DatabaseInfo[]>;
   database: DatabaseInfo;
   databaseId: number;
   initInstalled: boolean;

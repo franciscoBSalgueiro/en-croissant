@@ -36,8 +36,8 @@ use tauri_plugin_log::LogTarget;
 
 use crate::chess::{analyze_game, get_engine_config, get_engine_logs, kill_engines, stop_engine};
 use crate::db::{
-    clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
-    get_players_game_info, get_tournaments, search_position,
+    clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
+    delete_indexes, get_players_game_info, get_tournaments, search_position,
 };
 use crate::fide::{download_fide_db, find_fide_player};
 use crate::fs::{append_to_file, set_file_as_executable, DownloadProgress};
@@ -48,7 +48,7 @@ use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
     db::{
-        detect_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
+        delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
     },
     fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
@@ -131,7 +131,7 @@ fn main() {
                 get_engine_config,
                 file_exists,
                 get_file_metadata,
-                merge_players,
+                merge_players
             ))
             .events(tauri_specta::collect_events!(
                 BestMovesPayload,
@@ -245,7 +245,7 @@ fn main() {
             get_db_info,
             get_puzzle_db_info,
             edit_db_info,
-            detect_duplicated_games,
+            delete_duplicated_games,
             authenticate,
             delete_database,
             convert_pgn,
@@ -263,6 +263,8 @@ fn main() {
             lex_pgn,
             download_fide_db,
             search_opening_name,
+            delete_db_game,
+            delete_empty_games,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

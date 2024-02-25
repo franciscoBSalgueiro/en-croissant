@@ -14,6 +14,7 @@ import {
   Rating,
   ScrollArea,
   SimpleGrid,
+  Skeleton,
   Stack,
   Text,
   TextInput,
@@ -26,6 +27,7 @@ import { IconArrowRight, IconDatabase } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -34,10 +36,17 @@ import ConvertButton from "./ConvertButton";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 
 export default function DatabasesPage() {
-  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
+  const {
+    data: databases,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR("databases", () => getDatabases());
+
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const selectedDatabase = databases.find((db) => db.file === selected) ?? null;
+  const selectedDatabase =
+    (databases ?? []).find((db) => db.file === selected) ?? null;
   const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
@@ -52,18 +61,12 @@ export default function DatabasesPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getDatabases().then((dbs) => setDatabases(dbs));
-  }, []);
-
-  useEffect(() => {
     if ((debouncedTitle || debouncedDescription) && selectedDatabase !== null) {
       invoke("edit_db_info", {
         file: selectedDatabase.file,
         title: debouncedTitle,
         description: debouncedDescription,
-      }).then(() => {
-        getDatabases().then((dbs) => setDatabases(dbs));
-      });
+      }).then(() => mutate());
     }
   }, [debouncedTitle, debouncedDescription]);
 
@@ -95,10 +98,8 @@ export default function DatabasesPage() {
         onConfirm={() => {
           invoke("delete_database", { file: selectedDatabase?.file }).then(
             () => {
-              getDatabases().then((dbs) => {
-                setDatabases(dbs);
-                setSelected(null);
-              });
+              mutate();
+              setSelected(null);
             },
           );
           toggleDeleteModal();
@@ -106,11 +107,11 @@ export default function DatabasesPage() {
       />
 
       <AddDatabase
-        databases={databases}
+        databases={databases ?? []}
         opened={open}
         setOpened={setOpen}
         setLoading={setLoading}
-        setDatabases={setDatabases}
+        setDatabases={mutate}
       />
 
       <Group align="baseline" pl="lg" py="sm">
@@ -131,55 +132,63 @@ export default function DatabasesPage() {
             cols={{ base: 1, md: 2 }}
             spacing={{ base: "md", md: "sm" }}
           >
-            {databases.map((item) => (
-              <GenericCard
-                id={item.file}
-                key={item.filename}
-                isSelected={selectedDatabase?.filename === item.filename}
-                setSelected={setSelected}
-                error={item.error}
-                onDoubleClick={() => {
-                  navigate("/databases/view");
-                  setStorageSelected(item);
-                }}
-                Header={
-                  <Group wrap="nowrap" justify="space-between">
-                    <Group wrap="nowrap" miw={0}>
-                      <IconDatabase size="1.5rem" />
-                      <Box miw={0}>
-                        <Text fw={500}>{item.error ?? item.title}</Text>
-                        <Text
-                          size="xs"
-                          c="dimmed"
-                          style={{ wordWrap: "break-word" }}
-                        >
-                          {item.error ? item.file : item.description}
-                        </Text>
-                      </Box>
+            {isLoading && (
+              <>
+                <Skeleton h="8rem" />
+                <Skeleton h="8rem" />
+                <Skeleton h="8rem" />
+              </>
+            )}
+            {!isLoading &&
+              databases?.map((item) => (
+                <GenericCard
+                  id={item.file}
+                  key={item.filename}
+                  isSelected={selectedDatabase?.filename === item.filename}
+                  setSelected={setSelected}
+                  error={item.error}
+                  onDoubleClick={() => {
+                    navigate("/databases/view");
+                    setStorageSelected(item);
+                  }}
+                  Header={
+                    <Group wrap="nowrap" justify="space-between">
+                      <Group wrap="nowrap" miw={0}>
+                        <IconDatabase size="1.5rem" />
+                        <Box miw={0}>
+                          <Text fw={500}>{item.error ?? item.title}</Text>
+                          <Text
+                            size="xs"
+                            c="dimmed"
+                            style={{ wordWrap: "break-word" }}
+                          >
+                            {item.error ? item.file : item.description}
+                          </Text>
+                        </Box>
+                      </Group>
+                      <Rating
+                        value={referenceDatabase === item.file ? 1 : 0}
+                        count={1}
+                        onChange={() => {
+                          changeReferenceDatabase(item.file);
+                        }}
+                      />
                     </Group>
-                    <Rating
-                      value={referenceDatabase === item.file ? 1 : 0}
-                      count={1}
-                      onChange={() => {
-                        changeReferenceDatabase(item.file);
-                      }}
-                    />
-                  </Group>
-                }
-                stats={[
-                  {
-                    label: "Games",
-                    value: item.error ? "???" : formatNumber(item.game_count),
-                  },
-                  {
-                    label: "Storage",
-                    value: item.error
-                      ? "???"
-                      : formatBytes(item.storage_size ?? 0),
-                  },
-                ]}
-              />
-            ))}
+                  }
+                  stats={[
+                    {
+                      label: "Games",
+                      value: item.error ? "???" : formatNumber(item.game_count),
+                    },
+                    {
+                      label: "Storage",
+                      value: item.error
+                        ? "???"
+                        : formatBytes(item.storage_size ?? 0),
+                    },
+                  ]}
+                />
+              ))}
             <ConvertButton setOpen={setOpen} loading={loading} />
           </SimpleGrid>
         </ScrollArea>
@@ -231,7 +240,7 @@ export default function DatabasesPage() {
                     <IndexInput
                       indexed={selectedDatabase.indexed}
                       file={selectedDatabase.file}
-                      setDatabases={setDatabases}
+                      setDatabases={mutate}
                     />
 
                     <Divider variant="dashed" label="Data" />
@@ -269,6 +278,9 @@ export default function DatabasesPage() {
                           to="/databases/view"
                           onClick={() => setStorageSelected(selectedDatabase)}
                           fullWidth
+                          variant="default"
+                          size="lg"
+                          rightSection={<IconArrowRight size="1rem" />}
                         >
                           Explore
                         </Button>
@@ -277,29 +289,18 @@ export default function DatabasesPage() {
                   </>
                 )}
 
-                <Divider variant="dashed" label="Advanced settings" />
+                <Divider variant="dashed" label="Advanced tools" />
 
                 {!selectedDatabase.error && (
-                  <AdvancedSettings selectedDatabase={selectedDatabase} />
+                  <AdvancedSettings
+                    selectedDatabase={selectedDatabase}
+                    reload={mutate}
+                  />
                 )}
 
                 <Group justify="right">
                   {!selectedDatabase.error && (
                     <>
-                      {/* <Button
-                        variant="default"
-                        loading={loading}
-                        onClick={() => {
-                          invoke("detect_duplicated_games", {
-                            file: selectedDatabase.file,
-                          }).then((payload) => {
-                            console.log(payload);
-                          });
-                        }}
-                      >
-                        Detect Duplicates
-                      </Button> */}
-
                       <Button
                         variant="default"
                         loading={loading}
@@ -331,12 +332,15 @@ export default function DatabasesPage() {
 
 function AdvancedSettings({
   selectedDatabase,
+  reload,
 }: {
   selectedDatabase: DatabaseInfo;
+  reload: () => void;
 }) {
   return (
     <Stack>
       <PlayerMerger selectedDatabase={selectedDatabase} />
+      <DuplicateRemover selectedDatabase={selectedDatabase} reload={reload} />
     </Stack>
   );
 }
@@ -391,6 +395,64 @@ function PlayerMerger({
           file={selectedDatabase.file}
           setValue={setPlayer2}
         />
+      </Group>
+    </Stack>
+  );
+}
+
+function DuplicateRemover({
+  selectedDatabase,
+  reload,
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <Stack>
+      <Text fz="lg" fw="bold">
+        Batch Delete
+      </Text>
+      <Text fz="sm">
+        This will delete games from the database. These operations are
+        irreversible.
+      </Text>
+      <Group>
+        <Button
+          loading={loading}
+          onClick={async () => {
+            setLoading(true);
+            invoke("delete_duplicated_games", { file: selectedDatabase.file })
+              .then(() => {
+                setLoading(false);
+                reload();
+              })
+              .catch(() => {
+                setLoading(false);
+                reload();
+              });
+          }}
+        >
+          Remove Duplicates
+        </Button>
+
+        <Button
+          loading={loading}
+          onClick={async () => {
+            setLoading(true);
+            invoke("delete_empty_games", { file: selectedDatabase.file })
+              .then(() => {
+                setLoading(false);
+                reload();
+              })
+              .catch(() => {
+                setLoading(false);
+                reload();
+              });
+          }}
+        >
+          Remove Empty Games
+        </Button>
       </Group>
     </Stack>
   );

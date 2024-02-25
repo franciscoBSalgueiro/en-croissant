@@ -51,7 +51,7 @@ export type Speed =
 
 export type Outcome = "*" | "1-0" | "0-1" | "1/2-1/2";
 
-interface GameQuery extends Query {
+export interface GameQuery extends Query {
   player1?: number;
   player2?: number;
   tournament_id?: number;

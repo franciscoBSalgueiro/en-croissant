@@ -536,14 +536,9 @@ pub async fn get_db_info(
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let player_count_info: Info = info::table.filter(info::name.eq("PlayerCount")).first(db)?;
-    let player_count = player_count_info.value.unwrap().parse::<usize>()?;
-
-    let game_count_info: Info = info::table.filter(info::name.eq("GameCount")).first(db)?;
-    let game_count = game_count_info.value.unwrap().parse::<usize>()?;
-
-    let event_count_info: Info = info::table.filter(info::name.eq("EventCount")).first(db)?;
-    let event_count = event_count_info.value.unwrap().parse::<usize>()?;
+    let player_count = players::table.count().get_result::<i64>(db)? as usize;
+    let game_count = games::table.count().get_result::<i64>(db)? as usize;
+    let event_count = events::table.count().get_result::<i64>(db)? as usize;
 
     let title = match info::table
         .filter(info::name.eq("Title"))
@@ -1290,35 +1285,54 @@ pub async fn delete_database(
     Ok(())
 }
 
-type DuplicateGame = (i32, i32, Option<String>, Option<String>, i64);
-
 #[tauri::command]
-pub async fn detect_duplicated_games(
+pub async fn delete_duplicated_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<Vec<DuplicateGame>, Error> {
+) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let duplicated_games: Vec<DuplicateGame> = games::table
-        .group_by((
-            games::white_id,
-            games::black_id,
-            games::date,
-            games::time,
-            games::moves,
-        ))
-        .having(diesel::dsl::count(games::id).gt(1))
-        .select((
-            games::white_id,
-            games::black_id,
-            games::date,
-            games::time,
-            diesel::dsl::count(games::id),
-        ))
-        .limit(100)
-        .load::<DuplicateGame>(db)?;
+    db.batch_execute(
+        "
+        DELETE FROM Games
+        WHERE ID IN (
+            SELECT ID
+            FROM (
+                SELECT ID,
+                    ROW_NUMBER() OVER (PARTITION BY EventID, SiteID, Round, WhiteID, BlackID, Moves, Date, UTCTime ORDER BY ID) AS RowNum
+                FROM Games
+            ) AS Subquery
+            WHERE RowNum > 1
+        );
+        ",
+    )?;
 
-    Ok(duplicated_games)
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_empty_games(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_db_game(
+    file: PathBuf,
+    game_id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
+
+    Ok(())
 }
 
 #[tauri::command]
