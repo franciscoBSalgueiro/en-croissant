@@ -13,7 +13,7 @@ pub fn decode_move(byte: u8, chess: &Chess) -> Option<Move> {
     legal_moves.get(byte as usize).cloned()
 }
 
-pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<String, Error> {
+pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<Vec<String>, Error> {
     let mut chess = Chess::from_setup(initial_fen.into(), CastlingMode::Chess960)
         .or_else(PositionError::ignore_too_much_material)
         .unwrap();
@@ -23,7 +23,7 @@ pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<String, Er
         let san = SanPlus::from_move_and_play_unchecked(&mut chess, &m);
         moves.push(san.to_string());
     }
-    Ok(moves.join(" "))
+    Ok(moves)
 }
 
 #[cfg(test)]

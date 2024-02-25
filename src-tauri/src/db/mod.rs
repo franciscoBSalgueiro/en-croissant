@@ -18,7 +18,7 @@ use crate::{
 use chrono::{NaiveDate, NaiveTime};
 use dashmap::DashMap;
 use diesel::{
-    connection::SimpleConnection,
+    connection::{DefaultLoadingMode, SimpleConnection},
     insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
@@ -26,15 +26,15 @@ use diesel::{
     sql_types::Text,
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
 };
-
-use rayon::prelude::*;
 use specta::Type;
+use std::io::{BufWriter, Write};
 use std::{
-    fs::{remove_file, File},
+    fs::{remove_file, File, OpenOptions},
     path::{Path, PathBuf},
     sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
@@ -406,7 +406,7 @@ pub async fn convert_pgn(
         &app.config(),
         app.package_info(),
         &app.env(),
-        &db_filename,
+        db_filename,
         Some(BaseDirectory::AppData),
     )?;
 
@@ -902,7 +902,7 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
                 black_material: game.black_material,
                 ply_count: game.ply_count,
                 fen: fen.to_string(),
-                moves: decode_moves(game.moves, fen).unwrap_or_default(),
+                moves: decode_moves(game.moves, fen).unwrap_or_default().join(" "),
             }
         })
         .collect()
@@ -1319,6 +1319,147 @@ pub async fn delete_empty_games(
 
     diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
 
+    Ok(())
+}
+
+struct PgnGame {
+    event: Option<String>,
+    site: Option<String>,
+    date: Option<String>,
+    round: Option<String>,
+    white: Option<String>,
+    black: Option<String>,
+    result: Option<String>,
+    time_control: Option<String>,
+    eco: Option<String>,
+    white_elo: Option<String>,
+    black_elo: Option<String>,
+    ply_count: Option<String>,
+    fen: Option<String>,
+    moves: Option<Vec<String>>,
+}
+
+impl PgnGame {
+    fn write(&self, writer: &mut impl Write) -> Result<(), Error> {
+        writeln!(
+            writer,
+            "[Event \"{}\"]",
+            self.event.as_deref().unwrap_or("")
+        )?;
+        writeln!(writer, "[Site \"{}\"]", self.site.as_deref().unwrap_or(""))?;
+        writeln!(writer, "[Date \"{}\"]", self.date.as_deref().unwrap_or(""))?;
+        writeln!(
+            writer,
+            "[Round \"{}\"]",
+            self.round.as_deref().unwrap_or("")
+        )?;
+        writeln!(
+            writer,
+            "[White \"{}\"]",
+            self.white.as_deref().unwrap_or("")
+        )?;
+        writeln!(
+            writer,
+            "[Black \"{}\"]",
+            self.black.as_deref().unwrap_or("")
+        )?;
+        writeln!(
+            writer,
+            "[Result \"{}\"]",
+            self.result.as_deref().unwrap_or("*")
+        )?;
+        if let Some(time_control) = self.time_control.as_deref() {
+            writeln!(writer, "[TimeControl \"{}\"]", time_control)?;
+        }
+        if let Some(eco) = self.eco.as_deref() {
+            writeln!(writer, "[ECO \"{}\"]", eco)?;
+        }
+        if let Some(white_elo) = self.white_elo.as_deref() {
+            writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
+        }
+        if let Some(black_elo) = self.black_elo.as_deref() {
+            writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
+        }
+        if let Some(ply_count) = self.ply_count.as_deref() {
+            writeln!(writer, "[PlyCount \"{}\"]", ply_count)?;
+        }
+        if let Some(fen) = self.fen.as_deref() {
+            writeln!(writer, "[SetUp \"1\"]")?;
+            writeln!(writer, "[FEN \"{}\"]", fen)?;
+        }
+        writeln!(writer)?;
+        for (i, move_) in self.moves.as_ref().unwrap().iter().enumerate() {
+            if i % 2 == 0 {
+                write!(writer, "{}. ", i / 2 + 1)?;
+            }
+            write!(writer, "{} ", move_)?;
+        }
+        match self.result.as_deref() {
+            Some("1-0") => writeln!(writer, "1-0"),
+            Some("0-1") => writeln!(writer, "0-1"),
+            Some("1/2-1/2") => writeln!(writer, "1/2-1/2"),
+            _ => writeln!(writer, "*"),
+        }?;
+        writeln!(writer)?;
+        Ok(())
+    }
+}
+
+#[tauri::command]
+pub async fn export_to_pgn(
+    file: PathBuf,
+    dest_file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(dest_file)?;
+
+    let mut writer = BufWriter::new(file);
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .load_iter::<(Game, Player, Player, Event, Site), DefaultLoadingMode>(db)?
+        .flatten()
+        .map(|(game, white, black, event, site)| {
+            let pgn = PgnGame {
+                event: event.name,
+                site: site.name,
+                date: game.date,
+                round: game.round,
+                white: white.name,
+                black: black.name,
+                result: game.result,
+                time_control: game.time_control,
+                eco: game.eco,
+                white_elo: game.white_elo.map(|e| e.to_string()),
+                black_elo: game.black_elo.map(|e| e.to_string()),
+                ply_count: game.ply_count.map(|e| e.to_string()),
+                fen: game.fen.clone(),
+                moves: decode_moves(
+                    game.moves,
+                    if let Some(fen) = game.fen {
+                        Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
+                    } else {
+                        Fen::default()
+                    },
+                )
+                .ok(),
+            };
+
+            pgn.write(&mut writer)?;
+
+            Ok(())
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
     Ok(())
 }
 

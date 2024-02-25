@@ -24,6 +24,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase } from "@tabler/icons-react";
+import { save } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -58,7 +59,8 @@ export default function DatabasesPage() {
   );
   const [debouncedDescription] = useDebouncedValue(description, 100);
   const [deleteModal, toggleDeleteModal] = useToggle();
-  const [loading, setLoading] = useState(false);
+  const [convertLoading, setConvertLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     if ((debouncedTitle || debouncedDescription) && selectedDatabase !== null) {
@@ -110,7 +112,7 @@ export default function DatabasesPage() {
         databases={databases ?? []}
         opened={open}
         setOpened={setOpen}
-        setLoading={setLoading}
+        setLoading={setConvertLoading}
         setDatabases={mutate}
       />
 
@@ -189,7 +191,7 @@ export default function DatabasesPage() {
                   ]}
                 />
               ))}
-            <ConvertButton setOpen={setOpen} loading={loading} />
+            <ConvertButton setOpen={setOpen} loading={convertLoading} />
           </SimpleGrid>
         </ScrollArea>
 
@@ -303,14 +305,18 @@ export default function DatabasesPage() {
                     <>
                       <Button
                         variant="default"
-                        loading={loading}
-                        onClick={() => {
-                          setLoading(true);
-                          invoke("export_to_pgn", {
-                            file: selectedDatabase.file,
-                          }).then(() => {
-                            setLoading(false);
+                        loading={exportLoading}
+                        onClick={async () => {
+                          setExportLoading(true);
+                          const destFile = await save({
+                            filters: [{ name: "PGN", extensions: ["pgn"] }],
                           });
+                          if (!destFile) return;
+                          await invoke("export_to_pgn", {
+                            file: selectedDatabase.file,
+                            destFile,
+                          });
+                          setExportLoading(false);
                         }}
                       >
                         Export to PGN
