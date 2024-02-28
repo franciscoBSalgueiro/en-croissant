@@ -34,6 +34,7 @@ export function Chessground(
 
   useEffect(() => {
     api?.set(props);
+    api?.redrawAll();
   }, [api, props]);
 
   return (
