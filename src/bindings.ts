@@ -129,6 +129,14 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async convertPgn(file: string, dbPath: string, timestamp: number | null, title: string, description: string | null) : Promise<__Result__<null, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|convert_pgn", { file, dbPath, timestamp, title, description }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

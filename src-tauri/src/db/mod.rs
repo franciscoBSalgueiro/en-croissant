@@ -265,15 +265,15 @@ impl TempGame {
 
 struct Importer {
     game: TempGame,
-    timestamp: Option<i64>,
+    timestamp: Option<i32>,
     skip: bool,
 }
 
 impl Importer {
-    fn new(timestamp: Option<usize>) -> Importer {
+    fn new(timestamp: Option<i32>) -> Importer {
         Importer {
             game: TempGame::default(),
-            timestamp: timestamp.map(|t| (t / 1000) as i64),
+            timestamp: timestamp.map(|t| (t / 1000)),
             skip: false,
         }
     }
@@ -346,7 +346,7 @@ impl Visitor for Importer {
         });
 
         if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
-            if cur_timestamp <= timestamp {
+            if cur_timestamp <= timestamp.into() {
                 self.skip = true;
             }
         }
@@ -387,9 +387,11 @@ impl Visitor for Importer {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn convert_pgn(
     file: PathBuf,
-    timestamp: Option<usize>,
+    db_path: PathBuf,
+    timestamp: Option<i32>,
     app: tauri::AppHandle,
     title: String,
     description: Option<String>,
@@ -397,25 +399,25 @@ pub async fn convert_pgn(
 ) -> Result<(), Error> {
     // get the name of the file without the extension
     let description = description.unwrap_or_default();
-    let filename = file.file_stem().expect("file name");
-    let extension = file.extension().expect("file extension");
-    let db_filename = Path::new("db").join(filename).with_extension("db3");
+    // let filename = file.file_stem().expect("file name");
+    let extension = file.extension();
+    // let db_filename = Path::new("db").join(filename).with_extension("db3");
 
     // export the database to the AppData folder
-    let destination = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        db_filename,
-        Some(BaseDirectory::AppData),
-    )?;
+    // let destination = resolve_path(
+    //     &app.config(),
+    //     app.package_info(),
+    //     &app.env(),
+    //     db_filename,
+    //     Some(BaseDirectory::AppData),
+    // )?;
 
-    let db_exists = destination.exists();
+    let db_exists = db_path.exists();
 
     // create the database file
     let db = &mut get_db_or_create(
         &state,
-        destination.to_str().unwrap(),
+        db_path.to_str().unwrap(),
         ConnectionOptions {
             enable_foreign_keys: false,
             busy_timeout: None,
@@ -437,9 +439,9 @@ pub async fn convert_pgn(
 
     let file = File::open(&file)?;
 
-    let uncompressed: Box<dyn std::io::Read + Send> = if extension == "bz2" {
+    let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
-    } else if extension == "zst" {
+    } else if extension == Some("zst".as_ref()) {
         Box::new(zstd::Decoder::new(file)?)
     } else {
         Box::new(file)

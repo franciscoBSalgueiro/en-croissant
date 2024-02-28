@@ -23,8 +23,8 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
-import { IconArrowRight, IconDatabase } from "@tabler/icons-react";
-import { save } from "@tauri-apps/api/dialog";
+import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
+import { open as openDialog, save } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -300,18 +300,42 @@ export default function DatabasesPage() {
                   />
                 )}
 
-                <Group justify="right">
+                <Divider variant="dashed" label="Actions" />
+                <Group justify="space-between">
                   {!selectedDatabase.error && (
-                    <>
+                    <Group>
                       <Button
+                        variant="default"
+                        rightSection={<IconPlus size="1rem" />}
+                        onClick={async () => {
+                          const file = await openDialog({
+                            filters: [{ name: "PGN", extensions: ["pgn"] }],
+                          });
+                          if (!file || typeof file !== "string") return;
+                          setConvertLoading(true);
+                          await commands.convertPgn(
+                            file,
+                            selectedDatabase.file,
+                            null,
+                            "",
+                            null,
+                          );
+                          mutate();
+                          setConvertLoading(false);
+                        }}
+                      >
+                        Add Games
+                      </Button>
+                      <Button
+                        rightSection={<IconArrowRight size="1rem" />}
                         variant="default"
                         loading={exportLoading}
                         onClick={async () => {
-                          setExportLoading(true);
                           const destFile = await save({
                             filters: [{ name: "PGN", extensions: ["pgn"] }],
                           });
                           if (!destFile) return;
+                          setExportLoading(true);
                           await invoke("export_to_pgn", {
                             file: selectedDatabase.file,
                             destFile,
@@ -321,7 +345,7 @@ export default function DatabasesPage() {
                       >
                         Export to PGN
                       </Button>
-                    </>
+                    </Group>
                   )}
                   <Button onClick={() => toggleDeleteModal()} color="red">
                     Delete

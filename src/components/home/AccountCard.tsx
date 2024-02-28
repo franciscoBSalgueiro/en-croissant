@@ -1,8 +1,8 @@
-import { events } from "@/bindings";
+import { events, commands } from "@/bindings";
 import { downloadChessCom } from "@/utils/chesscom";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { unwrap } from "@/utils/invoke";
 import { downloadLichess } from "@/utils/lichess";
 import {
   Accordion,
@@ -99,11 +99,16 @@ export function AccountCard({
 
   async function convert(filepath: string, timestamp: number | null) {
     info(`converting ${filepath} ${timestamp}`);
-    await invoke("convert_pgn", {
-      file: filepath,
-      timestamp,
-      title: title + (type === "lichess" ? " Lichess" : " Chess.com"),
-    });
+    const filename = title + (type === "lichess" ? " Lichess" : " Chess.com");
+    const dbPath = await resolve(
+      await appDataDir(),
+      "db",
+      `${filepath
+        .split(/(\\|\/)/g)
+        .pop()!
+        .replace(".pgn", ".db3")}`,
+    );
+    unwrap(await commands.convertPgn(filepath, dbPath, null, filename, null));
     events.downloadProgress.emit({
       id: `${type}_${title}`,
       progress: 100,

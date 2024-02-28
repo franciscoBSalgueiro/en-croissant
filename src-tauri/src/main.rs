@@ -133,7 +133,8 @@ fn main() {
                 get_engine_config,
                 file_exists,
                 get_file_metadata,
-                merge_players
+                merge_players,
+                convert_pgn,
             ))
             .events(tauri_specta::collect_events!(
                 BestMovesPayload,
@@ -250,7 +251,6 @@ fn main() {
             delete_duplicated_games,
             authenticate,
             delete_database,
-            convert_pgn,
             search_position,
             is_bmi2_compatible,
             clear_games,

@@ -1,7 +1,7 @@
-import { events } from "@/bindings";
+import { events, commands } from "@/bindings";
 import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { invoke, unwrap } from "@/utils/invoke";
 import {
   Alert,
   Box,
@@ -44,10 +44,9 @@ function AddDatabase({
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
-    await invoke("convert_pgn", { file: path, title, description }).catch(
-      () => {
-        setLoading(false);
-      },
+    const dbPath = await resolve(await appDataDir(), "db", `${title}.db3`);
+    unwrap(
+      await commands.convertPgn(path, dbPath, null, title, description ?? null),
     );
     setDatabases(await getDatabases());
     setLoading(false);
