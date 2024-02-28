@@ -772,8 +772,8 @@ function AnnotationHint({
               overflow: "initial",
               borderRadius: "50%",
             }}
-            w="50%"
-            h="50%"
+            w="45%"
+            h="45%"
             pos="absolute"
             bg={color}
             variant="filled"
