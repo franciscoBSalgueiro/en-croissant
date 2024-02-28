@@ -120,6 +120,10 @@ export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<boolean>(
   "show-coordinates",
   false,
+  undefined,
+  {
+    unstable_getOnInit: true,
+  },
 );
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const primaryColorAtom = atomWithStorage<MantineColor>(

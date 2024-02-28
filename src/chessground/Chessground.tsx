@@ -28,20 +28,12 @@ export function Chessground(
       });
       setApi(chessgroundApi);
     } else if (ref?.current && api) {
-      const shouldRedraw = api?.state.coordinates !== props.coordinates;
       api?.set(props);
-      if (shouldRedraw) {
-        api?.redrawAll();
-      }
     }
   }, [api, props, ref]);
 
   useEffect(() => {
-    const shouldRedraw = api?.state.coordinates !== props.coordinates;
     api?.set(props);
-    if (shouldRedraw) {
-      api?.redrawAll();
-    }
   }, [api, props]);
 
   return (
