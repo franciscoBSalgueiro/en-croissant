@@ -242,7 +242,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               { accessor: "date", sortable: true },
               {
                 accessor: "result",
-                render: ({ result }) => result.replaceAll("1/2", "½"),
+                render: ({ result }) => result?.replaceAll("1/2", "½"),
               },
               { accessor: "ply_count", title: "Plies", sortable: true },
               { accessor: "event" },

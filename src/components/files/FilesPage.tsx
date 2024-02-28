@@ -106,8 +106,7 @@ function FilesPage() {
           key={selected.name}
           opened={editModal}
           setOpened={toggleEditModal}
-          files={files}
-          setFiles={mutate}
+          mutate={mutate}
           setSelected={setSelected}
           metadata={selected}
         />

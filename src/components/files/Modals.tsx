@@ -111,15 +111,13 @@ export function CreateModal({
 export function EditModal({
   opened,
   setOpened,
-  files,
-  setFiles,
+  mutate,
   setSelected,
   metadata,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  files: MetadataOrEntry[];
-  setFiles: (files: MetadataOrEntry[]) => void;
+  mutate: () => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
   metadata: FileMetadata;
 }) {
@@ -133,61 +131,20 @@ export function EditModal({
       type: filetype,
       tags: [],
     };
-
     await writeTextFile(metadataPath, JSON.stringify(newMetadata));
 
-    const newPGNPath = await resolve(
-      await documentDir(),
-      "EnCroissant",
+    const newPGNPath = metadata.path.replace(
+      `${metadata.name}.pgn`,
       `${filename}.pgn`,
     );
 
-    try {
-      await renameFile(
-        `EnCroissant/${metadata.name}.pgn`,
-        `EnCroissant/${filename}.pgn`,
-        {
-          dir: BaseDirectory.Document,
-        },
-      );
-      await renameFile(
-        `EnCroissant/${metadata.name}.info`,
-        `EnCroissant/${filename}.info`,
-        {
-          dir: BaseDirectory.Document,
-        },
-      );
-    } catch {
-      await renameFile(
-        `documents/${metadata.name}.pgn`,
-        `documents/${filename}.pgn`,
-        {
-          dir: BaseDirectory.AppData,
-        },
-      );
-      await renameFile(
-        `documents/${metadata.name}.info`,
-        `documents/${filename}.info`,
-        {
-          dir: BaseDirectory.AppData,
-        },
-      );
-    }
-
-    setFiles(
-      [
-        ...files.filter(
-          (v) => v.path !== metadata.path && v.path !== metadataPath,
-        ),
-        {
-          ...metadata,
-          name: filename,
-          path: newPGNPath,
-          numGames: metadata.numGames,
-          metadata: newMetadata,
-        },
-      ].sort((a, b) => (a.name || "").localeCompare(b.name || "")),
+    await renameFile(metadata.path, newPGNPath);
+    await renameFile(
+      metadataPath.replace(".pgn", ".info"),
+      newPGNPath.replace(".pgn", ".info"),
     );
+
+    mutate();
     setSelected((selected) =>
       selected?.path === metadata.path
         ? {
