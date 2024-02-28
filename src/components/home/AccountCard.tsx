@@ -108,7 +108,15 @@ export function AccountCard({
         .pop()!
         .replace(".pgn", ".db3")}`,
     );
-    unwrap(await commands.convertPgn(filepath, dbPath, null, filename, null));
+    unwrap(
+      await commands.convertPgn(
+        filepath,
+        dbPath,
+        timestamp ? BigInt(timestamp) : null,
+        filename,
+        null,
+      ),
+    );
     events.downloadProgress.emit({
       id: `${type}_${title}`,
       progress: 100,

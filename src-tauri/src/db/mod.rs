@@ -265,12 +265,12 @@ impl TempGame {
 
 struct Importer {
     game: TempGame,
-    timestamp: Option<i32>,
+    timestamp: Option<i64>,
     skip: bool,
 }
 
 impl Importer {
-    fn new(timestamp: Option<i32>) -> Importer {
+    fn new(timestamp: Option<i64>) -> Importer {
         Importer {
             game: TempGame::default(),
             timestamp: timestamp.map(|t| (t / 1000)),
@@ -346,7 +346,7 @@ impl Visitor for Importer {
         });
 
         if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
-            if cur_timestamp <= timestamp.into() {
+            if cur_timestamp <= timestamp {
                 self.skip = true;
             }
         }
@@ -391,26 +391,14 @@ impl Visitor for Importer {
 pub async fn convert_pgn(
     file: PathBuf,
     db_path: PathBuf,
-    timestamp: Option<i32>,
+    timestamp: Option<i64>,
     app: tauri::AppHandle,
     title: String,
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // get the name of the file without the extension
     let description = description.unwrap_or_default();
-    // let filename = file.file_stem().expect("file name");
     let extension = file.extension();
-    // let db_filename = Path::new("db").join(filename).with_extension("db3");
-
-    // export the database to the AppData folder
-    // let destination = resolve_path(
-    //     &app.config(),
-    //     app.package_info(),
-    //     &app.env(),
-    //     db_filename,
-    //     Some(BaseDirectory::AppData),
-    // )?;
 
     let db_exists = db_path.exists();
 
