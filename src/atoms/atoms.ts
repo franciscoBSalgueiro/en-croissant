@@ -98,6 +98,7 @@ export const fontSizeAtom = atomWithStorage(
   parseInt(document.documentElement.style.fontSize) || 100,
 );
 
+export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);

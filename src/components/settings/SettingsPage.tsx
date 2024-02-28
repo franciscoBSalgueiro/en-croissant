@@ -12,6 +12,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  spellCheckAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import {
@@ -32,6 +33,7 @@ import {
   IconChess,
   IconFlag,
   IconKeyboard,
+  IconMouse,
   IconReload,
 } from "@tabler/icons-react";
 import { useAtom } from "jotai";
@@ -56,6 +58,9 @@ export default function Page() {
       <Tabs.List>
         <Tabs.Tab value="board" leftSection={<IconChess size="1rem" />}>
           Board
+        </Tabs.Tab>
+        <Tabs.Tab value="inputs" leftSection={<IconMouse size="1rem" />}>
+          Inputs
         </Tabs.Tab>
         <Tabs.Tab value="report" leftSection={<IconBook size="1rem" />}>
           Opening Report
@@ -123,20 +128,6 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showConsecutiveArrowsAtom} />
-              </Group>
-              <Group
-                justify="space-between"
-                wrap="nowrap"
-                gap="xl"
-                className={classes.item}
-              >
-                <div>
-                  <Text>Text Move Input</Text>
-                  <Text size="xs" c="dimmed">
-                    Enter moves in text format
-                  </Text>
-                </div>
-                <SettingsSwitch atom={moveInputAtom} />
               </Group>
               <Group
                 justify="space-between"
@@ -213,6 +204,42 @@ export default function Page() {
               </Group>
             </Tabs.Panel>
 
+            <Tabs.Panel value="inputs">
+              <Text size="lg" fw={500} className={classes.title}>
+                Inputs
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Customize the input settings
+              </Text>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Text Move Input</Text>
+                  <Text size="xs" c="dimmed">
+                    Enter moves in text format
+                  </Text>
+                </div>
+                <SettingsSwitch atom={moveInputAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Spell Check</Text>
+                  <Text size="xs" c="dimmed">
+                    Enable or disable spell check on text inputs
+                  </Text>
+                </div>
+                <SettingsSwitch atom={spellCheckAtom} />
+              </Group>
+            </Tabs.Panel>
             <Tabs.Panel value="report">
               <Text size="lg" fw={500} className={classes.title}>
                 Opening Report

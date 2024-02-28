@@ -1,9 +1,11 @@
+import { spellCheckAtom } from "@/atoms/atoms";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { RichTextEditor } from "@mantine/tiptap";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { useAtomValue } from "jotai";
 import { memo, useContext } from "react";
 
 function AnnotationEditor({
@@ -13,6 +15,7 @@ function AnnotationEditor({
   commentHTML: string;
 }) {
   const dispatch = useContext(TreeDispatchContext);
+  const spellCheck = useAtomValue(spellCheckAtom);
   const editor = useEditor(
     {
       extensions: [
@@ -45,7 +48,7 @@ function AnnotationEditor({
   );
 
   return (
-    <RichTextEditor editor={editor}>
+    <RichTextEditor editor={editor} spellCheck={spellCheck}>
       <RichTextEditor.Toolbar>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />

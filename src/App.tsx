@@ -8,13 +8,17 @@ import {
   ActionIcon,
   Anchor,
   AppShell,
+  Autocomplete,
   Button,
   Code,
   CopyButton,
   Group,
+  Input,
   MantineProvider,
   Stack,
   Text,
+  TextInput,
+  Textarea,
   Title,
   localStorageColorSchemeManager,
 } from "@mantine/core";
@@ -45,6 +49,7 @@ import {
   nativeBarAtom,
   pieceSetAtom,
   primaryColorAtom,
+  spellCheckAtom,
   tabsAtom,
 } from "./atoms/atoms";
 import { SideBar } from "./components/Sidebar";
@@ -411,6 +416,7 @@ export default function App() {
   }, []);
 
   const fontSize = useAtomValue(fontSizeAtom);
+  const spellCheck = useAtomValue(spellCheckAtom);
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
@@ -431,6 +437,27 @@ export default function App() {
               defaultProps: {
                 variant: "transparent",
                 color: "gray",
+              },
+            }),
+            TextInput: TextInput.extend({
+              defaultProps: {
+                spellCheck: spellCheck,
+              },
+            }),
+            Autocomplete: Autocomplete.extend({
+              defaultProps: {
+                spellCheck: spellCheck,
+              },
+            }),
+            Textarea: Textarea.extend({
+              defaultProps: {
+                spellCheck: spellCheck,
+              },
+            }),
+            Input: Input.extend({
+              defaultProps: {
+                // @ts-ignore
+                spellCheck: spellCheck,
               },
             }),
           },
