@@ -79,11 +79,15 @@ import * as classes from "./Board.css";
 import EvalBar from "./EvalBar";
 import PromotionModal from "./PromotionModal";
 
+const LARGE_BRUSH = 11;
+const MEDIUM_BRUSH = 7.5;
+const SMALL_BRUSH = 4;
+
 interface ChessboardProps {
   dirty: boolean;
   currentNode: TreeNode;
   position: number[];
-  arrows: Map<number, string[][]>;
+  arrows: Map<number, { pv: string[]; winChance: number }[]>;
   headers: GameHeaders;
   root: TreeNode;
   editingMode: boolean;
@@ -210,7 +214,8 @@ function Board({
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
     for (const [i, moves] of entries) {
       if (i < 4) {
-        for (const [j, pv] of moves.entries()) {
+        const bestWinChance = moves[0].winChance;
+        for (const [j, { pv, winChance }] of moves.entries()) {
           const posClone = pos.clone();
           let prevSquare = null;
           for (const [ii, uci] of pv.entries()) {
@@ -222,6 +227,17 @@ function Board({
             if (prevSquare === null) {
               prevSquare = from;
             }
+            const brushSize = match(bestWinChance - winChance)
+              .when(
+                (d) => d < 2.5,
+                () => LARGE_BRUSH,
+              )
+              .when(
+                (d) => d < 5,
+                () => MEDIUM_BRUSH,
+              )
+              .otherwise(() => SMALL_BRUSH);
+
             if (
               ii === 0 ||
               (showConsecutiveArrows && j === 0 && ii % 2 === 0)
@@ -235,6 +251,9 @@ function Board({
                   orig: from,
                   dest: to,
                   brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
+                  modifiers: {
+                    lineWidth: brushSize,
+                  },
                 });
                 prevSquare = to;
               } else {

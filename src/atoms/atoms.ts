@@ -336,12 +336,15 @@ export const engineMovesFamily = atomFamily(
 // returns the best moves of each engine for the current position
 export const bestMovesFamily = atomFamily(
   ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
-    atom<Map<number, string[][]>>((get) => {
+    atom<Map<number, { pv: string[]; winChance: number }[]>>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return new Map();
       const engines = get(loadableEnginesAtom);
       if (!(engines.state === "hasData")) return new Map();
-      const bestMoves = new Map<number, string[][]>();
+      const bestMoves = new Map<
+        number,
+        { pv: string[]; winChance: number }[]
+      >();
       let n = 0;
       for (const engine of engines.data.filter((e) => e.loaded)) {
         const engineMoves = get(
@@ -366,13 +369,16 @@ export const bestMovesFamily = atomFamily(
           bestMoves.set(
             n,
             moves
-              .filter((m) => {
+              .map((m) => {
                 const winChance = getWinChance(
                   normalizeScore(m.score, pos?.turn || "white"),
                 );
-                return winChance >= bestWinChange - 5;
+                return {
+                  pv: m.uciMoves,
+                  winChance,
+                };
               })
-              .map((m) => m.uciMoves),
+              .filter((m) => bestWinChange - m.winChance < 10),
           );
         }
         n++;
