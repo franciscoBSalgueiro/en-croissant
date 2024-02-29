@@ -41,6 +41,14 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
+async killEngine(engine: string, tab: string) : Promise<__Result__<null, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|kill_engine", { engine, tab }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async killEngines(tab: string) : Promise<__Result__<null, string>> {
 try {
     return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|kill_engines", { tab }) };
