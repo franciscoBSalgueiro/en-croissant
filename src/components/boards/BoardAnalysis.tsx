@@ -21,6 +21,7 @@ import {
   bestMovesFamily,
   currentTabAtom,
   currentTabSelectedAtom,
+  documentDirAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { getMainLine, getVariationLine } from "@/utils/chess";
@@ -47,6 +48,7 @@ function BoardAnalysis() {
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
+  const documentDir = useAtomValue(documentDirAtom);
 
   const boardRef = useRef(null);
 
@@ -64,6 +66,7 @@ function BoardAnalysis() {
 
   const saveFile = useCallback(async () => {
     saveToFile({
+      dir: documentDir,
       headers,
       root,
       setCurrentTab,

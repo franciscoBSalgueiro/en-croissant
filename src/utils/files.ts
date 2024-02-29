@@ -1,6 +1,6 @@
 import { exists, writeTextFile } from "@tauri-apps/api/fs";
 import { platform } from "@tauri-apps/api/os";
-import { documentDir, resolve } from "@tauri-apps/api/path";
+import { resolve } from "@tauri-apps/api/path";
 import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
 import { match } from "ts-pattern";
@@ -60,13 +60,14 @@ export async function createFile({
   filetype,
   pgn,
   setError,
+  dir,
 }: {
   filename: string;
   filetype: "game" | "repertoire" | "tournament" | "puzzle" | "other";
   pgn?: string;
   setError: React.Dispatch<React.SetStateAction<string>>;
+  dir: string;
 }) {
-  const dir = await resolve(await documentDir(), "EnCroissant");
   const file = await resolve(dir, `${filename}.pgn`);
   if (await exists(file)) {
     setError("File already exists");

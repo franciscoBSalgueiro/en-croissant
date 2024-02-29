@@ -1,6 +1,5 @@
 import { FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import { save } from "@tauri-apps/api/dialog";
-import { documentDir, resolve } from "@tauri-apps/api/path";
 import { z } from "zod";
 import { getPGN, parsePGN } from "./chess";
 import { invoke } from "./invoke";
@@ -84,12 +83,14 @@ export async function createTab({
 }
 
 export async function saveToFile({
+  dir,
   tab,
   root,
   headers,
   setCurrentTab,
   markAsSaved,
 }: {
+  dir: string;
   tab: Tab | undefined;
   root: TreeNode;
   headers: GameHeaders;
@@ -100,9 +101,8 @@ export async function saveToFile({
   if (tab?.file) {
     filePath = tab.file.path;
   } else {
-    const defaultPath = await resolve(await documentDir(), "EnCroissant");
     const userChoice = await save({
-      defaultPath,
+      defaultPath: dir,
       filters: [
         {
           name: "PGN",

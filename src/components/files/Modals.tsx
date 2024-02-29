@@ -1,3 +1,4 @@
+import { documentDirAtom } from "@/atoms/atoms";
 import { createFile } from "@/utils/files";
 import {
   Button,
@@ -8,8 +9,8 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
-import { BaseDirectory, renameFile, writeTextFile } from "@tauri-apps/api/fs";
-import { documentDir, resolve } from "@tauri-apps/api/path";
+import { renameFile, writeTextFile } from "@tauri-apps/api/fs";
+import { useAtomValue } from "jotai";
 import { useState } from "react";
 import GenericCard from "../common/GenericCard";
 import { MetadataOrEntry } from "./FilesPage";
@@ -40,6 +41,7 @@ export function CreateModal({
   const [filetype, setFiletype] = useState<FileType>("game");
   const [pgn, setPgn] = useState("");
   const [error, setError] = useState("");
+  const documentDir = useAtomValue(documentDirAtom);
 
   async function addFile() {
     const newFile = await createFile({
@@ -47,6 +49,7 @@ export function CreateModal({
       filetype,
       pgn,
       setError,
+      dir: documentDir,
     });
     if (!newFile) return;
     setFiles([...files, newFile]);

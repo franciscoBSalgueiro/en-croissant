@@ -1,3 +1,4 @@
+import { documentDirAtom } from "@/atoms/atoms";
 import { capitalize } from "@/utils/format";
 import {
   Button,
@@ -12,7 +13,7 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { readDir, removeFile } from "@tauri-apps/api/fs";
-import { documentDir, resolve } from "@tauri-apps/api/path";
+import { useAtomValue } from "jotai";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
@@ -55,11 +56,10 @@ async function processFiles(
   return filesInfo.filter((f) => f !== null) as MetadataOrEntry[];
 }
 
-const useFileDirectory = () => {
+const useFileDirectory = (dir: string) => {
   const { data, error, isLoading, mutate } = useSWR(
     "file-directory",
     async () => {
-      const dir = await resolve(await documentDir(), "EnCroissant");
       const files = await readDir(dir, { recursive: true });
       const filesInfo = await processFiles(files as MetadataOrEntry[]);
 
@@ -75,7 +75,8 @@ const useFileDirectory = () => {
 };
 
 function FilesPage() {
-  const { files, isLoading, error, mutate } = useFileDirectory();
+  const documentDir = useAtomValue(documentDirAtom);
+  const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
 
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FileMetadata | null>(null);
@@ -113,7 +114,7 @@ function FilesPage() {
       )}
       <Group align="baseline" pl="lg" py="sm">
         <Title>Files</Title>
-        <OpenFolderButton base="Document" folder="EnCroissant" />
+        <OpenFolderButton folder={documentDir} />
       </Group>
 
       <Group grow flex={1} style={{ overflow: "hidden" }} px="md" pb="md">

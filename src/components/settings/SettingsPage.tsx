@@ -1,6 +1,7 @@
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  documentDirAtom,
   enableBoardScrollAtom,
   forcedEnPassantAtom,
   minimumGamesAtom,
@@ -32,13 +33,16 @@ import {
   IconBrush,
   IconChess,
   IconFlag,
+  IconFolder,
   IconKeyboard,
   IconMouse,
   IconReload,
 } from "@tabler/icons-react";
+import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import { useLoaderData } from "react-router-dom";
+import FileInput from "../common/FileInput";
 import ColorControl from "./ColorControl";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
@@ -52,6 +56,7 @@ export default function Page() {
   const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
+  const [filesDirectory, setFilesDirectory] = useAtom(documentDirAtom);
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -73,6 +78,9 @@ export default function Page() {
         </Tabs.Tab>
         <Tabs.Tab value="keybinds" leftSection={<IconKeyboard size="1rem" />}>
           Keybinds
+        </Tabs.Tab>
+        <Tabs.Tab value="directories" leftSection={<IconFolder size="1rem" />}>
+          Directories
         </Tabs.Tab>
       </Tabs.List>
       <Stack flex={1} px="md" pt="md">
@@ -429,6 +437,39 @@ export default function Page() {
                   })}
                 </Table.Tbody>
               </Table>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="directories">
+              <Text size="lg" fw={500} className={classes.title}>
+                Directories
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Customize the directories used by the app
+              </Text>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Files directory</Text>
+                  <Text size="xs" c="dimmed">
+                    This is where your games in the Files page are stored
+                  </Text>
+                </div>
+                <FileInput
+                  onClick={async () => {
+                    const selected = await open({
+                      multiple: false,
+                      directory: true,
+                    });
+                    if (!selected || typeof selected !== "string") return;
+                    setFilesDirectory(selected);
+                  }}
+                  filename={filesDirectory || null}
+                />
+              </Group>
             </Tabs.Panel>
           </Card>
         </ScrollArea>

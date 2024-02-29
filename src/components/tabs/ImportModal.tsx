@@ -13,7 +13,7 @@ import {
 } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
-import { currentTabAtom } from "@/atoms/atoms";
+import { currentTabAtom, documentDirAtom } from "@/atoms/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
 import { chessopsError } from "@/utils/chessops";
@@ -22,7 +22,7 @@ import { createFile } from "@/utils/files";
 import { getLichessGame } from "@/utils/lichess";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { makeFen, parseFen } from "chessops/fen";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useState } from "react";
 import { match } from "ts-pattern";
 import GenericCard from "../common/GenericCard";
@@ -58,6 +58,7 @@ export default function ImportModal({
   const [save, setSave] = useState(false);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
+  const documentDir = useAtomValue(documentDirAtom);
 
   const Input = match(importType)
     .with("PGN", () => (
@@ -219,6 +220,7 @@ export default function ImportModal({
                   filetype,
                   pgn: input,
                   setError,
+                  dir: documentDir,
                 });
                 if (!newFile) return;
 

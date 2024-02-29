@@ -15,6 +15,7 @@ import { MantineColor } from "@mantine/core";
 import { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import { getWinChance, normalizeScore } from "@/utils/score";
+import { documentDir, resolve } from "@tauri-apps/api/path";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { PrimitiveAtom, atom } from "jotai";
@@ -88,6 +89,20 @@ export const currentTabAtom = atom(
       return tab;
     });
     set(tabsAtom, newTabs);
+  },
+);
+
+// Directories
+const storedDocumentDirAtom = atomWithStorage<string>("document-dir", "");
+
+export const documentDirAtom = atom(
+  async (get) => {
+    const dir = await get(storedDocumentDirAtom);
+    if (dir) return dir;
+    return await resolve(await documentDir(), "EnCroissant");
+  },
+  (get, set, value: string) => {
+    set(storedDocumentDirAtom, value);
   },
 );
 

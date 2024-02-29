@@ -9,8 +9,8 @@ function FileInput({
   disabled,
   ...props
 }: {
-  label: string;
-  description: string;
+  label?: string;
+  description?: string;
   filename: string | null;
   onClick: () => void;
   withAsterisk?: boolean;
