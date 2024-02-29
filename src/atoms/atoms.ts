@@ -141,6 +141,10 @@ export const showCoordinatesAtom = atomWithStorage<boolean>(
   },
 );
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
+export const boardImageAtom = atomWithStorage<string>(
+  "board-image",
+  "gray.svg",
+);
 export const primaryColorAtom = atomWithStorage<MantineColor>(
   "mantine-primary-color",
   "blue",

@@ -51,6 +51,7 @@ import SettingsNumberInput from "./SettingsNumberInput";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
 import ThemeButton from "./ThemeButton";
+import BoardSelect from "./BoardSelect";
 
 export default function Page() {
   const version = useLoaderData() as string;
@@ -384,6 +385,20 @@ export default function Page() {
                   </Text>
                 </div>
                 <PiecesSelect />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Board image</Text>
+                  <Text size="xs" c="dimmed">
+                    Image used as the background of the board
+                  </Text>
+                </div>
+                <BoardSelect />
               </Group>
               <Group
                 justify="space-between"

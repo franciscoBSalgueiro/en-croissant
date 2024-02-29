@@ -52,15 +52,15 @@ const pieceSets: Item[] = [
 
 function SelectOption({ label, piece }: { label: string; piece?: boolean }) {
   return (
-    <Group wrap="nowrap" justify="space-between">
-      <Text fz="sm" fw={500}>
-        {label}
-      </Text>
+    <Group wrap="nowrap">
       {piece && (
         <Box h="2.5rem" w="2.5rem">
           <PieceComponent piece={{ color: "white", role: "knight" }} />
         </Box>
       )}
+      <Text fz="sm" fw={500}>
+        {label}
+      </Text>
     </Group>
   );
 }

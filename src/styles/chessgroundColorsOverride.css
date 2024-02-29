@@ -1,7 +1,5 @@
-/** Colored board squares as an embedded SVG */
-
 cg-board {
-  background-image: url("/board.svg");
+  background-image: var(--board-image, url('/board/gray.svg'));
   border-radius: 10px;
   overflow: hidden;
 }
