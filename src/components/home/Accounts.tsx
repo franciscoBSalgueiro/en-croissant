@@ -47,10 +47,15 @@ function Accounts() {
         username,
       });
       if (!account) return;
-      setSessions((sessions) => [
-        ...sessions,
-        { lichess: { username, account }, player: p, updatedAt: Date.now() },
-      ]);
+      setSessions((sessions) => {
+        const newSessions = sessions.filter(
+          (s) => s.lichess?.username !== username,
+        );
+        return [
+          ...newSessions,
+          { lichess: { username, account }, player: p, updatedAt: Date.now() },
+        ];
+      });
     }
   }
 
@@ -98,14 +103,19 @@ function Accounts() {
           getChessComAccount(username).then((stats) => {
             const p = player !== "" ? player : username;
             if (!stats) return;
-            setSessions((sessions) => [
-              ...sessions,
-              {
-                chessCom: { username, stats },
-                player: p,
-                updatedAt: Date.now(),
-              },
-            ]);
+            setSessions((sessions) => {
+              const newSessions = sessions.filter(
+                (s) => s.chessCom?.username !== username,
+              );
+              return [
+                ...newSessions,
+                {
+                  chessCom: { username, stats },
+                  player: p,
+                  updatedAt: Date.now(),
+                },
+              ];
+            });
           });
         }}
       />
