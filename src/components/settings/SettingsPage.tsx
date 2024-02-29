@@ -43,6 +43,7 @@ import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import { useLoaderData } from "react-router-dom";
 import FileInput from "../common/FileInput";
+import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
@@ -51,7 +52,6 @@ import SettingsNumberInput from "./SettingsNumberInput";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
 import ThemeButton from "./ThemeButton";
-import BoardSelect from "./BoardSelect";
 
 export default function Page() {
   const version = useLoaderData() as string;
