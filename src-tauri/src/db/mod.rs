@@ -35,7 +35,7 @@ use specta::Type;
 use std::io::{BufWriter, Write};
 use std::{
     fs::{remove_file, File, OpenOptions},
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
@@ -1140,7 +1140,7 @@ pub async fn get_players_game_info(
                     };
                     if outcome.as_deref() == Some("1-0") {
                         openings
-                            .entry(opening.to_string())
+                            .entry(opening)
                             .and_modify(|e: &mut Results| {
                                 if is_white {
                                     e.won += 1;
@@ -1155,7 +1155,7 @@ pub async fn get_players_game_info(
                             });
                     } else if outcome.as_deref() == Some("0-1") {
                         openings
-                            .entry(opening.to_string())
+                            .entry(opening)
                             .and_modify(|e| {
                                 if is_white {
                                     e.lost += 1;
@@ -1170,7 +1170,7 @@ pub async fn get_players_game_info(
                             });
                     } else if outcome.as_deref() == Some("1/2-1/2") {
                         openings
-                            .entry(opening.to_string())
+                            .entry(opening)
                             .and_modify(|e| {
                                 e.draw += 1;
                             })
@@ -1193,9 +1193,7 @@ pub async fn get_players_game_info(
                 let month = date.format("%Y-%m").to_string();
 
                 // update count and avg elo
-                let mut month_data = data_per_month
-                    .entry(month.clone())
-                    .or_insert(MonthData::default());
+                let mut month_data = data_per_month.entry(month).or_insert(MonthData::default());
                 month_data.count += 1;
                 let elo = if is_white { white_elo } else { black_elo };
                 if let Some(elo) = elo {

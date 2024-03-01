@@ -879,10 +879,12 @@ pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
 
     loop {
         if let Some(line) = stdout.next_line().await? {
-            if let UciMessage::Id { name, author: _ } = parse_one(&line) {
-                if let Some(name) = name {
-                    config.name = name;
-                }
+            if let UciMessage::Id {
+                name: Some(name),
+                author: _,
+            } = parse_one(&line)
+            {
+                config.name = name;
             }
             if let UciMessage::Option(opt) = parse_one(&line) {
                 config.options.push(opt);
