@@ -68,6 +68,7 @@ function AnalysisRow({
         >
           {moveInfo.map(({ san, fen, lastMove, isCheck }, index) => (
             <BoardPopover
+              key={index}
               san={san}
               index={index}
               moves={moves}

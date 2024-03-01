@@ -1,17 +1,15 @@
 import { commands } from "@/bindings";
 import { formatBytes } from "@/utils/format";
-import { MantineStyleProps, Slider, rem } from "@mantine/core";
+import { Slider, rem } from "@mantine/core";
 import { IconGripVertical } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 
-export default function HashSlider(
-  props: {
-    value: number;
-    setValue: (v: number) => void;
-    color?: string;
-  } & MantineStyleProps,
-) {
+export default function HashSlider(props: {
+  value: number;
+  setValue: (v: number) => void;
+  color?: string;
+}) {
   const [tempValue, setTempValue] = useState(Math.log2(props.value));
 
   useEffect(() => {
@@ -25,7 +23,6 @@ export default function HashSlider(
   return (
     <>
       <Slider
-        {...props}
         min={0}
         max={Math.log2(memorySize || 16)}
         color={props.color}
