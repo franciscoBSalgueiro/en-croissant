@@ -2,6 +2,7 @@ import {
   activeTabAtom,
   allEnabledAtom,
   currentAnalysisTabAtom,
+  currentExpandedEnginesAtom,
   enableAllAtom,
   engineMovesFamily,
   enginesAtom,
@@ -74,6 +75,7 @@ function AnalysisPanel({
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
+  const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
 
   const stats = useMemo(() => getGameStats(root), [root]);
   const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
@@ -90,7 +92,6 @@ function AnalysisPanel({
     <Stack h="100%">
       <Tabs
         h="100%"
-        defaultValue="engines"
         orientation="vertical"
         placement="right"
         value={tab}
@@ -165,6 +166,8 @@ function AnalysisPanel({
                   multiple
                   chevronSize={0}
                   defaultValue={loadedEngines.map((e) => e.name)}
+                  value={expanded}
+                  onChange={(v) => setExpanded(v)}
                   styles={{
                     label: {
                       paddingTop: 0,

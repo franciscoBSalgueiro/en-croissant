@@ -205,9 +205,9 @@ export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
   createJSONStorage(() => sessionStorage),
 );
 
-function tabValue<T extends object | string | boolean | number>(
-  family: AtomFamily<string, PrimitiveAtom<T>>,
-) {
+function tabValue<
+  T extends object | string | boolean | number | null | undefined,
+>(family: AtomFamily<string, PrimitiveAtom<T>>) {
   return atom(
     (get) => {
       const tab = get(currentTabAtom);
@@ -282,6 +282,11 @@ export const currentDbTabAtom = tabValue(dbTabFamily);
 
 const analysisTabFamily = atomFamily((tab: string) => atom("engines"));
 export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
+
+const expandedEnginesFamily = atomFamily((tab: string) =>
+  atom<string[] | undefined>(undefined),
+);
+export const currentExpandedEnginesAtom = tabValue(expandedEnginesFamily);
 
 const pgnOptionsFamily = atomFamily((tab: string) =>
   atom({
