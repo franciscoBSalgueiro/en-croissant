@@ -326,6 +326,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with({ type: "GO_TO_NEXT" }, () => {
       const node = getNodeAtPath(state.root, state.position);
+      const [pos] = positionFromFen(node.fen);
+      if (!pos || !node.children[0]?.move) return;
+      const san = makeSan(pos, node.children[0].move);
+      playSound(san.includes("x"), san.includes("+"));
       if (node && node.children.length > 0) {
         state.position.push(0);
       }
