@@ -97,7 +97,7 @@ const storedDocumentDirAtom = atomWithStorage<string>("document-dir", "");
 
 export const documentDirAtom = atom(
   async (get) => {
-    const dir = await get(storedDocumentDirAtom);
+    const dir = get(storedDocumentDirAtom);
     if (dir) return dir;
     return await resolve(await documentDir(), "EnCroissant");
   },
@@ -140,6 +140,24 @@ export const showCoordinatesAtom = atomWithStorage<boolean>(
     unstable_getOnInit: true,
   },
 );
+export const soundCollectionAtom = atomWithStorage<string>(
+  "sound-collection",
+  "standard",
+  undefined,
+  {
+    unstable_getOnInit: true,
+  },
+);
+
+export const soundVolumeAtom = atomWithStorage<number>(
+  "sound-volume",
+  0.8,
+  undefined,
+  {
+    unstable_getOnInit: true,
+  },
+);
+
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const boardImageAtom = atomWithStorage<string>(
   "board-image",

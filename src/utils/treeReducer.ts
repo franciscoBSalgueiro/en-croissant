@@ -1,7 +1,7 @@
 import { BestMoves, Score } from "@/bindings";
 import { DrawShape } from "chessground/draw";
 import { Move, isNormal } from "chessops";
-import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { Annotation } from "./chess";
@@ -9,6 +9,7 @@ import { parseSanOrUci, positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
+import { playSound } from "./sound";
 
 export interface TreeState {
   root: TreeNode;
@@ -298,11 +299,17 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
       const node = getNodeAtPath(state.root, state.position);
       const [pos] = positionFromFen(node.fen);
       if (!pos) return;
-      for (const move of payload) {
+      for (const [i, move] of payload.entries()) {
         const m = parseSanOrUci(pos, move);
         if (!m) return;
         pos.play(m);
-        makeMove({ state, move: m, last: false, mainline });
+        makeMove({
+          state,
+          move: m,
+          last: false,
+          mainline,
+          sound: i === payload.length - 1,
+        });
       }
     })
     .with({ type: "GO_TO_START" }, () => {
@@ -432,6 +439,7 @@ function makeMove({
   changePosition = true,
   mainline = false,
   clock,
+  sound = true,
 }: {
   state: TreeState;
   move: Move;
@@ -439,6 +447,7 @@ function makeMove({
   changePosition?: boolean;
   mainline?: boolean;
   clock?: number;
+  sound?: boolean;
 }) {
   const mainLine = Array.from(treeIteratorMainLine(state.root));
   const position = last
@@ -451,6 +460,9 @@ function makeMove({
   const san = makeSan(pos, move);
   if (san === "--") return; // invalid move
   pos.play(move);
+  if (sound) {
+    playSound(san.includes("x"), san.includes("+"));
+  }
   if (pos.isEnd()) {
     if (pos.isCheckmate()) {
       state.headers.result = pos.turn === "white" ? "0-1" : "1-0";

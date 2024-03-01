@@ -37,6 +37,7 @@ import {
   IconKeyboard,
   IconMouse,
   IconReload,
+  IconVolume,
 } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
@@ -51,7 +52,9 @@ import PiecesSelect from "./PiecesSelect";
 import SettingsNumberInput from "./SettingsNumberInput";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
+import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
+import VolumeSlider from "./VolumeSlider";
 
 export default function Page() {
   const version = useLoaderData() as string;
@@ -76,6 +79,9 @@ export default function Page() {
         </Tabs.Tab>
         <Tabs.Tab value="appearance" leftSection={<IconBrush size="1rem" />}>
           Appearance
+        </Tabs.Tab>
+        <Tabs.Tab value="sound" leftSection={<IconVolume size="1rem" />}>
+          Sound
         </Tabs.Tab>
         <Tabs.Tab value="keybinds" leftSection={<IconKeyboard size="1rem" />}>
           Keybinds
@@ -415,6 +421,43 @@ export default function Page() {
                 <div style={{ width: 200 }}>
                   <ColorControl />
                 </div>
+              </Group>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="sound">
+              <Text size="lg" fw={500} className={classes.title}>
+                Sound
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Customize the sound settings
+              </Text>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Volume</Text>
+                  <Text size="xs" c="dimmed">
+                    Overall volume
+                  </Text>
+                </div>
+                <VolumeSlider />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Sound collection</Text>
+                  <Text size="xs" c="dimmed">
+                    Collection of sounds used
+                  </Text>
+                </div>
+                <SoundSelect />
               </Group>
             </Tabs.Panel>
 

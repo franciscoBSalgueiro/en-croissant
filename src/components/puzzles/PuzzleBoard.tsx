@@ -12,10 +12,9 @@ import {
   NormalMove,
   makeUci,
   parseSquare,
-  parseUci,
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
-import { parseFen, parsePiece } from "chessops/fen";
+import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
