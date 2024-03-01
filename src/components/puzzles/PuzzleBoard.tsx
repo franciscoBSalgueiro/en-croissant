@@ -6,13 +6,7 @@ import { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
-import {
-  Chess,
-  Move,
-  NormalMove,
-  makeUci,
-  parseSquare,
-} from "chessops";
+import { Chess, Move, NormalMove, makeUci, parseSquare } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";

@@ -24,10 +24,10 @@ const soundCollections: Item[] = [
   { label: "Robot", value: "robot" },
   { label: "SFX", value: "sfx" },
   { label: "Standard", value: "standard" },
-  { label: "WoodLand", value: "woodland" }
+  { label: "WoodLand", value: "woodland" },
 ];
 
-function SelectOption({ label }: { label: string; }) {
+function SelectOption({ label }: { label: string }) {
   return (
     <Group wrap="nowrap">
       <Text fz="sm" fw={500}>

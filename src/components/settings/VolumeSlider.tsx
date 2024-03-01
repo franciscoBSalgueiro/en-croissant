@@ -17,9 +17,9 @@ export default function VolumeSlider() {
       min={0}
       max={100}
       marks={[
-        { value: 20, label: '20%' },
-        { value: 50, label: '50%' },
-        { value: 80, label: '80%' },
+        { value: 20, label: "20%" },
+        { value: 50, label: "50%" },
+        { value: 80, label: "80%" },
       ]}
       w="15rem"
       value={tempVolume}
@@ -27,7 +27,7 @@ export default function VolumeSlider() {
         setTempVolume(value as number);
       }}
       onChangeEnd={(value) => {
-        setVolume(value / 100)
+        setVolume(value / 100);
         playSound(false, false);
       }}
     />
