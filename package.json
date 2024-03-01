@@ -80,6 +80,7 @@
     "@typescript-eslint/parser": "^6.13.1",
     "@vanilla-extract/css": "^1.14.0",
     "@vanilla-extract/vite-plugin": "^3.9.3",
+    "jsdom": "^24.0.0",
     "typescript": "^5.3.2",
     "vitest": "^0.34.6"
   }
