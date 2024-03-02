@@ -281,7 +281,10 @@ function BestMovesComponent({
                 variant="transparent"
                 disabled={!settings.enabled}
                 color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
-                onClick={() => { killEngine(engine, activeTab!), setSettings((prev) => ({ ...prev, enabled: !prev.enabled })); }}
+                onClick={() => {
+                  killEngine(engine, activeTab!);
+                  setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
+                }}
                 ml={6}
               >
                 <IconPlayerStopFilled size="1.25rem" />
