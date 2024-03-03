@@ -67,7 +67,7 @@ The following steps will get you setup to contribute changes to this repo:
 
 ## Extra Notes
 
-The app uses the Rust language for interacting with the filesystem and the chess engine, and Vite (using TypeScript, of course) for displaying the GUI.
+The app uses the Rust language for interacting with the filesystem, chess engines and databases, and React with Vite (using TypeScript, of course) for displaying the GUI.
 
 - The Rust code can be found in [src-tauri/src](./src-tauri/src/)
-- The Vite code can be found in [src](./src/)
+- The React code can be found in [src](./src/)
