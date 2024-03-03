@@ -7,7 +7,7 @@
 <h3 align="center">En Croissant</h3>
 
   <p align="center">
-    A modern Chess database.
+    The Ultimate Chess Toolkit
     <br />
     <a href="https://www.encroissant.org"><strong>encroissant.org</strong></a>
     <br />
@@ -20,16 +20,18 @@
   </p>
 </div>
 
-En-Croissant is a free cross-platform chess GUI and analysis tool. It comes with a database, a powerful position search engine, opening explorer, and much more.
+En-Croissant is an open-source, cross-platform chess GUI that aims to be powerful, customizable and easy to use.
+
 
 ## Features
 
 - Store and analyze your games from [lichess.org](https://lichess.org) and [chess.com](https://chess.com)
 - Multi-engine analysis. Supports all UCI engines
-- Prepare a repertoire with the opening explorer
+- Prepare a repertoire and train it with spaced repetition
 - Simple engine and database installation and management
+- Absolute or partial position search in the database
 
-It also includes a database, similar to [OCGDB](https://github.com/nguyenpham/ocgdb), with support for absolute or partial position search.
+<img src="https://github.com/franciscoBSalgueiro/encroisssant-site/blob/master/assets/showcase.webp" />
 
 ## Building from source
 
@@ -44,6 +46,10 @@ pnpm build
 
 The built app can be found at [src-tauri/target/release](./src-tauri/target/release/)
 
+## Donate
+
+If you with to support the development of this GUI, you can do so [here](https://encroissant.org/support). All donations are greatly appreciated!
+
 ## Contributing
 
-For contributing to this project please refer to the [Contributing](./CONTRIBUTING.md) file
+For contributing to this project please refer to the [Contributing guide](./CONTRIBUTING.md).
