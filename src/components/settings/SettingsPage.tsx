@@ -1,7 +1,7 @@
+import { Dirs } from "@/App";
 import {
   autoPromoteAtom,
   autoSaveAtom,
-  documentDirAtom,
   enableBoardScrollAtom,
   forcedEnPassantAtom,
   minimumGamesAtom,
@@ -14,6 +14,7 @@ import {
   showCoordinatesAtom,
   showDestsAtom,
   spellCheckAtom,
+  storedDocumentDirAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import {
@@ -42,7 +43,7 @@ import {
 import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import { useLoaderData } from "react-router-dom";
+import { useLoaderData, useRevalidator, useRouteLoaderData } from "react-router-dom";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
@@ -60,7 +61,11 @@ export default function Page() {
   const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
-  const [filesDirectory, setFilesDirectory] = useAtom(documentDirAtom);
+  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
+  filesDirectory = filesDirectory || documentDir;
+
+  const revalidator = useRevalidator();
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -524,6 +529,7 @@ export default function Page() {
                     });
                     if (!selected || typeof selected !== "string") return;
                     setFilesDirectory(selected);
+                    revalidator.revalidate();
                   }}
                   filename={filesDirectory || null}
                 />

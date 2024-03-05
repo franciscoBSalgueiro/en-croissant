@@ -1,4 +1,4 @@
-import { documentDirAtom } from "@/atoms/atoms";
+import { Dirs } from "@/App";
 import { capitalize } from "@/utils/format";
 import {
   Button,
@@ -13,8 +13,8 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { readDir, removeFile } from "@tauri-apps/api/fs";
-import { useAtomValue } from "jotai";
 import React, { useEffect, useState } from "react";
+import { useRouteLoaderData } from "react-router-dom";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -75,7 +75,7 @@ const useFileDirectory = (dir: string) => {
 };
 
 function FilesPage() {
-  const documentDir = useAtomValue(documentDirAtom);
+  const { documentDir } = useRouteLoaderData("root") as Dirs;
   const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
 
   const [search, setSearch] = useState("");

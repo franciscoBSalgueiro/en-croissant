@@ -143,6 +143,9 @@ dependencies:
   tauri-plugin-log-api:
     specifier: github:tauri-apps/tauri-plugin-log#v1
     version: github.com/tauri-apps/tauri-plugin-log/9075595196d5a66f8f3265d2aaf7e2ffeb4cb2ab
+  ts-fsrs:
+    specifier: ^3.4.1
+    version: 3.4.1
   ts-pattern:
     specifier: ^5.0.4
     version: 5.0.4
@@ -4922,6 +4925,10 @@ packages:
       loose-envify: 1.4.0
     dev: false
 
+  /seedrandom@3.0.5:
+    resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
+    dev: false
+
   /semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -5111,6 +5118,13 @@ packages:
     dependencies:
       typescript: 5.3.2
     dev: true
+
+  /ts-fsrs@3.4.1:
+    resolution: {integrity: sha512-IXN4LcwibnY++5X+2YGTL5kO+2IVLV8bF6KAGUXx0jbkxY9NEuraWiUJkh5bal5QpkxrFbEChxn8bZyh1oS2/w==}
+    engines: {node: '>=16.0.0'}
+    dependencies:
+      seedrandom: 3.0.5
+    dev: false
 
   /ts-pattern@5.0.4:
     resolution: {integrity: sha512-D5iVliqugv2C9541W2CNXFYNEZxr4TiHuLPuf49tKEdQFp/8y8fR0v1RExUvXkiWozKCwE7zv07C6EKxf0lKuQ==}

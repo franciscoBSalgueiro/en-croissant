@@ -1,4 +1,3 @@
-import { currentPracticingAtom } from "@/atoms/atoms";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 import { parsePGN } from "@/utils/chess";
@@ -9,7 +8,6 @@ import { ActionIcon, Group, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
 import cx from "clsx";
-import { useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import InfiniteLoader from "react-window-infinite-loader";
 import * as classes from "./GameSelector.css";
@@ -108,7 +106,6 @@ function GameRow({
   deleteGame?: (indxe: number) => void;
 }) {
   const [deleteModal, toggleDelete] = useToggle();
-  const setPracticing = useSetAtom(currentPracticingAtom);
 
   return (
     <>
@@ -137,7 +134,6 @@ function GameRow({
           truncate
           maw={600}
           onClick={() => {
-            setPracticing(false);
             setPage(index);
           }}
           flex={1}

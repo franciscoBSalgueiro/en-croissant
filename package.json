@@ -61,6 +61,7 @@
     "recharts": "^2.7.1",
     "swr": "^2.2.0",
     "tauri-plugin-log-api": "github:tauri-apps/tauri-plugin-log#v1",
+    "ts-fsrs": "^3.4.1",
     "ts-pattern": "^5.0.4",
     "use-immer": "^0.9.0",
     "vite": "^5.0.4",

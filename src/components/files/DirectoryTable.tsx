@@ -1,9 +1,14 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/atoms/atoms";
 import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
-import { Box } from "@mantine/core";
-import { IconChevronRight, IconEye, IconTrash } from "@tabler/icons-react";
+import { Badge, Box, Group, Text } from "@mantine/core";
+import {
+  IconChevronRight,
+  IconEye,
+  IconTarget,
+  IconTrash,
+} from "@tabler/icons-react";
 import { removeDir, removeFile } from "@tauri-apps/api/fs";
 import clsx from "clsx";
 import dayjs from "dayjs";
@@ -16,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import * as classes from "./DirectoryTable.css";
 import { MetadataOrEntry } from "./FilesPage";
 import { FileMetadata } from "./file";
+import { getStats } from "./opening";
 
 function flattenFiles(files: MetadataOrEntry[]): MetadataOrEntry[] {
   return files.flatMap((f) => (f.children ? flattenFiles(f.children) : [f]));
@@ -209,16 +215,21 @@ function Table({
           noWrap: true,
           render: (row) => (
             <Box ml={20 * depth}>
-              {row.children && (
-                <IconChevronRight
-                  className={clsx(classes.icon, classes.expandIcon, {
-                    [classes.expandIconRotated]: expandedFiles.includes(
-                      row.path,
-                    ),
-                  })}
-                />
-              )}
-              <span>{row.name}</span>
+              <Group>
+                {row.children && (
+                  <IconChevronRight
+                    className={clsx(classes.icon, classes.expandIcon, {
+                      [classes.expandIconRotated]: expandedFiles.includes(
+                        row.path,
+                      ),
+                    })}
+                  />
+                )}
+                <span>{row.name}</span>
+                {row.metadata?.type === "repertoire" && (
+                  <DuePositions file={row.path} />
+                )}
+              </Group>
             </Box>
           ),
         },
@@ -297,5 +308,22 @@ function Table({
         ])(event);
       }}
     />
+  );
+}
+
+function DuePositions({ file }: { file: string }) {
+  const [deck] = useAtom(
+    deckAtomFamily({
+      file,
+      game: 0,
+    }),
+  );
+
+  const stats = getStats(deck.positions);
+
+  return (
+    <Badge leftSection={<IconTarget size="1rem" />}>
+      {stats.due + stats.unseen}
+    </Badge>
   );
 }
