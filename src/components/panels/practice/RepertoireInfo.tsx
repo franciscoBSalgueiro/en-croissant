@@ -61,10 +61,7 @@ function RepertoireInfo() {
   return (
     <Stack>
       <Group>
-        <Button
-          variant="default"
-          leftSection={<IconTargetArrow />}
-        >
+        <Button variant="default" leftSection={<IconTargetArrow />}>
           Practice
         </Button>
 

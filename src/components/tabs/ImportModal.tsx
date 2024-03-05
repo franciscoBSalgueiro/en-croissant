@@ -14,7 +14,7 @@ import {
 import { open } from "@tauri-apps/api/dialog";
 
 import { Dirs } from "@/App";
-import { currentTabAtom, } from "@/atoms/atoms";
+import { currentTabAtom } from "@/atoms/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
 import { chessopsError } from "@/utils/chessops";

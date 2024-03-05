@@ -251,8 +251,8 @@ function RootLayout() {
         isNative
           ? undefined
           : {
-            height: "2.5rem",
-          }
+              height: "2.5rem",
+            }
       }
       styles={{
         main: {
@@ -279,15 +279,20 @@ function RootLayout() {
 
 export type Dirs = {
   documentDir: string;
-}
+};
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<RootLayout />} errorElement={<ErrorBoundary />}
+    <Route
+      path="/"
+      element={<RootLayout />}
+      errorElement={<ErrorBoundary />}
       id="root"
       loader={async () => {
         const store = getDefaultStore();
-        const doc = store.get(storedDocumentDirAtom) || await resolve(await documentDir(), "EnCroissant")
+        const doc =
+          store.get(storedDocumentDirAtom) ||
+          (await resolve(await documentDir(), "EnCroissant"));
         const dirs: Dirs = { documentDir: doc };
         return dirs;
       }}

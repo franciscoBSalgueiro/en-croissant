@@ -43,7 +43,11 @@ import {
 import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import { useLoaderData, useRevalidator, useRouteLoaderData } from "react-router-dom";
+import {
+  useLoaderData,
+  useRevalidator,
+  useRouteLoaderData,
+} from "react-router-dom";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
