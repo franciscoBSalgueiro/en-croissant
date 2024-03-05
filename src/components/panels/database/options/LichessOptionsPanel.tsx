@@ -2,10 +2,7 @@ import { lichessOptionsAtom } from "@/atoms/atoms";
 import ToggleButtonGroup, {
   ToggleButtonGroupOption,
 } from "@/components/common/ToggleButtonGroup";
-import {
-  LichessGameSpeed,
-  LichessRating,
-} from "@/utils/lichess/lichessexplorer";
+import { LichessGameSpeed, LichessRating } from "@/utils/lichess/explorer";
 import { Group, Select, Stack, TextInput } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import { useDebouncedValue } from "@mantine/hooks";

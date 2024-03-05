@@ -5,7 +5,7 @@ import {
 } from "@/atoms/atoms";
 import { events, EngineOptions, GoMode } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
+import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
 import {
   Engine,
@@ -14,7 +14,7 @@ import {
   stopEngine,
 } from "@/utils/engines";
 import { formatNodes } from "@/utils/format";
-import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
+import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import {

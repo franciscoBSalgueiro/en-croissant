@@ -1,6 +1,6 @@
 import { ANNOTATION_INFO } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
+import { skipWhile, takeWhile } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
 import { AreaChart } from "@mantine/charts";
@@ -12,6 +12,7 @@ import {
   Text,
   useMantineTheme,
 } from "@mantine/core";
+import equal from "fast-deep-equal";
 import { useContext } from "react";
 import { CategoricalChartState } from "recharts/types/chart/generateCategoricalChart";
 import * as classes from "./EvalChart.css";
@@ -152,7 +153,7 @@ const EvalChart = (props: EvalChartProps) => {
 
   const data = [...getData()];
   const currentPositionName = data.find((point) =>
-    arrayEquals(point.movePath, position),
+    equal(point.movePath, position),
   )?.name;
   const colouroffset = gradientOffset(data);
 

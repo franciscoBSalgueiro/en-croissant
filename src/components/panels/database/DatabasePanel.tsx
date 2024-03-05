@@ -13,11 +13,11 @@ import {
   convertToNormalized,
   getLichessGames,
   getMasterGames,
-} from "@/utils/lichess";
+} from "@/utils/lichess/api";
 import {
   LichessGamesOptions,
   MasterGamesOptions,
-} from "@/utils/lichess/lichessexplorer";
+} from "@/utils/lichess/explorer";
 import {
   Alert,
   Group,

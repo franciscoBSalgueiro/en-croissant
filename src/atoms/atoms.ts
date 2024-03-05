@@ -6,7 +6,7 @@ import { Engine, EngineSettings, engineSchema } from "@/utils/engines";
 import {
   LichessGamesOptions,
   MasterGamesOptions,
-} from "@/utils/lichess/lichessexplorer";
+} from "@/utils/lichess/explorer";
 import { MissingMove } from "@/utils/repertoire";
 import { Tab, genID, tabSchema } from "@/utils/tabs";
 import { MantineColor } from "@mantine/core";

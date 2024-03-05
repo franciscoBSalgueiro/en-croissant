@@ -1,9 +1,9 @@
 import { events, commands } from "@/bindings";
-import { downloadChessCom } from "@/utils/chesscom";
+import { downloadChessCom } from "@/utils/chess.com/api";
 import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { unwrap } from "@/utils/invoke";
-import { downloadLichess } from "@/utils/lichess";
+import { downloadLichess } from "@/utils/lichess/api";
 import {
   Accordion,
   ActionIcon,

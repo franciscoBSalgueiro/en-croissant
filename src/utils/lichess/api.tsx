@@ -1,4 +1,15 @@
 import { events, BestMoves, EngineOptions, GoMode } from "@/bindings";
+import { parsePGN, uciNormalize } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
+import { NormalizedGame } from "@/utils/db";
+import { invoke } from "@/utils/invoke";
+import {
+  LichessGamesOptions,
+  MasterGamesOptions,
+  getLichessGamesQueryParams,
+  getMasterGamesQueryParams,
+} from "@/utils/lichess/explorer";
+import { countMainPly } from "@/utils/treeReducer";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { Response, fetch } from "@tauri-apps/api/http";
@@ -9,17 +20,6 @@ import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { error } from "tauri-plugin-log-api";
 import { P, match } from "ts-pattern";
-import { parsePGN, uciNormalize } from "./chess";
-import { positionFromFen } from "./chessops";
-import { NormalizedGame } from "./db";
-import { invoke } from "./invoke";
-import {
-  LichessGamesOptions,
-  MasterGamesOptions,
-  getLichessGamesQueryParams,
-  getMasterGamesQueryParams,
-} from "./lichess/lichessexplorer";
-import { countMainPly } from "./treeReducer";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";

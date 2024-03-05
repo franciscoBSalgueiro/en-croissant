@@ -1,8 +1,8 @@
 import { sessionsAtom } from "@/atoms/atoms";
-import { getChessComAccount } from "@/utils/chesscom";
+import { getChessComAccount } from "@/utils/chess.com/api";
 import { DatabaseInfo, getDatabases } from "@/utils/db";
 import { invoke } from "@/utils/invoke";
-import { getLichessAccount } from "@/utils/lichess";
+import { getLichessAccount } from "@/utils/lichess/api";
 import {
   Autocomplete,
   Button,
