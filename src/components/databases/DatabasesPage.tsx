@@ -46,9 +46,10 @@ export default function DatabasesPage() {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const selectedDatabase = useMemo(() =>
-    (databases ?? []).find((db) => db.file === selected) ?? null
-    , [databases, selected]);
+  const selectedDatabase = useMemo(
+    () => (databases ?? []).find((db) => db.file === selected) ?? null,
+    [databases, selected],
+  );
   const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
@@ -198,7 +199,11 @@ export default function DatabasesPage() {
                 ) : (
                   <>
                     <Divider variant="dashed" label="General settings" />
-                    <GeneralSettings key={selectedDatabase.filename} selectedDatabase={selectedDatabase} mutate={mutate} />
+                    <GeneralSettings
+                      key={selectedDatabase.filename}
+                      selectedDatabase={selectedDatabase}
+                      mutate={mutate}
+                    />
                     <Checkbox
                       label="Reference Database"
                       checked={isReference}
