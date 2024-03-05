@@ -1,16 +1,17 @@
+import { PracticeData } from "@/atoms/atoms";
 import { isPrefix } from "@/utils/misc";
 import { TreeNode, treeIterator } from "@/utils/treeReducer";
 import { SetStateAction } from "react";
-import { match } from "ts-pattern";
+import { Card, createEmptyCard, fsrs, generatorParameters } from "ts-fsrs";
 
-type Level = "unseen" | "learning" | "reviewing" | "mastered";
+const params = generatorParameters({ enable_fuzz: true });
 
-export type Card = {
+const f = fsrs(params);
+
+export type Position = {
   fen: string;
-  position: number[];
   answer: string;
-  repetitions: number;
-  level: Level;
+  card: Card;
 };
 
 export function buildFromTree(
@@ -18,7 +19,7 @@ export function buildFromTree(
   color: "white" | "black",
   start: number[],
 ) {
-  const cards: Card[] = [];
+  const cards: Position[] = [];
   const iterator = treeIterator(tree);
   for (const item of iterator) {
     if (
@@ -34,84 +35,77 @@ export function buildFromTree(
     ) {
       cards.push({
         fen: item.node.fen,
-        position: item.position,
         answer: item.node.children[0].san,
-        repetitions: 0,
-        level: "unseen",
+        card: createEmptyCard(),
       });
     }
   }
   return cards;
 }
 
-export function getStats(cards: Card[]) {
-  const stats = {
+type Stats = {
+  unseen: number;
+  due: number;
+  practiced: number;
+  nextDue: Date | null;
+  total: number;
+};
+
+export function getStats(positions: Position[]) {
+  const stats: Stats = {
     unseen: 0,
-    learning: 0,
-    reviewing: 0,
-    mastered: 0,
     due: 0,
-    total: cards.length,
+    practiced: 0,
+    nextDue: null,
+    total: positions.length,
   };
-  for (const card of cards) {
-    stats[card.level]++;
+  for (const card of positions) {
+    if (card.card.reps === 0) {
+      stats.unseen++;
+    } else if (card.card.due < new Date()) {
+      stats.due++;
+    } else {
+      stats.practiced++;
+    }
+    if (!stats.nextDue || card.card.due < stats.nextDue) {
+      stats.nextDue = card.card.due;
+    }
   }
-  stats.due = stats.learning + stats.reviewing + stats.unseen;
   return stats;
 }
 
 export function getCardForReview(
-  cards: Card[],
+  positions: Position[],
   options: { random: boolean } = { random: false },
-): Card | null {
+): Position | null {
   if (options.random) {
-    return cards[Math.floor(Math.random() * cards.length)];
+    return positions[Math.floor(Math.random() * positions.length)];
   }
+  const now = new Date();
 
-  const unseen = cards.filter((card) => card.level === "unseen");
-  if (unseen.length > 0) {
-    return unseen[0];
-  }
-  const learning = cards.filter((card) => card.level === "learning");
-  if (learning.length > 0) {
-    return learning[0];
-  }
-  const reviewing = cards.filter((card) => card.level === "reviewing");
-  if (reviewing.length > 0) {
-    return reviewing[0];
-  }
-  const mastered = cards.filter((card) => card.level === "mastered");
-  if (mastered.length > 0) {
-    return mastered[0];
-  }
+  const filtered = positions.filter(
+    (position) => new Date(position.card.due) <= now,
+  );
 
-  return null;
+  return filtered.length > 0 ? filtered[0] : null;
 }
 
 export function updateCardPerformance(
-  setCards: React.Dispatch<SetStateAction<Card[]>>,
+  setPositions: React.Dispatch<SetStateAction<PracticeData>>,
   i: number,
-  isRecalled: boolean,
+  card: Card,
+  grade: 1 | 2 | 3 | 4,
 ) {
-  setCards((cards) => {
-    const newCards = [...cards];
-    const card = newCards[i];
-    if (isRecalled) {
-      card.level = match(card.level)
-        .with("unseen", () => "learning" as const)
-        .with("learning", () => "reviewing" as const)
-        .with("reviewing", () => "mastered" as const)
-        .with("mastered", () => "mastered" as const)
-        .exhaustive();
-    } else {
-      card.level = match(card.level)
-        .with("unseen", () => "unseen" as const)
-        .with("learning", () => "unseen" as const)
-        .with("reviewing", () => "learning" as const)
-        .with("mastered", () => "reviewing" as const)
-        .exhaustive();
-    }
-    card.repetitions++;
-    return newCards;
+  const schedulingCards = f.repeat(card, new Date());
+
+  const { card: newCard, log } = schedulingCards[grade];
+
+  setPositions((data) => {
+    data.positions[i].card = newCard;
+    data.logs.push({ ...log, fen: data.positions[i].fen });
+    return {
+      positions: data.positions,
+      logs: data.logs,
+    };
   });
 }

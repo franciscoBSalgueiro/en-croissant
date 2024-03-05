@@ -59,7 +59,9 @@ function GameInfo({
           <ContentEditable
             disabled={disabled}
             html={event}
-            data-placeholder="Unknown Event"
+            data-placeholder={
+              simplified ? "Enter Opening Title" : "Unknown Event"
+            }
             className={cx(
               classes.contentEditable,
               !event && classes.contentEditablePlaceholder,
@@ -113,6 +115,41 @@ function GameInfo({
           </Text>
         )}
       </Group>
+      {simplified && (
+        <Group gap={4}>
+          <Text size="sm">opening for</Text>
+
+          <Select
+            allowDeselect={false}
+            value={headers.orientation || "white"}
+            variant="unstyled"
+            rightSection={null}
+            rightSectionWidth={0}
+            fw="bold"
+            styles={{
+              input: {
+                textDecoration: "underline",
+              },
+            }}
+            onChange={(value) =>
+              dispatch({
+                type: "SET_ORIENTATION",
+                payload: value === "white" ? "white" : "black",
+              })
+            }
+            data={[
+              {
+                value: "white",
+                label: "White",
+              },
+              {
+                value: "black",
+                label: "Black",
+              },
+            ]}
+          />
+        </Group>
+      )}
       {!simplified && (
         <SimpleGrid cols={3} spacing={0}>
           <input

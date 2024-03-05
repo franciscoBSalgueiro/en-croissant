@@ -49,6 +49,16 @@ export function* treeIterator(node: TreeNode): Generator<ListNode> {
   }
 }
 
+export function findFen(fen: string, node: TreeNode): number[] {
+  const iterator = treeIterator(node);
+  for (const item of iterator) {
+    if (item.node.fen === fen) {
+      return item.position;
+    }
+  }
+  return [];
+}
+
 export function* treeIteratorMainLine(node: TreeNode): Generator<ListNode> {
   let current: ListNode | undefined = { position: [], node };
   while (current?.node) {

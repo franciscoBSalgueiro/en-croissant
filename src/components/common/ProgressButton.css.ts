@@ -15,4 +15,10 @@ export const progress = style({
 export const label = style({
   position: "relative",
   zIndex: 1,
+  [vars.darkSelector]: {
+    color: vars.colors.gray["3"],
+  },
+  [vars.lightSelector]: {
+    color: vars.colors.gray["9"],
+  },
 });

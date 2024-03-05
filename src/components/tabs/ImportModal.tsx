@@ -13,7 +13,8 @@ import {
 } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
-import { currentTabAtom, documentDirAtom } from "@/atoms/atoms";
+import { Dirs } from "@/App";
+import { currentTabAtom } from "@/atoms/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chesscom";
 import { chessopsError } from "@/utils/chessops";
@@ -24,6 +25,7 @@ import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import { useState } from "react";
+import { useRouteLoaderData } from "react-router-dom";
 import { match } from "ts-pattern";
 import GenericCard from "../common/GenericCard";
 import { FileMetadata, FileType } from "../files/file";
@@ -58,7 +60,7 @@ export default function ImportModal({
   const [save, setSave] = useState(false);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
-  const documentDir = useAtomValue(documentDirAtom);
+  const { documentDir } = useRouteLoaderData("root") as Dirs;
 
   const Input = match(importType)
     .with("PGN", () => (

@@ -1,16 +1,10 @@
-import {
-  MantineStyleProps,
-  SegmentedControl,
-  useMantineTheme,
-} from "@mantine/core";
+import { SegmentedControl, useMantineTheme } from "@mantine/core";
 
-export default function CoresSlider(
-  props: {
-    value: number;
-    setValue: (v: number) => void;
-    color?: string;
-  } & MantineStyleProps,
-) {
+export default function CoresSlider(props: {
+  value: number;
+  setValue: (v: number) => void;
+  color?: string;
+}) {
   const theme = useMantineTheme();
   const values = Array.from(
     { length: Math.log2(navigator.hardwareConcurrency) + 1 },
@@ -19,7 +13,6 @@ export default function CoresSlider(
 
   return (
     <SegmentedControl
-      {...props}
       size="xs"
       color={props.color || theme.primaryColor}
       value={props.value.toString()}

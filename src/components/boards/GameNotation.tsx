@@ -52,7 +52,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
     }
   }, [currentNode.fen]);
 
-  const invisible = useAtomValue(currentInvisibleAtom);
+  const invisible = topBar && useAtomValue(currentInvisibleAtom);
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
   const colorScheme = useColorScheme();

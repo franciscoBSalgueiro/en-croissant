@@ -1,5 +1,4 @@
 import {
-  currentPracticingAtom,
   currentTabAtom,
   minimumGamesAtom,
   missingMovesAtom,
@@ -28,7 +27,6 @@ function RepertoireInfo() {
   const [progress, setProgress] = useState(0);
   const percentageCoverage = useAtomValue(percentageCoverageAtom);
   const minimumGames = useAtomValue(minimumGamesAtom);
-  const setPracticing = useSetAtom(currentPracticingAtom);
 
   if (!currentTab) {
     return null;
@@ -62,40 +60,8 @@ function RepertoireInfo() {
 
   return (
     <Stack>
-      <Group mx="md" gap={4}>
-        <Text>opening for</Text>
-
-        <Select
-          allowDeselect={false}
-          value={headers.orientation || "white"}
-          variant="unstyled"
-          rightSection={null}
-          rightSectionWidth={0}
-          onChange={(value) =>
-            dispatch({
-              type: "SET_ORIENTATION",
-              payload: value === "white" ? "white" : "black",
-            })
-          }
-          data={[
-            {
-              value: "white",
-              label: "White",
-            },
-            {
-              value: "black",
-              label: "Black",
-            },
-          ]}
-        />
-      </Group>
-
       <Group>
-        <Button
-          variant="default"
-          onClick={() => setPracticing(true)}
-          leftSection={<IconTargetArrow />}
-        >
+        <Button variant="default" leftSection={<IconTargetArrow />}>
           Practice
         </Button>
 

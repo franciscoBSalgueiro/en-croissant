@@ -28,7 +28,7 @@ import { getMatches } from "@tauri-apps/api/cli";
 import { ask, message, open } from "@tauri-apps/api/dialog";
 import { open as shellOpen } from "@tauri-apps/api/shell";
 import { appWindow } from "@tauri-apps/api/window";
-import { useAtom, useAtomValue } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
@@ -50,6 +50,7 @@ import {
   pieceSetAtom,
   primaryColorAtom,
   spellCheckAtom,
+  storedDocumentDirAtom,
   tabsAtom,
 } from "./atoms/atoms";
 import { SideBar } from "./components/Sidebar";
@@ -70,7 +71,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { listen } from "@tauri-apps/api/event";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { appDataDir, documentDir, resolve } from "@tauri-apps/api/path";
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { useHotkeys } from "react-hotkeys-hook";
 import { keyMapAtom } from "./atoms/keybinds";
@@ -276,9 +277,26 @@ function RootLayout() {
   );
 }
 
+export type Dirs = {
+  documentDir: string;
+};
+
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<RootLayout />} errorElement={<ErrorBoundary />}>
+    <Route
+      path="/"
+      element={<RootLayout />}
+      errorElement={<ErrorBoundary />}
+      id="root"
+      loader={async () => {
+        const store = getDefaultStore();
+        const doc =
+          store.get(storedDocumentDirAtom) ||
+          (await resolve(await documentDir(), "EnCroissant"));
+        const dirs: Dirs = { documentDir: doc };
+        return dirs;
+      }}
+    >
       <Route
         path="/"
         element={<BoardsPage />}

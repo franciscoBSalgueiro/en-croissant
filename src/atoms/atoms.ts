@@ -1,5 +1,5 @@
 import { BestMoves, GoMode } from "@/bindings";
-import { Card, buildFromTree } from "@/components/files/opening";
+import { Position } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
 import { Engine, EngineSettings, engineSchema } from "@/utils/engines";
@@ -9,13 +9,11 @@ import {
 } from "@/utils/lichess/lichessexplorer";
 import { MissingMove } from "@/utils/repertoire";
 import { Tab, genID, tabSchema } from "@/utils/tabs";
-import { GameHeaders, TreeNode } from "@/utils/treeReducer";
 import { MantineColor } from "@mantine/core";
 
 import { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import { getWinChance, normalizeScore } from "@/utils/score";
-import { documentDir, resolve } from "@tauri-apps/api/path";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { PrimitiveAtom, atom } from "jotai";
@@ -26,6 +24,7 @@ import {
   loadable,
 } from "jotai/utils";
 import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
@@ -93,17 +92,11 @@ export const currentTabAtom = atom(
 );
 
 // Directories
-const storedDocumentDirAtom = atomWithStorage<string>("document-dir", "");
-
-export const documentDirAtom = atom(
-  async (get) => {
-    const dir = get(storedDocumentDirAtom);
-    if (dir) return dir;
-    return await resolve(await documentDir(), "EnCroissant");
-  },
-  (get, set, value: string) => {
-    set(storedDocumentDirAtom, value);
-  },
+export const storedDocumentDirAtom = atomWithStorage<string>(
+  "document-dir",
+  "",
+  undefined,
+  { unstable_getOnInit: true },
 );
 
 // Settings
@@ -319,35 +312,24 @@ export const currentPlayersAtom = tabValue(playersFamily);
 
 // Practice
 
-const practicingFamily = atomFamily((tab: string) => atom(false));
-export const currentPracticingAtom = tabValue(practicingFamily);
+export type PracticeData = {
+  positions: Position[];
+  logs: (ReviewLog & { fen: string })[];
+};
 
 export const deckAtomFamily = atomFamily(
   ({
-    id,
+    file,
     game,
-    root,
-    headers,
   }: {
-    id: string;
+    file: string;
     game: number;
-    root: TreeNode;
-    headers: GameHeaders;
-  }) => {
-    const a = atomWithStorage<Card[]>(`deck-${id}-${game}`, []);
-    a.onMount = (set) => {
-      if (localStorage.getItem(`deck-${id}-${game}`) === null) {
-        const cards = buildFromTree(
-          root,
-          headers.orientation || "white",
-          headers.start || [],
-        );
-        set(cards);
-      }
-    };
-    return a;
-  },
-  (a, b) => a.id === b.id && a.game === b.game,
+  }) =>
+    atomWithStorage<PracticeData>(`deck-${file}-${game}`, {
+      positions: [],
+      logs: [],
+    }),
+  (a, b) => a.file === b.file && a.game === b.game,
 );
 
 export const engineMovesFamily = atomFamily(

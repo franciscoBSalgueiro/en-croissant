@@ -32,7 +32,7 @@ const gamePoints = (game: NormalizedGame, player: string) => {
     .otherwise(() => 0);
 };
 
-function PlayerCard({
+function TournamentCard({
   tournament,
   file,
 }: {
@@ -247,4 +247,4 @@ function PlayerCard({
   );
 }
 
-export default PlayerCard;
+export default TournamentCard;

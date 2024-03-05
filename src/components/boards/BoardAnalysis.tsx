@@ -5,6 +5,7 @@ import {
   IconDatabase,
   IconInfoCircle,
   IconNotes,
+  IconTargetArrow,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import {
@@ -16,18 +17,19 @@ import {
   useState,
 } from "react";
 
+import { Dirs } from "@/App";
 import {
   autoSaveAtom,
   bestMovesFamily,
   currentTabAtom,
   currentTabSelectedAtom,
-  documentDirAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { getMainLine, getVariationLine } from "@/utils/chess";
 import { saveToFile } from "@/utils/tabs";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { useAtom, useAtomValue } from "jotai";
+import { useRouteLoaderData } from "react-router-dom";
 import MoveControls from "../common/MoveControls";
 import {
   TreeDispatchContext,
@@ -38,6 +40,7 @@ import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
+import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
@@ -48,7 +51,7 @@ function BoardAnalysis() {
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
-  const documentDir = useAtomValue(documentDirAtom);
+  const { documentDir } = useRouteLoaderData("root") as Dirs;
 
   const boardRef = useRef(null);
 
@@ -111,6 +114,9 @@ function BoardAnalysis() {
     currentTabSelectedAtom,
   );
 
+  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
+  const practicing = currentTabSelected === "practice";
+
   return (
     <>
       <Suspense>
@@ -126,6 +132,7 @@ function BoardAnalysis() {
       </Suspense>
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
+          practicing={practicing}
           dirty={dirty}
           currentNode={currentNode}
           arrows={arrows}
@@ -161,6 +168,14 @@ function BoardAnalysis() {
             }}
           >
             <Tabs.List grow mb="1rem">
+              {isRepertoire && (
+                <Tabs.Tab
+                  value="practice"
+                  leftSection={<IconTargetArrow size="1rem" />}
+                >
+                  Practice
+                </Tabs.Tab>
+              )}
               <Tabs.Tab
                 value="analysis"
                 leftSection={<IconZoomCheck size="1rem" />}
@@ -186,6 +201,17 @@ function BoardAnalysis() {
                 Info
               </Tabs.Tab>
             </Tabs.List>
+            {isRepertoire && (
+              <Tabs.Panel
+                value="practice"
+                flex={1}
+                style={{ overflowY: "hidden" }}
+              >
+                <Suspense>
+                  <PracticePanel fen={currentNode.fen} />
+                </Suspense>
+              </Tabs.Panel>
+            )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
               <InfoPanel />
             </Tabs.Panel>

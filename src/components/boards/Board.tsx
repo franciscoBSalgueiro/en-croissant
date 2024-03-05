@@ -3,7 +3,6 @@ import {
   autoSaveAtom,
   currentEvalOpenAtom,
   currentInvisibleAtom,
-  currentPracticingAtom,
   currentTabAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
@@ -46,6 +45,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { mergeRefs, useElementSize } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   IconChevronRight,
   IconDeviceFloppy,
@@ -102,6 +102,7 @@ interface ChessboardProps {
   blackTime?: number;
   whiteTc?: TimeControlField;
   blackTc?: TimeControlField;
+  practicing?: boolean;
 }
 
 function Board({
@@ -123,6 +124,7 @@ function Board({
   blackTime,
   whiteTc,
   blackTc,
+  practicing,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
 
@@ -162,14 +164,11 @@ function Board({
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
-  const practicing = useAtomValue(currentPracticingAtom);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      id: currentTab?.file?.name || "",
-      root,
-      headers,
+      file: currentTab?.file?.path || "",
       game: currentTab?.gameNumber || 0,
     }),
   );
@@ -179,7 +178,7 @@ function Board({
     if (!pos) return;
     const san = makeSan(pos, move);
     if (practicing) {
-      const c = deck.find((c) => c.fen === currentNode.fen);
+      const c = deck.positions.find((c) => c.fen === currentNode.fen);
       if (!c) {
         return;
       }
@@ -188,17 +187,27 @@ function Board({
       if (san !== c?.answer) {
         isRecalled = false;
       }
-      const i = deck.indexOf(c);
-      updateCardPerformance(setDeck, i, isRecalled);
+      const i = deck.positions.indexOf(c);
 
-      if (isRecalled) {
-        setInvisible(false);
+      if (!isRecalled) {
+        notifications.show({
+          title: "Incorrect",
+          message: `The correct move was ${c.answer}`,
+          color: "red",
+        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        dispatch({
+          type: "GO_TO_NEXT",
+        });
+      } else {
         dispatch({
           type: "MAKE_MOVE",
           payload: move,
         });
         setPendingMove(null);
       }
+
+      updateCardPerformance(setDeck, i, c.card, isRecalled ? 4 : 1);
     } else {
       dispatch({
         type: "MAKE_MOVE",
@@ -350,7 +359,7 @@ function Board({
   );
   const data = getMaterialDiff(currentNode.fen);
   const practiceLock =
-    !!practicing && !deck.find((c) => c.fen === currentNode.fen);
+    !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 
   const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
     return practiceLock
