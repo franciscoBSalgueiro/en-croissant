@@ -26,7 +26,7 @@ import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
 import { open as openDialog, save } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
@@ -46,39 +46,16 @@ export default function DatabasesPage() {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const selectedDatabase =
-    (databases ?? []).find((db) => db.file === selected) ?? null;
+  const selectedDatabase = useMemo(() =>
+    (databases ?? []).find((db) => db.file === selected) ?? null
+    , [databases, selected]);
   const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
-  const [title, setTitle] = useState(selectedDatabase?.title ?? null);
-  const [debouncedTitle] = useDebouncedValue(title, 100);
-  const [description, setDescription] = useState(
-    selectedDatabase?.description ?? null,
-  );
-  const [debouncedDescription] = useDebouncedValue(description, 100);
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [convertLoading, setConvertLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-
-  useEffect(() => {
-    if ((debouncedTitle || debouncedDescription) && selectedDatabase !== null) {
-      invoke("edit_db_info", {
-        file: selectedDatabase.file,
-        title: debouncedTitle,
-        description: debouncedDescription,
-      }).then(() => mutate());
-    }
-  }, [debouncedTitle, debouncedDescription]);
-
-  useEffect(() => {
-    setTitle(selectedDatabase?.title ?? null);
-  }, [selectedDatabase]);
-
-  useEffect(() => {
-    setDescription(selectedDatabase?.description ?? null);
-  }, [selectedDatabase]);
 
   function changeReferenceDatabase(file: string) {
     invoke("clear_games");
@@ -221,17 +198,7 @@ export default function DatabasesPage() {
                 ) : (
                   <>
                     <Divider variant="dashed" label="General settings" />
-                    <TextInput
-                      label="Title"
-                      value={title ?? ""}
-                      onChange={(e) => setTitle(e.currentTarget.value)}
-                      error={title === "" && "Name is required"}
-                    />
-                    <Textarea
-                      label="Description"
-                      value={description ?? ""}
-                      onChange={(e) => setDescription(e.currentTarget.value)}
-                    />
+                    <GeneralSettings key={selectedDatabase.filename} selectedDatabase={selectedDatabase} mutate={mutate} />
                     <Checkbox
                       label="Reference Database"
                       checked={isReference}
@@ -357,6 +324,44 @@ export default function DatabasesPage() {
         </Paper>
       </Group>
     </Stack>
+  );
+}
+
+function GeneralSettings({
+  selectedDatabase,
+  mutate,
+}: {
+  selectedDatabase: DatabaseInfo;
+  mutate: () => void;
+}) {
+  const [title, setTitle] = useState(selectedDatabase.title);
+  const [description, setDescription] = useState(selectedDatabase.description);
+
+  const [debouncedTitle] = useDebouncedValue(title, 300);
+  const [debouncedDescription] = useDebouncedValue(description, 300);
+
+  useEffect(() => {
+    invoke("edit_db_info", {
+      file: selectedDatabase.file,
+      title: debouncedTitle,
+      description: debouncedDescription,
+    }).then(() => mutate());
+  }, [debouncedTitle, debouncedDescription]);
+
+  return (
+    <>
+      <TextInput
+        label="Title"
+        value={title}
+        onChange={(e) => setTitle(e.currentTarget.value)}
+        error={title === "" && "Name is required"}
+      />
+      <Textarea
+        label="Description"
+        value={description}
+        onChange={(e) => setDescription(e.currentTarget.value)}
+      />
+    </>
   );
 }
 
