@@ -9,12 +9,20 @@ import {
   TreeDispatchContext,
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
-import { MissingMove, openingReport } from "@/utils/repertoire";
-import { Button, Group, Progress, Select, Stack, Text } from "@mantine/core";
-import { IconReload, IconTargetArrow } from "@tabler/icons-react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { MissingMove, getTreeStats, openingReport } from "@/utils/repertoire";
+import {
+  ActionIcon,
+  Button,
+  Group,
+  Progress,
+  Stack,
+  Text,
+  Tooltip,
+} from "@mantine/core";
+import { IconReload } from "@tabler/icons-react";
+import { useAtom, useAtomValue } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 
 function RepertoireInfo() {
   const { headers, root } = useContext(TreeStateContext);
@@ -23,7 +31,6 @@ function RepertoireInfo() {
 
   const [allMissingMoves, setMissingMoves] = useAtom(missingMovesAtom);
   const [loading, setLoading] = useState(false);
-  const dispatch = useContext(TreeDispatchContext);
   const [progress, setProgress] = useState(0);
   const percentageCoverage = useAtomValue(percentageCoverageAtom);
   const minimumGames = useAtomValue(minimumGamesAtom);
@@ -58,13 +65,17 @@ function RepertoireInfo() {
     });
   }
 
-  return (
-    <Stack>
-      <Group>
-        <Button variant="default" leftSection={<IconTargetArrow />}>
-          Practice
-        </Button>
+  const stats = useMemo(() => getTreeStats(root), [root]);
 
+  return (
+    <Stack style={{ overflow: "hidden" }} h="100%">
+      <Group>
+        <Text>Variations: {stats.leafs}</Text>
+        <Text>Max Depth: {stats.depth}</Text>
+        <Text>Total moves: {stats.total}</Text>
+      </Group>
+
+      <Group>
         {!loading && !missingMoves && (
           <Button variant="default" onClick={() => searchForMissingMoves()}>
             Look for missing moves
@@ -99,66 +110,64 @@ function MissingMoves({
   const dispatch = useContext(TreeDispatchContext);
 
   return (
-    <div>
-      <DataTable
-        withTableBorder
-        h={200}
-        emptyState={<Text py={200}>No missing moves found</Text>}
-        highlightOnHover
-        records={missingMoves}
-        onRowClick={({ record }) =>
-          dispatch({
-            type: "GO_TO_MOVE",
-            payload: record.position,
-          })
-        }
-        groups={[
-          {
-            id: "Missing Moves",
-            columns: [
-              {
-                accessor: "move",
-                render: ({ move, position }) => {
-                  const total_moves = position.length + 1;
-                  const is_white = total_moves % 2 === 1;
-                  const move_number = Math.ceil(total_moves / 2);
-                  return (
-                    <div>
-                      <Text>
-                        {move_number.toString()}
-                        {is_white ? ". " : "... "}
-                        <Text span fw="bold">
-                          {move}
-                        </Text>
+    <DataTable
+      withTableBorder
+      emptyState={<Text py={200}>No missing moves found</Text>}
+      highlightOnHover
+      records={missingMoves}
+      onRowClick={({ record }) =>
+        dispatch({
+          type: "GO_TO_MOVE",
+          payload: record.position,
+        })
+      }
+      groups={[
+        {
+          id: "Missing Moves",
+          title: (
+            <Group gap="xs">
+              <Text>Missing Moves</Text>
+              <Tooltip label="Refresh moves">
+                <ActionIcon onClick={search}>
+                  <IconReload size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          ),
+          columns: [
+            {
+              accessor: "move",
+              render: ({ move, position }) => {
+                const total_moves = position.length + 1;
+                const is_white = total_moves % 2 === 1;
+                const move_number = Math.ceil(total_moves / 2);
+                return (
+                  <div>
+                    <Text>
+                      {move_number.toString()}
+                      {is_white ? ". " : "... "}
+                      <Text span fw="bold">
+                        {move}
                       </Text>
-                    </div>
-                  );
-                },
+                    </Text>
+                  </div>
+                );
               },
-              {
-                accessor: "games",
-              },
-              {
-                accessor: "percentage",
-                render: ({ percentage }) => (
-                  <Text>{(percentage * 100).toFixed(1)}%</Text>
-                ),
-              },
-            ],
-          },
-        ]}
-        noRecordsText="No games found"
-      />
-
-      <Button
-        variant="default"
-        mt={20}
-        rightSection={<IconReload />}
-        onClick={search}
-      >
-        Reload missing moves
-      </Button>
-    </div>
+            },
+            {
+              accessor: "games",
+            },
+            {
+              accessor: "percentage",
+              render: ({ percentage }) => (
+                <Text>{(percentage * 100).toFixed(1)}%</Text>
+              ),
+            },
+          ],
+        },
+      ]}
+      noRecordsText="No games found"
+    />
   );
 }
 

@@ -21,6 +21,7 @@ import { Dirs } from "@/App";
 import {
   autoSaveAtom,
   bestMovesFamily,
+  currentPracticeTabAtom,
   currentTabAtom,
   currentTabSelectedAtom,
 } from "@/atoms/atoms";
@@ -113,9 +114,11 @@ function BoardAnalysis() {
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
     currentTabSelectedAtom,
   );
+  const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
 
   const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
-  const practicing = currentTabSelected === "practice";
+  const practicing =
+    currentTabSelected === "practice" && practiceTabSelected === "train";
 
   return (
     <>

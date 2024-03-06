@@ -276,6 +276,9 @@ export const currentDbTabAtom = tabValue(dbTabFamily);
 const analysisTabFamily = atomFamily((tab: string) => atom("engines"));
 export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
 
+const practiceTabFamily = atomFamily((tab: string) => atom("train"));
+export const currentPracticeTabAtom = tabValue(practiceTabFamily);
+
 const expandedEnginesFamily = atomFamily((tab: string) =>
   atom<string[] | undefined>(undefined),
 );

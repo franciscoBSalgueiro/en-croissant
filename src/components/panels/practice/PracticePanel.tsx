@@ -1,6 +1,7 @@
 import {
   PracticeData,
   currentInvisibleAtom,
+  currentPracticeTabAtom,
   currentTabAtom,
   deckAtomFamily,
 } from "@/atoms/atoms";
@@ -27,6 +28,7 @@ import {
   RingProgress,
   SimpleGrid,
   Stack,
+  Tabs,
   Text,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
@@ -36,6 +38,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { formatDate } from "ts-fsrs";
+import RepertoireInfo from "./RepertoireInfo";
 
 function PracticePanel({ fen }: { fen: string }) {
   const dispatch = useContext(TreeDispatchContext);
@@ -84,126 +87,150 @@ function PracticePanel({ fen }: { fen: string }) {
 
   const [positionsOpen, setPositionsOpen] = useToggle();
   const [logsOpen, setLogsOpen] = useToggle();
+  const [tab, setTab] = useAtom(currentPracticeTabAtom);
 
   useHotkeys("n", () => newPractice());
 
   return (
     <>
-      <Stack>
-        {stats.total === 0 && (
-          <Text>
-            There are no position to practice. Start by adding moves to this PGN
-            file. <br />
-            You'll need to change to Analysis mode to be able to add moves.
-          </Text>
-        )}
-        {stats.total > 0 && (
-          <Group wrap="nowrap">
-            <RingProgress
-              size={100}
-              thickness={10}
-              label={
-                <Text ta="center" px="xs" style={{ pointerEvents: "none" }}>
-                  {Math.round((stats.practiced / stats.total) * 100)}%
-                </Text>
-              }
-              sections={[
-                {
-                  value: (stats.practiced / stats.total) * 100,
-                  color: "blue",
-                  tooltip: `practiced ${stats.practiced} positions`,
-                },
-                {
-                  value: (stats.due / stats.total) * 100,
-                  color: "yellow",
-                  tooltip: `${stats.due} due positions`,
-                },
-                {
-                  value: (stats.unseen / stats.total) * 100,
-                  color: "gray",
-                  tooltip: `${stats.unseen} unseen positions`,
-                },
-              ]}
-            />
-            <Group wrap="nowrap">
-              <Group wrap="nowrap">
-                <div>
-                  <Badge color="blue">Practiced</Badge>
-                  <Text ta="center">{stats.practiced}</Text>
-                </div>
-                <div>
-                  <Badge color="yellow">Due</Badge>
-                  <Text ta="center">{stats.due}</Text>
-                </div>
-                <div>
-                  <Badge color="gray">Unseen</Badge>
-                  <Text ta="center">{stats.unseen}</Text>
-                </div>
-              </Group>
-              <Divider orientation="vertical" />
-              <Group>
-                {stats.due === 0 && stats.unseen === 0 && (
-                  <Text>
-                    You have practiced all positions.
-                    <br />
-                    The next review is on{" "}
-                    {dayjs(stats.nextDue).format("MMM D, HH:mm")}
-                  </Text>
-                )}
-                <Button onClick={() => setPositionsOpen(true)}>
-                  Show all positions
-                </Button>
-                <Button onClick={() => setLogsOpen(true)}>Show logs</Button>
-              </Group>
-            </Group>
-          </Group>
-        )}
+      <Tabs
+        h="100%"
+        orientation="vertical"
+        placement="right"
+        value={tab}
+        onChange={(v) => setTab(v!)}
+        style={{
+          display: "flex",
+        }}
+      >
+        <Tabs.List>
+          <Tabs.Tab value="train">Train</Tabs.Tab>
+          <Tabs.Tab value="build">Build</Tabs.Tab>
+        </Tabs.List>
 
-        <Group>
-          <Button
-            variant={
-              headers.orientation === "white" && fen.split(" ")[1] === "w"
-                ? "default"
-                : "filled"
-            }
-            onClick={() => newPractice()}
-            disabled={stats.due === 0 && stats.unseen === 0}
-          >
-            <u>N</u>ext
-          </Button>
-          <Button
-            variant="default"
-            onClick={() => {
-              const currentIndex = deck.positions.findIndex(
-                (c) => c.fen === fen,
-              );
-              if (currentIndex === -1) return;
-              updateCardPerformance(
-                setDeck,
-                currentIndex,
-                deck.positions[currentIndex].card,
-                2,
-              );
-              newPractice();
-            }}
-            disabled={stats.due === 0 && stats.unseen === 0}
-          >
-            Skip
-          </Button>
-          <Button
-            variant="default"
-            onClick={() => {
-              setInvisible(false);
-              dispatch({ type: "GO_TO_NEXT" });
-            }}
-          >
-            See Answer
-          </Button>
-          <Button variant="default" onClick={() => toggleResetModal()}>
-            Reset
-          </Button>
-        </Group>
-      </Stack>
+        <Tabs.Panel value="train" style={{ overflow: "hidden" }}>
+          <Stack>
+            {stats.total === 0 && (
+              <Text>
+                There are no position to practice. Start by adding moves to this
+                PGN file. <br />
+                You'll need to change to Analysis mode to be able to add moves.
+              </Text>
+            )}
+            {stats.total > 0 && (
+              <Group wrap="nowrap">
+                <RingProgress
+                  size={100}
+                  thickness={10}
+                  label={
+                    <Text ta="center" px="xs" style={{ pointerEvents: "none" }}>
+                      {Math.round((stats.practiced / stats.total) * 100)}%
+                    </Text>
+                  }
+                  sections={[
+                    {
+                      value: (stats.practiced / stats.total) * 100,
+                      color: "blue",
+                      tooltip: `practiced ${stats.practiced} positions`,
+                    },
+                    {
+                      value: (stats.due / stats.total) * 100,
+                      color: "yellow",
+                      tooltip: `${stats.due} due positions`,
+                    },
+                    {
+                      value: (stats.unseen / stats.total) * 100,
+                      color: "gray",
+                      tooltip: `${stats.unseen} unseen positions`,
+                    },
+                  ]}
+                />
+                <Group wrap="nowrap">
+                  <Group wrap="nowrap">
+                    <div>
+                      <Badge color="blue">Practiced</Badge>
+                      <Text ta="center">{stats.practiced}</Text>
+                    </div>
+                    <div>
+                      <Badge color="yellow">Due</Badge>
+                      <Text ta="center">{stats.due}</Text>
+                    </div>
+                    <div>
+                      <Badge color="gray">Unseen</Badge>
+                      <Text ta="center">{stats.unseen}</Text>
+                    </div>
+                  </Group>
+                  <Divider orientation="vertical" />
+                  <Group>
+                    {stats.due === 0 && stats.unseen === 0 && (
+                      <Text>
+                        You have practiced all positions.
+                        <br />
+                        The next review is on{" "}
+                        {dayjs(stats.nextDue).format("MMM D, HH:mm")}
+                      </Text>
+                    )}
+                    <Button onClick={() => setPositionsOpen(true)}>
+                      Show all positions
+                    </Button>
+                    <Button onClick={() => setLogsOpen(true)}>Show logs</Button>
+                  </Group>
+                </Group>
+              </Group>
+            )}
+
+            <Group>
+              <Button
+                variant={
+                  headers.orientation === "white" && fen.split(" ")[1] === "w"
+                    ? "default"
+                    : "filled"
+                }
+                onClick={() => newPractice()}
+                disabled={stats.due === 0 && stats.unseen === 0}
+              >
+                <u>N</u>ext
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => {
+                  const currentIndex = deck.positions.findIndex(
+                    (c) => c.fen === fen,
+                  );
+                  if (currentIndex === -1) return;
+                  updateCardPerformance(
+                    setDeck,
+                    currentIndex,
+                    deck.positions[currentIndex].card,
+                    2,
+                  );
+                  newPractice();
+                }}
+                disabled={stats.due === 0 && stats.unseen === 0}
+              >
+                Skip
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => {
+                  setInvisible(false);
+                  dispatch({ type: "GO_TO_NEXT" });
+                }}
+              >
+                See Answer
+              </Button>
+              <Button variant="default" onClick={() => toggleResetModal()}>
+                Reset
+              </Button>
+            </Group>
+          </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="build" style={{ overflow: "hidden" }}>
+          <RepertoireInfo />
+        </Tabs.Panel>
+      </Tabs>
+
       <ConfirmModal
         title={"Reset opening data"}
         description={`Are you sure you want to reset the opening data for "${currentTab?.file?.name}"? All the learning progress will be lost.`}
