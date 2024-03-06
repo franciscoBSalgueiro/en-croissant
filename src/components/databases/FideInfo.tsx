@@ -3,6 +3,7 @@ import {
   Badge,
   Card,
   Center,
+  Divider,
   Group,
   Modal,
   Stack,
@@ -60,7 +61,31 @@ function FideInfo({
   }, []);
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)}>
+    <Modal
+      styles={{
+        title: {
+          flex: 1,
+        },
+      }}
+      title={
+        <Group>
+          <b>FIDE Player Info</b>
+          {player && (
+            <a
+              href={`https://ratings.fide.com/profile/${player.fideid}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ActionIcon>
+                <IconCloud />
+              </ActionIcon>
+            </a>
+          )}
+        </Group>
+      }
+      opened={opened}
+      onClose={() => setOpened(false)}
+    >
       {!fileExists ? (
         <Stack>
           No FIDE database installed
@@ -82,36 +107,37 @@ function FideInfo({
       ) : isLoading ? (
         <Center>Loading...</Center>
       ) : player ? (
-        <Stack>
-          <Group justify="space-between" pr="md">
-            <Group>
-              <Text fz="lg" fw="bold">
-                {player.name}
-              </Text>
-              {player.title && <Badge>{player.title}</Badge>}
-            </Group>
+        <Stack gap="xs">
+          <Divider />
+          <Group justify="space-between">
+            <Stack gap={0}>
+              <Group>
+                <Group>
+                  <Text fz="lg" fw="bold">
+                    {player.name}
+                  </Text>
+                  {player.title && <Badge>{player.title}</Badge>}
+                </Group>
+              </Group>
+              {player.name !== name && (
+                <Text c="dimmed" fz="xs">
+                  Closest match to <u>{name}</u>
+                </Text>
+              )}
+            </Stack>
 
-            <a
-              href={`https://ratings.fide.com/profile/${player.fideid}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ActionIcon>
-                <IconCloud />
-              </ActionIcon>
-            </a>
+            {Flag && country?.name && (
+              <Tooltip label={country.name}>
+                <div>
+                  <Flag w={50} />
+                </div>
+              </Tooltip>
+            )}
           </Group>
 
           <Group>
             {player.sex && <Text>Sex: {player.sex}</Text>}
             {player.birthday && <Text>Born: {player.birthday}</Text>}
-            {Flag && country?.name && (
-              <Tooltip label={country.name}>
-                <div>
-                  <Flag w={40} />
-                </div>
-              </Tooltip>
-            )}
           </Group>
           <Group grow>
             <Card p="sm">
@@ -130,13 +156,16 @@ function FideInfo({
           <div />
         </Stack>
       ) : (
-        <Center>
-          <Text fz="lg" pb="lg">
-            {error
-              ? `There was an error searching for player: ${error.message}`
-              : "Player not found"}
-          </Text>
-        </Center>
+        <Text>
+          {error ? (
+            <>
+              There was an error searching for {name}
+              <br /> {error.message}
+            </>
+          ) : (
+            "Player not found"
+          )}
+        </Text>
       )}
     </Modal>
   );

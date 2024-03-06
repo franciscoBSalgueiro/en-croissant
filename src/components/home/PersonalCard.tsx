@@ -164,12 +164,10 @@ function PersonalPlayerCard({
         {setName ? (
           <Flex justify="center">
             <Select
-              variant="unstyled"
               value={name}
               data={players}
               onChange={(e) => setName(e || "")}
               clearable={false}
-              rightSection={<div />}
               fw="bold"
               styles={{
                 input: {
