@@ -12,6 +12,7 @@ import {
 import { MissingMove, getTreeStats, openingReport } from "@/utils/repertoire";
 import {
   ActionIcon,
+  Alert,
   Button,
   Group,
   Progress,
@@ -19,7 +20,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconReload } from "@tabler/icons-react";
+import { IconInfoCircle, IconReload } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useContext, useMemo, useState } from "react";
@@ -83,6 +84,14 @@ function RepertoireInfo() {
         )}
       </Group>
 
+      {!headers.start ||
+        (headers.start.length === 0 && (
+          <Alert icon={<IconInfoCircle />}>
+            Mark a move as <b>Start</b> in order to exclude unwanted moves from
+            the results
+          </Alert>
+        ))}
+
       {loading ? (
         <>
           <Text>Analyzing Repertoire</Text>
@@ -128,7 +137,7 @@ function MissingMoves({
             <Group gap="xs">
               <Text>Missing Moves</Text>
               <Tooltip label="Refresh moves">
-                <ActionIcon onClick={search}>
+                <ActionIcon variant="subtle" onClick={search}>
                   <IconReload size="1rem" />
                 </ActionIcon>
               </Tooltip>
