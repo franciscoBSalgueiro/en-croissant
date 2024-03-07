@@ -13,6 +13,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  snapArrowsAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { Chessground } from "@/chessground/Chessground";
@@ -449,6 +450,7 @@ function Board({
 
   const [boardFen, setBoardFen] = useState<string | null>(null);
   const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
+  const [snapArrows] = useAtom(snapArrowsAtom);
 
   useEffect(() => {
     if (editingMode && boardFen && boardFen !== currentNode.fen) {
@@ -605,7 +607,7 @@ function Board({
               drawable={{
                 enabled: true,
                 visible: true,
-                defaultSnapToValidMove: true,
+                defaultSnapToValidMove: snapArrows,
                 eraseOnClick: true,
                 autoShapes: shapes,
                 onChange: (shapes) => {

@@ -13,6 +13,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  snapArrowsAtom,
   spellCheckAtom,
   storedDocumentDirAtom,
 } from "@/atoms/atoms";
@@ -136,6 +137,21 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
+              </Group>
+
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Snap Arrows</Text>
+                  <Text size="xs" c="dimmed">
+                    Snap arrows to valid moves
+                  </Text>
+                </div>
+                <SettingsSwitch atom={snapArrowsAtom} />
               </Group>
 
               <Group
