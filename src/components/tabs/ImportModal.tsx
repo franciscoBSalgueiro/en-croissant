@@ -233,7 +233,7 @@ export default function ImportModal({
                 sessionStorage.setItem(prev.value, JSON.stringify(tree));
                 return {
                   ...prev,
-                  name: `${getGameName(tree.headers)} (Imported)`,
+                  name: getGameName(tree.headers),
                   file: fileInfo,
                   gameNumber: 0,
                   type: "analysis",
@@ -255,7 +255,7 @@ export default function ImportModal({
               sessionStorage.setItem(prev.value, JSON.stringify(tree));
               return {
                 ...prev,
-                name: `${getGameName(tree.headers)} (Imported)`,
+                name: getGameName(tree.headers),
                 type: "analysis",
               };
             });

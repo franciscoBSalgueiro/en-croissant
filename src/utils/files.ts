@@ -45,7 +45,7 @@ export async function openFile(
   const tree = await parsePGN(input);
   createTab({
     tab: {
-      name: `${getGameName(tree.headers)} (Imported)`,
+      name: getGameName(tree.headers),
       type: "analysis",
     },
     setTabs,
