@@ -28,8 +28,7 @@ const treeE4D5: () => TreeState = () => ({
             halfMoves: 2,
             shapes: [],
             annotation: "",
-            commentHTML: "",
-            commentText: "",
+            comment: "",
           },
         ],
         clock: undefined,
@@ -38,8 +37,7 @@ const treeE4D5: () => TreeState = () => ({
         halfMoves: 1,
         shapes: [],
         annotation: "",
-        commentHTML: "",
-        commentText: "",
+        comment: "",
       },
       {
         fen: "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
@@ -51,8 +49,7 @@ const treeE4D5: () => TreeState = () => ({
         halfMoves: 1,
         shapes: [],
         annotation: "",
-        commentHTML: "",
-        commentText: "",
+        comment: "",
       },
     ],
     score: null,
@@ -60,8 +57,7 @@ const treeE4D5: () => TreeState = () => ({
     halfMoves: 0,
     shapes: [],
     annotation: "",
-    commentHTML: "",
-    commentText: "",
+    comment: "",
   },
 });
 
@@ -200,8 +196,7 @@ test("should handle MAKE_MOVE", () => {
           halfMoves: 1,
           shapes: [],
           annotation: "",
-          commentHTML: "",
-          commentText: "",
+          comment: "",
         },
       ],
       score: null,
@@ -209,8 +204,7 @@ test("should handle MAKE_MOVE", () => {
       halfMoves: 0,
       shapes: [],
       annotation: "",
-      commentHTML: "",
-      commentText: "",
+      comment: "",
     },
   };
   expectState({
@@ -365,15 +359,11 @@ test("should handle SET_COMMENT", () => {
     position: [0],
     dirty: true,
   };
-  expectedState.root.children[0].commentHTML = "<p>test</p>";
-  expectedState.root.children[0].commentText = "test";
+  expectedState.root.children[0].comment = "test";
   expectState({
     res: treeReducer(initialState, {
       type: "SET_COMMENT",
-      payload: {
-        html: "<p>test</p>",
-        text: "test",
-      },
+      payload: "test",
     }),
     initialState,
     expectedState,
@@ -570,8 +560,7 @@ test("promote 2", () => {
               halfMoves: 2,
               shapes: [],
               annotation: "",
-              commentHTML: "",
-              commentText: "",
+              comment: "",
             },
             {
               fen: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
@@ -583,8 +572,7 @@ test("promote 2", () => {
               halfMoves: 2,
               shapes: [],
               annotation: "",
-              commentHTML: "",
-              commentText: "",
+              comment: "",
             },
           ],
           score: null,
@@ -592,8 +580,7 @@ test("promote 2", () => {
           halfMoves: 1,
           shapes: [],
           annotation: "",
-          commentHTML: "",
-          commentText: "",
+          comment: "",
         },
       ],
       score: null,
@@ -601,8 +588,7 @@ test("promote 2", () => {
       halfMoves: 0,
       shapes: [],
       annotation: "",
-      commentHTML: "",
-      commentText: "",
+      comment: "",
     },
     headers: {
       id: 0,
@@ -637,8 +623,7 @@ test("promote 2", () => {
               halfMoves: 2,
               shapes: [],
               annotation: "",
-              commentHTML: "",
-              commentText: "",
+              comment: "",
             },
             {
               fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
@@ -650,8 +635,7 @@ test("promote 2", () => {
               halfMoves: 2,
               shapes: [],
               annotation: "",
-              commentHTML: "",
-              commentText: "",
+              comment: "",
             },
           ],
           score: null,
@@ -659,8 +643,7 @@ test("promote 2", () => {
           halfMoves: 1,
           shapes: [],
           annotation: "",
-          commentHTML: "",
-          commentText: "",
+          comment: "",
         },
       ],
       score: null,
@@ -668,8 +651,7 @@ test("promote 2", () => {
       halfMoves: 0,
       shapes: [],
       annotation: "",
-      commentHTML: "",
-      commentText: "",
+      comment: "",
     },
     headers: {
       id: 0,

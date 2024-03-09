@@ -28,8 +28,7 @@ export interface TreeNode {
   halfMoves: number;
   shapes: DrawShape[];
   annotation: Annotation;
-  commentHTML: string;
-  commentText: string;
+  comment: string;
   clock?: number;
 }
 
@@ -96,8 +95,7 @@ export function defaultTree(fen?: string): TreeState {
       halfMoves: pos?.turn === "black" ? 1 : 0,
       shapes: [],
       annotation: "",
-      commentHTML: "",
-      commentText: "",
+      comment: "",
     },
     headers: {
       id: 0,
@@ -135,8 +133,7 @@ export function createNode({
     halfMoves,
     shapes: [],
     annotation: "",
-    commentHTML: "",
-    commentText: "",
+    comment: "",
   };
 }
 
@@ -236,7 +233,7 @@ export type TreeAction =
   | { type: "GO_TO_MOVE"; payload: number[] }
   | { type: "DELETE_MOVE"; payload?: number[] }
   | { type: "SET_ANNOTATION"; payload: Annotation }
-  | { type: "SET_COMMENT"; payload: { html: string; text: string } }
+  | { type: "SET_COMMENT"; payload: string }
   | { type: "SET_FEN"; payload: string }
   | { type: "SET_SCORE"; payload: Score }
   | { type: "SET_SHAPES"; payload: DrawShape[] }
@@ -371,8 +368,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
       state.dirty = true;
       const node = getNodeAtPath(state.root, state.position);
       if (node) {
-        node.commentHTML = payload.html;
-        node.commentText = payload.text;
+        node.comment = payload;
       }
     })
     .with({ type: "SET_FEN" }, ({ payload }) => {
@@ -583,8 +579,7 @@ function addAnalysis(
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
       cur.score = analysis[i].best[0].score;
       if (analysis[i].novelty) {
-        cur.commentHTML = "Novelty";
-        cur.commentText = "Novelty";
+        cur.comment = "Novelty";
       }
       let prevScore = null;
       let prevprevScore = null;

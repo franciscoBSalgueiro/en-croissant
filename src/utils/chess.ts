@@ -142,8 +142,8 @@ export function getMoveText(
       }
     }
 
-    if (opt.comments && tree.commentText !== "") {
-      content += tree.commentText;
+    if (opt.comments && tree.comment !== "") {
+      content += tree.comment;
     }
     content += "} ";
 
@@ -213,17 +213,17 @@ export function getPGN(
   tree: TreeNode,
   {
     headers,
-    glyphs = true,
-    comments = true,
-    variations = true,
-    extraMarkups = true,
+    glyphs,
+    comments,
+    variations,
+    extraMarkups,
     root = true,
   }: {
     headers: GameHeaders | null;
-    glyphs?: boolean;
-    comments?: boolean;
-    variations?: boolean;
-    extraMarkups?: boolean;
+    glyphs: boolean;
+    comments: boolean;
+    variations: boolean;
+    extraMarkups: boolean;
     root?: boolean;
   },
 ): string {
@@ -236,8 +236,12 @@ export function getPGN(
     pgn += `[FEN "${tree.fen}"]\n`;
   }
   pgn += "\n";
-  if (root && tree.commentText !== null) {
-    pgn += `${getMoveText(tree, { glyphs, comments, extraMarkups })}`;
+  if (root && tree.comment !== null) {
+    pgn += `${getMoveText(tree, {
+      glyphs,
+      comments,
+      extraMarkups,
+    })}`;
   }
   const variationsPGN = variations
     ? tree.children.slice(1).map(
@@ -389,8 +393,7 @@ function innerParsePGN(
         root.clock = comment.clock;
       }
 
-      root.commentText = comment.text;
-      root.commentHTML = comment.text;
+      root.comment = comment.text;
     } else if (token.type === "ParenOpen") {
       const variation = [];
       let subvariations = 0;

@@ -133,6 +133,10 @@ export async function saveToFile({
     n: tab?.gameNumber || 0,
     pgn: `${getPGN(root, {
       headers,
+      comments: true,
+      extraMarkups: true,
+      glyphs: true,
+      variations: true,
     })}\n\n`,
   });
   markAsSaved();

@@ -62,10 +62,7 @@ function AnnotationPanel() {
           })}
       </Group>
       <ScrollArea offsetScrollbars>
-        <AnnotationEditor
-          path={position}
-          commentHTML={currentNode.commentHTML}
-        />
+        <AnnotationEditor path={position} comment={currentNode.comment} />
       </ScrollArea>
     </Stack>
   );

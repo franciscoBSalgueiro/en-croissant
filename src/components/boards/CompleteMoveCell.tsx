@@ -1,6 +1,8 @@
 import { currentTabAtom } from "@/atoms/atoms";
+import { Comment } from "@/components/common/Comment";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { Annotation } from "@/utils/chess";
-import { Box, Menu, Portal, TypographyStylesProvider } from "@mantine/core";
+import { Box, Menu, Portal } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
 import {
   IconChevronUp,
@@ -10,14 +12,13 @@ import {
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
-import { TreeDispatchContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
 
 function CompleteMoveCell({
   movePath,
   halfMoves,
   move,
-  commentHTML,
+  comment,
   annotation,
   showComments,
   first,
@@ -26,7 +27,7 @@ function CompleteMoveCell({
   targetRef,
 }: {
   halfMoves: number;
-  commentHTML: string;
+  comment: string;
   annotation: Annotation;
   showComments: boolean;
   move?: string | null;
@@ -45,12 +46,6 @@ function CompleteMoveCell({
   });
   const [open, setOpen] = useState(false);
   const currentTab = useAtomValue(currentTabAtom);
-
-  const multipleLine =
-    commentHTML.split("</p>").length - 1 > 1 ||
-    commentHTML.includes("<blockquote>") ||
-    commentHTML.includes("<ul>") ||
-    commentHTML.includes("<h");
 
   return (
     <>
@@ -133,22 +128,7 @@ function CompleteMoveCell({
           </Menu>
         )}
       </Box>
-      {showComments && commentHTML && (
-        <TypographyStylesProvider
-          pl={0}
-          mx={4}
-          style={{
-            display: multipleLine ? "block" : "inline-block",
-          }}
-        >
-          <span
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: this is a comment
-            dangerouslySetInnerHTML={{
-              __html: commentHTML,
-            }}
-          />
-        </TypographyStylesProvider>
-      )}
+      {showComments && comment && <Comment comment={comment} />}
     </>
   );
 }
@@ -156,7 +136,7 @@ function CompleteMoveCell({
 export default memo(CompleteMoveCell, (prev, next) => {
   return (
     prev.move === next.move &&
-    prev.commentHTML === next.commentHTML &&
+    prev.comment === next.comment &&
     prev.annotation === next.annotation &&
     prev.showComments === next.showComments &&
     prev.first === next.first &&
