@@ -24,6 +24,7 @@ import {
   loadable,
 } from "jotai/utils";
 import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
 import { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import { Session } from "../utils/session";
@@ -346,8 +347,10 @@ export const deckAtomFamily = atomFamily(
         positions: [],
         logs: [],
       },
-      // @ts-ignore
-      createZodStorage(practiceDataSchema, localStorage),
+      createZodStorage(
+        practiceDataSchema,
+        localStorage,
+      ) as any as SyncStorage<PracticeData>, // TODO: fix types
     ),
 
   (a, b) => a.file === b.file && a.game === b.game,
