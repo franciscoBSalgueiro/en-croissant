@@ -1,15 +1,16 @@
+import { fontSizeAtom } from "@/atoms/atoms";
 import ConfirmModal from "@/components/common/ConfirmModal";
-import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { getGameName } from "@/utils/treeReducer";
-import { ActionIcon, Group, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, ScrollArea, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import cx from "clsx";
-import { useCallback, useEffect } from "react";
-import InfiniteLoader from "react-window-infinite-loader";
+import { useAtomValue } from "jotai";
+import { useCallback, useEffect, useRef } from "react";
 import * as classes from "./GameSelector.css";
 
 export default function GameSelector({
@@ -46,44 +47,57 @@ export default function GameSelector({
     [games, path, setGames],
   );
 
+  const fontSize = useAtomValue(fontSizeAtom);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: total,
+    estimateSize: () => 30 * (fontSize / 100),
+    getScrollElement: () => parentRef.current!,
+  });
+
   useEffect(() => {
     if (games.size === 0) {
       loadMoreRows(0, 10);
     }
-  }, [games.size, loadMoreRows]);
+    const items = rowVirtualizer.getVirtualItems();
+    if (items.some((item) => !isRowLoaded(item.index))) {
+      loadMoreRows(items[0].index, items[items.length - 1].index);
+    }
+  }, [games.size, loadMoreRows, rowVirtualizer.getVirtualItems()]);
 
   return (
-    <InfiniteLoader
-      loadMoreItems={loadMoreRows}
-      itemCount={total}
-      isItemLoaded={isRowLoaded}
-    >
-      {({ onItemsRendered, ref }) => {
-        return (
-          <VirtualizedScrollArea
-            itemSize={30}
-            itemCount={total}
-            listRef={ref}
-            onItemsRendered={onItemsRendered}
-            style={{ overflow: "visible" }}
-          >
-            {({ index, style }) => (
-              <GameRow
-                index={index}
-                game={games.get(index)}
-                style={style}
-                setGames={setGames}
-                setPage={setPage}
-                deleteGame={deleteGame}
-                activePage={activePage}
-                path={path}
-                total={total}
-              />
-            )}
-          </VirtualizedScrollArea>
-        );
-      }}
-    </InfiniteLoader>
+    <ScrollArea viewportRef={parentRef} h="100%">
+      <Box
+        style={{
+          height: rowVirtualizer.getTotalSize(),
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+          <GameRow
+            key={virtualRow.index}
+            index={virtualRow.index}
+            game={games.get(virtualRow.index)}
+            setGames={setGames}
+            setPage={setPage}
+            deleteGame={deleteGame}
+            activePage={activePage}
+            path={path}
+            total={total}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: virtualRow.size,
+              transform: `translateY(${virtualRow.start}px)`,
+            }}
+          />
+        ))}
+      </Box>
+    </ScrollArea>
   );
 }
 
@@ -95,7 +109,7 @@ function GameRow({
   activePage,
   deleteGame,
 }: {
-  style: React.CSSProperties;
+  style?: React.CSSProperties;
   index: number;
   game: string | undefined;
   setGames: (v: Map<number, string>) => void;

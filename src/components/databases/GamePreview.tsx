@@ -5,7 +5,7 @@ import treeReducer, {
   TreeState,
   getNodeAtPath,
 } from "@/utils/treeReducer";
-import { Box, Group, Stack, Text } from "@mantine/core";
+import { Box, Group, Stack, Text, rem } from "@mantine/core";
 import { useContext, useEffect, useMemo, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useImmerReducer } from "use-immer";
@@ -75,7 +75,7 @@ function GamePreview({
             {opening}
           </Text>
         )}
-        <Group grow h="100%" style={{ overflow: "hidden" }}>
+        <Group grow style={{ overflow: "hidden", height: "360px" }}>
           <PreviewBoard />
           {!hideControls && (
             <Stack h="100%">

@@ -1,4 +1,9 @@
-import { activeTabAtom, sessionsAtom, tabsAtom } from "@/atoms/atoms";
+import {
+  activeTabAtom,
+  fontSizeAtom,
+  sessionsAtom,
+  tabsAtom,
+} from "@/atoms/atoms";
 import { MonthData, commands } from "@/bindings";
 import { parsePGN } from "@/utils/chess";
 import { PlayerGameInfo } from "@/utils/db";
@@ -13,8 +18,10 @@ import {
   Group,
   Paper,
   Progress,
+  ScrollArea,
   Select,
   Stack,
+  Table,
   Tabs,
   Text,
   Tooltip as MTTooltip,
@@ -22,9 +29,10 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Color } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bar,
@@ -37,7 +45,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import VirtualizedScrollArea from "../common/VirtualizedScrollArea";
 import FideInfo from "../databases/FideInfo";
 import * as classes from "./PersonalCard.css";
 
@@ -184,6 +191,7 @@ function PersonalPlayerCard({
         )}
       </Box>
       <Tabs
+        mt="xs"
         keepMounted={false}
         defaultValue="overview"
         variant="outline"
@@ -221,93 +229,130 @@ function PersonalPlayerCard({
         <Tabs.Panel
           value="openings"
           flex={1}
-          style={{ overflow: "hidden" }}
           py="md"
+          style={{ overflow: "hidden" }}
         >
-          <Group grow>
-            <Text ta="center" fw="bold">
-              White
-            </Text>
-            <Text ta="center" fw="bold">
-              Black
-            </Text>
-          </Group>
-          <Divider mt="md" />
-          <VirtualizedScrollArea
-            itemCount={Math.max(white_openings.length, black_openings.length)}
-            itemSize={120}
-          >
-            {({ index, style }) => {
-              const white = white_openings[index];
-              const black = black_openings[index];
-              return (
-                <Stack key={white?.[0] ?? black?.[0]} style={style} gap={0}>
-                  <Group grow h="100%">
-                    {white ? (
-                      <Stack
-                        style={{ overflow: "hidden" }}
-                        h="100%"
-                        py="sm"
-                        justify="space-between"
-                      >
-                        <Group justify="space-between" wrap="nowrap">
-                          <OpeningNameButton name={white[0]} color="white" />
-                          <Text>
-                            {(
-                              ((white[1].won + white[1].draw + white[1].lost) /
-                                whiteGames) *
-                              100
-                            ).toFixed(2)}
-                            %
-                          </Text>
-                        </Group>
-                        <ResultsChart
-                          won={white[1].won}
-                          draw={white[1].draw}
-                          lost={white[1].lost}
-                          size="1.5rem"
-                        />
-                      </Stack>
-                    ) : (
-                      <div />
-                    )}
-                    {black ? (
-                      <Stack
-                        style={{ overflow: "hidden" }}
-                        h="100%"
-                        py="sm"
-                        justify="space-between"
-                      >
-                        <Group justify="space-between" wrap="nowrap">
-                          <OpeningNameButton name={black[0]} color="black" />
-                          <Text>
-                            {(
-                              ((black[1].won + black[1].draw + black[1].lost) /
-                                blackGames) *
-                              100
-                            ).toFixed(2)}
-                            %
-                          </Text>
-                        </Group>
-                        <ResultsChart
-                          won={black[1].won}
-                          draw={black[1].draw}
-                          lost={black[1].lost}
-                          size="1.5rem"
-                        />
-                      </Stack>
-                    ) : (
-                      <div />
-                    )}
-                  </Group>
-                  <Divider />
-                </Stack>
-              );
-            }}
-          </VirtualizedScrollArea>
+          <OpeningsPanel
+            white_openings={white_openings}
+            black_openings={black_openings}
+            whiteGames={whiteGames}
+            blackGames={blackGames}
+          />
         </Tabs.Panel>
       </Tabs>
     </Paper>
+  );
+}
+
+function OpeningsPanel({
+  white_openings,
+  black_openings,
+  whiteGames,
+  blackGames,
+}: {
+  white_openings: [string, { won: number; draw: number; lost: number }][];
+  black_openings: [string, { won: number; draw: number; lost: number }][];
+  whiteGames: number;
+  blackGames: number;
+}) {
+  const fontSize = useAtomValue(fontSizeAtom);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: Math.max(white_openings.length, black_openings.length),
+    estimateSize: () => 120 * (fontSize / 100),
+    getScrollElement: () => parentRef.current,
+  });
+
+  return (
+    <Stack gap={0} h="100%">
+      <Group grow>
+        <Text ta="center" fw="bold">
+          White
+        </Text>
+        <Text ta="center" fw="bold">
+          Black
+        </Text>
+      </Group>
+      <Divider mt="md" />
+      <ScrollArea viewportRef={parentRef} flex={1}>
+        <Box
+          style={{
+            height: rowVirtualizer.getTotalSize(),
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const white = white_openings[virtualRow.index];
+            const black = black_openings[virtualRow.index];
+            return (
+              <Box
+                key={virtualRow.index}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: virtualRow.size,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <Group grow>
+                  {white ? (
+                    <Stack py="sm" justify="space-between">
+                      <Group justify="space-between" wrap="nowrap">
+                        <OpeningNameButton name={white[0]} color="white" />
+                        <Text>
+                          {(
+                            ((white[1].won + white[1].draw + white[1].lost) /
+                              whiteGames) *
+                            100
+                          ).toFixed(2)}
+                          %
+                        </Text>
+                      </Group>
+                      <ResultsChart
+                        won={white[1].won}
+                        draw={white[1].draw}
+                        lost={white[1].lost}
+                        size="1.5rem"
+                      />
+                    </Stack>
+                  ) : (
+                    <div />
+                  )}
+                  {black ? (
+                    <Stack py="sm" justify="space-between">
+                      <Group justify="space-between" wrap="nowrap">
+                        <OpeningNameButton name={black[0]} color="black" />
+                        <Text>
+                          {(
+                            ((black[1].won + black[1].draw + black[1].lost) /
+                              blackGames) *
+                            100
+                          ).toFixed(2)}
+                          %
+                        </Text>
+                      </Group>
+                      <ResultsChart
+                        won={black[1].won}
+                        draw={black[1].draw}
+                        lost={black[1].lost}
+                        size="1.5rem"
+                      />
+                    </Stack>
+                  ) : (
+                    <div />
+                  )}
+                </Group>
+                <Divider />
+              </Box>
+            );
+          })}
+        </Box>
+      </ScrollArea>
+    </Stack>
   );
 }
 

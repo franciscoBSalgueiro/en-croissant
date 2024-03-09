@@ -94,7 +94,7 @@ function FileCard({
 
       {selectedGame && (
         <>
-          <Box h="50%">
+          <Box h={0} flex={1}>
             <GameSelector
               setGames={setGames}
               games={games}
