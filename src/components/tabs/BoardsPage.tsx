@@ -175,7 +175,7 @@ export default function BoardsPage() {
           width: "100%",
         }}
       >
-        <ScrollArea type="never" h="3.75rem" px="md" pt="sm">
+        <ScrollArea h="3.75rem" px="md" pt="sm" scrollbarSize={8}>
           <DragDropContext
             onDragEnd={({ destination, source }) =>
               destination?.index !== undefined &&
