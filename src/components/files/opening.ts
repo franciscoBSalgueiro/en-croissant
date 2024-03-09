@@ -3,10 +3,17 @@ import { isPrefix } from "@/utils/misc";
 import { TreeNode, treeIterator } from "@/utils/treeReducer";
 import { SetStateAction } from "react";
 import { Card, createEmptyCard, fsrs, generatorParameters } from "ts-fsrs";
+import { z } from "zod";
 
 const params = generatorParameters({ enable_fuzz: true });
 
 const f = fsrs(params);
+
+export const positionSchema = z.object({
+  fen: z.string(),
+  answer: z.string(),
+  card: z.object({}).passthrough(),
+});
 
 export type Position = {
   fen: string;

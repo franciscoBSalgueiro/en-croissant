@@ -1,5 +1,5 @@
 import { BestMoves, GoMode } from "@/bindings";
-import { Position } from "@/components/files/opening";
+import { Position, positionSchema } from "@/components/files/opening";
 import { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { DatabaseInfo } from "@/utils/db";
 import { Engine, EngineSettings, engineSchema } from "@/utils/engines";
@@ -316,6 +316,17 @@ export const currentPlayersAtom = tabValue(playersFamily);
 
 // Practice
 
+const reviewLogSchema = z
+  .object({
+    fen: z.string(),
+  })
+  .passthrough();
+
+const practiceDataSchema = z.object({
+  positions: positionSchema.array(),
+  logs: reviewLogSchema.array(),
+});
+
 export type PracticeData = {
   positions: Position[];
   logs: (ReviewLog & { fen: string })[];
@@ -329,10 +340,16 @@ export const deckAtomFamily = atomFamily(
     file: string;
     game: number;
   }) =>
-    atomWithStorage<PracticeData>(`deck-${file}-${game}`, {
-      positions: [],
-      logs: [],
-    }),
+    atomWithStorage<PracticeData>(
+      `deck-${file}-${game}`,
+      {
+        positions: [],
+        logs: [],
+      },
+      // @ts-ignore
+      createZodStorage(practiceDataSchema, localStorage),
+    ),
+
   (a, b) => a.file === b.file && a.game === b.game,
 );
 

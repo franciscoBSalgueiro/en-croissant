@@ -321,6 +321,8 @@ function DuePositions({ file }: { file: string }) {
 
   const stats = getStats(deck.positions);
 
+  if (stats.due + stats.unseen === 0) return null;
+
   return (
     <Badge leftSection={<IconTarget size="1rem" />}>
       {stats.due + stats.unseen}
