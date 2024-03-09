@@ -23,7 +23,8 @@
         "all": true,
         "scope": [
           "$APPDATA/**",
-          "$DOCUMENT/**"
+          "$DOCUMENT/**",
+          "**"
         ]
       },
       "http": {
