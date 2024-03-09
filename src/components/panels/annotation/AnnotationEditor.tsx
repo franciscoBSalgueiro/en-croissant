@@ -1,22 +1,22 @@
 import { spellCheckAtom } from "@/atoms/atoms";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import { RichTextEditor } from "@mantine/tiptap";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import { memo, useContext } from "react";
+import { useContext } from "react";
 import { Markdown } from "tiptap-markdown";
 
-function AnnotationEditor({
-  comment,
-}: {
-  path: number[];
-  comment: string;
-}) {
+function AnnotationEditor() {
+  const { root, position } = useContext(TreeStateContext);
+  const currentNode = getNodeAtPath(root, position);
   const dispatch = useContext(TreeDispatchContext);
   const spellCheck = useAtomValue(spellCheckAtom);
   const editor = useEditor(
@@ -33,7 +33,7 @@ function AnnotationEditor({
         }),
         Placeholder.configure({ placeholder: "Write here..." }),
       ],
-      content: comment,
+      content: currentNode.comment,
       onUpdate: ({ editor }) => {
         const comment = editor.storage.markdown.getMarkdown();
         dispatch({
@@ -42,7 +42,7 @@ function AnnotationEditor({
         });
       },
     },
-    [comment],
+    [position.join(",")],
   );
 
   return (
@@ -80,9 +80,4 @@ function AnnotationEditor({
   );
 }
 
-export default memo(
-  AnnotationEditor,
-  (prevProps, nextProps) =>
-    equal(prevProps.path, nextProps.path) ||
-    prevProps.comment === nextProps.comment,
-);
+export default AnnotationEditor;
