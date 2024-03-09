@@ -436,7 +436,7 @@ function is50MoveRule(state: TreeState) {
       node.move &&
       isNormal(node.move) &&
       (node.move.promotion ||
-        pos.board.get(node.move.to) ||
+        node.san?.includes("x") ||
         pos.board.get(node.move.from)?.role === "pawn")
     ) {
       count = 0;
