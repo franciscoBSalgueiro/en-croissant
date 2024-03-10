@@ -62,6 +62,80 @@ export default function ImportModal({
   const [error, setError] = useState("");
   const { documentDir } = useRouteLoaderData("root") as Dirs;
 
+  async function handleSubmit() {
+    setLoading(true);
+    if (importType === "PGN") {
+      if (file || pgn) {
+        let fileInfo: FileMetadata | undefined;
+        let input = pgn;
+        if (file) {
+          const count = await count_pgn_games(file);
+          input = (await read_games(file, 0, 0))[0];
+
+          const newFile = await createFile({
+            filename,
+            filetype,
+            pgn: input,
+            setError,
+            dir: documentDir,
+          });
+          if (!newFile) return;
+
+          fileInfo = newFile;
+        }
+        const tree = await parsePGN(input);
+        setCurrentTab((prev) => {
+          sessionStorage.setItem(prev.value, JSON.stringify(tree));
+          return {
+            ...prev,
+            name: getGameName(tree.headers),
+            file: fileInfo,
+            gameNumber: 0,
+            type: "analysis",
+          };
+        });
+      }
+    } else if (importType === "Link") {
+      if (!link) return;
+      let pgn = "";
+      if (link.includes("chess.com")) {
+        pgn = await getChesscomGame(link);
+      } else if (link.includes("lichess")) {
+        const gameId = link.split("/")[3];
+        pgn = await getLichessGame(gameId);
+      }
+
+      const tree = await parsePGN(pgn);
+      setCurrentTab((prev) => {
+        sessionStorage.setItem(prev.value, JSON.stringify(tree));
+        return {
+          ...prev,
+          name: getGameName(tree.headers),
+          type: "analysis",
+        };
+      });
+    } else if (importType === "FEN") {
+      const res = parseFen(fen.trim());
+      if (res.isErr) {
+        setFenError(chessopsError(res.error));
+        return;
+      }
+      setFenError("");
+      const parsedFen = makeFen(res.value);
+      setCurrentTab((prev) => {
+        const tree = defaultTree(parsedFen);
+        tree.headers.fen = parsedFen;
+        sessionStorage.setItem(prev.value, JSON.stringify(tree));
+        return {
+          ...prev,
+          name: "Analysis Board",
+          type: "analysis",
+        };
+      });
+    }
+    setLoading(false);
+  }
+
   const Input = match(importType)
     .with("PGN", () => (
       <Stack>
@@ -150,6 +224,9 @@ export default function ImportModal({
         onChange={(event) => setLink(event.currentTarget.value)}
         label="Game URL (lichess or chess.com)"
         data-autofocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+        }}
       />
     ))
     .with("FEN", () => (
@@ -159,6 +236,9 @@ export default function ImportModal({
         error={fenError}
         label="FEN"
         data-autofocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleSubmit();
+        }}
       />
     ))
     .exhaustive();
@@ -206,79 +286,7 @@ export default function ImportModal({
         radius="md"
         loading={loading}
         disabled={disabled}
-        onClick={async () => {
-          if (importType === "PGN") {
-            if (file || pgn) {
-              let fileInfo: FileMetadata | undefined;
-              let input = pgn;
-              if (file) {
-                setLoading(true);
-                const count = await count_pgn_games(file);
-                input = (await read_games(file, 0, 0))[0];
-                setLoading(false);
-
-                const newFile = await createFile({
-                  filename,
-                  filetype,
-                  pgn: input,
-                  setError,
-                  dir: documentDir,
-                });
-                if (!newFile) return;
-
-                fileInfo = newFile;
-              }
-              const tree = await parsePGN(input);
-              setCurrentTab((prev) => {
-                sessionStorage.setItem(prev.value, JSON.stringify(tree));
-                return {
-                  ...prev,
-                  name: getGameName(tree.headers),
-                  file: fileInfo,
-                  gameNumber: 0,
-                  type: "analysis",
-                };
-              });
-            }
-          } else if (importType === "Link") {
-            if (!link) return;
-            let pgn = "";
-            if (link.includes("chess.com")) {
-              pgn = await getChesscomGame(link);
-            } else if (link.includes("lichess")) {
-              const gameId = link.split("/")[3];
-              pgn = await getLichessGame(gameId);
-            }
-
-            const tree = await parsePGN(pgn);
-            setCurrentTab((prev) => {
-              sessionStorage.setItem(prev.value, JSON.stringify(tree));
-              return {
-                ...prev,
-                name: getGameName(tree.headers),
-                type: "analysis",
-              };
-            });
-          } else if (importType === "FEN") {
-            const res = parseFen(fen.trim());
-            if (res.isErr) {
-              setFenError(chessopsError(res.error));
-              return;
-            }
-            setFenError("");
-            const parsedFen = makeFen(res.value);
-            setCurrentTab((prev) => {
-              const tree = defaultTree(parsedFen);
-              tree.headers.fen = parsedFen;
-              sessionStorage.setItem(prev.value, JSON.stringify(tree));
-              return {
-                ...prev,
-                name: "Analysis Board",
-                type: "analysis",
-              };
-            });
-          }
-        }}
+        onClick={handleSubmit}
       >
         {loading ? "Importing..." : "Import"}
       </Button>
