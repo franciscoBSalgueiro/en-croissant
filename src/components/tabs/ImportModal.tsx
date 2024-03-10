@@ -71,17 +71,20 @@ export default function ImportModal({
         if (file) {
           const count = await count_pgn_games(file);
           input = (await read_games(file, 0, 0))[0];
-
-          const newFile = await createFile({
-            filename,
-            filetype,
-            pgn: input,
-            setError,
-            dir: documentDir,
-          });
-          if (!newFile) return;
-
-          fileInfo = newFile;
+          if (save) {
+            const newFile = await createFile({
+              filename,
+              filetype,
+              pgn: input,
+              setError,
+              dir: documentDir,
+            });
+            if (!newFile) {
+              setLoading(false);
+              return;
+            }
+            fileInfo = newFile;
+          }
         }
         const tree = await parsePGN(input);
         setCurrentTab((prev) => {
@@ -96,7 +99,10 @@ export default function ImportModal({
         });
       }
     } else if (importType === "Link") {
-      if (!link) return;
+      if (!link) {
+        setLoading(false);
+        return;
+      }
       let pgn = "";
       if (link.includes("chess.com")) {
         pgn = await getChesscomGame(link);
@@ -118,6 +124,7 @@ export default function ImportModal({
       const res = parseFen(fen.trim());
       if (res.isErr) {
         setFenError(chessopsError(res.error));
+        setLoading(false);
         return;
       }
       setFenError("");
