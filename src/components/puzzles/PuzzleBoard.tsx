@@ -90,12 +90,14 @@ function PuzzleBoard({
         type: "MAKE_MOVES",
         payload: newMoves,
         mainline: true,
+        changeHeaders: false,
       });
     } else {
       dispatch({
         type: "MAKE_MOVE",
         payload: move,
         changePosition: false,
+        changeHeaders: false,
       });
       if (!ended) {
         changeCompletion("incorrect");

@@ -217,6 +217,7 @@ export type TreeAction =
       type: "MAKE_MOVE";
       payload: Move | string;
       changePosition?: boolean;
+      changeHeaders?: boolean;
       mainline?: boolean;
       clock?: number;
     }
@@ -225,7 +226,12 @@ export type TreeAction =
       payload: Move;
       clock?: number;
     }
-  | { type: "MAKE_MOVES"; payload: string[]; mainline?: boolean }
+  | {
+      type: "MAKE_MOVES";
+      payload: string[];
+      mainline?: boolean;
+      changeHeaders?: boolean;
+    }
   | { type: "GO_TO_START" }
   | { type: "GO_TO_END" }
   | { type: "GO_TO_NEXT" }
@@ -278,7 +284,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with(
       { type: "MAKE_MOVE" },
-      ({ payload, changePosition, mainline, clock }) => {
+      ({ payload, changePosition, mainline, clock, changeHeaders = true }) => {
         if (typeof payload === "string") {
           const node = getNodeAtPath(state.root, state.position);
           if (!node) return;
@@ -293,6 +299,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
           move: payload,
           last: false,
           changePosition,
+          changeHeaders,
           mainline,
           clock,
         });
@@ -301,24 +308,28 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     .with({ type: "APPEND_MOVE" }, ({ payload, clock }) => {
       makeMove({ state, move: payload, last: true, clock });
     })
-    .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {
-      state.dirty = true;
-      const node = getNodeAtPath(state.root, state.position);
-      const [pos] = positionFromFen(node.fen);
-      if (!pos) return;
-      for (const [i, move] of payload.entries()) {
-        const m = parseSanOrUci(pos, move);
-        if (!m) return;
-        pos.play(m);
-        makeMove({
-          state,
-          move: m,
-          last: false,
-          mainline,
-          sound: i === payload.length - 1,
-        });
-      }
-    })
+    .with(
+      { type: "MAKE_MOVES" },
+      ({ payload, mainline, changeHeaders = true }) => {
+        state.dirty = true;
+        const node = getNodeAtPath(state.root, state.position);
+        const [pos] = positionFromFen(node.fen);
+        if (!pos) return;
+        for (const [i, move] of payload.entries()) {
+          const m = parseSanOrUci(pos, move);
+          if (!m) return;
+          pos.play(m);
+          makeMove({
+            state,
+            move: m,
+            last: false,
+            mainline,
+            sound: i === payload.length - 1,
+            changeHeaders,
+          });
+        }
+      },
+    )
     .with({ type: "GO_TO_START" }, () => {
       state.position = state.headers.start || [];
     })
@@ -447,6 +458,7 @@ function makeMove({
   move,
   last,
   changePosition = true,
+  changeHeaders = true,
   mainline = false,
   clock,
   sound = true,
@@ -455,6 +467,7 @@ function makeMove({
   move: Move;
   last: boolean;
   changePosition?: boolean;
+  changeHeaders?: boolean;
   mainline?: boolean;
   clock?: number;
   sound?: boolean;
@@ -473,7 +486,7 @@ function makeMove({
   if (sound) {
     playSound(san.includes("x"), san.includes("+"));
   }
-  if (pos.isEnd()) {
+  if (changeHeaders && pos.isEnd()) {
     if (pos.isCheckmate()) {
       state.headers.result = pos.turn === "white" ? "0-1" : "1-0";
     }
@@ -484,7 +497,10 @@ function makeMove({
 
   const newFen = makeFen(pos.toSetup());
 
-  if (isThreeFoldRepetition(state, newFen) || is50MoveRule(state)) {
+  if (
+    (changeHeaders && isThreeFoldRepetition(state, newFen)) ||
+    is50MoveRule(state)
+  ) {
     state.headers.result = "1/2-1/2";
   }
 
