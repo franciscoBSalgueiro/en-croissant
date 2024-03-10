@@ -75,7 +75,7 @@ function GamePreview({
             {opening}
           </Text>
         )}
-        <Group grow style={{ overflow: "hidden", height: "360px" }}>
+        <Group grow style={{ overflow: "hidden", height: "100%" }}>
           <PreviewBoard />
           {!hideControls && (
             <Stack h="100%">

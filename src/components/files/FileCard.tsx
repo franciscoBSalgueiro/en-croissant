@@ -104,7 +104,9 @@ function FileCard({
               total={selected.numGames}
             />
           </Box>
-          <GamePreview pgn={selectedGame} />
+          <Box h="55%">
+            <GamePreview pgn={selectedGame} />
+          </Box>
         </>
       )}
     </Stack>
