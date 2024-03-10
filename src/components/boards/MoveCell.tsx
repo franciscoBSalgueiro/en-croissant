@@ -17,7 +17,7 @@ const MoveCell = forwardRef(function MoveCell(
   props: MoveCellProps,
   ref: ForwardedRef<HTMLButtonElement>,
 ) {
-  const color = ANNOTATION_INFO[props.annotation].color;
+  const color = ANNOTATION_INFO[props.annotation].color || "gray";
   const theme = useMantineTheme();
   const hoverOpacity = props.isCurrentVariation ? 0.25 : 0.1;
   let baseLight = theme.colors.gray[8];

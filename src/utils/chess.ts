@@ -22,30 +22,100 @@ import {
   headersToPGN,
 } from "./treeReducer";
 
-export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
+export type Annotation =
+  | ""
+  | "!"
+  | "!!"
+  | "?"
+  | "??"
+  | "!?"
+  | "?!"
+  | "+-"
+  | "±"
+  | "⩲"
+  | "="
+  | "∞"
+  | "⩱"
+  | "∓"
+  | "-+"
+  | "N"
+  | "↑↑"
+  | "↑"
+  | "→"
+  | "⇆"
+  | "=∞"
+  | "⊕"
+  | "∆"
+  | "□"
+  | "⨀";
 
-const NAG_INFO = new Map<string, Annotation>([
+export const NAG_INFO = new Map<string, Annotation>([
   ["$1", "!"],
   ["$2", "?"],
   ["$3", "!!"],
   ["$4", "??"],
   ["$5", "!?"],
   ["$6", "?!"],
+  ["$7", "□"],
+  ["$10", "="],
+  ["$13", "∞"],
+  ["$14", "⩲"],
+  ["$15", "⩱"],
+  ["$16", "±"],
+  ["$17", "∓"],
+  ["$18", "+-"],
+  ["$19", "-+"],
+  ["$22", "⨀"],
+  ["$23", "⨀"],
+  ["$32", "↑↑"],
+  ["$33", "↑↑"],
+  ["$36", "↑"],
+  ["$37", "↑"],
+  ["$40", "→"],
+  ["$41", "→"],
+  ["$44", "=∞"],
+  ["$45", "=∞"],
+  ["$132", "⇆"],
+  ["$133", "⇆"],
+  ["$138", "⊕"],
+  ["$139", "⊕"],
+  ["$140", "∆"],
+  ["$146", "N"],
 ]);
 
 type AnnotationInfo = {
+  group?: string;
   name: string;
-  color: MantineColor;
+  color?: MantineColor;
+  nag?: string;
 };
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
   "": { name: "None", color: "gray" },
-  "!!": { name: "Brilliant", color: "cyan" },
-  "!": { name: "Good", color: "teal" },
-  "!?": { name: "Interesting", color: "lime" },
-  "?!": { name: "Dubious", color: "yellow" },
-  "?": { name: "Mistake", color: "orange" },
-  "??": { name: "Blunder", color: "red" },
+  "!!": { group: "basic", name: "Brilliant", color: "cyan", nag: "$3" },
+  "!": { group: "basic", name: "Good", color: "teal", nag: "$1" },
+  "!?": { group: "basic", name: "Interesting", color: "lime", nag: "$5" },
+  "?!": { group: "basic", name: "Dubious", color: "yellow", nag: "$6" },
+  "?": { group: "basic", name: "Mistake", color: "orange", nag: "$2" },
+  "??": { group: "basic", name: "Blunder", color: "red", nag: "$4" },
+  "+-": { group: "advantage", name: "White is winning", nag: "$18" },
+  "±": { group: "advantage", name: "White has a clear advantage", nag: "$16" },
+  "⩲": { group: "advantage", name: "White has a slight advantage", nag: "$14" },
+  "=": { group: "advantage", name: "Equal position", nag: "$10" },
+  "∞": { group: "advantage", name: "Unclear position", nag: "$13" },
+  "⩱": { group: "advantage", name: "Black has a slight advantage", nag: "$15" },
+  "∓": { group: "advantage", name: "Black has a clear advantage", nag: "$17" },
+  "-+": { group: "advantage", name: "Black is winning", nag: "$19" },
+  N: { group: "extra", name: "Novelty", nag: "$146" },
+  "↑↑": { group: "extra", name: "Development", nag: "$32" },
+  "↑": { group: "extra", name: "Initiative", nag: "$36" },
+  "→": { group: "extra", name: "Attack", nag: "$40" },
+  "⇆": { group: "extra", name: "Counterplay", nag: "$132" },
+  "=∞": { group: "extra", name: "With compensation", nag: "$44" },
+  "⊕": { group: "extra", name: "Time Trouble", nag: "$138" },
+  "∆": { group: "extra", name: "With the idea", nag: "$140" },
+  "□": { group: "extra", name: "Only move", nag: "$7" },
+  "⨀": { group: "extra", name: "Zugzwang", nag: "$22" },
 };
 
 export interface BestMoves {
@@ -100,8 +170,10 @@ export function getMoveText(
       moveText += `${moveNumber}. `;
     }
     moveText += tree.san;
-    if (opt.glyphs) {
-      moveText += tree.annotation;
+    if (opt.glyphs && tree.annotation !== "") {
+      moveText += isBasicAnnotation(tree.annotation)
+        ? tree.annotation
+        : ` ${ANNOTATION_INFO[tree.annotation].nag}`;
     }
     moveText += " ";
   }
@@ -558,7 +630,12 @@ type ColorMap<T> = {
   [key in Color]: T;
 };
 
-/* traverse the main line and get the average centipawn loss for each player*/
+export function isBasicAnnotation(
+  annotation: Annotation,
+): annotation is "!" | "!!" | "?" | "??" | "!?" | "?!" {
+  return ["!", "!!", "?", "??", "!?", "?!"].includes(annotation);
+}
+
 export function getGameStats(root: TreeNode) {
   const whiteAnnotations = {
     "??": 0,
@@ -601,7 +678,7 @@ export function getGameStats(root: TreeNode) {
   let node = root;
   while (node.children.length > 0) {
     node = node.children[0];
-    if (node.annotation) {
+    if (isBasicAnnotation(node.annotation)) {
       if (node.halfMoves % 2 === 1) {
         whiteAnnotations[node.annotation]++;
       } else {

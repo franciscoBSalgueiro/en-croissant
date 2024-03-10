@@ -98,7 +98,7 @@ const EvalChart = (props: EvalChartProps) => {
         evalText: getEvalText(currentNode.node),
         yValue: yValue ?? "none",
         movePath: currentNode.position,
-        color: ANNOTATION_INFO[currentNode.node.annotation]?.color,
+        color: ANNOTATION_INFO[currentNode.node.annotation]?.color || "gray",
       };
     }
   }

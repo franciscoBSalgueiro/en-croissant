@@ -23,6 +23,7 @@ import {
   Annotation,
   TimeControlField,
   getMaterialDiff,
+  isBasicAnnotation,
   parseKeyboardMove,
   parseTimeControl,
 } from "@/utils/chess";
@@ -173,7 +174,6 @@ function Board({
       game: currentTab?.gameNumber || 0,
     }),
   );
-  const setInvisible = useSetAtom(currentInvisibleAtom);
 
   async function makeMove(move: NormalMove) {
     if (!pos) return;
@@ -377,7 +377,8 @@ function Board({
   }, [practiceLock, editingMode, movable, turn]);
 
   const theme = useMantineTheme();
-  const { color } = ANNOTATION_INFO[currentNode.annotation];
+  let { color } = ANNOTATION_INFO[currentNode.annotation];
+  color ||= "gray";
   const lightColor = theme.colors[color][6];
   const darkColor = theme.colors[color][8];
 
@@ -506,7 +507,7 @@ function Board({
             )}
           <Box
             style={
-              currentNode.annotation !== ""
+              isBasicAnnotation(currentNode.annotation)
                 ? {
                     "--light-color": lightColor,
                     "--dark-color": darkColor,
@@ -780,7 +781,8 @@ function AnnotationHint({
   orientation: Color;
 }) {
   const { file, rank } = squareToCoordinates(square, orientation);
-  const { color } = ANNOTATION_INFO[annotation];
+  let { color } = ANNOTATION_INFO[annotation];
+  color ||= "gray";
 
   return (
     <Box
@@ -793,7 +795,7 @@ function AnnotationHint({
       }}
     >
       <Box pl="90%">
-        {annotation && (
+        {isBasicAnnotation(annotation) && (
           <Box
             style={{
               transform: "translateY(-40%) translateX(-50%)",

@@ -2,16 +2,21 @@ import {
   TreeDispatchContext,
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
-import { ANNOTATION_INFO, Annotation } from "@/utils/chess";
+import { ANNOTATION_INFO, Annotation, isBasicAnnotation } from "@/utils/chess";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
+  Collapse,
+  Divider,
   Group,
   ScrollArea,
   Stack,
   Text,
   Tooltip,
+  useMantineTheme,
 } from "@mantine/core";
+import { IconChevronDown } from "@tabler/icons-react";
+import { atom, useAtom } from "jotai";
 import { memo, useContext } from "react";
 import AnnotationEditor from "./AnnotationEditor";
 
@@ -25,6 +30,7 @@ const SymbolButton = memo(function SymbolButton({
   const dispatch = useContext(TreeDispatchContext);
   const { name, color } = ANNOTATION_INFO[annotation];
   const isActive = curAnnotation === annotation;
+  const theme = useMantineTheme();
   return (
     <Tooltip label={name} position="bottom">
       <ActionIcon
@@ -35,7 +41,7 @@ const SymbolButton = memo(function SymbolButton({
           })
         }
         variant={isActive ? "filled" : "default"}
-        color={color}
+        color={isBasicAnnotation(annotation) ? color : theme.primaryColor}
       >
         <Text>{annotation}</Text>
       </ActionIcon>
@@ -43,24 +49,70 @@ const SymbolButton = memo(function SymbolButton({
   );
 });
 
+const showMoreSymbolsAtom = atom(false);
+
+const BASIC = ["!!", "!", "!?", "?!", "?", "??"] as const;
+const ADVANTAGE = ["+-", "±", "⩲", "=", "∞", "⩱", "∓", "-+"] as const;
+const EXTRA = ["N", "↑↑", "↑", "→", "⇆", "=∞", "⊕", "∆", "□", "⨀"] as const;
+
 function AnnotationPanel() {
   const { root, position } = useContext(TreeStateContext);
   const currentNode = getNodeAtPath(root, position);
+  const [showMoreSymbols, setShowMoreSymbols] = useAtom(showMoreSymbolsAtom);
   return (
-    <Stack h="100%">
-      <Group grow>
-        {Object.keys(ANNOTATION_INFO)
-          .filter((a) => a !== "")
-          .map((annotation) => {
+    <Stack h="100%" gap={0}>
+      <Stack gap={0}>
+        <Group grow>
+          {BASIC.map((annotation) => {
             return (
               <SymbolButton
                 key={annotation}
                 curAnnotation={currentNode.annotation}
-                annotation={annotation as Annotation}
+                annotation={annotation}
               />
             );
           })}
-      </Group>
+        </Group>
+        <Divider
+          label={
+            <ActionIcon
+              mx="auto"
+              onClick={() => setShowMoreSymbols(!showMoreSymbols)}
+              color="dimmed"
+              style={{
+                transition: "transform 0.2s",
+                transform: showMoreSymbols ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+            >
+              <IconChevronDown size="1rem" />
+            </ActionIcon>
+          }
+        />
+      </Stack>
+
+      <Collapse in={showMoreSymbols}>
+        <Stack mb="md">
+          <Group grow>
+            {ADVANTAGE.map((annotation) => (
+              <SymbolButton
+                key={annotation}
+                curAnnotation={currentNode.annotation}
+                annotation={annotation}
+              />
+            ))}
+          </Group>
+          <Group grow>
+            {EXTRA.map((annotation) => (
+              <SymbolButton
+                key={annotation}
+                curAnnotation={currentNode.annotation}
+                annotation={annotation}
+              />
+            ))}
+          </Group>
+        </Stack>
+      </Collapse>
+
       <ScrollArea offsetScrollbars>
         <AnnotationEditor />
       </ScrollArea>
