@@ -11,7 +11,11 @@ function OpeningName() {
     getOpening(root, position).then((v) => setOpeningName(v));
   }, [root, position]);
 
-  return <Text fz="sm">{openingName}</Text>;
+  return (
+    <Text style={{ userSelect: "text" }} fz="sm">
+      {openingName}
+    </Text>
+  );
 }
 
 export default OpeningName;
