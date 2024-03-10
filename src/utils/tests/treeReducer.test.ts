@@ -27,7 +27,7 @@ const treeE4D5: () => TreeState = () => ({
             depth: null,
             halfMoves: 2,
             shapes: [],
-            annotation: "",
+            annotations: [],
             comment: "",
           },
         ],
@@ -36,7 +36,7 @@ const treeE4D5: () => TreeState = () => ({
         depth: null,
         halfMoves: 1,
         shapes: [],
-        annotation: "",
+        annotations: [],
         comment: "",
       },
       {
@@ -48,7 +48,7 @@ const treeE4D5: () => TreeState = () => ({
         depth: null,
         halfMoves: 1,
         shapes: [],
-        annotation: "",
+        annotations: [],
         comment: "",
       },
     ],
@@ -56,7 +56,7 @@ const treeE4D5: () => TreeState = () => ({
     depth: null,
     halfMoves: 0,
     shapes: [],
-    annotation: "",
+    annotations: [],
     comment: "",
   },
 });
@@ -195,7 +195,7 @@ test("should handle MAKE_MOVE", () => {
           depth: null,
           halfMoves: 1,
           shapes: [],
-          annotation: "",
+          annotations: [],
           comment: "",
         },
       ],
@@ -203,7 +203,7 @@ test("should handle MAKE_MOVE", () => {
       depth: null,
       halfMoves: 0,
       shapes: [],
-      annotation: "",
+      annotations: [],
       comment: "",
     },
   };
@@ -340,7 +340,7 @@ test("should handle SET_ANNOTATION", () => {
     position: [0],
     dirty: true,
   };
-  expectedState.root.children[0].annotation = "!";
+  expectedState.root.children[0].annotations = ["!"];
   expectState({
     res: treeReducer(initialState, {
       type: "SET_ANNOTATION",
@@ -559,7 +559,7 @@ test("promote 2", () => {
               depth: null,
               halfMoves: 2,
               shapes: [],
-              annotation: "",
+              annotations: [],
               comment: "",
             },
             {
@@ -571,7 +571,7 @@ test("promote 2", () => {
               depth: null,
               halfMoves: 2,
               shapes: [],
-              annotation: "",
+              annotations: [],
               comment: "",
             },
           ],
@@ -579,7 +579,7 @@ test("promote 2", () => {
           depth: null,
           halfMoves: 1,
           shapes: [],
-          annotation: "",
+          annotations: [],
           comment: "",
         },
       ],
@@ -587,7 +587,7 @@ test("promote 2", () => {
       depth: null,
       halfMoves: 0,
       shapes: [],
-      annotation: "",
+      annotations: [],
       comment: "",
     },
     headers: {
@@ -622,7 +622,7 @@ test("promote 2", () => {
               depth: null,
               halfMoves: 2,
               shapes: [],
-              annotation: "",
+              annotations: [],
               comment: "",
             },
             {
@@ -634,7 +634,7 @@ test("promote 2", () => {
               depth: null,
               halfMoves: 2,
               shapes: [],
-              annotation: "",
+              annotations: [],
               comment: "",
             },
           ],
@@ -642,7 +642,7 @@ test("promote 2", () => {
           depth: null,
           halfMoves: 1,
           shapes: [],
-          annotation: "",
+          annotations: [],
           comment: "",
         },
       ],
@@ -650,7 +650,7 @@ test("promote 2", () => {
       depth: null,
       halfMoves: 0,
       shapes: [],
-      annotation: "",
+      annotations: [],
       comment: "",
     },
     headers: {

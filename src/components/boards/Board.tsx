@@ -377,8 +377,7 @@ function Board({
   }, [practiceLock, editingMode, movable, turn]);
 
   const theme = useMantineTheme();
-  let { color } = ANNOTATION_INFO[currentNode.annotation];
-  color ||= "gray";
+  const color = ANNOTATION_INFO[currentNode.annotations[0]]?.color || "gray";
   const lightColor = theme.colors[color][6];
   const darkColor = theme.colors[color][8];
 
@@ -494,20 +493,20 @@ function Board({
     <>
       <Box className={classes.container}>
         <Box className={classes.board}>
-          {currentNode.annotation &&
+          {currentNode.annotations.length > 0 &&
             currentNode.move &&
             square !== undefined && (
               <Box w={boardWith} h={boardHeight} pos="absolute">
                 <AnnotationHint
                   orientation={orientation}
                   square={square}
-                  annotation={currentNode.annotation}
+                  annotation={currentNode.annotations[0]}
                 />
               </Box>
             )}
           <Box
             style={
-              isBasicAnnotation(currentNode.annotation)
+              isBasicAnnotation(currentNode.annotations[0])
                 ? {
                     "--light-color": lightColor,
                     "--dark-color": darkColor,
@@ -781,8 +780,7 @@ function AnnotationHint({
   orientation: Color;
 }) {
   const { file, rank } = squareToCoordinates(square, orientation);
-  let { color } = ANNOTATION_INFO[annotation];
-  color ||= "gray";
+  const color = ANNOTATION_INFO[annotation]?.color || "gray";
 
   return (
     <Box

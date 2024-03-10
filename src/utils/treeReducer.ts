@@ -4,7 +4,7 @@ import { Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
-import { Annotation } from "./chess";
+import { ANNOTATION_INFO, Annotation } from "./chess";
 import { parseSanOrUci, positionFromFen } from "./chessops";
 import { Outcome } from "./db";
 import { isPrefix } from "./misc";
@@ -27,7 +27,7 @@ export interface TreeNode {
   depth: number | null;
   halfMoves: number;
   shapes: DrawShape[];
-  annotation: Annotation;
+  annotations: Annotation[];
   comment: string;
   clock?: number;
 }
@@ -94,7 +94,7 @@ export function defaultTree(fen?: string): TreeState {
       depth: null,
       halfMoves: pos?.turn === "black" ? 1 : 0,
       shapes: [],
-      annotation: "",
+      annotations: [],
       comment: "",
     },
     headers: {
@@ -132,7 +132,7 @@ export function createNode({
     depth: null,
     halfMoves,
     shapes: [],
-    annotation: "",
+    annotations: [],
     comment: "",
   };
 }
@@ -368,10 +368,17 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
       state.dirty = true;
       const node = getNodeAtPath(state.root, state.position);
       if (node) {
-        if (node.annotation === payload) {
-          node.annotation = "";
+        if (node.annotations.includes(payload)) {
+          node.annotations = node.annotations.filter((a) => a !== payload);
         } else {
-          node.annotation = payload;
+          const newAnnotations = node.annotations.filter(
+            (a) =>
+              !ANNOTATION_INFO[a].group ||
+              ANNOTATION_INFO[a].group !== ANNOTATION_INFO[payload].group,
+          );
+          node.annotations = [...newAnnotations, payload].sort((a, b) =>
+            ANNOTATION_INFO[a].nag > ANNOTATION_INFO[b].nag ? 1 : -1,
+          );
         }
       }
     })
@@ -595,7 +602,7 @@ function addAnalysis(
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
       cur.score = analysis[i].best[0].score;
       if (analysis[i].novelty) {
-        cur.comment = "Novelty";
+        cur.annotations = [...new Set([...cur.annotations, "N" as const])];
       }
       let prevScore = null;
       let prevprevScore = null;
@@ -609,7 +616,7 @@ function addAnalysis(
       }
       const curScore = analysis[i].best[0].score;
       const color = cur.halfMoves % 2 === 1 ? "white" : "black";
-      cur.annotation = getAnnotation(
+      const annotation = getAnnotation(
         prevprevScore,
         prevScore,
         curScore,
@@ -618,6 +625,9 @@ function addAnalysis(
         analysis[i].is_sacrifice,
         cur.san || "",
       );
+      if (annotation) {
+        cur.annotations = [...new Set([...cur.annotations, annotation])];
+      }
     }
     cur = cur.children[0];
     i++;

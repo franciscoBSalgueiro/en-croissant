@@ -144,7 +144,7 @@ function BoardPopover({
           <MoveCell
             move={san}
             isCurrentVariation={false}
-            annotation={""}
+            annotations={[]}
             onContextMenu={() => undefined}
             isStart={false}
             onClick={() => {

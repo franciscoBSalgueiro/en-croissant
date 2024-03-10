@@ -194,7 +194,7 @@ const RenderVariationTree = memo(
           <>
             <CompleteMoveCell
               targetRef={targetRef}
-              annotation={variation.annotation}
+              annotations={variation.annotations}
               comment={variation.comment}
               halfMoves={variation.halfMoves}
               move={variation.san}
@@ -230,7 +230,7 @@ const RenderVariationTree = memo(
         {variations.length > 0 && (
           <CompleteMoveCell
             targetRef={targetRef}
-            annotation={variations[0].annotation}
+            annotations={variations[0].annotations}
             comment={variations[0].comment}
             halfMoves={variations[0].halfMoves}
             move={variations[0].san}

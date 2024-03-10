@@ -87,35 +87,35 @@ type AnnotationInfo = {
   group?: string;
   name: string;
   color?: MantineColor;
-  nag?: string;
+  nag: number;
 };
 
 export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
-  "": { name: "None", color: "gray" },
-  "!!": { group: "basic", name: "Brilliant", color: "cyan", nag: "$3" },
-  "!": { group: "basic", name: "Good", color: "teal", nag: "$1" },
-  "!?": { group: "basic", name: "Interesting", color: "lime", nag: "$5" },
-  "?!": { group: "basic", name: "Dubious", color: "yellow", nag: "$6" },
-  "?": { group: "basic", name: "Mistake", color: "orange", nag: "$2" },
-  "??": { group: "basic", name: "Blunder", color: "red", nag: "$4" },
-  "+-": { group: "advantage", name: "White is winning", nag: "$18" },
-  "±": { group: "advantage", name: "White has a clear advantage", nag: "$16" },
-  "⩲": { group: "advantage", name: "White has a slight advantage", nag: "$14" },
-  "=": { group: "advantage", name: "Equal position", nag: "$10" },
-  "∞": { group: "advantage", name: "Unclear position", nag: "$13" },
-  "⩱": { group: "advantage", name: "Black has a slight advantage", nag: "$15" },
-  "∓": { group: "advantage", name: "Black has a clear advantage", nag: "$17" },
-  "-+": { group: "advantage", name: "Black is winning", nag: "$19" },
-  N: { group: "extra", name: "Novelty", nag: "$146" },
-  "↑↑": { group: "extra", name: "Development", nag: "$32" },
-  "↑": { group: "extra", name: "Initiative", nag: "$36" },
-  "→": { group: "extra", name: "Attack", nag: "$40" },
-  "⇆": { group: "extra", name: "Counterplay", nag: "$132" },
-  "=∞": { group: "extra", name: "With compensation", nag: "$44" },
-  "⊕": { group: "extra", name: "Time Trouble", nag: "$138" },
-  "∆": { group: "extra", name: "With the idea", nag: "$140" },
-  "□": { group: "extra", name: "Only move", nag: "$7" },
-  "⨀": { group: "extra", name: "Zugzwang", nag: "$22" },
+  "": { name: "None", color: "gray", nag: 0 },
+  "!!": { group: "basic", name: "Brilliant", color: "cyan", nag: 3 },
+  "!": { group: "basic", name: "Good", color: "teal", nag: 1 },
+  "!?": { group: "basic", name: "Interesting", color: "lime", nag: 5 },
+  "?!": { group: "basic", name: "Dubious", color: "yellow", nag: 6 },
+  "?": { group: "basic", name: "Mistake", color: "orange", nag: 2 },
+  "??": { group: "basic", name: "Blunder", color: "red", nag: 4 },
+  "+-": { group: "advantage", name: "White is winning", nag: 18 },
+  "±": { group: "advantage", name: "White has a clear advantage", nag: 16 },
+  "⩲": { group: "advantage", name: "White has a slight advantage", nag: 14 },
+  "=": { group: "advantage", name: "Equal position", nag: 10 },
+  "∞": { group: "advantage", name: "Unclear position", nag: 13 },
+  "⩱": { group: "advantage", name: "Black has a slight advantage", nag: 15 },
+  "∓": { group: "advantage", name: "Black has a clear advantage", nag: 17 },
+  "-+": { group: "advantage", name: "Black is winning", nag: 19 },
+  N: { name: "Novelty", nag: 146 },
+  "↑↑": { name: "Development", nag: 32 },
+  "↑": { name: "Initiative", nag: 36 },
+  "→": { name: "Attack", nag: 40 },
+  "⇆": { name: "Counterplay", nag: 132 },
+  "=∞": { name: "With compensation", nag: 44 },
+  "⊕": { name: "Time Trouble", nag: 138 },
+  "∆": { name: "With the idea", nag: 140 },
+  "□": { name: "Only move", nag: 7 },
+  "⨀": { name: "Zugzwang", nag: 22 },
 };
 
 export interface BestMoves {
@@ -170,10 +170,13 @@ export function getMoveText(
       moveText += `${moveNumber}. `;
     }
     moveText += tree.san;
-    if (opt.glyphs && tree.annotation !== "") {
-      moveText += isBasicAnnotation(tree.annotation)
-        ? tree.annotation
-        : ` ${ANNOTATION_INFO[tree.annotation].nag}`;
+    if (opt.glyphs) {
+      for (const annotation of tree.annotations) {
+        if (annotation === "") continue;
+        moveText += isBasicAnnotation(annotation)
+          ? tree.annotations
+          : ` $${ANNOTATION_INFO[annotation].nag}`;
+      }
     }
     moveText += " ";
   }
@@ -492,7 +495,10 @@ function innerParsePGN(
       }
     } else if (token.type === "ParenClose") {
     } else if (token.type === "Nag") {
-      root.annotation = NAG_INFO.get(token.value) || "";
+      root.annotations.push(NAG_INFO.get(token.value) || "");
+      root.annotations.sort((a, b) => {
+        return ANNOTATION_INFO[a].nag - ANNOTATION_INFO[b].nag;
+      });
     } else if (token.type === "San") {
       const [pos, error] = positionFromFen(root.fen);
       if (error) {
@@ -678,11 +684,13 @@ export function getGameStats(root: TreeNode) {
   let node = root;
   while (node.children.length > 0) {
     node = node.children[0];
-    if (isBasicAnnotation(node.annotation)) {
-      if (node.halfMoves % 2 === 1) {
-        whiteAnnotations[node.annotation]++;
-      } else {
-        blackAnnotations[node.annotation]++;
+    for (const annotation of node.annotations) {
+      if (isBasicAnnotation(annotation)) {
+        if (node.halfMoves % 2 === 1) {
+          whiteAnnotations[annotation]++;
+        } else {
+          blackAnnotations[annotation]++;
+        }
       }
     }
     const color = node.halfMoves % 2 === 1 ? "white" : "black";

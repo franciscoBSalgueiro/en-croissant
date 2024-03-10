@@ -21,15 +21,15 @@ import { memo, useContext } from "react";
 import AnnotationEditor from "./AnnotationEditor";
 
 const SymbolButton = memo(function SymbolButton({
-  curAnnotation,
+  curAnnotations,
   annotation,
 }: {
-  curAnnotation: Annotation;
+  curAnnotations: Annotation[];
   annotation: Annotation;
 }) {
   const dispatch = useContext(TreeDispatchContext);
   const { name, color } = ANNOTATION_INFO[annotation];
-  const isActive = curAnnotation === annotation;
+  const isActive = curAnnotations.includes(annotation);
   const theme = useMantineTheme();
   return (
     <Tooltip label={name} position="bottom">
@@ -67,7 +67,7 @@ function AnnotationPanel() {
             return (
               <SymbolButton
                 key={annotation}
-                curAnnotation={currentNode.annotation}
+                curAnnotations={currentNode.annotations}
                 annotation={annotation}
               />
             );
@@ -96,7 +96,7 @@ function AnnotationPanel() {
             {ADVANTAGE.map((annotation) => (
               <SymbolButton
                 key={annotation}
-                curAnnotation={currentNode.annotation}
+                curAnnotations={currentNode.annotations}
                 annotation={annotation}
               />
             ))}
@@ -105,7 +105,7 @@ function AnnotationPanel() {
             {EXTRA.map((annotation) => (
               <SymbolButton
                 key={annotation}
-                curAnnotation={currentNode.annotation}
+                curAnnotations={currentNode.annotations}
                 annotation={annotation}
               />
             ))}

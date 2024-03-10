@@ -19,7 +19,7 @@ function CompleteMoveCell({
   halfMoves,
   move,
   comment,
-  annotation,
+  annotations,
   showComments,
   first,
   isCurrentVariation,
@@ -28,7 +28,7 @@ function CompleteMoveCell({
 }: {
   halfMoves: number;
   comment: string;
-  annotation: Annotation;
+  annotations: Annotation[];
   showComments: boolean;
   move?: string | null;
   first?: boolean;
@@ -65,7 +65,7 @@ function CompleteMoveCell({
               <MoveCell
                 ref={ref}
                 move={move}
-                annotation={annotation}
+                annotations={annotations}
                 isStart={isStart}
                 isCurrentVariation={isCurrentVariation}
                 onClick={() =>
@@ -137,7 +137,7 @@ export default memo(CompleteMoveCell, (prev, next) => {
   return (
     prev.move === next.move &&
     prev.comment === next.comment &&
-    prev.annotation === next.annotation &&
+    shallowEqual(prev.annotations, next.annotations) &&
     prev.showComments === next.showComments &&
     prev.first === next.first &&
     prev.isCurrentVariation === next.isCurrentVariation &&

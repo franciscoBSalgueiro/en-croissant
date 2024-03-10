@@ -94,11 +94,12 @@ const EvalChart = (props: EvalChartProps) => {
       yield {
         name: `${Math.ceil(currentNode.node.halfMoves / 2)}.${
           pos?.turn === "black" ? "" : ".."
-        } ${currentNode.node.san}${currentNode.node.annotation}`,
+        } ${currentNode.node.san}${currentNode.node.annotations}`,
         evalText: getEvalText(currentNode.node),
         yValue: yValue ?? "none",
         movePath: currentNode.position,
-        color: ANNOTATION_INFO[currentNode.node.annotation]?.color || "gray",
+        color:
+          ANNOTATION_INFO[currentNode.node.annotations[0]]?.color || "gray",
       };
     }
   }
