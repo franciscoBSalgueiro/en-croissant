@@ -273,14 +273,14 @@ impl Importer {
     fn new(timestamp: Option<i64>) -> Importer {
         Importer {
             game: TempGame::default(),
-            timestamp: timestamp.map(|t| (t / 1000)),
+            timestamp,
             skip: false,
         }
     }
 }
 
 impl Visitor for Importer {
-    type Result = TempGame;
+    type Result = Option<TempGame>;
 
     fn begin_game(&mut self) {
         self.skip = false;
@@ -382,7 +382,12 @@ impl Visitor for Importer {
     }
 
     fn end_game(&mut self) -> Self::Result {
-        std::mem::take(&mut self.game)
+        if self.skip {
+            self.game = TempGame::default();
+            None
+        } else {
+            Some(std::mem::take(&mut self.game))
+        }
     }
 }
 
@@ -391,7 +396,7 @@ impl Visitor for Importer {
 pub async fn convert_pgn(
     file: PathBuf,
     db_path: PathBuf,
-    timestamp: Option<i64>,
+    timestamp: Option<i32>,
     app: tauri::AppHandle,
     title: String,
     description: Option<String>,
@@ -438,10 +443,11 @@ pub async fn convert_pgn(
     // start counting time
     let start = Instant::now();
 
-    let mut importer = Importer::new(timestamp);
+    let mut importer = Importer::new(timestamp.map(|t| t as i64));
     db.transaction::<_, diesel::result::Error, _>(|db| {
         for (i, game) in BufferedReader::new(uncompressed)
             .into_iter(&mut importer)
+            .flatten()
             .flatten()
             .enumerate()
         {

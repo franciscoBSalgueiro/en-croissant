@@ -95,7 +95,6 @@ export function AccountCard({
   });
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
-  const [lastGameDate, setLastGameDate] = useState<number | null>(null);
 
   async function convert(filepath: string, timestamp: number | null) {
     info(`converting ${filepath} ${timestamp}`);
@@ -112,7 +111,7 @@ export function AccountCard({
       await commands.convertPgn(
         filepath,
         dbPath,
-        timestamp ? BigInt(timestamp) : null,
+        timestamp ? timestamp / 1000 : null,
         filename,
         null,
       ),
@@ -144,25 +143,25 @@ export function AccountCard({
   const downloadedGames = database?.game_count ?? 0;
   const percentage = ((downloadedGames / total) * 100).toFixed(2);
 
-  useEffect(() => {
-    if (database) {
-      query_games(database.file, {
-        page: 1,
-        pageSize: 1,
-        sort: "date",
-        direction: "desc",
-      }).then((games) => {
-        if (games.count > 0 && games.data[0].date && games.data[0].time) {
-          const [year, month, day] = games.data[0].date.split(".").map(Number);
-          const [hour, minute, second] = games.data[0].time
-            .split(":")
-            .map(Number);
-          const d = Date.UTC(year, month - 1, day, hour, minute, second);
-          setLastGameDate(d);
-        }
-      });
+  async function getLastGameDate({
+    database,
+  }: {
+    database: DatabaseInfo;
+  }) {
+    const games = await query_games(database.file, {
+      page: 1,
+      pageSize: 1,
+      sort: "date",
+      direction: "desc",
+    });
+    if (games.count > 0 && games.data[0].date && games.data[0].time) {
+      const [year, month, day] = games.data[0].date.split(".").map(Number);
+      const [hour, minute, second] = games.data[0].time.split(":").map(Number);
+      const d = Date.UTC(year, month - 1, day, hour, minute, second);
+      return d;
     }
-  }, [database]);
+    return null;
+  }
 
   return (
     <Accordion.Item value={type + title}>
@@ -196,7 +195,9 @@ export function AccountCard({
                   <ActionIcon
                     disabled={loading}
                     onClick={async () => {
+                      if (!database) return;
                       setLoading(true);
+                      const lastGameDate = await getLastGameDate({ database });
                       if (type === "lichess") {
                         await downloadLichess(
                           title,
@@ -213,9 +214,12 @@ export function AccountCard({
                         "db",
                         `${title}_${type}.pgn`,
                       );
-                      convert(p, lastGameDate).catch(() => {
-                        setLoading(false);
-                      });
+                      try {
+                        await convert(p, lastGameDate);
+                      } catch (e) {
+                        console.error(e);
+                      }
+                      setLoading(false);
                     }}
                   >
                     {loading ? (
