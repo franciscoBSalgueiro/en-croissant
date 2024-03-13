@@ -29,9 +29,9 @@ import {
 } from "@mantine/core";
 import {
   IconCloud,
+  IconCpu,
   IconPhotoPlus,
   IconPlus,
-  IconRobot,
 } from "@tabler/icons-react";
 import { exists } from "@tauri-apps/api/fs";
 import { useAtom } from "jotai";
@@ -613,7 +613,7 @@ function EngineName({ engine }: { engine: Engine }) {
       ) : engine.type !== "local" ? (
         <IconCloud size="2.5rem" />
       ) : (
-        <IconRobot size="2.5rem" />
+        <IconCpu size="2.5rem" />
       )}
       <Stack gap={0}>
         <Text fw="bold" lineClamp={1} c={hasError ? "red" : undefined}>

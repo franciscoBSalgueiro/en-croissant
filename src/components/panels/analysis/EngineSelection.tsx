@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { IconCloud, IconRobot } from "@tabler/icons-react";
+import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
 import { Link } from "react-router-dom";
@@ -45,7 +45,7 @@ function EngineBox({
         ) : engine.type !== "local" ? (
           <IconCloud size="1.5rem" />
         ) : (
-          <IconRobot size="1.5rem" />
+          <IconCpu size="1.5rem" />
         )}
         <Text lineClamp={1} fz="sm">
           {engine.name}

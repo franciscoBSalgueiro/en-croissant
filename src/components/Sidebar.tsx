@@ -2,9 +2,9 @@ import { AppShellSection, Stack, Tooltip } from "@mantine/core";
 import {
   type Icon,
   IconChess,
+  IconCpu,
   IconDatabase,
   IconFiles,
-  IconRobot,
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
@@ -45,7 +45,7 @@ const linksdata = [
     label: "Databases",
     url: "/databases",
   },
-  { icon: IconRobot, label: "Engines", url: "/engines" },
+  { icon: IconCpu, label: "Engines", url: "/engines" },
 ];
 
 export function SideBar() {
