@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Button, Card, SimpleGrid, Stack, Text } from "@mantine/core";
 
 import { tabsAtom } from "@/atoms/atoms";
-import { Tab } from "@/utils/tabs";
+import type { Tab } from "@/utils/tabs";
 import { useAtom } from "jotai";
 import { useState } from "react";
 import ImportModal from "./ImportModal";

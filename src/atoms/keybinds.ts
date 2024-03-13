@@ -1,5 +1,5 @@
 import { atomWithStorage } from "jotai/utils";
-import {
+import type {
   SyncStorage,
   SyncStringStorage,
 } from "jotai/vanilla/utils/atomWithStorage";

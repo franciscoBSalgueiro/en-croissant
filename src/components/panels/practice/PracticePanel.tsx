@@ -1,5 +1,5 @@
 import {
-  PracticeData,
+  type PracticeData,
   currentInvisibleAtom,
   currentPracticeTabAtom,
   currentTabAtom,

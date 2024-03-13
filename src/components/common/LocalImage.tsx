@@ -1,4 +1,4 @@
-import { Image, ImageProps } from "@mantine/core";
+import { Image, type ImageProps } from "@mantine/core";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import useSWRImmutable from "swr/immutable";
 

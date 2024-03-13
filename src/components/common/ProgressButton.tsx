@@ -1,5 +1,9 @@
 import { Button, Progress, useMantineTheme } from "@mantine/core";
-import { EventCallback, UnlistenFn, listen } from "@tauri-apps/api/event";
+import {
+  type EventCallback,
+  type UnlistenFn,
+  listen,
+} from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
 import * as classes from "./ProgressButton.css";
 

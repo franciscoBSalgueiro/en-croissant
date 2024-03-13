@@ -1,8 +1,8 @@
 import { boardImageAtom } from "@/atoms/atoms";
 import { Box } from "@mantine/core";
 import { Chessground as NativeChessground } from "chessground";
-import { Api } from "chessground/api";
-import { Config } from "chessground/config";
+import type { Api } from "chessground/api";
+import type { Config } from "chessground/config";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";

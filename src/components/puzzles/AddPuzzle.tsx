@@ -2,7 +2,7 @@ import { events } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
-import { PuzzleDatabase, getPuzzleDatabases } from "@/utils/puzzles";
+import { type PuzzleDatabase, getPuzzleDatabases } from "@/utils/puzzles";
 import {
   Alert,
   Box,
@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import ProgressButton from "../common/ProgressButton";
 

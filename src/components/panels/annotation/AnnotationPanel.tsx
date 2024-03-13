@@ -2,7 +2,11 @@ import {
   TreeDispatchContext,
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
-import { ANNOTATION_INFO, Annotation, isBasicAnnotation } from "@/utils/chess";
+import {
+  ANNOTATION_INFO,
+  type Annotation,
+  isBasicAnnotation,
+} from "@/utils/chess";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,

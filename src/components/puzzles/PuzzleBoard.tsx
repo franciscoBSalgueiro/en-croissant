@@ -2,11 +2,17 @@ import { showCoordinatesAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
-import { Completion, Puzzle } from "@/utils/puzzles";
+import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
-import { Chess, Move, NormalMove, makeUci, parseSquare } from "chessops";
+import {
+  Chess,
+  type Move,
+  type NormalMove,
+  makeUci,
+  parseSquare,
+} from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";

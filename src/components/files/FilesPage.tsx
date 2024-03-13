@@ -1,4 +1,4 @@
-import { Dirs } from "@/App";
+import type { Dirs } from "@/App";
 import { capitalize } from "@/utils/format";
 import {
   Button,
@@ -21,7 +21,7 @@ import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
-import { FileMetadata, FileType, readFileMetadata } from "./file";
+import { type FileMetadata, type FileType, readFileMetadata } from "./file";
 
 const FILE_TYPES: FileType[] = [
   "game",

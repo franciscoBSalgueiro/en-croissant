@@ -1,5 +1,9 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { NormalizedGame, Tournament, getTournamentGames } from "@/utils/db";
+import {
+  type NormalizedGame,
+  type Tournament,
+  getTournamentGames,
+} from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -11,7 +15,7 @@ import {
 } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useSWRImmutable from "swr/immutable";

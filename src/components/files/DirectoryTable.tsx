@@ -15,12 +15,12 @@ import dayjs from "dayjs";
 import Fuse from "fuse.js";
 import { useAtom, useSetAtom } from "jotai";
 import { useContextMenu } from "mantine-contextmenu";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as classes from "./DirectoryTable.css";
-import { MetadataOrEntry } from "./FilesPage";
-import { FileMetadata } from "./file";
+import type { MetadataOrEntry } from "./FilesPage";
+import type { FileMetadata } from "./file";
 import { getStats } from "./opening";
 
 function flattenFiles(files: MetadataOrEntry[]): MetadataOrEntry[] {

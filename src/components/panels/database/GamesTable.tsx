@@ -1,5 +1,5 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { NormalizedGame } from "@/utils/db";
+import type { NormalizedGame } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { ActionIcon, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";

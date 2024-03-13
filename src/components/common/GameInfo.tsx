@@ -1,5 +1,5 @@
-import { Outcome } from "@/utils/db";
-import { GameHeaders } from "@/utils/treeReducer";
+import type { Outcome } from "@/utils/db";
+import type { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import cx from "clsx";
@@ -241,7 +241,7 @@ function GameInfo({
                 type: "SET_HEADERS",
                 payload: {
                   ...headers,
-                  white_elo: parseInt(n.currentTarget.value),
+                  white_elo: Number.parseInt(n.currentTarget.value),
                 },
               })
             }
@@ -277,7 +277,7 @@ function GameInfo({
                 type: "SET_HEADERS",
                 payload: {
                   ...headers,
-                  black_elo: parseInt(n.currentTarget.value),
+                  black_elo: Number.parseInt(n.currentTarget.value),
                 },
               })
             }

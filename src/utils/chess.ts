@@ -1,21 +1,27 @@
-import { Score, commands } from "@/bindings";
-import { MantineColor } from "@mantine/core";
+import { type Score, commands } from "@/bindings";
+import type { MantineColor } from "@mantine/core";
 import { invoke } from "@tauri-apps/api";
-import { DrawShape } from "chessground/draw";
-import { Color, Move, Role, makeSquare, makeUci } from "chessops";
-import { Chess, castlingSide, normalizeMove } from "chessops/chess";
+import type { DrawShape } from "chessground/draw";
+import {
+  type Color,
+  type Move,
+  type Role,
+  makeSquare,
+  makeUci,
+} from "chessops";
+import { type Chess, castlingSide, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import { Outcome } from "./db";
+import type { Outcome } from "./db";
 import { harmonicMean, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
 import {
-  GameHeaders,
-  TreeNode,
-  TreeState,
+  type GameHeaders,
+  type TreeNode,
+  type TreeState,
   createNode,
   defaultTree,
   getNodeAtPath,
@@ -204,14 +210,14 @@ export function getMoveText(
       if (squares.length > 0) {
         content += `[%csl ${squares
           .map((shape) => {
-            return shape.brush[0].toUpperCase() + shape.orig;
+            return shape.brush![0].toUpperCase() + shape.orig;
           })
           .join(",")}]`;
       }
       if (arrows.length > 0) {
         content += `[%cal ${arrows
           .map((shape) => {
-            return shape.brush[0].toUpperCase() + shape.orig + shape.dest;
+            return shape.brush![0].toUpperCase() + shape.orig + shape.dest;
           })
           .join(",")}]`;
       }
@@ -586,8 +592,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     black: Black ?? "?",
     white: White ?? "?",
     round: Round ?? "?",
-    black_elo: BlackElo ? parseInt(BlackElo) : 0,
-    white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
+    black_elo: BlackElo ? Number.parseInt(BlackElo) : 0,
+    white_elo: WhiteElo ? Number.parseInt(WhiteElo) : 0,
     date: Date ?? "",
     site: Site ?? "",
     event: Event ?? "",
@@ -619,13 +625,13 @@ export function parseTimeControl(timeControl: string): TimeControl {
     const seconds = match[2];
     const increment = match[3];
     const timeControlField: TimeControlField = {
-      seconds: parseInt(seconds) * 1000,
+      seconds: Number.parseInt(seconds) * 1000,
     };
     if (increment) {
-      timeControlField.increment = parseInt(increment) * 1000;
+      timeControlField.increment = Number.parseInt(increment) * 1000;
     }
     if (moves) {
-      timeControlField.moves = parseInt(moves);
+      timeControlField.moves = Number.parseInt(moves);
     }
     timeControlFields.push(timeControlField);
   }

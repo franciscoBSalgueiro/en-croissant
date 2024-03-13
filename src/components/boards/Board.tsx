@@ -20,8 +20,8 @@ import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
 import {
   ANNOTATION_INFO,
-  Annotation,
-  TimeControlField,
+  type Annotation,
+  type TimeControlField,
   getMaterialDiff,
   isBasicAnnotation,
   parseKeyboardMove,
@@ -33,7 +33,11 @@ import {
   positionFromFen,
   squareToCoordinates,
 } from "@/utils/chessops";
-import { GameHeaders, TreeNode, getNodeAtPath } from "@/utils/treeReducer";
+import {
+  type GameHeaders,
+  type TreeNode,
+  getNodeAtPath,
+} from "@/utils/treeReducer";
 import {
   ActionIcon,
   Avatar,
@@ -57,12 +61,12 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { DrawShape } from "chessground/draw";
-import { Color } from "chessground/types";
+import type { DrawShape } from "chessground/draw";
+import type { Color } from "chessground/types";
 import {
-  NormalMove,
-  Square,
-  SquareName,
+  type NormalMove,
+  type Square,
+  type SquareName,
   makeSquare,
   parseSquare,
   parseUci,

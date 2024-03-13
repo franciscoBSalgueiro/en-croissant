@@ -1,5 +1,5 @@
 import { previewBoardOnHoverAtom } from "@/atoms/atoms";
-import { Score } from "@/bindings";
+import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
@@ -8,7 +8,7 @@ import { positionFromFen } from "@/utils/chessops";
 import { ActionIcon, Box, Flex, Popover, Table } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
-import { Key } from "chessground/types";
+import type { Key } from "chessground/types";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";

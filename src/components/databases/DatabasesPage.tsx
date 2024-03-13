@@ -1,6 +1,6 @@
 import { referenceDbAtom, selectedDatabaseAtom } from "@/atoms/atoms";
 import { commands } from "@/bindings";
-import { DatabaseInfo, getDatabases } from "@/utils/db";
+import { type DatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke, unwrap } from "@/utils/invoke";
 import {

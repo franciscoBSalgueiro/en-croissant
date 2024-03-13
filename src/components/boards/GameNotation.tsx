@@ -2,7 +2,7 @@ import { currentInvisibleAtom } from "@/atoms/atoms";
 import { Comment } from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { isPrefix } from "@/utils/misc";
-import { TreeNode, getNodeAtPath } from "@/utils/treeReducer";
+import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,

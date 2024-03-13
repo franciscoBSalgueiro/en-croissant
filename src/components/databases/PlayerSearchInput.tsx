@@ -1,7 +1,7 @@
-import { Player, query_players } from "@/utils/db";
+import { type Player, query_players } from "@/utils/db";
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 export function PlayerSearchInput({
   label,

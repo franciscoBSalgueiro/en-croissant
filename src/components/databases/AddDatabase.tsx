@@ -1,5 +1,9 @@
 import { events, commands } from "@/bindings";
-import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
+import {
+  type DatabaseInfo,
+  getDatabases,
+  useDefaultDatabases,
+} from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { invoke, unwrap } from "@/utils/invoke";
 import {
@@ -22,8 +26,8 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useState } from "react";
-import { KeyedMutator } from "swr";
+import { type Dispatch, type SetStateAction, useState } from "react";
+import type { KeyedMutator } from "swr";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 

@@ -5,12 +5,12 @@ import {
   enginesAtom,
   tabsAtom,
 } from "@/atoms/atoms";
-import { events, GoMode, commands } from "@/bindings";
-import { TimeControlField, getMainLine } from "@/utils/chess";
+import { events, type GoMode, commands } from "@/bindings";
+import { type TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { EngineSettings, LocalEngine } from "@/utils/engines";
+import type { EngineSettings, LocalEngine } from "@/utils/engines";
 import {
-  GameHeaders,
+  type GameHeaders,
   getNodeAtPath,
   treeIteratorMainLine,
 } from "@/utils/treeReducer";

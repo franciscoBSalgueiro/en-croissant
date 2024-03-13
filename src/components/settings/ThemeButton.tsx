@@ -2,7 +2,7 @@ import {
   Box,
   Center,
   Group,
-  MantineColorScheme,
+  type MantineColorScheme,
   SegmentedControl,
   useMantineColorScheme,
 } from "@mantine/core";

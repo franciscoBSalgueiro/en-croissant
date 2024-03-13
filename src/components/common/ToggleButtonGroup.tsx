@@ -1,5 +1,5 @@
 import { Button, Group, InputWrapper, Tooltip } from "@mantine/core";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface ToggleButtonGroupProps<T> {
   label: string;

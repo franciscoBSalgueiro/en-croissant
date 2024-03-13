@@ -1,6 +1,6 @@
 import { events, commands } from "@/bindings";
 import { downloadChessCom } from "@/utils/chess.com/api";
-import { DatabaseInfo, getDatabases, query_games } from "@/utils/db";
+import { type DatabaseInfo, getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { unwrap } from "@/utils/invoke";
 import { downloadLichess } from "@/utils/lichess/api";
@@ -22,7 +22,7 @@ import {
   IconDownload,
   IconRefresh,
   IconX,
-  TablerIconsProps,
+  type TablerIconsProps,
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";

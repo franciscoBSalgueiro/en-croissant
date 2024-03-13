@@ -1,8 +1,8 @@
 import { Chessground } from "@/chessground/Chessground";
 import { getLastMainlinePosition, getOpening, parsePGN } from "@/utils/chess";
 import treeReducer, {
-  GameHeaders,
-  TreeState,
+  type GameHeaders,
+  type TreeState,
   getNodeAtPath,
 } from "@/utils/treeReducer";
 import { Box, Group, Stack, Text, rem } from "@mantine/core";

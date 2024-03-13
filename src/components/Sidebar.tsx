@@ -1,6 +1,6 @@
 import { AppShellSection, Stack, Tooltip } from "@mantine/core";
 import {
-  Icon,
+  type Icon,
   IconChess,
   IconDatabase,
   IconFiles,

@@ -1,4 +1,4 @@
-import { BestMoves, EngineOptions, GoMode, Score } from "@/bindings";
+import type { BestMoves, EngineOptions, GoMode, Score } from "@/bindings";
 import { fetch } from "@tauri-apps/api/http";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
@@ -50,7 +50,7 @@ export async function getBestMoves(
     moves
       .slice(
         0,
-        parseInt(
+        Number.parseInt(
           options.extraOptions.find((o) => o.name === "MultiPV")?.value ?? "1",
         ),
       )

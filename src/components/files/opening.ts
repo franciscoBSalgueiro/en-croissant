@@ -1,8 +1,8 @@
-import { PracticeData } from "@/atoms/atoms";
+import type { PracticeData } from "@/atoms/atoms";
 import { isPrefix } from "@/utils/misc";
-import { TreeNode, treeIterator } from "@/utils/treeReducer";
-import { SetStateAction } from "react";
-import { Card, createEmptyCard, fsrs, generatorParameters } from "ts-fsrs";
+import { type TreeNode, treeIterator } from "@/utils/treeReducer";
+import type { SetStateAction } from "react";
+import { type Card, createEmptyCard, fsrs, generatorParameters } from "ts-fsrs";
 import { z } from "zod";
 
 const params = generatorParameters({ enable_fuzz: true });

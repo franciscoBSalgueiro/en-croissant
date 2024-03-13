@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { match } from "ts-pattern";
 import { parsePGN } from "./chess";
 import { count_pgn_games, read_games } from "./db";
-import { Tab, createTab } from "./tabs";
+import { type Tab, createTab } from "./tabs";
 import { getGameName } from "./treeReducer";
 
 export function usePlatform() {

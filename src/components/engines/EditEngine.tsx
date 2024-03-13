@@ -1,5 +1,5 @@
 import { enginesAtom } from "@/atoms/atoms";
-import { LocalEngine } from "@/utils/engines";
+import type { LocalEngine } from "@/utils/engines";
 import { useForm } from "@mantine/form";
 import { useAtom } from "jotai";
 import EngineForm from "./EngineForm";

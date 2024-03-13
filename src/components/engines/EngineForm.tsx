@@ -1,9 +1,9 @@
-import { UciOptionConfig, commands } from "@/bindings";
-import { LocalEngine, requiredEngineSettings } from "@/utils/engines";
+import { type UciOptionConfig, commands } from "@/bindings";
+import { type LocalEngine, requiredEngineSettings } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { unwrap } from "@/utils/invoke";
 import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
-import { UseFormReturnType } from "@mantine/form";
+import type { UseFormReturnType } from "@mantine/form";
 import { open } from "@tauri-apps/api/dialog";
 import { useRef } from "react";
 import { match } from "ts-pattern";

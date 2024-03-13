@@ -1,20 +1,25 @@
-import { events, BestMoves, EngineOptions, GoMode } from "@/bindings";
+import {
+  events,
+  type BestMoves,
+  type EngineOptions,
+  type GoMode,
+} from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { NormalizedGame } from "@/utils/db";
+import type { NormalizedGame } from "@/utils/db";
 import { invoke } from "@/utils/invoke";
 import {
-  LichessGamesOptions,
-  MasterGamesOptions,
+  type LichessGamesOptions,
+  type MasterGamesOptions,
   getLichessGamesQueryParams,
   getMasterGamesQueryParams,
 } from "@/utils/lichess/explorer";
 import { countMainPly } from "@/utils/treeReducer";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { Response, fetch } from "@tauri-apps/api/http";
+import { type Response, fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Color } from "chessground/types";
+import type { Color } from "chessground/types";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
@@ -246,7 +251,7 @@ export async function getBestMoves(
   }
   const data = await getCloudEvaluation(
     makeFen(pos.toSetup()),
-    parseInt(
+    Number.parseInt(
       options.extraOptions.find((o) => o.name === "MultiPV")?.value ?? "1",
     ),
   );

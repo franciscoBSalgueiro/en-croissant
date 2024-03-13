@@ -9,9 +9,9 @@ import {
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
 import {
-  Completion,
-  Puzzle,
-  PuzzleDatabase,
+  type Completion,
+  type Puzzle,
+  type PuzzleDatabase,
   getPuzzleDatabases,
 } from "@/utils/puzzles";
 import { createTab } from "@/utils/tabs";

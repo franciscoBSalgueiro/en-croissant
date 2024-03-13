@@ -9,7 +9,11 @@ import {
   TreeDispatchContext,
   TreeStateContext,
 } from "@/components/common/TreeStateContext";
-import { MissingMove, getTreeStats, openingReport } from "@/utils/repertoire";
+import {
+  type MissingMove,
+  getTreeStats,
+  openingReport,
+} from "@/utils/repertoire";
 import {
   ActionIcon,
   Alert,

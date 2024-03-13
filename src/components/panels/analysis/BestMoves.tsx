@@ -3,13 +3,13 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { events, EngineOptions, GoMode } from "@/bindings";
+import { events, type EngineOptions, type GoMode } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
 import {
-  Engine,
-  LocalEngine,
+  type Engine,
+  type LocalEngine,
   getBestMoves as localGetBestMoves,
   stopEngine,
 } from "@/utils/engines";

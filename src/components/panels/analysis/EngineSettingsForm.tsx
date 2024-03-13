@@ -1,11 +1,11 @@
 import { enginesAtom } from "@/atoms/atoms";
-import { GoMode } from "@/bindings";
+import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
-import { EngineSettings } from "@/utils/engines";
+import type { EngineSettings } from "@/utils/engines";
 import {
   ActionIcon,
   Group,
-  MantineColor,
+  type MantineColor,
   Stack,
   Text,
   Tooltip,

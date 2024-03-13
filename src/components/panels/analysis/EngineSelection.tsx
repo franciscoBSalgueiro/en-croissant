@@ -1,6 +1,6 @@
 import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import LocalImage from "@/components/common/LocalImage";
-import { Engine, stopEngine } from "@/utils/engines";
+import { type Engine, stopEngine } from "@/utils/engines";
 import {
   Center,
   Checkbox,

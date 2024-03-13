@@ -1,4 +1,4 @@
-import { GoMode } from "@/bindings";
+import type { GoMode } from "@/bindings";
 import { Group, NumberInput, SegmentedControl } from "@mantine/core";
 import { match } from "ts-pattern";
 import TimeInput from "./TimeInput";

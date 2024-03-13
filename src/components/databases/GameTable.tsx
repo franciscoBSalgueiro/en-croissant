@@ -1,9 +1,9 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import {
-  DatabaseInfo,
-  GameQuery,
-  NormalizedGame,
-  Outcome,
+  type DatabaseInfo,
+  type GameQuery,
+  type NormalizedGame,
+  type Outcome,
   query_games,
 } from "@/utils/db";
 import { invoke } from "@/utils/invoke";

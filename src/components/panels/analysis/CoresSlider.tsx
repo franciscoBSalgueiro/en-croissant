@@ -16,7 +16,7 @@ export default function CoresSlider(props: {
       size="xs"
       color={props.color || theme.primaryColor}
       value={props.value.toString()}
-      onChange={(v) => props.setValue(parseInt(v))}
+      onChange={(v) => props.setValue(Number.parseInt(v))}
       data={values.map((v) => v.toString())}
     />
   );

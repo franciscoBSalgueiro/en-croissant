@@ -23,7 +23,7 @@ export default function FontSizeSlider() {
       }}
       onChangeEnd={setFontSize}
       marks={["50%", "100%", "150%", "200%"].map((label) => ({
-        value: parseInt(label),
+        value: Number.parseInt(label),
         label,
       }))}
     />

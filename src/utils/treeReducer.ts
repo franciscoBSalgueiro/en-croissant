@@ -1,12 +1,12 @@
-import { BestMoves, Score } from "@/bindings";
-import { DrawShape } from "chessground/draw";
-import { Move, isNormal } from "chessops";
+import type { BestMoves, Score } from "@/bindings";
+import type { DrawShape } from "chessground/draw";
+import { type Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
-import { ANNOTATION_INFO, Annotation } from "./chess";
+import { ANNOTATION_INFO, type Annotation } from "./chess";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import { Outcome } from "./db";
+import type { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
 import { playSound } from "./sound";

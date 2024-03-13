@@ -1,6 +1,6 @@
 import { parseUci } from "chessops";
 import { expect, test } from "vitest";
-import treeReducer, { TreeState, defaultTree } from "../treeReducer";
+import treeReducer, { type TreeState, defaultTree } from "../treeReducer";
 
 const e4 = parseUci("e2e4")!;
 const d5 = parseUci("d7d5")!;

@@ -1,33 +1,37 @@
-import { BestMoves, GoMode } from "@/bindings";
-import { Position, positionSchema } from "@/components/files/opening";
-import { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { DatabaseInfo } from "@/utils/db";
-import { Engine, EngineSettings, engineSchema } from "@/utils/engines";
+import type { BestMoves, GoMode } from "@/bindings";
+import { type Position, positionSchema } from "@/components/files/opening";
+import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import type { DatabaseInfo } from "@/utils/db";
 import {
+  type Engine,
+  type EngineSettings,
+  engineSchema,
+} from "@/utils/engines";
+import type {
   LichessGamesOptions,
   MasterGamesOptions,
 } from "@/utils/lichess/explorer";
-import { MissingMove } from "@/utils/repertoire";
-import { Tab, genID, tabSchema } from "@/utils/tabs";
-import { MantineColor } from "@mantine/core";
+import type { MissingMove } from "@/utils/repertoire";
+import { type Tab, genID, tabSchema } from "@/utils/tabs";
+import type { MantineColor } from "@mantine/core";
 
-import { OpponentSettings } from "@/components/boards/BoardGame";
+import type { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import { getWinChance, normalizeScore } from "@/utils/score";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
-import { PrimitiveAtom, atom } from "jotai";
+import { type PrimitiveAtom, atom } from "jotai";
 import {
   atomFamily,
   atomWithStorage,
   createJSONStorage,
   loadable,
 } from "jotai/utils";
-import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
-import { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
-import { ReviewLog } from "ts-fsrs";
+import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
+import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
-import { Session } from "../utils/session";
+import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
@@ -97,14 +101,14 @@ export const storedDocumentDirAtom = atomWithStorage<string>(
   "document-dir",
   "",
   undefined,
-  { unstable_getOnInit: true },
+  { getOnInit: true },
 );
 
 // Settings
 
 export const fontSizeAtom = atomWithStorage(
   "font-size",
-  parseInt(document.documentElement.style.fontSize) || 100,
+  Number.parseInt(document.documentElement.style.fontSize) || 100,
 );
 
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
@@ -132,7 +136,7 @@ export const showCoordinatesAtom = atomWithStorage<boolean>(
   false,
   undefined,
   {
-    unstable_getOnInit: true,
+    getOnInit: true,
   },
 );
 export const soundCollectionAtom = atomWithStorage<string>(
@@ -140,7 +144,7 @@ export const soundCollectionAtom = atomWithStorage<string>(
   "standard",
   undefined,
   {
-    unstable_getOnInit: true,
+    getOnInit: true,
   },
 );
 
@@ -149,7 +153,7 @@ export const soundVolumeAtom = atomWithStorage<number>(
   0.8,
   undefined,
   {
-    unstable_getOnInit: true,
+    getOnInit: true,
   },
 );
 

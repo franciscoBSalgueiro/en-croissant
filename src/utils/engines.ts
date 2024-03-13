@@ -1,4 +1,9 @@
-import { BestMoves, EngineOptions, GoMode, commands } from "@/bindings";
+import {
+  type BestMoves,
+  type EngineOptions,
+  type GoMode,
+  commands,
+} from "@/bindings";
 import { fetch } from "@tauri-apps/api/http";
 import useSWR from "swr";
 import { z } from "zod";

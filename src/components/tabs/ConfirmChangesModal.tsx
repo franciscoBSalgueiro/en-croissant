@@ -1,4 +1,4 @@
-import { Dirs } from "@/App";
+import type { Dirs } from "@/App";
 import { currentTabAtom } from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";

@@ -2,7 +2,11 @@ import { ANNOTATION_INFO } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { skipWhile, takeWhile } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
-import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
+import {
+  type ListNode,
+  type TreeNode,
+  treeIteratorMainLine,
+} from "@/utils/treeReducer";
 import { AreaChart } from "@mantine/charts";
 import {
   Box,
@@ -14,7 +18,7 @@ import {
 } from "@mantine/core";
 import equal from "fast-deep-equal";
 import { useContext } from "react";
-import { CategoricalChartState } from "recharts/types/chart/generateCategoricalChart";
+import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
 import * as classes from "./EvalChart.css";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
 
@@ -40,7 +44,10 @@ const EvalChart = (props: EvalChartProps) => {
     if (node.score) {
       let cp: number = node.score.value;
       if (node.score.type === "mate") {
-        cp = node.score.value > 0 ? Infinity : -Infinity;
+        cp =
+          node.score.value > 0
+            ? Number.POSITIVE_INFINITY
+            : Number.NEGATIVE_INFINITY;
       }
       return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
     }
@@ -142,7 +149,7 @@ const EvalChart = (props: EvalChartProps) => {
     return null;
   };
 
-  const onChartClick = (data: CategoricalChartState) => {
+  const onChartClick: CategoricalChartFunc = (data) => {
     if (data?.activePayload?.length && data.activePayload[0].payload) {
       const dataPoint: DataPoint = data.activePayload[0].payload;
       dispatch({

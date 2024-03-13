@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { ANNOTATION_INFO, Annotation, NAG_INFO } from "../chess";
+import { ANNOTATION_INFO, type Annotation, NAG_INFO } from "../chess";
 
 test("NAGs are consistent", () => {
   for (const k of Object.keys(ANNOTATION_INFO)) {

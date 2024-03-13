@@ -1,6 +1,6 @@
 import treeReducer, {
-  TreeAction,
-  TreeState,
+  type TreeAction,
+  type TreeState,
   defaultTree,
 } from "@/utils/treeReducer";
 import { createContext, useEffect } from "react";

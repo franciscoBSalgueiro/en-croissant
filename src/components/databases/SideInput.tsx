@@ -1,4 +1,4 @@
-import { Sides } from "@/utils/db";
+import type { Sides } from "@/utils/db";
 import { Box, Menu, UnstyledButton } from "@mantine/core";
 import { useEffect, useState } from "react";
 import * as classes from "./SideInput.css";

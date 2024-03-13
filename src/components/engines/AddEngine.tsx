@@ -1,8 +1,8 @@
 import { enginesAtom } from "@/atoms/atoms";
 import { events, commands } from "@/bindings";
 import {
-  LocalEngine,
-  RemoteEngine,
+  type LocalEngine,
+  type RemoteEngine,
   requiredEngineSettings,
   useDefaultEngines,
 } from "@/utils/engines";

@@ -1,4 +1,4 @@
-import { Input, InputWrapperProps, Text } from "@mantine/core";
+import { Input, type InputWrapperProps, Text } from "@mantine/core";
 
 function FileInput({
   label,

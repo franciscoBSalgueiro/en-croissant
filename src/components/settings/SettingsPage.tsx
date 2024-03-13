@@ -1,4 +1,4 @@
-import { Dirs } from "@/App";
+import type { Dirs } from "@/App";
 import {
   autoPromoteAtom,
   autoSaveAtom,

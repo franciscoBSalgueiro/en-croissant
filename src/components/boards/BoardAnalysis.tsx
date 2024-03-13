@@ -17,7 +17,7 @@ import {
   useState,
 } from "react";
 
-import { Dirs } from "@/App";
+import type { Dirs } from "@/App";
 import {
   autoSaveAtom,
   bestMovesFamily,

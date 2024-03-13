@@ -1,5 +1,5 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { NormalizedGame } from "@/utils/db";
+import type { NormalizedGame } from "@/utils/db";
 import { invoke } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
 import {

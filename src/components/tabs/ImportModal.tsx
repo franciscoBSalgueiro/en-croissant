@@ -13,7 +13,7 @@ import {
 } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
-import { Dirs } from "@/App";
+import type { Dirs } from "@/App";
 import { currentTabAtom } from "@/atoms/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
@@ -28,7 +28,7 @@ import { useState } from "react";
 import { useRouteLoaderData } from "react-router-dom";
 import { match } from "ts-pattern";
 import GenericCard from "../common/GenericCard";
-import { FileMetadata, FileType } from "../files/file";
+import type { FileMetadata, FileType } from "../files/file";
 
 type ImportType = "PGN" | "Link" | "FEN";
 

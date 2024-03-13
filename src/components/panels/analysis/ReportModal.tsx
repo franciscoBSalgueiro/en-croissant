@@ -1,7 +1,7 @@
 import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
-import { GoMode, commands } from "@/bindings";
+import { type GoMode, commands } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { LocalEngine } from "@/utils/engines";
+import type { LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import {
   Button,

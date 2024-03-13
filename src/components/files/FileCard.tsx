@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
-import { FileMetadata } from "./file";
+import type { FileMetadata } from "./file";
 
 function FileCard({
   selected,

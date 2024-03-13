@@ -7,14 +7,14 @@ import {
   masterOptionsAtom,
   referenceDbAtom,
 } from "@/atoms/atoms";
-import { Opening, searchPosition } from "@/utils/db";
+import { type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import {
   convertToNormalized,
   getLichessGames,
   getMasterGames,
 } from "@/utils/lichess/api";
-import {
+import type {
   LichessGamesOptions,
   MasterGamesOptions,
 } from "@/utils/lichess/explorer";

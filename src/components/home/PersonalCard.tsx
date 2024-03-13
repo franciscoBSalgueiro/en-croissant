@@ -4,9 +4,9 @@ import {
   sessionsAtom,
   tabsAtom,
 } from "@/atoms/atoms";
-import { MonthData, commands } from "@/bindings";
+import { type MonthData, commands } from "@/bindings";
 import { parsePGN } from "@/utils/chess";
-import { PlayerGameInfo } from "@/utils/db";
+import type { PlayerGameInfo } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
 import { countMainPly, defaultTree } from "@/utils/treeReducer";
@@ -16,6 +16,7 @@ import {
   Divider,
   Flex,
   Group,
+  Tooltip as MTTooltip,
   Paper,
   Progress,
   ScrollArea,
@@ -24,13 +25,12 @@ import {
   Table,
   Tabs,
   Text,
-  Tooltip as MTTooltip,
   useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Color } from "chessops";
+import type { Color } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -399,7 +399,7 @@ function DateChart({
           bottom: 5,
         }}
         onClick={(e) => {
-          const year = parseInt(e.activePayload?.[0]?.payload?.name);
+          const year = Number.parseInt(e.activePayload?.[0]?.payload?.name);
           if (year) {
             setSelectedYear((prev) => (prev === year ? null : year));
           }

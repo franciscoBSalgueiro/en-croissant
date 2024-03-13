@@ -13,7 +13,7 @@ import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
-import { Engine } from "@/utils/engines";
+import type { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {

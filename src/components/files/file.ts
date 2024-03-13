@@ -2,7 +2,7 @@ import { commands } from "@/bindings";
 import { count_pgn_games } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
 import {
-  FileEntry,
+  type FileEntry,
   exists,
   readTextFile,
   writeTextFile,

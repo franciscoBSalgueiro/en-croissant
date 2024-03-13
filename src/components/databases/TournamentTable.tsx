@@ -1,12 +1,12 @@
 import {
-  DatabaseInfo,
-  Player,
-  Tournament,
+  type DatabaseInfo,
+  type Player,
+  type Tournament,
   query_tournaments,
 } from "@/utils/db";
 import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import GridLayout from "./GridLayout";

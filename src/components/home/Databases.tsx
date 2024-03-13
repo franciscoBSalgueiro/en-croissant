@@ -1,14 +1,14 @@
 import { sessionsAtom } from "@/atoms/atoms";
-import { events, MonthData, Results, commands } from "@/bindings";
+import { events, type MonthData, type Results, commands } from "@/bindings";
 import {
-  DatabaseInfo as PlainDatabaseInfo,
-  Player,
-  PlayerGameInfo,
+  type DatabaseInfo as PlainDatabaseInfo,
+  type Player,
+  type PlayerGameInfo,
   getDatabases,
   query_players,
 } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
-import { Session } from "@/utils/session";
+import type { Session } from "@/utils/session";
 import { Flex, Progress, Select, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";

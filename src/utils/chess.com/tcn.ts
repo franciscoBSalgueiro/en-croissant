@@ -1,4 +1,4 @@
-import { NormalMove, charToRole, parseSquare } from "chessops";
+import { type NormalMove, charToRole, parseSquare } from "chessops";
 
 const pieceEncoding =
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?{~}(^)[_]@#$,./&-*++=";

@@ -1,5 +1,5 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { TablebaseCategory, getTablebaseInfo } from "@/utils/lichess/api";
+import { type TablebaseCategory, getTablebaseInfo } from "@/utils/lichess/api";
 import {
   Accordion,
   Badge,

@@ -1,7 +1,7 @@
 import { enginesAtom } from "@/atoms/atoms";
 import {
-  Engine,
-  LocalEngine,
+  type Engine,
+  type LocalEngine,
   engineSchema,
   requiredEngineSettings,
 } from "@/utils/engines";

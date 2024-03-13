@@ -1,5 +1,6 @@
 import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 type StorageValue<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 

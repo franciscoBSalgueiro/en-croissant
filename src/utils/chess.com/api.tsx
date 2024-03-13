@@ -5,7 +5,12 @@ import { writeTextFile } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { Chess } from "chessops";
-import { ChildNode, PgnNodeData, defaultGame, makePgn } from "chessops/pgn";
+import {
+  ChildNode,
+  type PgnNodeData,
+  defaultGame,
+  makePgn,
+} from "chessops/pgn";
 import { makeSan } from "chessops/san";
 import { error, info } from "tauri-plugin-log-api";
 import { z } from "zod";
@@ -126,7 +131,10 @@ export async function downloadChessCom(
   });
   const filteredArchives = archives.archives.filter((archive) => {
     const [year, month] = archive.split("/").slice(-2);
-    const archiveDate = new Date(parseInt(year), parseInt(month) - 1);
+    const archiveDate = new Date(
+      Number.parseInt(year),
+      Number.parseInt(month) - 1,
+    );
     return archiveDate >= approximateDate;
   });
 
