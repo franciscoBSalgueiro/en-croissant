@@ -308,7 +308,7 @@ pub async fn search_position(
 
             if let Some(position_query) = &query.position {
                 if position_query.can_reach(&end_material, *end_pawn_home as u16) {
-                    if let Ok(Some(m)) = get_move_after_match(game, fen, &position_query) {
+                    if let Ok(Some(m)) = get_move_after_match(game, fen, position_query) {
                         if sample_games.lock().unwrap().len() < 10 {
                             sample_games.lock().unwrap().push(*id);
                         }

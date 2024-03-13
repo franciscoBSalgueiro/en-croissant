@@ -72,6 +72,8 @@ export async function openingReport({
         path: referenceDb,
         type: "exact",
         fen: item.node.fen,
+        color: "white",
+        player: null,
       },
       "opening",
     );
