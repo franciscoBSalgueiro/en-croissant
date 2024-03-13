@@ -643,7 +643,7 @@ type ColorMap<T> = {
 };
 
 export function isBasicAnnotation(
-  annotation: Annotation,
+  annotation: string,
 ): annotation is "!" | "!!" | "?" | "??" | "!?" | "?!" {
   return ["!", "!!", "?", "??", "!?", "?!"].includes(annotation);
 }

@@ -7,6 +7,7 @@ import {
   tabsAtom,
 } from "@/atoms/atoms";
 import { commands } from "@/bindings";
+import { positionFromFen } from "@/utils/chessops";
 import { unwrap } from "@/utils/invoke";
 import {
   type Completion,
@@ -125,6 +126,11 @@ function Puzzles({ id }: { id: string }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
+  const turnToMove =
+    puzzles[currentPuzzle] !== undefined
+      ? positionFromFen(puzzles[currentPuzzle]?.fen)[0]?.turn
+      : null;
+
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -230,76 +236,87 @@ function Puzzles({ id }: { id: string }) {
             </Input.Wrapper>
           </Group>
           <Divider my="sm" />
-          <Group>
-            <Tooltip label="New Puzzle">
-              <ActionIcon
-                disabled={!selectedDb}
-                onClick={() => generatePuzzle(selectedDb!)}
-              >
-                <IconPlus />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Analyze Position">
-              <ActionIcon
-                disabled={!selectedDb}
-                onClick={() =>
-                  createTab({
-                    tab: {
-                      name: "Puzzle Analysis",
-                      type: "analysis",
-                    },
-                    setTabs,
-                    setActiveTab,
-                    pgn: puzzles[currentPuzzle]?.moves.join(" "),
-                    headers: {
-                      ...defaultTree().headers,
-                      fen: puzzles[currentPuzzle]?.fen,
-                      orientation:
-                        Chess.fromSetup(
-                          parseFen(puzzles[currentPuzzle].fen).unwrap(),
-                        ).unwrap().turn === "white"
-                          ? "black"
-                          : "white",
-                    },
-                  })
-                }
-              >
-                <IconZoomCheck />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Clear Session">
-              <ActionIcon
-                onClick={() => {
-                  setPuzzles([]);
-                  dispatch({ type: "RESET" });
-                }}
-              >
-                <IconX />
-              </ActionIcon>
-            </Tooltip>
-            <Button
-              onClick={async () => {
-                const curPuzzle = puzzles[currentPuzzle];
-                if (curPuzzle.completion === "incomplete") {
-                  changeCompletion("incorrect");
-                }
-                dispatch({
-                  type: "GO_TO_START",
-                });
-                for (let i = 0; i < curPuzzle.moves.length; i++) {
-                  dispatch({
-                    type: "MAKE_MOVE",
-                    payload: parseUci(curPuzzle.moves[i])!,
-                    mainline: true,
-                  });
-                  await new Promise((r) => setTimeout(r, 500));
-                }
-              }}
-              disabled={puzzles.length === 0}
-            >
-              View Solution
-            </Button>
+          <Group justify="space-between">
+            {turnToMove && (
+              <Text fz="1.75rem">
+                {turnToMove === "white" ? "Black " : "White "}
+                To Move
+              </Text>
+            )}
+            <Group>
+              <Tooltip label="New Puzzle">
+                <ActionIcon
+                  disabled={!selectedDb}
+                  onClick={() => generatePuzzle(selectedDb!)}
+                >
+                  <IconPlus />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Analyze Position">
+                <ActionIcon
+                  disabled={!selectedDb}
+                  onClick={() =>
+                    createTab({
+                      tab: {
+                        name: "Puzzle Analysis",
+                        type: "analysis",
+                      },
+                      setTabs,
+                      setActiveTab,
+                      pgn: puzzles[currentPuzzle]?.moves.join(" "),
+                      headers: {
+                        ...defaultTree().headers,
+                        fen: puzzles[currentPuzzle]?.fen,
+                        orientation:
+                          Chess.fromSetup(
+                            parseFen(puzzles[currentPuzzle].fen).unwrap(),
+                          ).unwrap().turn === "white"
+                            ? "black"
+                            : "white",
+                      },
+                    })
+                  }
+                >
+                  <IconZoomCheck />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Clear Session">
+                <ActionIcon
+                  onClick={() => {
+                    setPuzzles([]);
+                    dispatch({ type: "RESET" });
+                  }}
+                >
+                  <IconX />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Group>
+
+          <Button
+            mt="sm"
+            variant="light"
+            onClick={async () => {
+              const curPuzzle = puzzles[currentPuzzle];
+              if (curPuzzle.completion === "incomplete") {
+                changeCompletion("incorrect");
+              }
+              dispatch({
+                type: "GO_TO_START",
+              });
+              for (let i = 0; i < curPuzzle.moves.length; i++) {
+                dispatch({
+                  type: "MAKE_MOVE",
+                  payload: parseUci(curPuzzle.moves[i])!,
+                  mainline: true,
+                });
+                await new Promise((r) => setTimeout(r, 500));
+              }
+            }}
+            disabled={puzzles.length === 0}
+          >
+            View Solution
+          </Button>
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
