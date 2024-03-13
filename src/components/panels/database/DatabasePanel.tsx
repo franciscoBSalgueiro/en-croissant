@@ -49,6 +49,8 @@ export type LocalOptions = {
   path: string | null;
   fen: string;
   type: "exact" | "partial";
+  player: number | null;
+  color: "white" | "black";
 };
 
 function sortOpenings(openings: Opening[]) {

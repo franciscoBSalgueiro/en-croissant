@@ -621,15 +621,16 @@ pub async fn edit_db_info(
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Sides {
     BlackWhite,
     WhiteBlack,
     Any,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum GameSort {
+    #[default]
     #[serde(rename = "id")]
     Id,
     #[serde(rename = "date")]
@@ -642,15 +643,16 @@ pub enum GameSort {
     PlyCount,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Asc,
+    #[default]
     #[serde(rename = "desc")]
     Desc,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
 pub struct QueryOptions<SortT> {
     pub skip_count: bool,
     pub page: Option<i64>,
@@ -659,9 +661,9 @@ pub struct QueryOptions<SortT> {
     pub direction: SortDirection,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct GameQuery {
-    pub options: QueryOptions<GameSort>,
+    pub options: Option<QueryOptions<GameSort>>,
     pub player1: Option<i32>,
     pub player2: Option<i32>,
     pub tournament_id: Option<i32>,
@@ -669,6 +671,17 @@ pub struct GameQuery {
     pub range2: Option<(i32, i32)>,
     pub sides: Option<Sides>,
     pub outcome: Option<String>,
+    pub position: Option<PositionQuery>,
+}
+
+impl GameQuery {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn position(mut self, position: PositionQuery) -> Self {
+        self.position = Some(position);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -686,6 +699,7 @@ pub async fn get_games(
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut count: Option<i64> = None;
+    let query_options = query.options.unwrap_or_default();
 
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
     let mut sql_query = games::table
@@ -711,12 +725,12 @@ pub async fn get_games(
         count_query = count_query.filter(games::event_id.eq(tournament_id));
     }
 
-    if let Some(limit) = query.options.page_size {
+    if let Some(limit) = query_options.page_size {
         sql_query = sql_query.limit(limit);
     }
 
-    if let Some(page) = query.options.page {
-        sql_query = sql_query.offset((page - 1) * query.options.page_size.unwrap_or(10));
+    if let Some(page) = query_options.page {
+        sql_query = sql_query.offset((page - 1) * query_options.page_size.unwrap_or(10));
     }
 
     match query.sides {
@@ -822,30 +836,30 @@ pub async fn get_games(
         None => {}
     }
 
-    sql_query = match query.options.sort {
-        GameSort::Id => match query.options.direction {
+    sql_query = match query_options.sort {
+        GameSort::Id => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::id.asc()),
             SortDirection::Desc => sql_query.order(games::id.desc()),
         },
-        GameSort::Date => match query.options.direction {
+        GameSort::Date => match query_options.direction {
             SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
             SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
         },
-        GameSort::WhiteElo => match query.options.direction {
+        GameSort::WhiteElo => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::white_elo.asc()),
             SortDirection::Desc => sql_query.order(games::white_elo.desc()),
         },
-        GameSort::BlackElo => match query.options.direction {
+        GameSort::BlackElo => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::black_elo.asc()),
             SortDirection::Desc => sql_query.order(games::black_elo.desc()),
         },
-        GameSort::PlyCount => match query.options.direction {
+        GameSort::PlyCount => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::ply_count.asc()),
             SortDirection::Desc => sql_query.order(games::ply_count.desc()),
         },
     };
 
-    if !query.options.skip_count {
+    if !query_options.skip_count {
         count = Some(
             count_query
                 .select(diesel::dsl::count(games::id))

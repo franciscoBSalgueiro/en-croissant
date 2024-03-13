@@ -20,7 +20,7 @@ use std::{fs::create_dir_all, path::Path};
 
 use chess::{BestMovesPayload, EngineProcess, ReportProgress};
 use dashmap::DashMap;
-use db::{DatabaseProgress, NormalizedGame, PositionQuery, PositionStats};
+use db::{DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
@@ -58,7 +58,17 @@ use tokio::sync::{RwLock, Semaphore};
 #[cfg(any(windows, target_os = "macos"))]
 use window_shadows::set_shadow;
 
-pub type GameData = (i32, Option<String>, Vec<u8>, Option<String>, i32, i32, i32);
+pub type GameData = (
+    i32,
+    i32,
+    i32,
+    Option<String>,
+    Vec<u8>,
+    Option<String>,
+    i32,
+    i32,
+    i32,
+);
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -67,7 +77,7 @@ pub struct AppState {
         String,
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
-    line_cache: DashMap<(PositionQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
+    line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     db_cache: Mutex<Vec<GameData>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,

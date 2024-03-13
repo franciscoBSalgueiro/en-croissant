@@ -17,7 +17,7 @@ use tokio::{
 use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage, UciOptionConfig};
 
 use crate::{
-    db::{is_position_in_db, PositionQuery},
+    db::{is_position_in_db, GameQuery, PositionQuery},
     error::Error,
     AppState,
 };
@@ -704,7 +704,12 @@ pub async fn analyze_game(
         analysis.is_sacrifice = fens[i].2;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
-                analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;
+                analysis.novelty = !is_position_in_db(
+                    reference,
+                    GameQuery::new().position(query.clone()).clone(),
+                    state.clone(),
+                )
+                .await?;
                 if analysis.novelty {
                     novelty_found = true;
                 }

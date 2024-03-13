@@ -253,6 +253,8 @@ const localOptionsFamily = atomFamily((tab: string) =>
     path: null,
     type: "exact",
     fen: "",
+    player: null,
+    color: "white",
   }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);

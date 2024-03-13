@@ -1,6 +1,7 @@
 import { currentLocalOptionsAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
 import PiecesGrid from "@/components/boards/PiecesGrid";
+import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
 import {
   Box,
   Button,
@@ -29,6 +30,32 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
 
   return (
     <Stack>
+      <Group>
+        <Group>
+          <Text fw="bold">Player:</Text>
+          {options.path && (
+            <PlayerSearchInput
+              label={"Search"}
+              file={options.path}
+              setValue={(v) => setOptions((q) => ({ ...q, player: v || null }))}
+            />
+          )}
+        </Group>
+        <Group>
+          <Text fw="bold">Color:</Text>
+          <SegmentedControl
+            data={[
+              { value: "white", label: "White" },
+              { value: "black", label: "Black" },
+            ]}
+            value={options.color}
+            onChange={(v) =>
+              setOptions({ ...options, color: v as "white" | "black" })
+            }
+          />
+        </Group>
+      </Group>
+
       <Group>
         <Text fw="bold">Position:</Text>
         <SegmentedControl

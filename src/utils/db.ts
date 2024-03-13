@@ -293,7 +293,11 @@ export async function searchPosition(options: LocalOptions, tab: string) {
     "search_position",
     {
       file: options.path,
-      query: options,
+      query: {
+        player1: options.color === "white" ? options.player : undefined,
+        player2: options.color === "black" ? options.player : undefined,
+        position: options,
+      },
       tabId: tab,
     },
     (s) => s === "Search stopped",

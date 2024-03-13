@@ -23,6 +23,8 @@ use crate::{
     AppState,
 };
 
+use super::GameQuery;
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
     pawn_home: u16,
@@ -215,7 +217,7 @@ pub struct ProgressPayload {
 #[tauri::command]
 pub async fn search_position(
     file: PathBuf,
-    query: PositionQuery,
+    query: GameQuery,
     app: tauri::AppHandle,
     tab_id: String,
     state: tauri::State<'_, AppState>,
@@ -237,6 +239,8 @@ pub async fn search_position(
         *games = games::table
             .select((
                 games::id,
+                games::white_id,
+                games::black_id,
                 games::result,
                 games::moves,
                 games::fen,
@@ -257,7 +261,17 @@ pub async fn search_position(
     println!("start search on {tab_id}");
 
     games.par_iter().for_each(
-        |(id, result, game, fen, end_pawn_home, white_material, black_material)| {
+        |(
+            id,
+            white_id,
+            black_id,
+            result,
+            game,
+            fen,
+            end_pawn_home,
+            white_material,
+            black_material,
+        )| {
             if state.new_request.available_permits() == 0 {
                 return;
             }
@@ -279,36 +293,51 @@ pub async fn search_position(
                 )
                 .unwrap();
             }
-            if query.can_reach(&end_material, *end_pawn_home as u16) {
-                if let Ok(Some(m)) = get_move_after_match(game, fen, &query) {
-                    if sample_games.lock().unwrap().len() < 10 {
-                        sample_games.lock().unwrap().push(*id);
-                    }
-                    let entry = openings.entry(m);
-                    match entry {
-                        Entry::Occupied(mut e) => {
-                            let opening = e.get_mut();
-                            match result.as_deref() {
-                                Some("1-0") => opening.white += 1,
-                                Some("0-1") => opening.black += 1,
-                                Some("1/2-1/2") => opening.draw += 1,
-                                _ => (),
-                            }
+
+            if let Some(white) = query.player1 {
+                if white != *white_id {
+                    return;
+                }
+            }
+
+            if let Some(black) = query.player2 {
+                if black != *black_id {
+                    return;
+                }
+            }
+
+            if let Some(position_query) = &query.position {
+                if position_query.can_reach(&end_material, *end_pawn_home as u16) {
+                    if let Ok(Some(m)) = get_move_after_match(game, fen, &position_query) {
+                        if sample_games.lock().unwrap().len() < 10 {
+                            sample_games.lock().unwrap().push(*id);
                         }
-                        Entry::Vacant(e) => {
-                            let mut opening = PositionStats {
-                                black: 0,
-                                white: 0,
-                                draw: 0,
-                                move_: e.key().to_string(),
-                            };
-                            match result.as_deref() {
-                                Some("1-0") => opening.white = 1,
-                                Some("0-1") => opening.black = 1,
-                                Some("1/2-1/2") => opening.draw = 1,
-                                _ => (),
+                        let entry = openings.entry(m);
+                        match entry {
+                            Entry::Occupied(mut e) => {
+                                let opening = e.get_mut();
+                                match result.as_deref() {
+                                    Some("1-0") => opening.white += 1,
+                                    Some("0-1") => opening.black += 1,
+                                    Some("1/2-1/2") => opening.draw += 1,
+                                    _ => (),
+                                }
                             }
-                            e.insert(opening);
+                            Entry::Vacant(e) => {
+                                let mut opening = PositionStats {
+                                    black: 0,
+                                    white: 0,
+                                    draw: 0,
+                                    move_: e.key().to_string(),
+                                };
+                                match result.as_deref() {
+                                    Some("1-0") => opening.white = 1,
+                                    Some("0-1") => opening.black = 1,
+                                    Some("1/2-1/2") => opening.draw = 1,
+                                    _ => (),
+                                }
+                                e.insert(opening);
+                            }
                         }
                     }
                 }
@@ -345,7 +374,7 @@ pub async fn search_position(
 
 pub async fn is_position_in_db(
     file: PathBuf,
-    query: PositionQuery,
+    query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
@@ -365,6 +394,8 @@ pub async fn is_position_in_db(
         *games = games::table
             .select((
                 games::id,
+                games::white_id,
+                games::black_id,
                 games::result,
                 games::moves,
                 games::fen,
@@ -378,7 +409,17 @@ pub async fn is_position_in_db(
     }
 
     let exists = games.par_iter().any(
-        |(_id, _result, game, fen, end_pawn_home, white_material, black_material)| {
+        |(
+            _id,
+            _white_id,
+            _black_id,
+            _result,
+            game,
+            fen,
+            end_pawn_home,
+            white_material,
+            black_material,
+        )| {
             if state.new_request.available_permits() == 0 {
                 return false;
             }
@@ -386,10 +427,14 @@ pub async fn is_position_in_db(
                 white: *white_material as u8,
                 black: *black_material as u8,
             };
-            query.can_reach(&end_material, *end_pawn_home as u16)
-                && get_move_after_match(game, fen, &query)
-                    .unwrap_or(None)
-                    .is_some()
+            if let Some(position_query) = &query.position {
+                position_query.can_reach(&end_material, *end_pawn_home as u16)
+                    && get_move_after_match(game, fen, position_query)
+                        .unwrap_or(None)
+                        .is_some()
+            } else {
+                false
+            }
         },
     );
     info!("finished search in {:?}", start.elapsed());
