@@ -18,7 +18,7 @@ use crate::error::Error;
 
 #[derive(Clone, Type, serde::Serialize, Event)]
 pub struct DownloadProgress {
-    pub progress: f64,
+    pub progress: f32,
     pub id: String,
     pub finished: bool,
 }
@@ -60,7 +60,7 @@ pub async fn download_file(
         file.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
         if let Some(total_size) = total_size {
-            let progress = ((downloaded as f64 / total_size as f64) * 100.0).min(100.0);
+            let progress = ((downloaded as f32 / total_size as f32) * 100.0).min(100.0);
             // println!("Downloaded {}%", progress);
             DownloadProgress {
                 progress,
