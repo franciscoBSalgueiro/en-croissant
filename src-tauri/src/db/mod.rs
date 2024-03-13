@@ -342,7 +342,7 @@ impl Visitor for Importer {
                 .time
                 .as_ref()
                 .and_then(|time| NaiveTime::parse_from_str(time, "%H:%M:%S").ok())?;
-            Some(date.and_time(time).timestamp())
+            Some(date.and_time(time).and_utc().timestamp())
         });
 
         if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
