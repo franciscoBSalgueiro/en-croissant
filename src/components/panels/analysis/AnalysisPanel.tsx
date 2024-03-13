@@ -11,7 +11,12 @@ import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
+import {
+  ANNOTATION_INFO,
+  getGameStats,
+  getVariationLine,
+  isBasicAnnotation,
+} from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
@@ -389,7 +394,7 @@ const GameStats = memo(
       <Paper withBorder>
         <Grid columns={11} justify="space-between" p="md">
           {Object.keys(ANNOTATION_INFO)
-            .filter((a) => a !== "")
+            .filter((a) => isBasicAnnotation(a))
             .map((annotation) => {
               const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
               const { name, color } = ANNOTATION_INFO[s];
