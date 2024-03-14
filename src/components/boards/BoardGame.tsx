@@ -106,7 +106,6 @@ export type OpponentSettings =
       timeControl?: TimeControlField;
       engine: LocalEngine | null;
       go: GoMode;
-      settings: EngineSettings;
     };
 
 function OpponentForm({
@@ -136,7 +135,6 @@ function OpponentForm({
           t: "Depth",
           c: 24,
         },
-        settings: [],
       }));
     }
   }
@@ -250,7 +248,7 @@ function OpponentForm({
               engineName={opponent.engine.name}
               settings={{
                 go: opponent.go,
-                settings: opponent.settings,
+                settings: opponent.engine.settings || [],
                 enabled: true,
               }}
               setSettings={(fn) =>
@@ -260,7 +258,7 @@ function OpponentForm({
                   }
                   const newSettings = fn({
                     go: prev.go,
-                    settings: prev.settings,
+                    settings: prev.engine?.settings || [],
                     enabled: true,
                   });
                   return { ...prev, ...newSettings };
@@ -379,10 +377,12 @@ function BoardGame() {
           {
             fen: root.fen,
             moves: moves,
-            extraOptions: player.settings.map((s) => ({
-              ...s,
-              value: s.value?.toString() ?? "",
-            })),
+            extraOptions: (player.engine.settings || [])
+              .filter((s) => s.name !== "MultiPV")
+              .map((s) => ({
+                ...s,
+                value: s.value?.toString() ?? "",
+              })),
           },
         );
       }
