@@ -23,7 +23,7 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconDotsVertical, IconEye, IconTrash } from "@tabler/icons-react";
+import { IconDotsVertical } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
@@ -186,23 +186,29 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                   <Group>
                     <DateInput
                       label="From"
-                      value={query.start_date ? dayjs(query.start_date, "YYYY.MM.DD").toDate() : null}
+                      value={
+                        query.start_date
+                          ? dayjs(query.start_date, "YYYY.MM.DD").toDate()
+                          : null
+                      }
                       onChange={(value) =>
                         setQuery({
-                          ...query, start_date: dayjs(value).format(
-                            "YYYY.MM.DD"
-                          )
+                          ...query,
+                          start_date: dayjs(value).format("YYYY.MM.DD"),
                         })
                       }
                     />
                     <DateInput
                       label="To"
-                      value={query.end_date ? dayjs(query.end_date, "YYYY.MM.DD").toDate() : null}
+                      value={
+                        query.end_date
+                          ? dayjs(query.end_date, "YYYY.MM.DD").toDate()
+                          : null
+                      }
                       onChange={(value) =>
                         setQuery({
-                          ...query, end_date: dayjs(value).format(
-                            "YYYY.MM.DD"
-                          )
+                          ...query,
+                          end_date: dayjs(value).format("YYYY.MM.DD"),
                         })
                       }
                     />
