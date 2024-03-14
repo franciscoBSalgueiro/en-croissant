@@ -13,9 +13,11 @@ import { TreeDispatchContext } from "./TreeStateContext";
 function GameInfo({
   headers,
   simplified,
+  changeTitle,
 }: {
   headers: GameHeaders;
   simplified?: boolean;
+  changeTitle?: (title: string) => void;
 }) {
   const dispatch = useContext(TreeDispatchContext);
   const disabled = dispatch.length === 0;
@@ -74,6 +76,9 @@ function GameInfo({
                   event: e.target.value,
                 },
               });
+              if (changeTitle) {
+                changeTitle(e.target.value);
+              }
             }}
           />
           {headers.round && headers.round !== "?" && (

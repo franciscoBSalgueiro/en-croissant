@@ -35,7 +35,17 @@ function InfoPanel() {
       <ScrollArea offsetScrollbars>
         <FileInfo setGames={setGames} />
         <Stack>
-          <GameInfo headers={tree.headers} simplified={isReportoire} />
+          <GameInfo
+            headers={tree.headers}
+            simplified={isReportoire}
+            changeTitle={(title: string) => {
+              setGames((prev) => {
+                const newGames = new Map(prev);
+                newGames.set(currentTab?.gameNumber || 0, title);
+                return newGames;
+              });
+            }}
+          />
           <FenSearch currentFen={currentNode.fen} />
           <PgnInput />
 
