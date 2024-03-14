@@ -6,7 +6,6 @@ import {
   type Outcome,
   query_games,
 } from "@/utils/db";
-import { invoke } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -22,8 +21,10 @@ import {
   Text,
   useMantineTheme,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconDotsVertical, IconEye, IconTrash } from "@tabler/icons-react";
+import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useState } from "react";
@@ -182,6 +183,30 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                       { label: "Draw", value: "1/2-1/2" },
                     ]}
                   />
+                  <Group>
+                    <DateInput
+                      label="From"
+                      value={query.start_date ? dayjs(query.start_date, "YYYY.MM.DD").toDate() : null}
+                      onChange={(value) =>
+                        setQuery({
+                          ...query, start_date: dayjs(value).format(
+                            "YYYY.MM.DD"
+                          )
+                        })
+                      }
+                    />
+                    <DateInput
+                      label="To"
+                      value={query.end_date ? dayjs(query.end_date, "YYYY.MM.DD").toDate() : null}
+                      onChange={(value) =>
+                        setQuery({
+                          ...query, end_date: dayjs(value).format(
+                            "YYYY.MM.DD"
+                          )
+                        })
+                      }
+                    />
+                  </Group>
                 </Stack>
               </Collapse>
             </Box>

@@ -60,6 +60,8 @@ export interface GameQuery extends Query {
   rangePlayer2?: [number, number];
   speed?: Speed;
   outcome?: Outcome;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface Game {
@@ -110,6 +112,8 @@ export async function query_games(
       sides: query.sides,
       speed: query.speed,
       outcome: query.outcome,
+      start_date: query.start_date,
+      end_date: query.end_date,
     },
   });
 }

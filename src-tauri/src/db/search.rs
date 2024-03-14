@@ -241,6 +241,7 @@ pub async fn search_position(
                 games::id,
                 games::white_id,
                 games::black_id,
+                games::date,
                 games::result,
                 games::moves,
                 games::fen,
@@ -265,6 +266,7 @@ pub async fn search_position(
             id,
             white_id,
             black_id,
+            date,
             result,
             game,
             fen,
@@ -292,6 +294,14 @@ pub async fn search_position(
                     },
                 )
                 .unwrap();
+            }
+
+            if let Some(start_date) = &query.start_date {
+                if let Some(date) = date {
+                    if date < start_date {
+                        return;
+                    }
+                }
             }
 
             if let Some(white) = query.player1 {
@@ -396,6 +406,7 @@ pub async fn is_position_in_db(
                 games::id,
                 games::white_id,
                 games::black_id,
+                games::date,
                 games::result,
                 games::moves,
                 games::fen,
@@ -413,6 +424,7 @@ pub async fn is_position_in_db(
             _id,
             _white_id,
             _black_id,
+            _date,
             _result,
             game,
             fen,

@@ -63,6 +63,7 @@ pub type GameData = (
     i32,
     i32,
     Option<String>,
+    Option<String>,
     Vec<u8>,
     Option<String>,
     i32,

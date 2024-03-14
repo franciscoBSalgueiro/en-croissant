@@ -667,6 +667,8 @@ pub struct GameQuery {
     pub player1: Option<i32>,
     pub player2: Option<i32>,
     pub tournament_id: Option<i32>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
     pub range1: Option<(i32, i32)>,
     pub range2: Option<(i32, i32)>,
     pub sides: Option<Sides>,
@@ -718,6 +720,16 @@ pub async fn get_games(
     if let Some(outcome) = query.outcome {
         sql_query = sql_query.filter(games::result.eq(outcome.clone()));
         count_query = count_query.filter(games::result.eq(outcome));
+    }
+
+    if let Some(start_date) = query.start_date {
+        sql_query = sql_query.filter(games::date.ge(start_date.clone()));
+        count_query = count_query.filter(games::date.ge(start_date));
+    }
+
+    if let Some(end_date) = query.end_date {
+        sql_query = sql_query.filter(games::date.le(end_date.clone()));
+        count_query = count_query.filter(games::date.le(end_date));
     }
 
     if let Some(tournament_id) = query.tournament_id {
