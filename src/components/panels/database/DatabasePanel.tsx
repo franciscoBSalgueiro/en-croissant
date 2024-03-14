@@ -51,6 +51,8 @@ export type LocalOptions = {
   type: "exact" | "partial";
   player: number | null;
   color: "white" | "black";
+  start_date?: string;
+  end_date?: string;
 };
 
 function sortOpenings(openings: Opening[]) {

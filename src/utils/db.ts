@@ -301,6 +301,8 @@ export async function searchPosition(options: LocalOptions, tab: string) {
         player1: options.color === "white" ? options.player : undefined,
         player2: options.color === "black" ? options.player : undefined,
         position: options,
+        start_date: options.start_date,
+        end_date: options.end_date,
       },
       tabId: tab,
     },

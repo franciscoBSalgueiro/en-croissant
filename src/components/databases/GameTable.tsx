@@ -186,6 +186,9 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                   <Group>
                     <DateInput
                       label="From"
+                      placeholder="Start date"
+                      clearable
+                      valueFormat="YYYY-MM-DD"
                       value={
                         query.start_date
                           ? dayjs(query.start_date, "YYYY.MM.DD").toDate()
@@ -194,12 +197,17 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                       onChange={(value) =>
                         setQuery({
                           ...query,
-                          start_date: dayjs(value).format("YYYY.MM.DD"),
+                          start_date: value
+                            ? dayjs(value).format("YYYY.MM.DD")
+                            : undefined,
                         })
                       }
                     />
                     <DateInput
                       label="To"
+                      placeholder="End date"
+                      clearable
+                      valueFormat="YYYY-MM-DD"
                       value={
                         query.end_date
                           ? dayjs(query.end_date, "YYYY.MM.DD").toDate()
@@ -208,7 +216,9 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                       onChange={(value) =>
                         setQuery({
                           ...query,
-                          end_date: dayjs(value).format("YYYY.MM.DD"),
+                          end_date: value
+                            ? dayjs(value).format("YYYY.MM.DD")
+                            : undefined,
                         })
                       }
                     />

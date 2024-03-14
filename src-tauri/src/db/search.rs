@@ -304,6 +304,14 @@ pub async fn search_position(
                 }
             }
 
+            if let Some(end_date) = &query.end_date {
+                if let Some(date) = date {
+                    if date > end_date {
+                        return;
+                    }
+                }
+            }
+
             if let Some(white) = query.player1 {
                 if white != *white_id {
                     return;

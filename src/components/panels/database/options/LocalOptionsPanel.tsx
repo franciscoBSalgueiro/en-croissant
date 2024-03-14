@@ -10,8 +10,10 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { parseSquare } from "chessops";
 import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
+import dayjs from "dayjs";
 import { useAtom } from "jotai";
 import { useRef } from "react";
 
@@ -51,6 +53,44 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             value={options.color}
             onChange={(v) =>
               setOptions({ ...options, color: v as "white" | "black" })
+            }
+          />
+        </Group>
+        <Group>
+          <DateInput
+            label="From"
+            placeholder="Start date"
+            valueFormat="YYYY-MM-DD"
+            clearable
+            value={
+              options.start_date
+                ? dayjs(options.start_date, "YYYY.MM.DD").toDate()
+                : undefined
+            }
+            onChange={(value) =>
+              setOptions({
+                ...options,
+                start_date: value
+                  ? dayjs(value).format("YYYY.MM.DD")
+                  : undefined,
+              })
+            }
+          />
+          <DateInput
+            label="To"
+            placeholder="End date"
+            valueFormat="YYYY-MM-DD"
+            clearable
+            value={
+              options.end_date
+                ? dayjs(options.end_date, "YYYY.MM.DD").toDate()
+                : null
+            }
+            onChange={(value) =>
+              setOptions({
+                ...options,
+                end_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
+              })
             }
           />
         </Group>
@@ -139,10 +179,6 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           />
         </Box>
       </Group>
-
-      {/* <Group>
-        <Text fw="bold">Material:</Text>
-      </Group> */}
     </Stack>
   );
 }
