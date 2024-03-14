@@ -376,6 +376,7 @@ function EngineSettings({
                   alt={engine.name}
                   mah="10rem"
                   maw="100%"
+                  fit="contain"
                 />
               </Paper>
             ) : (
