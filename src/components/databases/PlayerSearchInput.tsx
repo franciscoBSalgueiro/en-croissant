@@ -13,7 +13,7 @@ export function PlayerSearchInput({
   setValue,
 }: {
   label: string;
-  value: number | null;
+  value?: number;
   file: string;
   rightSection?: ReactNode;
   setValue: (val: number | undefined) => void;
@@ -22,7 +22,7 @@ export function PlayerSearchInput({
   const [data, setData] = useState<Player[]>([]);
 
   useEffect(() => {
-    if (value !== null) {
+    if (value !== undefined) {
       commands.getPlayer(file, value).then((res) => {
         const player = unwrap(res);
         if (player?.name) {
