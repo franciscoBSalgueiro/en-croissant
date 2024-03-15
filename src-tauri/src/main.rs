@@ -37,7 +37,8 @@ use tauri_plugin_log::LogTarget;
 use crate::chess::{analyze_game, get_engine_config, get_engine_logs, kill_engines, stop_engine};
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
-    delete_indexes, export_to_pgn, get_players_game_info, get_tournaments, search_position,
+    delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
+    search_position,
 };
 use crate::fide::{download_fide_db, find_fide_player};
 use crate::fs::{append_to_file, set_file_as_executable, DownloadProgress};
@@ -146,6 +147,7 @@ fn main() {
                 get_file_metadata,
                 merge_players,
                 convert_pgn,
+                get_player,
             ))
             .events(tauri_specta::collect_events!(
                 BestMovesPayload,

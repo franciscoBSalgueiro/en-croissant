@@ -1,21 +1,36 @@
+import { commands } from "@/bindings";
 import { type Player, query_players } from "@/utils/db";
+import { unwrap } from "@/utils/invoke";
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 export function PlayerSearchInput({
   label,
+  value,
   file,
   rightSection,
   setValue,
 }: {
   label: string;
+  value: number | null;
   file: string;
   rightSection?: ReactNode;
   setValue: (val: number | undefined) => void;
 }) {
   const [tempValue, setTempValue] = useState("");
   const [data, setData] = useState<Player[]>([]);
+
+  useEffect(() => {
+    if (value !== null) {
+      commands.getPlayer(file, value).then((res) => {
+        const player = unwrap(res);
+        if (player?.name) {
+          setTempValue(player.name);
+        }
+      });
+    }
+  }, [value]);
 
   async function handleChange(val: string) {
     setTempValue(val);

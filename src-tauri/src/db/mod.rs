@@ -948,6 +948,21 @@ pub enum PlayerSort {
 }
 
 #[tauri::command]
+#[specta::specta]
+pub async fn get_player(
+    file: PathBuf,
+    id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<Player>, Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let player = players::table
+        .filter(players::id.eq(id))
+        .first::<Player>(db)
+        .optional()?;
+    Ok(player)
+}
+
+#[tauri::command]
 pub async fn get_players(
     file: PathBuf,
     query: PlayerQuery,

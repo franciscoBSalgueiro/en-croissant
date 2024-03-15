@@ -38,6 +38,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           {options.path && (
             <PlayerSearchInput
               label={"Search"}
+              value={options.player}
               file={options.path}
               setValue={(v) => setOptions((q) => ({ ...q, player: v || null }))}
             />

@@ -16,7 +16,7 @@ pub struct Puzzle {
     pub nb_plays: i32,
 }
 
-#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable, Clone)]
+#[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable, Clone, Type)]
 #[diesel(table_name = players)]
 pub struct Player {
     pub id: i32,
