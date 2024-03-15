@@ -165,7 +165,7 @@ type PositionGames = {
 export async function convertToNormalized(
   data: PositionGames,
 ): Promise<NormalizedGame[]> {
-  return await Promise.all(
+  const results = await Promise.allSettled(
     data.map(async (game, i) => {
       const pgn = await getLichessGame(game.id);
       const { headers, root } = await parsePGN(pgn);
@@ -183,6 +183,9 @@ export async function convertToNormalized(
       return normalized;
     }),
   );
+  return results
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => (r as PromiseFulfilledResult<NormalizedGame>).value);
 }
 
 type PositionData = {
