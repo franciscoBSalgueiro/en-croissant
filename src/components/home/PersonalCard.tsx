@@ -29,11 +29,11 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Color } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Bar,
   CartesianGrid,
@@ -503,7 +503,7 @@ function OpeningNameButton({ name, color }: { name: string; color: Color }) {
           setActiveTab,
           position: Array(countMainPly(tree.root)).fill(0),
         });
-        navigate("/");
+        navigate({ to: "/" });
       }}
     >
       {name}

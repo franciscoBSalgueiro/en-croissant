@@ -2,13 +2,14 @@
 import { resolve } from "node:path";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react-swc";
+import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import { defineConfig } from "vite";
 
 const isDebug = !!process.env.TAURI_DEBUG;
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), vanillaExtractPlugin()],
+  plugins: [react(), vanillaExtractPlugin(), TanStackRouterVite()],
   server: {
     port: 1420,
   },

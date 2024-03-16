@@ -24,11 +24,11 @@ import {
 import { DateInput } from "@mantine/dates";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconDotsVertical } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
@@ -251,7 +251,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                 pgn: record.moves,
                 headers: record,
               });
-              navigate("/");
+              navigate({ to: "/" });
             }}
             columns={[
               {

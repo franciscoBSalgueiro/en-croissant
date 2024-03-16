@@ -1,10 +1,9 @@
-import type { Dirs } from "@/App";
 import { currentTabAtom } from "@/atoms/atoms";
 import { saveToFile } from "@/utils/tabs";
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { useLoaderData } from "@tanstack/react-router";
 import { useAtom } from "jotai";
 import { useContext } from "react";
-import { useRouteLoaderData } from "react-router-dom";
 import { TreeDispatchContext } from "../common/TreeStateContext";
 
 function ConfirmChangesModal({
@@ -18,7 +17,7 @@ function ConfirmChangesModal({
 }) {
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const dispatch = useContext(TreeDispatchContext);
-  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  const { documentDir } = useLoaderData({ from: "/" });
 
   function save() {
     const { root, headers } = JSON.parse(

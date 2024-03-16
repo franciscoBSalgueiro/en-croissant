@@ -5,7 +5,7 @@ export const control = style({
   display: "flex",
   alignItems: "center",
   padding: "8px 15px 8px 15px",
-  borderRadius: vars.radius.xl,
+  borderRadius: vars.radius.md,
   transition: "background-color 150ms ease",
 
   [vars.lightSelector]: {

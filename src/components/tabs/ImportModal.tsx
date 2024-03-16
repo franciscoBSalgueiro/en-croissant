@@ -1,3 +1,11 @@
+import { currentTabAtom } from "@/atoms/atoms";
+import { parsePGN } from "@/utils/chess";
+import { getChesscomGame } from "@/utils/chess.com/api";
+import { chessopsError } from "@/utils/chessops";
+import { count_pgn_games, read_games } from "@/utils/db";
+import { createFile } from "@/utils/files";
+import { getLichessGame } from "@/utils/lichess/api";
+import { defaultTree, getGameName } from "@/utils/treeReducer";
 import {
   Button,
   Checkbox,
@@ -11,21 +19,11 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
+import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/api/dialog";
-
-import type { Dirs } from "@/App";
-import { currentTabAtom } from "@/atoms/atoms";
-import { parsePGN } from "@/utils/chess";
-import { getChesscomGame } from "@/utils/chess.com/api";
-import { chessopsError } from "@/utils/chessops";
-import { count_pgn_games, read_games } from "@/utils/db";
-import { createFile } from "@/utils/files";
-import { getLichessGame } from "@/utils/lichess/api";
-import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { makeFen, parseFen } from "chessops/fen";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom } from "jotai";
 import { useState } from "react";
-import { useRouteLoaderData } from "react-router-dom";
 import { match } from "ts-pattern";
 import GenericCard from "../common/GenericCard";
 import type { FileMetadata, FileType } from "../files/file";
@@ -60,7 +58,7 @@ export default function ImportModal({
   const [save, setSave] = useState(false);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
-  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  const { documentDir } = useLoaderData({ from: "/" });
 
   async function handleSubmit() {
     setLoading(true);

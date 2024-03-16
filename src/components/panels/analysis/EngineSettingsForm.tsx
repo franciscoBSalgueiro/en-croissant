@@ -11,9 +11,9 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconReload, IconSettings } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import React, { memo } from "react";
-import { useNavigate } from "react-router-dom";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
@@ -171,9 +171,12 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
       <ActionIcon
         size="xs"
         onClick={() =>
-          navigate(
-            `/engines?load=${engines.findIndex((o) => o.name === engineName)}`,
-          )
+          navigate({
+            to: "/engines",
+            search: {
+              selected: engines.findIndex((o) => o.name === engineName),
+            },
+          })
         }
       >
         <IconSettings />

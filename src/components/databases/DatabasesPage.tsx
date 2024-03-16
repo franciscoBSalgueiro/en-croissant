@@ -24,10 +24,10 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { open as openDialog, save } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
@@ -128,7 +128,10 @@ export default function DatabasesPage() {
                   setSelected={setSelected}
                   error={item.error}
                   onDoubleClick={() => {
-                    navigate("/databases/view");
+                    navigate({
+                      to: "/databases/$databaseId",
+                      params: { databaseId: item.title || "" },
+                    });
                     setStorageSelected(item);
                   }}
                   Header={
@@ -249,7 +252,8 @@ export default function DatabasesPage() {
                       {!selectedDatabase.error && (
                         <Button
                           component={Link}
-                          to="/databases/view"
+                          to="/databases/$databaseId"
+                          params={{ databaseId: selectedDatabase.title }}
                           onClick={() => setStorageSelected(selectedDatabase)}
                           fullWidth
                           variant="default"

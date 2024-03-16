@@ -41,14 +41,10 @@ import {
   IconReload,
   IconVolume,
 } from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import {
-  useLoaderData,
-  useRevalidator,
-  useRouteLoaderData,
-} from "react-router-dom";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
@@ -63,14 +59,15 @@ import ThemeButton from "./ThemeButton";
 import VolumeSlider from "./VolumeSlider";
 
 export default function Page() {
-  const version = useLoaderData() as string;
+  // const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
-  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  const {
+    dirs: { documentDir },
+    version,
+  } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
   filesDirectory = filesDirectory || documentDir;
-
-  const revalidator = useRevalidator();
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -549,7 +546,6 @@ export default function Page() {
                     });
                     if (!selected || typeof selected !== "string") return;
                     setFilesDirectory(selected);
-                    revalidator.revalidate();
                   }}
                   filename={filesDirectory || null}
                 />

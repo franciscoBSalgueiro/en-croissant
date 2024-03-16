@@ -40,10 +40,10 @@ import {
   IconSettings,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -248,7 +248,7 @@ function AnalysisPanel({
                     flex={1}
                     variant="default"
                     onClick={() => {
-                      navigate("/engines");
+                      navigate({ to: "/engines" });
                     }}
                     leftSection={<IconSettings size="0.875rem" />}
                   >

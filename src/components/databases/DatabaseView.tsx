@@ -8,8 +8,8 @@ import {
   IconTrophy,
   IconUser,
 } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import { useAtom } from "jotai";
-import { Link } from "react-router-dom";
 import TournamentTable from "./TournamentTable";
 
 function DatabaseView() {
