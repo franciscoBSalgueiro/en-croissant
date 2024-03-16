@@ -1,4 +1,4 @@
-import { Button, Progress, useMantineTheme } from "@mantine/core";
+import { Box, Button, Progress, useMantineTheme } from "@mantine/core";
 import {
   type EventCallback,
   type UnlistenFn,
@@ -81,9 +81,10 @@ function ProgressButton<T extends Payload>({
         }}
         color={completed ? "green" : theme.primaryColor}
         disabled={inProgress || (completed && !redoable) || disabled}
-        leftSection={leftIcon}
+        leftSection={<Box className={classes.label}>{leftIcon}</Box>}
+        autoContrast
       >
-        <div className={classes.label}>{label}</div>
+        <span className={classes.label}>{label}</span>
         {progress !== 0 && (
           <Progress
             pos="absolute"
