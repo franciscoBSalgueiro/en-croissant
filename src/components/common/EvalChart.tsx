@@ -1,4 +1,4 @@
-import { ANNOTATION_INFO } from "@/utils/chess";
+import { ANNOTATION_INFO } from "@/utils/annotation";
 import { positionFromFen } from "@/utils/chessops";
 import { skipWhile, takeWhile } from "@/utils/misc";
 import { formatScore } from "@/utils/score";

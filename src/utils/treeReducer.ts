@@ -4,7 +4,7 @@ import { type Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
-import { ANNOTATION_INFO, type Annotation } from "./chess";
+import { ANNOTATION_INFO, type Annotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
 import type { Outcome } from "./db";
 import { isPrefix } from "./misc";

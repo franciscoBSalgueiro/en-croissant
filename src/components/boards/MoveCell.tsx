@@ -1,4 +1,4 @@
-import { ANNOTATION_INFO, type Annotation } from "@/utils/chess";
+import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { Box, rgba, useMantineTheme } from "@mantine/core";
 import { IconFlag } from "@tabler/icons-react";
 import { type ForwardedRef, forwardRef } from "react";

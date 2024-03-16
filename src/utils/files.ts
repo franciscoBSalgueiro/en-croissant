@@ -1,3 +1,5 @@
+import type { FileMetadata } from "@/components/files/file";
+import { Result } from "@badrap/result";
 import { exists, writeTextFile } from "@tauri-apps/api/fs";
 import { platform } from "@tauri-apps/api/os";
 import { resolve } from "@tauri-apps/api/path";
@@ -59,19 +61,16 @@ export async function createFile({
   filename,
   filetype,
   pgn,
-  setError,
   dir,
 }: {
   filename: string;
   filetype: "game" | "repertoire" | "tournament" | "puzzle" | "other";
   pgn?: string;
-  setError: React.Dispatch<React.SetStateAction<string>>;
   dir: string;
-}) {
+}): Promise<Result<FileMetadata>> {
   const file = await resolve(dir, `${filename}.pgn`);
   if (await exists(file)) {
-    setError("File already exists");
-    return;
+    return Result.err(Error("File already exists"));
   }
   const metadata = {
     type: filetype,
@@ -79,11 +78,11 @@ export async function createFile({
   };
   await writeTextFile(file, pgn || makePgn(defaultGame()));
   await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
-  return {
+  return Result.ok({
     name: filename,
     path: file,
     numGames: 1,
     metadata,
     lastModified: new Date().getUTCSeconds(),
-  };
+  });
 }

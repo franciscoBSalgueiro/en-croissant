@@ -15,7 +15,7 @@
     "lint:fix": "biome check --apply ./src"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.4",
+    "@badrap/result": "^0.2.13",
     "@fortawesome/fontawesome-svg-core": "^6.5.1",
     "@fortawesome/free-solid-svg-icons": "^6.5.1",
     "@fortawesome/react-fontawesome": "^0.2.0",

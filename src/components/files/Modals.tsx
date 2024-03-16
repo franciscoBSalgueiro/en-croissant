@@ -48,16 +48,18 @@ export function CreateModal({
       filename,
       filetype,
       pgn,
-      setError,
       dir: documentDir,
     });
-    if (!newFile) return;
-    setFiles([...files, newFile]);
-    setSelected(newFile);
-    setError("");
-    setOpened(false);
-    setFilename("");
-    setFiletype("game");
+    if (newFile.isErr) {
+      setError(newFile.error.message);
+    } else {
+      setFiles([...files, newFile.value]);
+      setSelected(newFile.value);
+      setError("");
+      setOpened(false);
+      setFilename("");
+      setFiletype("game");
+    }
   }
 
   return (

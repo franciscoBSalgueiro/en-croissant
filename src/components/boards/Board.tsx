@@ -21,9 +21,11 @@ import { chessboard } from "@/styles/Chessboard.css";
 import {
   ANNOTATION_INFO,
   type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
+import {
   type TimeControlField,
   getMaterialDiff,
-  isBasicAnnotation,
   parseKeyboardMove,
   parseTimeControl,
 } from "@/utils/chess";

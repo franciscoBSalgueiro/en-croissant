@@ -6,7 +6,7 @@ import {
   ANNOTATION_INFO,
   type Annotation,
   isBasicAnnotation,
-} from "@/utils/chess";
+} from "@/utils/annotation";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,

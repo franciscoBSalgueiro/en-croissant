@@ -76,14 +76,14 @@ export default function ImportModal({
               filename,
               filetype,
               pgn: input,
-              setError,
               dir: documentDir,
             });
-            if (!newFile) {
+            if (newFile.isErr) {
+              setError(newFile.error.message);
               setLoading(false);
               return;
             }
-            fileInfo = newFile;
+            fileInfo = newFile.value;
           }
         }
         const tree = await parsePGN(input);
