@@ -4,7 +4,7 @@ import {
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
 import { events, type EngineOptions, type GoMode } from "@/bindings";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext"
+import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
 import {
@@ -12,7 +12,6 @@ import {
   type LocalEngine,
   getBestMoves as localGetBestMoves,
   stopEngine,
-  killEngine
 } from "@/utils/engines";
 import { formatNodes } from "@/utils/format";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
@@ -40,8 +39,6 @@ import {
   IconPlayerPlay,
   IconSettings,
   IconTargetArrow,
-  IconPlayerStop,
-  IconPlayerStopFilled,
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
@@ -105,6 +102,7 @@ function BestMovesComponent({
       tab: activeTab!,
     }),
   );
+
   useEffect(() => {
     if (settings.synced) {
       setSettings2((prev) => ({
@@ -293,36 +291,21 @@ function BestMovesComponent({
       <>
         <Box style={{ display: "flex" }}>
           <Stack gap={0} py="1rem">
-            <ActionIcon.Group>
-              <ActionIcon
-                size="lg"
-                variant={settings.enabled ? "filled" : "transparent"}
-                color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
-                onClick={() => {
-                  setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
-                }}
-                ml={6}
-              >
-                {settings.enabled ? (
-                  <IconPlayerPause size="1.25em" />
-                ) : (
-                  <IconPlayerPlay size="1.25em" />
-                )}
-              </ActionIcon>
-              <ActionIcon
-                size="lg"
-                variant="transparent"
-                disabled={!settings.enabled}
-                color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
-                onClick={() => {
-                  killEngine(engine, activeTab!);
-                  setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
-                }}
-                ml={6}
-              >
-                <IconPlayerStopFilled size="1.25rem" />
-              </ActionIcon>
-            </ActionIcon.Group>
+            <ActionIcon
+              size="lg"
+              variant={settings.enabled ? "filled" : "transparent"}
+              color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
+              onClick={() => {
+                setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
+              }}
+              ml={12}
+            >
+              {settings.enabled ? (
+                <IconPlayerPause size="1rem" />
+              ) : (
+                <IconPlayerPlay size="1rem" />
+              )}
+            </ActionIcon>
           </Stack>
           <Accordion.Control>
             <Group justify="space-between">
@@ -417,10 +400,10 @@ function BestMovesComponent({
               <IconGripVertical size="1rem" />
             </ActionIcon>
           </ActionIcon.Group>
-        </Box >
+        </Box>
         <Collapse in={settingsOn} px={30} pb={15}>
           <EngineSettingsForm
-            engineName={engine.name}
+            engine={engine}
             settings={settings}
             setSettings={setSettings}
             color={id < 4 ? arrowColors[id].strong : theme.primaryColor}

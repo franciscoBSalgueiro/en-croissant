@@ -243,9 +243,9 @@ function OpponentForm({
         <Stack>
           {opponent.engine && !opponent.timeControl && (
             <EngineSettingsForm
+              engine={opponent.engine}
               remote={false}
               gameMode
-              engineName={opponent.engine.name}
               settings={{
                 go: opponent.go,
                 settings: opponent.engine.settings || [],

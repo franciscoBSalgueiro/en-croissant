@@ -1,7 +1,7 @@
-import { enginesAtom } from "@/atoms/atoms";
+import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
-import type { EngineSettings } from "@/utils/engines";
+import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import {
   ActionIcon,
   Checkbox,
@@ -11,7 +11,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconSettings } from "@tabler/icons-react";
+import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import React, { memo, useMemo } from "react";
@@ -27,7 +27,7 @@ export type Settings = {
 };
 
 interface EngineSettingsProps {
-  engineName: string;
+  engine: Engine;
   settings: Settings;
   setSettings: (fn: (prev: Settings) => Settings) => void;
   color?: MantineColor;
@@ -37,7 +37,7 @@ interface EngineSettingsProps {
 }
 
 function EngineSettingsForm({
-  engineName,
+  engine,
   settings,
   setSettings,
   color,
@@ -48,6 +48,7 @@ function EngineSettingsForm({
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
+  const activeTab = useAtomValue(activeTabAtom);
 
   return (
     <Stack>
@@ -124,20 +125,37 @@ function EngineSettingsForm({
       )}
       {!minimal && (
         <Group>
-          <ReloadSettings
+          <SyncSettings
             settings={settings}
-            engine={engineName}
+            engine={engine.name}
             setSettings={setSettings}
           />
-
-          <AdvancedSettings engineName={engineName} />
+          <ActionIcon.Group>
+            {engine.type === "local" && (
+              <Tooltip label="Kill engine">
+                <ActionIcon
+                  variant="default"
+                  onClick={() => {
+                    killEngine(engine, activeTab!);
+                    setSettings((prev) => ({
+                      ...prev,
+                      enabled: false,
+                    }));
+                  }}
+                >
+                  <IconPlayerStopFilled size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <AdvancedSettings engineName={engine.name} />
+          </ActionIcon.Group>
         </Group>
       )}
     </Stack>
   );
 }
 
-function ReloadSettings({
+function SyncSettings({
   engine,
   settings,
   setSettings,
@@ -182,7 +200,7 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
   return (
     <Tooltip label="Advanced settings">
       <ActionIcon
-        size="xs"
+        variant="default"
         onClick={() =>
           navigate({
             to: "/engines",
@@ -192,7 +210,7 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
           })
         }
       >
-        <IconSettings />
+        <IconSettings size="1rem" />
       </ActionIcon>
     </Tooltip>
   );
