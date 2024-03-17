@@ -250,6 +250,7 @@ function OpponentForm({
                 go: opponent.go,
                 settings: opponent.engine.settings || [],
                 enabled: true,
+                synced: false,
               }}
               setSettings={(fn) =>
                 setOpponent((prev) => {
@@ -260,6 +261,7 @@ function OpponentForm({
                     go: prev.go,
                     settings: prev.engine?.settings || [],
                     enabled: true,
+                    synced: false,
                   });
                   return { ...prev, ...newSettings };
                 })

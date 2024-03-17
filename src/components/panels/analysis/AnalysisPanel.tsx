@@ -219,6 +219,15 @@ function AnalysisPanel({
                                       <BestMoves
                                         id={i}
                                         engine={engine}
+                                        setEngine={(e) =>
+                                          setEngines(async (prev) =>
+                                            (await prev).map((o) =>
+                                              o.name === engine.name
+                                                ? { ...e, loaded: o.loaded }
+                                                : o,
+                                            ),
+                                          )
+                                        }
                                         fen={fen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}

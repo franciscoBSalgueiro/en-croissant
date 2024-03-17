@@ -435,10 +435,16 @@ export const tabEngineSettingsFamily = atomFamily(
     defaultSettings?: EngineSettings;
     defaultGo?: GoMode;
   }) => {
-    return atom<{ enabled: boolean; settings: EngineSettings; go: GoMode }>({
+    return atom<{
+      enabled: boolean;
+      settings: EngineSettings;
+      go: GoMode;
+      synced: boolean;
+    }>({
       enabled: false,
       settings: defaultSettings || [],
       go: defaultGo || { t: "Infinite" },
+      synced: true,
     });
   },
   (a, b) => a.tab === b.tab && a.engineName === b.engineName,

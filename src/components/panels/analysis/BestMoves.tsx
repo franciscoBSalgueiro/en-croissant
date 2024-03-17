@@ -47,6 +47,7 @@ import { useAtom, useAtomValue } from "jotai";
 import {
   memo,
   startTransition,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -56,7 +57,7 @@ import {
 import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
-import EngineSettingsForm from "./EngineSettingsForm";
+import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },
@@ -68,6 +69,7 @@ export const arrowColors = [
 interface BestMovesProps {
   id: number;
   engine: Engine;
+  setEngine: (engine: Engine) => void;
   fen: string;
   moves: string[];
   halfMoves: number;
@@ -79,6 +81,7 @@ interface BestMovesProps {
 function BestMovesComponent({
   id,
   engine,
+  setEngine,
   fen,
   moves,
   halfMoves,
@@ -91,13 +94,38 @@ function BestMovesComponent({
   const [ev, setEngineVariation] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
-  const [settings, setSettings] = useAtom(
+  const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
       engineName: engine.name,
       defaultSettings: engine.settings ?? undefined,
       defaultGo: engine.go ?? undefined,
       tab: activeTab!,
     }),
+  );
+
+  useEffect(() => {
+    if (settings.synced) {
+      setSettings2((prev) => ({
+        ...prev,
+        go: engine.go || prev.go,
+        settings: engine.settings || prev.settings,
+      }));
+    }
+  }, [engine.settings, engine.go, settings.synced, setSettings2]);
+
+  const setSettings = useCallback(
+    (fn: (prev: Settings) => Settings) => {
+      const newSettings = fn(settings);
+      setSettings2(newSettings);
+      if (newSettings.synced) {
+        setEngine({
+          ...engine,
+          settings: newSettings.settings,
+          go: newSettings.go,
+        });
+      }
+    },
+    [engine, settings, setSettings2, setEngine],
   );
 
   const [settingsOn, toggleSettingsOn] = useToggle();
