@@ -55,6 +55,7 @@ import {
 import { mergeRefs, useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
+  IconArrowBack,
   IconChevronRight,
   IconDeviceFloppy,
   IconEdit,
@@ -106,6 +107,7 @@ interface ChessboardProps {
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
   addGame?: () => void;
+  canTakeBack?: boolean;
   whiteTime?: number;
   blackTime?: number;
   whiteTc?: TimeControlField;
@@ -126,6 +128,7 @@ function Board({
   boardRef,
   saveFile,
   addGame,
+  canTakeBack,
   root,
   position,
   whiteTime,
@@ -298,6 +301,17 @@ function Board({
   const controls = useMemo(
     () => (
       <ActionIcon.Group>
+        {canTakeBack && (
+          <Tooltip label="Take Back">
+            <ActionIcon
+              variant="default"
+              size="lg"
+              onClick={() => dispatch({ type: "DELETE_MOVE" })}
+            >
+              <IconArrowBack />
+            </ActionIcon>
+          </Tooltip>
+        )}
         <Tooltip
           label={
             currentTab?.type === "analysis" ? "Play from here" : "Analyze game"
