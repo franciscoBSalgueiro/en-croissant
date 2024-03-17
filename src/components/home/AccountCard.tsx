@@ -195,9 +195,10 @@ export function AccountCard({
                   <ActionIcon
                     disabled={loading}
                     onClick={async () => {
-                      if (!database) return;
                       setLoading(true);
-                      const lastGameDate = await getLastGameDate({ database });
+                      const lastGameDate = database
+                        ? await getLastGameDate({ database })
+                        : null;
                       if (type === "lichess") {
                         await downloadLichess(
                           title,
