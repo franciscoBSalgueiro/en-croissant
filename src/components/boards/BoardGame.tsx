@@ -514,6 +514,8 @@ function BoardGame() {
     }
   }, [gameState, intervalId, pos?.turn]);
 
+  const onePlayerIsEngine = (players.white.type === "engine" || players.black.type === "engine") && players.white.type !== players.black.type;
+
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -527,6 +529,7 @@ function BoardGame() {
           viewOnly={gameState !== "playing"}
           disableVariations
           boardRef={boardRef}
+          canTakeBack={onePlayerIsEngine}
           movable={movable}
           root={root}
           position={position}
