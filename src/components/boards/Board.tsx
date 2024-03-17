@@ -126,7 +126,7 @@ function Board({
   boardRef,
   saveFile,
   addGame,
-  canTakeBack: cantakeBack,
+  canTakeBack,
   root,
   position,
   whiteTime,
@@ -299,9 +299,13 @@ function Board({
   const controls = useMemo(
     () => (
       <ActionIcon.Group>
-        {cantakeBack && (
+        {canTakeBack && (
           <Tooltip label="Take Back">
-            <ActionIcon variant="default" size="lg" onClick={() => dispatch({type: "DELETE_MOVE"})}>
+            <ActionIcon
+              variant="default"
+              size="lg"
+              onClick={() => dispatch({ type: "DELETE_MOVE" })}
+            >
               <IconArrowBack />
             </ActionIcon>
           </Tooltip>

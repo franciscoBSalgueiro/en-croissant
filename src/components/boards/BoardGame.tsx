@@ -514,7 +514,9 @@ function BoardGame() {
     }
   }, [gameState, intervalId, pos?.turn]);
 
-  const onePlayerIsEngine = (players.white.type === "engine" || players.black.type === "engine") && players.white.type !== players.black.type;
+  const onePlayerIsEngine =
+    (players.white.type === "engine" || players.black.type === "engine") &&
+    players.white.type !== players.black.type;
 
   return (
     <>
