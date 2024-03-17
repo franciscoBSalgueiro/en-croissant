@@ -42,7 +42,7 @@ impl Default for AuthState {
     fn default() -> Self {
         let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
         let socket_addr = get_available_addr();
-        let redirect_url = format!("http://{socket_addr}/callback").to_string();
+        let redirect_url = format!("http://{socket_addr}/callback");
         AuthState {
             csrf_token: CsrfToken::new_random(),
             pkce: Arc::new((
@@ -74,7 +74,6 @@ pub async fn authenticate(
     let _server_handle = tauri::async_runtime::spawn(async move { run_server(app).await });
     Ok(())
 }
-
 
 #[derive(Deserialize)]
 struct CallbackQuery {

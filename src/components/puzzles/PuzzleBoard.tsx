@@ -2,20 +2,19 @@ import { showCoordinatesAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
-import { Completion, Puzzle } from "@/utils/puzzles";
+import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
 import {
   Chess,
-  Move,
-  NormalMove,
+  type Move,
+  type NormalMove,
   makeUci,
   parseSquare,
-  parseUci,
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
-import { parseFen, parsePiece } from "chessops/fen";
+import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
@@ -97,12 +96,14 @@ function PuzzleBoard({
         type: "MAKE_MOVES",
         payload: newMoves,
         mainline: true,
+        changeHeaders: false,
       });
     } else {
       dispatch({
         type: "MAKE_MOVE",
         payload: move,
         changePosition: false,
+        changeHeaders: false,
       });
       if (!ended) {
         changeCompletion("incorrect");

@@ -1,5 +1,5 @@
 import { NumberInput } from "@mantine/core";
-import { PrimitiveAtom, useAtom } from "jotai";
+import { type PrimitiveAtom, useAtom } from "jotai";
 
 export default function SettingsNumberInput({
   atom,

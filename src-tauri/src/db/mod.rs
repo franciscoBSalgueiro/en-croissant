@@ -18,7 +18,7 @@ use crate::{
 use chrono::{NaiveDate, NaiveTime};
 use dashmap::DashMap;
 use diesel::{
-    connection::SimpleConnection,
+    connection::{DefaultLoadingMode, SimpleConnection},
     insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
@@ -26,16 +26,16 @@ use diesel::{
     sql_types::Text,
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
 };
-
-use rayon::prelude::*;
 use specta::Type;
+use std::io::{BufWriter, Write};
 use std::{
-    fs::{remove_file, File},
-    path::{Path, PathBuf},
+    fs::{remove_file, File, OpenOptions},
+    path::PathBuf,
     sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
@@ -270,17 +270,17 @@ struct Importer {
 }
 
 impl Importer {
-    fn new(timestamp: Option<usize>) -> Importer {
+    fn new(timestamp: Option<i64>) -> Importer {
         Importer {
             game: TempGame::default(),
-            timestamp: timestamp.map(|t| (t / 1000) as i64),
+            timestamp,
             skip: false,
         }
     }
 }
 
 impl Visitor for Importer {
-    type Result = TempGame;
+    type Result = Option<TempGame>;
 
     fn begin_game(&mut self) {
         self.skip = false;
@@ -292,13 +292,9 @@ impl Visitor for Importer {
         } else if key == b"Black" {
             self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"WhiteElo" {
-            if value.as_bytes() != b"?" {
-                self.game.white_elo = Some(btoi::btoi(value.as_bytes()).expect("WhiteElo"));
-            }
+            self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
         } else if key == b"BlackElo" {
-            if value.as_bytes() != b"?" {
-                self.game.black_elo = Some(btoi::btoi(value.as_bytes()).expect("BlackElo"));
-            }
+            self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
         } else if key == b"TimeControl" {
             self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"ECO" {
@@ -309,10 +305,6 @@ impl Visitor for Importer {
             self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"UTCTime" {
             self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"WhiteTitle" || key == b"BlackTitle" {
-            if value.as_bytes() == b"BOT" {
-                self.skip = true;
-            }
         } else if key == b"Site" {
             self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Event" {
@@ -323,13 +315,17 @@ impl Visitor for Importer {
             if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
                 self.game.fen = None;
             } else {
-                let fen = Fen::from_ascii(value.as_bytes()).unwrap();
-                self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                if let Ok(setup) =
-                    Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)
-                        .or_else(PositionError::ignore_too_much_material)
-                {
-                    self.game.position = setup;
+                let fen = Fen::from_ascii(value.as_bytes());
+                if let Ok(fen) = fen {
+                    self.game.fen = Some(value.decode_utf8_lossy().into_owned());
+                    if let Ok(setup) =
+                        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)
+                            .or_else(PositionError::ignore_too_much_material)
+                    {
+                        self.game.position = setup;
+                    } else {
+                        self.skip = true;
+                    }
                 } else {
                     self.skip = true;
                 }
@@ -346,7 +342,7 @@ impl Visitor for Importer {
                 .time
                 .as_ref()
                 .and_then(|time| NaiveTime::parse_from_str(time, "%H:%M:%S").ok())?;
-            Some(date.and_time(time).timestamp())
+            Some(date.and_time(time).and_utc().timestamp())
         });
 
         if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
@@ -386,40 +382,35 @@ impl Visitor for Importer {
     }
 
     fn end_game(&mut self) -> Self::Result {
-        std::mem::take(&mut self.game)
+        if self.skip {
+            self.game = TempGame::default();
+            None
+        } else {
+            Some(std::mem::take(&mut self.game))
+        }
     }
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn convert_pgn(
     file: PathBuf,
-    timestamp: Option<usize>,
+    db_path: PathBuf,
+    timestamp: Option<i32>,
     app: tauri::AppHandle,
     title: String,
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // get the name of the file without the extension
     let description = description.unwrap_or_default();
-    let filename = file.file_stem().expect("file name");
-    let extension = file.extension().expect("file extension");
-    let db_filename = Path::new("db").join(filename).with_extension("db3");
+    let extension = file.extension();
 
-    // export the database to the AppData folder
-    let destination = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        &db_filename,
-        Some(BaseDirectory::AppData),
-    )?;
-
-    let db_exists = destination.exists();
+    let db_exists = db_path.exists();
 
     // create the database file
     let db = &mut get_db_or_create(
         &state,
-        destination.to_str().unwrap(),
+        db_path.to_str().unwrap(),
         ConnectionOptions {
             enable_foreign_keys: false,
             busy_timeout: None,
@@ -441,9 +432,9 @@ pub async fn convert_pgn(
 
     let file = File::open(&file)?;
 
-    let uncompressed: Box<dyn std::io::Read + Send> = if extension == "bz2" {
+    let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
         Box::new(bzip2::read::MultiBzDecoder::new(file))
-    } else if extension == "zst" {
+    } else if extension == Some("zst".as_ref()) {
         Box::new(zstd::Decoder::new(file)?)
     } else {
         Box::new(file)
@@ -452,10 +443,11 @@ pub async fn convert_pgn(
     // start counting time
     let start = Instant::now();
 
-    let mut importer = Importer::new(timestamp);
+    let mut importer = Importer::new(timestamp.map(|t| t as i64));
     db.transaction::<_, diesel::result::Error, _>(|db| {
         for (i, game) in BufferedReader::new(uncompressed)
             .into_iter(&mut importer)
+            .flatten()
             .flatten()
             .enumerate()
         {
@@ -503,6 +495,7 @@ pub struct DatabaseInfo {
     title: String,
     description: String,
     player_count: usize,
+    event_count: usize,
     game_count: usize,
     storage_size: usize,
     filename: String,
@@ -539,11 +532,9 @@ pub async fn get_db_info(
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let player_count_info: Info = info::table.filter(info::name.eq("PlayerCount")).first(db)?;
-    let player_count = player_count_info.value.unwrap().parse::<usize>()?;
-
-    let game_count_info: Info = info::table.filter(info::name.eq("GameCount")).first(db)?;
-    let game_count = game_count_info.value.unwrap().parse::<usize>()?;
+    let player_count = players::table.count().get_result::<i64>(db)? as usize;
+    let game_count = games::table.count().get_result::<i64>(db)? as usize;
+    let event_count = events::table.count().get_result::<i64>(db)? as usize;
 
     let title = match info::table
         .filter(info::name.eq("Title"))
@@ -572,6 +563,7 @@ pub async fn get_db_info(
         description,
         player_count,
         game_count,
+        event_count,
         storage_size,
         filename: filename.to_string(),
         indexed: is_indexed,
@@ -629,15 +621,16 @@ pub async fn edit_db_info(
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Sides {
     BlackWhite,
     WhiteBlack,
     Any,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum GameSort {
+    #[default]
     #[serde(rename = "id")]
     Id,
     #[serde(rename = "date")]
@@ -650,15 +643,16 @@ pub enum GameSort {
     PlyCount,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Asc,
+    #[default]
     #[serde(rename = "desc")]
     Desc,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
 pub struct QueryOptions<SortT> {
     pub skip_count: bool,
     pub page: Option<i64>,
@@ -667,16 +661,29 @@ pub struct QueryOptions<SortT> {
     pub direction: SortDirection,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct GameQuery {
-    pub options: QueryOptions<GameSort>,
+    pub options: Option<QueryOptions<GameSort>>,
     pub player1: Option<i32>,
     pub player2: Option<i32>,
     pub tournament_id: Option<i32>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
     pub range1: Option<(i32, i32)>,
     pub range2: Option<(i32, i32)>,
     pub sides: Option<Sides>,
     pub outcome: Option<String>,
+    pub position: Option<PositionQuery>,
+}
+
+impl GameQuery {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn position(mut self, position: PositionQuery) -> Self {
+        self.position = Some(position);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -694,6 +701,7 @@ pub async fn get_games(
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut count: Option<i64> = None;
+    let query_options = query.options.unwrap_or_default();
 
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
     let mut sql_query = games::table
@@ -714,17 +722,27 @@ pub async fn get_games(
         count_query = count_query.filter(games::result.eq(outcome));
     }
 
+    if let Some(start_date) = query.start_date {
+        sql_query = sql_query.filter(games::date.ge(start_date.clone()));
+        count_query = count_query.filter(games::date.ge(start_date));
+    }
+
+    if let Some(end_date) = query.end_date {
+        sql_query = sql_query.filter(games::date.le(end_date.clone()));
+        count_query = count_query.filter(games::date.le(end_date));
+    }
+
     if let Some(tournament_id) = query.tournament_id {
         sql_query = sql_query.filter(games::event_id.eq(tournament_id));
         count_query = count_query.filter(games::event_id.eq(tournament_id));
     }
 
-    if let Some(limit) = query.options.page_size {
+    if let Some(limit) = query_options.page_size {
         sql_query = sql_query.limit(limit);
     }
 
-    if let Some(page) = query.options.page {
-        sql_query = sql_query.offset((page - 1) * query.options.page_size.unwrap_or(10));
+    if let Some(page) = query_options.page {
+        sql_query = sql_query.offset((page - 1) * query_options.page_size.unwrap_or(10));
     }
 
     match query.sides {
@@ -830,30 +848,30 @@ pub async fn get_games(
         None => {}
     }
 
-    sql_query = match query.options.sort {
-        GameSort::Id => match query.options.direction {
+    sql_query = match query_options.sort {
+        GameSort::Id => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::id.asc()),
             SortDirection::Desc => sql_query.order(games::id.desc()),
         },
-        GameSort::Date => match query.options.direction {
+        GameSort::Date => match query_options.direction {
             SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
             SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
         },
-        GameSort::WhiteElo => match query.options.direction {
+        GameSort::WhiteElo => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::white_elo.asc()),
             SortDirection::Desc => sql_query.order(games::white_elo.desc()),
         },
-        GameSort::BlackElo => match query.options.direction {
+        GameSort::BlackElo => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::black_elo.asc()),
             SortDirection::Desc => sql_query.order(games::black_elo.desc()),
         },
-        GameSort::PlyCount => match query.options.direction {
+        GameSort::PlyCount => match query_options.direction {
             SortDirection::Asc => sql_query.order(games::ply_count.asc()),
             SortDirection::Desc => sql_query.order(games::ply_count.desc()),
         },
     };
 
-    if !query.options.skip_count {
+    if !query_options.skip_count {
         count = Some(
             count_query
                 .select(diesel::dsl::count(games::id))
@@ -906,7 +924,7 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
                 black_material: game.black_material,
                 ply_count: game.ply_count,
                 fen: fen.to_string(),
-                moves: decode_moves(game.moves, fen).unwrap_or_default(),
+                moves: decode_moves(game.moves, fen).unwrap_or_default().join(" "),
             }
         })
         .collect()
@@ -927,6 +945,21 @@ pub enum PlayerSort {
     Name,
     #[serde(rename = "elo")]
     Elo,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_player(
+    file: PathBuf,
+    id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<Player>, Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let player = players::table
+        .filter(players::id.eq(id))
+        .first::<Player>(db)
+        .optional()?;
+    Ok(player)
 }
 
 #[tauri::command]
@@ -1154,7 +1187,7 @@ pub async fn get_players_game_info(
                     };
                     if outcome.as_deref() == Some("1-0") {
                         openings
-                            .entry(opening.to_string())
+                            .entry(opening)
                             .and_modify(|e: &mut Results| {
                                 if is_white {
                                     e.won += 1;
@@ -1169,7 +1202,7 @@ pub async fn get_players_game_info(
                             });
                     } else if outcome.as_deref() == Some("0-1") {
                         openings
-                            .entry(opening.to_string())
+                            .entry(opening)
                             .and_modify(|e| {
                                 if is_white {
                                     e.lost += 1;
@@ -1184,7 +1217,7 @@ pub async fn get_players_game_info(
                             });
                     } else if outcome.as_deref() == Some("1/2-1/2") {
                         openings
-                            .entry(opening.to_string())
+                            .entry(opening)
                             .and_modify(|e| {
                                 e.draw += 1;
                             })
@@ -1207,9 +1240,7 @@ pub async fn get_players_game_info(
                 let month = date.format("%Y-%m").to_string();
 
                 // update count and avg elo
-                let mut month_data = data_per_month
-                    .entry(month.clone())
-                    .or_insert(MonthData::default());
+                let mut month_data = data_per_month.entry(month).or_insert(MonthData::default());
                 month_data.count += 1;
                 let elo = if is_white { white_elo } else { black_elo };
                 if let Some(elo) = elo {
@@ -1286,6 +1317,242 @@ pub async fn delete_database(
 
     // delete file
     remove_file(path_str)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_duplicated_games(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    db.batch_execute(
+        "
+        DELETE FROM Games
+        WHERE ID IN (
+            SELECT ID
+            FROM (
+                SELECT ID,
+                    ROW_NUMBER() OVER (PARTITION BY EventID, SiteID, Round, WhiteID, BlackID, Moves, Date, UTCTime ORDER BY ID) AS RowNum
+                FROM Games
+            ) AS Subquery
+            WHERE RowNum > 1
+        );
+        ",
+    )?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_empty_games(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
+
+    Ok(())
+}
+
+struct PgnGame {
+    event: Option<String>,
+    site: Option<String>,
+    date: Option<String>,
+    round: Option<String>,
+    white: Option<String>,
+    black: Option<String>,
+    result: Option<String>,
+    time_control: Option<String>,
+    eco: Option<String>,
+    white_elo: Option<String>,
+    black_elo: Option<String>,
+    ply_count: Option<String>,
+    fen: Option<String>,
+    moves: Option<Vec<String>>,
+}
+
+impl PgnGame {
+    fn write(&self, writer: &mut impl Write) -> Result<(), Error> {
+        writeln!(
+            writer,
+            "[Event \"{}\"]",
+            self.event.as_deref().unwrap_or("")
+        )?;
+        writeln!(writer, "[Site \"{}\"]", self.site.as_deref().unwrap_or(""))?;
+        writeln!(writer, "[Date \"{}\"]", self.date.as_deref().unwrap_or(""))?;
+        writeln!(
+            writer,
+            "[Round \"{}\"]",
+            self.round.as_deref().unwrap_or("")
+        )?;
+        writeln!(
+            writer,
+            "[White \"{}\"]",
+            self.white.as_deref().unwrap_or("")
+        )?;
+        writeln!(
+            writer,
+            "[Black \"{}\"]",
+            self.black.as_deref().unwrap_or("")
+        )?;
+        writeln!(
+            writer,
+            "[Result \"{}\"]",
+            self.result.as_deref().unwrap_or("*")
+        )?;
+        if let Some(time_control) = self.time_control.as_deref() {
+            writeln!(writer, "[TimeControl \"{}\"]", time_control)?;
+        }
+        if let Some(eco) = self.eco.as_deref() {
+            writeln!(writer, "[ECO \"{}\"]", eco)?;
+        }
+        if let Some(white_elo) = self.white_elo.as_deref() {
+            writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
+        }
+        if let Some(black_elo) = self.black_elo.as_deref() {
+            writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
+        }
+        if let Some(ply_count) = self.ply_count.as_deref() {
+            writeln!(writer, "[PlyCount \"{}\"]", ply_count)?;
+        }
+        if let Some(fen) = self.fen.as_deref() {
+            writeln!(writer, "[SetUp \"1\"]")?;
+            writeln!(writer, "[FEN \"{}\"]", fen)?;
+        }
+        writeln!(writer)?;
+        for (i, move_) in self.moves.as_ref().unwrap().iter().enumerate() {
+            if i % 2 == 0 {
+                write!(writer, "{}. ", i / 2 + 1)?;
+            }
+            write!(writer, "{} ", move_)?;
+        }
+        match self.result.as_deref() {
+            Some("1-0") => writeln!(writer, "1-0"),
+            Some("0-1") => writeln!(writer, "0-1"),
+            Some("1/2-1/2") => writeln!(writer, "1/2-1/2"),
+            _ => writeln!(writer, "*"),
+        }?;
+        writeln!(writer)?;
+        Ok(())
+    }
+}
+
+#[tauri::command]
+pub async fn export_to_pgn(
+    file: PathBuf,
+    dest_file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(dest_file)?;
+
+    let mut writer = BufWriter::new(file);
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .load_iter::<(Game, Player, Player, Event, Site), DefaultLoadingMode>(db)?
+        .flatten()
+        .map(|(game, white, black, event, site)| {
+            let pgn = PgnGame {
+                event: event.name,
+                site: site.name,
+                date: game.date,
+                round: game.round,
+                white: white.name,
+                black: black.name,
+                result: game.result,
+                time_control: game.time_control,
+                eco: game.eco,
+                white_elo: game.white_elo.map(|e| e.to_string()),
+                black_elo: game.black_elo.map(|e| e.to_string()),
+                ply_count: game.ply_count.map(|e| e.to_string()),
+                fen: game.fen.clone(),
+                moves: decode_moves(
+                    game.moves,
+                    if let Some(fen) = game.fen {
+                        Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
+                    } else {
+                        Fen::default()
+                    },
+                )
+                .ok(),
+            };
+
+            pgn.write(&mut writer)?;
+
+            Ok(())
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_db_game(
+    file: PathBuf,
+    game_id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn merge_players(
+    file: PathBuf,
+    player1: i32,
+    player2: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    // Check if the players never played against each other
+    let count: i64 = games::table
+        .filter(games::white_id.eq(player1).and(games::black_id.eq(player2)))
+        .or_filter(games::white_id.eq(player2).and(games::black_id.eq(player1)))
+        .limit(1)
+        .count()
+        .get_result(db)?;
+
+    if count > 0 {
+        return Err(Error::NotDistinctPlayers);
+    }
+
+    diesel::update(games::table.filter(games::white_id.eq(player1)))
+        .set(games::white_id.eq(player2))
+        .execute(db)?;
+    diesel::update(games::table.filter(games::black_id.eq(player1)))
+        .set(games::black_id.eq(player2))
+        .execute(db)?;
+
+    diesel::delete(players::table.filter(players::id.eq(player1))).execute(db)?;
+
+    let player_count: i64 = players::table.count().get_result(db)?;
+    diesel::insert_into(info::table)
+        .values((
+            info::name.eq("PlayerCount"),
+            info::value.eq(player_count.to_string()),
+        ))
+        .on_conflict(info::name)
+        .do_update()
+        .set(info::value.eq(player_count.to_string()))
+        .execute(db)?;
+
     Ok(())
 }
 

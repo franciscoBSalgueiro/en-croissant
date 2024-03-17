@@ -1,5 +1,5 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { TablebaseCategory, getTablebaseInfo } from "@/utils/lichess";
+import { type TablebaseCategory, getTablebaseInfo } from "@/utils/lichess/api";
 import {
   Accordion,
   Badge,
@@ -79,12 +79,12 @@ function TablebaseInfo({
                       className={classes.info}
                     >
                       <Group gap="xs" justify="space-between" wrap="nowrap">
-                        <Text c="white" fz="0.9rem" fw={600} ta="center">
+                        <Text fz="0.9rem" fw={600} ta="center">
                           {m.san}
                         </Text>
                         <OutcomeBadge
                           category={m.category}
-                          dtz={m.dtz}
+                          dtz={Math.abs(m.dtz)}
                           dtm={m.dtm}
                           turn={turn === "white" ? "black" : "white"}
                         />

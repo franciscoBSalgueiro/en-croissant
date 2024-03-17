@@ -1,16 +1,15 @@
 import { Text } from "@mantine/core";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 
 function NoDatabaseWarning() {
   return (
-    <Text
-      style={{
-        pointerEvents: "all",
-      }}
-    >
-      No reference database selected. Please{" "}
-      <Link to="/databases">Add a database</Link> first.
-    </Text>
+    <>
+      <Text>No reference database selected.</Text>
+      <Text>
+        Please <Link to="/databases">add a database</Link> first and mark it as
+        the reference.
+      </Text>
+    </>
   );
 }
 

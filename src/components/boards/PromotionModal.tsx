@@ -1,8 +1,8 @@
 import { squareToCoordinates } from "@/utils/chessops";
 import { ActionIcon, SimpleGrid } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
-import { Color } from "chessground/types";
-import { NormalMove, Role } from "chessops";
+import type { Color } from "chessground/types";
+import type { NormalMove, Role } from "chessops";
 import { memo } from "react";
 import Piece from "../common/Piece";
 

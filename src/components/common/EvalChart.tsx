@@ -1,19 +1,24 @@
-import { ANNOTATION_INFO } from "@/utils/chess";
+import { ANNOTATION_INFO } from "@/utils/annotation";
 import { positionFromFen } from "@/utils/chessops";
-import { arrayEquals, skipWhile, takeWhile } from "@/utils/helperFunctions";
+import { skipWhile, takeWhile } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
-import { ListNode, TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
+import {
+  type ListNode,
+  type TreeNode,
+  treeIteratorMainLine,
+} from "@/utils/treeReducer";
 import { AreaChart } from "@mantine/charts";
 import {
   Box,
   LoadingOverlay,
   Paper,
+  Stack,
   Text,
   useMantineTheme,
 } from "@mantine/core";
-import { Stack } from "@mantine/core";
+import equal from "fast-deep-equal";
 import { useContext } from "react";
-import { CategoricalChartState } from "recharts/types/chart/generateCategoricalChart";
+import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
 import * as classes from "./EvalChart.css";
 import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
 
@@ -39,7 +44,10 @@ const EvalChart = (props: EvalChartProps) => {
     if (node.score) {
       let cp: number = node.score.value;
       if (node.score.type === "mate") {
-        cp = node.score.value > 0 ? Infinity : -Infinity;
+        cp =
+          node.score.value > 0
+            ? Number.POSITIVE_INFINITY
+            : Number.NEGATIVE_INFINITY;
       }
       return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
     }
@@ -47,7 +55,7 @@ const EvalChart = (props: EvalChartProps) => {
       const [pos, error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) {
-          return pos?.turn === "white" ? 1 : -1;
+          return pos?.turn === "white" ? -1 : 1;
         }
         if (pos.isStalemate()) {
           return 0;
@@ -92,12 +100,13 @@ const EvalChart = (props: EvalChartProps) => {
 
       yield {
         name: `${Math.ceil(currentNode.node.halfMoves / 2)}.${
-          pos?.turn === "white" ? "" : ".."
-        } ${currentNode.node.san}${currentNode.node.annotation}`,
+          pos?.turn === "black" ? "" : ".."
+        } ${currentNode.node.san}${currentNode.node.annotations}`,
         evalText: getEvalText(currentNode.node),
         yValue: yValue ?? "none",
         movePath: currentNode.position,
-        color: ANNOTATION_INFO[currentNode.node.annotation]?.color,
+        color:
+          ANNOTATION_INFO[currentNode.node.annotations[0]]?.color || "gray",
       };
     }
   }
@@ -140,7 +149,7 @@ const EvalChart = (props: EvalChartProps) => {
     return null;
   };
 
-  const onChartClick = (data: CategoricalChartState) => {
+  const onChartClick: CategoricalChartFunc = (data) => {
     if (data?.activePayload?.length && data.activePayload[0].payload) {
       const dataPoint: DataPoint = data.activePayload[0].payload;
       dispatch({
@@ -152,7 +161,7 @@ const EvalChart = (props: EvalChartProps) => {
 
   const data = [...getData()];
   const currentPositionName = data.find((point) =>
-    arrayEquals(point.movePath, position),
+    equal(point.movePath, position),
   )?.name;
   const colouroffset = gradientOffset(data);
 

@@ -1,5 +1,6 @@
 import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import React, { useEffect, useRef, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 type StorageValue<T> = [T, React.Dispatch<React.SetStateAction<T>>];
 
@@ -44,6 +45,31 @@ export function isPrefix<T>(shorter: T[], longer: T[]): boolean {
     }
   }
   return true;
+}
+
+export function* takeWhile<T>(
+  collection: Iterable<T>,
+  condition: (item: T) => boolean,
+): Generator<T> {
+  for (const item of collection) {
+    if (condition(item)) yield item;
+    else break;
+  }
+}
+
+export function* skipWhile<T>(
+  collection: Iterable<T>,
+  condition: (item: T) => boolean,
+): Generator<T> {
+  let conditionBroken = false;
+  for (const item of collection) {
+    if (!conditionBroken && !condition(item)) {
+      conditionBroken = true;
+    }
+    if (conditionBroken) {
+      yield item;
+    }
+  }
 }
 
 export const useThrottledEffect = (

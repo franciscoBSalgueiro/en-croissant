@@ -1,4 +1,4 @@
-import { PiecesCount } from "@/utils/chess";
+import type { PiecesCount } from "@/utils/chess";
 import { Group } from "@mantine/core";
 import {
   IconChessBishopFilled,
@@ -7,7 +7,7 @@ import {
   IconChessQueenFilled,
   IconChessRookFilled,
 } from "@tabler/icons-react";
-import { Color } from "chessops";
+import type { Color } from "chessops";
 import { match } from "ts-pattern";
 
 export default function ShowMaterial({

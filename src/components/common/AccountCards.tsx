@@ -1,8 +1,8 @@
 import { sessionsAtom } from "@/atoms/atoms";
-import { getChessComAccount, getStats } from "@/utils/chesscom";
-import { DatabaseInfo } from "@/utils/db";
-import { getLichessAccount } from "@/utils/lichess";
-import { Session } from "@/utils/session";
+import { getChessComAccount, getStats } from "@/utils/chess.com/api";
+import type { DatabaseInfo } from "@/utils/db";
+import { getLichessAccount } from "@/utils/lichess/api";
+import type { Session } from "@/utils/session";
 import {
   Accordion,
   ActionIcon,

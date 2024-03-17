@@ -4,7 +4,7 @@ import {
   removeFile,
   writeTextFile,
 } from "@tauri-apps/api/fs";
-import {
+import type {
   AsyncStorage,
   AsyncStringStorage,
   SyncStorage,
@@ -12,7 +12,7 @@ import {
 } from "jotai/vanilla/utils/atomWithStorage";
 
 import { warn } from "tauri-plugin-log-api";
-import { z } from "zod";
+import type { z } from "zod";
 
 const options = { dir: BaseDirectory.AppData };
 export const fileStorage: AsyncStringStorage = {

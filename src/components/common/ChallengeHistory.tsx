@@ -1,6 +1,8 @@
-import { Completion } from "@/utils/puzzles";
+import { hidePuzzleRatingAtom } from "@/atoms/atoms";
+import type { Completion } from "@/utils/puzzles";
 import { ActionIcon, Group, Stack, Text } from "@mantine/core";
 import { IconCheck, IconDots, IconX } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import { match } from "ts-pattern";
 
 type Challenge = {
@@ -17,6 +19,8 @@ function ChallengeHistory({
   select: (i: number) => void;
   current: number;
 }) {
+  const hideRating = useAtomValue(hidePuzzleRatingAtom);
+
   return (
     <Group>
       {challenges.map((p, i) => {
@@ -67,7 +71,7 @@ function ChallengeHistory({
                 <IconDots color="yellow" />
               </ActionIcon>
               <Text ta="center" fz="xs" c="yellow">
-                {p.label}
+                {hideRating ? "?" : p.label}
               </Text>
             </Stack>
           ))

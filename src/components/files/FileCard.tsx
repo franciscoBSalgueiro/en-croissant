@@ -11,12 +11,12 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
-import { FileMetadata } from "./file";
+import type { FileMetadata } from "./file";
 
 function FileCard({
   selected,
@@ -61,7 +61,7 @@ function FileCard({
       fileInfo: selected,
       gameNumber: page,
     });
-    navigate("/");
+    navigate({ to: "/" });
   }
 
   return (
@@ -94,7 +94,7 @@ function FileCard({
 
       {selectedGame && (
         <>
-          <Box h="50%">
+          <Box h={0} flex={1}>
             <GameSelector
               setGames={setGames}
               games={games}
@@ -104,7 +104,9 @@ function FileCard({
               total={selected.numGames}
             />
           </Box>
-          <GamePreview pgn={selectedGame} />
+          <Box h="55%">
+            <GamePreview pgn={selectedGame} />
+          </Box>
         </>
       )}
     </Stack>

@@ -1,12 +1,14 @@
 import { previewBoardOnHoverAtom } from "@/atoms/atoms";
-import { Score } from "@/bindings";
+import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
 import { positionFromFen } from "@/utils/chessops";
-import { ActionIcon, Box, Flex, Popover, Table } from "@mantine/core";
+import { ActionIcon, Box, Flex, HoverCard, Table } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
+import type { Key } from "chessground/types";
+import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import { useAtomValue } from "jotai";
@@ -42,7 +44,9 @@ function AnalysisRow({
       if (!move) break;
       pos.play(move);
       const fen = makeFen(pos.toSetup());
-      moveInfo.push({ fen, san });
+      const lastMove = chessgroundMove(move);
+      const isCheck = pos.isCheck();
+      moveInfo.push({ fen, san, lastMove, isCheck });
     }
   }
 
@@ -61,8 +65,9 @@ function AnalysisRow({
             alignItems: "center",
           }}
         >
-          {moveInfo.map(({ san, fen }, index) => (
+          {moveInfo.map(({ san, fen, lastMove, isCheck }, index) => (
             <BoardPopover
+              key={index}
               san={san}
               index={index}
               moves={moves}
@@ -70,6 +75,8 @@ function AnalysisRow({
               threat={threat}
               fen={fen}
               orientation={orientation}
+              lastMove={lastMove}
+              isCheck={isCheck}
             />
           ))}
         </Flex>
@@ -91,6 +98,8 @@ function AnalysisRow({
 
 function BoardPopover({
   san,
+  lastMove,
+  isCheck,
   index,
   moves,
   halfMoves,
@@ -99,6 +108,8 @@ function BoardPopover({
   orientation,
 }: {
   san: string;
+  lastMove: Key[];
+  isCheck: boolean;
   index: number;
   moves: string[];
   halfMoves: number;
@@ -114,7 +125,7 @@ function BoardPopover({
   const preview = useAtomValue(previewBoardOnHoverAtom);
 
   return (
-    <Popover
+    <HoverCard
       width={230}
       styles={{
         dropdown: {
@@ -123,16 +134,17 @@ function BoardPopover({
           border: "none",
         },
       }}
-      opened={preview && opened}
+      openDelay={0}
+      closeDelay={50}
     >
-      <Popover.Target>
-        <Box onMouseEnter={open} onMouseLeave={close}>
+      <HoverCard.Target>
+        <Box>
           {(index === 0 || is_white) &&
             `${move_number.toString()}${is_white ? "." : "..."}`}
           <MoveCell
             move={san}
             isCurrentVariation={false}
-            annotation={""}
+            annotations={[]}
             onContextMenu={() => undefined}
             isStart={false}
             onClick={() => {
@@ -145,18 +157,29 @@ function BoardPopover({
             }}
           />
         </Box>
-      </Popover.Target>
-      <Popover.Dropdown
-        style={{ pointerEvents: "none", transitionDuration: "0ms" }}
-      >
-        <Chessground
-          fen={fen}
-          coordinates={false}
-          viewOnly
-          orientation={orientation}
-        />
-      </Popover.Dropdown>
-    </Popover>
+      </HoverCard.Target>
+      {preview && (
+        <HoverCard.Dropdown
+          style={{ pointerEvents: "none", transitionDuration: "0ms" }}
+        >
+          <Chessground
+            fen={fen}
+            coordinates={false}
+            viewOnly
+            orientation={orientation}
+            lastMove={lastMove}
+            turnColor={is_white ? "black" : "white"}
+            check={isCheck}
+            drawable={{
+              enabled: true,
+              visible: true,
+              defaultSnapToValidMove: true,
+              eraseOnClick: true,
+            }}
+          />
+        </HoverCard.Dropdown>
+      )}
+    </HoverCard>
   );
 }
 

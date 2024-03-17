@@ -1,9 +1,14 @@
+import type { FileMetadata } from "@/components/files/file";
+import { Result } from "@badrap/result";
+import { exists, writeTextFile } from "@tauri-apps/api/fs";
 import { platform } from "@tauri-apps/api/os";
+import { resolve } from "@tauri-apps/api/path";
+import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
 import { match } from "ts-pattern";
 import { parsePGN } from "./chess";
 import { count_pgn_games, read_games } from "./db";
-import { Tab, createTab } from "./tabs";
+import { type Tab, createTab } from "./tabs";
 import { getGameName } from "./treeReducer";
 
 export function usePlatform() {
@@ -37,16 +42,47 @@ export async function openFile(
     name: file,
     path: file,
     numGames: count,
+    lastModified: new Date().getUTCSeconds(),
   };
   const tree = await parsePGN(input);
   createTab({
     tab: {
-      name: `${getGameName(tree.headers)} (Imported)`,
+      name: getGameName(tree.headers),
       type: "analysis",
     },
     setTabs,
     setActiveTab,
     pgn: input,
     fileInfo,
+  });
+}
+
+export async function createFile({
+  filename,
+  filetype,
+  pgn,
+  dir,
+}: {
+  filename: string;
+  filetype: "game" | "repertoire" | "tournament" | "puzzle" | "other";
+  pgn?: string;
+  dir: string;
+}): Promise<Result<FileMetadata>> {
+  const file = await resolve(dir, `${filename}.pgn`);
+  if (await exists(file)) {
+    return Result.err(Error("File already exists"));
+  }
+  const metadata = {
+    type: filetype,
+    tags: [],
+  };
+  await writeTextFile(file, pgn || makePgn(defaultGame()));
+  await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
+  return Result.ok({
+    name: filename,
+    path: file,
+    numGames: 1,
+    metadata,
+    lastModified: new Date().getUTCSeconds(),
   });
 }

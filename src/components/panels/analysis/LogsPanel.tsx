@@ -1,12 +1,11 @@
-import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
+import { activeTabAtom, enginesAtom, fontSizeAtom } from "@/atoms/atoms";
 import { commands } from "@/bindings";
-import VirtualizedScrollArea from "@/components/common/VirtualizedScrollArea";
-import { LocalEngine } from "@/utils/engines";
+import type { LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import {
   ActionIcon,
-  Box,
   Group,
+  ScrollArea,
   SegmentedControl,
   Select,
   Stack,
@@ -14,10 +13,11 @@ import {
   Text,
 } from "@mantine/core";
 import { IconFileExport, IconRefresh } from "@tabler/icons-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { save } from "@tauri-apps/api/dialog";
 import { writeTextFile } from "@tauri-apps/api/fs";
 import { useAtomValue } from "jotai";
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
 export default function LogsPanel() {
@@ -70,6 +70,15 @@ export default function LogsPanel() {
     }
   }
 
+  const fontSize = useAtomValue(fontSizeAtom);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: filteredData?.length || 0,
+    estimateSize: () => 35 * (fontSize / 100),
+    getScrollElement: () => parentRef.current!,
+  });
+
   return (
     <Stack flex={1} h="100%">
       <Group grow>
@@ -107,35 +116,36 @@ export default function LogsPanel() {
           No logs for {engine?.name ?? "engine"}
         </Text>
       )}
-      <Box w="100%" flex={1}>
-        <VirtualizedScrollArea
-          key={filteredData?.length}
-          itemCount={filteredData?.length || 0}
-          itemSize={30}
-          innerElementType={Inner}
+      <ScrollArea flex={1} viewportRef={parentRef}>
+        <Table
+          withTableBorder
+          withColumnBorders
+          style={{
+            height: rowVirtualizer.getTotalSize(),
+            width: "100%",
+            position: "relative",
+          }}
         >
-          {({ index, style }) => (
-            <Table.Tr style={style}>
-              <LogLine log={filteredData![index]} />
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+            <Table.Tr
+              key={virtualRow.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: virtualRow.size,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <LogLine log={filteredData![virtualRow.index]} />
             </Table.Tr>
-          )}
-        </VirtualizedScrollArea>
-      </Box>
+          ))}
+        </Table>
+      </ScrollArea>
     </Stack>
   );
 }
-
-const Inner = forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>(
-  function Inner({ children, ...rest }, ref) {
-    return (
-      <div {...rest} ref={ref}>
-        <Table>
-          <Table.Tbody>{children}</Table.Tbody>
-        </Table>
-      </div>
-    );
-  },
-);
 
 type Log = { type: "gui"; value: string } | { type: "engine"; value: string };
 function LogLine({ log }: { log: Log }) {

@@ -5,23 +5,22 @@ import {
   Chip,
   Group,
   Input,
-  ScrollArea,
   Stack,
   Text,
   Title,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
 import { readDir, removeFile } from "@tauri-apps/api/fs";
-import { documentDir, resolve } from "@tauri-apps/api/path";
-import Fuse from "fuse.js";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
-import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
+import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
-import { FileMetadata, FileType, readFileMetadata } from "./file";
+import { type FileMetadata, type FileType, readFileMetadata } from "./file";
 
 const FILE_TYPES: FileType[] = [
   "game",
@@ -31,47 +30,61 @@ const FILE_TYPES: FileType[] = [
   "other",
 ];
 
+export type MetadataOrEntry = {
+  name: string;
+  path: string;
+  children?: MetadataOrEntry[];
+} & Partial<FileMetadata>;
+
+async function processFiles(
+  files: MetadataOrEntry[],
+): Promise<MetadataOrEntry[]> {
+  const filesInfo = await Promise.all(
+    files.map((f) => readFileMetadata(f.name, f.path, f.children)),
+  );
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.children) {
+      filesInfo[i] = {
+        name: file.name || "",
+        path: file.path,
+        children: await processFiles(file.children),
+      };
+    }
+  }
+  return filesInfo.filter((f) => f !== null) as MetadataOrEntry[];
+}
+
+const useFileDirectory = (dir: string) => {
+  const { data, error, isLoading, mutate } = useSWR(
+    "file-directory",
+    async () => {
+      const files = await readDir(dir, { recursive: true });
+      const filesInfo = await processFiles(files as MetadataOrEntry[]);
+
+      return filesInfo;
+    },
+  );
+  return {
+    files: data,
+    isLoading,
+    error,
+    mutate,
+  };
+};
+
 function FilesPage() {
-  const [files, setFiles] = useState<FileMetadata[]>([]);
+  const { documentDir } = useLoaderData({ from: "/files" });
+  const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
+
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FileMetadata | null>(null);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const [filter, setFilter] = useState<FileType | null>(null);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(files, {
-        keys: ["name"],
-      }),
-    [files],
-  );
-
-  let filteredFiles = files;
-  if (search) {
-    filteredFiles = fuse.search(search).map((r) => r.item);
-  }
-  if (filter) {
-    filteredFiles = filteredFiles.filter((f) => f.metadata.type === filter);
-  }
-
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
-
-  useEffect(() => {
-    async function loadFiles() {
-      const dir = await resolve(await documentDir(), "EnCroissant");
-      readDir(dir).then(async (files) => {
-        const filesInfo = await Promise.all(
-          files
-            .filter((f) => f.name?.endsWith(".pgn"))
-            .map((f) => readFileMetadata(f.name || "", f.path)),
-        );
-        setFiles(filesInfo);
-      });
-    }
-    loadFiles();
-  }, []);
 
   useEffect(() => {
     setGames(new Map());
@@ -79,24 +92,28 @@ function FilesPage() {
 
   return (
     <Stack h="100%">
-      <CreateModal
-        opened={createModal}
-        setOpened={toggleCreateModal}
-        setFiles={setFiles}
-      />
-      {selected && (
+      {files && (
+        <CreateModal
+          opened={createModal}
+          setOpened={toggleCreateModal}
+          files={files}
+          setFiles={mutate}
+          setSelected={setSelected}
+        />
+      )}
+      {selected && files && (
         <EditModal
           key={selected.name}
           opened={editModal}
           setOpened={toggleEditModal}
-          setFiles={setFiles}
+          mutate={mutate}
           setSelected={setSelected}
           metadata={selected}
         />
       )}
       <Group align="baseline" pl="lg" py="sm">
         <Title>Files</Title>
-        <OpenFolderButton base="Document" folder="EnCroissant" />
+        <OpenFolderButton folder={documentDir} />
       </Group>
 
       <Group grow flex={1} style={{ overflow: "hidden" }} px="md" pb="md">
@@ -143,23 +160,15 @@ function FilesPage() {
             ))}
           </Group>
 
-          <ScrollArea flex={1} offsetScrollbars>
-            <Stack>
-              {filteredFiles.map((file) => (
-                <GenericCard
-                  key={file.name}
-                  id={file}
-                  isSelected={selected?.name === file.name}
-                  setSelected={setSelected}
-                  Header={
-                    <Group wrap="nowrap">
-                      <Text fw={500}>{file.name}</Text>
-                    </Group>
-                  }
-                />
-              ))}
-            </Stack>
-          </ScrollArea>
+          <DirectoryTable
+            files={files}
+            setFiles={mutate}
+            isLoading={isLoading}
+            setSelectedFile={setSelected}
+            selectedFile={selected}
+            search={search}
+            filter={filter || ""}
+          />
         </Stack>
 
         {selected ? (
@@ -172,7 +181,7 @@ function FilesPage() {
               onConfirm={async () => {
                 await removeFile(selected.path);
                 await removeFile(selected.path.replace(".pgn", ".info"));
-                setFiles(files.filter((file) => file.name !== selected.name));
+                mutate(files?.filter((file) => file.name !== selected.name));
                 toggleDeleteModal();
                 setSelected(null);
               }}

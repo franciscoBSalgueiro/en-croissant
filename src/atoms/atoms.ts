@@ -1,32 +1,39 @@
-import { BestMoves, GoMode } from "@/bindings";
-import { Card, buildFromTree } from "@/components/files/opening";
-import { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { DatabaseInfo } from "@/utils/db";
-import { Engine, EngineSettings, engineSchema } from "@/utils/engines";
+import type { BestMoves, GoMode } from "@/bindings";
+import { type Position, positionSchema } from "@/components/files/opening";
+import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import type { DatabaseInfo } from "@/utils/db";
 import {
-  LichessGamesOptions,
-  MasterGamesOptions,
-} from "@/utils/lichess/lichessexplorer";
-import { MissingMove } from "@/utils/repertoire";
-import { Tab, genID, tabSchema } from "@/utils/tabs";
-import { GameHeaders, TreeNode } from "@/utils/treeReducer";
-import { MantineColor } from "@mantine/core";
+  type Engine,
+  type EngineSettings,
+  engineSchema,
+} from "@/utils/engines";
+import {
+  type LichessGamesOptions,
+  type MasterGamesOptions,
+  lichessGamesOptionsSchema,
+  masterOptionsSchema,
+} from "@/utils/lichess/explorer";
+import type { MissingMove } from "@/utils/repertoire";
+import { type Tab, genID, tabSchema } from "@/utils/tabs";
+import type { MantineColor } from "@mantine/core";
 
-import { OpponentSettings } from "@/components/boards/BoardGame";
+import type { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import { getWinChance, normalizeScore } from "@/utils/score";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
-import { PrimitiveAtom, atom } from "jotai";
+import { type PrimitiveAtom, atom } from "jotai";
 import {
   atomFamily,
   atomWithStorage,
   createJSONStorage,
   loadable,
 } from "jotai/utils";
-import { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
+import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
-import { Session } from "../utils/session";
+import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
@@ -91,28 +98,72 @@ export const currentTabAtom = atom(
   },
 );
 
+// Directories
+export const storedDocumentDirAtom = atomWithStorage<string>(
+  "document-dir",
+  "",
+  undefined,
+  { getOnInit: true },
+);
+
 // Settings
 
 export const fontSizeAtom = atomWithStorage(
   "font-size",
-  parseInt(document.documentElement.style.fontSize) || 100,
+  Number.parseInt(document.documentElement.style.fontSize) || 100,
 );
 
+export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
+export const snapArrowsAtom = atomWithStorage<boolean>("snap-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
+export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
+  "show-consecutive-arrows",
+  false,
+);
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>(
   "preview-board-on-hover",
   true,
 );
+export const enableBoardScrollAtom = atomWithStorage<boolean>(
+  "board-scroll",
+  true,
+);
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<boolean>(
   "show-coordinates",
   false,
+  undefined,
+  {
+    getOnInit: true,
+  },
 );
+export const soundCollectionAtom = atomWithStorage<string>(
+  "sound-collection",
+  "standard",
+  undefined,
+  {
+    getOnInit: true,
+  },
+);
+
+export const soundVolumeAtom = atomWithStorage<number>(
+  "sound-volume",
+  0.8,
+  undefined,
+  {
+    getOnInit: true,
+  },
+);
+
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
+export const boardImageAtom = atomWithStorage<string>(
+  "board-image",
+  "gray.svg",
+);
 export const primaryColorAtom = atomWithStorage<MantineColor>(
   "mantine-primary-color",
   "blue",
@@ -155,9 +206,9 @@ export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
   createJSONStorage(() => sessionStorage),
 );
 
-function tabValue<T extends object | string | boolean | number>(
-  family: AtomFamily<string, PrimitiveAtom<T>>,
-) {
+function tabValue<
+  T extends object | string | boolean | number | null | undefined,
+>(family: AtomFamily<string, PrimitiveAtom<T>>) {
   return atom(
     (get) => {
       const tab = get(currentTabAtom);
@@ -178,6 +229,16 @@ function tabValue<T extends object | string | boolean | number>(
   );
 }
 
+// Puzzles
+export const hidePuzzleRatingAtom = atomWithStorage<boolean>(
+  "hide-puzzle-rating",
+  false,
+);
+export const progressivePuzzlesAtom = atomWithStorage<boolean>(
+  "progressive-puzzles",
+  false,
+);
+
 // Per tab settings
 
 const evalOpenFamily = atomFamily((tab: string) => atom(true));
@@ -194,26 +255,33 @@ const localOptionsFamily = atomFamily((tab: string) =>
     path: null,
     type: "exact",
     fen: "",
+    player: null,
+    color: "white",
   }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);
 
-const lichessOptionsFamily = atomFamily((tab: string) =>
-  atom<LichessGamesOptions>({
-    fen: "",
+export const lichessOptionsAtom = atomWithStorage<LichessGamesOptions>(
+  "lichess-all-options",
+  {
     ratings: [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500],
     speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
     color: "white",
-  }),
+  },
+  createZodStorage(lichessGamesOptionsSchema, localStorage),
+  {
+    getOnInit: true,
+  },
 );
-export const currentLichessOptionsAtom = tabValue(lichessOptionsFamily);
 
-const masterOptionsFamily = atomFamily((tab: string) =>
-  atom<MasterGamesOptions>({
-    fen: "",
-  }),
+export const masterOptionsAtom = atomWithStorage<MasterGamesOptions>(
+  "lichess-master-options",
+  {},
+  createZodStorage(masterOptionsSchema, localStorage),
+  {
+    getOnInit: true,
+  },
 );
-export const currentMasterOptionsAtom = tabValue(masterOptionsFamily);
 
 const dbTypeFamily = atomFamily((tab: string) =>
   atom<"local" | "lch_all" | "lch_master">("local"),
@@ -225,6 +293,14 @@ export const currentDbTabAtom = tabValue(dbTabFamily);
 
 const analysisTabFamily = atomFamily((tab: string) => atom("engines"));
 export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
+
+const practiceTabFamily = atomFamily((tab: string) => atom("train"));
+export const currentPracticeTabAtom = tabValue(practiceTabFamily);
+
+const expandedEnginesFamily = atomFamily((tab: string) =>
+  atom<string[] | undefined>(undefined),
+);
+export const currentExpandedEnginesAtom = tabValue(expandedEnginesFamily);
 
 const pgnOptionsFamily = atomFamily((tab: string) =>
   atom({
@@ -257,35 +333,43 @@ export const currentPlayersAtom = tabValue(playersFamily);
 
 // Practice
 
-const practicingFamily = atomFamily((tab: string) => atom(false));
-export const currentPracticingAtom = tabValue(practicingFamily);
+const reviewLogSchema = z
+  .object({
+    fen: z.string(),
+  })
+  .passthrough();
+
+const practiceDataSchema = z.object({
+  positions: positionSchema.array(),
+  logs: reviewLogSchema.array(),
+});
+
+export type PracticeData = {
+  positions: Position[];
+  logs: (ReviewLog & { fen: string })[];
+};
 
 export const deckAtomFamily = atomFamily(
   ({
-    id,
+    file,
     game,
-    root,
-    headers,
   }: {
-    id: string;
+    file: string;
     game: number;
-    root: TreeNode;
-    headers: GameHeaders;
-  }) => {
-    const a = atomWithStorage<Card[]>(`deck-${id}-${game}`, []);
-    a.onMount = (set) => {
-      if (localStorage.getItem(`deck-${id}-${game}`) === null) {
-        const cards = buildFromTree(
-          root,
-          headers.orientation || "white",
-          headers.start || [],
-        );
-        set(cards);
-      }
-    };
-    return a;
-  },
-  (a, b) => a.id === b.id && a.game === b.game,
+  }) =>
+    atomWithStorage<PracticeData>(
+      `deck-${file}-${game}`,
+      {
+        positions: [],
+        logs: [],
+      },
+      createZodStorage(
+        practiceDataSchema,
+        localStorage,
+      ) as any as SyncStorage<PracticeData>, // TODO: fix types
+    ),
+
+  (a, b) => a.file === b.file && a.game === b.game,
 );
 
 export const engineMovesFamily = atomFamily(
@@ -297,12 +381,15 @@ export const engineMovesFamily = atomFamily(
 // returns the best moves of each engine for the current position
 export const bestMovesFamily = atomFamily(
   ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
-    atom<Map<number, string[]>>((get) => {
+    atom<Map<number, { pv: string[]; winChance: number }[]>>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return new Map();
       const engines = get(loadableEnginesAtom);
       if (!(engines.state === "hasData")) return new Map();
-      const bestMoves = new Map<number, string[]>();
+      const bestMoves = new Map<
+        number,
+        { pv: string[]; winChance: number }[]
+      >();
       let n = 0;
       for (const engine of engines.data.filter((e) => e.loaded)) {
         const engineMoves = get(
@@ -327,13 +414,16 @@ export const bestMovesFamily = atomFamily(
           bestMoves.set(
             n,
             moves
-              .filter((m) => {
+              .map((m) => {
                 const winChance = getWinChance(
                   normalizeScore(m.score, pos?.turn || "white"),
                 );
-                return winChance >= bestWinChange - 5;
+                return {
+                  pv: m.uciMoves,
+                  winChance,
+                };
               })
-              .map((m) => m.uciMoves[0]),
+              .filter((m) => bestWinChange - m.winChance < 10),
           );
         }
         n++;
@@ -355,10 +445,16 @@ export const tabEngineSettingsFamily = atomFamily(
     defaultSettings?: EngineSettings;
     defaultGo?: GoMode;
   }) => {
-    return atom<{ enabled: boolean; settings: EngineSettings; go: GoMode }>({
+    return atom<{
+      enabled: boolean;
+      settings: EngineSettings;
+      go: GoMode;
+      synced: boolean;
+    }>({
       enabled: false,
       settings: defaultSettings || [],
       go: defaultGo || { t: "Infinite" },
+      synced: true,
     });
   },
   (a, b) => a.tab === b.tab && a.engineName === b.engineName,

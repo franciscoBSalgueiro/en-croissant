@@ -3,8 +3,8 @@
     "productName": "en-croissant"
   },
   "build": {
-    "beforeDevCommand": "pnpm start",
-    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "pnpm start-vite",
+    "beforeBuildCommand": "pnpm build-vite",
     "devPath": "http://localhost:1420",
     "distDir": "../dist",
     "withGlobalTauri": false
@@ -23,7 +23,8 @@
         "all": true,
         "scope": [
           "$APPDATA/**",
-          "$DOCUMENT/**"
+          "$DOCUMENT/**",
+          "**"
         ]
       },
       "http": {
@@ -81,6 +82,9 @@
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
         "timestampUrl": ""
+      },
+      "appimage": {
+        "bundleMediaFramework": true
       }
     },
     "security": {

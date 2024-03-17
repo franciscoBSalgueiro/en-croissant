@@ -1,7 +1,7 @@
 import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
-import { GoMode, commands } from "@/bindings";
+import { type GoMode, commands } from "@/bindings";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { LocalEngine } from "@/utils/engines";
+import type { LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import {
   Button,
@@ -13,18 +13,29 @@ import {
   Stack,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useAtomValue } from "jotai";
-import { memo, useContext } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { memo, useContext, useEffect } from "react";
+
+const reportSettingsAtom = atomWithStorage("report-settings", {
+  novelty: true,
+  reversed: true,
+  goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
+});
 
 function ReportModal({
+  tab,
   initialFen,
   moves,
+  is960,
   reportingMode,
   toggleReportingMode,
   setInProgress,
 }: {
+  tab: string;
   initialFen: string;
   moves: string[];
+  is960: boolean;
   reportingMode: boolean;
   toggleReportingMode: () => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
@@ -36,12 +47,17 @@ function ReportModal({
   );
   const dispatch = useContext(TreeDispatchContext);
 
+  useEffect(() => {
+    if (!form.values.engine && localEngines.length > 0) {
+      form.setFieldValue("engine", localEngines[0].path);
+    }
+  }, [localEngines.length]);
+  const [reportSettings, setReportSettings] = useAtom(reportSettingsAtom);
+
   const form = useForm({
     initialValues: {
-      engine: localEngines[0]?.path ?? "",
-      novelty: true,
-      reversed: true,
-      goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
+      ...reportSettings,
+      engine: "",
     },
 
     validate: {
@@ -56,6 +72,7 @@ function ReportModal({
   });
 
   function analyze() {
+    setReportSettings(form.values);
     setInProgress(true);
     toggleReportingMode();
     const engine = localEngines.find((e) => e.path === form.values.engine);
@@ -64,8 +81,13 @@ function ReportModal({
       value: s.value?.toString() ?? "",
     }));
 
+    if (is960 && !engineSettings.find((o) => o.name === "UCI_Chess960")) {
+      engineSettings.push({ name: "UCI_Chess960", value: "true" });
+    }
+
     commands
       .analyzeGame(
+        `report_${tab}`,
         form.values.engine,
         form.values.goMode,
         {

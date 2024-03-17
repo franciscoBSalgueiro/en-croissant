@@ -2,14 +2,14 @@ import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { commands } from "@/bindings";
 import { unwrap } from "@/utils/invoke";
-import { Tab, createTab, genID } from "@/utils/tabs";
+import { type Tab, createTab, genID } from "@/utils/tabs";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect } from "react";
-import { Mosaic, MosaicNode } from "react-mosaic-component";
+import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -175,7 +175,7 @@ export default function BoardsPage() {
           width: "100%",
         }}
       >
-        <ScrollArea type="never" h="3.75rem" px="md" pt="sm">
+        <ScrollArea h="3.75rem" px="md" pt="sm" scrollbarSize={8}>
           <DragDropContext
             onDragEnd={({ destination, source }) =>
               destination?.index !== undefined &&

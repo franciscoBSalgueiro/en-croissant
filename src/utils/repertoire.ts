@@ -1,6 +1,6 @@
 import { searchPosition } from "./db";
 import { isPrefix } from "./misc";
-import { TreeNode, treeIterator } from "./treeReducer";
+import { type TreeNode, treeIterator } from "./treeReducer";
 
 export type MissingMove = {
   position: number[];
@@ -72,6 +72,8 @@ export async function openingReport({
         path: referenceDb,
         type: "exact",
         fen: item.node.fen,
+        color: "white",
+        player: null,
       },
       "opening",
     );

@@ -1,7 +1,10 @@
+import { boardImageAtom } from "@/atoms/atoms";
+import { Box } from "@mantine/core";
 import { Chessground as NativeChessground } from "chessground";
-import { Api } from "chessground/api";
-import { Config } from "chessground/config";
+import type { Api } from "chessground/api";
+import type { Config } from "chessground/config";
 import { makeFen, parseFen } from "chessops/fen";
+import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
 export function Chessground(
@@ -28,7 +31,7 @@ export function Chessground(
       });
       setApi(chessgroundApi);
     } else if (ref?.current && api) {
-      api.set(props);
+      api?.set(props);
     }
   }, [api, props, ref]);
 
@@ -36,11 +39,14 @@ export function Chessground(
     api?.set(props);
   }, [api, props]);
 
+  const boardImage = useAtomValue(boardImageAtom);
+
   return (
-    <div
+    <Box
       style={{
         aspectRatio: 1,
         width: "100%",
+        "--board-image": `url('/board/${boardImage}')`,
       }}
       ref={ref}
     />

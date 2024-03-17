@@ -1,5 +1,12 @@
+import { commands } from "@/bindings";
 import { count_pgn_games } from "@/utils/db";
-import { exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
+import { unwrap } from "@/utils/invoke";
+import {
+  type FileEntry,
+  exists,
+  readTextFile,
+  writeTextFile,
+} from "@tauri-apps/api/fs";
 import { z } from "zod";
 
 const fileTypeSchema = z.enum([
@@ -24,6 +31,7 @@ export const fileMetadataSchema = z.object({
   path: z.string(),
   numGames: z.number(),
   metadata: fileInfoMetadataSchema,
+  lastModified: z.number(),
 });
 
 export type FileMetadata = z.infer<typeof fileMetadataSchema>;
@@ -36,7 +44,18 @@ export type FileData = {
 export async function readFileMetadata(
   name: string,
   path: string,
-): Promise<FileMetadata> {
+  children?: FileEntry[],
+): Promise<FileMetadata | FileEntry | null> {
+  if (children) {
+    return {
+      name,
+      path,
+      children,
+    };
+  }
+  if (!name.endsWith(".pgn")) {
+    return null;
+  }
   const metadataPath = path.replace(".pgn", ".info");
   let metadata: FileInfoMetadata;
   if (await exists(metadataPath)) {
@@ -48,6 +67,13 @@ export async function readFileMetadata(
     };
     await writeTextFile(metadataPath, JSON.stringify(metadata));
   }
+  const fileMetadata = unwrap(await commands.getFileMetadata(path));
   const numGames = await count_pgn_games(path);
-  return { path, name: name.replace(".pgn", ""), numGames, metadata };
+  return {
+    path,
+    name: name.replace(".pgn", ""),
+    numGames,
+    metadata,
+    lastModified: fileMetadata.last_modified,
+  };
 }

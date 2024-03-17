@@ -3,14 +3,19 @@ import {
   engineMovesFamily,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
-import { events, EngineOptions, GoMode } from "@/bindings";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb";
-import { swapMove } from "@/utils/chessops";
-import { chessopsError, positionFromFen } from "@/utils/chessops";
-import { Engine, LocalEngine, stopEngine, killEngine } from "@/utils/engines";
-import { getBestMoves as localGetBestMoves } from "@/utils/engines";
-import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess";
+import { events, type EngineOptions, type GoMode } from "@/bindings";
+import { TreeDispatchContext } from "@/components/common/TreeStateContext"
+import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
+import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
+import {
+  type Engine,
+  type LocalEngine,
+  getBestMoves as localGetBestMoves,
+  stopEngine,
+  killEngine
+} from "@/utils/engines";
+import { formatNodes } from "@/utils/format";
+import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
 import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import {
@@ -45,6 +50,7 @@ import { useAtom, useAtomValue } from "jotai";
 import {
   memo,
   startTransition,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -54,7 +60,7 @@ import {
 import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
-import EngineSettingsForm from "./EngineSettingsForm";
+import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },
@@ -66,6 +72,7 @@ export const arrowColors = [
 interface BestMovesProps {
   id: number;
   engine: Engine;
+  setEngine: (engine: Engine) => void;
   fen: string;
   moves: string[];
   halfMoves: number;
@@ -77,6 +84,7 @@ interface BestMovesProps {
 function BestMovesComponent({
   id,
   engine,
+  setEngine,
   fen,
   moves,
   halfMoves,
@@ -89,7 +97,7 @@ function BestMovesComponent({
   const [ev, setEngineVariation] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
-  const [settings, setSettings] = useAtom(
+  const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
       engineName: engine.name,
       defaultSettings: engine.settings ?? undefined,
@@ -97,6 +105,31 @@ function BestMovesComponent({
       tab: activeTab!,
     }),
   );
+  useEffect(() => {
+    if (settings.synced) {
+      setSettings2((prev) => ({
+        ...prev,
+        go: engine.go || prev.go,
+        settings: engine.settings || prev.settings,
+      }));
+    }
+  }, [engine.settings, engine.go, settings.synced, setSettings2]);
+
+  const setSettings = useCallback(
+    (fn: (prev: Settings) => Settings) => {
+      const newSettings = fn(settings);
+      setSettings2(newSettings);
+      if (newSettings.synced) {
+        setEngine({
+          ...engine,
+          settings: newSettings.settings,
+          go: newSettings.go,
+        });
+      }
+    },
+    [engine, settings, setSettings2, setEngine],
+  );
+
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, toggleThreat] = useToggle();
   const theme = useMantineTheme();
@@ -136,10 +169,10 @@ function BestMovesComponent({
     () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
     [ev, searchingFen, searchingMoves],
   );
-  const depth = !engineVariations ? 0 : engineVariations[0]?.depth ?? 0;
-  const nps = !engineVariations
-    ? 0
-    : Math.floor(engineVariations[0]?.nps / 1000 ?? 0);
+
+  const isComputed = engineVariations && engineVariations.length > 0;
+  const depth = isComputed ? engineVariations[0].depth : 0;
+  const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
@@ -307,7 +340,7 @@ function BestMovesComponent({
                   engineVariations &&
                   engineVariations.length > 0 && (
                     <Tooltip label={"How fast the engine is running"}>
-                      <Code fz="xs">{nps}k nodes/s</Code>
+                      <Code fz="xs">{nps} nodes/s</Code>
                     </Tooltip>
                   )}
               </Group>

@@ -1,14 +1,15 @@
-import { BestMoves, Score } from "@/bindings";
-import { DrawShape } from "chessground/draw";
-import { Move, isNormal } from "chessops";
-import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
+import type { BestMoves, Score } from "@/bindings";
+import type { DrawShape } from "chessground/draw";
+import { type Move, isNormal } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
-import { Annotation } from "./chess";
+import { ANNOTATION_INFO, type Annotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import { Outcome } from "./db";
+import type { Outcome } from "./db";
 import { isPrefix } from "./misc";
 import { getAnnotation } from "./score";
+import { playSound } from "./sound";
 
 export interface TreeState {
   root: TreeNode;
@@ -26,9 +27,8 @@ export interface TreeNode {
   depth: number | null;
   halfMoves: number;
   shapes: DrawShape[];
-  annotation: Annotation;
-  commentHTML: string;
-  commentText: string;
+  annotations: Annotation[];
+  comment: string;
   clock?: number;
 }
 
@@ -46,6 +46,16 @@ export function* treeIterator(node: TreeNode): Generator<ListNode> {
       stack.push({ position: [...position, i], node: node.children[i] });
     }
   }
+}
+
+export function findFen(fen: string, node: TreeNode): number[] {
+  const iterator = treeIterator(node);
+  for (const item of iterator) {
+    if (item.node.fen === fen) {
+      return item.position;
+    }
+  }
+  return [];
 }
 
 export function* treeIteratorMainLine(node: TreeNode): Generator<ListNode> {
@@ -70,6 +80,8 @@ export function countMainPly(node: TreeNode): number {
 }
 
 export function defaultTree(fen?: string): TreeState {
+  const [pos] = positionFromFen(fen ?? INITIAL_FEN);
+
   return {
     dirty: false,
     position: [],
@@ -80,11 +92,10 @@ export function defaultTree(fen?: string): TreeState {
       children: [],
       score: null,
       depth: null,
-      halfMoves: 0,
+      halfMoves: pos?.turn === "black" ? 1 : 0,
       shapes: [],
-      annotation: "",
-      commentHTML: "",
-      commentText: "",
+      annotations: [],
+      comment: "",
     },
     headers: {
       id: 0,
@@ -103,24 +114,26 @@ export function createNode({
   move,
   san,
   halfMoves,
+  clock,
 }: {
   move: Move;
   san: string;
   fen: string;
   halfMoves: number;
+  clock?: number;
 }): TreeNode {
   return {
     fen,
     move,
     san,
+    clock: clock ? clock / 1000 : undefined,
     children: [],
     score: null,
     depth: null,
     halfMoves,
     shapes: [],
-    annotation: "",
-    commentHTML: "",
-    commentText: "",
+    annotations: [],
+    comment: "",
   };
 }
 
@@ -204,6 +217,7 @@ export type TreeAction =
       type: "MAKE_MOVE";
       payload: Move | string;
       changePosition?: boolean;
+      changeHeaders?: boolean;
       mainline?: boolean;
       clock?: number;
     }
@@ -212,7 +226,12 @@ export type TreeAction =
       payload: Move;
       clock?: number;
     }
-  | { type: "MAKE_MOVES"; payload: string[]; mainline?: boolean }
+  | {
+      type: "MAKE_MOVES";
+      payload: string[];
+      mainline?: boolean;
+      changeHeaders?: boolean;
+    }
   | { type: "GO_TO_START" }
   | { type: "GO_TO_END" }
   | { type: "GO_TO_NEXT" }
@@ -220,7 +239,7 @@ export type TreeAction =
   | { type: "GO_TO_MOVE"; payload: number[] }
   | { type: "DELETE_MOVE"; payload?: number[] }
   | { type: "SET_ANNOTATION"; payload: Annotation }
-  | { type: "SET_COMMENT"; payload: { html: string; text: string } }
+  | { type: "SET_COMMENT"; payload: string }
   | { type: "SET_FEN"; payload: string }
   | { type: "SET_SCORE"; payload: Score }
   | { type: "SET_SHAPES"; payload: DrawShape[] }
@@ -265,7 +284,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with(
       { type: "MAKE_MOVE" },
-      ({ payload, changePosition, mainline, clock }) => {
+      ({ payload, changePosition, mainline, clock, changeHeaders = true }) => {
         if (typeof payload === "string") {
           const node = getNodeAtPath(state.root, state.position);
           if (!node) return;
@@ -275,40 +294,42 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
           if (!move) return;
           payload = move;
         }
-        if (clock) {
-          const node = getNodeAtPath(state.root, state.position);
-          if (!node) return;
-          node.clock = clock / 1000;
-        }
         makeMove({
           state,
           move: payload,
           last: false,
           changePosition,
+          changeHeaders,
           mainline,
+          clock,
         });
       },
     )
     .with({ type: "APPEND_MOVE" }, ({ payload, clock }) => {
-      if (clock) {
+      makeMove({ state, move: payload, last: true, clock });
+    })
+    .with(
+      { type: "MAKE_MOVES" },
+      ({ payload, mainline, changeHeaders = true }) => {
+        state.dirty = true;
         const node = getNodeAtPath(state.root, state.position);
-        if (!node) return;
-        node.clock = clock / 1000;
-      }
-      makeMove({ state, move: payload, last: true });
-    })
-    .with({ type: "MAKE_MOVES" }, ({ payload, mainline }) => {
-      state.dirty = true;
-      const node = getNodeAtPath(state.root, state.position);
-      const [pos] = positionFromFen(node.fen);
-      if (!pos) return;
-      for (const move of payload) {
-        const m = parseSanOrUci(pos, move);
-        if (!m) return;
-        pos.play(m);
-        makeMove({ state, move: m, last: false, mainline });
-      }
-    })
+        const [pos] = positionFromFen(node.fen);
+        if (!pos) return;
+        for (const [i, move] of payload.entries()) {
+          const m = parseSanOrUci(pos, move);
+          if (!m) return;
+          pos.play(m);
+          makeMove({
+            state,
+            move: m,
+            last: false,
+            mainline,
+            sound: i === payload.length - 1,
+            changeHeaders,
+          });
+        }
+      },
+    )
     .with({ type: "GO_TO_START" }, () => {
       state.position = state.headers.start || [];
     })
@@ -323,6 +344,10 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with({ type: "GO_TO_NEXT" }, () => {
       const node = getNodeAtPath(state.root, state.position);
+      const [pos] = positionFromFen(node.fen);
+      if (!pos || !node.children[0]?.move) return;
+      const san = makeSan(pos, node.children[0].move);
+      playSound(san.includes("x"), san.includes("+"));
       if (node && node.children.length > 0) {
         state.position.push(0);
       }
@@ -343,10 +368,17 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
       state.dirty = true;
       const node = getNodeAtPath(state.root, state.position);
       if (node) {
-        if (node.annotation === payload) {
-          node.annotation = "";
+        if (node.annotations.includes(payload)) {
+          node.annotations = node.annotations.filter((a) => a !== payload);
         } else {
-          node.annotation = payload;
+          const newAnnotations = node.annotations.filter(
+            (a) =>
+              !ANNOTATION_INFO[a].group ||
+              ANNOTATION_INFO[a].group !== ANNOTATION_INFO[payload].group,
+          );
+          node.annotations = [...newAnnotations, payload].sort((a, b) =>
+            ANNOTATION_INFO[a].nag > ANNOTATION_INFO[b].nag ? 1 : -1,
+          );
         }
       }
     })
@@ -354,8 +386,7 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
       state.dirty = true;
       const node = getNodeAtPath(state.root, state.position);
       if (node) {
-        node.commentHTML = payload.html;
-        node.commentText = payload.text;
+        node.comment = payload;
       }
     })
     .with({ type: "SET_FEN" }, ({ payload }) => {
@@ -419,7 +450,7 @@ function is50MoveRule(state: TreeState) {
       node.move &&
       isNormal(node.move) &&
       (node.move.promotion ||
-        pos.board.get(node.move.to) ||
+        node.san?.includes("x") ||
         pos.board.get(node.move.from)?.role === "pawn")
     ) {
       count = 0;
@@ -434,13 +465,19 @@ function makeMove({
   move,
   last,
   changePosition = true,
+  changeHeaders = true,
   mainline = false,
+  clock,
+  sound = true,
 }: {
   state: TreeState;
   move: Move;
   last: boolean;
   changePosition?: boolean;
+  changeHeaders?: boolean;
   mainline?: boolean;
+  clock?: number;
+  sound?: boolean;
 }) {
   const mainLine = Array.from(treeIteratorMainLine(state.root));
   const position = last
@@ -453,7 +490,10 @@ function makeMove({
   const san = makeSan(pos, move);
   if (san === "--") return; // invalid move
   pos.play(move);
-  if (pos.isEnd()) {
+  if (sound) {
+    playSound(san.includes("x"), san.includes("+"));
+  }
+  if (changeHeaders && pos.isEnd()) {
     if (pos.isCheckmate()) {
       state.headers.result = pos.turn === "white" ? "0-1" : "1-0";
     }
@@ -464,7 +504,10 @@ function makeMove({
 
   const newFen = makeFen(pos.toSetup());
 
-  if (isThreeFoldRepetition(state, newFen) || is50MoveRule(state)) {
+  if (
+    (changeHeaders && isThreeFoldRepetition(state, newFen)) ||
+    is50MoveRule(state)
+  ) {
     state.headers.result = "1/2-1/2";
   }
 
@@ -484,6 +527,7 @@ function makeMove({
       move,
       san,
       halfMoves: moveNode.halfMoves + 1,
+      clock,
     });
     if (mainline) {
       moveNode.children.unshift(newMoveNode);
@@ -553,15 +597,12 @@ function addAnalysis(
 ) {
   let cur = state.root;
   let i = 0;
-  const setup = parseFen(state.root.fen).unwrap();
-  const initialColor = setup.turn;
   while (cur !== undefined && i < analysis.length) {
     const [pos] = positionFromFen(cur.fen);
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
       cur.score = analysis[i].best[0].score;
       if (analysis[i].novelty) {
-        cur.commentHTML = "Novelty";
-        cur.commentText = "Novelty";
+        cur.annotations = [...new Set([...cur.annotations, "N" as const])];
       }
       let prevScore = null;
       let prevprevScore = null;
@@ -574,17 +615,19 @@ function addAnalysis(
         prevprevScore = analysis[i - 2].best[0].score;
       }
       const curScore = analysis[i].best[0].score;
-      const color =
-        i % 2 === (initialColor === "white" ? 1 : 0) ? "white" : "black";
-      cur.annotation = getAnnotation(
+      const color = cur.halfMoves % 2 === 1 ? "white" : "black";
+      const annotation = getAnnotation(
         prevprevScore,
         prevScore,
         curScore,
         color,
         prevMoves,
         analysis[i].is_sacrifice,
-        cur.move ? makeSan(pos, cur.move) : "",
+        cur.san || "",
       );
+      if (annotation) {
+        cur.annotations = [...new Set([...cur.annotations, annotation])];
+      }
     }
     cur = cur.children[0];
     i++;

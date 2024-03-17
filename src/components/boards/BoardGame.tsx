@@ -5,11 +5,15 @@ import {
   enginesAtom,
   tabsAtom,
 } from "@/atoms/atoms";
-import { events, GoMode, commands } from "@/bindings";
-import { TimeControlField, getMainLine } from "@/utils/chess";
+import { events, type GoMode, commands } from "@/bindings";
+import { type TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { EngineSettings, LocalEngine } from "@/utils/engines";
-import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
+import type { EngineSettings, LocalEngine } from "@/utils/engines";
+import {
+  type GameHeaders,
+  getNodeAtPath,
+  treeIteratorMainLine,
+} from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -102,7 +106,6 @@ export type OpponentSettings =
       timeControl?: TimeControlField;
       engine: LocalEngine | null;
       go: GoMode;
-      settings: EngineSettings;
     };
 
 function OpponentForm({
@@ -132,7 +135,6 @@ function OpponentForm({
           t: "Depth",
           c: 24,
         },
-        settings: [],
       }));
     }
   }
@@ -246,8 +248,9 @@ function OpponentForm({
               engineName={opponent.engine.name}
               settings={{
                 go: opponent.go,
-                settings: opponent.settings,
+                settings: opponent.engine.settings || [],
                 enabled: true,
+                synced: false,
               }}
               setSettings={(fn) =>
                 setOpponent((prev) => {
@@ -256,8 +259,9 @@ function OpponentForm({
                   }
                   const newSettings = fn({
                     go: prev.go,
-                    settings: prev.settings,
+                    settings: prev.engine?.settings || [],
                     enabled: true,
+                    synced: false,
                   });
                   return { ...prev, ...newSettings };
                 })
@@ -375,10 +379,12 @@ function BoardGame() {
           {
             fen: root.fen,
             moves: moves,
-            extraOptions: player.settings.map((s) => ({
-              ...s,
-              value: s.value?.toString() ?? "",
-            })),
+            extraOptions: (player.engine.settings || [])
+              .filter((s) => s.name !== "MultiPV")
+              .map((s) => ({
+                ...s,
+                value: s.value?.toString() ?? "",
+              })),
           },
         );
       }
@@ -464,6 +470,15 @@ function BoardGame() {
   }, [gameState, whiteTime, setGameState, dispatch, headers]);
 
   useEffect(() => {
+    if (gameState !== "playing") {
+      if (intervalId) {
+        clearInterval(intervalId);
+        setIntervalId(null);
+      }
+    }
+  }, [gameState, intervalId]);
+
+  useEffect(() => {
     if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
       setGameState("gameOver");
       dispatch({
@@ -489,12 +504,12 @@ function BoardGame() {
       const intervalId = setInterval(decrementTime, 100);
       if (pos?.turn === "black" && whiteTime !== null) {
         setWhiteTime(
-          (prev) => prev! + (players.black.timeControl?.increment ?? 0),
+          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
         );
       }
       if (pos?.turn === "white" && blackTime !== null) {
         setBlackTime(
-          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
+          (prev) => prev! + (players.black.timeControl?.increment ?? 0),
         );
       }
       setIntervalId(intervalId);
@@ -587,7 +602,7 @@ function BoardGame() {
                         setBlackTime(players.black.timeControl.seconds);
                       }
                       setPlayers(players);
-                      const newHeaders: any = {
+                      const newHeaders: Partial<GameHeaders> = {
                         white:
                           (players.white.type === "human"
                             ? players.white.name
@@ -599,9 +614,13 @@ function BoardGame() {
                         time_control: undefined,
                       };
                       if (sameTimeControl && players.white.timeControl) {
-                        newHeaders.timeControl = `${players.white.timeControl.seconds}`;
+                        newHeaders.time_control = `${
+                          players.white.timeControl.seconds / 1000
+                        }`;
                         if (players.white.timeControl.increment) {
-                          newHeaders.timeControl += `+${players.white.timeControl.increment}`;
+                          newHeaders.time_control += `+${
+                            players.white.timeControl.increment / 1000
+                          }`;
                         }
                       }
                       dispatch({
@@ -629,6 +648,8 @@ function BoardGame() {
                 <Button
                   onClick={() => {
                     setGameState("settingUp");
+                    setWhiteTime(null);
+                    setBlackTime(null);
                     dispatch({
                       type: "SET_FEN",
                       payload: INITIAL_FEN,

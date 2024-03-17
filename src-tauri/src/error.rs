@@ -54,6 +54,9 @@ pub enum Error {
     #[error(transparent)]
     R2d2(#[from] diesel::r2d2::PoolError),
 
+    #[error(transparent)]
+    SystemTime(#[from] std::time::SystemTimeError),
+
     #[error("No stdin")]
     NoStdin,
 
@@ -80,6 +83,9 @@ pub enum Error {
 
     #[error("No puzzles")]
     NoPuzzles,
+
+    #[error("Players aren't the same. They have played against each other")]
+    NotDistinctPlayers,
 }
 
 impl serde::Serialize for Error {

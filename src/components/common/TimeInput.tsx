@@ -1,4 +1,4 @@
-import { GoMode } from "@/bindings";
+import type { GoMode } from "@/bindings";
 import { NumberInput, Select } from "@mantine/core";
 import { useState } from "react";
 import { match } from "ts-pattern";

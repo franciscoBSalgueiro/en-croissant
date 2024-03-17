@@ -98,7 +98,7 @@ function PgnInput() {
   async function updatePgn() {
     const tree = await parsePGN(tmp);
     tree.dirty = true;
-    tree.position = position;
+    tree.position = [];
 
     if (deepEqual(tree.root, root) && deepEqual(tree.headers, headers)) {
       setTmp(pgn);

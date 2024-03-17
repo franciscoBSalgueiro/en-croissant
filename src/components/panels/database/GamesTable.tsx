@@ -1,12 +1,12 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { NormalizedGame } from "@/utils/db";
+import type { NormalizedGame } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { ActionIcon, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { memo } from "react";
-import { useNavigate } from "react-router-dom";
 
 function GamesTable({
   games,
@@ -45,7 +45,7 @@ function GamesTable({
                   pgn: game.moves,
                   headers: game,
                 });
-                navigate("/");
+                navigate({ to: "/" });
               }}
             >
               <IconEye size="1rem" stroke={1.5} />

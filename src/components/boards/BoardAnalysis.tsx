@@ -1,12 +1,26 @@
+import {
+  autoSaveAtom,
+  bestMovesFamily,
+  currentPracticeTabAtom,
+  currentTabAtom,
+  currentTabSelectedAtom,
+} from "@/atoms/atoms";
+import { keyMapAtom } from "@/atoms/keybinds";
+import { getMainLine, getVariationLine } from "@/utils/chess";
 import { invoke } from "@/utils/invoke";
+import { saveToFile } from "@/utils/tabs";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconDatabase,
   IconInfoCircle,
   IconNotes,
+  IconTargetArrow,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
+import { useAtom, useAtomValue } from "jotai";
 import {
   Suspense,
   useCallback,
@@ -15,18 +29,6 @@ import {
   useRef,
   useState,
 } from "react";
-
-import {
-  autoSaveAtom,
-  bestMovesFamily,
-  currentTabAtom,
-  currentTabSelectedAtom,
-} from "@/atoms/atoms";
-import { keyMapAtom } from "@/atoms/keybinds";
-import { getMainLine, getVariationLine } from "@/utils/chess";
-import { saveToFile } from "@/utils/tabs";
-import { getNodeAtPath } from "@/utils/treeReducer";
-import { useAtom, useAtomValue } from "jotai";
 import MoveControls from "../common/MoveControls";
 import {
   TreeDispatchContext,
@@ -37,6 +39,7 @@ import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
+import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import GameNotation from "./GameNotation";
@@ -47,6 +50,7 @@ function BoardAnalysis() {
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
+  const { documentDir } = useLoaderData({ from: "/" });
 
   const boardRef = useRef(null);
 
@@ -64,6 +68,7 @@ function BoardAnalysis() {
 
   const saveFile = useCallback(async () => {
     saveToFile({
+      dir: documentDir,
       headers,
       root,
       setCurrentTab,
@@ -107,13 +112,20 @@ function BoardAnalysis() {
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
     currentTabSelectedAtom,
   );
+  const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
+
+  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
+  const practicing =
+    currentTabSelected === "practice" && practiceTabSelected === "train";
 
   return (
     <>
       <Suspense>
         <ReportModal
+          tab={currentTab?.value || ""}
           initialFen={root.fen}
           moves={getMainLine(root, headers.variant === "Chess960")}
+          is960={headers.variant === "Chess960"}
           reportingMode={reportingMode}
           toggleReportingMode={toggleReportingMode}
           setInProgress={setInProgress}
@@ -121,6 +133,7 @@ function BoardAnalysis() {
       </Suspense>
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
+          practicing={practicing}
           dirty={dirty}
           currentNode={currentNode}
           arrows={arrows}
@@ -156,6 +169,14 @@ function BoardAnalysis() {
             }}
           >
             <Tabs.List grow mb="1rem">
+              {isRepertoire && (
+                <Tabs.Tab
+                  value="practice"
+                  leftSection={<IconTargetArrow size="1rem" />}
+                >
+                  Practice
+                </Tabs.Tab>
+              )}
               <Tabs.Tab
                 value="analysis"
                 leftSection={<IconZoomCheck size="1rem" />}
@@ -181,6 +202,17 @@ function BoardAnalysis() {
                 Info
               </Tabs.Tab>
             </Tabs.List>
+            {isRepertoire && (
+              <Tabs.Panel
+                value="practice"
+                flex={1}
+                style={{ overflowY: "hidden" }}
+              >
+                <Suspense>
+                  <PracticePanel fen={currentNode.fen} />
+                </Suspense>
+              </Tabs.Panel>
+            )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
               <InfoPanel />
             </Tabs.Panel>
@@ -205,6 +237,7 @@ function BoardAnalysis() {
             >
               <Suspense>
                 <AnalysisPanel
+                  tabId={currentTab?.value || ""}
                   toggleReportingMode={toggleReportingMode}
                   inProgress={inProgress}
                   setInProgress={setInProgress}

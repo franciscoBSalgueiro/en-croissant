@@ -1,4 +1,4 @@
-import { Score } from "@/bindings";
+import type { Score } from "@/bindings";
 import { formatScore } from "@/utils/score";
 import { Box, Text } from "@mantine/core";
 

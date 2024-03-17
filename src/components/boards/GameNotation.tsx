@@ -1,6 +1,8 @@
 import { currentInvisibleAtom } from "@/atoms/atoms";
+import { Comment } from "@/components/common/Comment";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { isPrefix } from "@/utils/misc";
-import { TreeNode, getNodeAtPath } from "@/utils/treeReducer";
+import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -12,7 +14,6 @@ import {
   Stack,
   Text,
   Tooltip,
-  TypographyStylesProvider,
 } from "@mantine/core";
 import { shallowEqual, useColorScheme, useToggle } from "@mantine/hooks";
 import {
@@ -28,7 +29,6 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
-import { TreeStateContext } from "../common/TreeStateContext";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 
@@ -52,16 +52,10 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
     }
   }, [currentNode.fen]);
 
-  const invisible = useAtomValue(currentInvisibleAtom);
+  const invisible = topBar && useAtomValue(currentInvisibleAtom);
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
   const colorScheme = useColorScheme();
-
-  const multipleLine =
-    root.commentHTML.split("</p>").length - 1 > 1 ||
-    root.commentHTML.includes("<blockquote>") ||
-    root.commentHTML.includes("<ul>") ||
-    root.commentHTML.includes("<h");
 
   return (
     <Paper
@@ -90,21 +84,8 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
                   zIndex={2}
                 />
               )}
-              {showComments && root.commentHTML && (
-                <TypographyStylesProvider
-                  pl={0}
-                  mx={4}
-                  style={{
-                    display: multipleLine ? "block" : "inline-block",
-                  }}
-                >
-                  <span
-                    // biome-ignore lint/security/noDangerouslySetInnerHtml: this is a comment
-                    dangerouslySetInnerHTML={{
-                      __html: root.commentHTML,
-                    }}
-                  />
-                </TypographyStylesProvider>
+              {showComments && root.comment && (
+                <Comment comment={root.comment} />
               )}
               <RenderVariationTree
                 currentPath={position}
@@ -213,8 +194,8 @@ const RenderVariationTree = memo(
           <>
             <CompleteMoveCell
               targetRef={targetRef}
-              annotation={variation.annotation}
-              commentHTML={variation.commentHTML}
+              annotations={variation.annotations}
+              comment={variation.comment}
               halfMoves={variation.halfMoves}
               move={variation.san}
               movePath={[...path, variations.indexOf(variation)]}
@@ -249,8 +230,8 @@ const RenderVariationTree = memo(
         {variations.length > 0 && (
           <CompleteMoveCell
             targetRef={targetRef}
-            annotation={variations[0].annotation}
-            commentHTML={variations[0].commentHTML}
+            annotations={variations[0].annotations}
+            comment={variations[0].comment}
             halfMoves={variations[0].halfMoves}
             move={variations[0].san}
             movePath={[...path, 0]}

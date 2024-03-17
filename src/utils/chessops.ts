@@ -1,19 +1,19 @@
 import {
   Chess,
-  Color,
+  type Color,
   IllegalSetup,
-  Move,
-  PositionError,
-  Setup,
-  Square,
-  SquareName,
+  type Move,
+  type PositionError,
+  type Setup,
+  type Square,
+  type SquareName,
   SquareSet,
   makeSquare,
   parseUci,
   squareFile,
   squareRank,
 } from "chessops";
-import { FenError, InvalidFen, makeFen, parseFen } from "chessops/fen";
+import { type FenError, InvalidFen, makeFen, parseFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import { squareFromCoords } from "chessops/util";
 import { match } from "ts-pattern";

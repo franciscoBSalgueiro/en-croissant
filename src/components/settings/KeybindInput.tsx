@@ -2,10 +2,11 @@ import { keyMapAtom } from "@/atoms/keybinds";
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
 import { useColorScheme } from "@mantine/hooks";
 import { IconCheck, IconX } from "@tabler/icons-react";
+import cx from "clsx";
 import { useAtom } from "jotai";
 import { useState } from "react";
-
 import { useRecordHotkeys } from "react-hotkeys-hook";
+import * as classes from "./KeybindInput.css";
 
 function KeybindInput({
   action,
@@ -46,22 +47,11 @@ function KbdDisplay({
   hovering: boolean;
 }) {
   const splitted = keys.split("+");
-  const colorScheme = useColorScheme();
   return (
     <Group>
       {splitted.map((key, i) => (
         <Group key={key}>
-          <Kbd
-            style={(theme) => ({
-              backgroundColor: hovering
-                ? colorScheme === "dark"
-                  ? theme.colors.dark[6]
-                  : theme.colors.gray[2]
-                : undefined,
-            })}
-          >
-            {key}
-          </Kbd>
+          <Kbd className={cx({ [classes.kbd]: hovering })}>{key}</Kbd>
           {i !== splitted.length - 1 && "+"}
         </Group>
       ))}

@@ -1,5 +1,5 @@
-import { ChessComStats } from "./chesscom";
-import { LichessAccount } from "./lichess";
+import type { ChessComStats } from "@/utils/chess.com/api";
+import type { LichessAccount } from "@/utils/lichess/api";
 
 type LichessSession = {
   accessToken?: string;

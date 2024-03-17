@@ -1,6 +1,8 @@
+import type { Dirs } from "@/App";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  enableBoardScrollAtom,
   forcedEnPassantAtom,
   minimumGamesAtom,
   moveInputAtom,
@@ -8,8 +10,12 @@ import {
   percentageCoverageAtom,
   previewBoardOnHoverAtom,
   showArrowsAtom,
+  showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  snapArrowsAtom,
+  spellCheckAtom,
+  storedDocumentDirAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import {
@@ -29,12 +35,18 @@ import {
   IconBrush,
   IconChess,
   IconFlag,
+  IconFolder,
   IconKeyboard,
+  IconMouse,
   IconReload,
+  IconVolume,
 } from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
+import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import { useLoaderData } from "react-router-dom";
+import FileInput from "../common/FileInput";
+import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
@@ -42,18 +54,29 @@ import PiecesSelect from "./PiecesSelect";
 import SettingsNumberInput from "./SettingsNumberInput";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
+import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
+import VolumeSlider from "./VolumeSlider";
 
 export default function Page() {
-  const version = useLoaderData() as string;
+  // const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
+  const {
+    dirs: { documentDir },
+    version,
+  } = useLoaderData({ from: "/settings" });
+  let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
+  filesDirectory = filesDirectory || documentDir;
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
       <Tabs.List>
         <Tabs.Tab value="board" leftSection={<IconChess size="1rem" />}>
           Board
+        </Tabs.Tab>
+        <Tabs.Tab value="inputs" leftSection={<IconMouse size="1rem" />}>
+          Inputs
         </Tabs.Tab>
         <Tabs.Tab value="report" leftSection={<IconBook size="1rem" />}>
           Opening Report
@@ -64,8 +87,14 @@ export default function Page() {
         <Tabs.Tab value="appearance" leftSection={<IconBrush size="1rem" />}>
           Appearance
         </Tabs.Tab>
+        <Tabs.Tab value="sound" leftSection={<IconVolume size="1rem" />}>
+          Sound
+        </Tabs.Tab>
         <Tabs.Tab value="keybinds" leftSection={<IconKeyboard size="1rem" />}>
           Keybinds
+        </Tabs.Tab>
+        <Tabs.Tab value="directories" leftSection={<IconFolder size="1rem" />}>
+          Directories
         </Tabs.Tab>
       </Tabs.List>
       <Stack flex={1} px="md" pt="md">
@@ -106,6 +135,7 @@ export default function Page() {
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
               </Group>
+
               <Group
                 justify="space-between"
                 wrap="nowrap"
@@ -113,12 +143,28 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Text Move Input</Text>
+                  <Text>Snap Arrows</Text>
                   <Text size="xs" c="dimmed">
-                    Enter moves in text format
+                    Snap arrows to valid moves
                   </Text>
                 </div>
-                <SettingsSwitch atom={moveInputAtom} />
+                <SettingsSwitch atom={snapArrowsAtom} />
+              </Group>
+
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Consecutive Arrows</Text>
+                  <Text size="xs" c="dimmed">
+                    Show multiple arrows for the best line, if it involves
+                    moving the same piece several times
+                  </Text>
+                </div>
+                <SettingsSwitch atom={showConsecutiveArrowsAtom} />
               </Group>
               <Group
                 justify="space-between"
@@ -179,8 +225,58 @@ export default function Page() {
                 </div>
                 <SettingsSwitch atom={previewBoardOnHoverAtom} />
               </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Scroll Through Moves</Text>
+                  <Text size="xs" c="dimmed">
+                    Enable or disable scrolling through moves on the chessboard
+                  </Text>
+                </div>
+                <SettingsSwitch atom={enableBoardScrollAtom} />
+              </Group>
             </Tabs.Panel>
 
+            <Tabs.Panel value="inputs">
+              <Text size="lg" fw={500} className={classes.title}>
+                Inputs
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Customize the input settings
+              </Text>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Text Move Input</Text>
+                  <Text size="xs" c="dimmed">
+                    Enter moves in text format
+                  </Text>
+                </div>
+                <SettingsSwitch atom={moveInputAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Spell Check</Text>
+                  <Text size="xs" c="dimmed">
+                    Enable or disable spell check on text inputs
+                  </Text>
+                </div>
+                <SettingsSwitch atom={spellCheckAtom} />
+              </Group>
+            </Tabs.Panel>
             <Tabs.Panel value="report">
               <Text size="lg" fw={500} className={classes.title}>
                 Opening Report
@@ -239,9 +335,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Forced en-passant</Text>
+                  <Text>Forced En Croissant</Text>
                   <Text size="xs" c="dimmed">
-                    {"Forces you to play en-passant, if it's a legal move."}
+                    {"Forces you to play En Croissant, if it's a legal move."}
                   </Text>
                 </div>
                 <SettingsSwitch atom={forcedEnPassantAtom} />
@@ -325,6 +421,20 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
+                  <Text>Board image</Text>
+                  <Text size="xs" c="dimmed">
+                    Image used as the background of the board
+                  </Text>
+                </div>
+                <BoardSelect />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
                   <Text>Accent Color</Text>
                   <Text size="xs" c="dimmed">
                     Main color of the app
@@ -333,6 +443,43 @@ export default function Page() {
                 <div style={{ width: 200 }}>
                   <ColorControl />
                 </div>
+              </Group>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="sound">
+              <Text size="lg" fw={500} className={classes.title}>
+                Sound
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Customize the sound settings
+              </Text>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Volume</Text>
+                  <Text size="xs" c="dimmed">
+                    Overall volume
+                  </Text>
+                </div>
+                <VolumeSlider />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Sound collection</Text>
+                  <Text size="xs" c="dimmed">
+                    Collection of sounds used
+                  </Text>
+                </div>
+                <SoundSelect />
               </Group>
             </Tabs.Panel>
 
@@ -370,6 +517,39 @@ export default function Page() {
                   })}
                 </Table.Tbody>
               </Table>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="directories">
+              <Text size="lg" fw={500} className={classes.title}>
+                Directories
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Customize the directories used by the app
+              </Text>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Files directory</Text>
+                  <Text size="xs" c="dimmed">
+                    This is where your games in the Files page are stored
+                  </Text>
+                </div>
+                <FileInput
+                  onClick={async () => {
+                    const selected = await open({
+                      multiple: false,
+                      directory: true,
+                    });
+                    if (!selected || typeof selected !== "string") return;
+                    setFilesDirectory(selected);
+                  }}
+                  filename={filesDirectory || null}
+                />
+              </Group>
             </Tabs.Panel>
           </Card>
         </ScrollArea>

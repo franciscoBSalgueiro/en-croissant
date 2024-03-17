@@ -25,9 +25,9 @@ try {
     else return { status: "error", error: e  as any };
 }
 },
-async analyzeGame(engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
+async analyzeGame(id: string, engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<__Result__<{ best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }[], string>> {
 try {
-    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { engine, goMode, options, uciOptions }) };
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|analyze_game", { id, engine, goMode, options, uciOptions }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -113,6 +113,46 @@ try {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async fileExists(path: string) : Promise<__Result__<boolean, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|file_exists", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getFileMetadata(path: string) : Promise<__Result__<{ last_modified: number }, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_file_metadata", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async mergePlayers(file: string, player1: number, player2: number) : Promise<__Result__<null, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|merge_players", { file, player1, player2 }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async convertPgn(file: string, dbPath: string, timestamp: number | null, title: string, description: string | null) : Promise<__Result__<null, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|convert_pgn", { file, dbPath, timestamp, title, description }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getPlayer(file: string, id: number) : Promise<__Result__<{ id: number; name: string | null; elo: number | null } | null, string>> {
+try {
+    return { status: "ok", data: await TAURI_INVOKE("plugin:tauri-specta|get_player", { file, id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -134,15 +174,15 @@ export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties:
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type DatabaseProgress = { id: string; progress: number }
-export type DownloadProgress = { progress: number; id: bigint; finished: boolean }
+export type DownloadProgress = { progress: number; id: string; finished: boolean }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MonthData = { count: number; avg_elo: number }
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
-export type ReportProgress = { progress: number; id: bigint; finished: boolean }
+export type ReportProgress = { progress: number; id: string; finished: boolean }
 export type Results = { won: number; lost: number; draw: number }
-export type Score = { type: "cp"; value: number } | { type: "mate"; value: number }
+export type Score = { type: "cp"; value: number } | { type: "mate"; value: number } | { type: "dtz"; value: number }
 /**
  * Represents a UCI option definition.
  */

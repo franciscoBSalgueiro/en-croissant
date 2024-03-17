@@ -1,8 +1,8 @@
 import { enginesAtom } from "@/atoms/atoms";
 import { events, commands } from "@/bindings";
 import {
-  LocalEngine,
-  RemoteEngine,
+  type LocalEngine,
+  type RemoteEngine,
   requiredEngineSettings,
   useDefaultEngines,
 } from "@/utils/engines";
@@ -195,7 +195,7 @@ function EngineCard({
       setInProgress(true);
       const path = await resolve(await appDataDir(), "engines");
       await invoke("download_file", {
-        id,
+        id: `engine_${id}`,
         url,
         path,
       });
@@ -208,8 +208,8 @@ function EngineCard({
         "engines",
         ...engine.path.split("/"),
       );
-      const config = unwrap(await commands.getEngineConfig(enginePath));
       await invoke("set_file_as_executable", { path: enginePath });
+      const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
         ...(await prev),
         {
@@ -254,7 +254,7 @@ function EngineCard({
             <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>
           <ProgressButton
-            id={engineId}
+            id={`engine_${engineId}`}
             progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{

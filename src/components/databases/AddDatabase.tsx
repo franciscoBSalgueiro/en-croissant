@@ -1,7 +1,11 @@
-import { events } from "@/bindings";
-import { DatabaseInfo, getDatabases, useDefaultDatabases } from "@/utils/db";
+import { events, commands } from "@/bindings";
+import {
+  type DatabaseInfo,
+  getDatabases,
+  useDefaultDatabases,
+} from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
+import { invoke, unwrap } from "@/utils/invoke";
 import {
   Alert,
   Box,
@@ -22,7 +26,8 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { Dispatch, SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
+import type { KeyedMutator } from "swr";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
@@ -37,16 +42,15 @@ function AddDatabase({
   opened: boolean;
   setOpened: (opened: boolean) => void;
   setLoading: Dispatch<SetStateAction<boolean>>;
-  setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
+  setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
-    await invoke("convert_pgn", { file: path, title, description }).catch(
-      () => {
-        setLoading(false);
-      },
+    const dbPath = await resolve(await appDataDir(), "db", `${title}.db3`);
+    unwrap(
+      await commands.convertPgn(path, dbPath, null, title, description ?? null),
     );
     setDatabases(await getDatabases());
     setLoading(false);
@@ -179,7 +183,7 @@ function DatabaseCard({
   databaseId,
   initInstalled,
 }: {
-  setDatabases: Dispatch<SetStateAction<DatabaseInfo[]>>;
+  setDatabases: KeyedMutator<DatabaseInfo[]>;
   database: DatabaseInfo;
   databaseId: number;
   initInstalled: boolean;
@@ -190,7 +194,7 @@ function DatabaseCard({
     setInProgress(true);
     const path = await resolve(await appDataDir(), "db", `${name}.db3`);
     await invoke("download_file", {
-      id,
+      id: `db_${id}`,
       url,
       path,
     });
@@ -233,7 +237,7 @@ function DatabaseCard({
             </Stack>
           </Group>
           <ProgressButton
-            id={databaseId}
+            id={`db_${databaseId}`}
             progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{

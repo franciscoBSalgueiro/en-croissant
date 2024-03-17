@@ -1,12 +1,12 @@
 import { Chessground } from "@/chessground/Chessground";
-import { parsePGN } from "@/utils/chess";
+import { getLastMainlinePosition, getOpening, parsePGN } from "@/utils/chess";
 import treeReducer, {
-  GameHeaders,
-  TreeState,
+  type GameHeaders,
+  type TreeState,
   getNodeAtPath,
 } from "@/utils/treeReducer";
-import { Box, Group, Stack, Text } from "@mantine/core";
-import { useContext } from "react";
+import { Box, Group, Stack, Text, rem } from "@mantine/core";
+import { useContext, useEffect, useMemo, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useImmerReducer } from "use-immer";
 import GameNotation from "../boards/GameNotation";
@@ -20,10 +20,12 @@ function GamePreviewWrapper({
   pgn,
   headers,
   hideControls,
+  showOpening,
 }: {
   pgn: string;
   headers?: GameHeaders;
   hideControls?: boolean;
+  showOpening?: boolean;
 }) {
   const { data: parsedGame, isLoading } = useSWRImmutable(
     [pgn, headers?.fen],
@@ -34,9 +36,13 @@ function GamePreviewWrapper({
 
   return (
     <>
-      {isLoading && <Text ta="center">Loading...</Text>}
       {parsedGame && (
-        <GamePreview key={pgn} game={parsedGame} hideControls={hideControls} />
+        <GamePreview
+          key={pgn}
+          game={parsedGame}
+          hideControls={hideControls}
+          showOpening={showOpening}
+        />
       )}
     </>
   );
@@ -45,16 +51,31 @@ function GamePreviewWrapper({
 function GamePreview({
   game,
   hideControls,
+  showOpening,
 }: {
   game: TreeState;
   hideControls?: boolean;
+  showOpening?: boolean;
 }) {
   const [treeState, dispatch] = useImmerReducer(treeReducer, game);
+  const [opening, setOpening] = useState("");
+  useEffect(() => {
+    getOpening(treeState.root, getLastMainlinePosition(treeState.root)).then(
+      (opening) => {
+        setOpening(opening);
+      },
+    );
+  }, [treeState.position, treeState.root]);
 
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
-        <Group grow h="100%" style={{ overflow: "hidden" }}>
+        {showOpening && (
+          <Text h="2.5rem" fz="sm">
+            {opening}
+          </Text>
+        )}
+        <Group grow style={{ overflow: "hidden", height: "100%" }}>
           <PreviewBoard />
           {!hideControls && (
             <Stack h="100%">

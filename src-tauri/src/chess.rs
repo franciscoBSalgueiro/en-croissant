@@ -1,17 +1,13 @@
 use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
 
 use derivative::Derivative;
-use log::info;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::San, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode,
-    Position, Role,
+    fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode, Position,
+    Role,
 };
 use specta::Type;
-use tauri::{
-    api::path::{resolve_path, BaseDirectory},
-    Manager,
-};
 use tauri_specta::Event;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
@@ -21,9 +17,8 @@ use tokio::{
 use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage, UciOptionConfig};
 
 use crate::{
-    db::{is_position_in_db, PositionQuery},
+    db::{is_position_in_db, GameQuery, PositionQuery},
     error::Error,
-    fs::DownloadProgress,
     AppState,
 };
 
@@ -66,6 +61,14 @@ impl EngineProcess {
         let mut logs = Vec::new();
 
         let mut stdin = child.stdin.take().ok_or(Error::NoStdin)?;
+
+        tokio::spawn(async move {
+            let mut stderr = BufReader::new(child.stderr.take().unwrap()).lines();
+            while let Some(line) = stderr.next_line().await.unwrap() {
+                error!("{}", &line);
+            }
+        });
+
         let mut lines = BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines();
 
         let _ = stdin.write_all("uci\n".as_bytes()).await;
@@ -73,7 +76,7 @@ impl EngineProcess {
         while let Some(line) = lines.next_line().await? {
             logs.push(EngineLog::Engine(line.clone()));
             if line == "uciok" {
-                stdin.write_all("isready\n".as_bytes()).await;
+                let _ = stdin.write_all("isready\n".as_bytes()).await;
                 logs.push(EngineLog::Gui("isready\n".to_string()));
                 while let Some(line_is_ready) = lines.next_line().await? {
                     logs.push(EngineLog::Engine(line_is_ready.clone()));
@@ -213,6 +216,8 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 pub enum Score {
     Cp(i32),
     Mate(i32),
+    #[allow(dead_code)]
+    Dtz(i32),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -318,6 +323,7 @@ fn parse_uci_attrs(
         best_moves.score = match best_moves.score {
             Score::Cp(x) => Score::Cp(-x),
             Score::Mate(x) => Score::Mate(-x),
+            _ => unreachable!(),
         };
     }
 
@@ -588,13 +594,14 @@ pub struct AnalysisOptions {
 #[derive(Clone, Type, serde::Serialize, Event)]
 pub struct ReportProgress {
     pub progress: f64,
-    pub id: u64,
+    pub id: String,
     pub finished: bool,
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(
+    id: String,
     engine: String,
     go_mode: GoMode,
     options: AnalysisOptions,
@@ -638,7 +645,7 @@ pub async fn analyze_game(
     for (i, (_, moves, _)) in fens.iter().enumerate() {
         ReportProgress {
             progress: (i as f64 / fens.len() as f64) * 100.0,
-            id: 0,
+            id: id.clone(),
             finished: false,
         }
         .emit_all(&app)?;
@@ -711,7 +718,12 @@ pub async fn analyze_game(
         analysis.is_sacrifice = fens[i].2;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
-                analysis.novelty = !is_position_in_db(reference, query, state.clone()).await?;
+                analysis.novelty = !is_position_in_db(
+                    reference,
+                    GameQuery::new().position(query.clone()).clone(),
+                    state.clone(),
+                )
+                .await?;
                 if analysis.novelty {
                     novelty_found = true;
                 }
@@ -722,7 +734,7 @@ pub async fn analyze_game(
     }
     ReportProgress {
         progress: 100.0,
-        id: 0,
+        id: id.clone(),
         finished: true,
     }
     .emit_all(&app)?;
@@ -886,10 +898,12 @@ pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
 
     loop {
         if let Some(line) = stdout.next_line().await? {
-            if let UciMessage::Id { name, author: _ } = parse_one(&line) {
-                if let Some(name) = name {
-                    config.name = name;
-                }
+            if let UciMessage::Id {
+                name: Some(name),
+                author: _,
+            } = parse_one(&line)
+            {
+                config.name = name;
             }
             if let UciMessage::Option(opt) = parse_one(&line) {
                 config.options.push(opt);

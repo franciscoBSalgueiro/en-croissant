@@ -1,5 +1,5 @@
 import { commands } from "@/bindings";
-import { Player } from "@/utils/db";
+import type { Player } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
 import { Center, Loader, Paper, Stack, Text } from "@mantine/core";
 import useSWRImmutable from "swr/immutable";

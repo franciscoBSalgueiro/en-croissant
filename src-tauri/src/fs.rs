@@ -13,20 +13,19 @@ use tauri_specta::Event;
 use std::os::unix::fs::PermissionsExt;
 
 use futures_util::StreamExt;
-use tauri::Manager;
 
 use crate::error::Error;
 
 #[derive(Clone, Type, serde::Serialize, Event)]
 pub struct DownloadProgress {
-    pub progress: f64,
-    pub id: u64,
+    pub progress: f32,
+    pub id: String,
     pub finished: bool,
 }
 
 #[tauri::command]
 pub async fn download_file(
-    id: u64,
+    id: String,
     url: String,
     path: PathBuf,
     app: tauri::AppHandle,
@@ -61,11 +60,11 @@ pub async fn download_file(
         file.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
         if let Some(total_size) = total_size {
-            let progress = ((downloaded as f64 / total_size as f64) * 100.0).min(100.0);
+            let progress = ((downloaded as f32 / total_size as f32) * 100.0).min(100.0);
             // println!("Downloaded {}%", progress);
             DownloadProgress {
                 progress,
-                id,
+                id: id.clone(),
                 finished: false,
             }
             .emit_all(&app)?;
@@ -146,4 +145,27 @@ pub async fn append_to_file(path: String, text: String) -> Result<(), Error> {
     let mut file = std::fs::OpenOptions::new().append(true).open(path)?;
     file.write_all(text.as_bytes())?;
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn file_exists(path: String) -> Result<bool, Error> {
+    Ok(Path::new(&path).exists())
+}
+
+#[derive(Debug, Type, serde::Serialize)]
+pub struct FileMetadata {
+    pub last_modified: u32,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_file_metadata(path: String) -> Result<FileMetadata, Error> {
+    let metadata = std::fs::metadata(path)?;
+    let last_modified = metadata
+        .modified()?
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)?;
+    Ok(FileMetadata {
+        last_modified: last_modified.as_secs() as u32,
+    })
 }

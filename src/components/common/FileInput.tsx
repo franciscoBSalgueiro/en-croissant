@@ -1,4 +1,4 @@
-import { Input, InputWrapperProps, Text } from "@mantine/core";
+import { Input, type InputWrapperProps, Text } from "@mantine/core";
 
 function FileInput({
   label,
@@ -9,8 +9,8 @@ function FileInput({
   disabled,
   ...props
 }: {
-  label: string;
-  description: string;
+  label?: string;
+  description?: string;
   filename: string | null;
   onClick: () => void;
   withAsterisk?: boolean;

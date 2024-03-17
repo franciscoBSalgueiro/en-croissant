@@ -13,7 +13,7 @@ import {
   Text,
   useCombobox,
 } from "@mantine/core";
-import { FenError, parseFen } from "chessops/fen";
+import { type FenError, parseFen } from "chessops/fen";
 import { useContext, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 

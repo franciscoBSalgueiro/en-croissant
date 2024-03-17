@@ -1,10 +1,10 @@
-import { MonthData, Results } from "@/bindings";
-import { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import type { MonthData, Results } from "@/bindings";
+import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
 import { fetch } from "@tauri-apps/api/http";
 import useSWR from "swr";
 import { invoke } from "./invoke";
-import { PuzzleDatabase } from "./puzzles";
+import type { PuzzleDatabase } from "./puzzles";
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
@@ -19,6 +19,7 @@ export interface DatabaseInfo {
   filename: string;
   game_count?: number;
   player_count?: number;
+  event_count?: number;
   storage_size?: number;
   downloadLink?: string;
   error?: string;
@@ -50,7 +51,7 @@ export type Speed =
 
 export type Outcome = "*" | "1-0" | "0-1" | "1/2-1/2";
 
-interface GameQuery extends Query {
+export interface GameQuery extends Query {
   player1?: number;
   player2?: number;
   tournament_id?: number;
@@ -59,6 +60,8 @@ interface GameQuery extends Query {
   rangePlayer2?: [number, number];
   speed?: Speed;
   outcome?: Outcome;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface Game {
@@ -109,6 +112,8 @@ export async function query_games(
       sides: query.sides,
       speed: query.speed,
       outcome: query.outcome,
+      start_date: query.start_date,
+      end_date: query.end_date,
     },
   });
 }
@@ -292,7 +297,13 @@ export async function searchPosition(options: LocalOptions, tab: string) {
     "search_position",
     {
       file: options.path,
-      query: options,
+      query: {
+        player1: options.color === "white" ? options.player : undefined,
+        player2: options.color === "black" ? options.player : undefined,
+        position: options,
+        start_date: options.start_date,
+        end_date: options.end_date,
+      },
       tabId: tab,
     },
     (s) => s === "Search stopped",

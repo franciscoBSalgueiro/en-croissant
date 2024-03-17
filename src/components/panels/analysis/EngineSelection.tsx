@@ -1,6 +1,6 @@
 import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import LocalImage from "@/components/common/LocalImage";
-import { Engine, stopEngine } from "@/utils/engines";
+import { type Engine, stopEngine } from "@/utils/engines";
 import {
   Center,
   Checkbox,
@@ -10,10 +10,10 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { IconCloud, IconRobot } from "@tabler/icons-react";
+import { IconCloud, IconCpu } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
-import { Link } from "react-router-dom";
 
 function EngineBox({
   engine,
@@ -45,7 +45,7 @@ function EngineBox({
         ) : engine.type !== "local" ? (
           <IconCloud size="1.5rem" />
         ) : (
-          <IconRobot size="1.5rem" />
+          <IconCpu size="1.5rem" />
         )}
         <Text lineClamp={1} fz="sm">
           {engine.name}

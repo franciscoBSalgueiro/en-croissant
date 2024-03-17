@@ -1,5 +1,5 @@
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { Opening } from "@/utils/db";
+import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { Group, Progress, Text } from "@mantine/core";
 import { DataTable } from "mantine-datatable";

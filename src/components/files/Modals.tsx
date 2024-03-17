@@ -1,3 +1,4 @@
+import { createFile } from "@/utils/files";
 import {
   Button,
   Modal,
@@ -5,18 +6,14 @@ import {
   Stack,
   Text,
   TextInput,
+  Textarea,
 } from "@mantine/core";
-import {
-  BaseDirectory,
-  exists,
-  renameFile,
-  writeTextFile,
-} from "@tauri-apps/api/fs";
-import { documentDir, resolve } from "@tauri-apps/api/path";
-import { defaultGame, makePgn } from "chessops/pgn";
+import { useLoaderData } from "@tanstack/react-router";
+import { renameFile, writeTextFile } from "@tauri-apps/api/fs";
 import { useState } from "react";
 import GenericCard from "../common/GenericCard";
-import { FileMetadata, FileType } from "./file";
+import type { MetadataOrEntry } from "./FilesPage";
+import type { FileMetadata, FileType } from "./file";
 
 const FILE_TYPES = [
   { label: "Game", value: "game" },
@@ -29,45 +26,39 @@ const FILE_TYPES = [
 export function CreateModal({
   opened,
   setOpened,
+  files,
   setFiles,
+  setSelected,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
+  files: MetadataOrEntry[];
+  setFiles: (files: MetadataOrEntry[]) => void;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
 }) {
   const [filename, setFilename] = useState("");
   const [filetype, setFiletype] = useState<FileType>("game");
+  const [pgn, setPgn] = useState("");
   const [error, setError] = useState("");
+  const { documentDir } = useLoaderData({ from: "/files" });
 
   async function addFile() {
-    const dir = await resolve(await documentDir(), "EnCroissant");
-    const file = await resolve(dir, `${filename}.pgn`);
-    if (await exists(file)) {
-      setError("File already exists");
-      return;
+    const newFile = await createFile({
+      filename,
+      filetype,
+      pgn,
+      dir: documentDir,
+    });
+    if (newFile.isErr) {
+      setError(newFile.error.message);
+    } else {
+      setFiles([...files, newFile.value]);
+      setSelected(newFile.value);
+      setError("");
+      setOpened(false);
+      setFilename("");
+      setFiletype("game");
     }
-    const metadata = {
-      type: filetype,
-      tags: [],
-    };
-    await writeTextFile(file, makePgn(defaultGame()));
-    await writeTextFile(
-      file.replace(".pgn", ".info"),
-      JSON.stringify(metadata),
-    );
-    setFiles((files) => [
-      ...files,
-      {
-        name: filename,
-        path: file,
-        numGames: 1,
-        metadata,
-      },
-    ]);
-    setError("");
-    setOpened(false);
-    setFilename("");
-    setFiletype("game");
   }
 
   return (
@@ -104,6 +95,14 @@ export function CreateModal({
             ))}
           </SimpleGrid>
 
+          <Textarea
+            value={pgn}
+            onChange={(event) => setPgn(event.currentTarget.value)}
+            label="PGN game"
+            placeholder="Leave empty to start from scratch"
+            rows={10}
+          />
+
           <Button style={{ marginTop: "1rem" }} type="submit">
             Create
           </Button>
@@ -116,13 +115,13 @@ export function CreateModal({
 export function EditModal({
   opened,
   setOpened,
-  setFiles,
+  mutate,
   setSelected,
   metadata,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setFiles: React.Dispatch<React.SetStateAction<FileMetadata[]>>;
+  mutate: () => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
   metadata: FileMetadata;
 }) {
@@ -136,61 +135,20 @@ export function EditModal({
       type: filetype,
       tags: [],
     };
-
     await writeTextFile(metadataPath, JSON.stringify(newMetadata));
 
-    const newPGNPath = await resolve(
-      await documentDir(),
-      "EnCroissant",
+    const newPGNPath = metadata.path.replace(
+      `${metadata.name}.pgn`,
       `${filename}.pgn`,
     );
 
-    try {
-      await renameFile(
-        `EnCroissant/${metadata.name}.pgn`,
-        `EnCroissant/${filename}.pgn`,
-        {
-          dir: BaseDirectory.Document,
-        },
-      );
-      await renameFile(
-        `EnCroissant/${metadata.name}.info`,
-        `EnCroissant/${filename}.info`,
-        {
-          dir: BaseDirectory.Document,
-        },
-      );
-    } catch {
-      await renameFile(
-        `documents/${metadata.name}.pgn`,
-        `documents/${filename}.pgn`,
-        {
-          dir: BaseDirectory.AppData,
-        },
-      );
-      await renameFile(
-        `documents/${metadata.name}.info`,
-        `documents/${filename}.info`,
-        {
-          dir: BaseDirectory.AppData,
-        },
-      );
-    }
-
-    setFiles((files) =>
-      [
-        ...files.filter(
-          (v) => v.path !== metadata.path && v.path !== metadataPath,
-        ),
-        {
-          ...metadata,
-          name: filename,
-          path: newPGNPath,
-          numGames: metadata.numGames,
-          metadata: newMetadata,
-        },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
+    await renameFile(metadata.path, newPGNPath);
+    await renameFile(
+      metadataPath.replace(".pgn", ".info"),
+      newPGNPath.replace(".pgn", ".info"),
     );
+
+    mutate();
     setSelected((selected) =>
       selected?.path === metadata.path
         ? {

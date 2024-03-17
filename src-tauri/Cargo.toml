@@ -1,6 +1,6 @@
 [package]
 name = "en-croissant"
-version = "0.9.1"
+version = "0.9.2"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
 license = "GPL-3.0-only"
@@ -16,7 +16,7 @@ tauri-build = { version = "1.5", features = [] }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.5", features = ["cli", "api-all", "updater"] }
+tauri = { version = "1.6", features = ["cli", "api-all", "updater"] }
 zip = "0.6.2"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
@@ -56,6 +56,7 @@ oauth2 = "4.4.2"
 axum = "0.6.20"
 tar = "0.4.40"
 sysinfo = "0.29.10"
+window-shadows = "0.2.2"
 
 [features]
 # by default Tauri runs in production mode

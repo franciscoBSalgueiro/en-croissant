@@ -1,5 +1,5 @@
-import { Outcome } from "@/utils/db";
-import { GameHeaders } from "@/utils/treeReducer";
+import type { Outcome } from "@/utils/db";
+import type { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import cx from "clsx";
@@ -13,9 +13,11 @@ import { TreeDispatchContext } from "./TreeStateContext";
 function GameInfo({
   headers,
   simplified,
+  changeTitle,
 }: {
   headers: GameHeaders;
   simplified?: boolean;
+  changeTitle?: (title: string) => void;
 }) {
   const dispatch = useContext(TreeDispatchContext);
   const disabled = dispatch.length === 0;
@@ -59,7 +61,9 @@ function GameInfo({
           <ContentEditable
             disabled={disabled}
             html={event}
-            data-placeholder="Unknown Event"
+            data-placeholder={
+              simplified ? "Enter Opening Title" : "Unknown Event"
+            }
             className={cx(
               classes.contentEditable,
               !event && classes.contentEditablePlaceholder,
@@ -72,6 +76,9 @@ function GameInfo({
                   event: e.target.value,
                 },
               });
+              if (changeTitle) {
+                changeTitle(e.target.value);
+              }
             }}
           />
           {headers.round && headers.round !== "?" && (
@@ -113,6 +120,41 @@ function GameInfo({
           </Text>
         )}
       </Group>
+      {simplified && (
+        <Group gap={4}>
+          <Text size="sm">opening for</Text>
+
+          <Select
+            allowDeselect={false}
+            value={headers.orientation || "white"}
+            variant="unstyled"
+            rightSection={null}
+            rightSectionWidth={0}
+            fw="bold"
+            styles={{
+              input: {
+                textDecoration: "underline",
+              },
+            }}
+            onChange={(value) =>
+              dispatch({
+                type: "SET_ORIENTATION",
+                payload: value === "white" ? "white" : "black",
+              })
+            }
+            data={[
+              {
+                value: "white",
+                label: "White",
+              },
+              {
+                value: "black",
+                label: "Black",
+              },
+            ]}
+          />
+        </Group>
+      )}
       {!simplified && (
         <SimpleGrid cols={3} spacing={0}>
           <input
@@ -172,9 +214,7 @@ function GameInfo({
                   type: "SET_HEADERS",
                   payload: {
                     ...headers,
-                    date: dayjs(date, "YYYY.MM.DD").isValid()
-                      ? dayjs(date, "YYYY.MM.DD").format("YYYY.MM.DD")
-                      : undefined,
+                    date: date ? dayjs(date).format("YYYY.MM.DD") : undefined,
                   },
                 });
               }}
@@ -206,7 +246,7 @@ function GameInfo({
                 type: "SET_HEADERS",
                 payload: {
                   ...headers,
-                  white_elo: parseInt(n.currentTarget.value),
+                  white_elo: Number.parseInt(n.currentTarget.value),
                 },
               })
             }
@@ -242,7 +282,7 @@ function GameInfo({
                 type: "SET_HEADERS",
                 payload: {
                   ...headers,
-                  black_elo: parseInt(n.currentTarget.value),
+                  black_elo: Number.parseInt(n.currentTarget.value),
                 },
               })
             }

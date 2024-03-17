@@ -1,13 +1,18 @@
 {
     "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "files": {
+        "ignore": [
+            "src/bindings.ts",
+            "src/routeTree.gen.ts"
+        ]
+    },
     "formatter": {
         "enabled": true,
         "formatWithErrors": false,
         "indentStyle": "space",
         "indentWidth": 2,
         "lineWidth": 80,
-        "lineEnding": "lf",
-        "ignore": ["src/bindings.ts"]
+        "lineEnding": "lf"
     },
     "linter": {
         "rules": {
@@ -22,7 +27,6 @@
                 "noExplicitAny": "warn",
                 "noConfusingVoidType": "off"
             }
-        },
-        "ignore": ["src/bindings.ts"]
+        }
     }
 }

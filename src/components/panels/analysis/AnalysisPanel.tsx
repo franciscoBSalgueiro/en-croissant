@@ -2,6 +2,7 @@ import {
   activeTabAtom,
   allEnabledAtom,
   currentAnalysisTabAtom,
+  currentExpandedEnginesAtom,
   enableAllAtom,
   engineMovesFamily,
   enginesAtom,
@@ -10,9 +11,10 @@ import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { ANNOTATION_INFO, getGameStats, getVariationLine } from "@/utils/chess";
+import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
+import { getGameStats, getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
-import { Engine } from "@/utils/engines";
+import type { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
@@ -38,10 +40,10 @@ import {
   IconSettings,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -49,10 +51,12 @@ import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 
 function AnalysisPanel({
+  tabId,
   toggleReportingMode,
   inProgress,
   setInProgress,
 }: {
+  tabId: string;
   toggleReportingMode: () => void;
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
@@ -72,6 +76,7 @@ function AnalysisPanel({
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
+  const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
 
   const stats = useMemo(() => getGameStats(root), [root]);
   const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
@@ -88,7 +93,6 @@ function AnalysisPanel({
     <Stack h="100%">
       <Tabs
         h="100%"
-        defaultValue="engines"
         orientation="vertical"
         placement="right"
         value={tab}
@@ -163,6 +167,8 @@ function AnalysisPanel({
                   multiple
                   chevronSize={0}
                   defaultValue={loadedEngines.map((e) => e.name)}
+                  value={expanded}
+                  onChange={(v) => setExpanded(v)}
                   styles={{
                     label: {
                       paddingTop: 0,
@@ -213,6 +219,15 @@ function AnalysisPanel({
                                       <BestMoves
                                         id={i}
                                         engine={engine}
+                                        setEngine={(e) =>
+                                          setEngines(async (prev) =>
+                                            (await prev).map((o) =>
+                                              o.name === engine.name
+                                                ? { ...e, loaded: o.loaded }
+                                                : o,
+                                            ),
+                                          )
+                                        }
                                         fen={fen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}
@@ -242,7 +257,7 @@ function AnalysisPanel({
                     flex={1}
                     variant="default"
                     onClick={() => {
-                      navigate("/engines");
+                      navigate({ to: "/engines" });
                     }}
                     leftSection={<IconSettings size="0.875rem" />}
                   >
@@ -292,7 +307,7 @@ function AnalysisPanel({
                 )}
                 <div>
                   <ProgressButton
-                    id={0}
+                    id={`report_${tabId}`}
                     redoable
                     disabled={root.children.length === 0}
                     leftIcon={<IconZoomCheck size="0.875rem" />}
@@ -384,7 +399,7 @@ const GameStats = memo(
       <Paper withBorder>
         <Grid columns={11} justify="space-between" p="md">
           {Object.keys(ANNOTATION_INFO)
-            .filter((a) => a !== "")
+            .filter((a) => isBasicAnnotation(a))
             .map((annotation) => {
               const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
               const { name, color } = ANNOTATION_INFO[s];

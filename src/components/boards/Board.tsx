@@ -3,22 +3,28 @@ import {
   autoSaveAtom,
   currentEvalOpenAtom,
   currentInvisibleAtom,
-  currentPracticingAtom,
   currentTabAtom,
   deckAtomFamily,
+  enableBoardScrollAtom,
+  fontSizeAtom,
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
+  showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  snapArrowsAtom,
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { Chessground } from "@/chessground/Chessground";
 import { chessboard } from "@/styles/Chessboard.css";
 import {
   ANNOTATION_INFO,
-  Annotation,
-  TimeControlField,
+  type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
+import {
+  type TimeControlField,
   getMaterialDiff,
   parseKeyboardMove,
   parseTimeControl,
@@ -29,7 +35,11 @@ import {
   positionFromFen,
   squareToCoordinates,
 } from "@/utils/chessops";
-import { GameHeaders, TreeNode, getNodeAtPath } from "@/utils/treeReducer";
+import {
+  type GameHeaders,
+  type TreeNode,
+  getNodeAtPath,
+} from "@/utils/treeReducer";
 import {
   ActionIcon,
   Avatar,
@@ -42,6 +52,8 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
+import { mergeRefs, useElementSize } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   IconChevronRight,
   IconDeviceFloppy,
@@ -51,12 +63,12 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { DrawShape } from "chessground/draw";
-import { Color } from "chessground/types";
+import type { DrawShape } from "chessground/draw";
+import type { Color } from "chessground/types";
 import {
-  NormalMove,
-  Square,
-  SquareName,
+  type NormalMove,
+  type Square,
+  type SquareName,
   makeSquare,
   parseSquare,
   parseUci,
@@ -75,11 +87,15 @@ import * as classes from "./Board.css";
 import EvalBar from "./EvalBar";
 import PromotionModal from "./PromotionModal";
 
+const LARGE_BRUSH = 11;
+const MEDIUM_BRUSH = 7.5;
+const SMALL_BRUSH = 4;
+
 interface ChessboardProps {
   dirty: boolean;
   currentNode: TreeNode;
   position: number[];
-  arrows: Map<number, string[]>;
+  arrows: Map<number, { pv: string[]; winChance: number }[]>;
   headers: GameHeaders;
   root: TreeNode;
   editingMode: boolean;
@@ -94,6 +110,7 @@ interface ChessboardProps {
   blackTime?: number;
   whiteTc?: TimeControlField;
   blackTc?: TimeControlField;
+  practicing?: boolean;
 }
 
 function Board({
@@ -115,6 +132,7 @@ function Board({
   blackTime,
   whiteTc,
   blackTc,
+  practicing,
 }: ChessboardProps) {
   const dispatch = useContext(TreeDispatchContext);
 
@@ -123,6 +141,7 @@ function Board({
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
+  const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
@@ -153,24 +172,20 @@ function Board({
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
-  const practicing = useAtomValue(currentPracticingAtom);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      id: currentTab?.file?.name || "",
-      root,
-      headers,
+      file: currentTab?.file?.path || "",
       game: currentTab?.gameNumber || 0,
     }),
   );
-  const setInvisible = useSetAtom(currentInvisibleAtom);
 
   async function makeMove(move: NormalMove) {
     if (!pos) return;
     const san = makeSan(pos, move);
     if (practicing) {
-      const c = deck.find((c) => c.fen === currentNode.fen);
+      const c = deck.positions.find((c) => c.fen === currentNode.fen);
       if (!c) {
         return;
       }
@@ -179,17 +194,27 @@ function Board({
       if (san !== c?.answer) {
         isRecalled = false;
       }
-      const i = deck.indexOf(c);
-      updateCardPerformance(setDeck, i, isRecalled);
+      const i = deck.positions.indexOf(c);
 
-      if (isRecalled) {
-        setInvisible(false);
+      if (!isRecalled) {
+        notifications.show({
+          title: "Incorrect",
+          message: `The correct move was ${c.answer}`,
+          color: "red",
+        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        dispatch({
+          type: "GO_TO_NEXT",
+        });
+      } else {
         dispatch({
           type: "MAKE_MOVE",
           payload: move,
         });
         setPendingMove(null);
       }
+
+      updateCardPerformance(setDeck, i, c.card, isRecalled ? 4 : 1);
     } else {
       dispatch({
         type: "MAKE_MOVE",
@@ -201,20 +226,57 @@ function Board({
   }
 
   let shapes: DrawShape[] = [];
-  if (showArrows && evalOpen && arrows.size > 0) {
+  if (showArrows && evalOpen && arrows.size > 0 && pos) {
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
     for (const [i, moves] of entries) {
       if (i < 4) {
-        for (const [j, move] of moves.entries()) {
-          const m = parseUci(move)! as NormalMove;
-          const from = makeSquare(m.from)!;
-          const to = makeSquare(m.to)!;
-          if (shapes.find((s) => s.orig === from && s.dest === to)) continue;
-          shapes.push({
-            orig: from,
-            dest: to,
-            brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
-          });
+        const bestWinChance = moves[0].winChance;
+        for (const [j, { pv, winChance }] of moves.entries()) {
+          const posClone = pos.clone();
+          let prevSquare = null;
+          for (const [ii, uci] of pv.entries()) {
+            const m = parseUci(uci)! as NormalMove;
+
+            posClone.play(m);
+            const from = makeSquare(m.from)!;
+            const to = makeSquare(m.to)!;
+            if (prevSquare === null) {
+              prevSquare = from;
+            }
+            const brushSize = match(bestWinChance - winChance)
+              .when(
+                (d) => d < 2.5,
+                () => LARGE_BRUSH,
+              )
+              .when(
+                (d) => d < 5,
+                () => MEDIUM_BRUSH,
+              )
+              .otherwise(() => SMALL_BRUSH);
+
+            if (
+              ii === 0 ||
+              (showConsecutiveArrows && j === 0 && ii % 2 === 0)
+            ) {
+              if (
+                ii < 5 && // max 3 arrows
+                !shapes.find((s) => s.orig === from && s.dest === to) &&
+                prevSquare === from
+              ) {
+                shapes.push({
+                  orig: from,
+                  dest: to,
+                  brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
+                  modifiers: {
+                    lineWidth: brushSize,
+                  },
+                });
+                prevSquare = to;
+              } else {
+                break;
+              }
+            }
+          }
         }
       }
     }
@@ -304,7 +366,7 @@ function Board({
   );
   const data = getMaterialDiff(currentNode.fen);
   const practiceLock =
-    !!practicing && !deck.find((c) => c.fen === currentNode.fen);
+    !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 
   const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
     return practiceLock
@@ -321,7 +383,7 @@ function Board({
   }, [practiceLock, editingMode, movable, turn]);
 
   const theme = useMantineTheme();
-  const { color } = ANNOTATION_INFO[currentNode.annotation];
+  const color = ANNOTATION_INFO[currentNode.annotations[0]]?.color || "gray";
   const lightColor = theme.colors[color][6];
   const darkColor = theme.colors[color][8];
 
@@ -361,21 +423,40 @@ function Board({
     blackSeconds = blackTime / 1000;
   }
 
+  function calculateProgress(clock?: number, tc?: TimeControlField) {
+    if (!clock) {
+      return 0;
+    }
+    if (tc) {
+      return clock / (tc.seconds / 1000);
+    }
+    if (timeControl) {
+      return clock / (timeControl[0].seconds / 1000);
+    }
+    if (root.children.length > 0 && root.children[0].clock) {
+      return clock / root.children[0].clock;
+    }
+    return 0;
+  }
+
+  const hasClock =
+    whiteTime !== undefined ||
+    blackTime !== undefined ||
+    headers.time_control !== undefined ||
+    whiteTc !== undefined ||
+    blackTc !== undefined;
+
   const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
   const topTc = orientation === "black" ? whiteTc : blackTc;
-  const topProgress =
-    (topTc || timeControl) && topClock
-      ? topClock / ((topTc?.seconds ?? timeControl![0].seconds) / 1000)
-      : 0;
+  const topProgress = calculateProgress(topClock, topTc);
 
   const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
   const bottomTc = orientation === "black" ? blackTc : whiteTc;
-  const bottomProgress =
-    (topTc || timeControl) && bottomClock
-      ? bottomClock / ((bottomTc?.seconds ?? timeControl![0].seconds) / 1000)
-      : 0;
+  const bottomProgress = calculateProgress(bottomClock, bottomTc);
 
   const [boardFen, setBoardFen] = useState<string | null>(null);
+  const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
+  const [snapArrows] = useAtom(snapArrowsAtom);
 
   useEffect(() => {
     if (editingMode && boardFen && boardFen !== currentNode.fen) {
@@ -388,13 +469,50 @@ function Board({
 
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
+  const square = match(currentNode)
+    .with({ san: "O-O" }, ({ halfMoves }) =>
+      parseSquare(halfMoves % 2 === 1 ? "g1" : "g8"),
+    )
+    .with({ san: "O-O-O" }, ({ halfMoves }) =>
+      parseSquare(halfMoves % 2 === 1 ? "c1" : "c8"),
+    )
+    .otherwise((node) => node.move?.to);
+
+  const lastMove =
+    currentNode.move && square !== undefined
+      ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
+      : undefined;
+
+  let {
+    ref: sizeRef,
+    width: boardWith,
+    height: boardHeight,
+  } = useElementSize();
+
+  const fontSize = useAtomValue(fontSizeAtom);
+  boardWith = boardWith * (1 / (fontSize / 100));
+  boardHeight = boardHeight * (1 / (fontSize / 100));
+
+  const ref = mergeRefs(boardRef, sizeRef);
+
   return (
     <>
       <Box className={classes.container}>
         <Box className={classes.board}>
+          {currentNode.annotations.length > 0 &&
+            currentNode.move &&
+            square !== undefined && (
+              <Box w={boardWith} h={boardHeight} pos="absolute">
+                <AnnotationHint
+                  orientation={orientation}
+                  square={square}
+                  annotation={currentNode.annotations[0]}
+                />
+              </Box>
+            )}
           <Box
             style={
-              currentNode.annotation !== ""
+              isBasicAnnotation(currentNode.annotations[0])
                 ? {
                     "--light-color": lightColor,
                     "--dark-color": darkColor,
@@ -402,26 +520,21 @@ function Board({
                 : undefined
             }
             className={chessboard}
-            ref={boardRef}
+            ref={ref}
             onWheel={(e) => {
-              if (e.deltaY > 0) {
-                dispatch({
-                  type: "GO_TO_NEXT",
-                });
-              } else {
-                dispatch({
-                  type: "GO_TO_PREVIOUS",
-                });
+              if (enableBoardScroll) {
+                if (e.deltaY > 0) {
+                  dispatch({
+                    type: "GO_TO_NEXT",
+                  });
+                } else {
+                  dispatch({
+                    type: "GO_TO_PREVIOUS",
+                  });
+                }
               }
             }}
           >
-            {currentNode.annotation && currentNode.move && (
-              <AnnotationHint
-                orientation={orientation}
-                square={currentNode.move.to}
-                annotation={currentNode.annotation}
-              />
-            )}
             <PromotionModal
               pendingMove={pendingMove}
               cancelMove={() => setPendingMove(null)}
@@ -490,13 +603,7 @@ function Board({
               }}
               turnColor={turn}
               check={pos?.isCheck()}
-              lastMove={
-                editingMode
-                  ? undefined
-                  : currentNode.move
-                    ? chessgroundMove(currentNode.move)
-                    : undefined
-              }
+              lastMove={editingMode ? undefined : lastMove}
               premovable={{
                 enabled: false,
               }}
@@ -506,7 +613,7 @@ function Board({
               drawable={{
                 enabled: true,
                 visible: true,
-                defaultSnapToValidMove: true,
+                defaultSnapToValidMove: snapArrows,
                 eraseOnClick: true,
                 autoShapes: shapes,
                 onChange: (shapes) => {
@@ -522,7 +629,7 @@ function Board({
         <Box className={classes.top}>
           {data && (
             <Group pb="0.2rem">
-              {topClock && (
+              {hasClock && (
                 <Paper
                   className={
                     orientation === "white"
@@ -531,13 +638,14 @@ function Board({
                   }
                   styles={{
                     root: {
+                      visibility: topClock ? "visible" : "hidden",
                       opacity: turn === orientation ? 0.5 : 1,
                       transition: "opacity 0.15s",
                     },
                   }}
                 >
                   <Text fz="lg" fw="bold" px="xs">
-                    {formatClock(topClock)}
+                    {topClock ? formatClock(topClock) : "0:00"}
                   </Text>
                   <Progress
                     size="xs"
@@ -564,7 +672,7 @@ function Board({
           <Group justify="space-between">
             {data && (
               <Group>
-                {bottomClock && (
+                {hasClock && (
                   <Paper
                     className={
                       orientation === "black"
@@ -574,12 +682,13 @@ function Board({
                     styles={{
                       root: {
                         opacity: turn !== orientation ? 0.5 : 1,
+                        visibility: bottomClock ? "visible" : "hidden",
                         transition: "opacity 0.15s",
                       },
                     }}
                   >
                     <Text fz="lg" fw="bold" px="xs">
-                      {formatClock(bottomClock)}
+                      {bottomClock ? formatClock(bottomClock) : "0:00"}
                     </Text>
                     <Progress
                       size="xs"
@@ -677,7 +786,7 @@ function AnnotationHint({
   orientation: Color;
 }) {
   const { file, rank } = squareToCoordinates(square, orientation);
-  const { color } = ANNOTATION_INFO[annotation];
+  const color = ANNOTATION_INFO[annotation]?.color || "gray";
 
   return (
     <Box
@@ -690,19 +799,22 @@ function AnnotationHint({
       }}
     >
       <Box pl="90%">
-        {annotation && (
-          <Avatar
+        {isBasicAnnotation(annotation) && (
+          <Box
             style={{
               transform: "translateY(-40%) translateX(-50%)",
               zIndex: 100,
               filter: "url(#shadow)",
               overflow: "initial",
+              borderRadius: "50%",
             }}
-            radius="xl"
-            color={color}
+            w="45%"
+            h="45%"
+            pos="absolute"
+            bg={color}
             variant="filled"
           >
-            <svg viewBox="0 0 100 100" width="100%">
+            <svg viewBox="0 0 100 100">
               <title>{annotation}</title>
               <defs>
                 <filter id="shadow">
@@ -716,7 +828,7 @@ function AnnotationHint({
               </defs>
               <g>{glyphToSvg[annotation]}</g>
             </svg>
-          </Avatar>
+          </Box>
         )}
       </Box>
     </Box>

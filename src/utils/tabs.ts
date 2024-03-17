@@ -1,10 +1,9 @@
-import { FileMetadata, fileMetadataSchema } from "@/components/files/file";
+import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import { save } from "@tauri-apps/api/dialog";
-import { documentDir, resolve } from "@tauri-apps/api/path";
 import { z } from "zod";
 import { getPGN, parsePGN } from "./chess";
 import { invoke } from "./invoke";
-import { GameHeaders, TreeNode } from "./treeReducer";
+import type { GameHeaders, TreeNode } from "./treeReducer";
 
 export const tabSchema = z.object({
   name: z.string(),
@@ -84,12 +83,14 @@ export async function createTab({
 }
 
 export async function saveToFile({
+  dir,
   tab,
   root,
   headers,
   setCurrentTab,
   markAsSaved,
 }: {
+  dir: string;
   tab: Tab | undefined;
   root: TreeNode;
   headers: GameHeaders;
@@ -100,9 +101,8 @@ export async function saveToFile({
   if (tab?.file) {
     filePath = tab.file.path;
   } else {
-    const defaultPath = await resolve(await documentDir(), "EnCroissant");
     const userChoice = await save({
-      defaultPath,
+      defaultPath: dir,
       filters: [
         {
           name: "PGN",
@@ -123,6 +123,7 @@ export async function saveToFile({
             tags: [],
             type: "game",
           },
+          lastModified: Date.now(),
         },
       };
     });
@@ -132,6 +133,10 @@ export async function saveToFile({
     n: tab?.gameNumber || 0,
     pgn: `${getPGN(root, {
       headers,
+      comments: true,
+      extraMarkups: true,
+      glyphs: true,
+      variations: true,
     })}\n\n`,
   });
   markAsSaved();

@@ -1,5 +1,9 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { NormalizedGame, Tournament, getTournamentGames } from "@/utils/db";
+import {
+  type NormalizedGame,
+  type Tournament,
+  getTournamentGames,
+} from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -10,10 +14,10 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
+import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
 
@@ -32,7 +36,7 @@ const gamePoints = (game: NormalizedGame, player: string) => {
     .otherwise(() => 0);
 };
 
-function PlayerCard({
+function TournamentCard({
   tournament,
   file,
 }: {
@@ -43,6 +47,8 @@ function PlayerCard({
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: games, isLoading } = useSWRImmutable(
     ["tournament-games", file, tournament.id],
@@ -102,6 +108,11 @@ function PlayerCard({
       a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
   );
 
+  const paginatedGames = sortedGames.slice(
+    (page - 1) * 25,
+    (page - 1) * 25 + 25,
+  );
+
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
       <Stack h="100%">
@@ -123,7 +134,13 @@ function PlayerCard({
               fetching={isLoading}
               withTableBorder
               highlightOnHover
-              records={sortedGames}
+              records={paginatedGames}
+              totalRecords={sortedGames.length}
+              recordsPerPage={pageSize}
+              onRecordsPerPageChange={setPageSize}
+              recordsPerPageOptions={[10, 25, 50]}
+              page={page}
+              onPageChange={setPage}
               sortStatus={sort}
               onSortStatusChange={setSort}
               columns={[
@@ -145,7 +162,7 @@ function PlayerCard({
                           pgn: game.moves,
                           headers: game,
                         });
-                        navigate("/");
+                        navigate({ to: "/" });
                       }}
                     >
                       <IconEye size="1rem" stroke={1.5} />
@@ -234,4 +251,4 @@ function PlayerCard({
   );
 }
 
-export default PlayerCard;
+export default TournamentCard;

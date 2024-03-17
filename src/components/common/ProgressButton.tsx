@@ -1,19 +1,23 @@
-import { Button, Progress, useMantineTheme } from "@mantine/core";
-import { EventCallback, UnlistenFn, listen } from "@tauri-apps/api/event";
+import { Box, Button, Progress, useMantineTheme } from "@mantine/core";
+import {
+  type EventCallback,
+  type UnlistenFn,
+  listen,
+} from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
 import * as classes from "./ProgressButton.css";
 
 type Payload = {
-  id: bigint;
+  id: string;
   progress: number;
   finished: boolean;
 };
 
 type Props<T> = {
-  id: number;
+  id: string;
   initInstalled: boolean;
   progressEvent: { listen: (handler: EventCallback<T>) => Promise<UnlistenFn> };
-  onClick: (id: number) => void;
+  onClick: (id: string) => void;
   leftIcon?: React.ReactNode;
   labels: {
     completed: string;
@@ -44,7 +48,7 @@ function ProgressButton<T extends Payload>({
 
   useEffect(() => {
     const unlisten = progressEvent.listen(async ({ payload }) => {
-      if (Number(payload.id) !== id) return;
+      if (payload.id !== id) return;
       if (payload.finished) {
         setInProgress(false);
         setCompleted(true);
@@ -56,7 +60,7 @@ function ProgressButton<T extends Payload>({
     return () => {
       unlisten.then((f) => f());
     };
-  }, []);
+  }, [id]);
 
   let label: string;
   if (completed) {
@@ -76,10 +80,11 @@ function ProgressButton<T extends Payload>({
           onClick(id);
         }}
         color={completed ? "green" : theme.primaryColor}
-        disabled={((inProgress || completed) && !redoable) || disabled}
-        leftSection={leftIcon}
+        disabled={inProgress || (completed && !redoable) || disabled}
+        leftSection={<Box className={classes.label}>{leftIcon}</Box>}
+        autoContrast
       >
-        <div className={classes.label}>{label}</div>
+        <span className={classes.label}>{label}</span>
         {progress !== 0 && (
           <Progress
             pos="absolute"

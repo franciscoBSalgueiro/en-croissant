@@ -1,6 +1,7 @@
 import { currentLocalOptionsAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
 import PiecesGrid from "@/components/boards/PiecesGrid";
+import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
 import {
   Box,
   Button,
@@ -9,8 +10,10 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { parseSquare } from "chessops";
 import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
+import dayjs from "dayjs";
 import { useAtom } from "jotai";
 import { useRef } from "react";
 
@@ -29,6 +32,71 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
 
   return (
     <Stack>
+      <Group>
+        <Group>
+          <Text fw="bold">Player:</Text>
+          {options.path && (
+            <PlayerSearchInput
+              label={"Search"}
+              value={options.player ?? undefined}
+              file={options.path}
+              setValue={(v) => setOptions((q) => ({ ...q, player: v || null }))}
+            />
+          )}
+        </Group>
+        <Group>
+          <Text fw="bold">Color:</Text>
+          <SegmentedControl
+            data={[
+              { value: "white", label: "White" },
+              { value: "black", label: "Black" },
+            ]}
+            value={options.color}
+            onChange={(v) =>
+              setOptions({ ...options, color: v as "white" | "black" })
+            }
+          />
+        </Group>
+        <Group>
+          <DateInput
+            label="From"
+            placeholder="Start date"
+            valueFormat="YYYY-MM-DD"
+            clearable
+            value={
+              options.start_date
+                ? dayjs(options.start_date, "YYYY.MM.DD").toDate()
+                : undefined
+            }
+            onChange={(value) =>
+              setOptions({
+                ...options,
+                start_date: value
+                  ? dayjs(value).format("YYYY.MM.DD")
+                  : undefined,
+              })
+            }
+          />
+          <DateInput
+            label="To"
+            placeholder="End date"
+            valueFormat="YYYY-MM-DD"
+            clearable
+            value={
+              options.end_date
+                ? dayjs(options.end_date, "YYYY.MM.DD").toDate()
+                : null
+            }
+            onChange={(value) =>
+              setOptions({
+                ...options,
+                end_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
+              })
+            }
+          />
+        </Group>
+      </Group>
+
       <Group>
         <Text fw="bold">Position:</Text>
         <SegmentedControl
@@ -112,10 +180,6 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           />
         </Box>
       </Group>
-
-      {/* <Group>
-        <Text fw="bold">Material:</Text>
-      </Group> */}
     </Stack>
   );
 }

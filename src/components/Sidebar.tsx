@@ -1,15 +1,15 @@
 import { AppShellSection, Stack, Tooltip } from "@mantine/core";
 import {
-  Icon,
+  type Icon,
   IconChess,
+  IconCpu,
   IconDatabase,
   IconFiles,
-  IconRobot,
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
+import { Link, useMatchRoute } from "@tanstack/react-router";
 import cx from "clsx";
-import { NavLink } from "react-router-dom";
 import * as classes from "./Sidebar.css";
 
 interface NavbarLinkProps {
@@ -20,18 +20,17 @@ interface NavbarLinkProps {
 }
 
 function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
+  const matcesRoute = useMatchRoute();
   return (
     <Tooltip label={label} position="right">
-      <NavLink
+      <Link
         to={url}
-        className={({ isActive }) => {
-          return cx(classes.link, {
-            [classes.active]: isActive,
-          });
-        }}
+        className={cx(classes.link, {
+          [classes.active]: matcesRoute({ to: url, fuzzy: true }),
+        })}
       >
         <Icon size="1.5rem" stroke={1.5} />
-      </NavLink>
+      </Link>
     </Tooltip>
   );
 }
@@ -45,7 +44,7 @@ const linksdata = [
     label: "Databases",
     url: "/databases",
   },
-  { icon: IconRobot, label: "Engines", url: "/engines" },
+  { icon: IconCpu, label: "Engines", url: "/engines" },
 ];
 
 export function SideBar() {

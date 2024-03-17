@@ -1,51 +1,52 @@
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { spellCheckAtom } from "@/atoms/atoms";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import { RichTextEditor } from "@mantine/tiptap";
+import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { memo, useContext } from "react";
+import { useAtomValue } from "jotai";
+import { useContext } from "react";
+import { Markdown } from "tiptap-markdown";
 
-function AnnotationEditor({
-  commentHTML,
-}: {
-  path: number[];
-  commentHTML: string;
-}) {
+function AnnotationEditor() {
+  const { root, position } = useContext(TreeStateContext);
+  const currentNode = getNodeAtPath(root, position);
   const dispatch = useContext(TreeDispatchContext);
+  const spellCheck = useAtomValue(spellCheckAtom);
   const editor = useEditor(
     {
       extensions: [
         StarterKit,
         Underline,
+        Link.configure({
+          autolink: true,
+          openOnClick: false,
+        }),
+        Markdown.configure({
+          linkify: true,
+        }),
         Placeholder.configure({ placeholder: "Write here..." }),
       ],
-      content: commentHTML,
+      content: currentNode.comment,
       onUpdate: ({ editor }) => {
-        const html = editor.getHTML();
-        let commentHTML: string;
-        let commentText: string;
-        if (html === "<p></p>") {
-          commentHTML = "";
-          commentText = "";
-        } else {
-          commentHTML = html;
-          commentText = editor.getText();
-        }
+        const comment = editor.storage.markdown.getMarkdown();
         dispatch({
           type: "SET_COMMENT",
-          payload: {
-            html: commentHTML,
-            text: commentText,
-          },
+          payload: comment,
         });
       },
     },
-    [commentHTML],
+    [position.join(",")],
   );
 
   return (
-    <RichTextEditor editor={editor}>
+    <RichTextEditor editor={editor} spellCheck={spellCheck}>
       <RichTextEditor.Toolbar>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />
@@ -68,6 +69,10 @@ function AnnotationEditor({
           <RichTextEditor.BulletList />
           <RichTextEditor.OrderedList />
         </RichTextEditor.ControlsGroup>
+        <RichTextEditor.ControlsGroup>
+          <RichTextEditor.Link />
+          <RichTextEditor.Unlink />
+        </RichTextEditor.ControlsGroup>
       </RichTextEditor.Toolbar>
 
       <RichTextEditor.Content />
@@ -75,9 +80,4 @@ function AnnotationEditor({
   );
 }
 
-export default memo(
-  AnnotationEditor,
-  (prevProps, nextProps) =>
-    prevProps.path === nextProps.path ||
-    prevProps.commentHTML === nextProps.commentHTML,
-);
+export default AnnotationEditor;

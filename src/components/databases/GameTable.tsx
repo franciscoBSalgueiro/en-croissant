@@ -1,9 +1,9 @@
 import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
 import {
-  DatabaseInfo,
-  NormalizedGame,
-  Outcome,
-  Sides,
+  type DatabaseInfo,
+  type GameQuery,
+  type NormalizedGame,
+  type Outcome,
   query_games,
 } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -14,48 +14,43 @@ import {
   Collapse,
   Flex,
   Group,
+  InputWrapper,
   RangeSlider,
   Select,
   Stack,
   Text,
   useMantineTheme,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconDotsVertical, IconEye } from "@tabler/icons-react";
+import { IconDotsVertical } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
+import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
-import { DataTable, DataTableSortStatus } from "mantine-datatable";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { DataTable } from "mantine-datatable";
+import { useState } from "react";
+import useSWR from "swr";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
-import { SearchInput } from "./SearchInput";
+import { PlayerSearchInput } from "./PlayerSearchInput";
+import { SideInput } from "./SideInput";
 import * as classes from "./styles.css";
 
 function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
-  const [games, setGames] = useState<NormalizedGame[]>([]);
-
-  const [count, setCount] = useState(0);
-  const [player1, setPlayer1] = useState<number | undefined>();
-  const [rangePlayer1, setRangePlayer1] = useState<[number, number]>([0, 3000]);
-  const [tempRangePlayer1, setTempRangePlayer1] = useState<[number, number]>([
-    0, 3000,
-  ]);
-  const [player2, setplayer2] = useState<number | undefined>();
-  const [rangePlayer2, setRangePlayer2] = useState<[number, number]>([0, 3000]);
-  const [tempRangePlayer2, setTempRangePlayer2] = useState<[number, number]>([
-    0, 3000,
-  ]);
-  const [sides, setSides] = useState<Sides>("WhiteBlack");
-  const [outcome, setOutcome] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  // const [skip, toggleSkip] = useToggle([true, false]);
-  const [limit, setLimit] = useState(25);
-  const [sort, setSort] = useState<DataTableSortStatus<NormalizedGame>>({
-    columnAccessor: "date",
+  const [query, setQuery] = useState<GameQuery>({
+    player1: undefined,
+    rangePlayer1: [0, 3000],
+    player2: undefined,
+    rangePlayer2: [0, 3000],
+    sides: "WhiteBlack",
+    outcome: undefined,
+    sort: "date",
     direction: "desc",
+    pageSize: 25,
+    page: 1,
   });
-  const [activePage, setActivePage] = useState(1);
+
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const [openedSettings, toggleOpenedSettings] = useToggle();
 
@@ -66,72 +61,12 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
-  useEffect(() => {
-    let ignore = false;
-    setActivePage(1);
-    setSelectedGame(null);
-    setLoading(true);
-    query_games(file, {
-      player1,
-      rangePlayer1: rangePlayer1,
-      player2,
-      rangePlayer2: rangePlayer2,
-      sides: sides,
-      outcome: outcome === null ? undefined : (outcome as Outcome),
-      page: activePage,
-      pageSize: limit,
-      // skip_count: skip,
-      sort: sort.columnAccessor,
-      direction: sort.direction,
-    }).then((res) => {
-      if (!ignore) {
-        setLoading(false);
-        setGames(res.data);
-        setCount(res.count);
-      }
-    });
-    return () => {
-      ignore = true;
-    };
-  }, [
-    player1,
-    player2,
-    outcome,
-    // skip,
-    limit,
-    file,
-    sides,
-    rangePlayer1,
-    rangePlayer2,
-  ]);
+  const { data, isLoading, mutate } = useSWR(["games", query], () =>
+    query_games(file, query),
+  );
 
-  useEffect(() => {
-    let ignore = false;
-    setLoading(true);
-    setSelectedGame(null);
-    query_games(file, {
-      player1,
-      player2,
-      rangePlayer1: rangePlayer1,
-      rangePlayer2: rangePlayer2,
-      outcome: outcome === null ? undefined : (outcome as Outcome),
-      sides: sides,
-      page: activePage,
-      pageSize: limit,
-      skip_count: true,
-      sort: sort.columnAccessor,
-      direction: sort.direction,
-    }).then((res) => {
-      if (!ignore) {
-        setLoading(false);
-        setGames(res.data);
-      }
-    });
-
-    return () => {
-      ignore = true;
-    };
-  }, [activePage, sort]);
+  const games = data?.data ?? [];
+  const count = data?.count;
 
   useHotkeys([
     [
@@ -171,17 +106,27 @@ function GameTable({ database }: { database: DatabaseInfo }) {
           <Flex style={{ gap: 20 }}>
             <Box style={{ flexGrow: 1 }}>
               <Group grow>
-                <SearchInput
-                  setValue={setPlayer1}
-                  sides={sides}
-                  setSides={setSides}
+                <PlayerSearchInput
+                  setValue={(value) => setQuery({ ...query, player1: value })}
+                  rightSection={
+                    <SideInput
+                      sides={query.sides!}
+                      setSides={(value) => setQuery({ ...query, sides: value })}
+                      label="Player"
+                    />
+                  }
                   label="Player"
                   file={file}
                 />
-                <SearchInput
-                  setValue={setplayer2}
-                  sides={sides}
-                  setSides={setSides}
+                <PlayerSearchInput
+                  setValue={(value) => setQuery({ ...query, player2: value })}
+                  rightSection={
+                    <SideInput
+                      sides={query.sides!}
+                      setSides={(value) => setQuery({ ...query, sides: value })}
+                      label="Opponent"
+                    />
+                  }
                   label="Opponent"
                   file={file}
                 />
@@ -189,37 +134,47 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               <Collapse in={openedSettings} mx={10}>
                 <Stack mt="md">
                   <Group grow>
-                    <RangeSlider
-                      step={10}
-                      min={0}
-                      max={3000}
-                      marks={[
-                        { value: 1000, label: "1000" },
-                        { value: 2000, label: "2000" },
-                        { value: 3000, label: "3000" },
-                      ]}
-                      value={tempRangePlayer1}
-                      onChange={setTempRangePlayer1}
-                      onChangeEnd={setRangePlayer1}
-                    />
-                    <RangeSlider
-                      step={10}
-                      min={0}
-                      max={3000}
-                      marks={[
-                        { value: 1000, label: "1000" },
-                        { value: 2000, label: "2000" },
-                        { value: 3000, label: "3000" },
-                      ]}
-                      value={tempRangePlayer2}
-                      onChange={setTempRangePlayer2}
-                      onChangeEnd={setRangePlayer2}
-                    />
+                    <InputWrapper label="ELO">
+                      <RangeSlider
+                        step={10}
+                        min={0}
+                        max={3000}
+                        marks={[
+                          { value: 1000, label: "1000" },
+                          { value: 2000, label: "2000" },
+                          { value: 3000, label: "3000" },
+                        ]}
+                        onChangeEnd={(value) =>
+                          setQuery({ ...query, rangePlayer1: value })
+                        }
+                      />
+                    </InputWrapper>
+
+                    <InputWrapper label="ELO">
+                      <RangeSlider
+                        step={10}
+                        min={0}
+                        max={3000}
+                        marks={[
+                          { value: 1000, label: "1000" },
+                          { value: 2000, label: "2000" },
+                          { value: 3000, label: "3000" },
+                        ]}
+                        onChangeEnd={(value) =>
+                          setQuery({ ...query, rangePlayer2: value })
+                        }
+                      />
+                    </InputWrapper>
                   </Group>
                   <Select
                     label="Result"
-                    value={outcome}
-                    onChange={setOutcome}
+                    value={query.outcome}
+                    onChange={(value) =>
+                      setQuery({
+                        ...query,
+                        outcome: (value as Outcome | null) ?? undefined,
+                      })
+                    }
                     clearable
                     placeholder="Select result"
                     data={[
@@ -228,6 +183,46 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                       { label: "Draw", value: "1/2-1/2" },
                     ]}
                   />
+                  <Group>
+                    <DateInput
+                      label="From"
+                      placeholder="Start date"
+                      clearable
+                      valueFormat="YYYY-MM-DD"
+                      value={
+                        query.start_date
+                          ? dayjs(query.start_date, "YYYY.MM.DD").toDate()
+                          : null
+                      }
+                      onChange={(value) =>
+                        setQuery({
+                          ...query,
+                          start_date: value
+                            ? dayjs(value).format("YYYY.MM.DD")
+                            : undefined,
+                        })
+                      }
+                    />
+                    <DateInput
+                      label="To"
+                      placeholder="End date"
+                      clearable
+                      valueFormat="YYYY-MM-DD"
+                      value={
+                        query.end_date
+                          ? dayjs(query.end_date, "YYYY.MM.DD").toDate()
+                          : null
+                      }
+                      onChange={(value) =>
+                        setQuery({
+                          ...query,
+                          end_date: value
+                            ? dayjs(value).format("YYYY.MM.DD")
+                            : undefined,
+                        })
+                      }
+                    />
+                  </Group>
                 </Stack>
               </Collapse>
             </Box>
@@ -244,33 +239,21 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             withTableBorder
             highlightOnHover
             records={games}
-            fetching={loading}
+            fetching={isLoading}
+            onRowDoubleClick={({ record }) => {
+              createTab({
+                tab: {
+                  name: `${record.white} - ${record.black}`,
+                  type: "analysis",
+                },
+                setTabs,
+                setActiveTab,
+                pgn: record.moves,
+                headers: record,
+              });
+              navigate({ to: "/" });
+            }}
             columns={[
-              {
-                accessor: "actions",
-                title: "",
-                render: (game) => (
-                  <ActionIcon
-                    variant="subtle"
-                    color={theme.primaryColor}
-                    onClick={() => {
-                      createTab({
-                        tab: {
-                          name: `${game.white} - ${game.black}`,
-                          type: "analysis",
-                        },
-                        setTabs,
-                        setActiveTab,
-                        pgn: game.moves,
-                        headers: game,
-                      });
-                      navigate("/");
-                    }}
-                  >
-                    <IconEye size="1rem" stroke={1.5} />
-                  </ActionIcon>
-                ),
-              },
               {
                 accessor: "white",
                 render: ({ white, white_elo }) => (
@@ -298,20 +281,36 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                 ),
               },
               { accessor: "date", sortable: true },
-              { accessor: "result" },
-              { accessor: "ply_count", sortable: true },
+              {
+                accessor: "result",
+                render: ({ result }) => result?.replaceAll("1/2", "½"),
+              },
+              { accessor: "ply_count", title: "Plies", sortable: true },
+              { accessor: "event" },
+              { accessor: "site" },
             ]}
             rowClassName={(_, i) =>
               i === selectedGame ? classes.selected : ""
             }
             noRecordsText="No games found"
             totalRecords={count}
-            recordsPerPage={limit}
-            page={activePage}
-            onPageChange={setActivePage}
-            onRecordsPerPageChange={setLimit}
-            sortStatus={sort}
-            onSortStatusChange={setSort}
+            recordsPerPage={query.pageSize ?? 25}
+            page={query.page ?? 1}
+            onPageChange={(page) => setQuery({ ...query, page })}
+            onRecordsPerPageChange={(value) =>
+              setQuery({ ...query, pageSize: value })
+            }
+            sortStatus={{
+              columnAccessor: query.sort,
+              direction: query.direction,
+            }}
+            onSortStatusChange={(value) =>
+              setQuery({
+                ...query,
+                sort: value.columnAccessor,
+                direction: value.direction,
+              })
+            }
             recordsPerPageOptions={[10, 25, 50]}
             onRowClick={({ index }) => {
               setSelectedGame(index);
@@ -320,7 +319,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
         }
         preview={
           selectedGame !== null && games[selectedGame] ? (
-            <GameCard game={games[selectedGame]} />
+            <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
           ) : (
             <Center h="100%">
               <Text>No game selected</Text>

@@ -1,8 +1,4 @@
-import {
-  currentPracticingAtom,
-  currentTabAtom,
-  missingMovesAtom,
-} from "@/atoms/atoms";
+import { currentTabAtom, missingMovesAtom } from "@/atoms/atoms";
 import GameInfo from "@/components/common/GameInfo";
 import {
   TreeDispatchContext,
@@ -23,8 +19,6 @@ import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
-import PracticePanel from "./PracticePanel";
-import RepertoireInfo from "./RepertoireInfo";
 
 function InfoPanel() {
   const tree = useContext(TreeStateContext);
@@ -34,34 +28,34 @@ function InfoPanel() {
   const isReportoire = currentTab?.file?.metadata.type === "repertoire";
 
   const stats = useMemo(() => getTreeStats(tree.root), [tree.root]);
-  const practicing = useAtomValue(currentPracticingAtom);
 
   return (
     <Stack h="100%">
-      {practicing ? (
-        <PracticePanel />
-      ) : (
-        <>
-          <GameSelectorAccordion games={games} setGames={setGames} />
-          <ScrollArea offsetScrollbars>
-            <FileInfo setGames={setGames} />
-            <Stack>
-              <div>
-                <GameInfo headers={tree.headers} simplified={isReportoire} />
-                {isReportoire && <RepertoireInfo />}
-              </div>
-              <FenSearch currentFen={currentNode.fen} />
-              <PgnInput />
+      <GameSelectorAccordion games={games} setGames={setGames} />
+      <ScrollArea offsetScrollbars>
+        <FileInfo setGames={setGames} />
+        <Stack>
+          <GameInfo
+            headers={tree.headers}
+            simplified={isReportoire}
+            changeTitle={(title: string) => {
+              setGames((prev) => {
+                const newGames = new Map(prev);
+                newGames.set(currentTab?.gameNumber || 0, title);
+                return newGames;
+              });
+            }}
+          />
+          <FenSearch currentFen={currentNode.fen} />
+          <PgnInput />
 
-              <Group>
-                <Text>Variations: {stats.leafs}</Text>
-                <Text>Max Depth: {stats.depth}</Text>
-                <Text>Total moves: {stats.total}</Text>
-              </Group>
-            </Stack>
-          </ScrollArea>
-        </>
-      )}
+          <Group>
+            <Text>Variations: {stats.leafs}</Text>
+            <Text>Max Depth: {stats.depth}</Text>
+            <Text>Total moves: {stats.total}</Text>
+          </Group>
+        </Stack>
+      </ScrollArea>
     </Stack>
   );
 }

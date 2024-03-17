@@ -20,7 +20,7 @@ use std::{fs::create_dir_all, path::Path};
 
 use chess::{BestMovesPayload, EngineProcess, ReportProgress};
 use dashmap::DashMap;
-use db::{DatabaseProgress, NormalizedGame, PositionQuery, PositionStats};
+use db::{DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
@@ -38,8 +38,9 @@ use crate::chess::{
     analyze_game, get_engine_config, get_engine_logs, kill_engine, kill_engines, stop_engine,
 };
 use crate::db::{
-    clear_games, convert_pgn, create_indexes, delete_database, delete_indexes,
-    get_players_game_info, get_tournaments, search_position,
+    clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
+    delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
+    search_position,
 };
 use crate::fide::{download_fide_db, find_fide_player};
 use crate::fs::{append_to_file, set_file_as_executable, DownloadProgress};
@@ -49,13 +50,29 @@ use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
-    db::{edit_db_info, get_db_info, get_games, get_players},
-    fs::download_file,
+    db::{
+        delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
+    },
+    fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
 use tokio::sync::{RwLock, Semaphore};
 
-pub type GameData = (i32, Option<String>, Vec<u8>, Option<String>, i32, i32, i32);
+#[cfg(any(windows, target_os = "macos"))]
+use window_shadows::set_shadow;
+
+pub type GameData = (
+    i32,
+    i32,
+    i32,
+    Option<String>,
+    Option<String>,
+    Vec<u8>,
+    Option<String>,
+    i32,
+    i32,
+    i32,
+);
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -64,7 +81,7 @@ pub struct AppState {
         String,
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
-    line_cache: DashMap<(PositionQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
+    line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     db_cache: Mutex<Vec<GameData>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
@@ -129,6 +146,11 @@ fn main() {
                 get_opening_from_name,
                 get_players_game_info,
                 get_engine_config,
+                file_exists,
+                get_file_metadata,
+                merge_players,
+                convert_pgn,
+                get_player,
             ))
             .events(tauri_specta::collect_events!(
                 BestMovesPayload,
@@ -142,37 +164,46 @@ fn main() {
         specta_builder.into_plugin()
     };
 
-    let new_tab = CustomMenuItem::new("new_tab".to_string(), "New tab");
-    let open_file = CustomMenuItem::new("open_file".to_string(), "Open file");
-    let file_menu = Submenu::new(
-        "File",
-        Menu::new()
-            .add_item(new_tab)
-            .add_item(open_file)
-            .add_native_item(MenuItem::Quit),
-    );
-
-    let reload = CustomMenuItem::new("reload".to_string(), "Reload");
-
-    let view_menu = Submenu::new("View", Menu::new().add_item(reload));
-
-    let clear_saved_data = CustomMenuItem::new("clear_saved_data".to_string(), "Clear saved data");
-    let open_logs = CustomMenuItem::new("open_logs".to_string(), "Open logs");
-    let check_updates = CustomMenuItem::new("check_updates".to_string(), "Check for updates");
-    let about = CustomMenuItem::new("about".to_string(), "About");
-    let help_menu = Submenu::new(
-        "Help",
-        Menu::new()
-            .add_item(clear_saved_data)
-            .add_item(open_logs)
-            .add_item(check_updates)
-            .add_item(about),
-    );
-
     let menu = Menu::new()
-        .add_submenu(file_menu)
-        .add_submenu(view_menu)
-        .add_submenu(help_menu);
+        .add_submenu(Submenu::new(
+            "File",
+            Menu::new()
+                .add_item(CustomMenuItem::new("new_tab".to_string(), "New tab"))
+                .add_item(CustomMenuItem::new("open_file".to_string(), "Open file"))
+                .add_native_item(MenuItem::Quit),
+        ))
+        .add_submenu(Submenu::new(
+            "Edit",
+            Menu::new()
+                .add_native_item(MenuItem::Undo)
+                .add_native_item(MenuItem::Redo)
+                .add_native_item(MenuItem::Separator)
+                .add_native_item(MenuItem::Cut)
+                .add_native_item(MenuItem::Copy)
+                .add_native_item(MenuItem::Paste)
+                .add_native_item(MenuItem::SelectAll),
+        ))
+        .add_submenu(Submenu::new(
+            "View",
+            Menu::new()
+                .add_item(CustomMenuItem::new("reload".to_string(), "Reload"))
+                .add_native_item(MenuItem::EnterFullScreen)
+                .add_native_item(MenuItem::Minimize),
+        ))
+        .add_submenu(Submenu::new(
+            "Help",
+            Menu::new()
+                .add_item(CustomMenuItem::new(
+                    "clear_saved_data".to_string(),
+                    "Clear saved data",
+                ))
+                .add_item(CustomMenuItem::new("open_logs".to_string(), "Open logs"))
+                .add_item(CustomMenuItem::new(
+                    "check_for_updates".to_string(),
+                    "Check for updates",
+                ))
+                .add_item(CustomMenuItem::new("about".to_string(), "About")),
+        ));
 
     tauri::Builder::default()
         .menu(menu)
@@ -219,6 +250,9 @@ fn main() {
                 }
             }
 
+            #[cfg(any(windows, target_os = "macos"))]
+            set_shadow(&app.get_window("main").unwrap(), true).unwrap();
+
             Ok(())
         })
         .manage(AppState::default())
@@ -230,9 +264,9 @@ fn main() {
             get_db_info,
             get_puzzle_db_info,
             edit_db_info,
+            delete_duplicated_games,
             authenticate,
             delete_database,
-            convert_pgn,
             search_position,
             is_bmi2_compatible,
             clear_games,
@@ -247,6 +281,9 @@ fn main() {
             lex_pgn,
             download_fide_db,
             search_opening_name,
+            delete_db_game,
+            delete_empty_games,
+            export_to_pgn
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

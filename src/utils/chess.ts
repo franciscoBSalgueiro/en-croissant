@@ -1,52 +1,32 @@
-import { Score, commands } from "@/bindings";
-import { MantineColor } from "@mantine/core";
+import { type Score, commands } from "@/bindings";
 import { invoke } from "@tauri-apps/api";
-import { DrawShape } from "chessground/draw";
-import { Color, Role, makeSquare, makeUci } from "chessops";
-import { castlingSide, normalizeMove } from "chessops/chess";
+import type { DrawShape } from "chessground/draw";
+import {
+  type Color,
+  type Move,
+  type Role,
+  makeSquare,
+  makeUci,
+} from "chessops";
+import { type Chess, castlingSide, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
+import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import { Outcome } from "./db";
+import type { Outcome } from "./db";
 import { harmonicMean, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
 import {
-  GameHeaders,
-  TreeNode,
-  TreeState,
+  type GameHeaders,
+  type TreeNode,
+  type TreeState,
   createNode,
   defaultTree,
   getNodeAtPath,
   headersToPGN,
 } from "./treeReducer";
-
-export type Annotation = "" | "!" | "!!" | "?" | "??" | "!?" | "?!";
-
-const NAG_INFO = new Map<string, Annotation>([
-  ["$1", "!"],
-  ["$2", "?"],
-  ["$3", "!!"],
-  ["$4", "??"],
-  ["$5", "!?"],
-  ["$6", "?!"],
-]);
-
-type AnnotationInfo = {
-  name: string;
-  color: MantineColor;
-};
-
-export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
-  "": { name: "None", color: "gray" },
-  "!!": { name: "Brilliant", color: "cyan" },
-  "!": { name: "Good", color: "teal" },
-  "!?": { name: "Interesting", color: "lime" },
-  "?!": { name: "Dubious", color: "yellow" },
-  "?": { name: "Mistake", color: "orange" },
-  "??": { name: "Blunder", color: "red" },
-};
 
 export interface BestMoves {
   depth: number;
@@ -101,7 +81,12 @@ export function getMoveText(
     }
     moveText += tree.san;
     if (opt.glyphs) {
-      moveText += tree.annotation;
+      for (const annotation of tree.annotations) {
+        if (annotation === "") continue;
+        moveText += isBasicAnnotation(annotation)
+          ? tree.annotations
+          : ` $${ANNOTATION_INFO[annotation].nag}`;
+      }
     }
     moveText += " ";
   }
@@ -111,7 +96,11 @@ export function getMoveText(
 
     if (opt.extraMarkups) {
       if (tree.score !== null) {
-        content += `[%eval ${formatScore(tree.score)}] `;
+        if (tree.score.type === "cp") {
+          content += `[%eval ${formatScore(tree.score)}] `;
+        } else {
+          content += `[%eval #${tree.score.value}] `;
+        }
       }
       if (tree.clock !== undefined) {
         content += `[%clk ${makeClk(tree.clock)}] `;
@@ -125,21 +114,21 @@ export function getMoveText(
       if (squares.length > 0) {
         content += `[%csl ${squares
           .map((shape) => {
-            return shape.brush[0].toUpperCase() + shape.orig;
+            return shape.brush![0].toUpperCase() + shape.orig;
           })
           .join(",")}]`;
       }
       if (arrows.length > 0) {
         content += `[%cal ${arrows
           .map((shape) => {
-            return shape.brush[0].toUpperCase() + shape.orig + shape.dest;
+            return shape.brush![0].toUpperCase() + shape.orig + shape.dest;
           })
           .join(",")}]`;
       }
     }
 
-    if (opt.comments && tree.commentText !== "") {
-      content += tree.commentText;
+    if (opt.comments && tree.comment !== "") {
+      content += tree.comment;
     }
     content += "} ";
 
@@ -150,14 +139,34 @@ export function getMoveText(
   return moveText;
 }
 
-export function getMainLine(root: TreeNode, is960: boolean): string[] {
+export function getLastMainlinePosition(root: TreeNode): number[] {
   const position = [];
   for (let node = root; node.children.length > 0; node = node.children[0]) {
     if (node.move) {
       position.push(0);
     }
   }
-  return getVariationLine(root, position, is960, true);
+  return position;
+}
+
+export function getMainLine(root: TreeNode, is960: boolean): string[] {
+  return getVariationLine(root, getLastMainlinePosition(root), is960, true);
+}
+
+// outputs the correct uci move for castling in chess960 and standard chess
+export function uciNormalize(chess: Chess, move: Move, chess960?: boolean) {
+  const side = castlingSide(chess, move);
+  const frcMove = normalizeMove(chess, move);
+  if (side && !chess960) {
+    const standardMove = match(makeUci(frcMove))
+      .with("e1h1", () => "e1g1")
+      .with("e1a1", () => "e1c1")
+      .with("e8h8", () => "e8g8")
+      .with("e8a8", () => "e8c8")
+      .otherwise((v) => v);
+    return standardMove;
+  }
+  return makeUci(frcMove);
 }
 
 export function getVariationLine(
@@ -175,24 +184,12 @@ export function getVariationLine(
   for (const pos of position) {
     node = node.children[pos];
     if (node.move) {
-      const side = castlingSide(chess, node.move);
-      const frcMove = normalizeMove(chess, node.move);
-      if (side && !chess960) {
-        const standardMove = match(makeUci(frcMove))
-          .with("e1h1", () => "e1g1")
-          .with("e1a1", () => "e1c1")
-          .with("e8h8", () => "e8g8")
-          .with("e8a8", () => "e8c8")
-          .otherwise((v) => v);
-        moves.push(standardMove);
-      } else {
-        moves.push(makeUci(frcMove));
-      }
-      chess.play(frcMove);
+      moves.push(uciNormalize(chess, node.move, chess960));
+      chess.play(node.move);
     }
   }
   if (includeLastMove && node.children.length > 0) {
-    moves.push(makeUci(node.children[0].move!));
+    moves.push(uciNormalize(chess, node.children[0].move!, chess960));
   }
   return moves;
 }
@@ -201,17 +198,17 @@ export function getPGN(
   tree: TreeNode,
   {
     headers,
-    glyphs = true,
-    comments = true,
-    variations = true,
-    extraMarkups = true,
+    glyphs,
+    comments,
+    variations,
+    extraMarkups,
     root = true,
   }: {
     headers: GameHeaders | null;
-    glyphs?: boolean;
-    comments?: boolean;
-    variations?: boolean;
-    extraMarkups?: boolean;
+    glyphs: boolean;
+    comments: boolean;
+    variations: boolean;
+    extraMarkups: boolean;
     root?: boolean;
   },
 ): string {
@@ -224,8 +221,12 @@ export function getPGN(
     pgn += `[FEN "${tree.fen}"]\n`;
   }
   pgn += "\n";
-  if (root && tree.commentText !== null) {
-    pgn += `${getMoveText(tree, { glyphs, comments, extraMarkups })}`;
+  if (root && tree.comment !== null) {
+    pgn += `${getMoveText(tree, {
+      glyphs,
+      comments,
+      extraMarkups,
+    })}`;
   }
   const variationsPGN = variations
     ? tree.children.slice(1).map(
@@ -377,8 +378,7 @@ function innerParsePGN(
         root.clock = comment.clock;
       }
 
-      root.commentText = comment.text;
-      root.commentHTML = comment.text;
+      root.comment = comment.text;
     } else if (token.type === "ParenOpen") {
       const variation = [];
       let subvariations = 0;
@@ -405,7 +405,10 @@ function innerParsePGN(
       }
     } else if (token.type === "ParenClose") {
     } else if (token.type === "Nag") {
-      root.annotation = NAG_INFO.get(token.value) || "";
+      root.annotations.push(NAG_INFO.get(token.value) || "");
+      root.annotations.sort((a, b) => {
+        return ANNOTATION_INFO[a].nag - ANNOTATION_INFO[b].nag;
+      });
     } else if (token.type === "San") {
       const [pos, error] = positionFromFen(root.fen);
       if (error) {
@@ -442,10 +445,14 @@ export async function parsePGN(
   const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
 
   const headers = getPgnHeaders(tokens);
+  const fen = initialFen?.trim() || headers.fen.trim();
+
+  const [pos] = positionFromFen(fen);
+
   const tree = innerParsePGN(
     tokens,
     initialFen?.trim() || headers.fen.trim(),
-    0,
+    pos?.turn === "black" ? 1 : 0,
   );
   tree.headers = headers;
   tree.position = headers.start ?? [];
@@ -489,8 +496,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     black: Black ?? "?",
     white: White ?? "?",
     round: Round ?? "?",
-    black_elo: BlackElo ? parseInt(BlackElo) : 0,
-    white_elo: WhiteElo ? parseInt(WhiteElo) : 0,
+    black_elo: BlackElo ? Number.parseInt(BlackElo) : 0,
+    white_elo: WhiteElo ? Number.parseInt(WhiteElo) : 0,
     date: Date ?? "",
     site: Site ?? "",
     event: Event ?? "",
@@ -522,13 +529,13 @@ export function parseTimeControl(timeControl: string): TimeControl {
     const seconds = match[2];
     const increment = match[3];
     const timeControlField: TimeControlField = {
-      seconds: parseInt(seconds) * 1000,
+      seconds: Number.parseInt(seconds) * 1000,
     };
     if (increment) {
-      timeControlField.increment = parseInt(increment) * 1000;
+      timeControlField.increment = Number.parseInt(increment) * 1000;
     }
     if (moves) {
-      timeControlField.moves = parseInt(moves);
+      timeControlField.moves = Number.parseInt(moves);
     }
     timeControlFields.push(timeControlField);
   }
@@ -539,7 +546,6 @@ type ColorMap<T> = {
   [key in Color]: T;
 };
 
-/* traverse the main line and get the average centipawn loss for each player*/
 export function getGameStats(root: TreeNode) {
   const whiteAnnotations = {
     "??": 0,
@@ -582,11 +588,13 @@ export function getGameStats(root: TreeNode) {
   let node = root;
   while (node.children.length > 0) {
     node = node.children[0];
-    if (node.annotation) {
-      if (node.halfMoves % 2 === 1) {
-        whiteAnnotations[node.annotation]++;
-      } else {
-        blackAnnotations[node.annotation]++;
+    for (const annotation of node.annotations) {
+      if (isBasicAnnotation(annotation)) {
+        if (node.halfMoves % 2 === 1) {
+          whiteAnnotations[annotation]++;
+        } else {
+          blackAnnotations[annotation]++;
+        }
       }
     }
     const color = node.halfMoves % 2 === 1 ? "white" : "black";

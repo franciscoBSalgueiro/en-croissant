@@ -1,28 +1,21 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconFolder } from "@tabler/icons-react";
-import { appDataDir, documentDir, resolve } from "@tauri-apps/api/path";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/api/shell";
 
 function OpenFolderButton({
   base,
   folder,
 }: {
-  base: "AppDir" | "Document";
+  base?: "AppDir" | "Document";
   folder: string;
 }) {
   async function openAppDirData() {
+    let dir = folder;
     if (base === "AppDir") {
-      const path = await resolve(await appDataDir(), folder);
-      open(path);
-    } else if (base === "Document") {
-      try {
-        const path = await resolve(await documentDir(), folder);
-        open(path);
-      } catch {
-        const path = await resolve(await appDataDir(), "documents");
-        open(path);
-      }
+      dir = await resolve(await appDataDir(), folder);
     }
+    open(dir);
   }
   return (
     <Tooltip label="Open folder in file explorer">
