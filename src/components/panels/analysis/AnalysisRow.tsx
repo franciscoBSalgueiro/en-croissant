@@ -3,9 +3,8 @@ import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
-import { ActionIcon, Box, Flex, Popover, Table } from "@mantine/core";
+import { ActionIcon, Box, Flex, HoverCard, Table } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
 import type { Key } from "chessground/types";
@@ -126,7 +125,7 @@ function BoardPopover({
   const preview = useAtomValue(previewBoardOnHoverAtom);
 
   return (
-    <Popover
+    <HoverCard
       width={230}
       styles={{
         dropdown: {
@@ -135,10 +134,11 @@ function BoardPopover({
           border: "none",
         },
       }}
-      opened={preview && opened}
+      openDelay={0}
+      closeDelay={50}
     >
-      <Popover.Target>
-        <Box onMouseEnter={open} onMouseLeave={close}>
+      <HoverCard.Target>
+        <Box>
           {(index === 0 || is_white) &&
             `${move_number.toString()}${is_white ? "." : "..."}`}
           <MoveCell
@@ -157,28 +157,29 @@ function BoardPopover({
             }}
           />
         </Box>
-      </Popover.Target>
-      <Popover.Dropdown
-        style={{ pointerEvents: "none", transitionDuration: "0ms" }}
-        className={chessboard}
-      >
-        <Chessground
-          fen={fen}
-          coordinates={false}
-          viewOnly
-          orientation={orientation}
-          lastMove={lastMove}
-          turnColor={is_white ? "black" : "white"}
-          check={isCheck}
-          drawable={{
-            enabled: true,
-            visible: true,
-            defaultSnapToValidMove: true,
-            eraseOnClick: true,
-          }}
-        />
-      </Popover.Dropdown>
-    </Popover>
+      </HoverCard.Target>
+      {preview && (
+        <HoverCard.Dropdown
+          style={{ pointerEvents: "none", transitionDuration: "0ms" }}
+        >
+          <Chessground
+            fen={fen}
+            coordinates={false}
+            viewOnly
+            orientation={orientation}
+            lastMove={lastMove}
+            turnColor={is_white ? "black" : "white"}
+            check={isCheck}
+            drawable={{
+              enabled: true,
+              visible: true,
+              defaultSnapToValidMove: true,
+              eraseOnClick: true,
+            }}
+          />
+        </HoverCard.Dropdown>
+      )}
+    </HoverCard>
   );
 }
 
