@@ -7,9 +7,11 @@ import {
   type EngineSettings,
   engineSchema,
 } from "@/utils/engines";
-import type {
-  LichessGamesOptions,
-  MasterGamesOptions,
+import {
+  type LichessGamesOptions,
+  type MasterGamesOptions,
+  lichessGamesOptionsSchema,
+  masterOptionsSchema,
 } from "@/utils/lichess/explorer";
 import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
@@ -266,11 +268,19 @@ export const lichessOptionsAtom = atomWithStorage<LichessGamesOptions>(
     speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
     color: "white",
   },
+  createZodStorage(lichessGamesOptionsSchema, localStorage),
+  {
+    getOnInit: true,
+  },
 );
 
 export const masterOptionsAtom = atomWithStorage<MasterGamesOptions>(
   "lichess-master-options",
   {},
+  createZodStorage(masterOptionsSchema, localStorage),
+  {
+    getOnInit: true,
+  },
 );
 
 const dbTypeFamily = atomFamily((tab: string) =>

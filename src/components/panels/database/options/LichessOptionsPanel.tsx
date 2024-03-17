@@ -2,10 +2,10 @@ import { lichessOptionsAtom } from "@/atoms/atoms";
 import ToggleButtonGroup, {
   type ToggleButtonGroupOption,
 } from "@/components/common/ToggleButtonGroup";
+import { MIN_DATE } from "@/utils/lichess/api";
 import type { LichessGameSpeed, LichessRating } from "@/utils/lichess/explorer";
 import { Group, Select, Stack, TextInput } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
-import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconChevronRight,
   IconChevronsRight,
@@ -15,21 +15,10 @@ import {
   IconSend,
 } from "@tabler/icons-react";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
 import { match } from "ts-pattern";
 
 const LichessOptionsPanel = () => {
-  const [originalOptions, setOriginalOptions] = useAtom(lichessOptionsAtom);
-  const [options, setOptions] = useState(originalOptions);
-  const [debouncedOptions] = useDebouncedValue(options, 500);
-
-  useEffect(() => {
-    setOptions(originalOptions);
-  }, [originalOptions]);
-
-  useEffect(() => {
-    setOriginalOptions(debouncedOptions);
-  }, [debouncedOptions, setOriginalOptions]);
+  const [options, setOptions] = useAtom(lichessOptionsAtom);
 
   const timeControls: LichessGameSpeed[] = [
     "ultraBullet",
@@ -122,7 +111,9 @@ const LichessOptionsPanel = () => {
         <MonthPickerInput
           label="Since"
           placeholder="Pick date"
-          value={options.since ?? null}
+          value={options.since}
+          minDate={MIN_DATE}
+          maxDate={new Date()}
           onChange={(value) =>
             setOptions({ ...options, since: value ?? undefined })
           }
@@ -131,7 +122,9 @@ const LichessOptionsPanel = () => {
         <MonthPickerInput
           label="Until"
           placeholder="Pick date"
-          value={options.until ?? null}
+          value={options.until}
+          minDate={MIN_DATE}
+          maxDate={new Date()}
           onChange={(value) =>
             setOptions({ ...options, until: value ?? undefined })
           }

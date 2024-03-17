@@ -1,4 +1,5 @@
 import { masterOptionsAtom } from "@/atoms/atoms";
+import { MIN_DATE } from "@/utils/lichess/api";
 import { Group } from "@mantine/core";
 import { YearPickerInput } from "@mantine/dates";
 import { useAtom } from "jotai";
@@ -10,7 +11,9 @@ const MasterOptionsPanel = () => {
       <YearPickerInput
         label="Since"
         placeholder="Pick date"
-        value={options.since ?? null}
+        value={options.since}
+        minDate={MIN_DATE}
+        maxDate={new Date()}
         onChange={(value) =>
           setOptions({ ...options, since: value ?? undefined })
         }
@@ -19,7 +22,9 @@ const MasterOptionsPanel = () => {
       <YearPickerInput
         label="Until"
         placeholder="Pick date"
-        value={options.until ?? null}
+        value={options.until}
+        minDate={MIN_DATE}
+        maxDate={new Date()}
         onChange={(value) =>
           setOptions({ ...options, until: value ?? undefined })
         }

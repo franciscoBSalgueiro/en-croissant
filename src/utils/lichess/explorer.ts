@@ -1,24 +1,78 @@
-export type LichessGamesOptions = {
-  //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerLichess
-  variant?: LichessVariant;
-  speeds?: LichessGameSpeed[];
-  ratings?: LichessRating[];
-  since?: Date;
-  until?: Date;
-  moves?: number;
-  topGames?: number;
-  recentGames?: number;
-  player?: string;
-  color: "white" | "black";
-};
+import { z } from "zod";
 
-export type MasterGamesOptions = {
+const lichessVariant = z.enum([
+  "standard",
+  "chess960",
+  "crazyhouse",
+  "antichess",
+  "atomic",
+  "horde",
+  "kingOfTheHill",
+  "racingKings",
+  "threeCheck",
+  "fromPosition",
+]);
+
+const lichessGameSpeed = z.enum([
+  "ultraBullet",
+  "bullet",
+  "blitz",
+  "rapid",
+  "classical",
+  "correspondence",
+]);
+export type LichessGameSpeed = z.infer<typeof lichessGameSpeed>;
+
+export type LichessRating =
+  | 0
+  | 1000
+  | 1200
+  | 1400
+  | 1600
+  | 1800
+  | 2000
+  | 2200
+  | 2500;
+
+export const lichessGamesOptionsSchema = z.object({
+  //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerLichess
+  variant: lichessVariant.optional(),
+  speeds: z.array(lichessGameSpeed).optional(),
+  ratings: z
+    .array(
+      z.union([
+        z.literal(0),
+        z.literal(1000),
+        z.literal(1200),
+        z.literal(1400),
+        z.literal(1600),
+        z.literal(1800),
+        z.literal(2000),
+        z.literal(2200),
+        z.literal(2500),
+      ]),
+    )
+    .optional(),
+  since: z.coerce.date().optional(),
+  until: z.coerce.date().optional(),
+  moves: z.number().min(0).optional(),
+  topGames: z.number().min(0).optional(),
+  recentGames: z.number().min(0).optional(),
+  player: z.string().optional(),
+  color: z.enum(["white", "black"]),
+});
+
+export type LichessGamesOptions = z.infer<typeof lichessGamesOptionsSchema>;
+
+export const masterOptionsSchema = z.object({
   //https://lichess.org/api#tag/Opening-Explorer/operation/openingExplorerMaster
-  since?: Date;
-  until?: Date;
-  moves?: number;
-  topGames?: number;
-};
+  since: z.coerce.date().optional(),
+  until: z.coerce.date().optional(),
+  moves: z.number().min(0).optional(),
+  topGames: z.number().min(0).optional(),
+});
+
+export type MasterGamesOptions = z.infer<typeof masterOptionsSchema>;
 
 export function getLichessGamesQueryParams(
   fen: string,
@@ -86,34 +140,3 @@ export function getMasterGamesQueryParams(
   }
   return queryParams.join("&");
 }
-
-export type LichessVariant =
-  | "standard"
-  | "chess960"
-  | "crazyhouse"
-  | "antichess"
-  | "atomic"
-  | "horde"
-  | "kingOfTheHill"
-  | "racingKings"
-  | "threeCheck"
-  | "fromPosition";
-
-export type LichessGameSpeed =
-  | "ultraBullet"
-  | "bullet"
-  | "blitz"
-  | "rapid"
-  | "classical"
-  | "correspondence";
-
-export type LichessRating =
-  | 0
-  | 1000
-  | 1200
-  | 1400
-  | 1600
-  | 1800
-  | 2000
-  | 2200
-  | 2500;
