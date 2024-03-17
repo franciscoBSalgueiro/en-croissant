@@ -416,6 +416,20 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
 
 #[tauri::command]
 #[specta::specta]
+pub async fn kill_engine(
+    engine: String,
+    tab: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let key = (tab, engine);
+    if let Some(process) = state.engine_processes.get(&key) {
+        let mut process = process.lock().await;
+        process.kill().await?;
+    }
+    Ok(())
+}
+#[tauri::command]
+#[specta::specta]
 pub async fn stop_engine(
     engine: String,
     tab: String,

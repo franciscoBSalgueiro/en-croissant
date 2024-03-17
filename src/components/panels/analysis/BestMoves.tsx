@@ -307,7 +307,6 @@ function BestMovesComponent({
               )}
             </ActionIcon>
           </Stack>
-
           <Accordion.Control>
             <Group justify="space-between">
               <Group align="center">
@@ -404,7 +403,7 @@ function BestMovesComponent({
         </Box>
         <Collapse in={settingsOn} px={30} pb={15}>
           <EngineSettingsForm
-            engineName={engine.name}
+            engine={engine}
             settings={settings}
             setSettings={setSettings}
             color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
