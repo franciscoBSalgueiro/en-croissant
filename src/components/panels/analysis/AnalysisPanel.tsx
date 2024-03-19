@@ -10,17 +10,9 @@ import {
 import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
-import {
-  ANNOTATION_INFO,
-  type Annotation,
-  getGameStats,
-  getVariationLine,
-  isBasicAnnotation,
-} from "@/utils/chess";
+import { TreeStateContext, TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { ANNOTATION_INFO, type Annotation, isBasicAnnotation } from "@/utils/annotation";
+import { getGameStats, getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
@@ -48,10 +40,10 @@ import {
   IconSettings,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -227,6 +219,15 @@ function AnalysisPanel({
                                       <BestMoves
                                         id={i}
                                         engine={engine}
+                                        setEngine={(e) =>
+                                          setEngines(async (prev) =>
+                                            (await prev).map((o) =>
+                                              o.name === engine.name
+                                                ? { ...e, loaded: o.loaded }
+                                                : o,
+                                            ),
+                                          )
+                                        }
                                         fen={fen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}
@@ -256,7 +257,7 @@ function AnalysisPanel({
                     flex={1}
                     variant="default"
                     onClick={() => {
-                      navigate("/engines");
+                      navigate({ to: "/engines" });
                     }}
                     leftSection={<IconSettings size="0.875rem" />}
                   >

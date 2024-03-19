@@ -1,4 +1,3 @@
-import type { Dirs } from "@/App";
 import { capitalize } from "@/utils/format";
 import {
   Button,
@@ -12,9 +11,9 @@ import {
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
 import { readDir, removeFile } from "@tauri-apps/api/fs";
 import React, { useEffect, useState } from "react";
-import { useRouteLoaderData } from "react-router-dom";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -75,7 +74,7 @@ const useFileDirectory = (dir: string) => {
 };
 
 function FilesPage() {
-  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  const { documentDir } = useLoaderData({ from: "/files" });
   const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
 
   const [search, setSearch] = useState("");

@@ -1,7 +1,7 @@
 import { currentTabAtom } from "@/atoms/atoms";
 import { Comment } from "@/components/common/Comment";
 import { TreeDispatchContext } from "@/components/common/TreeStateContext";
-import type { Annotation } from "@/utils/chess";
+import type { Annotation } from "@/utils/annotation";
 import { Box, Menu, Portal } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
 import {

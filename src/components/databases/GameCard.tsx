@@ -11,8 +11,8 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconTrash, IconZoomCheck } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
-import { useNavigate } from "react-router-dom";
 import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
 
@@ -46,7 +46,7 @@ function GameCard({
                   pgn: game.moves,
                   headers: game,
                 });
-                navigate("/");
+                navigate({ to: "/" });
               }}
             >
               <IconZoomCheck size="1.2rem" stroke={1.5} />

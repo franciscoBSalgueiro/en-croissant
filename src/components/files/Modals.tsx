@@ -1,4 +1,3 @@
-import type { Dirs } from "@/App";
 import { createFile } from "@/utils/files";
 import {
   Button,
@@ -9,9 +8,9 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
+import { useLoaderData } from "@tanstack/react-router";
 import { renameFile, writeTextFile } from "@tauri-apps/api/fs";
 import { useState } from "react";
-import { useRouteLoaderData } from "react-router-dom";
 import GenericCard from "../common/GenericCard";
 import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata, FileType } from "./file";
@@ -41,23 +40,25 @@ export function CreateModal({
   const [filetype, setFiletype] = useState<FileType>("game");
   const [pgn, setPgn] = useState("");
   const [error, setError] = useState("");
-  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  const { documentDir } = useLoaderData({ from: "/files" });
 
   async function addFile() {
     const newFile = await createFile({
       filename,
       filetype,
       pgn,
-      setError,
       dir: documentDir,
     });
-    if (!newFile) return;
-    setFiles([...files, newFile]);
-    setSelected(newFile);
-    setError("");
-    setOpened(false);
-    setFilename("");
-    setFiletype("game");
+    if (newFile.isErr) {
+      setError(newFile.error.message);
+    } else {
+      setFiles([...files, newFile.value]);
+      setSelected(newFile.value);
+      setError("");
+      setOpened(false);
+      setFilename("");
+      setFiletype("game");
+    }
   }
 
   return (

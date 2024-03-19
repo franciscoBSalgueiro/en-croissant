@@ -11,9 +11,9 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
 import type { FileMetadata } from "./file";
@@ -61,7 +61,7 @@ function FileCard({
       fileInfo: selected,
       gameNumber: page,
     });
-    navigate("/");
+    navigate({ to: "/" });
   }
 
   return (

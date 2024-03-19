@@ -33,7 +33,6 @@ import {
   IconPhotoPlus,
   IconPlus,
 } from "@tabler/icons-react";
-import { exists } from "@tauri-apps/api/fs";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
@@ -42,10 +41,11 @@ import AddEngine from "./AddEngine";
 
 import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
+import { Route } from "@/routes/engines";
 import { unwrap } from "@/utils/invoke";
 import { useToggle } from "@mantine/hooks";
+import { useNavigate } from "@tanstack/react-router";
 import { open } from "@tauri-apps/api/dialog";
-import { useSearchParams } from "react-router-dom";
 import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
@@ -56,19 +56,13 @@ import LinesSlider from "../panels/analysis/LinesSlider";
 export default function EnginesPage() {
   const [engines, setEngines] = useAtom(enginesAtom);
   const [opened, setOpened] = useState(false);
-  const [params, setParams] = useSearchParams();
-  const selected = params.get("load") ? Number(params.get("load")) : null;
+  const { selected } = Route.useSearch();
+  const navigate = useNavigate();
   const setSelected = (v: number | null) => {
-    if (v === null) {
-      params.delete("load");
-    } else {
-      params.set("load", v.toString());
-    }
-    setParams(params);
+    navigate({ search: { selected: v } });
   };
 
-  const selectedEngine =
-    typeof selected === "number" ? engines[selected] || null : null;
+  const selectedEngine = selected !== undefined ? engines[selected] : null;
 
   return (
     <Stack h="100%" px="lg" pb="lg">
@@ -127,7 +121,7 @@ export default function EnginesPage() {
           </SimpleGrid>
         </ScrollArea>
         <Paper withBorder p="md" h="100%">
-          {selectedEngine === null || selected === null ? (
+          {selectedEngine === null || selected === undefined ? (
             <Text ta="center">No engine selected</Text>
           ) : selectedEngine.type === "local" ? (
             <EngineSettings selected={selected} setSelected={setSelected} />

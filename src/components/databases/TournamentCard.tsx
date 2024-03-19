@@ -14,10 +14,10 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
 
@@ -162,7 +162,7 @@ function TournamentCard({
                           pgn: game.moves,
                           headers: game,
                         });
-                        navigate("/");
+                        navigate({ to: "/" });
                       }}
                     >
                       <IconEye size="1rem" stroke={1.5} />

@@ -1,33 +1,35 @@
-import { enginesAtom } from "@/atoms/atoms";
+import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
-import type { EngineSettings } from "@/utils/engines";
+import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import {
   ActionIcon,
+  Checkbox,
   Group,
   type MantineColor,
   Stack,
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconReload, IconSettings } from "@tabler/icons-react";
+import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import React, { memo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { memo, useMemo } from "react";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
 
+export type Settings = {
+  enabled: boolean;
+  go: GoMode;
+  settings: EngineSettings;
+  synced: boolean;
+};
+
 interface EngineSettingsProps {
-  engineName: string;
-  settings: { enabled: boolean; go: GoMode; settings: EngineSettings };
-  setSettings: (
-    fn: (prev: { enabled: boolean; go: GoMode; settings: EngineSettings }) => {
-      enabled: boolean;
-      go: GoMode;
-      settings: EngineSettings;
-    },
-  ) => void;
+  engine: Engine;
+  settings: Settings;
+  setSettings: (fn: (prev: Settings) => Settings) => void;
   color?: MantineColor;
   minimal?: boolean;
   remote: boolean;
@@ -35,7 +37,7 @@ interface EngineSettingsProps {
 }
 
 function EngineSettingsForm({
-  engineName,
+  engine,
   settings,
   setSettings,
   color,
@@ -46,6 +48,7 @@ function EngineSettingsForm({
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
+  const activeTab = useAtomValue(activeTabAtom);
 
   return (
     <Stack>
@@ -120,45 +123,73 @@ function EngineSettingsForm({
           )}
         </>
       )}
-      <Group>
-        <ReloadSettings engine={engineName} setSettings={setSettings} />
-
-        <AdvancedSettings engineName={engineName} />
-      </Group>
+      {!minimal && (
+        <Group>
+          <SyncSettings
+            settings={settings}
+            engine={engine.name}
+            setSettings={setSettings}
+          />
+          <ActionIcon.Group>
+            {engine.type === "local" && (
+              <Tooltip label="Kill engine">
+                <ActionIcon
+                  variant="default"
+                  onClick={() => {
+                    killEngine(engine, activeTab!);
+                    setSettings((prev) => ({
+                      ...prev,
+                      enabled: false,
+                    }));
+                  }}
+                >
+                  <IconPlayerStopFilled size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <AdvancedSettings engineName={engine.name} />
+          </ActionIcon.Group>
+        </Group>
+      )}
     </Stack>
   );
 }
 
-function ReloadSettings({
+function SyncSettings({
   engine,
+  settings,
   setSettings,
 }: {
   engine: string;
-  setSettings: (
-    fn: (prev: { enabled: boolean; go: GoMode; settings: EngineSettings }) => {
-      enabled: boolean;
-      go: GoMode;
-      settings: EngineSettings;
-    },
-  ) => void;
+  settings: Settings;
+  setSettings: (fn: (prev: Settings) => Settings) => void;
 }) {
   const engines = useAtomValue(enginesAtom);
-  const engineDefault = engines.find((o) => o.name === engine)!;
+  const engineDefault = useMemo(
+    () => engines.find((o) => o.name === engine)!,
+    [engines, engine],
+  );
+
   return (
-    <Tooltip label="Reset to engine default">
-      <ActionIcon
-        size="xs"
-        onClick={() => {
+    <Checkbox
+      label="Sync globally"
+      checked={settings.synced}
+      onChange={(e) => {
+        if (e.currentTarget.checked) {
           setSettings((prev) => ({
             ...prev,
             go: engineDefault.go || prev.go,
             settings: engineDefault.settings || prev.settings,
+            synced: true,
           }));
-        }}
-      >
-        <IconReload />
-      </ActionIcon>
-    </Tooltip>
+        } else {
+          setSettings((prev) => ({
+            ...prev,
+            synced: false,
+          }));
+        }
+      }}
+    />
   );
 }
 
@@ -169,14 +200,17 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
   return (
     <Tooltip label="Advanced settings">
       <ActionIcon
-        size="xs"
+        variant="default"
         onClick={() =>
-          navigate(
-            `/engines?load=${engines.findIndex((o) => o.name === engineName)}`,
-          )
+          navigate({
+            to: "/engines",
+            search: {
+              selected: engines.findIndex((o) => o.name === engineName),
+            },
+          })
         }
       >
-        <IconSettings />
+        <IconSettings size="1rem" />
       </ActionIcon>
     </Tooltip>
   );

@@ -30,6 +30,8 @@ const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
 const tablebaseURL = "https://tablebase.lichess.ovh";
 
+export const MIN_DATE = new Date(1952, 0, 1);
+
 export type TablebaseCategory =
   | "win"
   | "unknown"
@@ -344,6 +346,10 @@ export async function getLichessGames(
       () => `${explorerURL}/player?${getLichessGamesQueryParams(fen, options)}`,
     );
   const res = await fetch<PositionData>(url);
+
+  if (!res.ok) {
+    throw new Error(`${res.data}`);
+  }
   return res.data;
 }
 
@@ -355,7 +361,11 @@ export async function getMasterGames(
     fen,
     options,
   )}`;
-  return (await fetch<PositionData>(url)).data;
+  const res = await fetch<PositionData>(url);
+  if (!res.ok) {
+    throw new Error(`${res.data}`);
+  }
+  return res.data;
 }
 
 export async function getPlayerGames(

@@ -243,13 +243,14 @@ function OpponentForm({
         <Stack>
           {opponent.engine && !opponent.timeControl && (
             <EngineSettingsForm
+              engine={opponent.engine}
               remote={false}
               gameMode
-              engineName={opponent.engine.name}
               settings={{
                 go: opponent.go,
                 settings: opponent.engine.settings || [],
                 enabled: true,
+                synced: false,
               }}
               setSettings={(fn) =>
                 setOpponent((prev) => {
@@ -260,6 +261,7 @@ function OpponentForm({
                     go: prev.go,
                     settings: prev.engine?.settings || [],
                     enabled: true,
+                    synced: false,
                   });
                   return { ...prev, ...newSettings };
                 })
@@ -514,7 +516,9 @@ function BoardGame() {
     }
   }, [gameState, intervalId, pos?.turn]);
 
-  const onePlayerIsEngine = (players.white.type === "engine" || players.black.type === "engine") && players.white.type !== players.black.type;
+  const onePlayerIsEngine =
+    (players.white.type === "engine" || players.black.type === "engine") &&
+    players.white.type !== players.black.type;
 
   return (
     <>

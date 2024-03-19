@@ -7,9 +7,11 @@ import {
   type EngineSettings,
   engineSchema,
 } from "@/utils/engines";
-import type {
-  LichessGamesOptions,
-  MasterGamesOptions,
+import {
+  type LichessGamesOptions,
+  type MasterGamesOptions,
+  lichessGamesOptionsSchema,
+  masterOptionsSchema,
 } from "@/utils/lichess/explorer";
 import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
@@ -266,11 +268,19 @@ export const lichessOptionsAtom = atomWithStorage<LichessGamesOptions>(
     speeds: ["bullet", "blitz", "rapid", "classical", "correspondence"],
     color: "white",
   },
+  createZodStorage(lichessGamesOptionsSchema, localStorage),
+  {
+    getOnInit: true,
+  },
 );
 
 export const masterOptionsAtom = atomWithStorage<MasterGamesOptions>(
   "lichess-master-options",
   {},
+  createZodStorage(masterOptionsSchema, localStorage),
+  {
+    getOnInit: true,
+  },
 );
 
 const dbTypeFamily = atomFamily((tab: string) =>
@@ -435,10 +445,16 @@ export const tabEngineSettingsFamily = atomFamily(
     defaultSettings?: EngineSettings;
     defaultGo?: GoMode;
   }) => {
-    return atom<{ enabled: boolean; settings: EngineSettings; go: GoMode }>({
+    return atom<{
+      enabled: boolean;
+      settings: EngineSettings;
+      go: GoMode;
+      synced: boolean;
+    }>({
       enabled: false,
       settings: defaultSettings || [],
       go: defaultGo || { t: "Infinite" },
+      synced: true,
     });
   },
   (a, b) => a.tab === b.tab && a.engineName === b.engineName,

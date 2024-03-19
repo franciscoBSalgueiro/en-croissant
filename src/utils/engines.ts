@@ -77,6 +77,12 @@ export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
   });
 }
 
+export function killEngine(engine: LocalEngine, tab: string): Promise<void> {
+  return commands.killEngine(engine.path, tab).then((r) => {
+    unwrap(r);
+  });
+}
+
 export function getBestMoves(
   engine: LocalEngine,
   tab: string,

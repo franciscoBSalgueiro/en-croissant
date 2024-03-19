@@ -9,6 +9,7 @@ import {
   IconTarget,
   IconTrash,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { removeDir, removeFile } from "@tauri-apps/api/fs";
 import clsx from "clsx";
 import dayjs from "dayjs";
@@ -17,7 +18,6 @@ import { useAtom, useSetAtom } from "jotai";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import * as classes from "./DirectoryTable.css";
 import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata } from "./file";
@@ -182,7 +182,7 @@ function Table({
         fileInfo: record,
         gameNumber: 0,
       });
-      navigate("/");
+      navigate({ to: "/" });
     },
     [selected, setActiveTab, setTabs, navigate],
   );

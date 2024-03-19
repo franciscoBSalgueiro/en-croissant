@@ -292,13 +292,9 @@ impl Visitor for Importer {
         } else if key == b"Black" {
             self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"WhiteElo" {
-            if value.as_bytes() != b"?" {
-                self.game.white_elo = Some(btoi::btoi(value.as_bytes()).expect("WhiteElo"));
-            }
+            self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
         } else if key == b"BlackElo" {
-            if value.as_bytes() != b"?" {
-                self.game.black_elo = Some(btoi::btoi(value.as_bytes()).expect("BlackElo"));
-            }
+            self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
         } else if key == b"TimeControl" {
             self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"ECO" {
@@ -319,13 +315,17 @@ impl Visitor for Importer {
             if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
                 self.game.fen = None;
             } else {
-                let fen = Fen::from_ascii(value.as_bytes()).unwrap();
-                self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                if let Ok(setup) =
-                    Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)
-                        .or_else(PositionError::ignore_too_much_material)
-                {
-                    self.game.position = setup;
+                let fen = Fen::from_ascii(value.as_bytes());
+                if let Ok(fen) = fen {
+                    self.game.fen = Some(value.decode_utf8_lossy().into_owned());
+                    if let Ok(setup) =
+                        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)
+                            .or_else(PositionError::ignore_too_much_material)
+                    {
+                        self.game.position = setup;
+                    } else {
+                        self.skip = true;
+                    }
                 } else {
                     self.skip = true;
                 }

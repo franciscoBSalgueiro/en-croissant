@@ -21,9 +21,11 @@ import { chessboard } from "@/styles/Chessboard.css";
 import {
   ANNOTATION_INFO,
   type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
+import {
   type TimeControlField,
   getMaterialDiff,
-  isBasicAnnotation,
   parseKeyboardMove,
   parseTimeControl,
 } from "@/utils/chess";
@@ -126,7 +128,7 @@ function Board({
   boardRef,
   saveFile,
   addGame,
-  canTakeBack: cantakeBack,
+  canTakeBack,
   root,
   position,
   whiteTime,
@@ -299,9 +301,13 @@ function Board({
   const controls = useMemo(
     () => (
       <ActionIcon.Group>
-        {cantakeBack && (
+        {canTakeBack && (
           <Tooltip label="Take Back">
-            <ActionIcon variant="default" size="lg" onClick={() => dispatch({type: "DELETE_MOVE"})}>
+            <ActionIcon
+              variant="default"
+              size="lg"
+              onClick={() => dispatch({ type: "DELETE_MOVE" })}
+            >
               <IconArrowBack />
             </ActionIcon>
           </Tooltip>

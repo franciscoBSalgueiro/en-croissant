@@ -1,5 +1,5 @@
 import { Text } from "@mantine/core";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 
 function NoDatabaseWarning() {
   return (

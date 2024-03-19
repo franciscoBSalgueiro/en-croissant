@@ -1,23 +1,3 @@
-import { invoke } from "@/utils/invoke";
-import { Paper, Portal, Stack, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
-import {
-  IconDatabase,
-  IconInfoCircle,
-  IconNotes,
-  IconTargetArrow,
-  IconZoomCheck,
-} from "@tabler/icons-react";
-import {
-  Suspense,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-
-import type { Dirs } from "@/App";
 import {
   autoSaveAtom,
   bestMovesFamily,
@@ -27,10 +7,28 @@ import {
 } from "@/atoms/atoms";
 import { keyMapAtom } from "@/atoms/keybinds";
 import { getMainLine, getVariationLine } from "@/utils/chess";
+import { invoke } from "@/utils/invoke";
 import { saveToFile } from "@/utils/tabs";
 import { getNodeAtPath } from "@/utils/treeReducer";
+import { Paper, Portal, Stack, Tabs } from "@mantine/core";
+import { useHotkeys, useToggle } from "@mantine/hooks";
+import {
+  IconDatabase,
+  IconInfoCircle,
+  IconNotes,
+  IconTargetArrow,
+  IconZoomCheck,
+} from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { useRouteLoaderData } from "react-router-dom";
+import {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import MoveControls from "../common/MoveControls";
 import {
   TreeDispatchContext,
@@ -52,7 +50,7 @@ function BoardAnalysis() {
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const dispatch = useContext(TreeDispatchContext);
-  const { documentDir } = useRouteLoaderData("root") as Dirs;
+  const { documentDir } = useLoaderData({ from: "/" });
 
   const boardRef = useRef(null);
 
