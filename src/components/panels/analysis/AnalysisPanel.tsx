@@ -10,9 +10,13 @@ import {
 import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
 import {
   ANNOTATION_INFO,
+  type Annotation,
   getGameStats,
   getVariationLine,
   isBasicAnnotation,
@@ -390,6 +394,18 @@ type Stats = ReturnType<typeof getGameStats>;
 
 const GameStats = memo(
   function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
+    const dispatch = useContext(TreeDispatchContext);
+
+    function goToAnnotation(annotation: Annotation, color: "white" | "black") {
+      dispatch({
+        type: "GO_TO_ANNOTATION",
+        payload: {
+          annotation,
+          color,
+        },
+      });
+    }
+
     return (
       <Paper withBorder>
         <Grid columns={11} justify="space-between" p="md">
@@ -406,6 +422,11 @@ const GameStats = memo(
                     span={4}
                     style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
+                    onClick={() => {
+                      if (w > 0) {
+                        goToAnnotation(s, "white");
+                      }
+                    }}
                   >
                     {w}
                   </Grid.Col>
@@ -415,7 +436,15 @@ const GameStats = memo(
                   <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
                     {name}
                   </Grid.Col>
-                  <Grid.Col span={2} c={b > 0 ? color : undefined}>
+                  <Grid.Col
+                    span={2}
+                    c={b > 0 ? color : undefined}
+                    onClick={() => {
+                      if (b > 0) {
+                        goToAnnotation(s, "black");
+                      }
+                    }}
+                  >
                     {b}
                   </Grid.Col>
                 </React.Fragment>

@@ -1,6 +1,6 @@
 import type { BestMoves, Score } from "@/bindings";
 import type { DrawShape } from "chessground/draw";
-import { type Move, isNormal } from "chessops";
+import { type Color, type Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
@@ -237,6 +237,10 @@ export type TreeAction =
   | { type: "GO_TO_NEXT" }
   | { type: "GO_TO_PREVIOUS" }
   | { type: "GO_TO_MOVE"; payload: number[] }
+  | {
+      type: "GO_TO_ANNOTATION";
+      payload: { annotation: Annotation; color: Color };
+    }
   | { type: "DELETE_MOVE"; payload?: number[] }
   | { type: "SET_ANNOTATION"; payload: Annotation }
   | { type: "SET_COMMENT"; payload: string }
@@ -359,6 +363,30 @@ const treeReducer = (state: TreeState, action: TreeAction) => {
     })
     .with({ type: "GO_TO_MOVE" }, ({ payload }) => {
       state.position = payload;
+    })
+    .with({ type: "GO_TO_ANNOTATION" }, ({ payload }) => {
+      const color = payload.color === "white" ? 1 : 0;
+
+      let p: number[] = state.position;
+      let node = getNodeAtPath(state.root, p);
+      while (true) {
+        if (node.children.length === 0) {
+          p = [];
+        } else {
+          p.push(0);
+        }
+
+        node = getNodeAtPath(state.root, p);
+
+        if (
+          node.annotations.includes(payload.annotation) &&
+          node.halfMoves % 2 === color
+        ) {
+          break;
+        }
+      }
+
+      state.position = p;
     })
     .with({ type: "DELETE_MOVE" }, (action) => {
       state.dirty = true;
