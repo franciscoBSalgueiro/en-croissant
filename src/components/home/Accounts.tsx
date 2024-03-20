@@ -214,7 +214,7 @@ function AccountModal({
           />
           {website === "lichess" && (
             <Checkbox
-              label="Login with browser"
+              label="Login with browser (faster downloads)"
               checked={withLogin}
               onChange={(e) => setWithLogin(e.currentTarget.checked)}
             />
