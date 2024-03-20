@@ -10,8 +10,15 @@ import {
 import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
-import { TreeStateContext, TreeDispatchContext } from "@/components/common/TreeStateContext";
-import { ANNOTATION_INFO, type Annotation, isBasicAnnotation } from "@/utils/annotation";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
+import {
+  ANNOTATION_INFO,
+  type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
 import { getGameStats, getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
