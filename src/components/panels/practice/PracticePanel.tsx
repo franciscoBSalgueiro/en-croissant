@@ -124,7 +124,11 @@ function PracticePanel({ fen }: { fen: string }) {
                   thickness={10}
                   label={
                     <Text ta="center" px="xs" style={{ pointerEvents: "none" }}>
-                      {stats.total === 0 ? '0%' : `${Math.round((stats.practiced / stats.total) * 100)}%`}
+                      {stats.total === 0
+                        ? "0%"
+                        : `${Math.round(
+                            (stats.practiced / stats.total) * 100,
+                          )}%`}
                     </Text>
                   }
                   sections={[
