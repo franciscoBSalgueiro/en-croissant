@@ -48,9 +48,11 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import cx from "clsx";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
+import { label } from "./AnalysisPanel.css";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -427,6 +429,7 @@ const GameStats = memo(
               return (
                 <React.Fragment key={annotation}>
                   <Grid.Col
+                    className={cx(w > 0 && label)}
                     span={4}
                     style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
@@ -445,6 +448,7 @@ const GameStats = memo(
                     {name}
                   </Grid.Col>
                   <Grid.Col
+                    className={cx(b > 0 && label)}
                     span={2}
                     c={b > 0 ? color : undefined}
                     onClick={() => {
