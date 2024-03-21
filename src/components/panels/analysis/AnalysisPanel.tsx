@@ -10,8 +10,15 @@ import {
 import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
+import {
+  TreeDispatchContext,
+  TreeStateContext,
+} from "@/components/common/TreeStateContext";
+import {
+  ANNOTATION_INFO,
+  type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
 import { getGameStats, getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
@@ -41,9 +48,11 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import cx from "clsx";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
+import { label } from "./AnalysisPanel.css";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -395,6 +404,18 @@ type Stats = ReturnType<typeof getGameStats>;
 
 const GameStats = memo(
   function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
+    const dispatch = useContext(TreeDispatchContext);
+
+    function goToAnnotation(annotation: Annotation, color: "white" | "black") {
+      dispatch({
+        type: "GO_TO_ANNOTATION",
+        payload: {
+          annotation,
+          color,
+        },
+      });
+    }
+
     return (
       <Paper withBorder>
         <Grid columns={11} justify="space-between" p="md">
@@ -408,9 +429,15 @@ const GameStats = memo(
               return (
                 <React.Fragment key={annotation}>
                   <Grid.Col
+                    className={cx(w > 0 && label)}
                     span={4}
                     style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
+                    onClick={() => {
+                      if (w > 0) {
+                        goToAnnotation(s, "white");
+                      }
+                    }}
                   >
                     {w}
                   </Grid.Col>
@@ -420,7 +447,16 @@ const GameStats = memo(
                   <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
                     {name}
                   </Grid.Col>
-                  <Grid.Col span={2} c={b > 0 ? color : undefined}>
+                  <Grid.Col
+                    className={cx(b > 0 && label)}
+                    span={2}
+                    c={b > 0 ? color : undefined}
+                    onClick={() => {
+                      if (b > 0) {
+                        goToAnnotation(s, "black");
+                      }
+                    }}
+                  >
                     {b}
                   </Grid.Col>
                 </React.Fragment>
