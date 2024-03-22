@@ -12,6 +12,7 @@
     "format": "biome format --write ./src",
     "test": "vitest run",
     "lint": "tsc --noEmit && biome check ./src",
+    "lint:ci": "tsc --noEmit && biome ci ./src --diagnostic-level=error",
     "lint:fix": "biome check --apply ./src"
   },
   "dependencies": {
