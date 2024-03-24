@@ -5,7 +5,6 @@ import {
   currentTabAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
-  fontSizeAtom,
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
@@ -37,13 +36,11 @@ import {
   ActionIcon,
   Box,
   Group,
-  Paper,
-  Progress,
   Text,
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
-import { mergeRefs, useElementSize } from "@mantine/hooks";
+import { useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
@@ -495,25 +492,14 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
-  let {
-    ref: sizeRef,
-    width: boardWith,
-    height: boardHeight,
-  } = useElementSize();
-
-  const fontSize = useAtomValue(fontSizeAtom);
-  boardWith = boardWith * (1 / (fontSize / 100));
-  boardHeight = boardHeight * (1 / (fontSize / 100));
-
-  const ref = mergeRefs(boardRef, sizeRef);
-
   const {
     ref: parentRef,
-    width: parentWith,
+    width: parentWidth,
     height: parentHeight,
   } = useElementSize();
 
   const [size, setSize] = useAtom(boardSizeAtom);
+  const boardSize = Math.min(size.width, parentWidth, parentHeight);
 
   return (
     <>
@@ -522,7 +508,13 @@ function Board({
           {currentNode.annotations.length > 0 &&
             currentNode.move &&
             square !== undefined && (
-              <Box w={boardWith} h={boardHeight} pos="absolute">
+              <Box
+                style={{
+                  width: boardSize,
+                  height: boardSize,
+                }}
+                pos="absolute"
+              >
                 <AnnotationHint
                   orientation={orientation}
                   square={square}
@@ -540,7 +532,7 @@ function Board({
                 : undefined
             }
             className={chessboard}
-            ref={ref}
+            ref={boardRef}
             onWheel={(e) => {
               if (enableBoardScroll) {
                 if (e.deltaY > 0) {
@@ -574,18 +566,13 @@ function Board({
               lockAspectRatio={1}
               size={size}
               onResizeStop={(e, direction, ref, d) => {
-                const boardSize = Math.min(
-                  size.width,
-                  parentWith,
-                  parentHeight,
-                );
                 setSize({
                   width: boardSize + d.width,
                   height: boardSize + d.height,
                 });
               }}
-              maxHeight={Math.min(parentWith, parentHeight)}
-              maxWidth={Math.min(parentWith, parentHeight)}
+              maxHeight={Math.min(parentWidth, parentHeight)}
+              maxWidth={Math.min(parentWidth, parentHeight)}
             >
               <Chessground
                 setBoardFen={setBoardFen}
