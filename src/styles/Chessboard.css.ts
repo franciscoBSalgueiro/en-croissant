@@ -11,7 +11,7 @@ export const chessboard = style({
 });
 
 globalStyle(
-  `${chessboard} > .cg-wrap > cg-container > cg-board > square.last-move`,
+  `${chessboard} > div > .cg-wrap > cg-container > cg-board > square.last-move`,
   {
     [vars.darkSelector]: {
       backgroundColor:
