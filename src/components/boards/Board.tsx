@@ -2,7 +2,6 @@ import {
   autoPromoteAtom,
   autoSaveAtom,
   currentEvalOpenAtom,
-  currentInvisibleAtom,
   currentTabAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
@@ -42,7 +41,6 @@ import {
 } from "@/utils/treeReducer";
 import {
   ActionIcon,
-  Avatar,
   Box,
   Group,
   Input,
@@ -76,7 +74,8 @@ import {
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { atom, useAtom, useAtomValue } from "jotai";
+import { Resizable } from "re-resizable";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { match } from "ts-pattern";
@@ -114,6 +113,11 @@ interface ChessboardProps {
   blackTc?: TimeControlField;
   practicing?: boolean;
 }
+
+const boardSizeAtom = atom({
+  width: 2000,
+  height: 2000,
+});
 
 function Board({
   dirty,
@@ -509,10 +513,18 @@ function Board({
 
   const ref = mergeRefs(boardRef, sizeRef);
 
+  const {
+    ref: parentRef,
+    width: parentWith,
+    height: parentHeight,
+  } = useElementSize();
+
+  const [size, setSize] = useAtom(boardSizeAtom);
+
   return (
     <>
       <Box className={classes.container}>
-        <Box className={classes.board}>
+        <Box className={classes.board} ref={parentRef}>
           {currentNode.annotations.length > 0 &&
             currentNode.move &&
             square !== undefined && (
@@ -564,80 +576,98 @@ function Board({
               turn={turn}
               orientation={orientation}
             />
-            <Chessground
-              setBoardFen={setBoardFen}
-              orientation={orientation}
-              fen={currentNode.fen}
-              animation={{ enabled: !editingMode }}
-              coordinates={showCoordinates}
-              movable={{
-                free: editingMode,
-                color: movableColor,
-                dests:
-                  editingMode || viewOnly
-                    ? undefined
-                    : disableVariations && currentNode.children.length > 0
+            <Resizable
+              lockAspectRatio={1}
+              size={size}
+              onResizeStop={(e, direction, ref, d) => {
+                const boardSize = Math.min(
+                  size.width,
+                  parentWith,
+                  parentHeight,
+                );
+                setSize({
+                  width: boardSize + d.width,
+                  height: boardSize + d.height,
+                });
+              }}
+              maxHeight={Math.min(parentWith, parentHeight)}
+              maxWidth={Math.min(parentWith, parentHeight)}
+            >
+              <Chessground
+                setBoardFen={setBoardFen}
+                orientation={orientation}
+                fen={currentNode.fen}
+                animation={{ enabled: !editingMode }}
+                coordinates={showCoordinates}
+                movable={{
+                  free: editingMode,
+                  color: movableColor,
+                  dests:
+                    editingMode || viewOnly
                       ? undefined
-                      : dests,
-                showDests,
-                events: {
-                  after: (orig, dest, metadata) => {
-                    if (!editingMode) {
-                      const from = parseSquare(orig)!;
-                      const to = parseSquare(dest)!;
+                      : disableVariations && currentNode.children.length > 0
+                        ? undefined
+                        : dests,
+                  showDests,
+                  events: {
+                    after: (orig, dest, metadata) => {
+                      if (!editingMode) {
+                        const from = parseSquare(orig)!;
+                        const to = parseSquare(dest)!;
 
-                      if (pos) {
-                        if (
-                          pos.board.get(from)?.role === "pawn" &&
-                          ((dest[1] === "8" && turn === "white") ||
-                            (dest[1] === "1" && turn === "black"))
-                        ) {
-                          if (autoPromote && !metadata.ctrlKey) {
-                            makeMove({
-                              from,
-                              to,
-                              promotion: "queen",
-                            });
+                        if (pos) {
+                          if (
+                            pos.board.get(from)?.role === "pawn" &&
+                            ((dest[1] === "8" && turn === "white") ||
+                              (dest[1] === "1" && turn === "black"))
+                          ) {
+                            if (autoPromote && !metadata.ctrlKey) {
+                              makeMove({
+                                from,
+                                to,
+                                promotion: "queen",
+                              });
+                            } else {
+                              setPendingMove({
+                                from,
+                                to,
+                              });
+                            }
                           } else {
-                            setPendingMove({
+                            makeMove({
                               from,
                               to,
                             });
                           }
-                        } else {
-                          makeMove({
-                            from,
-                            to,
-                          });
                         }
                       }
-                    }
+                    },
                   },
-                },
-              }}
-              turnColor={turn}
-              check={pos?.isCheck()}
-              lastMove={editingMode ? undefined : lastMove}
-              premovable={{
-                enabled: false,
-              }}
-              draggable={{
-                deleteOnDropOff: editingMode,
-              }}
-              drawable={{
-                enabled: true,
-                visible: true,
-                defaultSnapToValidMove: snapArrows,
-                eraseOnClick: true,
-                autoShapes: shapes,
-                onChange: (shapes) => {
-                  dispatch({
-                    type: "SET_SHAPES",
-                    payload: shapes,
-                  });
-                },
-              }}
-            />
+                }}
+                turnColor={turn}
+                check={pos?.isCheck()}
+                lastMove={editingMode ? undefined : lastMove}
+                premovable={{
+                  enabled: false,
+                }}
+                draggable={{
+                  deleteOnDropOff: editingMode,
+                }}
+                drawable={{
+                  enabled: true,
+                  visible: true,
+                  defaultSnapToValidMove: snapArrows,
+                  eraseOnClick: true,
+                  autoShapes: shapes,
+                  onChange: (shapes) => {
+                    dispatch({
+                      type: "SET_SHAPES",
+                      payload: shapes,
+                    });
+                  },
+                }}
+              />
+            </Resizable>
           </Box>
         </Box>
         <Box className={classes.top}>
