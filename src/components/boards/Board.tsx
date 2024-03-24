@@ -62,7 +62,8 @@ import {
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
-import { atom, useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { Resizable } from "re-resizable";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -105,7 +106,7 @@ interface ChessboardProps {
   practicing?: boolean;
 }
 
-const boardSizeAtom = atom({
+const boardSizeAtom = atomWithStorage("board-size", {
   width: 2000,
   height: 2000,
 });
@@ -145,7 +146,6 @@ function Board({
   const showCoordinates = useAtomValue(showCoordinatesAtom);
   const autoSave = useAtomValue(autoSaveAtom);
 
-  const activeTab = useAtomValue(currentTabAtom);
   let dests: Map<SquareName, SquareName[]> = pos
     ? chessgroundDests(pos)
     : new Map();
@@ -342,7 +342,7 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        {addGame && activeTab?.file && (
+        {addGame && currentTab?.file && (
           <Tooltip label="Add Game">
             <ActionIcon variant="default" size="lg" onClick={() => addGame()}>
               <IconPlus size="1.3rem" />
@@ -361,13 +361,13 @@ function Board({
       </ActionIcon.Group>
     ),
     [
-      activeTab,
       autoSave,
       dirty,
       keyMap,
-      currentTab?.type,
+      currentTab,
       disableVariations,
       saveFile,
+      canTakeBack,
       toggleEditingMode,
       toggleOrientation,
       addGame,
