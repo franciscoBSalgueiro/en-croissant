@@ -80,7 +80,8 @@ function EvalBar({
         style={{
           width: 25,
           height: "100%",
-          borderRadius: 10,
+          borderRadius: "var(--mantine-radius-xs)",
+          overflow: "hidden",
         }}
       >
         {ScoreBars}

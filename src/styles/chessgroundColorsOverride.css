@@ -1,6 +1,6 @@
 cg-board {
   background-image: var(--board-image, url('/board/gray.svg'));
-  border-radius: 10px;
+  border-radius: var(--mantine-radius-default);
   overflow: hidden;
 }
 

@@ -10,9 +10,9 @@ function ScoreBubble({ size, score }: { size: "sm" | "md"; score: Score }) {
         backgroundColor:
           score.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
-        padding: size === "md" ? "0.3125rem" : "0.25rem",
-        borderRadius: theme.radius.md,
-        width: size === "md" ? "4.5rem" : "3.5rem",
+        padding: "0.15rem",
+        borderRadius: theme.radius.sm,
+        width: size === "md" ? "4rem" : "3.5rem",
         boxShadow: theme.shadows.md,
       })}
     >
