@@ -485,11 +485,9 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
-  const { ref: parentRef, height: parentHeight } = useElementSize();
-
   return (
     <>
-      <Box w="100%" h="100%" ref={parentRef}>
+      <Box w="100%" h="100%">
         <Box
           style={{
             display: "flex",
@@ -499,11 +497,13 @@ function Board({
             gap: "0.5rem",
             flexWrap: "nowrap",
             overflow: "hidden",
-            maxWidth: `calc(${parentHeight}px - 2.2rem)`,
+            maxWidth:
+              //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
+              "calc(100vh - 2.5rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
           }}
         >
           {materialDiff && (
-            <Group ml="2.5rem" style={{ flexShrink: 0 }}>
+            <Group ml="2.5rem" h="2.125rem">
               {hasClock && (
                 <Clock
                   clock={topClock}
@@ -677,7 +677,7 @@ function Board({
               />
             </Box>
           </Group>
-          <Group justify="space-between" style={{ flexShrink: 0 }}>
+          <Group justify="space-between" h="2.125rem">
             {materialDiff && (
               <Group ml="2.5rem">
                 {hasClock && (
