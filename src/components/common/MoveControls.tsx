@@ -36,7 +36,7 @@ function MoveControls({
   useHotkeys(keyMap.GO_TO_END.keys, handleGoToEnd);
   useHotkeys(keyMap.DELETE_MOVE.keys, () => dispatch({ type: "DELETE_MOVE" }));
   return (
-    <Group grow>
+    <Group grow gap="xs">
       <ActionIcon variant="default" size="xl" onClick={handleGoToStart}>
         <IconChevronsLeft />
       </ActionIcon>

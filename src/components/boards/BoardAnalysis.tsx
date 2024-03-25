@@ -256,7 +256,7 @@ function BoardAnalysis() {
             setEditingMode={toggleEditingMode}
           />
         ) : (
-          <Stack h="100%">
+          <Stack h="100%" gap="xs">
             <GameNotation topBar />
             <MoveControls />
           </Stack>

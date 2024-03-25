@@ -5,7 +5,7 @@ import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
-import { useForceUpdate } from "@mantine/hooks";
+import { useElementSize, useForceUpdate } from "@mantine/hooks";
 import {
   Chess,
   type Move,
@@ -18,7 +18,6 @@ import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
-import * as classes from "../boards/Board.css";
 import PromotionModal from "../boards/PromotionModal";
 import {
   TreeDispatchContext,
@@ -113,69 +112,65 @@ function PuzzleBoard({
     reset();
   }
 
+  const { ref: parentRef, height: parentHeight } = useElementSize();
+
   return (
-    <Box
-      className={classes.container}
-      style={{
-        gridTemplateAreas: `
-      "Board Board Board"
-      "Board Board Board"
-      "Board Board Board"
-    `,
-      }}
-    >
-      <Box className={classes.board}>
-        <Box className={chessboard}>
-          <PromotionModal
-            pendingMove={pendingMove}
-            cancelMove={() => setPendingMove(null)}
-            confirmMove={(p) => {
-              if (pendingMove) {
-                checkMove({ ...pendingMove, promotion: p });
-                setPendingMove(null);
-              }
-            }}
-            turn={turn}
-            orientation={orientation}
-          />
-          <Chessground
-            animation={{
-              enabled: true,
-            }}
-            coordinates={showCoordinates}
-            orientation={orientation}
-            movable={{
-              free: false,
-              color:
-                puzzle && equal(tree.position, Array(currentMove).fill(0))
-                  ? turn
-                  : undefined,
-              dests: dests,
-              events: {
-                after: (orig, dest) => {
-                  const from = parseSquare(orig)!;
-                  const to = parseSquare(dest)!;
-                  const move: NormalMove = { from, to };
-                  if (
-                    pos?.board.get(from)?.role === "pawn" &&
-                    ((dest[1] === "8" && turn === "white") ||
-                      (dest[1] === "1" && turn === "black"))
-                  ) {
-                    setPendingMove(move);
-                  } else {
-                    checkMove(move);
-                  }
-                },
-              },
-            }}
-            lastMove={
-              currentNode.move ? chessgroundMove(currentNode.move) : undefined
+    <Box w="100%" h="100%" ref={parentRef}>
+      <Box
+        className={chessboard}
+        style={{
+          maxWidth: parentHeight,
+        }}
+      >
+        <PromotionModal
+          pendingMove={pendingMove}
+          cancelMove={() => setPendingMove(null)}
+          confirmMove={(p) => {
+            if (pendingMove) {
+              checkMove({ ...pendingMove, promotion: p });
+              setPendingMove(null);
             }
-            turnColor={turn}
-            fen={currentNode.fen}
-            check={pos?.isCheck()}
-          />
-        </Box>
+          }}
+          turn={turn}
+          orientation={orientation}
+        />
+        <Chessground
+          animation={{
+            enabled: true,
+          }}
+          coordinates={showCoordinates}
+          orientation={orientation}
+          movable={{
+            free: false,
+            color:
+              puzzle && equal(tree.position, Array(currentMove).fill(0))
+                ? turn
+                : undefined,
+            dests: dests,
+            events: {
+              after: (orig, dest) => {
+                const from = parseSquare(orig)!;
+                const to = parseSquare(dest)!;
+                const move: NormalMove = { from, to };
+                if (
+                  pos?.board.get(from)?.role === "pawn" &&
+                  ((dest[1] === "8" && turn === "white") ||
+                    (dest[1] === "1" && turn === "black"))
+                ) {
+                  setPendingMove(move);
+                } else {
+                  checkMove(move);
+                }
+              },
+            },
+          }}
+          lastMove={
+            currentNode.move ? chessgroundMove(currentNode.move) : undefined
+          }
+          turnColor={turn}
+          fen={currentNode.fen}
+          check={pos?.isCheck()}
+        />
       </Box>
     </Box>
   );

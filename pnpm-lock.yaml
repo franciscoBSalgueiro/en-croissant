@@ -107,9 +107,6 @@ dependencies:
   mantine-flagpack:
     specifier: ^4.0.0
     version: 4.0.0(@mantine/core@7.6.2)(@mantine/hooks@7.6.2)(clsx@2.1.0)(react-dom@18.2.0)(react@18.2.0)
-  re-resizable:
-    specifier: ^6.9.11
-    version: 6.9.11(react-dom@18.2.0)(react@18.2.0)
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -4452,16 +4449,6 @@ packages:
       react-dnd-touch-backend: 16.0.1
     transitivePeerDependencies:
       - dnd-core
-    dev: false
-
-  /re-resizable@6.9.11(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-a3hiLWck/NkmyLvGWUuvkAmN1VhwAz4yOhS6FdMTaxCUVN9joIWkT11wsO68coG/iEYuwn+p/7qAmfQzRhiPLQ==}
-    peerDependencies:
-      react: ^16.13.1 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.13.1 || ^17.0.0 || ^18.0.0
-    dependencies:
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
     dev: false
 
   /react-contenteditable@3.3.7(react@18.2.0):

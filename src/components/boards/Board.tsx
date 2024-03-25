@@ -35,6 +35,7 @@ import {
 import {
   ActionIcon,
   Box,
+  Center,
   Group,
   Text,
   Tooltip,
@@ -63,8 +64,6 @@ import {
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
-import { atomWithStorage } from "jotai/utils";
-import { Resizable } from "re-resizable";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { match } from "ts-pattern";
@@ -73,7 +72,6 @@ import { TreeDispatchContext } from "../common/TreeStateContext";
 import { updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
-import * as classes from "./Board.css";
 import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
@@ -105,11 +103,6 @@ interface ChessboardProps {
   blackTc?: TimeControlField;
   practicing?: boolean;
 }
-
-const boardSizeAtom = atomWithStorage("board-size", {
-  width: 2000,
-  height: 2000,
-});
 
 function Board({
   dirty,
@@ -492,88 +485,123 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
-  const {
-    ref: parentRef,
-    width: parentWidth,
-    height: parentHeight,
-  } = useElementSize();
-
-  const [size, setSize] = useAtom(boardSizeAtom);
-  const boardSize = Math.min(size.width, parentWidth, parentHeight);
+  const { ref: parentRef, height: parentHeight } = useElementSize();
 
   return (
     <>
-      <Box className={classes.container}>
-        <Box className={classes.board} ref={parentRef}>
-          {currentNode.annotations.length > 0 &&
-            currentNode.move &&
-            square !== undefined && (
-              <Box
-                style={{
-                  width: boardSize,
-                  height: boardSize,
-                }}
-                pos="absolute"
-              >
-                <AnnotationHint
-                  orientation={orientation}
-                  square={square}
-                  annotation={currentNode.annotations[0]}
+      <Box w="100%" h="100%" ref={parentRef}>
+        <Box
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            height: "100%",
+            gap: "0.5rem",
+            flexWrap: "nowrap",
+            overflow: "hidden",
+            maxWidth: `calc(${parentHeight}px - 2.2rem)`,
+          }}
+        >
+          {materialDiff && (
+            <Group ml="2.5rem" style={{ flexShrink: 0 }}>
+              {hasClock && (
+                <Clock
+                  clock={topClock}
+                  color={orientation === "black" ? "white" : "black"}
+                  progress={topProgress}
+                  turn={turn}
                 />
-              </Box>
-            )}
-          <Box
-            style={
-              isBasicAnnotation(currentNode.annotations[0])
-                ? {
-                    "--light-color": lightColor,
-                    "--dark-color": darkColor,
-                  }
-                : undefined
-            }
-            className={chessboard}
-            ref={boardRef}
-            onWheel={(e) => {
-              if (enableBoardScroll) {
-                if (e.deltaY > 0) {
-                  dispatch({
-                    type: "GO_TO_NEXT",
-                  });
-                } else {
-                  dispatch({
-                    type: "GO_TO_PREVIOUS",
-                  });
-                }
-              }
+              )}
+              <ShowMaterial
+                diff={materialDiff.diff}
+                pieces={materialDiff.pieces}
+                color={orientation === "white" ? "black" : "white"}
+              />
+            </Group>
+          )}
+          <Group
+            style={{
+              position: "relative",
+              flexWrap: "nowrap",
             }}
+            gap="sm"
           >
-            <PromotionModal
-              pendingMove={pendingMove}
-              cancelMove={() => setPendingMove(null)}
-              confirmMove={(p) => {
-                if (pendingMove) {
-                  makeMove({
-                    from: pendingMove.from,
-                    to: pendingMove.to,
-                    promotion: p,
-                  });
+            {currentNode.annotations.length > 0 &&
+              currentNode.move &&
+              square !== undefined && (
+                <Box pl="2.5rem" w="100%" h="100%" pos="absolute">
+                  <Box pos="relative" w="100%" h="100%">
+                    <AnnotationHint
+                      orientation={orientation}
+                      square={square}
+                      annotation={currentNode.annotations[0]}
+                    />
+                  </Box>
+                </Box>
+              )}
+            <Box
+              h="100%"
+              style={{
+                width: 25,
+              }}
+            >
+              {!evalOpen && (
+                <Center h="100%" w="100%">
+                  <ActionIcon size="1rem" onClick={() => setEvalOpen(true)}>
+                    <IconChevronRight />
+                  </ActionIcon>
+                </Center>
+              )}
+              {evalOpen && (
+                <Box onClick={() => setEvalOpen(false)} h="100%">
+                  <EvalBar
+                    score={currentNode.score}
+                    orientation={orientation}
+                  />
+                </Box>
+              )}
+            </Box>
+            <Box
+              style={
+                isBasicAnnotation(currentNode.annotations[0])
+                  ? {
+                      "--light-color": lightColor,
+                      "--dark-color": darkColor,
+                    }
+                  : undefined
+              }
+              className={chessboard}
+              ref={boardRef}
+              onWheel={(e) => {
+                if (enableBoardScroll) {
+                  if (e.deltaY > 0) {
+                    dispatch({
+                      type: "GO_TO_NEXT",
+                    });
+                  } else {
+                    dispatch({
+                      type: "GO_TO_PREVIOUS",
+                    });
+                  }
                 }
               }}
-              turn={turn}
-              orientation={orientation}
-            />
-            <Resizable
-              lockAspectRatio={1}
-              size={size}
-              onResizeStop={(e, direction, ref, d) => {
-                setSize({
-                  width: boardSize + d.width,
-                  height: boardSize + d.height,
-                });
-              }}
-              maxHeight={Math.min(parentWidth, parentHeight)}
-              maxWidth={Math.min(parentWidth, parentHeight)}
             >
+              <PromotionModal
+                pendingMove={pendingMove}
+                cancelMove={() => setPendingMove(null)}
+                confirmMove={(p) => {
+                  if (pendingMove) {
+                    makeMove({
+                      from: pendingMove.from,
+                      to: pendingMove.to,
+                      promotion: p,
+                    });
+                  }
+                }}
+                turn={turn}
+                orientation={orientation}
+              />
+
               <Chessground
                 setBoardFen={setBoardFen}
                 orientation={orientation}
@@ -647,32 +675,11 @@ function Board({
                   },
                 }}
               />
-            </Resizable>
-          </Box>
-        </Box>
-        <Box className={classes.top}>
-          {materialDiff && (
-            <Group pb="0.2rem">
-              {hasClock && (
-                <Clock
-                  clock={topClock}
-                  color={orientation === "black" ? "white" : "black"}
-                  progress={topProgress}
-                  turn={turn}
-                />
-              )}
-              <ShowMaterial
-                diff={materialDiff.diff}
-                pieces={materialDiff.pieces}
-                color={orientation === "white" ? "black" : "white"}
-              />
-            </Group>
-          )}
-        </Box>
-        <Box className={classes.bottom}>
-          <Group justify="space-between">
+            </Box>
+          </Group>
+          <Group justify="space-between" style={{ flexShrink: 0 }}>
             {materialDiff && (
-              <Group>
+              <Group ml="2.5rem">
                 {hasClock && (
                   <Clock
                     clock={bottomClock}
@@ -699,18 +706,6 @@ function Board({
 
             {controls}
           </Group>
-        </Box>
-        <Box className={classes.evalStyle}>
-          {!evalOpen && (
-            <ActionIcon h="100%" size="1rem" onClick={() => setEvalOpen(true)}>
-              <IconChevronRight />
-            </ActionIcon>
-          )}
-          {evalOpen && (
-            <Box onClick={() => setEvalOpen(false)} h="100%">
-              <EvalBar score={currentNode.score} orientation={orientation} />
-            </Box>
-          )}
         </Box>
       </Box>
     </>

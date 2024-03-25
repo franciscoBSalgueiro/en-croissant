@@ -6,12 +6,11 @@ export const chessboard = style({
   flex: 1,
   zIndex: 1,
   display: "flex",
-  aspectRatio: "1 / 1",
-  maxHeight: "100%",
+  aspectRatio: "1",
 });
 
 globalStyle(
-  `${chessboard} > div > .cg-wrap > cg-container > cg-board > square.last-move`,
+  `${chessboard} > .cg-wrap > cg-container > cg-board > square.last-move`,
   {
     [vars.darkSelector]: {
       backgroundColor:
