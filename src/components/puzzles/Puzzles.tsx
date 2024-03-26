@@ -336,7 +336,7 @@ function Puzzles({ id }: { id: string }) {
               />
             </ScrollArea>
           </Paper>
-          <Stack flex={1}>
+          <Stack flex={1} gap="xs">
             <GameNotation />
             <MoveControls />
           </Stack>

@@ -37,16 +37,16 @@ function MoveControls({
   useHotkeys(keyMap.DELETE_MOVE.keys, () => dispatch({ type: "DELETE_MOVE" }));
   return (
     <Group grow gap="xs">
-      <ActionIcon variant="default" size="xl" onClick={handleGoToStart}>
+      <ActionIcon variant="default" size="lg" onClick={handleGoToStart}>
         <IconChevronsLeft />
       </ActionIcon>
-      <ActionIcon variant="default" size="xl" onClick={handleGoToPrevious}>
+      <ActionIcon variant="default" size="lg" onClick={handleGoToPrevious}>
         <IconChevronLeft />
       </ActionIcon>
-      <ActionIcon variant="default" size="xl" onClick={handleGoToNext}>
+      <ActionIcon variant="default" size="lg" onClick={handleGoToNext}>
         <IconChevronRight />
       </ActionIcon>
-      <ActionIcon variant="default" size="xl" onClick={handleGoToEnd}>
+      <ActionIcon variant="default" size="lg" onClick={handleGoToEnd}>
         <IconChevronsRight />
       </ActionIcon>
     </Group>

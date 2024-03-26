@@ -684,7 +684,7 @@ function BoardGame() {
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Stack h="100%">
+        <Stack h="100%" gap="xs">
           <GameNotation topBar />
           <MoveControls />
         </Stack>

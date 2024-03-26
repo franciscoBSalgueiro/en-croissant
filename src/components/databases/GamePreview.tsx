@@ -78,7 +78,7 @@ function GamePreview({
         <Group grow style={{ overflow: "hidden", height: "100%" }}>
           <PreviewBoard />
           {!hideControls && (
-            <Stack h="100%">
+            <Stack h="100%" gap="xs">
               <GameNotation />
               <MoveControls
                 goToStart={() => dispatch({ type: "GO_TO_START" })}
