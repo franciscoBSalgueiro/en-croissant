@@ -228,15 +228,6 @@ function AnalysisPanel({
                                       <BestMoves
                                         id={i}
                                         engine={engine}
-                                        setEngine={(e) =>
-                                          setEngines(async (prev) =>
-                                            (await prev).map((o) =>
-                                              o.name === engine.name
-                                                ? { ...e, loaded: o.loaded }
-                                                : o,
-                                            ),
-                                          )
-                                        }
                                         fen={fen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}
@@ -320,7 +311,7 @@ function AnalysisPanel({
                     redoable
                     disabled={root.children.length === 0}
                     leftIcon={<IconZoomCheck size="0.875rem" />}
-                    onClick={() => toggleReportingMode()}
+                    onClick={toggleReportingMode}
                     initInstalled={false}
                     progressEvent={events.reportProgress}
                     labels={{
@@ -336,7 +327,7 @@ function AnalysisPanel({
               <Paper withBorder p="md">
                 <EvalChart
                   isAnalysing={inProgress}
-                  startAnalysis={() => toggleReportingMode()}
+                  startAnalysis={toggleReportingMode}
                 />
               </Paper>
               <GameStats {...stats} />

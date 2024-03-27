@@ -1,6 +1,7 @@
 import {
   activeTabAtom,
   engineMovesFamily,
+  enginesAtom,
   tabEngineSettingsFamily,
 } from "@/atoms/atoms";
 import { events, type EngineOptions, type GoMode } from "@/bindings";
@@ -69,7 +70,6 @@ export const arrowColors = [
 interface BestMovesProps {
   id: number;
   engine: Engine;
-  setEngine: (engine: Engine) => void;
   fen: string;
   moves: string[];
   halfMoves: number;
@@ -81,7 +81,6 @@ interface BestMovesProps {
 function BestMovesComponent({
   id,
   engine,
-  setEngine,
   fen,
   moves,
   halfMoves,
@@ -94,6 +93,7 @@ function BestMovesComponent({
   const [ev, setEngineVariation] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
+  const [, setEngines] = useAtom(enginesAtom);
   const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
       engineName: engine.name,
@@ -118,14 +118,16 @@ function BestMovesComponent({
       const newSettings = fn(settings);
       setSettings2(newSettings);
       if (newSettings.synced) {
-        setEngine({
-          ...engine,
-          settings: newSettings.settings,
-          go: newSettings.go,
-        });
+        setEngines(async (prev) =>
+          (await prev).map((o) =>
+            o.name === engine.name
+              ? { ...o, settings: newSettings.settings, go: newSettings.go }
+              : o,
+          ),
+        );
       }
     },
-    [engine, settings, setSettings2, setEngine],
+    [engine, settings, setSettings2, setEngines],
   );
 
   const [settingsOn, toggleSettingsOn] = useToggle();
