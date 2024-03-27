@@ -7,7 +7,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Button, Card, SimpleGrid, Stack, Text } from "@mantine/core";
 
-import { tabsAtom } from "@/atoms/atoms";
+import { tabsAtom } from "@/state/atoms";
 import type { Tab } from "@/utils/tabs";
 import { useAtom } from "jotai";
 import { useState } from "react";

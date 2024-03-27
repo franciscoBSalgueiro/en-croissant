@@ -1,10 +1,10 @@
+import { type MonthData, commands } from "@/bindings";
 import {
   activeTabAtom,
   fontSizeAtom,
   sessionsAtom,
   tabsAtom,
-} from "@/atoms/atoms";
-import { type MonthData, commands } from "@/bindings";
+} from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import type { PlayerGameInfo } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";

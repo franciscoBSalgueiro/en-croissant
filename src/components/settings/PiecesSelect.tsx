@@ -1,4 +1,4 @@
-import { pieceSetAtom } from "@/atoms/atoms";
+import { pieceSetAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,

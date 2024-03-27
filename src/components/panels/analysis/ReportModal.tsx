@@ -1,6 +1,6 @@
-import { enginesAtom, referenceDbAtom } from "@/atoms/atoms";
 import { type GoMode, commands } from "@/bindings";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { enginesAtom, referenceDbAtom } from "@/state/atoms";
 import type { LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import {
@@ -16,6 +16,7 @@ import { useForm } from "@mantine/form";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { memo, useContext, useEffect } from "react";
+import { useStore } from "zustand";
 
 const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
@@ -45,7 +46,8 @@ function ReportModal({
   const localEngines = engines.filter(
     (e): e is LocalEngine => e.type === "local",
   );
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const addAnalysis = useStore(store, (s) => s.addAnalysis);
 
   useEffect(() => {
     if (!form.values.engine && localEngines.length > 0) {
@@ -101,10 +103,7 @@ function ReportModal({
       )
       .then((analysis) => {
         const analysisData = unwrap(analysis);
-        dispatch({
-          type: "ADD_ANALYSIS",
-          payload: analysisData,
-        });
+        addAnalysis(analysisData);
       })
       .finally(() => setInProgress(false));
   }

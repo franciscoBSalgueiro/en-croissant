@@ -1,7 +1,4 @@
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   ANNOTATION_INFO,
   type Annotation,
@@ -22,6 +19,7 @@ import {
 import { IconChevronDown } from "@tabler/icons-react";
 import { atom, useAtom } from "jotai";
 import { memo, useContext } from "react";
+import { useStore } from "zustand";
 import AnnotationEditor from "./AnnotationEditor";
 
 const SymbolButton = memo(function SymbolButton({
@@ -31,19 +29,15 @@ const SymbolButton = memo(function SymbolButton({
   curAnnotations: Annotation[];
   annotation: Annotation;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const setAnnotation = useStore(store, (s) => s.setAnnotation);
   const { name, color } = ANNOTATION_INFO[annotation];
   const isActive = curAnnotations.includes(annotation);
   const theme = useMantineTheme();
   return (
     <Tooltip label={name} position="bottom">
       <ActionIcon
-        onClick={() =>
-          dispatch({
-            type: "SET_ANNOTATION",
-            payload: annotation,
-          })
-        }
+        onClick={() => setAnnotation(annotation)}
         variant={isActive ? "filled" : "default"}
         color={isBasicAnnotation(annotation) ? color : theme.primaryColor}
       >
@@ -60,7 +54,9 @@ const ADVANTAGE = ["+-", "±", "⩲", "=", "∞", "⩱", "∓", "-+"] as const;
 const EXTRA = ["N", "↑↑", "↑", "→", "⇆", "=∞", "⊕", "∆", "□", "⨀"] as const;
 
 function AnnotationPanel() {
-  const { root, position } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
   const currentNode = getNodeAtPath(root, position);
   const [showMoreSymbols, setShowMoreSymbols] = useAtom(showMoreSymbolsAtom);
   return (

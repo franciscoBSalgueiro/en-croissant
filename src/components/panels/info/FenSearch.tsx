@@ -1,7 +1,4 @@
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { chessopsError } from "@/utils/chessops";
 import { invoke } from "@/utils/invoke";
 import {
@@ -16,6 +13,7 @@ import {
 import { type FenError, parseFen } from "chessops/fen";
 import { useContext, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
+import { useStore } from "zustand";
 
 export default function FenSearch({ currentFen }: { currentFen: string }) {
   const combobox = useCombobox({
@@ -23,8 +21,9 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
   });
 
   const [error, setError] = useState<FenError | undefined>(undefined);
-  const dispatch = useContext(TreeDispatchContext);
-  const { headers } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const headers = useStore(store, (s) => s.headers);
+  const setHeaders = useStore(store, (s) => s.setHeaders);
 
   function addFen(fen: string, chess960: boolean) {
     if (fen) {
@@ -32,13 +31,10 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
       if (res.isErr) {
         setError(res.error);
       } else {
-        dispatch({
-          type: "SET_HEADERS",
-          payload: {
-            ...headers,
-            fen,
-            variant: chess960 ? "Chess960" : undefined,
-          },
+        setHeaders({
+          ...headers,
+          fen,
+          variant: chess960 ? "Chess960" : undefined,
         });
         setError(undefined);
       }

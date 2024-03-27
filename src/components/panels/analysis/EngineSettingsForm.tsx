@@ -1,6 +1,6 @@
-import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
 import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import {
   ActionIcon,

@@ -1,5 +1,5 @@
-import { fontSizeAtom } from "@/atoms/atoms";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import { fontSizeAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";

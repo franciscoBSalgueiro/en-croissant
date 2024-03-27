@@ -1,6 +1,6 @@
-import { currentInvisibleAtom } from "@/atoms/atoms";
 import { Comment } from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { currentInvisibleAtom } from "@/state/atoms";
 import { isPrefix } from "@/utils/misc";
 import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
@@ -29,11 +29,15 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
+import { useStore } from "zustand";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
 
 function GameNotation({ topBar }: { topBar?: boolean }) {
-  const { headers, position, root } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const headers = useStore(store, (s) => s.headers);
   const currentNode = getNodeAtPath(root, position);
 
   const viewport = useRef<HTMLDivElement>(null);

@@ -24,7 +24,7 @@ import {
   spellCheckAtom,
   storedDocumentDirAtom,
   tabsAtom,
-} from "./atoms/atoms";
+} from "./state/atoms";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";

@@ -19,8 +19,9 @@ import {
 import equal from "fast-deep-equal";
 import { useContext } from "react";
 import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
+import { useStore } from "zustand";
 import * as classes from "./EvalChart.css";
-import { TreeDispatchContext, TreeStateContext } from "./TreeStateContext";
+import { TreeStateContext } from "./TreeStateContext";
 
 interface EvalChartProps {
   isAnalysing: boolean;
@@ -36,8 +37,10 @@ type DataPoint = {
 };
 
 const EvalChart = (props: EvalChartProps) => {
-  const { root, position } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const goToMove = useStore(store, (s) => s.goToMove);
   const theme = useMantineTheme();
 
   function getYValue(node: TreeNode): number | undefined {
@@ -152,10 +155,7 @@ const EvalChart = (props: EvalChartProps) => {
   const onChartClick: CategoricalChartFunc = (data) => {
     if (data?.activePayload?.length && data.activePayload[0].payload) {
       const dataPoint: DataPoint = data.activePayload[0].payload;
-      dispatch({
-        type: "GO_TO_MOVE",
-        payload: dataPoint.movePath,
-      });
+      goToMove(dataPoint.movePath);
     }
   };
 

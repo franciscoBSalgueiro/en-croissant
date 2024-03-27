@@ -1,11 +1,10 @@
-import { previewBoardOnHoverAtom } from "@/atoms/atoms";
 import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/boards/MoveCell";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { previewBoardOnHoverAtom } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { ActionIcon, Box, Flex, HoverCard, Table } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
 import type { Key } from "chessground/types";
 import { chessgroundMove } from "chessops/compat";
@@ -14,6 +13,7 @@ import { parseSan } from "chessops/san";
 import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import React from "react";
+import { useStore } from "zustand";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({
@@ -117,11 +117,11 @@ function BoardPopover({
   fen: string;
   orientation: "white" | "black";
 }) {
-  const [opened, { close, open }] = useDisclosure(false);
   const total_moves = halfMoves + index + 1 + (threat ? 1 : 0);
   const is_white = total_moves % 2 === 1;
   const move_number = Math.ceil(total_moves / 2);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const makeMoves = useStore(store, (s) => s.makeMoves);
   const preview = useAtomValue(previewBoardOnHoverAtom);
 
   return (
@@ -149,10 +149,7 @@ function BoardPopover({
             isStart={false}
             onClick={() => {
               if (!threat) {
-                dispatch({
-                  type: "MAKE_MOVES",
-                  payload: moves.slice(0, index + 1),
-                });
+                makeMoves({ payload: moves.slice(0, index + 1) });
               }
             }}
           />

@@ -1,4 +1,4 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import {
   type NormalizedGame,
   type Tournament,

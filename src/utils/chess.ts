@@ -25,7 +25,6 @@ import {
   createNode,
   defaultTree,
   getNodeAtPath,
-  headersToPGN,
 } from "./treeReducer";
 
 export interface BestMoves {
@@ -192,6 +191,39 @@ export function getVariationLine(
     moves.push(uciNormalize(chess, node.children[0].move!, chess960));
   }
   return moves;
+}
+
+function headersToPGN(game: GameHeaders): string {
+  let headers = `[Event "${game.event || "?"}"]
+[Site "${game.site || "?"}"]
+[Date "${game.date || "????.??.??"}"]
+[Round "${game.round || "?"}"]
+[White "${game.white || "?"}"]
+[Black "${game.black || "?"}"]
+[Result "${game.result}"]
+`;
+  if (game.white_elo) {
+    headers += `[WhiteElo "${game.white_elo}"]\n`;
+  }
+  if (game.black_elo) {
+    headers += `[BlackElo "${game.black_elo}"]\n`;
+  }
+  if (game.start && game.start.length > 0) {
+    headers += `[Start "${JSON.stringify(game.start)}"]\n`;
+  }
+  if (game.orientation) {
+    headers += `[Orientation "${game.orientation}"]\n`;
+  }
+  if (game.time_control) {
+    headers += `[TimeControl "${game.time_control}"]\n`;
+  }
+  if (game.eco) {
+    headers += `[ECO "${game.eco}"]\n`;
+  }
+  if (game.variant) {
+    headers += `[Variant "${game.variant}"]\n`;
+  }
+  return headers;
 }
 
 export function getPGN(

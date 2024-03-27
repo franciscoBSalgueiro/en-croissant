@@ -1,8 +1,5 @@
-import { spellCheckAtom } from "@/atoms/atoms";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { spellCheckAtom } from "@/state/atoms";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { RichTextEditor } from "@mantine/tiptap";
 import Link from "@tiptap/extension-link";
@@ -13,11 +10,15 @@ import StarterKit from "@tiptap/starter-kit";
 import { useAtomValue } from "jotai";
 import { useContext } from "react";
 import { Markdown } from "tiptap-markdown";
+import { useStore } from "zustand";
 
 function AnnotationEditor() {
-  const { root, position } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const setComment = useStore(store, (s) => s.setComment);
+
   const currentNode = getNodeAtPath(root, position);
-  const dispatch = useContext(TreeDispatchContext);
   const spellCheck = useAtomValue(spellCheckAtom);
   const editor = useEditor(
     {
@@ -36,10 +37,7 @@ function AnnotationEditor() {
       content: currentNode.comment,
       onUpdate: ({ editor }) => {
         const comment = editor.storage.markdown.getMarkdown();
-        dispatch({
-          type: "SET_COMMENT",
-          payload: comment,
-        });
+        setComment(comment);
       },
     },
     [position.join(",")],

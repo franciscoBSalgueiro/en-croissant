@@ -1,5 +1,5 @@
-import { selectedDatabaseAtom } from "@/atoms/atoms";
 import DatabasesPage from "@/components/databases/DatabasesPage";
+import { selectedDatabaseAtom } from "@/state/atoms";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getDefaultStore } from "jotai";
 

@@ -4,8 +4,8 @@ import {
   currentPracticeTabAtom,
   currentTabAtom,
   currentTabSelectedAtom,
-} from "@/atoms/atoms";
-import { keyMapAtom } from "@/atoms/keybinds";
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import { getMainLine, getVariationLine } from "@/utils/chess";
 import { invoke } from "@/utils/invoke";
 import { saveToFile } from "@/utils/tabs";
@@ -29,11 +29,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import MoveControls from "../common/MoveControls";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
@@ -49,23 +48,31 @@ function BoardAnalysis() {
   const [reportingMode, toggleReportingMode] = useToggle();
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
-  const dispatch = useContext(TreeDispatchContext);
   const { documentDir } = useLoaderData({ from: "/" });
-
   const boardRef = useRef(null);
-
   const [inProgress, setInProgress] = useState(false);
 
-  const { dirty, root, position, headers } = useContext(TreeStateContext);
-  const currentNode = getNodeAtPath(root, position);
+  const store = useContext(TreeStateContext)!;
 
+  const dirty = useStore(store, (s) => s.dirty);
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(
+    store,
+    useShallow((s) => s.position),
+  );
+
+  const reset = useStore(store, (s) => s.reset);
+  const clearShapes = useStore(store, (s) => s.clearShapes);
+  const save = useStore(store, (s) => s.save);
+  const headers = useStore(store, (s) => s.headers);
+
+  const currentNode = getNodeAtPath(root, position);
   const arrows = useAtomValue(
     bestMovesFamily({
       fen: root.fen,
       gameMoves: getVariationLine(root, position),
     }),
   );
-
   const saveFile = useCallback(async () => {
     saveToFile({
       dir: documentDir,
@@ -73,16 +80,14 @@ function BoardAnalysis() {
       root,
       setCurrentTab,
       tab: currentTab,
-      markAsSaved: () => dispatch({ type: "SAVE" }),
+      markAsSaved: () => save(),
     });
-  }, [headers, root, setCurrentTab, currentTab, dispatch]);
-
+  }, [headers, root, setCurrentTab, currentTab, save]);
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
     }
   }, [currentTab?.file, saveFile, autoSave, headers, dirty]);
-
   const addGame = useCallback(() => {
     setCurrentTab((prev) => {
       if (!prev?.file) return prev;
@@ -90,30 +95,21 @@ function BoardAnalysis() {
       prev.file.numGames += 1;
       return { ...prev };
     });
-    dispatch({ type: "RESET" });
+    reset();
     invoke("append_to_file", {
       path: currentTab?.file?.path,
       text: "\n\n",
     });
-  }, [setCurrentTab, dispatch, currentTab?.file?.path, root, headers]);
-
+  }, [setCurrentTab, reset, currentTab?.file?.path, root, headers]);
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
-    [
-      keyMap.CLEAR_SHAPES.keys,
-      () =>
-        dispatch({
-          type: "CLEAR_SHAPES",
-        }),
-    ],
+    [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
-
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
     currentTabSelectedAtom,
   );
   const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
-
   const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
   const practicing =
     currentTabSelected === "practice" && practiceTabSelected === "train";
@@ -247,7 +243,6 @@ function BoardAnalysis() {
           </Tabs>
         </Paper>
       </Portal>
-
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         {editingMode ? (
           <EditingCard

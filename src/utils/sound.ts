@@ -1,4 +1,4 @@
-import { soundCollectionAtom, soundVolumeAtom } from "@/atoms/atoms";
+import { soundCollectionAtom, soundVolumeAtom } from "@/state/atoms";
 import { getDefaultStore } from "jotai";
 
 export function playSound(capture: boolean, check: boolean) {

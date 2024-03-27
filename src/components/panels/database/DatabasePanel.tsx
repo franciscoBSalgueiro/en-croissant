@@ -6,7 +6,7 @@ import {
   lichessOptionsAtom,
   masterOptionsAtom,
   referenceDbAtom,
-} from "@/atoms/atoms";
+} from "@/state/atoms";
 import { type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import {

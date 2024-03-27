@@ -1,4 +1,4 @@
-import { fontSizeAtom } from "@/atoms/atoms";
+import { fontSizeAtom } from "@/state/atoms";
 import { Slider } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";

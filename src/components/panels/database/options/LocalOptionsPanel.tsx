@@ -1,7 +1,7 @@
-import { currentLocalOptionsAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
 import PiecesGrid from "@/components/boards/PiecesGrid";
 import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
+import { currentLocalOptionsAtom } from "@/state/atoms";
 import {
   Box,
   Button,

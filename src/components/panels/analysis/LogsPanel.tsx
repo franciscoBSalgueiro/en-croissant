@@ -1,5 +1,5 @@
-import { activeTabAtom, enginesAtom, fontSizeAtom } from "@/atoms/atoms";
 import { commands } from "@/bindings";
+import { activeTabAtom, enginesAtom, fontSizeAtom } from "@/state/atoms";
 import type { LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/invoke";
 import {

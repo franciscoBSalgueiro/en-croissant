@@ -1,4 +1,4 @@
-import { masterOptionsAtom } from "@/atoms/atoms";
+import { masterOptionsAtom } from "@/state/atoms";
 import { MIN_DATE } from "@/utils/lichess/api";
 import { Group } from "@mantine/core";
 import { YearPickerInput } from "@mantine/dates";

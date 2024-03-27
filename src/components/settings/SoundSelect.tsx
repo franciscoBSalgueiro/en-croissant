@@ -1,4 +1,4 @@
-import { soundCollectionAtom } from "@/atoms/atoms";
+import { soundCollectionAtom } from "@/state/atoms";
 import { playSound } from "@/utils/sound";
 import {
   Combobox,

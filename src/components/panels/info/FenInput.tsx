@@ -1,8 +1,9 @@
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getCastlingSquare, swapMove } from "@/utils/chessops";
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { memo, useContext } from "react";
+import { useStore } from "zustand";
 import FenSearch from "./FenSearch";
 
 type Castlingrights = {
@@ -11,7 +12,8 @@ type Castlingrights = {
 };
 
 function FenInput({ currentFen }: { currentFen: string }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const setFen = useStore(store, (s) => s.setFen);
 
   const [setup, error] = parseFen(currentFen).unwrap(
     (v) => [v, null],
@@ -56,10 +58,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
       const castlingSquare = getCastlingSquare(setup, color, side);
       if (castlingSquare !== undefined) {
         setup.castlingRights = setup.castlingRights.set(castlingSquare, value);
-        dispatch({
-          type: "SET_FEN",
-          payload: makeFen(setup),
-        });
+        setFen(makeFen(setup));
       }
     }
   }
@@ -71,26 +70,10 @@ function FenInput({ currentFen }: { currentFen: string }) {
           <Text fw="bold">FEN</Text>
           <FenSearch currentFen={currentFen} />
           <Group>
-            <Button
-              variant="default"
-              onClick={() => {
-                dispatch({
-                  type: "SET_FEN",
-                  payload: INITIAL_FEN,
-                });
-              }}
-            >
+            <Button variant="default" onClick={() => setFen(INITIAL_FEN)}>
               Start
             </Button>
-            <Button
-              variant="default"
-              onClick={() => {
-                dispatch({
-                  type: "SET_FEN",
-                  payload: EMPTY_FEN,
-                });
-              }}
-            >
+            <Button variant="default" onClick={() => setFen(EMPTY_FEN)}>
               Empty
             </Button>
             <Select
@@ -107,10 +90,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
                     currentFen,
                     value as "white" | "black",
                   );
-                  dispatch({
-                    type: "SET_FEN",
-                    payload: newFen,
-                  });
+                  setFen(newFen);
                 }
               }}
             />

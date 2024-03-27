@@ -1,6 +1,6 @@
-import { selectedDatabaseAtom } from "@/atoms/atoms";
 import GameTable from "@/components/databases/GameTable";
 import PlayerTable from "@/components/databases/PlayerTable";
+import { selectedDatabaseAtom } from "@/state/atoms";
 import { ActionIcon, Box, Group, Stack, Tabs, Title } from "@mantine/core";
 import {
   IconArrowBackUp,

@@ -5,10 +5,11 @@ import { DateInput } from "@mantine/dates";
 import cx from "clsx";
 import dayjs from "dayjs";
 import { memo, useContext, useState } from "react";
+import { useStore } from "zustand";
 import FideInfo from "../databases/FideInfo";
 import { ContentEditable } from "../tabs/ContentEditable";
 import * as classes from "./GameInfo.css";
-import { TreeDispatchContext } from "./TreeStateContext";
+import { TreeStateContext } from "./TreeStateContext";
 
 function GameInfo({
   headers,
@@ -19,8 +20,11 @@ function GameInfo({
   simplified?: boolean;
   changeTitle?: (title: string) => void;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
-  const disabled = dispatch.length === 0;
+  const store = useContext(TreeStateContext);
+  const disabled = store === null;
+  const setHeaders =
+    store !== null ? useStore(store, (s) => s.setHeaders) : () => {};
+
   const date = headers.date
     ? dayjs(headers.date, "YYYY.MM.DD").isValid()
       ? dayjs(headers.date, "YYYY.MM.DD").toDate()
@@ -69,12 +73,9 @@ function GameInfo({
               !event && classes.contentEditablePlaceholder,
             )}
             onChange={(e) => {
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  event: e.target.value,
-                },
+              setHeaders({
+                ...headers,
+                event: e.target.value,
               });
               if (changeTitle) {
                 changeTitle(e.target.value);
@@ -93,12 +94,9 @@ function GameInfo({
                   placeholder="?"
                   value={headers.round}
                   onChange={(e) =>
-                    dispatch({
-                      type: "SET_HEADERS",
-                      payload: {
-                        ...headers,
-                        round: e.currentTarget.value,
-                      },
+                    setHeaders({
+                      ...headers,
+                      round: e.currentTarget.value,
                     })
                   }
                   disabled={disabled}
@@ -137,9 +135,9 @@ function GameInfo({
               },
             }}
             onChange={(value) =>
-              dispatch({
-                type: "SET_ORIENTATION",
-                payload: value === "white" ? "white" : "black",
+              setHeaders({
+                ...headers,
+                orientation: value === "white" ? "white" : "black",
               })
             }
             data={[
@@ -162,12 +160,9 @@ function GameInfo({
             placeholder="?"
             value={headers.white}
             onChange={(e) =>
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  white: e.currentTarget.value,
-                },
+              setHeaders({
+                ...headers,
+                white: e.currentTarget.value,
               })
             }
             disabled={disabled}
@@ -191,12 +186,9 @@ function GameInfo({
                 data-placeholder="Unknown Site"
                 html={site}
                 onChange={(e) =>
-                  dispatch({
-                    type: "SET_HEADERS",
-                    payload: {
-                      ...headers,
-                      site: e.target.value,
-                    },
+                  setHeaders({
+                    ...headers,
+                    site: e.target.value,
                   })
                 }
                 disabled={disabled}
@@ -210,12 +202,9 @@ function GameInfo({
               value={date}
               allowDeselect
               onChange={(date) => {
-                dispatch({
-                  type: "SET_HEADERS",
-                  payload: {
-                    ...headers,
-                    date: date ? dayjs(date).format("YYYY.MM.DD") : undefined,
-                  },
+                setHeaders({
+                  ...headers,
+                  date: date ? dayjs(date).format("YYYY.MM.DD") : undefined,
                 });
               }}
               readOnly={disabled}
@@ -227,12 +216,9 @@ function GameInfo({
             placeholder="?"
             value={headers.black}
             onChange={(e) =>
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  black: e.currentTarget.value,
-                },
+              setHeaders({
+                ...headers,
+                black: e.currentTarget.value,
               })
             }
             disabled={disabled}
@@ -242,12 +228,9 @@ function GameInfo({
             placeholder="Unknown ELO"
             value={headers.white_elo || ""}
             onChange={(n) =>
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  white_elo: Number.parseInt(n.currentTarget.value),
-                },
+              setHeaders({
+                ...headers,
+                white_elo: Number.parseInt(n.currentTarget.value),
               })
             }
             disabled={disabled}
@@ -264,12 +247,9 @@ function GameInfo({
               input: { textAlign: "center" },
             }}
             onChange={(result) =>
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  result: result as Outcome,
-                },
+              setHeaders({
+                ...headers,
+                result: result as Outcome,
               })
             }
           />
@@ -278,12 +258,9 @@ function GameInfo({
             placeholder="Unknown ELO"
             value={headers.black_elo || ""}
             onChange={(n) =>
-              dispatch({
-                type: "SET_HEADERS",
-                payload: {
-                  ...headers,
-                  black_elo: Number.parseInt(n.currentTarget.value),
-                },
+              setHeaders({
+                ...headers,
+                black_elo: Number.parseInt(n.currentTarget.value),
               })
             }
             disabled={disabled}

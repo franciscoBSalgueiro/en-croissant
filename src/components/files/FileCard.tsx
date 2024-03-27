@@ -1,4 +1,4 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { read_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {

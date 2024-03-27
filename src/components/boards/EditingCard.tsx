@@ -1,9 +1,7 @@
 import { Card, CloseButton, Divider } from "@mantine/core";
 import { useContext } from "react";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
+import { useStore } from "zustand";
+import { TreeStateContext } from "../common/TreeStateContext";
 import FenInput from "../panels/info/FenInput";
 import * as classes from "./EditingCard.css";
 import PiecesGrid from "./PiecesGrid";
@@ -17,8 +15,9 @@ function EditingCard({
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;
 }) {
-  const { headers } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const headers = useStore(store, (s) => s.headers);
+  const setFen = useStore(store, (s) => s.setFen);
 
   return (
     <Card
@@ -36,10 +35,7 @@ function EditingCard({
         fen={fen}
         boardRef={boardRef}
         onPut={(newFen) => {
-          dispatch({
-            type: "SET_FEN",
-            payload: newFen,
-          });
+          setFen(newFen);
         }}
         orientation={headers.orientation}
       />

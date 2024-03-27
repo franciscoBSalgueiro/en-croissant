@@ -1,11 +1,11 @@
+import { events, type EngineOptions, type GoMode } from "@/bindings";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   activeTabAtom,
   engineMovesFamily,
   enginesAtom,
   tabEngineSettingsFamily,
-} from "@/atoms/atoms";
-import { events, type EngineOptions, type GoMode } from "@/bindings";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+} from "@/state/atoms";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
 import {
@@ -56,6 +56,7 @@ import {
   useState,
 } from "react";
 import { match } from "ts-pattern";
+import { useStore } from "zustand";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
@@ -88,7 +89,8 @@ function BestMovesComponent({
   orientation,
   chess960,
 }: BestMovesProps) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
   const [ev, setEngineVariation] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
@@ -197,10 +199,7 @@ function BestMovesComponent({
             return newMap;
           });
           setProgress(payload.progress);
-          dispatch({
-            type: "SET_SCORE",
-            payload: ev[0].score,
-          });
+          setScore(ev[0].score);
         });
       }
     });
@@ -209,7 +208,7 @@ function BestMovesComponent({
     };
   }, [
     activeTab,
-    dispatch,
+    setScore,
     settings.enabled,
     isGameOver,
     searchingFen,

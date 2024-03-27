@@ -1,3 +1,7 @@
+import { events } from "@/bindings";
+import EvalChart from "@/components/common/EvalChart";
+import ProgressButton from "@/components/common/ProgressButton";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   activeTabAtom,
   allEnabledAtom,
@@ -6,14 +10,7 @@ import {
   enableAllAtom,
   engineMovesFamily,
   enginesAtom,
-} from "@/atoms/atoms";
-import { events } from "@/bindings";
-import EvalChart from "@/components/common/EvalChart";
-import ProgressButton from "@/components/common/ProgressButton";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+} from "@/state/atoms";
 import {
   ANNOTATION_INFO,
   type Annotation,
@@ -52,6 +49,7 @@ import cx from "clsx";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
 import React from "react";
+import { useStore } from "zustand";
 import { label } from "./AnalysisPanel.css";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
@@ -70,7 +68,10 @@ function AnalysisPanel({
   inProgress: boolean;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const { root, position, headers } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const headers = useStore(store, (s) => s.headers);
   const currentNode = getNodeAtPath(root, position);
 
   const [engines, setEngines] = useAtom(enginesAtom);
@@ -109,6 +110,7 @@ function AnalysisPanel({
         style={{
           display: "flex",
         }}
+        keepMounted={false}
       >
         <Tabs.List>
           <Tabs.Tab value="engines">Engines</Tabs.Tab>
@@ -395,17 +397,8 @@ type Stats = ReturnType<typeof getGameStats>;
 
 const GameStats = memo(
   function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
-    const dispatch = useContext(TreeDispatchContext);
-
-    function goToAnnotation(annotation: Annotation, color: "white" | "black") {
-      dispatch({
-        type: "GO_TO_ANNOTATION",
-        payload: {
-          annotation,
-          color,
-        },
-      });
-    }
+    const store = useContext(TreeStateContext)!;
+    const goToAnnotation = useStore(store, (s) => s.goToAnnotation);
 
     return (
       <Paper withBorder>

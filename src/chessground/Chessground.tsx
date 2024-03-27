@@ -1,4 +1,4 @@
-import { boardImageAtom } from "@/atoms/atoms";
+import { boardImageAtom } from "@/state/atoms";
 import { Box } from "@mantine/core";
 import { Chessground as NativeChessground } from "chessground";
 import type { Api } from "chessground/api";

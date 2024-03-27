@@ -1,6 +1,6 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
-import { keyMapAtom } from "@/atoms/keybinds";
 import { commands } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import { unwrap } from "@/utils/invoke";
 import { type Tab, createTab, genID } from "@/utils/tabs";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";

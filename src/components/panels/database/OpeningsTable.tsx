@@ -1,9 +1,10 @@
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { Group, Progress, Text } from "@mantine/core";
 import { DataTable } from "mantine-datatable";
 import { memo, useContext } from "react";
+import { useStore } from "zustand";
 
 function OpeningsTable({
   openings,
@@ -12,7 +13,8 @@ function OpeningsTable({
   openings: Opening[];
   loading: boolean;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const makeMove = useStore(store, (s) => s.makeMove);
 
   const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
   const blackTotal = openings?.reduce((acc, curr) => acc + curr.black, 0);
@@ -110,12 +112,7 @@ function OpeningsTable({
       ]}
       idAccessor="move"
       emptyState={"No games found"}
-      onRowClick={({ record }) => {
-        dispatch({
-          type: "MAKE_MOVE",
-          payload: record.move,
-        });
-      }}
+      onRowClick={({ record }) => makeMove({ payload: record.move })}
     />
   );
 }

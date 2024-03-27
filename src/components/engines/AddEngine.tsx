@@ -1,5 +1,5 @@
-import { enginesAtom } from "@/atoms/atoms";
 import { events, commands } from "@/bindings";
+import { enginesAtom } from "@/state/atoms";
 import {
   type LocalEngine,
   type RemoteEngine,

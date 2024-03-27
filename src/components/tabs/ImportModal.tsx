@@ -1,4 +1,4 @@
-import { currentTabAtom } from "@/atoms/atoms";
+import { currentTabAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";

@@ -1,4 +1,4 @@
-import { soundVolumeAtom } from "@/atoms/atoms";
+import { soundVolumeAtom } from "@/state/atoms";
 import { playSound } from "@/utils/sound";
 import { Slider } from "@mantine/core";
 import { useAtom } from "jotai";
