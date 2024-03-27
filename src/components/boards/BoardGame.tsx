@@ -522,9 +522,6 @@ function BoardGame() {
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           dirty={false}
-          currentNode={currentNode}
-          arrows={new Map()}
-          headers={headers}
           editingMode={false}
           toggleEditingMode={() => undefined}
           viewOnly={gameState !== "playing"}
@@ -532,8 +529,6 @@ function BoardGame() {
           boardRef={boardRef}
           canTakeBack={onePlayerIsEngine}
           movable={movable}
-          root={root}
-          position={position}
           whiteTime={
             gameState === "playing" ? whiteTime ?? undefined : undefined
           }

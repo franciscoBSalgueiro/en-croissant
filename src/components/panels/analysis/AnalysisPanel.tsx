@@ -1,6 +1,3 @@
-import { events } from "@/bindings";
-import EvalChart from "@/components/common/EvalChart";
-import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   activeTabAtom,
@@ -11,12 +8,7 @@ import {
   engineMovesFamily,
   enginesAtom,
 } from "@/state/atoms";
-import {
-  ANNOTATION_INFO,
-  type Annotation,
-  isBasicAnnotation,
-} from "@/utils/annotation";
-import { getGameStats, getVariationLine } from "@/utils/chess";
+import { getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
 import { getNodeAtPath } from "@/utils/treeReducer";
@@ -42,34 +34,22 @@ import {
   IconPlayerPause,
   IconSelector,
   IconSettings,
-  IconZoomCheck,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import cx from "clsx";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo } from "react";
-import React from "react";
 import { useStore } from "zustand";
-import { label } from "./AnalysisPanel.css";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
+import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 
-function AnalysisPanel({
-  tabId,
-  toggleReportingMode,
-  inProgress,
-  setInProgress,
-}: {
-  tabId: string;
-  toggleReportingMode: () => void;
-  inProgress: boolean;
-  setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+function AnalysisPanel() {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
+  const rootFen = useStore(store, (s) => s.root.fen);
   const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
   const currentNode = getNodeAtPath(root, position);
@@ -88,10 +68,8 @@ function AnalysisPanel({
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
 
-  const stats = useMemo(() => getGameStats(root), [root]);
   const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
 
-  const fen = root.fen;
   const moves = useMemo(
     () => getVariationLine(root, position, is960),
     [root, position, is960],
@@ -163,7 +141,7 @@ function AnalysisPanel({
                         <EngineSummary
                           key={engine.name}
                           engine={engine}
-                          fen={fen}
+                          fen={rootFen}
                           moves={moves}
                           i={i}
                         />
@@ -230,7 +208,7 @@ function AnalysisPanel({
                                       <BestMoves
                                         id={i}
                                         engine={engine}
-                                        fen={fen}
+                                        fen={rootFen}
                                         moves={moves}
                                         halfMoves={currentNode.halfMoves}
                                         dragHandleProps={
@@ -290,51 +268,7 @@ function AnalysisPanel({
             flexDirection: "column",
           }}
         >
-          <ScrollArea offsetScrollbars>
-            <Stack mb="lg" gap="0.4rem" mr="xs">
-              <Group grow style={{ textAlign: "center" }}>
-                {stats.whiteAccuracy && stats.blackAccuracy && (
-                  <>
-                    <AccuracyCard
-                      color="WHITE"
-                      accuracy={stats.whiteAccuracy}
-                      cpl={stats.whiteCPL}
-                    />
-                    <AccuracyCard
-                      color="BLACK"
-                      accuracy={stats.blackAccuracy}
-                      cpl={stats.blackCPL}
-                    />
-                  </>
-                )}
-                <div>
-                  <ProgressButton
-                    id={`report_${tabId}`}
-                    redoable
-                    disabled={root.children.length === 0}
-                    leftIcon={<IconZoomCheck size="0.875rem" />}
-                    onClick={toggleReportingMode}
-                    initInstalled={false}
-                    progressEvent={events.reportProgress}
-                    labels={{
-                      action: "Generate report",
-                      completed: "Report generated",
-                      inProgress: "Generating report",
-                    }}
-                    inProgress={inProgress}
-                    setInProgress={setInProgress}
-                  />
-                </div>
-              </Group>
-              <Paper withBorder p="md">
-                <EvalChart
-                  isAnalysing={inProgress}
-                  startAnalysis={toggleReportingMode}
-                />
-              </Paper>
-              <GameStats {...stats} />
-            </Stack>
-          </ScrollArea>
+          <ReportPanel />
         </Tabs.Panel>
         <Tabs.Panel
           value="logs"
@@ -390,100 +324,6 @@ function EngineSummary({
         )}
       </Stack>
     </Card>
-  );
-}
-
-type Stats = ReturnType<typeof getGameStats>;
-
-const GameStats = memo(
-  function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
-    const store = useContext(TreeStateContext)!;
-    const goToAnnotation = useStore(store, (s) => s.goToAnnotation);
-
-    return (
-      <Paper withBorder>
-        <Grid columns={11} justify="space-between" p="md">
-          {Object.keys(ANNOTATION_INFO)
-            .filter((a) => isBasicAnnotation(a))
-            .map((annotation) => {
-              const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
-              const { name, color } = ANNOTATION_INFO[s];
-              const w = whiteAnnotations[s];
-              const b = blackAnnotations[s];
-              return (
-                <React.Fragment key={annotation}>
-                  <Grid.Col
-                    className={cx(w > 0 && label)}
-                    span={4}
-                    style={{ textAlign: "center" }}
-                    c={w > 0 ? color : undefined}
-                    onClick={() => {
-                      if (w > 0) {
-                        goToAnnotation(s, "white");
-                      }
-                    }}
-                  >
-                    {w}
-                  </Grid.Col>
-                  <Grid.Col span={1} c={w + b > 0 ? color : undefined}>
-                    {annotation}
-                  </Grid.Col>
-                  <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
-                    {name}
-                  </Grid.Col>
-                  <Grid.Col
-                    className={cx(b > 0 && label)}
-                    span={2}
-                    c={b > 0 ? color : undefined}
-                    onClick={() => {
-                      if (b > 0) {
-                        goToAnnotation(s, "black");
-                      }
-                    }}
-                  >
-                    {b}
-                  </Grid.Col>
-                </React.Fragment>
-              );
-            })}
-        </Grid>
-      </Paper>
-    );
-  },
-  (prev, next) => {
-    return (
-      shallowEqual(prev.whiteAnnotations, next.whiteAnnotations) &&
-      shallowEqual(prev.blackAnnotations, next.blackAnnotations)
-    );
-  },
-);
-
-function AccuracyCard({
-  color,
-  cpl,
-  accuracy,
-}: {
-  color: string;
-  cpl: number;
-  accuracy: number;
-}) {
-  return (
-    <Paper withBorder p="xs">
-      <Group justify="space-between">
-        <Stack gap={0} align="start">
-          <Text c="dimmed">{color}</Text>
-          <Text fz="sm">{cpl.toFixed(1)} ACPL</Text>
-        </Stack>
-        <Stack gap={0} align="center">
-          <Text fz="xl" lh="normal">
-            {accuracy.toFixed(1)}%
-          </Text>
-          <Text fz="sm" c="dimmed" lh="normal">
-            Accuracy
-          </Text>
-        </Stack>
-      </Group>
-    </Paper>
   );
 }
 

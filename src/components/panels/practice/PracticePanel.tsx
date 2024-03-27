@@ -38,8 +38,9 @@ import { formatDate } from "ts-fsrs";
 import { useStore } from "zustand";
 import RepertoireInfo from "./RepertoireInfo";
 
-function PracticePanel({ fen }: { fen: string }) {
+function PracticePanel() {
   const store = useContext(TreeStateContext)!;
+  const fen = useStore(store, (s) => s.currentNode().fen);
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
   const goToMove = useStore(store, (s) => s.goToMove);

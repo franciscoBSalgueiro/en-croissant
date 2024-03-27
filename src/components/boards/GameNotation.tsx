@@ -1,7 +1,6 @@
 import { Comment } from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { currentInvisibleAtom } from "@/state/atoms";
-import { isPrefix } from "@/utils/misc";
 import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -92,7 +91,6 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
                 <Comment comment={root.comment} />
               )}
               <RenderVariationTree
-                currentPath={position}
                 targetRef={targetRef}
                 tree={root}
                 depth={0}
@@ -174,7 +172,6 @@ const RenderVariationTree = memo(
   function RenderVariationTree({
     tree,
     depth,
-    currentPath,
     start,
     first,
     showVariations,
@@ -182,7 +179,6 @@ const RenderVariationTree = memo(
     targetRef,
     path,
   }: {
-    currentPath: number[];
     start?: number[];
     tree: TreeNode;
     depth: number;
@@ -192,6 +188,8 @@ const RenderVariationTree = memo(
     targetRef: React.RefObject<HTMLSpanElement>;
     path: number[];
   }) {
+    const store = useContext(TreeStateContext)!;
+    const currentPath = useStore(store, (s) => s.position);
     const variations = tree.children;
     const moveNodes = showVariations
       ? variations.slice(1).map((variation) => (
@@ -215,7 +213,6 @@ const RenderVariationTree = memo(
               first
             />
             <RenderVariationTree
-              currentPath={currentPath}
               targetRef={targetRef}
               tree={variation}
               depth={depth + 2}
@@ -250,7 +247,6 @@ const RenderVariationTree = memo(
 
         {tree.children.length > 0 && (
           <RenderVariationTree
-            currentPath={currentPath}
             targetRef={targetRef}
             tree={tree.children[0]}
             depth={depth + 1}
@@ -265,20 +261,13 @@ const RenderVariationTree = memo(
   },
   (prev, next) => {
     return (
+      prev.tree === next.tree &&
       prev.depth === next.depth &&
       prev.first === next.first &&
       prev.showVariations === next.showVariations &&
       prev.showComments === next.showComments &&
       shallowEqual(prev.path, next.path) &&
-      next.path.some((v) => v !== 0) && // don't memoize main line
-      ((shallowEqual(prev.currentPath, next.currentPath) &&
-        !isPrefix(next.path.slice(0, -1), next.currentPath) &&
-        shallowEqual(
-          getNodeAtPath(next.tree, next.path),
-          getNodeAtPath(prev.tree, prev.path),
-        )) ||
-        (!isPrefix(next.path, next.currentPath) &&
-          !isPrefix(next.path, prev.currentPath)))
+      shallowEqual(prev.start, next.start)
     );
   },
 );

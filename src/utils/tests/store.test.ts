@@ -124,25 +124,25 @@ const getNewState = () => {
   };
 };
 
-test("should handle SAVE", () => {
+test("should handle save", () => {
   store.setState({ dirty: true });
   store.getState().save();
 
   expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: false });
 });
 
-test("should handle SET_STATE", () => {
+test("should handle setState", () => {
   store.getState().setState(treeE4D5());
   expect(getNewState()).toStrictEqual(treeE4D5());
 });
 
-test("should handle RESET", () => {
+test("should handle reset", () => {
   store.setState(treeE4D5());
   store.getState().reset();
   expect(getNewState()).toStrictEqual(defaultTree());
 });
 
-test("should handle SET_HEADERS", () => {
+test("should handle setHeaders", () => {
   store.getState().setHeaders({
     ...defaultTree().headers,
     orientation: "black",
@@ -160,7 +160,7 @@ test("should handle SET_HEADERS", () => {
   });
 });
 
-test("should handle SET_START", () => {
+test("should handle setStart", () => {
   store.getState().setStart([1]);
 
   expect(getNewState()).toStrictEqual({
@@ -170,7 +170,7 @@ test("should handle SET_START", () => {
   });
 });
 
-test("should handle MAKE_MOVE", () => {
+test("should handle makeMove", () => {
   store.getState().makeMove({ payload: e4 });
 
   expect(getNewState()).toStrictEqual({
@@ -198,7 +198,7 @@ test("should handle MAKE_MOVE", () => {
   });
 });
 
-test("should handle MAKE_MOVES", () => {
+test("should handle makeMoves", () => {
   store.getState().makeMoves({ payload: ["e4", "d5"] });
 
   expect(getNewState()).toStrictEqual({
@@ -208,7 +208,7 @@ test("should handle MAKE_MOVES", () => {
   });
 });
 
-test("should handle GO_TO_START", () => {
+test("should handle goToStart", () => {
   store.setState(treeE4D5());
   store.getState().goToStart();
 
@@ -218,7 +218,7 @@ test("should handle GO_TO_START", () => {
   });
 });
 
-test("should handle GO_TO_END", () => {
+test("should handle goToEnd", () => {
   store.setState({ ...treeE4D5(), position: [] });
   store.getState().goToEnd();
 
@@ -228,7 +228,7 @@ test("should handle GO_TO_END", () => {
   });
 });
 
-test("should handle GO_TO_NEXT", () => {
+test("should handle goToNext", () => {
   store.setState({ ...treeE4D5(), position: [] });
   store.getState().goToNext();
 
@@ -238,7 +238,7 @@ test("should handle GO_TO_NEXT", () => {
   });
 });
 
-test("should handle GO_TO_PREVIOUS", () => {
+test("should handle goToPrevious", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().goToPrevious();
 
@@ -248,7 +248,7 @@ test("should handle GO_TO_PREVIOUS", () => {
   });
 });
 
-test("should handle GO_TO_MOVE", () => {
+test("should handle goToMove", () => {
   store.setState({ ...treeE4D5(), position: [] });
   store.getState().goToMove([0]);
 
@@ -258,14 +258,14 @@ test("should handle GO_TO_MOVE", () => {
   });
 });
 
-test("should handle DELETE_MOVE", () => {
+test("should handle deleteMove", () => {
   store.setState(treeE4D5());
   store.getState().deleteMove([0]);
 
   expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: true });
 });
 
-test("should handle SET_ANNOTATION", () => {
+test("should handle setAnnotation", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().setAnnotation("!");
 
@@ -285,7 +285,7 @@ test("should handle SET_ANNOTATION", () => {
   });
 });
 
-test("should handle SET_COMMENT", () => {
+test("should handle setComment", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().setComment("test");
 
@@ -305,7 +305,7 @@ test("should handle SET_COMMENT", () => {
   });
 });
 
-test("should handle SET_FEN", () => {
+test("should handle setFen", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store
     .getState()
@@ -321,7 +321,7 @@ test("should handle SET_FEN", () => {
   });
 });
 
-test("should handle SET_SCORE", () => {
+test("should handle setScore", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().setScore({
     type: "mate",
@@ -347,7 +347,7 @@ test("should handle SET_SCORE", () => {
   });
 });
 
-test("should handle SET_SHAPES", () => {
+test("should handle setShapes", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().setShapes([
     {
@@ -379,7 +379,7 @@ test("should handle SET_SHAPES", () => {
   });
 });
 
-test("should handle ADD_ANALYSIS", () => {
+test("should handle addAnalysis", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().addAnalysis([
     {
@@ -443,7 +443,7 @@ test("should handle ADD_ANALYSIS", () => {
   });
 });
 
-test("should handle PROMOTE_VARIATION", () => {
+test("should handle promoteVariation", () => {
   store.setState(treeE4D5Nf3());
   store.getState().promoteVariation([1]);
 

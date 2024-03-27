@@ -1,15 +1,12 @@
 import {
   autoSaveAtom,
-  bestMovesFamily,
   currentPracticeTabAtom,
   currentTabAtom,
   currentTabSelectedAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { getMainLine, getVariationLine } from "@/utils/chess";
 import { invoke } from "@/utils/invoke";
 import { saveToFile } from "@/utils/tabs";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
@@ -21,20 +18,11 @@ import {
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  Suspense,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
-import ReportModal from "../panels/analysis/ReportModal";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
@@ -45,34 +33,21 @@ import GameNotation from "./GameNotation";
 
 function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
-  const [reportingMode, toggleReportingMode] = useToggle();
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const { documentDir } = useLoaderData({ from: "/" });
   const boardRef = useRef(null);
-  const [inProgress, setInProgress] = useState(false);
 
   const store = useContext(TreeStateContext)!;
 
   const dirty = useStore(store, (s) => s.dirty);
-  const root = useStore(store, (s) => s.root);
-  const position = useStore(
-    store,
-    useShallow((s) => s.position),
-  );
 
   const reset = useStore(store, (s) => s.reset);
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const save = useStore(store, (s) => s.save);
+  const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
 
-  const currentNode = getNodeAtPath(root, position);
-  const arrows = useAtomValue(
-    bestMovesFamily({
-      fen: root.fen,
-      gameMoves: getVariationLine(root, position),
-    }),
-  );
   const saveFile = useCallback(async () => {
     saveToFile({
       dir: documentDir,
@@ -82,7 +57,7 @@ function BoardAnalysis() {
       tab: currentTab,
       markAsSaved: () => save(),
     });
-  }, [headers, root, setCurrentTab, currentTab, save]);
+  }, [headers, setCurrentTab, currentTab, save]);
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
@@ -100,7 +75,7 @@ function BoardAnalysis() {
       path: currentTab?.file?.path,
       text: "\n\n",
     });
-  }, [setCurrentTab, reset, currentTab?.file?.path, root, headers]);
+  }, [setCurrentTab, reset, currentTab?.file?.path, headers]); //root]);
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
@@ -116,31 +91,15 @@ function BoardAnalysis() {
 
   return (
     <>
-      <Suspense>
-        <ReportModal
-          tab={currentTab?.value || ""}
-          initialFen={root.fen}
-          moves={getMainLine(root, headers.variant === "Chess960")}
-          is960={headers.variant === "Chess960"}
-          reportingMode={reportingMode}
-          toggleReportingMode={toggleReportingMode}
-          setInProgress={setInProgress}
-        />
-      </Suspense>
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           practicing={practicing}
           dirty={dirty}
-          currentNode={currentNode}
-          arrows={arrows}
-          headers={headers}
           editingMode={editingMode}
           toggleEditingMode={toggleEditingMode}
           boardRef={boardRef}
           saveFile={saveFile}
           addGame={addGame}
-          root={root}
-          position={position}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
@@ -205,7 +164,7 @@ function BoardAnalysis() {
                 style={{ overflowY: "hidden" }}
               >
                 <Suspense>
-                  <PracticePanel fen={currentNode.fen} />
+                  <PracticePanel />
                 </Suspense>
               </Tabs.Panel>
             )}
@@ -217,7 +176,7 @@ function BoardAnalysis() {
               flex={1}
               style={{ overflowY: "hidden" }}
             >
-              <DatabasePanel fen={currentNode.fen} />
+              <DatabasePanel />
             </Tabs.Panel>
             <Tabs.Panel
               value="annotate"
@@ -232,12 +191,7 @@ function BoardAnalysis() {
               style={{ overflowY: "hidden" }}
             >
               <Suspense>
-                <AnalysisPanel
-                  tabId={currentTab?.value || ""}
-                  toggleReportingMode={toggleReportingMode}
-                  inProgress={inProgress}
-                  setInProgress={setInProgress}
-                />
+                <AnalysisPanel />
               </Suspense>
             </Tabs.Panel>
           </Tabs>
@@ -245,11 +199,7 @@ function BoardAnalysis() {
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         {editingMode ? (
-          <EditingCard
-            boardRef={boardRef}
-            fen={currentNode.fen}
-            setEditingMode={toggleEditingMode}
-          />
+          <EditingCard boardRef={boardRef} setEditingMode={toggleEditingMode} />
         ) : (
           <Stack h="100%" gap="xs">
             <GameNotation topBar />

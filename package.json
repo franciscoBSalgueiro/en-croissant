@@ -67,6 +67,7 @@
     "tiptap-markdown": "^0.8.9",
     "ts-fsrs": "^3.5.1",
     "ts-pattern": "^5.0.8",
+    "use-zustand": "^0.0.4",
     "vite": "^5.1.6",
     "zod": "^3.22.4",
     "zustand": "^4.5.2"

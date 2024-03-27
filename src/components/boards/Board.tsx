@@ -2,6 +2,7 @@ import { Chessground } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  bestMovesFamily,
   currentEvalOpenAtom,
   currentTabAtom,
   deckAtomFamily,
@@ -20,6 +21,7 @@ import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import {
   type TimeControlField,
   getMaterialDiff,
+  getVariationLine,
   parseTimeControl,
 } from "@/utils/chess";
 import {
@@ -84,11 +86,6 @@ const SMALL_BRUSH = 4;
 
 interface ChessboardProps {
   dirty: boolean;
-  currentNode: TreeNode;
-  position: number[];
-  arrows: Map<number, { pv: string[]; winChance: number }[]>;
-  headers: GameHeaders;
-  root: TreeNode;
   editingMode: boolean;
   toggleEditingMode: () => void;
   viewOnly?: boolean;
@@ -107,9 +104,6 @@ interface ChessboardProps {
 
 function Board({
   dirty,
-  currentNode,
-  headers,
-  arrows,
   editingMode,
   toggleEditingMode,
   viewOnly,
@@ -119,8 +113,6 @@ function Board({
   saveFile,
   addGame,
   canTakeBack,
-  root,
-  position,
   whiteTime,
   blackTime,
   whiteTc,
@@ -128,6 +120,18 @@ function Board({
   practicing,
 }: ChessboardProps) {
   const store = useContext(TreeStateContext)!;
+
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const headers = useStore(store, (s) => s.headers);
+  const currentNode = useStore(store, (s) => s.currentNode());
+
+  const arrows = useAtomValue(
+    bestMovesFamily({
+      fen: root.fen,
+      gameMoves: getVariationLine(root, position),
+    }),
+  );
 
   const goToNext = useStore(store, (s) => s.goToNext);
   const goToPrevious = useStore(store, (s) => s.goToPrevious);

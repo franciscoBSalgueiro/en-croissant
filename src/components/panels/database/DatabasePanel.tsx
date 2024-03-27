@@ -1,3 +1,4 @@
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
   currentDbTypeAtom,
@@ -29,9 +30,10 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useEffect } from "react";
+import { memo, useContext, useEffect } from "react";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
+import { useStore } from "zustand";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
@@ -102,7 +104,9 @@ async function fetchOpening(db: DBType, tab: string) {
     .exhaustive();
 }
 
-function DatabasePanel({ fen }: { fen: string }) {
+function DatabasePanel() {
+  const store = useContext(TreeStateContext)!;
+  const fen = useStore(store, (s) => s.currentNode().fen);
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
   const [lichessOptions, setLichessOptions] = useAtom(lichessOptionsAtom);

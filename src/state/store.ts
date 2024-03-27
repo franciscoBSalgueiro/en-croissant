@@ -26,6 +26,8 @@ interface TreeStoreState {
   position: number[];
   dirty: boolean;
 
+  currentNode: () => TreeNode;
+
   goToNext: () => void;
   goToPrevious: () => void;
   goToStart: () => void;
@@ -84,8 +86,11 @@ interface TreeStoreState {
 export type TreeStore = ReturnType<typeof createTreeStore>;
 
 export const createTreeStore = (id?: string, initialTree?: TreeState) => {
-  const stateCreator: StateCreator<TreeStoreState> = (set) => ({
+  const stateCreator: StateCreator<TreeStoreState> = (set, get) => ({
     ...(initialTree ?? defaultTree()),
+
+    currentNode: () => getNodeAtPath(get().root, get().position),
+
     setState: (state) => {
       set(() => state);
     },

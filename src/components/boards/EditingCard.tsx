@@ -7,15 +7,14 @@ import * as classes from "./EditingCard.css";
 import PiecesGrid from "./PiecesGrid";
 
 function EditingCard({
-  fen,
   boardRef,
   setEditingMode,
 }: {
-  fen: string;
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;
 }) {
   const store = useContext(TreeStateContext)!;
+  const fen = useStore(store, (s) => s.currentNode().fen);
   const headers = useStore(store, (s) => s.headers);
   const setFen = useStore(store, (s) => s.setFen);
 

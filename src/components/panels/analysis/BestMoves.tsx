@@ -52,11 +52,10 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { match } from "ts-pattern";
-import { useStore } from "zustand";
+import { useZustand as useStore } from "use-zustand";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
