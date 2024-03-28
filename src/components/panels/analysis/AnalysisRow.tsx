@@ -4,7 +4,7 @@ import MoveCell from "@/components/boards/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { previewBoardOnHoverAtom } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
-import { ActionIcon, Box, Flex, HoverCard, Table } from "@mantine/core";
+import { ActionIcon, Box, Flex, HoverCard, Portal, Table } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
 import type { Key } from "chessground/types";
 import { chessgroundMove } from "chessops/compat";
@@ -17,6 +17,8 @@ import { useStore } from "zustand";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({
+  rowIndex,
+  engineId,
   score,
   moves,
   halfMoves,
@@ -24,6 +26,8 @@ function AnalysisRow({
   fen,
   orientation,
 }: {
+  rowIndex: number;
+  engineId: number;
   score: Score;
   moves: string[];
   halfMoves: number;
@@ -67,6 +71,8 @@ function AnalysisRow({
         >
           {moveInfo.map(({ san, fen, lastMove, isCheck }, index) => (
             <BoardPopover
+              rowIndex={rowIndex}
+              engineId={engineId}
               key={index}
               san={san}
               index={index}
@@ -97,6 +103,8 @@ function AnalysisRow({
 }
 
 function BoardPopover({
+  rowIndex,
+  engineId,
   san,
   lastMove,
   isCheck,
@@ -107,6 +115,8 @@ function BoardPopover({
   fen,
   orientation,
 }: {
+  rowIndex: number;
+  engineId: number;
   san: string;
   lastMove: Key[];
   isCheck: boolean;
@@ -124,41 +134,31 @@ function BoardPopover({
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const preview = useAtomValue(previewBoardOnHoverAtom);
 
+  const [hovering, setHovering] = useState(false);
+
   return (
-    <HoverCard
-      width={230}
-      styles={{
-        dropdown: {
-          padding: 0,
-          backgroundColor: "transparent",
-          border: "none",
-        },
-      }}
-      openDelay={0}
-      closeDelay={50}
-    >
-      <HoverCard.Target>
-        <Box>
-          {(index === 0 || is_white) &&
-            `${move_number.toString()}${is_white ? "." : "..."}`}
-          <MoveCell
-            move={san}
-            isCurrentVariation={false}
-            annotations={[]}
-            onContextMenu={() => undefined}
-            isStart={false}
-            onClick={() => {
-              if (!threat) {
-                makeMoves({ payload: moves.slice(0, index + 1) });
-              }
-            }}
-          />
-        </Box>
-      </HoverCard.Target>
-      {preview && (
-        <HoverCard.Dropdown
-          style={{ pointerEvents: "none", transitionDuration: "0ms" }}
-        >
+    <>
+      <Box
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+      >
+        {(index === 0 || is_white) &&
+          `${move_number.toString()}${is_white ? "." : "..."}`}
+        <MoveCell
+          move={san}
+          isCurrentVariation={false}
+          annotations={[]}
+          onContextMenu={() => undefined}
+          isStart={false}
+          onClick={() => {
+            if (!threat) {
+              makeMoves({ payload: moves.slice(0, index + 1) });
+            }
+          }}
+        />
+      </Box>
+      {preview && hovering && (
+        <Portal target={`#engine-${engineId}-${rowIndex}`}>
           <Chessground
             fen={fen}
             coordinates={false}
@@ -174,9 +174,9 @@ function BoardPopover({
               eraseOnClick: true,
             }}
           />
-        </HoverCard.Dropdown>
+        </Portal>
       )}
-    </HoverCard>
+    </>
   );
 }
 
