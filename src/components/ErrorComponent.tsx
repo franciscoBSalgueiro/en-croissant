@@ -20,7 +20,7 @@ export default function ErrorComponent({
   return (
     <Stack p="md">
       <Title>An error ocurred</Title>
-      {error instanceof Error && (
+      {error instanceof Error ? (
         <>
           <Text>
             <b>{error.name}:</b> {error.message}
@@ -28,6 +28,10 @@ export default function ErrorComponent({
           <Code>{error.stack}</Code>
           {error.cause}
         </>
+      ) : (
+        <Text>
+          <b>Unexpected Error:</b> {JSON.stringify(error)}
+        </Text>
       )}
       <Group>
         {error instanceof Error && (
