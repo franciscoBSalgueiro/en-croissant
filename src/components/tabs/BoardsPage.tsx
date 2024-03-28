@@ -45,7 +45,7 @@ export default function BoardsPage() {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && closedTab?.file && tabState.dirty && !forced) {
+        if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
           toggleSaveModal();
           return;
         }
@@ -110,12 +110,6 @@ export default function BoardsPage() {
       if (sessionStorage.getItem(value)) {
         sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
       }
-      if (sessionStorage.getItem(`${value}-tree`)) {
-        sessionStorage.setItem(
-          `${id}-tree`,
-          sessionStorage.getItem(`${value}-tree`) || "",
-        );
-      }
 
       if (tab) {
         setTabs((prev) => [
@@ -159,11 +153,6 @@ export default function BoardsPage() {
 
   return (
     <>
-      <ConfirmChangesModal
-        opened={saveModalOpened}
-        toggle={toggleSaveModal}
-        closeTab={() => closeTab(activeTab, true)}
-      />
       <Tabs
         value={activeTab}
         onChange={(v) => setActiveTab(v)}
@@ -252,7 +241,13 @@ export default function BoardsPage() {
             pb="sm"
             px="sm"
           >
-            <TabSwitch tab={tab} />
+            <TabSwitch
+              tab={tab}
+              saveModalOpened={saveModalOpened}
+              toggleSaveModal={toggleSaveModal}
+              closeTab={closeTab}
+              activeTab={activeTab}
+            />
           </Tabs.Panel>
         ))}
       </Tabs>
@@ -284,7 +279,19 @@ const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
   },
 });
 
-function TabSwitch({ tab }: { tab: Tab }) {
+function TabSwitch({
+  tab,
+  saveModalOpened,
+  toggleSaveModal,
+  closeTab,
+  activeTab,
+}: {
+  tab: Tab;
+  saveModalOpened: boolean;
+  toggleSaveModal: () => void;
+  closeTab: (value: string | null, forced?: boolean) => void;
+  activeTab: string | null;
+}) {
   const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
 
   return match(tab.type)
@@ -309,6 +316,11 @@ function TabSwitch({ tab }: { tab: Tab }) {
           resize={{ minimumPaneSizePercentage: 0 }}
         />
         <BoardAnalysis />
+        <ConfirmChangesModal
+          opened={saveModalOpened}
+          toggle={toggleSaveModal}
+          closeTab={() => closeTab(activeTab, true)}
+        />
       </TreeStateProvider>
     ))
     .with("puzzles", () => (
