@@ -3,6 +3,7 @@ import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
 import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
+import { playSound } from "@/utils/sound";
 import {
   type GameHeaders,
   type TreeNode,
@@ -20,7 +21,7 @@ import { produce } from "immer";
 import { type StateCreator, createStore } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-interface TreeStoreState {
+export interface TreeStoreState {
   root: TreeNode;
   headers: GameHeaders;
   position: number[];
@@ -121,7 +122,8 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         const node = getNodeAtPath(state.root, state.position);
         const [pos] = positionFromFen(node.fen);
         if (!pos || !node.children[0]?.move) return state;
-        // playSound(san.includes("x"), san.includes("+"));
+        const san = makeSan(pos, node.children[0].move);
+        playSound(san.includes("x"), san.includes("+"));
         if (node && node.children.length > 0) {
           return {
             ...state,
@@ -391,9 +393,9 @@ function makeMove({
   const san = makeSan(pos, move);
   if (san === "--") return; // invalid move
   pos.play(move);
-  // if (sound) {
-  //   playSound(san.includes("x"), san.includes("+"));
-  // }
+  if (sound) {
+    playSound(san.includes("x"), san.includes("+"));
+  }
   if (changeHeaders && pos.isEnd()) {
     if (pos.isCheckmate()) {
       state.headers.result = pos.turn === "white" ? "0-1" : "1-0";

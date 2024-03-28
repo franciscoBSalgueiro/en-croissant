@@ -11,14 +11,12 @@ import {
 import { getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
   ActionIcon,
   Button,
   Card,
-  Grid,
   Group,
   Paper,
   Popover,
@@ -28,7 +26,6 @@ import {
   Tabs,
   Text,
 } from "@mantine/core";
-import { shallowEqual } from "@mantine/hooks";
 import {
   IconChevronsRight,
   IconPlayerPause,
@@ -37,8 +34,9 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useMemo } from "react";
+import { memo, useContext, useDeferredValue, useMemo } from "react";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -48,11 +46,21 @@ import TablebaseInfo from "./TablebaseInfo";
 
 function AnalysisPanel() {
   const store = useContext(TreeStateContext)!;
-  const root = useStore(store, (s) => s.root);
   const rootFen = useStore(store, (s) => s.root.fen);
-  const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
-  const currentNode = getNodeAtPath(root, position);
+  const currentNodeFen = useStore(
+    store,
+    useShallow((s) => s.currentNode().fen),
+  );
+  const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
+  const moves = useStore(
+    store,
+    useShallow((s) => getVariationLine(s.root, s.position, is960)),
+  );
+  const currentNodeHalfMoves = useStore(
+    store,
+    useShallow((s) => s.currentNode().halfMoves),
+  );
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const loadedEngines = useMemo(
@@ -68,13 +76,7 @@ function AnalysisPanel() {
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
 
-  const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
-
-  const moves = useMemo(
-    () => getVariationLine(root, position, is960),
-    [root, position, is960],
-  );
-  const [pos] = positionFromFen(currentNode.fen);
+  const [pos] = positionFromFen(currentNodeFen);
   const navigate = useNavigate();
 
   return (
@@ -111,7 +113,7 @@ function AnalysisPanel() {
                 (getPiecesCount(pos) <= 7 ||
                   (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
                   <>
-                    <TablebaseInfo fen={currentNode.fen} turn={pos.turn} />
+                    <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
                     <Space h="sm" />
                   </>
                 )}
@@ -210,7 +212,7 @@ function AnalysisPanel() {
                                         engine={engine}
                                         fen={rootFen}
                                         moves={moves}
-                                        halfMoves={currentNode.halfMoves}
+                                        halfMoves={currentNodeHalfMoves}
                                         dragHandleProps={
                                           provided.dragHandleProps
                                         }
@@ -302,7 +304,9 @@ function EngineSummary({
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
 
-  const curEval = ev.get(`${fen}:${moves.join(",")}`);
+  const curEval = useDeferredValue(
+    useMemo(() => ev.get(`${fen}:${moves.join(",")}`), [ev, fen, moves]),
+  );
   const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (

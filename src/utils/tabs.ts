@@ -1,6 +1,8 @@
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
+import type { TreeStoreState } from "@/state/store";
 import { save } from "@tauri-apps/api/dialog";
 import { z } from "zod";
+import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
 import { invoke } from "./invoke";
 import type { GameHeaders, TreeNode } from "./treeReducer";
@@ -85,17 +87,13 @@ export async function createTab({
 export async function saveToFile({
   dir,
   tab,
-  root,
-  headers,
   setCurrentTab,
-  markAsSaved,
+  store,
 }: {
   dir: string;
   tab: Tab | undefined;
-  root: TreeNode;
-  headers: GameHeaders;
   setCurrentTab: React.Dispatch<React.SetStateAction<Tab>>;
-  markAsSaved: () => void;
+  store: StoreApi<TreeStoreState>;
 }) {
   let filePath: string;
   if (tab?.file) {
@@ -131,13 +129,13 @@ export async function saveToFile({
   await invoke("write_game", {
     file: filePath,
     n: tab?.gameNumber || 0,
-    pgn: `${getPGN(root, {
-      headers,
+    pgn: `${getPGN(store.getState().root, {
+      headers: store.getState().headers,
       comments: true,
       extraMarkups: true,
       glyphs: true,
       variations: true,
     })}\n\n`,
   });
-  markAsSaved();
+  store.getState().save();
 }

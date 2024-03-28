@@ -29,11 +29,7 @@ import {
   forceEnPassant,
   positionFromFen,
 } from "@/utils/chessops";
-import {
-  type GameHeaders,
-  type TreeNode,
-  getNodeAtPath,
-} from "@/utils/treeReducer";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -70,6 +66,7 @@ import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import { updateCardPerformance } from "../files/opening";
@@ -122,14 +119,19 @@ function Board({
   const store = useContext(TreeStateContext)!;
 
   const root = useStore(store, (s) => s.root);
+  const rootFen = useStore(store, (s) => s.root.fen);
+  const moves = useStore(
+    store,
+    useShallow((s) => getVariationLine(s.root, s.position)),
+  );
   const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
   const currentNode = useStore(store, (s) => s.currentNode());
 
   const arrows = useAtomValue(
     bestMovesFamily({
-      fen: root.fen,
-      gameMoves: getVariationLine(root, position),
+      fen: rootFen,
+      gameMoves: moves,
     }),
   );
 

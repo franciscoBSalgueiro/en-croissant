@@ -44,25 +44,21 @@ function BoardAnalysis() {
 
   const reset = useStore(store, (s) => s.reset);
   const clearShapes = useStore(store, (s) => s.clearShapes);
-  const save = useStore(store, (s) => s.save);
-  const root = useStore(store, (s) => s.root);
-  const headers = useStore(store, (s) => s.headers);
 
   const saveFile = useCallback(async () => {
     saveToFile({
       dir: documentDir,
-      headers,
-      root,
       setCurrentTab,
       tab: currentTab,
-      markAsSaved: () => save(),
+      store,
     });
-  }, [headers, setCurrentTab, currentTab, save]);
+  }, [setCurrentTab, currentTab]);
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
     }
-  }, [currentTab?.file, saveFile, autoSave, headers, dirty]);
+  }, [currentTab?.file, saveFile, autoSave, dirty]);
+
   const addGame = useCallback(() => {
     setCurrentTab((prev) => {
       if (!prev?.file) return prev;
@@ -75,7 +71,8 @@ function BoardAnalysis() {
       path: currentTab?.file?.path,
       text: "\n\n",
     });
-  }, [setCurrentTab, reset, currentTab?.file?.path, headers]); //root]);
+  }, [setCurrentTab, reset, currentTab?.file?.path]);
+
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],

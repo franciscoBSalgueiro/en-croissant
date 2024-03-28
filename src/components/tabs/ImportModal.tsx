@@ -82,6 +82,17 @@ export default function ImportModal({
               return;
             }
             fileInfo = newFile.value;
+          } else {
+            fileInfo = {
+              path: file,
+              numGames: count,
+              name: filename,
+              lastModified: Date.now(),
+              metadata: {
+                type: "game",
+                tags: [],
+              },
+            };
           }
         }
         const tree = await parsePGN(input);
