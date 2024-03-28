@@ -13,7 +13,7 @@ import { useNavigate } from "@tanstack/react-router";
 export default function ErrorComponent({
   error,
 }: {
-  error: any;
+  error: unknown;
 }) {
   const navigate = useNavigate();
 

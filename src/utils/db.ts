@@ -181,7 +181,9 @@ export async function query_tournaments(
 export async function getDatabases(): Promise<DatabaseInfo[]> {
   const files = await readDir("db", { dir: BaseDirectory.AppData });
   const dbs = files.filter((file) => file.name?.endsWith(".db3"));
-  return await Promise.all(dbs.map((db) => getDatabase(db.path)));
+  return (await Promise.allSettled(dbs.map((db) => getDatabase(db.path))))
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => (r as PromiseFulfilledResult<DatabaseInfo>).value);
 }
 
 export async function getDatabase(path: string): Promise<DatabaseInfo> {

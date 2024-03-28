@@ -12,7 +12,7 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
-import { readDir, removeFile } from "@tauri-apps/api/fs";
+import { type FileEntry, readDir, removeFile } from "@tauri-apps/api/fs";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
@@ -39,9 +39,16 @@ export type MetadataOrEntry = {
 async function processFiles(
   files: MetadataOrEntry[],
 ): Promise<MetadataOrEntry[]> {
-  const filesInfo = await Promise.all(
-    files.map((f) => readFileMetadata(f.name, f.path, f.children)),
-  );
+  const filesInfo = (
+    await Promise.allSettled(
+      files.map((f) => readFileMetadata(f.name, f.path, f.children)),
+    )
+  )
+    .filter((r) => r.status === "fulfilled")
+    .map(
+      (r) =>
+        (r as PromiseFulfilledResult<FileMetadata | FileEntry | null>).value,
+    );
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     if (file.children) {

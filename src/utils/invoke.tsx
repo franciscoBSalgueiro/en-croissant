@@ -40,5 +40,5 @@ export function unwrap<T>(result: Result<T, string>): T {
     color: "red",
     icon: <IconX />,
   });
-  throw result.error;
+  throw new Error(result.error);
 }
