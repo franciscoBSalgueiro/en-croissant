@@ -5,8 +5,9 @@ import treeReducer, {
   type TreeState,
   getNodeAtPath,
 } from "@/utils/treeReducer";
-import { Box, Group, Stack, Text, rem } from "@mantine/core";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { Box, Group, Stack, Text } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
+import { useContext, useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useImmerReducer } from "use-immer";
 import GameNotation from "../boards/GameNotation";
@@ -67,6 +68,8 @@ function GamePreview({
     );
   }, [treeState.position, treeState.root]);
 
+  const { ref: boardRef, height } = useElementSize();
+
   return (
     <TreeStateContext.Provider value={treeState}>
       <TreeDispatchContext.Provider value={dispatch}>
@@ -75,10 +78,16 @@ function GamePreview({
             {opening}
           </Text>
         )}
-        <Group grow style={{ overflow: "hidden", height: "100%" }}>
-          <PreviewBoard />
+        <Group
+          align="start"
+          grow
+          style={{ overflow: "hidden", height: "100%" }}
+        >
+          <Box ref={boardRef}>
+            <PreviewBoard />
+          </Box>
           {!hideControls && (
-            <Stack h="100%" gap="xs">
+            <Stack style={{ height }} gap="xs">
               <GameNotation />
               <MoveControls
                 goToStart={() => dispatch({ type: "GO_TO_START" })}
