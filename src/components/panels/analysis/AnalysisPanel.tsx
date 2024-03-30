@@ -108,7 +108,12 @@ function AnalysisPanel() {
           }}
         >
           <>
-            <ScrollArea offsetScrollbars>
+            <ScrollArea
+              offsetScrollbars
+              onScrollPositionChange={() =>
+                document.dispatchEvent(new Event("analysis-panel-scroll"))
+              }
+            >
               {pos &&
                 (getPiecesCount(pos) <= 7 ||
                   (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (

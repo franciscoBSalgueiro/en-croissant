@@ -435,27 +435,15 @@ function BestMovesComponent({
               engineVariations &&
               engineVariations.map((engineVariation, index) => {
                 return (
-                  <>
-                    <AnalysisRow
-                      rowIndex={index}
-                      engineId={id}
-                      key={engineVariation.sanMoves.join(",")}
-                      moves={engineVariation.sanMoves}
-                      score={engineVariation.score}
-                      halfMoves={halfMoves}
-                      threat={threat}
-                      fen={threat ? swapMove(finalFen) : finalFen}
-                      orientation={orientation}
-                    />
-                    <Box
-                      pos="absolute"
-                      style={{
-                        zIndex: 100,
-                      }}
-                      w={200}
-                      id={`engine-${id}-${index}`}
-                    />
-                  </>
+                  <AnalysisRow
+                    key={engineVariation.sanMoves.join(",")}
+                    moves={engineVariation.sanMoves}
+                    score={engineVariation.score}
+                    halfMoves={halfMoves}
+                    threat={threat}
+                    fen={threat ? swapMove(finalFen) : finalFen}
+                    orientation={orientation}
+                  />
                 );
               })}
           </Table.Tbody>
