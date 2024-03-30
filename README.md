@@ -44,7 +44,7 @@ pnpm install
 pnpm build
 ```
 
-The built app can be found at [src-tauri/target/release](./src-tauri/target/release/)
+The built app can be found at `src-tauri/target/release`
 
 ## Donate
 
