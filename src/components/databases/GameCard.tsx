@@ -29,8 +29,9 @@ function GameCard({
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
       <Stack h="100%">
+        <GamePreview pgn={game.moves} headers={game} />
+        <Divider mb="sm" />
         <GameInfo headers={game} />
-        <Divider />
         <Group justify="left">
           <Tooltip label="Analyze game">
             <ActionIcon
@@ -68,8 +69,6 @@ function GameCard({
             </ActionIcon>
           </Tooltip>
         </Group>
-        <Divider mb="sm" />
-        <GamePreview pgn={game.moves} headers={game} showOpening />
       </Stack>
     </Paper>
   );
