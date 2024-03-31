@@ -158,7 +158,7 @@ function Databases() {
     async () => {
       const playerDbs = playerDbNames.find((p) => p.name === name)?.databases;
       if (!databases || !playerDbs) return [];
-      const newInfo: PersonalInfo[] = await Promise.all(
+      const results = await Promise.allSettled(
         databases
           .filter((db) => playerDbs.includes(db.title || ""))
           .map(async (db, i) => {
@@ -172,7 +172,7 @@ function Databases() {
             if (players.data.length > 0) {
               player = players.data[0];
             } else {
-              throw "Player not found in database";
+              throw new Error("Player not found in database");
             }
             const info = unwrap(
               await commands.getPlayersGameInfo(db.file, player.id),
@@ -180,7 +180,9 @@ function Databases() {
             return { db, info };
           }),
       );
-      return newInfo;
+      return results
+        .filter((r) => r.status === "fulfilled")
+        .map((r) => (r as PromiseFulfilledResult<PersonalInfo>).value);
     },
   );
 

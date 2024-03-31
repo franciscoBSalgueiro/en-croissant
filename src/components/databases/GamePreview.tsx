@@ -5,8 +5,9 @@ import {
   type TreeState,
   getNodeAtPath,
 } from "@/utils/treeReducer";
-import { Box, Group, Stack } from "@mantine/core";
-import { useContext } from "react";
+import { Box, Group, Stack, Text } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
+import { useContext, useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import GameNotation from "../boards/GameNotation";
@@ -58,14 +59,18 @@ function GamePreview({
   hideControls?: boolean;
   showOpening?: boolean;
 }) {
+  const { ref: boardRef, height } = useElementSize();
+
   return (
     <TreeStateProvider initial={game}>
       {showOpening && <OpeningName />}
-      <Group grow style={{ overflow: "hidden", height: "100%" }}>
+      <Group align="start" grow style={{ overflow: "hidden", height: "100%" }}>
         <PreviewBoard />
         {!hideControls && (
           <Stack h="100%" gap="xs">
-            <GameNotation />
+            <Box ref={boardRef}>
+              <GameNotation />
+            </Box>
             <MoveControls readOnly />
           </Stack>
         )}

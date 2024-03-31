@@ -7,6 +7,7 @@ import { keyMapAtom } from "@/state/keybinds";
 import { openFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
 import { AppShell } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -14,7 +15,7 @@ import {
 } from "@tanstack/react-router";
 import { ask, message, open } from "@tauri-apps/api/dialog";
 import { listen } from "@tauri-apps/api/event";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { open as shellOpen } from "@tauri-apps/api/shell";
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { appWindow } from "@tauri-apps/api/window";
@@ -143,12 +144,11 @@ function RootLayout() {
           label: "Open Logs",
           id: "logs",
           action: async () => {
-            const appDataDirPath = await appDataDir();
-            const path = await resolve(
-              appDataDirPath,
-              "logs",
-              "en-croissant.log",
-            );
+            const path = await resolve(await appLogDir(), "en-croissant.log");
+            notifications.show({
+              title: "Logs",
+              message: `Opened logs in ${path}`,
+            });
             await shellOpen(path);
           },
         },

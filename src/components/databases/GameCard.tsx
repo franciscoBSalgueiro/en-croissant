@@ -7,6 +7,7 @@ import {
   Divider,
   Group,
   Paper,
+  ScrollArea,
   Stack,
   Tooltip,
 } from "@mantine/core";
@@ -28,49 +29,51 @@ function GameCard({
 
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
-      <Stack h="100%">
-        <GameInfo headers={game} />
-        <Divider />
-        <Group justify="left">
-          <Tooltip label="Analyze game">
-            <ActionIcon
-              variant="subtle"
-              onClick={() => {
-                createTab({
-                  tab: {
-                    name: `${game.white} - ${game.black}`,
-                    type: "analysis",
-                  },
-                  setTabs,
-                  setActiveTab,
-                  pgn: game.moves,
-                  headers: game,
-                });
-                navigate({ to: "/" });
-              }}
-            >
-              <IconZoomCheck size="1.2rem" stroke={1.5} />
-            </ActionIcon>
-          </Tooltip>
+      <ScrollArea h="100%">
+        <Stack h="100%" gap="xs">
+          <GameInfo headers={game} />
+          <Divider />
+          <Group justify="left">
+            <Tooltip label="Analyze game">
+              <ActionIcon
+                variant="subtle"
+                onClick={() => {
+                  createTab({
+                    tab: {
+                      name: `${game.white} - ${game.black}`,
+                      type: "analysis",
+                    },
+                    setTabs,
+                    setActiveTab,
+                    pgn: game.moves,
+                    headers: game,
+                  });
+                  navigate({ to: "/" });
+                }}
+              >
+                <IconZoomCheck size="1.2rem" stroke={1.5} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip label="Delete game">
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              onClick={() => {
-                invoke("delete_db_game", {
-                  file,
-                  gameId: game.id,
-                }).then(() => mutate());
-              }}
-            >
-              <IconTrash size="1.2rem" stroke={1.5} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-        <Divider mb="sm" />
-        <GamePreview pgn={game.moves} headers={game} showOpening />
-      </Stack>
+            <Tooltip label="Delete game">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                onClick={() => {
+                  invoke("delete_db_game", {
+                    file,
+                    gameId: game.id,
+                  }).then(() => mutate());
+                }}
+              >
+                <IconTrash size="1.2rem" stroke={1.5} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+          <Divider />
+          <GamePreview pgn={game.moves} headers={game} showOpening />
+        </Stack>
+      </ScrollArea>
     </Paper>
   );
 }
