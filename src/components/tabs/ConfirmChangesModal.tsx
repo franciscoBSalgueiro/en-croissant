@@ -1,10 +1,10 @@
-import { currentTabAtom } from "@/atoms/atoms";
+import { currentTabAtom } from "@/state/atoms";
 import { saveToFile } from "@/utils/tabs";
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
 import { useAtom } from "jotai";
 import { useContext } from "react";
-import { TreeDispatchContext } from "../common/TreeStateContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 
 function ConfirmChangesModal({
   opened,
@@ -16,20 +16,15 @@ function ConfirmChangesModal({
   closeTab: () => void;
 }) {
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
   const { documentDir } = useLoaderData({ from: "/" });
 
   function save() {
-    const { root, headers } = JSON.parse(
-      sessionStorage.getItem(currentTab?.value || "") || "{}",
-    );
     saveToFile({
       dir: documentDir,
       setCurrentTab,
       tab: currentTab,
-      headers,
-      root,
-      markAsSaved: () => dispatch({ type: "SAVE" }),
+      store,
     });
   }
 

@@ -1,4 +1,4 @@
-import { primaryColorAtom } from "@/atoms/atoms";
+import { primaryColorAtom } from "@/state/atoms";
 import {
   CheckIcon,
   ColorSwatch,

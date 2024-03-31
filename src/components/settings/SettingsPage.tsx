@@ -16,8 +16,8 @@ import {
   snapArrowsAtom,
   spellCheckAtom,
   storedDocumentDirAtom,
-} from "@/atoms/atoms";
-import { keyMapAtom } from "@/atoms/keybinds";
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import {
   ActionIcon,
   Card,

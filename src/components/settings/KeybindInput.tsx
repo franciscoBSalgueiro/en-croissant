@@ -1,4 +1,4 @@
-import { keyMapAtom } from "@/atoms/keybinds";
+import { keyMapAtom } from "@/state/keybinds";
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
 import { useColorScheme } from "@mantine/hooks";
 import { IconCheck, IconX } from "@tabler/icons-react";

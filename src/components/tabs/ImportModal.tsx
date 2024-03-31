@@ -1,4 +1,4 @@
-import { currentTabAtom } from "@/atoms/atoms";
+import { currentTabAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
@@ -82,11 +82,25 @@ export default function ImportModal({
               return;
             }
             fileInfo = newFile.value;
+          } else {
+            fileInfo = {
+              path: file,
+              numGames: count,
+              name: filename,
+              lastModified: Date.now(),
+              metadata: {
+                type: "game",
+                tags: [],
+              },
+            };
           }
         }
         const tree = await parsePGN(input);
         setCurrentTab((prev) => {
-          sessionStorage.setItem(prev.value, JSON.stringify(tree));
+          sessionStorage.setItem(
+            prev.value,
+            JSON.stringify({ version: 0, state: tree }),
+          );
           return {
             ...prev,
             name: getGameName(tree.headers),
@@ -111,7 +125,10 @@ export default function ImportModal({
 
       const tree = await parsePGN(pgn);
       setCurrentTab((prev) => {
-        sessionStorage.setItem(prev.value, JSON.stringify(tree));
+        sessionStorage.setItem(
+          prev.value,
+          JSON.stringify({ version: 0, state: tree }),
+        );
         return {
           ...prev,
           name: getGameName(tree.headers),
@@ -130,7 +147,10 @@ export default function ImportModal({
       setCurrentTab((prev) => {
         const tree = defaultTree(parsedFen);
         tree.headers.fen = parsedFen;
-        sessionStorage.setItem(prev.value, JSON.stringify(tree));
+        sessionStorage.setItem(
+          prev.value,
+          JSON.stringify({ version: 0, state: tree }),
+        );
         return {
           ...prev,
           name: "Analysis Board",

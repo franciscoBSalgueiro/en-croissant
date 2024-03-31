@@ -1,3 +1,4 @@
+import { commands } from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleAtom,
@@ -5,8 +6,7 @@ import {
   progressivePuzzlesAtom,
   selectedPuzzleDbAtom,
   tabsAtom,
-} from "@/atoms/atoms";
-import { commands } from "@/bindings";
+} from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { unwrap } from "@/utils/invoke";
 import {
@@ -40,15 +40,20 @@ import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useState } from "react";
+import { useStore } from "zustand";
 import GameNotation from "../boards/GameNotation";
 import ChallengeHistory from "../common/ChallengeHistory";
 import MoveControls from "../common/MoveControls";
-import { TreeDispatchContext } from "../common/TreeStateContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
 
 function Puzzles({ id }: { id: string }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const setFen = useStore(store, (s) => s.setFen);
+  const goToStart = useStore(store, (s) => s.goToStart);
+  const reset = useStore(store, (s) => s.reset);
+  const makeMove = useStore(store, (s) => s.makeMove);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
     key: `${id}-puzzles`,
     defaultValue: [],
@@ -83,8 +88,8 @@ function Puzzles({ id }: { id: string }) {
     lostPuzzles.length;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
-    dispatch({ type: "SET_FEN", payload: puzzle.fen });
-    dispatch({ type: "MAKE_MOVE", payload: parseUci(puzzle.moves[0])! });
+    setFen(puzzle.fen);
+    makeMove({ payload: parseUci(puzzle.moves[0])! });
   }
 
   function generatePuzzle(db: string) {
@@ -284,7 +289,7 @@ function Puzzles({ id }: { id: string }) {
                 <ActionIcon
                   onClick={() => {
                     setPuzzles([]);
-                    dispatch({ type: "RESET" });
+                    reset();
                   }}
                 >
                   <IconX />
@@ -301,12 +306,9 @@ function Puzzles({ id }: { id: string }) {
               if (curPuzzle.completion === "incomplete") {
                 changeCompletion("incorrect");
               }
-              dispatch({
-                type: "GO_TO_START",
-              });
+              goToStart();
               for (let i = 0; i < curPuzzle.moves.length; i++) {
-                dispatch({
-                  type: "MAKE_MOVE",
+                makeMove({
                   payload: parseUci(curPuzzle.moves[i])!,
                   mainline: true,
                 });
@@ -338,7 +340,7 @@ function Puzzles({ id }: { id: string }) {
           </Paper>
           <Stack flex={1} gap="xs">
             <GameNotation />
-            <MoveControls />
+            <MoveControls readOnly />
           </Stack>
         </Stack>
       </Portal>

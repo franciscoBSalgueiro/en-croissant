@@ -1,4 +1,4 @@
-import { enginesAtom } from "@/atoms/atoms";
+import { enginesAtom } from "@/state/atoms";
 import {
   type Engine,
   type LocalEngine,

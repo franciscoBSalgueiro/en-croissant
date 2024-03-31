@@ -1,6 +1,8 @@
+import { Chessground } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  bestMovesFamily,
   currentEvalOpenAtom,
   currentTabAtom,
   deckAtomFamily,
@@ -12,14 +14,14 @@ import {
   showCoordinatesAtom,
   showDestsAtom,
   snapArrowsAtom,
-} from "@/atoms/atoms";
-import { keyMapAtom } from "@/atoms/keybinds";
-import { Chessground } from "@/chessground/Chessground";
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import { chessboard } from "@/styles/Chessboard.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import {
   type TimeControlField,
   getMaterialDiff,
+  getVariationLine,
   parseTimeControl,
 } from "@/utils/chess";
 import {
@@ -27,11 +29,7 @@ import {
   forceEnPassant,
   positionFromFen,
 } from "@/utils/chessops";
-import {
-  type GameHeaders,
-  type TreeNode,
-  getNodeAtPath,
-} from "@/utils/treeReducer";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -67,8 +65,10 @@ import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { match } from "ts-pattern";
+import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import ShowMaterial from "../common/ShowMaterial";
-import { TreeDispatchContext } from "../common/TreeStateContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 import { updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
@@ -83,11 +83,6 @@ const SMALL_BRUSH = 4;
 
 interface ChessboardProps {
   dirty: boolean;
-  currentNode: TreeNode;
-  position: number[];
-  arrows: Map<number, { pv: string[]; winChance: number }[]>;
-  headers: GameHeaders;
-  root: TreeNode;
   editingMode: boolean;
   toggleEditingMode: () => void;
   viewOnly?: boolean;
@@ -106,9 +101,6 @@ interface ChessboardProps {
 
 function Board({
   dirty,
-  currentNode,
-  headers,
-  arrows,
   editingMode,
   toggleEditingMode,
   viewOnly,
@@ -118,15 +110,38 @@ function Board({
   saveFile,
   addGame,
   canTakeBack,
-  root,
-  position,
   whiteTime,
   blackTime,
   whiteTc,
   blackTc,
   practicing,
 }: ChessboardProps) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+
+  const root = useStore(store, (s) => s.root);
+  const rootFen = useStore(store, (s) => s.root.fen);
+  const moves = useStore(
+    store,
+    useShallow((s) => getVariationLine(s.root, s.position)),
+  );
+  const position = useStore(store, (s) => s.position);
+  const headers = useStore(store, (s) => s.headers);
+  const currentNode = useStore(store, (s) => s.currentNode());
+
+  const arrows = useAtomValue(
+    bestMovesFamily({
+      fen: rootFen,
+      gameMoves: moves,
+    }),
+  );
+
+  const goToNext = useStore(store, (s) => s.goToNext);
+  const goToPrevious = useStore(store, (s) => s.goToPrevious);
+  const storeMakeMove = useStore(store, (s) => s.makeMove);
+  const setHeaders = useStore(store, (s) => s.setHeaders);
+  const deleteMove = useStore(store, (s) => s.deleteMove);
+  const setShapes = useStore(store, (s) => s.setShapes);
+  const setFen = useStore(store, (s) => s.setFen);
 
   const [pos, error] = positionFromFen(currentNode.fen);
 
@@ -152,12 +167,9 @@ function Board({
       ? movable
       : headers.orientation || "white";
   const toggleOrientation = () =>
-    dispatch({
-      type: "SET_HEADERS",
-      payload: {
-        ...headers,
-        orientation: headers.orientation === "black" ? "white" : "black",
-      },
+    setHeaders({
+      ...headers,
+      orientation: orientation === "black" ? "white" : "black",
     });
 
   const keyMap = useAtomValue(keyMapAtom);
@@ -194,12 +206,9 @@ function Board({
           color: "red",
         });
         await new Promise((resolve) => setTimeout(resolve, 500));
-        dispatch({
-          type: "GO_TO_NEXT",
-        });
+        goToNext();
       } else {
-        dispatch({
-          type: "MAKE_MOVE",
+        storeMakeMove({
           payload: move,
         });
         setPendingMove(null);
@@ -207,8 +216,7 @@ function Board({
 
       updateCardPerformance(setDeck, i, c.card, isRecalled ? 4 : 1);
     } else {
-      dispatch({
-        type: "MAKE_MOVE",
+      storeMakeMove({
         payload: move,
         clock: pos.turn === "white" ? whiteTime : blackTime,
       });
@@ -294,7 +302,7 @@ function Board({
             <ActionIcon
               variant="default"
               size="lg"
-              onClick={() => dispatch({ type: "DELETE_MOVE" })}
+              onClick={() => deleteMove()}
             >
               <IconArrowBack />
             </ActionIcon>
@@ -462,12 +470,9 @@ function Board({
 
   useEffect(() => {
     if (editingMode && boardFen && boardFen !== currentNode.fen) {
-      dispatch({
-        type: "SET_FEN",
-        payload: boardFen,
-      });
+      setFen(boardFen);
     }
-  }, [boardFen, editingMode, dispatch]);
+  }, [boardFen, editingMode, setFen]);
 
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
@@ -575,13 +580,9 @@ function Board({
               onWheel={(e) => {
                 if (enableBoardScroll) {
                   if (e.deltaY > 0) {
-                    dispatch({
-                      type: "GO_TO_NEXT",
-                    });
+                    goToNext();
                   } else {
-                    dispatch({
-                      type: "GO_TO_PREVIOUS",
-                    });
+                    goToPrevious();
                   }
                 }
               }}
@@ -668,10 +669,7 @@ function Board({
                   defaultSnapToValidMove: snapArrows,
                   autoShapes: shapes,
                   onChange: (shapes) => {
-                    dispatch({
-                      type: "SET_SHAPES",
-                      payload: shapes,
-                    });
+                    setShapes(shapes);
                   },
                 }}
               />

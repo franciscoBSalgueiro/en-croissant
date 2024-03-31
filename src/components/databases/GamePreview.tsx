@@ -1,6 +1,6 @@
 import { Chessground } from "@/chessground/Chessground";
-import { getLastMainlinePosition, getOpening, parsePGN } from "@/utils/chess";
-import treeReducer, {
+import { parsePGN } from "@/utils/chess";
+import {
   type GameHeaders,
   type TreeState,
   getNodeAtPath,
@@ -9,12 +9,13 @@ import { Box, Group, Stack, Text } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { useContext, useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
-import { useImmerReducer } from "use-immer";
+import { useStore } from "zustand";
 import GameNotation from "../boards/GameNotation";
+import OpeningName from "../boards/OpeningName";
 import MoveControls from "../common/MoveControls";
 import {
-  TreeDispatchContext,
   TreeStateContext,
+  TreeStateProvider,
 } from "../common/TreeStateContext";
 
 function GamePreviewWrapper({
@@ -58,68 +59,43 @@ function GamePreview({
   hideControls?: boolean;
   showOpening?: boolean;
 }) {
-  const [treeState, dispatch] = useImmerReducer(treeReducer, game);
-  const [opening, setOpening] = useState("");
-  useEffect(() => {
-    getOpening(treeState.root, getLastMainlinePosition(treeState.root)).then(
-      (opening) => {
-        setOpening(opening);
-      },
-    );
-  }, [treeState.position, treeState.root]);
-
   const { ref: boardRef, height } = useElementSize();
 
   return (
-    <TreeStateContext.Provider value={treeState}>
-      <TreeDispatchContext.Provider value={dispatch}>
-        {showOpening && (
-          <Text h="2.5rem" fz="sm">
-            {opening}
-          </Text>
-        )}
-        <Group
-          align="start"
-          grow
-          style={{ overflow: "hidden", height: "100%" }}
-        >
-          <Box ref={boardRef}>
-            <PreviewBoard />
-          </Box>
-          {!hideControls && (
-            <Stack style={{ height }} gap="xs">
+    <TreeStateProvider initial={game}>
+      {showOpening && <OpeningName />}
+      <Group align="start" grow style={{ overflow: "hidden", height: "100%" }}>
+        <PreviewBoard />
+        {!hideControls && (
+          <Stack h="100%" gap="xs">
+            <Box ref={boardRef}>
               <GameNotation />
-              <MoveControls
-                goToStart={() => dispatch({ type: "GO_TO_START" })}
-                goToEnd={() => dispatch({ type: "GO_TO_END" })}
-                goToNext={() => dispatch({ type: "GO_TO_NEXT" })}
-                goToPrevious={() => dispatch({ type: "GO_TO_PREVIOUS" })}
-              />
-            </Stack>
-          )}
-        </Group>
-      </TreeDispatchContext.Provider>
-    </TreeStateContext.Provider>
+            </Box>
+            <MoveControls readOnly />
+          </Stack>
+        )}
+      </Group>
+    </TreeStateProvider>
   );
 }
 
 function PreviewBoard() {
-  const tree = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
-  const node = getNodeAtPath(tree.root, tree.position);
+  const store = useContext(TreeStateContext)!;
+  const goToNext = useStore(store, (s) => s.goToNext);
+  const goToPrevious = useStore(store, (s) => s.goToPrevious);
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const headers = useStore(store, (s) => s.headers);
+  const node = getNodeAtPath(root, position);
   const fen = node.fen;
 
   return (
     <Box
       onWheel={(e) => {
         if (e.deltaY > 0) {
-          dispatch({
-            type: "GO_TO_NEXT",
-          });
+          goToNext();
         } else {
-          dispatch({
-            type: "GO_TO_PREVIOUS",
-          });
+          goToPrevious();
         }
       }}
     >
@@ -127,7 +103,7 @@ function PreviewBoard() {
         coordinates={false}
         viewOnly={true}
         fen={fen}
-        orientation={tree.headers.orientation || "white"}
+        orientation={headers.orientation || "white"}
       />
     </Box>
   );

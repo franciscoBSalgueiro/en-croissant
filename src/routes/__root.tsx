@@ -1,9 +1,9 @@
 import type { Dirs } from "@/App";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/atoms/atoms";
-import { keyMapAtom } from "@/atoms/keybinds";
 import AboutModal from "@/components/About";
 import { SideBar } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
+import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import { openFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
 import { AppShell } from "@mantine/core";

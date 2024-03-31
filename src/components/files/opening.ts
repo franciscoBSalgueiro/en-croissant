@@ -1,4 +1,4 @@
-import type { PracticeData } from "@/atoms/atoms";
+import type { PracticeData } from "@/state/atoms";
 import { isPrefix } from "@/utils/misc";
 import { type TreeNode, treeIterator } from "@/utils/treeReducer";
 import type { SetStateAction } from "react";

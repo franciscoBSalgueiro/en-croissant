@@ -1,14 +1,11 @@
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentTabAtom,
   minimumGamesAtom,
   missingMovesAtom,
   percentageCoverageAtom,
   referenceDbAtom,
-} from "@/atoms/atoms";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+} from "@/state/atoms";
 import {
   type MissingMove,
   getTreeStats,
@@ -28,9 +25,12 @@ import { IconInfoCircle, IconReload } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useContext, useMemo, useState } from "react";
+import { useStore } from "zustand";
 
 function RepertoireInfo() {
-  const { headers, root } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const headers = useStore(store, (s) => s.headers);
   const referenceDb = useAtomValue(referenceDbAtom);
   const currentTab = useAtomValue(currentTabAtom);
 
@@ -120,7 +120,8 @@ function MissingMoves({
   missingMoves: MissingMove[];
   search: () => void;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const goToMove = useStore(store, (s) => s.goToMove);
 
   return (
     <DataTable
@@ -128,12 +129,7 @@ function MissingMoves({
       emptyState={<Text py={200}>No missing moves found</Text>}
       highlightOnHover
       records={missingMoves}
-      onRowClick={({ record }) =>
-        dispatch({
-          type: "GO_TO_MOVE",
-          payload: record.position,
-        })
-      }
+      onRowClick={({ record }) => goToMove(record.position)}
       groups={[
         {
           id: "Missing Moves",

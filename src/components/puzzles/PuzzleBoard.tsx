@@ -1,5 +1,5 @@
-import { showCoordinatesAtom } from "@/atoms/atoms";
 import { Chessground } from "@/chessground/Chessground";
+import { showCoordinatesAtom } from "@/state/atoms";
 import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
@@ -18,11 +18,9 @@ import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
+import { useStore } from "zustand";
 import PromotionModal from "../boards/PromotionModal";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 
 function PuzzleBoard({
   puzzles,
@@ -37,11 +35,14 @@ function PuzzleBoard({
   generatePuzzle: (db: string) => void;
   db: string | null;
 }) {
-  const tree = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const makeMove = useStore(store, (s) => s.makeMove);
+  const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
 
-  const currentNode = getNodeAtPath(tree.root, tree.position);
+  const currentNode = getNodeAtPath(root, position);
 
   let puzzle: Puzzle | null = null;
   if (puzzles.length > 0) {
@@ -51,7 +52,7 @@ function PuzzleBoard({
 
   const [pos] = positionFromFen(currentNode.fen);
 
-  const treeIter = treeIteratorMainLine(tree.root);
+  const treeIter = treeIteratorMainLine(root);
   treeIter.next();
   let currentMove = 0;
   if (puzzle) {
@@ -91,15 +92,13 @@ function PuzzleBoard({
         }
       }
       const newMoves = puzzle.moves.slice(currentMove, currentMove + 2);
-      dispatch({
-        type: "MAKE_MOVES",
+      makeMoves({
         payload: newMoves,
         mainline: true,
         changeHeaders: false,
       });
     } else {
-      dispatch({
-        type: "MAKE_MOVE",
+      makeMove({
         payload: move,
         changePosition: false,
         changeHeaders: false,
@@ -143,7 +142,7 @@ function PuzzleBoard({
           movable={{
             free: false,
             color:
-              puzzle && equal(tree.position, Array(currentMove).fill(0))
+              puzzle && equal(position, Array(currentMove).fill(0))
                 ? turn
                 : undefined,
             dests: dests,

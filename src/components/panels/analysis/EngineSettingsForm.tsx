@@ -1,6 +1,6 @@
-import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
 import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import {
   ActionIcon,
@@ -14,7 +14,7 @@ import {
 import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
@@ -50,13 +50,23 @@ function EngineSettingsForm({
   const hash = settings.settings.find((o) => o.name === "Hash");
   const activeTab = useAtomValue(activeTabAtom);
 
+  const setGoMode = useCallback(
+    (v: GoMode) => {
+      setSettings((prev) => ({
+        ...prev,
+        go: v,
+      }));
+    },
+    [setSettings],
+  );
+
   return (
     <Stack>
       {!remote && (
         <GoModeInput
           gameMode={gameMode}
           goMode={settings.go}
-          setGoMode={(v) => setSettings((prev) => ({ ...prev, go: v }))}
+          setGoMode={setGoMode}
         />
       )}
 

@@ -1,8 +1,5 @@
-import { currentPgnOptionsAtom } from "@/atoms/atoms";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { currentPgnOptionsAtom } from "@/state/atoms";
 import { getPGN, parsePGN } from "@/utils/chess";
 import {
   ActionIcon,
@@ -21,10 +18,13 @@ import { IconCheck, IconCopy } from "@tabler/icons-react";
 import deepEqual from "fast-deep-equal";
 import { useAtom } from "jotai";
 import { useContext, useEffect, useMemo, useState } from "react";
+import { useStore } from "zustand";
 
 function PgnInput() {
-  const { root, headers, position } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const headers = useStore(store, (s) => s.headers);
+  const setState = useStore(store, (s) => s.setState);
   const [options, setOptions] = useAtom(currentPgnOptionsAtom);
 
   const realPGN = useMemo(
@@ -103,10 +103,7 @@ function PgnInput() {
     if (deepEqual(tree.root, root) && deepEqual(tree.headers, headers)) {
       setTmp(pgn);
     } else {
-      dispatch({
-        type: "SET_STATE",
-        payload: tree,
-      });
+      setState(tree);
     }
   }
 

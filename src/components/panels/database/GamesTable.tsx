@@ -1,4 +1,4 @@
-import { activeTabAtom, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import type { NormalizedGame } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { ActionIcon, Text, useMantineTheme } from "@mantine/core";

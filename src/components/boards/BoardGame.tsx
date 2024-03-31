@@ -1,11 +1,11 @@
+import { events, type GoMode, commands } from "@/bindings";
 import {
   activeTabAtom,
   currentGameStateAtom,
   currentPlayersAtom,
   enginesAtom,
   tabsAtom,
-} from "@/atoms/atoms";
-import { events, type GoMode, commands } from "@/bindings";
+} from "@/state/atoms";
 import { type TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import type { EngineSettings, LocalEngine } from "@/utils/engines";
@@ -49,13 +49,11 @@ import {
   useState,
 } from "react";
 import { match } from "ts-pattern";
+import { useStore } from "zustand";
 import GameInfo from "../common/GameInfo";
 import MoveControls from "../common/MoveControls";
 import TimeInput from "../common/TimeInput";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "../common/TreeStateContext";
+import { TreeStateContext } from "../common/TreeStateContext";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
 import GameNotation from "./GameNotation";
@@ -317,8 +315,14 @@ function BoardGame() {
     return { white, black };
   }
 
-  const { headers, root, position } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const headers = useStore(store, (s) => s.headers);
+  const setFen = useStore(store, (s) => s.setFen);
+  const setHeaders = useStore(store, (s) => s.setHeaders);
+  const appendMove = useStore(store, (s) => s.appendMove);
+
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
@@ -414,8 +418,7 @@ function BoardGame() {
         payload.moves.join(",") === moves.join(",") &&
         !pos?.isEnd()
       ) {
-        dispatch({
-          type: "APPEND_MOVE",
+        appendMove({
           payload: parseUci(ev[0].uciMoves[0])!,
           clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
@@ -424,7 +427,7 @@ function BoardGame() {
     return () => {
       unlisten.then((f) => f());
     };
-  }, [activeTab, dispatch, pos, root.fen, moves, whiteTime, blackTime]);
+  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -459,15 +462,12 @@ function BoardGame() {
       }
       setIntervalId(null);
       setGameState("gameOver");
-      dispatch({
-        type: "SET_HEADERS",
-        payload: {
-          ...headers,
-          result: "0-1",
-        },
+      setHeaders({
+        ...headers,
+        result: "0-1",
       });
     }
-  }, [gameState, whiteTime, setGameState, dispatch, headers]);
+  }, [gameState, whiteTime, setGameState, setHeaders, headers]);
 
   useEffect(() => {
     if (gameState !== "playing") {
@@ -481,15 +481,12 @@ function BoardGame() {
   useEffect(() => {
     if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
       setGameState("gameOver");
-      dispatch({
-        type: "SET_HEADERS",
-        payload: {
-          ...headers,
-          result: "1-0",
-        },
+      setHeaders({
+        ...headers,
+        result: "1-0",
       });
     }
-  }, [gameState, blackTime, setGameState, dispatch, headers]);
+  }, [gameState, blackTime, setGameState, setHeaders, headers]);
 
   function decrementTime() {
     if (pos?.turn === "white" && whiteTime !== null) {
@@ -525,9 +522,6 @@ function BoardGame() {
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           dirty={false}
-          currentNode={currentNode}
-          arrows={new Map()}
-          headers={headers}
           editingMode={false}
           toggleEditingMode={() => undefined}
           viewOnly={gameState !== "playing"}
@@ -535,8 +529,6 @@ function BoardGame() {
           boardRef={boardRef}
           canTakeBack={onePlayerIsEngine}
           movable={movable}
-          root={root}
-          position={position}
           whiteTime={
             gameState === "playing" ? whiteTime ?? undefined : undefined
           }
@@ -628,12 +620,9 @@ function BoardGame() {
                           }`;
                         }
                       }
-                      dispatch({
-                        type: "SET_HEADERS",
-                        payload: {
-                          ...headers,
-                          ...newHeaders,
-                        },
+                      setHeaders({
+                        ...headers,
+                        ...newHeaders,
                       });
                     }}
                     disabled={error !== null}
@@ -655,16 +644,10 @@ function BoardGame() {
                     setGameState("settingUp");
                     setWhiteTime(null);
                     setBlackTime(null);
-                    dispatch({
-                      type: "SET_FEN",
-                      payload: INITIAL_FEN,
-                    });
-                    dispatch({
-                      type: "SET_HEADERS",
-                      payload: {
-                        ...headers,
-                        result: "*",
-                      },
+                    setFen(INITIAL_FEN);
+                    setHeaders({
+                      ...headers,
+                      result: "*",
                     });
                   }}
                   leftSection={<IconPlus />}

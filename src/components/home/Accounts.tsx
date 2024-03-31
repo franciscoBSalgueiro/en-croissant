@@ -1,4 +1,4 @@
-import { sessionsAtom } from "@/atoms/atoms";
+import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount } from "@/utils/chess.com/api";
 import { type DatabaseInfo, getDatabases } from "@/utils/db";
 import { invoke } from "@/utils/invoke";

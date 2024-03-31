@@ -1,4 +1,4 @@
-import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/atoms/atoms";
+import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
 import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";

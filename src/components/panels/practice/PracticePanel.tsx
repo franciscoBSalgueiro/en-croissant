@@ -1,21 +1,18 @@
-import {
-  type PracticeData,
-  currentInvisibleAtom,
-  currentPracticeTabAtom,
-  currentTabAtom,
-  deckAtomFamily,
-} from "@/atoms/atoms";
 import ConfirmModal from "@/components/common/ConfirmModal";
-import {
-  TreeDispatchContext,
-  TreeStateContext,
-} from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   buildFromTree,
   getCardForReview,
   getStats,
   updateCardPerformance,
 } from "@/components/files/opening";
+import {
+  type PracticeData,
+  currentInvisibleAtom,
+  currentPracticeTabAtom,
+  currentTabAtom,
+  deckAtomFamily,
+} from "@/state/atoms";
 import { findFen, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -38,11 +35,17 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { formatDate } from "ts-fsrs";
+import { useStore } from "zustand";
 import RepertoireInfo from "./RepertoireInfo";
 
-function PracticePanel({ fen }: { fen: string }) {
-  const dispatch = useContext(TreeDispatchContext);
-  const { root, headers } = useContext(TreeStateContext);
+function PracticePanel() {
+  const store = useContext(TreeStateContext)!;
+  const fen = useStore(store, (s) => s.currentNode().fen);
+  const root = useStore(store, (s) => s.root);
+  const headers = useStore(store, (s) => s.headers);
+  const goToMove = useStore(store, (s) => s.goToMove);
+  const goToNext = useStore(store, (s) => s.goToNext);
+
   const currentTab = useAtomValue(currentTabAtom);
   const [resetModal, toggleResetModal] = useToggle();
 
@@ -72,10 +75,7 @@ function PracticePanel({ fen }: { fen: string }) {
     if (deck.positions.length === 0) return;
     const c = getCardForReview(deck.positions);
     if (!c) return;
-    dispatch({
-      type: "GO_TO_MOVE",
-      payload: findFen(c.fen, root),
-    });
+    goToMove(findFen(c.fen, root));
     setInvisible(true);
   }
 
@@ -83,7 +83,7 @@ function PracticePanel({ fen }: { fen: string }) {
     if (deck.logs[deck.logs.length - 1]?.rating === 4) {
       newPractice();
     }
-  }, [JSON.stringify(deck), dispatch]);
+  }, [JSON.stringify(deck)]);
 
   const [positionsOpen, setPositionsOpen] = useToggle();
   const [logsOpen, setLogsOpen] = useToggle();
@@ -218,7 +218,7 @@ function PracticePanel({ fen }: { fen: string }) {
                 variant="default"
                 onClick={() => {
                   setInvisible(false);
-                  dispatch({ type: "GO_TO_NEXT" });
+                  goToNext();
                 }}
               >
                 See Answer
@@ -270,8 +270,9 @@ function PositionsModal({
   setOpen: (open: boolean) => void;
   deck: PracticeData;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
-  const { root } = useContext(TreeStateContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const goToMove = useStore(store, (s) => s.goToMove);
   return (
     <Modal
       opened={open}
@@ -324,10 +325,7 @@ function PositionsModal({
                 <ActionIcon
                   variant="subtle"
                   onClick={() => {
-                    dispatch({
-                      type: "GO_TO_MOVE",
-                      payload: position,
-                    });
+                    goToMove(position);
                     setOpen(false);
                   }}
                 >
@@ -351,8 +349,9 @@ function LogsModal({
   setOpen: (open: boolean) => void;
   logs: PracticeData["logs"];
 }) {
-  const { root } = useContext(TreeStateContext);
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const goToMove = useStore(store, (s) => s.goToMove);
   return (
     <Modal
       opened={open}
@@ -393,10 +392,7 @@ function LogsModal({
                 <ActionIcon
                   variant="subtle"
                   onClick={() => {
-                    dispatch({
-                      type: "GO_TO_MOVE",
-                      payload: position,
-                    });
+                    goToMove(position);
                     setOpen(false);
                   }}
                 >

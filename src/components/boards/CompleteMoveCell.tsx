@@ -1,6 +1,5 @@
-import { currentTabAtom } from "@/atoms/atoms";
 import { Comment } from "@/components/common/Comment";
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { Box, Menu, Portal } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
@@ -12,6 +11,8 @@ import {
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
+import { useStore } from "zustand";
+import { TreeStateContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
 
 function CompleteMoveCell({
@@ -37,7 +38,13 @@ function CompleteMoveCell({
   movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement>;
 }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const goToMove = useStore(store, (s) => s.goToMove);
+  const deleteMove = useStore(store, (s) => s.deleteMove);
+  const promoteVariation = useStore(store, (s) => s.promoteVariation);
+  const promoteToMainline = useStore(store, (s) => s.promoteToMainline);
+  const setStart = useStore(store, (s) => s.setStart);
+
   const moveNumber = Math.ceil(halfMoves / 2);
   const isWhite = halfMoves % 2 === 1;
   const hasNumber = halfMoves > 0 && (first || isWhite);
@@ -68,12 +75,7 @@ function CompleteMoveCell({
                 annotations={annotations}
                 isStart={isStart}
                 isCurrentVariation={isCurrentVariation}
-                onClick={() =>
-                  dispatch({
-                    type: "GO_TO_MOVE",
-                    payload: movePath,
-                  })
-                }
+                onClick={() => goToMove(movePath)}
                 onContextMenu={(e: React.MouseEvent) => {
                   setOpen((v) => !v);
                   e.preventDefault();
@@ -86,30 +88,21 @@ function CompleteMoveCell({
                 {currentTab?.file?.metadata.type === "repertoire" && (
                   <Menu.Item
                     leftSection={<IconFlag size="0.875rem" />}
-                    onClick={() => {
-                      dispatch({
-                        type: "SET_START",
-                        payload: movePath,
-                      });
-                    }}
+                    onClick={() => setStart(movePath)}
                   >
                     Mark as start
                   </Menu.Item>
                 )}
                 <Menu.Item
                   leftSection={<IconChevronsUp size="0.875rem" />}
-                  onClick={() =>
-                    dispatch({ type: "PROMOTE_TO_MAINLINE", payload: movePath })
-                  }
+                  onClick={() => promoteToMainline(movePath)}
                 >
                   Promote to Main Line
                 </Menu.Item>
 
                 <Menu.Item
                   leftSection={<IconChevronUp size="0.875rem" />}
-                  onClick={() =>
-                    dispatch({ type: "PROMOTE_VARIATION", payload: movePath })
-                  }
+                  onClick={() => promoteVariation(movePath)}
                 >
                   Promote Variation
                 </Menu.Item>
@@ -117,9 +110,7 @@ function CompleteMoveCell({
                 <Menu.Item
                   color="red"
                   leftSection={<IconX size="0.875rem" />}
-                  onClick={() =>
-                    dispatch({ type: "DELETE_MOVE", payload: movePath })
-                  }
+                  onClick={() => deleteMove(movePath)}
                 >
                   Delete Move
                 </Menu.Item>

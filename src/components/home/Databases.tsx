@@ -1,5 +1,5 @@
-import { sessionsAtom } from "@/atoms/atoms";
 import { events, type MonthData, type Results, commands } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
 import {
   type DatabaseInfo as PlainDatabaseInfo,
   type Player,

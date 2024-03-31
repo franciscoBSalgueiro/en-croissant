@@ -1,4 +1,4 @@
-import { boardImageAtom } from "@/atoms/atoms";
+import { boardImageAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,

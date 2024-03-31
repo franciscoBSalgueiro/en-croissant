@@ -1,7 +1,7 @@
-import { lichessOptionsAtom } from "@/atoms/atoms";
 import ToggleButtonGroup, {
   type ToggleButtonGroupOption,
 } from "@/components/common/ToggleButtonGroup";
+import { lichessOptionsAtom } from "@/state/atoms";
 import { MIN_DATE } from "@/utils/lichess/api";
 import type { LichessGameSpeed, LichessRating } from "@/utils/lichess/explorer";
 import { Group, Select, Stack, TextInput } from "@mantine/core";

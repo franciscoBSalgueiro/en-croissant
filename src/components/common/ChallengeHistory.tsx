@@ -1,4 +1,4 @@
-import { hidePuzzleRatingAtom } from "@/atoms/atoms";
+import { hidePuzzleRatingAtom } from "@/state/atoms";
 import type { Completion } from "@/utils/puzzles";
 import { ActionIcon, Group, Stack, Text } from "@mantine/core";
 import { IconCheck, IconDots, IconX } from "@tabler/icons-react";

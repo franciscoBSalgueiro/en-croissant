@@ -1,5 +1,5 @@
-import { activeTabAtom, enginesAtom } from "@/atoms/atoms";
 import LocalImage from "@/components/common/LocalImage";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
 import { type Engine, stopEngine } from "@/utils/engines";
 import {
   Center,

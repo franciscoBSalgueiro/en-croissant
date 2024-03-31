@@ -1,4 +1,4 @@
-import { TreeDispatchContext } from "@/components/common/TreeStateContext";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { type TablebaseCategory, getTablebaseInfo } from "@/utils/lichess/api";
 import {
   Accordion,
@@ -13,13 +13,15 @@ import { parseUci } from "chessops";
 import { useContext } from "react";
 import useSWRImmutable from "swr/immutable";
 import { P, match } from "ts-pattern";
+import { useStore } from "zustand";
 import * as classes from "./TablebaseInfo.css";
 
 function TablebaseInfo({
   fen,
   turn,
 }: { fen: string; turn: "white" | "black" }) {
-  const dispatch = useContext(TreeDispatchContext);
+  const store = useContext(TreeStateContext)!;
+  const makeMove = useStore(store, (s) => s.makeMove);
   const { data, error, isLoading } = useSWRImmutable(
     ["tablebase", fen],
     async ([_, fen]) => await getTablebaseInfo(fen),
@@ -71,10 +73,7 @@ function TablebaseInfo({
                       key={m.san}
                       px="xs"
                       onClick={() => {
-                        dispatch({
-                          type: "MAKE_MOVE",
-                          payload: parseUci(m.uci)!,
-                        });
+                        makeMove({ payload: parseUci(m.uci)! });
                       }}
                       className={classes.info}
                     >

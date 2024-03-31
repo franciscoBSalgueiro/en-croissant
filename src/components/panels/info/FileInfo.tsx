@@ -1,4 +1,4 @@
-import { currentTabAtom } from "@/atoms/atoms";
+import { currentTabAtom } from "@/state/atoms";
 import { count_pgn_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { ActionIcon, Code, Divider, Group, Text, Tooltip } from "@mantine/core";

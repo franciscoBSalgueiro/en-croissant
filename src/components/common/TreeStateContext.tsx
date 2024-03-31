@@ -1,47 +1,23 @@
-import treeReducer, {
-  type TreeAction,
-  type TreeState,
-  defaultTree,
-} from "@/utils/treeReducer";
-import { createContext, useEffect } from "react";
-import { useImmerReducer } from "use-immer";
+import { type TreeStore, createTreeStore } from "@/state/store";
+import type { TreeState } from "@/utils/treeReducer";
+import { createContext, useRef } from "react";
 
-export const TreeStateContext = createContext<TreeState>(defaultTree());
-export const TreeDispatchContext = createContext<React.Dispatch<TreeAction>>(
-  () => undefined,
-);
-
-function getTreeFromSessionStorage(id: string): TreeState {
-  const treeState = sessionStorage.getItem(id);
-  if (treeState) {
-    const parsed = JSON.parse(treeState);
-    return parsed;
-  }
-  return defaultTree();
-}
+export const TreeStateContext = createContext<TreeStore | null>(null);
 
 export function TreeStateProvider({
   id,
+  initial,
   children,
 }: {
-  id: string;
+  id?: string;
+  initial?: TreeState;
   children: React.ReactNode;
 }) {
-  const [treeState, dispatch] = useImmerReducer(
-    treeReducer,
-    id,
-    getTreeFromSessionStorage,
-  );
-
-  useEffect(() => {
-    sessionStorage.setItem(id, JSON.stringify(treeState));
-  }, [id, treeState]);
+  const store = useRef(createTreeStore(id, initial)).current;
 
   return (
-    <TreeStateContext.Provider value={treeState}>
-      <TreeDispatchContext.Provider value={dispatch}>
-        {children}
-      </TreeDispatchContext.Provider>
+    <TreeStateContext.Provider value={store}>
+      {children}
     </TreeStateContext.Provider>
   );
 }
