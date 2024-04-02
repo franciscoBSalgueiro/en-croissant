@@ -1,7 +1,9 @@
 use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
 
 use derivative::Derivative;
+use governor::{Quota, RateLimiter};
 use log::{error, info};
+use nonzero_ext::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode, Position,
@@ -505,6 +507,8 @@ pub async fn get_best_moves(
 
     state.engine_processes.insert(key.clone(), process.clone());
 
+    let mut lim = RateLimiter::direct(Quota::per_second(nonzero!(5u32)));
+
     while let Some(line) = reader.next_line().await? {
         let mut proc = process.lock().await;
         match parse_one(&line) {
@@ -520,6 +524,7 @@ pub async fn get_best_moves(
                         if multipv == proc.real_multipv {
                             if proc.best_moves.iter().all(|x| x.depth == cur_depth)
                                 && cur_depth >= proc.last_depth
+                                && lim.check().is_ok()
                             {
                                 let progress = match proc.go_mode {
                                     GoMode::Depth(depth) => {

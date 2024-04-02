@@ -436,7 +436,7 @@ function BestMovesComponent({
               engineVariations.map((engineVariation, index) => {
                 return (
                   <AnalysisRow
-                    key={engineVariation.sanMoves.join(",")}
+                    key={index}
                     moves={engineVariation.sanMoves}
                     score={engineVariation.score}
                     halfMoves={halfMoves}

@@ -57,6 +57,8 @@ axum = "0.6.20"
 tar = "0.4.40"
 sysinfo = "0.29.10"
 window-shadows = "0.2.2"
+governor = "0.6.3"
+nonzero_ext = "0.3.0"
 
 [features]
 # by default Tauri runs in production mode
