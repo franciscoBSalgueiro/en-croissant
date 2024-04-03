@@ -19,7 +19,7 @@ export default function ErrorComponent({
 
   return (
     <Stack p="md">
-      <Title>An error ocurred</Title>
+      <Title>An error occurred</Title>
       {error instanceof Error ? (
         <>
           <Text>
