@@ -65,12 +65,12 @@ function GamePreview({
     <TreeStateProvider initial={game}>
       {showOpening && <OpeningName />}
       <Group align="start" grow style={{ overflow: "hidden", height: "100%" }}>
-        <PreviewBoard />
+        <Box ref={boardRef}>
+          <PreviewBoard />
+        </Box>
         {!hideControls && (
-          <Stack h="100%" gap="xs">
-            <Box ref={boardRef}>
-              <GameNotation />
-            </Box>
+          <Stack style={{ height }} gap="xs">
+            <GameNotation />
             <MoveControls readOnly />
           </Stack>
         )}

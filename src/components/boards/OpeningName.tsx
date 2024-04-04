@@ -15,7 +15,7 @@ function OpeningName() {
   }, [root, position]);
 
   return (
-    <Text style={{ userSelect: "text" }} fz="sm">
+    <Text style={{ userSelect: "text" }} fz="sm" h="1.5rem">
       {openingName}
     </Text>
   );
