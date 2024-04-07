@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode, Position,
     Role,
-};
+}; //s
 use specta::Type;
 use tauri_specta::Event;
 use tokio::{
