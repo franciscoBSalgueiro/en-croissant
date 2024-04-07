@@ -59,7 +59,7 @@ export default function EnginesPage() {
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
-    navigate({ search: { selected: v } });
+    navigate({ search: { selected: v ?? undefined } });
   };
 
   const selectedEngine = selected !== undefined ? engines[selected] : null;
@@ -121,7 +121,7 @@ export default function EnginesPage() {
           </SimpleGrid>
         </ScrollArea>
         <Paper withBorder p="md" h="100%">
-          {selectedEngine === null || selected === undefined ? (
+          {!selectedEngine || selected === undefined ? (
             <Text ta="center">No engine selected</Text>
           ) : selectedEngine.type === "local" ? (
             <EngineSettings selected={selected} setSelected={setSelected} />
