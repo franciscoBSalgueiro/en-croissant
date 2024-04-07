@@ -224,7 +224,6 @@ function AnalysisPanel() {
                                         orientation={
                                           headers.orientation || "white"
                                         }
-                                        chess960={is960}
                                       />
                                     </Accordion.Item>
                                   </div>

@@ -241,6 +241,9 @@ export const progressivePuzzlesAtom = atomWithStorage<boolean>(
 
 // Per tab settings
 
+const threatFamily = atomFamily((tab: string) => atom(false));
+export const currentThreatAtom = tabValue(threatFamily);
+
 const evalOpenFamily = atomFamily((tab: string) => atom(true));
 export const currentEvalOpenAtom = tabValue(evalOpenFamily);
 
@@ -375,6 +378,11 @@ export const deckAtomFamily = atomFamily(
 export const engineMovesFamily = atomFamily(
   ({ tab, engine }: { tab: string; engine: string }) =>
     atom<Map<string, BestMoves[]>>(new Map()),
+  (a, b) => a.tab === b.tab && a.engine === b.engine,
+);
+
+export const engineProgressFamily = atomFamily(
+  ({ tab, engine }: { tab: string; engine: string }) => atom<number>(0),
   (a, b) => a.tab === b.tab && a.engine === b.engine,
 );
 

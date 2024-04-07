@@ -1,27 +1,15 @@
-import {
-  events,
-  type BestMoves,
-  type EngineOptions,
-  type GoMode,
-} from "@/bindings";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
+import type { BestMoves } from "@/bindings";
 import {
   activeTabAtom,
+  currentThreatAtom,
   engineMovesFamily,
+  engineProgressFamily,
   enginesAtom,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
-import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
-import {
-  type Engine,
-  type LocalEngine,
-  getBestMoves as localGetBestMoves,
-  stopEngine,
-} from "@/utils/engines";
+import type { Engine } from "@/utils/engines";
 import { formatNodes } from "@/utils/format";
-import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
-import { useThrottledEffect } from "@/utils/misc";
 import { formatScore } from "@/utils/score";
 import {
   Accordion,
@@ -50,18 +38,8 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  memo,
-  startTransition,
-  useCallback,
-  useContext,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo } from "react";
 import { match } from "ts-pattern";
-import { useZustand as useStore } from "use-zustand";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
@@ -81,7 +59,6 @@ interface BestMovesProps {
   halfMoves: number;
   dragHandleProps: any;
   orientation: "white" | "black";
-  chess960: boolean;
 }
 
 function BestMovesComponent({
@@ -92,13 +69,13 @@ function BestMovesComponent({
   halfMoves,
   dragHandleProps,
   orientation,
-  chess960,
 }: BestMovesProps) {
-  const store = useContext(TreeStateContext)!;
-  const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
-  const [ev, setEngineVariation] = useAtom(
+  const ev = useAtomValue(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+  );
+  const progress = useAtomValue(
+    engineProgressFamily({ engine: engine.name, tab: activeTab! }),
   );
   const [, setEngines] = useAtom(enginesAtom);
   const [settings, setSettings2] = useAtom(
@@ -138,9 +115,8 @@ function BestMovesComponent({
   );
 
   const [settingsOn, toggleSettingsOn] = useToggle();
-  const [threat, toggleThreat] = useToggle();
+  const [threat, setThreat] = useAtom(currentThreatAtom);
   const theme = useMantineTheme();
-  const [progress, setProgress] = useState(0);
 
   const [pos, error] = positionFromFen(fen);
   if (pos) {
@@ -179,117 +155,6 @@ function BestMovesComponent({
     ),
   );
 
-  useEffect(() => {
-    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      const ev = payload.bestLines;
-      if (
-        payload.engine === engine.name &&
-        payload.tab === activeTab &&
-        payload.fen === searchingFen &&
-        payload.moves.join(",") === searchingMoves.join(",") &&
-        settings.enabled &&
-        !isGameOver
-      ) {
-        startTransition(() => {
-          setEngineVariation((prev) => {
-            const newMap = new Map(prev);
-            newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
-            if (threat) {
-              newMap.delete(`${fen}:${moves.join(",")}`);
-            } else if (finalFen) {
-              newMap.delete(`${swapMove(finalFen)}:`);
-            }
-            return newMap;
-          });
-          setProgress(payload.progress);
-          setScore(ev[0].score);
-        });
-      }
-    });
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, [
-    activeTab,
-    setScore,
-    settings.enabled,
-    isGameOver,
-    searchingFen,
-    JSON.stringify(searchingMoves),
-    engine.name,
-    setEngineVariation,
-  ]);
-
-  const getBestMoves = useMemo(
-    () =>
-      match(engine.type)
-        .with(
-          "local",
-          () => (fen: string, goMode: GoMode, options: EngineOptions) =>
-            localGetBestMoves(engine as LocalEngine, fen, goMode, options),
-        )
-        .with("chessdb", () => chessdbGetBestMoves)
-        .with("lichess", () => lichessGetBestMoves)
-        .exhaustive(),
-    [engine.type, engine],
-  );
-
-  useThrottledEffect(
-    () => {
-      if (settings.enabled) {
-        if (isGameOver) {
-          if (engine.type === "local") {
-            stopEngine(engine, activeTab!);
-          }
-        } else {
-          const options =
-            settings.settings?.map((s) => ({
-              name: s.name,
-              value: s.value?.toString() || "",
-            })) ?? [];
-          if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
-            options.push({ name: "UCI_Chess960", value: "true" });
-          }
-          getBestMoves(activeTab!, settings.go, {
-            moves: searchingMoves,
-            fen: searchingFen,
-            extraOptions: options,
-          }).then((moves) => {
-            if (moves) {
-              const [progress, bestMoves] = moves;
-              setEngineVariation((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(
-                  `${searchingFen}:${searchingMoves.join(",")}`,
-                  bestMoves,
-                );
-                return newMap;
-              });
-              setProgress(progress);
-            }
-          });
-        }
-      } else {
-        if (engine.type === "local") {
-          stopEngine(engine, activeTab!);
-        }
-      }
-    },
-    50,
-    [
-      settings.enabled,
-      JSON.stringify(settings.settings),
-      settings.go,
-      searchingFen,
-      JSON.stringify(searchingMoves),
-      isGameOver,
-      activeTab,
-      getBestMoves,
-      setEngineVariation,
-      engine,
-    ],
-  );
-
   return (
     <>
       <Box style={{ display: "flex" }}>
@@ -324,7 +189,7 @@ function BestMovesComponent({
           <Tooltip label="Check the opponent's threat">
             <ActionIcon
               size="lg"
-              onClick={() => toggleThreat()}
+              onClick={() => setThreat(!threat)}
               disabled={!settings.enabled}
               variant="transparent"
               mt="auto"

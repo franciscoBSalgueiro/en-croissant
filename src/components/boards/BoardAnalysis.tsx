@@ -5,6 +5,7 @@ import {
   currentTabSelectedAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { getVariationLine } from "@/utils/chess";
 import { invoke } from "@/utils/invoke";
 import { saveToFile } from "@/utils/tabs";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
@@ -20,6 +21,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
@@ -29,6 +31,7 @@ import InfoPanel from "../panels/info/InfoPanel";
 import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
+import EvalListener from "./EvalListener";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis() {
@@ -40,7 +43,13 @@ function BoardAnalysis() {
 
   const store = useContext(TreeStateContext)!;
 
+  const rootFen = useStore(store, (s) => s.root.fen);
+  const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
   const dirty = useStore(store, (s) => s.dirty);
+  const moves = useStore(
+    store,
+    useShallow((s) => getVariationLine(s.root, s.position, is960)),
+  );
 
   const reset = useStore(store, (s) => s.reset);
   const clearShapes = useStore(store, (s) => s.clearShapes);
@@ -88,6 +97,7 @@ function BoardAnalysis() {
 
   return (
     <>
+      <EvalListener fen={rootFen} moves={moves} chess960={is960} />
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           practicing={practicing}
