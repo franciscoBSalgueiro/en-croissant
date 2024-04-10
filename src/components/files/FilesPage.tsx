@@ -67,7 +67,8 @@ const useFileDirectory = (dir: string) => {
     "file-directory",
     async () => {
       const files = await readDir(dir, { recursive: true });
-      const filesInfo = await processFiles(files as MetadataOrEntry[]);
+      const filesInfo = await processFiles(
+        files.filter(f => !f.name?.startsWith(".")) as MetadataOrEntry[]);
 
       return filesInfo;
     },
