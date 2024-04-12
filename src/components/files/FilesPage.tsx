@@ -68,14 +68,15 @@ const useFileDirectory = (dir: string) => {
     async () => {
       const files = await readDir(dir, { recursive: true });
       const filesInfo = await processFiles(
-        files.filter(f => !f.name?.startsWith(".")) as MetadataOrEntry[]);
+        files.filter((f) => !f.name?.startsWith(".")) as MetadataOrEntry[],
+      );
 
       return filesInfo
         .sort((a, b) => {
-          return b.name.localeCompare(a.name, "en", {sensitivity: "base"})
+          return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
         })
         .filter((f) => {
-          return (f.children === undefined || (f.children?.length > 0))
+          return f.children === undefined || f.children?.length > 0;
         })
         .sort((a, b) => {
           if (a.children != null && b.children == null) {
