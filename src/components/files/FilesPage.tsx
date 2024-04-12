@@ -84,9 +84,8 @@ const useFileDirectory = (dir: string) => {
             return 0;
           } else if (a.children == null && b.children == null) {
             return 0;
-          } else {
-            return -1;
           }
+          return -1;
         });
     },
   );

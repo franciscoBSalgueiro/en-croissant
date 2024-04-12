@@ -71,7 +71,7 @@ export async function readFileMetadata(
   const numGames = await count_pgn_games(path);
   return {
     path,
-    name: name,
+    name: name.replace(".pgn", ""),
     numGames,
     metadata,
     lastModified: fileMetadata.last_modified,
