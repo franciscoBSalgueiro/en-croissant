@@ -1,5 +1,6 @@
 import type { BestMoves, Score } from "@/bindings";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
+import { getPGN } from "@/utils/chess";
 import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
 import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
@@ -58,6 +59,7 @@ export interface TreeStoreState {
   deleteMove: (path?: number[]) => void;
   promoteVariation: (path: number[]) => void;
   promoteToMainline: (path: number[]) => void;
+  copyVariationPgn: (path: number[]) => void;
 
   setStart: (start: number[]) => void;
 
@@ -266,6 +268,18 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           while (!promoteVariation(state, path)) {}
         }),
       ),
+    copyVariationPgn: (path) => {
+      const { root } = get();
+      const pgn = getPGN(root, {
+        headers: null,
+        comments: false,
+        extraMarkups: false,
+        glyphs: true,
+        variations: false,
+        path,
+      });
+      navigator.clipboard.writeText(pgn);
+    },
     setStart: (start) =>
       set(
         produce((state) => {

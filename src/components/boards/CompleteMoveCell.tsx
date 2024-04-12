@@ -6,6 +6,7 @@ import { shallowEqual, useClickOutside } from "@mantine/hooks";
 import {
   IconChevronUp,
   IconChevronsUp,
+  IconCopy,
   IconFlag,
   IconX,
 } from "@tabler/icons-react";
@@ -43,6 +44,7 @@ function CompleteMoveCell({
   const deleteMove = useStore(store, (s) => s.deleteMove);
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
   const promoteToMainline = useStore(store, (s) => s.promoteToMainline);
+  const copyVariationPgn = useStore(store, (s) => s.copyVariationPgn);
   const setStart = useStore(store, (s) => s.setStart);
 
   const moveNumber = Math.ceil(halfMoves / 2);
@@ -105,6 +107,13 @@ function CompleteMoveCell({
                   onClick={() => promoteVariation(movePath)}
                 >
                   Promote Variation
+                </Menu.Item>
+
+                <Menu.Item
+                  leftSection={<IconCopy size="0.875rem" />}
+                  onClick={() => copyVariationPgn(movePath)}
+                >
+                  Copy Variation PGN
                 </Menu.Item>
 
                 <Menu.Item

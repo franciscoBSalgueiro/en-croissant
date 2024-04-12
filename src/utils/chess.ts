@@ -235,6 +235,7 @@ export function getPGN(
     variations,
     extraMarkups,
     root = true,
+    path = null,
   }: {
     headers: GameHeaders | null;
     glyphs: boolean;
@@ -242,8 +243,12 @@ export function getPGN(
     variations: boolean;
     extraMarkups: boolean;
     root?: boolean;
+    path: number[] | null;
   },
 ): string {
+  if (path && path.length === 0) {
+    return "";
+  }
   let pgn = "";
   if (headers) {
     pgn += headersToPGN(headers);
@@ -275,11 +280,12 @@ export function getPGN(
             variations,
             extraMarkups,
             root: false,
+            path: null,
           })}`,
       )
     : [];
   if (tree.children.length > 0) {
-    const child = tree.children[0];
+    const child = tree.children[path ? path[0] : 0];
     pgn += getMoveText(child, {
       glyphs: glyphs,
       comments,
@@ -287,22 +293,25 @@ export function getPGN(
       isFirst: root,
     });
   }
-  for (const variation of variationsPGN) {
-    pgn += ` (${variation}) `;
+  if (!path) {
+    for (const variation of variationsPGN) {
+      pgn += ` (${variation}) `;
+    }
   }
 
   if (tree.children.length > 0) {
-    pgn += getPGN(tree.children[0], {
+    pgn += getPGN(tree.children[path ? path[0] : 0], {
       headers: null,
       glyphs,
       comments,
       variations,
       extraMarkups,
       root: false,
+      path: path ? path.slice(1) : null,
     });
   }
-  if (root) {
-    pgn += ` ${headers?.result}` ?? "*";
+  if (root && headers) {
+    pgn += ` ${headers.result}`;
   }
   return pgn.trim();
 }
