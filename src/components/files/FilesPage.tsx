@@ -80,9 +80,11 @@ const useFileDirectory = (dir: string) => {
         .sort((a, b) => {
           if (a.children != null && b.children == null) {
             return 1;
-          } else if (a.children != null && b.children != null) {
+          }
+          if (a.children != null && b.children != null) {
             return 0;
-          } else if (a.children == null && b.children == null) {
+          }
+          if (a.children == null && b.children == null) {
             return 0;
           }
           return -1;
