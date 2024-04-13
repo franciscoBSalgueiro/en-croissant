@@ -302,6 +302,7 @@ function BestMovesComponent({
                 return (
                   <AnalysisRow
                     key={index}
+                    engine={engine.name}
                     moves={engineVariation.sanMoves}
                     score={engineVariation.score}
                     halfMoves={halfMoves}

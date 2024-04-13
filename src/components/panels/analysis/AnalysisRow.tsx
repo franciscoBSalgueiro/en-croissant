@@ -2,7 +2,7 @@ import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/boards/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { previewBoardOnHoverAtom } from "@/state/atoms";
+import { previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
@@ -11,7 +11,7 @@ import type { Key } from "chessground/types";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import {
   useContext,
   useEffect,
@@ -24,6 +24,7 @@ import { useStore } from "zustand";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({
+  engine,
   score,
   moves,
   halfMoves,
@@ -31,6 +32,7 @@ function AnalysisRow({
   fen,
   orientation,
 }: {
+  engine: string;
   score: Score;
   moves: string[];
   halfMoves: number;
@@ -68,11 +70,18 @@ function AnalysisRow({
 
   useEffect(() => reset(), [open]);
 
+  const [evalDisplay, setEvalDisplay] = useAtom(scoreTypeFamily(engine));
+
   return (
     <>
       <Table.Tr style={{ verticalAlign: "top" }}>
         <Table.Td width={70}>
-          <ScoreBubble size="md" score={score.value} />
+          <ScoreBubble
+            size="md"
+            score={score}
+            evalDisplay={evalDisplay}
+            setEvalDisplay={setEvalDisplay}
+          />
         </Table.Td>
         <Table.Td>
           <Flex

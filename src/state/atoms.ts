@@ -239,6 +239,14 @@ export const progressivePuzzlesAtom = atomWithStorage<boolean>(
   false,
 );
 
+// CP / WDL
+
+export const reportTypeAtom = atom<"CP" | "WDL">("CP");
+
+export const scoreTypeFamily = atomFamily((engine: string) =>
+  atom<"cp" | "wdl">("cp"),
+);
+
 // Per tab settings
 
 const threatFamily = atomFamily((tab: string) => atom(false));

@@ -256,8 +256,10 @@ fn invert_score(score: Score) -> Score {
         ScoreValue::Cp(x) => ScoreValue::Cp(-x),
         ScoreValue::Mate(x) => ScoreValue::Mate(-x),
     };
+    let new_wdl = score.wdl.map(|(w, d, l)| (l, d, w));
     Score {
         value: new_value,
+        wdl: new_wdl,
         ..score
     }
 }

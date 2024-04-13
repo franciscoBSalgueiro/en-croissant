@@ -1,3 +1,4 @@
+import { reportTypeAtom } from "@/state/atoms";
 import { ANNOTATION_INFO } from "@/utils/annotation";
 import { positionFromFen } from "@/utils/chessops";
 import { skipWhile, takeWhile } from "@/utils/misc";
@@ -12,11 +13,13 @@ import {
   Box,
   LoadingOverlay,
   Paper,
+  SegmentedControl,
   Stack,
   Text,
   useMantineTheme,
 } from "@mantine/core";
 import equal from "fast-deep-equal";
+import { useAtom } from "jotai";
 import { useContext } from "react";
 import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
 import { useStore } from "zustand";
@@ -30,13 +33,17 @@ interface EvalChartProps {
 
 type DataPoint = {
   name: string;
-  evalText: string;
+  cpText: string;
+  wdlText: string;
   yValue: number | "none";
   movePath: number[];
   color: string;
+  White: number;
+  Draw: number;
+  Black: number;
 };
 
-const EvalChart = (props: EvalChartProps) => {
+function EvalChart(props: EvalChartProps) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
@@ -67,9 +74,17 @@ const EvalChart = (props: EvalChartProps) => {
     }
   }
 
-  function getEvalText(node: TreeNode): string {
+  function getEvalText(node: TreeNode, type: "cp" | "wdl"): string {
     if (node.score) {
-      return `Advantage: ${formatScore(node.score.value)}`;
+      if (type === "cp") {
+        return `Advantage: ${formatScore(node.score.value)}`;
+      }
+      if (type === "wdl" && node.score.wdl) {
+        return `
+         White: ${node.score.wdl[0] / 10}%
+         Draw: ${node.score.wdl[1] / 10}%
+         Black: ${node.score.wdl[2] / 10}%`;
+      }
     }
     if (node.children.length === 0) {
       const [pos, error] = positionFromFen(node.fen);
@@ -100,16 +115,21 @@ const EvalChart = (props: EvalChartProps) => {
       const currentNode = nodes[i];
       const yValue = getYValue(currentNode.node);
       const [pos] = positionFromFen(currentNode.node.fen);
+      const wdl = currentNode.node.score?.wdl;
 
       yield {
         name: `${Math.ceil(currentNode.node.halfMoves / 2)}.${
           pos?.turn === "black" ? "" : ".."
         } ${currentNode.node.san}${currentNode.node.annotations}`,
-        evalText: getEvalText(currentNode.node),
+        cpText: getEvalText(currentNode.node, "cp"),
+        wdlText: getEvalText(currentNode.node, "wdl"),
         yValue: yValue ?? "none",
         movePath: currentNode.position,
         color:
           ANNOTATION_INFO[currentNode.node.annotations[0]]?.color || "gray",
+        White: wdl ? wdl[0] : 0,
+        Draw: wdl ? wdl[1] : 0,
+        Black: wdl ? wdl[2] : 0,
       };
     }
   }
@@ -128,30 +148,6 @@ const EvalChart = (props: EvalChartProps) => {
     return dataMax / (dataMax - dataMin);
   }
 
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload: any;
-  }) => {
-    if (active && payload && payload.length && payload[0].payload) {
-      const dataPoint: DataPoint = payload[0].payload;
-      return (
-        <Paper px="md" py="sm" withBorder shadow="md" radius="md">
-          <Text
-            className={classes.tooltipTitle}
-            c={dataPoint.color === "gray" ? undefined : dataPoint.color}
-          >
-            {dataPoint.name}
-          </Text>
-          <Text>{dataPoint.evalText}</Text>
-        </Paper>
-      );
-    }
-    return null;
-  };
-
   const onChartClick: CategoricalChartFunc = (data) => {
     if (data?.activePayload?.length && data.activePayload[0].payload) {
       const dataPoint: DataPoint = data.activePayload[0].payload;
@@ -165,48 +161,120 @@ const EvalChart = (props: EvalChartProps) => {
   )?.name;
   const colouroffset = gradientOffset(data);
 
+  const [chartType, setChartType] = useAtom(reportTypeAtom);
+
   return (
     <Stack>
       <Box pos="relative">
         <LoadingOverlay visible={props.isAnalysing === true} />
-        <AreaChart
-          h={150}
-          curveType="monotone"
-          data={data}
-          dataKey={"name"}
-          series={[
-            { name: "yValue", color: theme.colors[theme.primaryColor][7] },
-          ]}
-          connectNulls={false}
-          withXAxis={false}
-          withYAxis={false}
-          yAxisProps={{ domain: [-1, 1] }}
-          type="split"
-          fillOpacity={0.8}
-          splitColors={["gray.1", "black"]}
-          splitOffset={colouroffset}
-          activeDotProps={{ r: 3, strokeWidth: 1 }}
-          dotProps={{ r: 0 }}
-          referenceLines={[
-            {
-              x: currentPositionName,
-              color: theme.colors[theme.primaryColor][7],
-            },
-          ]}
-          areaChartProps={{
-            onClick: onChartClick,
-            style: { cursor: "pointer" },
-          }}
-          gridAxis="none"
-          tooltipProps={{
-            content: ({ payload, active }) => (
-              <CustomTooltip active={active} payload={payload} />
-            ),
-          }}
+        <SegmentedControl
+          data={["CP", "WDL"]}
+          size="xs"
+          value={chartType}
+          onChange={(v) => setChartType(v as "CP" | "WDL")}
         />
+        {chartType === "CP" && (
+          <AreaChart
+            h={150}
+            curveType="monotone"
+            data={data}
+            dataKey={"name"}
+            series={[
+              { name: "yValue", color: theme.colors[theme.primaryColor][7] },
+            ]}
+            connectNulls={false}
+            withXAxis={false}
+            withYAxis={false}
+            yAxisProps={{ domain: [-1, 1] }}
+            type="split"
+            fillOpacity={0.8}
+            splitColors={["gray.1", "black"]}
+            splitOffset={colouroffset}
+            activeDotProps={{ r: 3, strokeWidth: 1 }}
+            dotProps={{ r: 0 }}
+            referenceLines={[
+              {
+                x: currentPositionName,
+                color: theme.colors[theme.primaryColor][7],
+              },
+            ]}
+            areaChartProps={{
+              onClick: onChartClick,
+              style: { cursor: "pointer" },
+            }}
+            gridAxis="none"
+            tooltipProps={{
+              content: ({ payload, active }) => (
+                <CustomTooltip active={active} payload={payload} type="cp" />
+              ),
+            }}
+          />
+        )}
+        {chartType === "WDL" && (
+          <AreaChart
+            h={150}
+            curveType="monotone"
+            data={data}
+            dataKey={"name"}
+            series={[
+              { name: "White", color: "white" },
+              { name: "Draw", color: "gray" },
+              { name: "Black", color: "black" },
+            ]}
+            connectNulls={false}
+            withXAxis={false}
+            withYAxis={false}
+            type="percent"
+            fillOpacity={0.8}
+            activeDotProps={{ r: 3, strokeWidth: 1 }}
+            dotProps={{ r: 0 }}
+            referenceLines={[
+              {
+                x: currentPositionName,
+                color: theme.colors[theme.primaryColor][7],
+              },
+            ]}
+            areaChartProps={{
+              onClick: onChartClick,
+              style: { cursor: "pointer" },
+            }}
+            gridAxis="none"
+            tooltipProps={{
+              content: ({ payload, active }) => (
+                <CustomTooltip active={active} payload={payload} type="wdl" />
+              ),
+            }}
+          />
+        )}
       </Box>
     </Stack>
   );
-};
+}
+
+function CustomTooltip({
+  active,
+  payload,
+  type,
+}: {
+  active?: boolean;
+  payload: any;
+  type: "cp" | "wdl";
+}) {
+  if (active && payload && payload.length && payload[0].payload) {
+    const dataPoint: DataPoint = payload[0].payload;
+    return (
+      <Paper px="md" py="sm" withBorder shadow="md" radius="md">
+        <Text
+          className={classes.tooltipTitle}
+          c={dataPoint.color === "gray" ? undefined : dataPoint.color}
+        >
+          {dataPoint.name}
+        </Text>
+        <Text>{type === "cp" ? dataPoint.cpText : dataPoint.wdlText}</Text>
+      </Paper>
+    );
+  }
+  return null;
+}
 
 export default EvalChart;
