@@ -2,7 +2,7 @@
     "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
     "files": {
         "ignore": [
-            "src/bindings.ts",
+            "src/bindings/generated.ts",
             "src/routeTree.gen.ts"
         ]
     },

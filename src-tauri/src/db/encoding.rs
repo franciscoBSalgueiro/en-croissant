@@ -30,7 +30,7 @@ pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<Vec<String
 mod tests {
     use super::*;
 
-    use shakmaty::{Move, Role, Square};
+    use shakmaty::{Role, Square};
 
     #[test]
     fn test_encoding() {

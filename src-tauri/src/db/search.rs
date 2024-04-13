@@ -473,8 +473,6 @@ pub async fn is_position_in_db(
 
 #[cfg(test)]
 mod tests {
-    use shakmaty::FromSetup;
-
     use super::*;
 
     fn assert_partial_match(fen1: &str, fen2: &str) {

@@ -160,7 +160,7 @@ fn main() {
             ));
 
         #[cfg(debug_assertions)]
-        let specta_builder = specta_builder.path("../src/bindings.ts");
+        let specta_builder = specta_builder.path("../src/bindings/generated.ts");
         specta_builder.into_plugin()
     };
 

@@ -95,10 +95,10 @@ export function getMoveText(
 
     if (opt.extraMarkups) {
       if (tree.score !== null) {
-        if (tree.score.type === "cp") {
-          content += `[%eval ${formatScore(tree.score)}] `;
+        if (tree.score.value.type === "cp") {
+          content += `[%eval ${formatScore(tree.score.value)}] `;
         } else {
-          content += `[%eval #${tree.score.value}] `;
+          content += `[%eval #${tree.score.value.value}] `;
         }
       }
       if (tree.clock !== undefined) {
@@ -243,7 +243,7 @@ export function getPGN(
     variations: boolean;
     extraMarkups: boolean;
     root?: boolean;
-    path: number[] | null;
+    path?: number[] | null;
   },
 ): string {
   if (path && path.length === 0) {
@@ -395,13 +395,19 @@ function innerParsePGN(
       if (comment.evaluation) {
         if (isPawns(comment.evaluation)) {
           root.score = {
-            type: "cp",
-            value: comment.evaluation.pawns * 100,
+            value: {
+              type: "cp",
+              value: comment.evaluation.pawns * 100,
+            },
+            wdl: null,
           };
         } else {
           root.score = {
-            type: "mate",
-            value: comment.evaluation.mate,
+            value: {
+              type: "mate",
+              value: comment.evaluation.mate,
+            },
+            wdl: null,
           };
         }
       }
@@ -640,8 +646,10 @@ export function getGameStats(root: TreeNode) {
     }
     const color = node.halfMoves % 2 === 1 ? "white" : "black";
     if (node.score) {
-      cplosses[color].push(getCPLoss(prevScore, node.score, color));
-      accuracies[color].push(getAccuracy(prevScore, node.score, color));
+      cplosses[color].push(getCPLoss(prevScore.value, node.score.value, color));
+      accuracies[color].push(
+        getAccuracy(prevScore.value, node.score.value, color),
+      );
       prevScore = node.score;
     }
   }

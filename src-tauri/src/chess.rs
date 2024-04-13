@@ -16,7 +16,11 @@ use tokio::{
     process::{Child, ChildStdin, ChildStdout, Command},
     sync::Mutex,
 };
-use vampirc_uci::{parse_one, UciInfoAttribute, UciMessage, UciOptionConfig};
+use vampirc_uci::{
+    parse_one,
+    uci::{Score, ScoreValue},
+    UciInfoAttribute, UciMessage, UciOptionConfig,
+};
 
 use crate::{
     db::{is_position_in_db, GameQuery, PositionQuery},
@@ -213,15 +217,6 @@ impl EngineProcess {
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-#[derive(Debug, Copy, Clone, Type, Serialize)]
-#[serde(tag = "type", content = "value", rename_all = "camelCase")]
-pub enum Score {
-    Cp(i32),
-    Mate(i32),
-    #[allow(dead_code)]
-    Dtz(i32),
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AnalysisCacheKey {
     pub tab: String,
@@ -235,7 +230,6 @@ pub struct AnalysisCacheKey {
 pub struct BestMoves {
     nodes: u32,
     depth: u32,
-    #[derivative(Default(value = "Score::Cp(0)"))]
     score: Score,
     #[serde(rename = "uciMoves")]
     uci_moves: Vec<String>,
@@ -255,6 +249,17 @@ pub struct BestMovesPayload {
     pub fen: String,
     pub moves: Vec<String>,
     pub progress: f64,
+}
+
+fn invert_score(score: Score) -> Score {
+    let new_value = match score.value {
+        ScoreValue::Cp(x) => ScoreValue::Cp(-x),
+        ScoreValue::Mate(x) => ScoreValue::Mate(-x),
+    };
+    Score {
+        value: new_value,
+        ..score
+    }
 }
 
 fn parse_uci_attrs(
@@ -298,20 +303,8 @@ fn parse_uci_attrs(
             UciInfoAttribute::MultiPv(multipv) => {
                 best_moves.multipv = multipv;
             }
-            UciInfoAttribute::Score {
-                cp,
-                mate,
-                lower_bound,
-                upper_bound,
-            } => {
-                if let Some(cp) = cp {
-                    best_moves.score = Score::Cp(cp);
-                } else if let Some(mate) = mate {
-                    best_moves.score = Score::Mate(mate);
-                }
-                if lower_bound.unwrap_or(false) || upper_bound.unwrap_or(false) {
-                    return Err(Error::LowerOrUpperBound);
-                }
+            UciInfoAttribute::Score(score) => {
+                best_moves.score = score;
             }
             _ => (),
         }
@@ -322,11 +315,7 @@ fn parse_uci_attrs(
     }
 
     if turn == Color::Black {
-        best_moves.score = match best_moves.score {
-            Score::Cp(x) => Score::Cp(-x),
-            Score::Mate(x) => Score::Mate(-x),
-            _ => unreachable!(),
-        };
+        best_moves.score = invert_score(best_moves.score);
     }
 
     Ok(best_moves)
@@ -507,7 +496,7 @@ pub async fn get_best_moves(
 
     state.engine_processes.insert(key.clone(), process.clone());
 
-    let mut lim = RateLimiter::direct(Quota::per_second(nonzero!(5u32)));
+    let lim = RateLimiter::direct(Quota::per_second(nonzero!(5u32)));
 
     while let Some(line) = reader.next_line().await? {
         let mut proc = process.lock().await;

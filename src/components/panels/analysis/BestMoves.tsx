@@ -369,7 +369,7 @@ function EngineTop({
                 Eval
               </Text>
               <Text fw="bold" fz="md">
-                {formatScore(engineVariations[0].score, 1) ?? 0}
+                {formatScore(engineVariations[0].score.value, 1) ?? 0}
               </Text>
             </Stack>
             <Stack align="center" gap={0}>

@@ -324,8 +324,11 @@ test("should handle setFen", () => {
 test("should handle setScore", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().setScore({
-    type: "mate",
-    value: 1,
+    value: {
+      type: "mate",
+      value: 1,
+    },
+    wdl: null,
   });
 
   expect(getNewState()).toStrictEqual({
@@ -338,8 +341,11 @@ test("should handle setScore", () => {
         {
           ...treeE4D5().root.children[0],
           score: {
-            type: "mate",
-            value: 1,
+            value: {
+              type: "mate",
+              value: 1,
+            },
+            wdl: null,
           },
         },
       ],
@@ -389,8 +395,11 @@ test("should handle addAnalysis", () => {
           multipv: 1,
           nodes: 1,
           score: {
-            type: "cp",
-            value: 10,
+            value: {
+              type: "cp",
+              value: 10,
+            },
+            wdl: null,
           },
           nps: 1000,
           sanMoves: ["e4"],
@@ -407,8 +416,11 @@ test("should handle addAnalysis", () => {
           multipv: 1,
           nodes: 1,
           score: {
-            type: "cp",
-            value: 20,
+            value: {
+              type: "cp",
+              value: 20,
+            },
+            wdl: null,
           },
           nps: 1000,
           sanMoves: ["d5"],
@@ -430,14 +442,20 @@ test("should handle addAnalysis", () => {
         {
           ...treeE4D5().root.children[0],
           score: {
-            type: "cp",
-            value: 20,
+            value: {
+              type: "cp",
+              value: 20,
+            },
+            wdl: null,
           },
         },
       ],
       score: {
-        type: "cp",
-        value: 10,
+        value: {
+          type: "cp",
+          value: 10,
+        },
+        wdl: null,
       },
     },
   });

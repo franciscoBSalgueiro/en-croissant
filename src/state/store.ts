@@ -571,9 +571,9 @@ function addAnalysis(
       const curScore = analysis[i].best[0].score;
       const color = cur.halfMoves % 2 === 1 ? "white" : "black";
       const annotation = getAnnotation(
-        prevprevScore,
-        prevScore,
-        curScore,
+        prevprevScore?.value || null,
+        prevScore?.value || null,
+        curScore.value,
         color,
         prevMoves,
         analysis[i].is_sacrifice,

@@ -5541,7 +5541,7 @@ checksum = "8fec26a25bd6fca441cdd0f769fd7f891bae119f996de31f86a5eddccef54c1d"
 [[package]]
 name = "vampirc-uci"
 version = "0.11.1"
-source = "git+https://github.com/franciscoBSalgueiro/vampirc-uci?rev=b16a8d0986253a49ba866182b8fc857a5b8f65d1#b16a8d0986253a49ba866182b8fc857a5b8f65d1"
+source = "git+https://github.com/franciscoBSalgueiro/vampirc-uci?rev=c60e65c7d801920ccfc533df3ab87e292d6d0448#c60e65c7d801920ccfc533df3ab87e292d6d0448"
 dependencies = [
  "chrono",
  "pest",

@@ -324,7 +324,7 @@ function EngineSummary({
           {engine.name}
         </Text>
         {score ? (
-          <ScoreBubble size="sm" score={score} />
+          <ScoreBubble size="sm" score={score.value} />
         ) : (
           <Text fz="sm" c="dimmed">
             ???

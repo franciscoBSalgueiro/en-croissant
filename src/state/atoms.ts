@@ -417,14 +417,14 @@ export const bestMovesFamily = atomFamily(
           engineMoves.get(`${fen}:${gameMoves.join(",")}`);
         if (moves && moves.length > 0) {
           const bestWinChange = getWinChance(
-            normalizeScore(moves[0].score, pos?.turn || "white"),
+            normalizeScore(moves[0].score.value, pos?.turn || "white"),
           );
           bestMoves.set(
             n,
             moves
               .map((m) => {
                 const winChance = getWinChance(
-                  normalizeScore(m.score, pos?.turn || "white"),
+                  normalizeScore(m.score.value, pos?.turn || "white"),
                 );
                 return {
                   pv: m.uciMoves,

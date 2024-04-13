@@ -182,7 +182,20 @@ export type MonthData = { count: number; avg_elo: number }
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type ReportProgress = { progress: number; id: string; finished: boolean }
 export type Results = { won: number; lost: number; draw: number }
-export type Score = { type: "cp"; value: number } | { type: "mate"; value: number } | { type: "dtz"; value: number }
+export type Score = { value: ScoreValue; 
+/**
+ * The probability of each result (win, draw, loss).
+ */
+wdl: [number, number, number] | null }
+export type ScoreValue = 
+/**
+ * The score in centipawns.
+ */
+{ type: "cp"; value: number } | 
+/**
+ * Mate coming up in this many moves. Negative value means the engine is getting mated.
+ */
+{ type: "mate"; value: number }
 /**
  * Represents a UCI option definition.
  */

@@ -72,7 +72,7 @@ function AnalysisRow({
     <>
       <Table.Tr style={{ verticalAlign: "top" }}>
         <Table.Td width={70}>
-          <ScoreBubble size="md" score={score} />
+          <ScoreBubble size="md" score={score.value} />
         </Table.Td>
         <Table.Td>
           <Flex

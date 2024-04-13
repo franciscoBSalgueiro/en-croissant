@@ -284,10 +284,13 @@ export async function getBestMoves(
       });
 
       return {
-        score:
-          "cp" in m
-            ? { type: "cp", value: m.cp }
-            : { type: "mate", value: m.mate },
+        score: {
+          value:
+            "cp" in m
+              ? { type: "cp", value: m.cp }
+              : { type: "mate", value: m.mate },
+          wdl: null,
+        },
         nodes: data.knodes * 1000,
         depth: data.depth,
         multipv: i + 1,

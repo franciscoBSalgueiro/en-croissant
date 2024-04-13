@@ -1,17 +1,20 @@
-import type { BestMoves, Score } from "@/bindings";
+import type { BestMoves, Score, ScoreValue } from "@/bindings";
 import { minMax } from "@tiptap/react";
 import type { Color } from "chessops";
 import { match } from "ts-pattern";
 import type { Annotation } from "./annotation";
 
 export const INITIAL_SCORE: Score = {
-  type: "cp",
-  value: 15,
+  value: {
+    type: "cp",
+    value: 15,
+  },
+  wdl: null,
 };
 
 const CP_CEILING = 1000;
 
-export function formatScore(score: Score, precision = 2): string {
+export function formatScore(score: ScoreValue, precision = 2): string {
   let scoreText = match(score.type)
     .with("cp", () => Math.abs(score.value / 100).toFixed(precision))
     .with("mate", () => `M${Math.abs(score.value)}`)
@@ -32,7 +35,7 @@ export function getWinChance(centipawns: number) {
   return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * centipawns)) - 1);
 }
 
-export function normalizeScore(score: Score, color: Color): number {
+export function normalizeScore(score: ScoreValue, color: Color): number {
   let cp = score.value;
   if (color === "black") {
     cp *= -1;
@@ -44,8 +47,8 @@ export function normalizeScore(score: Score, color: Color): number {
 }
 
 function normalizeScores(
-  prev: Score,
-  next: Score,
+  prev: ScoreValue,
+  next: ScoreValue,
   color: Color,
 ): { prevCP: number; nextCP: number } {
   return {
@@ -54,7 +57,11 @@ function normalizeScores(
   };
 }
 
-export function getAccuracy(prev: Score, next: Score, color: Color): number {
+export function getAccuracy(
+  prev: ScoreValue,
+  next: ScoreValue,
+  color: Color,
+): number {
   const { prevCP, nextCP } = normalizeScores(prev, next, color);
   return minMax(
     103.1668 *
@@ -66,16 +73,20 @@ export function getAccuracy(prev: Score, next: Score, color: Color): number {
   );
 }
 
-export function getCPLoss(prev: Score, next: Score, color: Color): number {
+export function getCPLoss(
+  prev: ScoreValue,
+  next: ScoreValue,
+  color: Color,
+): number {
   const { prevCP, nextCP } = normalizeScores(prev, next, color);
 
   return Math.max(0, prevCP - nextCP);
 }
 
 export function getAnnotation(
-  prevprev: Score | null,
-  prev: Score | null,
-  next: Score,
+  prevprev: ScoreValue | null,
+  prev: ScoreValue | null,
+  next: ScoreValue,
   color: Color,
   prevMoves: BestMoves[],
   is_sacrifice?: boolean,
@@ -100,8 +111,8 @@ export function getAnnotation(
 
   if (prevMoves.length > 1) {
     const scores = normalizeScores(
-      prevMoves[0].score,
-      prevMoves[1].score,
+      prevMoves[0].score.value,
+      prevMoves[1].score.value,
       color,
     );
     if (
@@ -110,7 +121,7 @@ export function getAnnotation(
     ) {
       const scores = normalizeScores(
         prevprev || { type: "cp", value: 0 },
-        prevMoves[0].score,
+        prevMoves[0].score.value,
         color,
       );
       if (is_sacrifice) {

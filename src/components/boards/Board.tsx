@@ -560,7 +560,7 @@ function Board({
               {evalOpen && (
                 <Box onClick={() => setEvalOpen(false)} h="100%">
                   <EvalBar
-                    score={currentNode.score}
+                    score={currentNode.score?.value || null}
                     orientation={orientation}
                   />
                 </Box>

@@ -1,4 +1,4 @@
-import type { Score } from "@/bindings";
+import type { ScoreValue } from "@/bindings";
 import { formatScore, getWinChance } from "@/utils/score";
 import { Box, Text, Tooltip, useMantineTheme } from "@mantine/core";
 import type { Color } from "chessground/types";
@@ -7,7 +7,7 @@ function EvalBar({
   score,
   orientation,
 }: {
-  score: Score | null;
+  score: ScoreValue | null;
   orientation: Color;
 }) {
   const theme = useMantineTheme();

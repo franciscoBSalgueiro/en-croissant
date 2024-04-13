@@ -45,10 +45,10 @@ const EvalChart = (props: EvalChartProps) => {
 
   function getYValue(node: TreeNode): number | undefined {
     if (node.score) {
-      let cp: number = node.score.value;
-      if (node.score.type === "mate") {
+      let cp: number = node.score.value.value;
+      if (node.score.value.type === "mate") {
         cp =
-          node.score.value > 0
+          node.score.value.value > 0
             ? Number.POSITIVE_INFINITY
             : Number.NEGATIVE_INFINITY;
       }
@@ -69,7 +69,7 @@ const EvalChart = (props: EvalChartProps) => {
 
   function getEvalText(node: TreeNode): string {
     if (node.score) {
-      return `Advantage: ${formatScore(node.score)}`;
+      return `Advantage: ${formatScore(node.score.value)}`;
     }
     if (node.children.length === 0) {
       const [pos, error] = positionFromFen(node.fen);

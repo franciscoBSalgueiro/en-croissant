@@ -1,4 +1,4 @@
-import type { BestMoves, EngineOptions, GoMode, Score } from "@/bindings";
+import type { BestMoves, EngineOptions, GoMode, ScoreValue } from "@/bindings";
 import { fetch } from "@tauri-apps/api/http";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
@@ -55,7 +55,7 @@ export async function getBestMoves(
         ),
       )
       .map((m, i) => ({
-        score: chessDBevalToScore(m.score),
+        score: { value: chessDBevalToScore(m.score), wdl: null },
         nodes: 0,
         depth: m.depth ?? 0,
         multipv: i + 1,
@@ -66,7 +66,7 @@ export async function getBestMoves(
   ];
 }
 
-function chessDBevalToScore(score: number): Score {
+function chessDBevalToScore(score: number): ScoreValue {
   if (Math.abs(score) > 250_00) {
     return {
       type: "mate",
