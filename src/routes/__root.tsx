@@ -126,6 +126,11 @@ function RootLayout() {
       label: "Help",
       options: [
         {
+          label: "Documentation",
+          id: "documentation",
+          action: () => shellOpen("https://encroissant.org/docs/"),
+        },
+        {
           label: "Clear saved data",
           id: "clear_saved_data",
           action: () => {

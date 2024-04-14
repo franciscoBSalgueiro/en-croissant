@@ -194,6 +194,10 @@ fn main() {
             "Help",
             Menu::new()
                 .add_item(CustomMenuItem::new(
+                    "documentation".to_string(),
+                    "Documentation",
+                ))
+                .add_item(CustomMenuItem::new(
                     "clear_saved_data".to_string(),
                     "Clear saved data",
                 ))
