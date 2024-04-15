@@ -19,6 +19,20 @@ const keys = {
   CYCLE_TABS: { name: "Cycle tabs", keys: "ctrl+tab" },
   REVERSE_CYCLE_TABS: { name: "Reverse cycle tabs", keys: "ctrl+shift+tab" },
   TOGGLE_EVAL_BAR: { name: "Toggle Eval Bar and Arrows", keys: "z" },
+  PRACTICE_TAB: { name: "Go to practice tab", keys: "p" },
+  ANALYSIS_TAB: { name: "Go to analysis tab", keys: "a" },
+  DATABASE_TAB: { name: "Go to database tab", keys: "b" },
+  ANNOTATE_TAB: { name: "Go to annotate tab", keys: "d" },
+  INFO_TAB: { name: "Go to info tab", keys: "i" },
+  ANNOTATION_BRILLIANT: { name: "Toggle brillant move annotation", keys: "1" },
+  ANNOTATION_GOOD: { name: "Toggle good move annotation", keys: "2" },
+  ANNOTATION_INTERESTING: {
+    name: "Toggle interesting move annotation",
+    keys: "3",
+  },
+  ANNOTATION_DUBIOUS: { name: "Toggle dubious move annotation", keys: "4" },
+  ANNOTATION_MISTAKE: { name: "Toggle mistake move annotation", keys: "5" },
+  ANNOTATION_BLUNDER: { name: "Toggle blunder move annotation", keys: "6" },
 };
 
 export const keyMapAtom = atomWithStorage(
