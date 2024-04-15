@@ -34,6 +34,10 @@ export interface TreeStoreState {
   goToStart: () => void;
   goToEnd: () => void;
   goToMove: (move: number[]) => void;
+  goToBranchStart: () => void;
+  goToBranchEnd: () => void;
+  nextBranch: () => void;
+  previousBranch: () => void;
 
   goToAnnotation: (annotation: Annotation, color: "white" | "black") => void;
 
@@ -245,6 +249,82 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         ...state,
         position: move,
       })),
+    goToBranchStart: () => {
+      set(
+        produce((state) => {
+          if (
+            state.position.length > 0 &&
+            state.position[state.position.length - 1] !== 0
+          ) {
+            state.position = state.position.slice(0, -1);
+          }
+
+          while (
+            state.position.length > 0 &&
+            state.position[state.position.length - 1] === 0
+          ) {
+            state.position = state.position.slice(0, -1);
+          }
+        }),
+      );
+    },
+
+    goToBranchEnd: () => {
+      set(
+        produce((state) => {
+          let currentNode = getNodeAtPath(state.root, state.position);
+          while (currentNode.children.length > 0) {
+            state.position.push(0);
+            currentNode = currentNode.children[0];
+          }
+        }),
+      );
+    },
+
+    nextBranch: () =>
+      set(
+        produce((state) => {
+          if (state.position.length === 0) return state;
+
+          let branchIndex = state.position[state.position.length - 1];
+          let branchCount = getNodeAtPath(state.root, state.position).children
+            .length;
+
+          while (state.position.length > 0 && branchCount <= 1) {
+            branchIndex = state.position[state.position.length - 1];
+            state.position = state.position.slice(0, -1);
+            branchCount = getNodeAtPath(state.root, state.position).children
+              .length;
+          }
+
+          const currentNode = getNodeAtPath(state.root, state.position);
+          state.position.push((branchIndex + 1) % currentNode.children.length);
+        }),
+      ),
+    previousBranch: () =>
+      set(
+        produce((state) => {
+          if (state.position.length === 0) return state;
+
+          let branchIndex = state.position[state.position.length - 1];
+          let branchCount = getNodeAtPath(state.root, state.position).children
+            .length;
+
+          while (state.position.length > 0 && branchCount <= 1) {
+            branchIndex = state.position[state.position.length - 1];
+            state.position = state.position.slice(0, -1);
+            branchCount = getNodeAtPath(state.root, state.position).children
+              .length;
+          }
+
+          const currentNode = getNodeAtPath(state.root, state.position);
+          state.position.push(
+            (branchIndex + currentNode.children.length - 1) %
+              currentNode.children.length,
+          );
+        }),
+      ),
+
     deleteMove: (path) =>
       set(
         produce((state) => {

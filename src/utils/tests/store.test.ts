@@ -248,6 +248,74 @@ test("should handle goToPrevious", () => {
   });
 });
 
+test("should handle nextBranch", () => {
+  store.setState({ ...treeE4D5Nf3(), position: [] });
+  store.getState().nextBranch();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [],
+  });
+
+  store.setState({ ...treeE4D5Nf3(), position: [0, 0] });
+
+  store.getState().nextBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [1],
+  });
+
+  store.getState().nextBranch();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [0],
+  });
+});
+
+test("should handle previousBranch", () => {
+  store.setState({ ...treeE4D5Nf3(), position: [] });
+  store.getState().previousBranch();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [],
+  });
+
+  store.setState({ ...treeE4D5Nf3(), position: [0, 0] });
+  store.getState().previousBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [1],
+  });
+
+  store.getState().previousBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [0],
+  });
+});
+
+test("should handle goToBranchEnd", () => {
+  store.setState({ ...treeE4D5(), position: [] });
+  store.getState().goToBranchEnd();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5(),
+    position: [0, 0],
+  });
+});
+
+test("should handle goToBranchStart", () => {
+  store.setState({ ...treeE4D5(), position: [0, 0] });
+  store.getState().goToBranchStart();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5(),
+    position: [],
+  });
+});
+
 test("should handle goToMove", () => {
   store.setState({ ...treeE4D5(), position: [] });
   store.getState().goToMove([0]);
