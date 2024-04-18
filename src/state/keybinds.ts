@@ -33,6 +33,7 @@ const keys = {
   ANNOTATION_DUBIOUS: { name: "Toggle dubious move annotation", keys: "4" },
   ANNOTATION_MISTAKE: { name: "Toggle mistake move annotation", keys: "5" },
   ANNOTATION_BLUNDER: { name: "Toggle blunder move annotation", keys: "6" },
+  TOGGLE_ALL_ENGINES: { name: "Toggle all engines", keys: "ctrl+a" },
 };
 
 export const keyMapAtom = atomWithStorage(

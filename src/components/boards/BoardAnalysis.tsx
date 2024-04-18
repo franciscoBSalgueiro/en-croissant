@@ -1,8 +1,10 @@
 import {
+  allEnabledAtom,
   autoSaveAtom,
   currentPracticeTabAtom,
   currentTabAtom,
   currentTabSelectedAtom,
+  enableAllAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { getVariationLine } from "@/utils/chess";
@@ -83,6 +85,11 @@ function BoardAnalysis() {
     });
   }, [setCurrentTab, reset, currentTab?.file?.path]);
 
+  const [, enable] = useAtom(enableAllAtom);
+  const allEnabledLoader = useAtomValue(allEnabledAtom);
+  const allEnabled =
+    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
@@ -105,6 +112,13 @@ function BoardAnalysis() {
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
     [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
+    [
+      keyMap.TOGGLE_ALL_ENGINES.keys,
+      (e) => {
+        enable(!allEnabled);
+        e.preventDefault();
+      },
+    ],
   ]);
 
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
