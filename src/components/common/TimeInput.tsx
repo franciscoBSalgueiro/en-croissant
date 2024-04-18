@@ -30,7 +30,14 @@ function TimeInput({
           defaultValue="ms"
           allowDeselect={false}
           value={timeType}
+          withScrollArea={false}
           onChange={(v) => setTimeType(v as TimeType)}
+          styles={{
+            option: {
+              wordBreak: "keep-all",
+              overflow: "hidden",
+            },
+          }}
         />
       }
       rightSectionWidth={"30%"}
