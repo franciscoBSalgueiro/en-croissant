@@ -42,6 +42,7 @@ import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import {
   Suspense,
+  startTransition,
   useContext,
   useEffect,
   useMemo,
@@ -499,16 +500,6 @@ function BoardGame() {
   useEffect(() => {
     if (gameState === "playing" && !intervalId) {
       const intervalId = setInterval(decrementTime, 100);
-      if (pos?.turn === "black" && whiteTime !== null) {
-        setWhiteTime(
-          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
-        );
-      }
-      if (pos?.turn === "white" && blackTime !== null) {
-        setBlackTime(
-          (prev) => prev! + (players.black.timeControl?.increment ?? 0),
-        );
-      }
       setIntervalId(intervalId);
     }
   }, [gameState, intervalId, pos?.turn]);
@@ -516,6 +507,22 @@ function BoardGame() {
   const onePlayerIsEngine =
     (players.white.type === "engine" || players.black.type === "engine") &&
     players.white.type !== players.black.type;
+
+  useEffect(() => {
+    events.gameEvent.listen(({ payload }) => {
+      if (payload.id === activeTab) {
+        const { moves, whiteTime, blackTime } = payload;
+        startTransition(() => {
+          appendMove({
+            payload: parseUci(moves[moves.length - 1])!,
+            clock: pos?.turn === "white" ? blackTime : whiteTime,
+          });
+          setWhiteTime(whiteTime);
+          setBlackTime(blackTime);
+        });
+      }
+    });
+  }, []);
 
   return (
     <>
@@ -589,16 +596,39 @@ function BoardGame() {
 
                 <Group>
                   <Button
-                    onClick={() => {
+                    onClick={async () => {
                       setGameState("playing");
                       const players = getPlayers();
-                      if (players.white.timeControl) {
-                        setWhiteTime(players.white.timeControl.seconds);
-                      }
-                      if (players.black.timeControl) {
-                        setBlackTime(players.black.timeControl.seconds);
-                      }
-                      setPlayers(players);
+
+                      const res = await commands.startGame(activeTab || "", {
+                        initial_position: INITIAL_FEN,
+                        time_control: [
+                          {
+                            time: player1Settings.timeControl?.seconds ?? 0,
+                            increment:
+                              player1Settings.timeControl?.increment ?? null,
+                            moves: null,
+                          },
+                        ],
+                        white:
+                          players.white.type === "human"
+                            ? "Human"
+                            : {
+                                Engine: {
+                                  path: players.white.engine?.path ?? "",
+                                  options: [],
+                                },
+                              },
+                        black:
+                          players.black.type === "human"
+                            ? "Human"
+                            : {
+                                Engine: {
+                                  path: players.black.engine?.path ?? "",
+                                  options: [],
+                                },
+                              },
+                      });
                       const newHeaders: Partial<GameHeaders> = {
                         white:
                           (players.white.type === "human"

@@ -51,7 +51,7 @@ pub struct EngineProcess {
 }
 
 impl EngineProcess {
-    async fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
+    pub async fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
         let mut command = Command::new(&path);
         command.current_dir(path.parent().unwrap());
         command
@@ -123,7 +123,7 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
+    pub async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
         let fen: Fen = options.fen.parse()?;
         let mut pos: Chess = match fen.into_position(CastlingMode::Chess960) {
             Ok(p) => p,
@@ -159,7 +159,7 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn set_position(&mut self, fen: &str, moves: &Vec<String>) -> Result<(), Error> {
+    pub async fn set_position(&mut self, fen: &str, moves: &Vec<String>) -> Result<(), Error> {
         let msg = if moves.is_empty() {
             format!("position fen {}\n", fen)
         } else {
@@ -173,7 +173,7 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn go(&mut self, mode: &GoMode) -> Result<(), Error> {
+    pub async fn go(&mut self, mode: &GoMode) -> Result<(), Error> {
         self.go_mode = mode.clone();
         let msg = match mode {
             GoMode::Depth(depth) => format!("go depth {}\n", depth),
@@ -199,14 +199,14 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn stop(&mut self) -> Result<(), Error> {
+    pub async fn stop(&mut self) -> Result<(), Error> {
         self.stdin.write_all(b"stop\n").await?;
         self.logs.push(EngineLog::Gui("stop\n".to_string()));
         self.running = false;
         Ok(())
     }
 
-    async fn kill(&mut self) -> Result<(), Error> {
+    pub async fn kill(&mut self) -> Result<(), Error> {
         self.stdin.write_all(b"quit\n").await?;
         self.logs.push(EngineLog::Gui("quit\n".to_string()));
         self.running = false;
@@ -384,6 +384,17 @@ pub struct PlayersTime {
     black: u32,
     winc: u32,
     binc: u32,
+}
+
+impl PlayersTime {
+    pub fn new(white: u32, black: u32, winc: u32, binc: u32) -> Self {
+        Self {
+            white,
+            black,
+            winc,
+            binc,
+        }
+    }
 }
 
 #[tauri::command]

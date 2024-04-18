@@ -13,6 +13,7 @@ mod oauth;
 mod opening;
 mod pgn;
 mod puzzle;
+mod tournament;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -33,6 +34,7 @@ use tauri::{
 };
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
 use tauri_plugin_log::LogTarget;
+use tournament::GameEvent;
 
 use crate::chess::{
     analyze_game, get_engine_config, get_engine_logs, kill_engine, kill_engines, stop_engine,
@@ -48,6 +50,7 @@ use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{get_puzzle, get_puzzle_db_info};
+use crate::tournament::start_game;
 use crate::{
     chess::get_best_moves,
     db::{
@@ -130,6 +133,7 @@ fn main() {
         let specta_builder = tauri_specta::ts::builder()
             .config(ExportConfig::new().bigint(BigIntExportBehavior::BigInt))
             .commands(tauri_specta::collect_commands!(
+                start_game,
                 close_splashscreen,
                 find_fide_player,
                 get_best_moves,
@@ -156,7 +160,8 @@ fn main() {
                 BestMovesPayload,
                 DatabaseProgress,
                 DownloadProgress,
-                ReportProgress
+                ReportProgress,
+                GameEvent
             ));
 
         #[cfg(debug_assertions)]
