@@ -67,9 +67,29 @@ const useFileDirectory = (dir: string) => {
     "file-directory",
     async () => {
       const files = await readDir(dir, { recursive: true });
-      const filesInfo = await processFiles(files as MetadataOrEntry[]);
+      const filesInfo = await processFiles(
+        files.filter((f) => !f.name?.startsWith(".")) as MetadataOrEntry[],
+      );
 
-      return filesInfo;
+      return filesInfo
+        .sort((a, b) => {
+          return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
+        })
+        .filter((f) => {
+          return f.children === undefined || f.children?.length > 0;
+        })
+        .sort((a, b) => {
+          if (a.children != null && b.children == null) {
+            return 1;
+          }
+          if (a.children != null && b.children != null) {
+            return 0;
+          }
+          if (a.children == null && b.children == null) {
+            return 0;
+          }
+          return -1;
+        });
     },
   );
   return {
