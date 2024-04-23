@@ -49,7 +49,7 @@ export const zh_CN = {
 
         "Settings.Board.Desc": "自定义分析面板和游戏控制",
         "Settings.PieceDest": "棋子目的地",
-        "Settings.PieceDest.Desc": "显示棋子的目的地",
+        "Settings.PieceDest.Desc": "显示棋子可以到达的位置",
         "Settings.Arrows": "箭头",
         "Settings.Arrows.Desc": "用箭头显示最佳着法",
         "Settings.SnapArrows": "吸附箭头",
