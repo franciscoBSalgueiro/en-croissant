@@ -2,6 +2,7 @@ import type { GoMode } from "@/bindings";
 import { Group, NumberInput, SegmentedControl } from "@mantine/core";
 import { match } from "ts-pattern";
 import TimeInput from "./TimeInput";
+import { useTranslation } from "react-i18next";
 
 function GoModeInput({
   goMode,
@@ -12,6 +13,8 @@ function GoModeInput({
   setGoMode: (v: GoMode) => void;
   gameMode?: boolean;
 }) {
+  const { t } = useTranslation();
+
   const timeTypes = ["Time", "Depth", "Nodes"];
   if (!gameMode) {
     timeTypes.push("Infinite");
@@ -20,7 +23,7 @@ function GoModeInput({
   return (
     <Group>
       <SegmentedControl
-        data={timeTypes}
+        data={timeTypes.map((v) => ({ value: v, label: t(`GoMode.${v}`) }))}
         value={goMode?.t || (gameMode ? "Time" : "Infinite")}
         onChange={(v) => {
           const newGo = match<string | null, GoMode>(v)

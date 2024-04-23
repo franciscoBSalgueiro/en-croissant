@@ -2,6 +2,7 @@ import { enginesAtom } from "@/state/atoms";
 import type { LocalEngine } from "@/utils/engines";
 import { useForm } from "@mantine/form";
 import { useAtom } from "jotai";
+import { useTranslation } from "react-i18next";
 import EngineForm from "./EngineForm";
 
 export default function EditEngine({
@@ -9,6 +10,8 @@ export default function EditEngine({
 }: {
   initialEngine: LocalEngine;
 }) {
+  const { t } = useTranslation();
+
   const [engines, setEngines] = useAtom(enginesAtom);
   const form = useForm<LocalEngine>({
     initialValues: initialEngine,
@@ -27,7 +30,7 @@ export default function EditEngine({
 
   return (
     <EngineForm
-      submitLabel="Save"
+      submitLabel={ t("Common.Save") }
       form={form}
       onSubmit={(values) => {
         setEngines(async (prev) =>

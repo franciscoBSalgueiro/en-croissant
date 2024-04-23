@@ -52,6 +52,8 @@ import GenericCard from "../common/GenericCard";
 import GoModeInput from "../common/GoModeInput";
 import LocalImage from "../common/LocalImage";
 import LinesSlider from "../panels/analysis/LinesSlider";
+import { useTranslation } from "react-i18next";
+import { t } from "i18next";
 
 export default function EnginesPage() {
   const [engines, setEngines] = useAtom(enginesAtom);
@@ -68,7 +70,7 @@ export default function EnginesPage() {
     <Stack h="100%" px="lg" pb="lg">
       <AddEngine opened={opened} setOpened={setOpened} />
       <Group align="baseline" py="sm">
-        <Title>Your Engines</Title>
+        <Title>{ t("Engines.Title") }</Title>
         <OpenFolderButton base="AppDir" folder="engines" />
       </Group>
       <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
@@ -89,7 +91,7 @@ export default function EnginesPage() {
                   : [{ label: "Type", value: "Cloud" }];
               if (item.type === "local" && item.version) {
                 stats.push({
-                  label: "Version",
+                  label: t("Common.Version"),
                   value: item.version,
                 });
               }
@@ -112,7 +114,7 @@ export default function EnginesPage() {
               onClick={() => setOpened(true)}
             >
               <Stack gap={0} justify="center" w="100%" h="100%">
-                <Text mb={10}>Add New</Text>
+                <Text mb={10}>{ t("Common.AddNew") }</Text>
                 <Box>
                   <IconPlus size="1.3rem" />
                 </Box>
@@ -122,16 +124,16 @@ export default function EnginesPage() {
         </ScrollArea>
         <Paper withBorder p="md" h="100%">
           {!selectedEngine || selected === undefined ? (
-            <Text ta="center">No engine selected</Text>
+            <Text ta="center">{ t("Engines.EngineSettings.NoEngine") }</Text>
           ) : selectedEngine.type === "local" ? (
             <EngineSettings selected={selected} setSelected={setSelected} />
           ) : (
             <Stack>
-              <Divider variant="dashed" label="General settings" />
+              <Divider variant="dashed" label={ t("Engines.EngineSettings.GeneralSettings") } />
 
               <TextInput
                 w="50%"
-                label="Name"
+                label={ t("Common.Name") }
                 value={selectedEngine.name}
                 onChange={(e) => {
                   setEngines(async (prev) => {
@@ -143,7 +145,7 @@ export default function EnginesPage() {
               />
 
               <Checkbox
-                label="Enabled"
+                label={ t("Common.Enabled") }
                 checked={!!selectedEngine.loaded}
                 onChange={(e) => {
                   const checked = e.currentTarget.checked;
@@ -155,9 +157,9 @@ export default function EnginesPage() {
                 }}
               />
 
-              <Divider variant="dashed" label="Advanced Settings" />
+              <Divider variant="dashed" label={ t("Engines.EngineSettings.AdvancedSettings") } />
               <Stack w="50%">
-                <Text fw="bold">Number of lines</Text>
+                <Text fw="bold">{ t("Engines.EngineSettings.NumOfLines") }</Text>
                 <LinesSlider
                   value={
                     Number(
@@ -198,7 +200,7 @@ export default function EnginesPage() {
                     setSelected(null);
                   }}
                 >
-                  Remove
+                  { t("Common.Remove") }
                 </Button>
               </Group>
             </Stack>
@@ -213,6 +215,8 @@ function EngineSettings({
   selected,
   setSelected,
 }: { selected: number; setSelected: (v: number | null) => void }) {
+  const { t } = useTranslation();
+
   const [engines, setEngines] = useAtom(enginesAtom);
   const engine = engines[selected] as LocalEngine;
   const { data: options } = useSWRImmutable(
@@ -314,20 +318,20 @@ function EngineSettings({
   return (
     <ScrollArea h="100%" offsetScrollbars>
       <Stack>
-        <Divider variant="dashed" label="General settings" />
+        <Divider variant="dashed" label={ t("Engines.EngineSettings.GeneralSettings") } />
         <Group grow align="start" wrap="nowrap">
           <Stack>
             <Group wrap="nowrap" w="100%">
               <TextInput
                 flex={1}
-                label="Name"
+                label={ t("Common.Name") }
                 value={engine.name}
                 onChange={(e) =>
                   setEngine({ ...engine, name: e.currentTarget.value })
                 }
               />
               <TextInput
-                label="Version"
+                label={ t("Common.Version") }
                 w="5rem"
                 value={engine.version}
                 placeholder="?"
@@ -341,7 +345,7 @@ function EngineSettings({
                 label="ELO"
                 value={engine.elo || undefined}
                 min={0}
-                placeholder="Unknown"
+                placeholder={ t("Common.Unknown") }
                 onChange={(v) =>
                   setEngine({
                     ...engine,
@@ -351,7 +355,7 @@ function EngineSettings({
               />
             </Group>
             <Checkbox
-              label="Enabled"
+              label={ t("Common.Enabled") }
               checked={!!engine.loaded}
               onChange={(e) =>
                 setEngine({ ...engine, loaded: e.currentTarget.checked })
@@ -389,13 +393,13 @@ function EngineSettings({
             )}
           </Center>
         </Group>
-        <Divider variant="dashed" label="Search settings" />
+        <Divider variant="dashed" label={ t('Engines.EngineSettings.SearchSettings') } />
         <GoModeInput
           goMode={engine.go || null}
           setGoMode={(v) => setEngine({ ...engine, go: v })}
         />
 
-        <Divider variant="dashed" label="Advanced settings" />
+        <Divider variant="dashed" label={ t('Engines.EngineSettings.AdvancedSettings') } />
         <SimpleGrid cols={2}>
           {completeOptions
             .filter((option: { type: string }) => option.type !== "check")
@@ -486,7 +490,7 @@ function EngineSettings({
 
         <Group justify="end">
           <Button variant="default" onClick={() => toggleJSONModal(true)}>
-            Edit JSON
+            { t("Engines.EngineSettings.EditJSON") }
           </Button>
           <Button
             variant="default"
@@ -505,16 +509,16 @@ function EngineSettings({
               })
             }
           >
-            Reset to default
+            { t("Engines.EngineSettings.Reset") }
           </Button>
           <Button color="red" onClick={() => toggleDeleteModal()}>
-            Remove
+            { t("Common.Remove") }
           </Button>
         </Group>
         <ConfirmModal
-          title={"Remove Engine"}
+          title={ t("Engines.Remove.Title") }
           description={
-            "Are you sure you want to remove this engine from En Croissant?"
+            t("Engines.Remove.Message")
           }
           opened={deleteModal}
           onClose={toggleDeleteModal}
@@ -525,7 +529,7 @@ function EngineSettings({
             setSelected(null);
             toggleDeleteModal();
           }}
-          confirmLabel="Remove"
+          confirmLabel={ t("Common.Remove") }
         />
       </Stack>
       <JSONModal

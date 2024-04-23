@@ -29,8 +29,10 @@ import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
+import { t } from "i18next";
 
 function AddEngine({
   opened,
@@ -39,6 +41,8 @@ function AddEngine({
   opened: boolean;
   setOpened: (opened: boolean) => void;
 }) {
+  const { t } = useTranslation();
+
   const [allEngines, setEngines] = useAtom(enginesAtom);
   const engines = allEngines.filter(
     (e): e is LocalEngine => e.type === "local",
@@ -70,12 +74,12 @@ function AddEngine({
   });
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title="Add Engine">
+    <Modal opened={opened} onClose={() => setOpened(false)} title={ t("Engines.Add.Title") }>
       <Tabs defaultValue="download">
         <Tabs.List>
-          <Tabs.Tab value="download">Download</Tabs.Tab>
-          <Tabs.Tab value="cloud">Cloud</Tabs.Tab>
-          <Tabs.Tab value="local">Local</Tabs.Tab>
+          <Tabs.Tab value="download">{ t("Common.Download") }</Tabs.Tab>
+          <Tabs.Tab value="cloud">{ t("Engines.Add.Cloud") }</Tabs.Tab>
+          <Tabs.Tab value="local">{ t("Common.Local") }</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="download" pt="xs">
           {isLoading && (
@@ -96,10 +100,10 @@ function AddEngine({
               {error && (
                 <Alert
                   icon={<IconAlertCircle size="1rem" />}
-                  title="Error"
+                  title={ t("Common.Error") }
                   color="red"
                 >
-                  {"Failed to fetch the engine's info from the server."}
+                  { t("Engines.Add.ErrorFetch") }
                 </Alert>
               )}
             </Stack>
@@ -125,7 +129,7 @@ function AddEngine({
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm
-            submitLabel="Add"
+            submitLabel={ t("Common.Add") }
             form={form}
             onSubmit={(values: LocalEngine) => {
               setEngines(async (prev) => [...(await prev), values]);
@@ -171,7 +175,7 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
               ]);
             }}
           >
-            Add
+            { t("Common.Add") }
           </Button>
         </Box>
       </Group>
@@ -188,6 +192,8 @@ function EngineCard({
   engineId: number;
   initInstalled: boolean;
 }) {
+  const { t } = useTranslation();
+
   const [inProgress, setInProgress] = useState<boolean>(false);
   const [, setEngines] = useAtom(enginesAtom);
   const downloadEngine = useCallback(
@@ -258,10 +264,10 @@ function EngineCard({
             progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
-              completed: "Installed",
-              action: "Install",
-              inProgress: "Downloading",
-              finalizing: "Extracting",
+              completed: t("Common.Installed"),
+              action: t("Common.Install"),
+              inProgress: t("Common.Downloading"),
+              finalizing: t("Common.Extracting"),
             }}
             onClick={() => downloadEngine(engineId, engine.downloadLink!)}
             inProgress={inProgress}
