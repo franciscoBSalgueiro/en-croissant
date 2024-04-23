@@ -22,6 +22,7 @@ import { appWindow } from "@tauri-apps/api/window";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 
 type MenuGroup = {
   label: string;
@@ -48,6 +49,8 @@ function RootLayout() {
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
 
+  const { t } = useTranslation();
+
   async function openNewFile() {
     const selected = await open({
       multiple: false,
@@ -62,7 +65,7 @@ function RootLayout() {
   function createNewTab() {
     navigate({ to: "/" });
     createTab({
-      tab: { name: "New Tab", type: "new" },
+      tab: { name: t("Tab.NewTab"), type: "new" },
       setTabs,
       setActiveTab,
     });
@@ -90,32 +93,32 @@ function RootLayout() {
 
   const menuActions: MenuGroup[] = [
     {
-      label: "File",
+      label: t("Menu.File"),
       options: [
         {
-          label: "New Tab",
+          label: t("Menu.File.NewTab"),
           id: "new_tab",
           shortcut: keyMap.NEW_TAB.keys,
           action: createNewTab,
         },
         {
-          label: "Open File",
+          label: t("Menu.File.OpenFile"),
           id: "open_file",
           shortcut: keyMap.OPEN_FILE.keys,
           action: openNewFile,
         },
         {
-          label: "Exit",
+          label: t("Menu.File.Exit"),
           id: "exit",
           action: () => appWindow.close(),
         },
       ],
     },
     {
-      label: "View",
+      label: t("Menu.View"),
       options: [
         {
-          label: "Reload",
+          label: t("Menu.View.Reload"),
           id: "reload",
           shortcut: "Ctrl+R",
           action: () => location.reload(),
@@ -123,15 +126,15 @@ function RootLayout() {
       ],
     },
     {
-      label: "Help",
+      label: t("Menu.Help"),
       options: [
         {
-          label: "Documentation",
+          label: t("Menu.Help.Documentation"),
           id: "documentation",
           action: () => shellOpen("https://encroissant.org/docs/"),
         },
         {
-          label: "Clear saved data",
+          label: t("Menu.Help.ClearSavedData"),
           id: "clear_saved_data",
           action: () => {
             ask("Are you sure you want to clear all saved data?", {
@@ -146,7 +149,7 @@ function RootLayout() {
           },
         },
         {
-          label: "Open Logs",
+          label: t("Menu.Help.OpenLogs"),
           id: "logs",
           action: async () => {
             const path = await resolve(await appLogDir(), "en-croissant.log");
@@ -159,12 +162,12 @@ function RootLayout() {
         },
         { label: "divider" },
         {
-          label: "Check for updates",
+          label: t("Menu.Help.CheckUpdate"),
           id: "check_for_updates",
           action: checkForUpdates,
         },
         {
-          label: "About",
+          label: t("Menu.Help.About"),
           id: "about",
           action: () => setOpened(true),
         },

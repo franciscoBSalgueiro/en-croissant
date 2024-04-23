@@ -13,16 +13,20 @@ import { useAtom } from "jotai";
 import { useState } from "react";
 import ImportModal from "./ImportModal";
 
+import { useTranslation } from "react-i18next";
+
 export default function NewTabHome({ id }: { id: string }) {
+  const { t } = useTranslation();
+
   const [openModal, setOpenModal] = useState(false);
   const [, setTabs] = useAtom(tabsAtom);
 
   const cards = [
     {
       icon: faChess,
-      title: "Play Chess",
-      description: "Play against an engine or a friend",
-      label: "Play",
+      title: t("Home.Card.PlayChess.Title"),
+      description: t("Home.Card.PlayChess.Desc"),
+      label: t("Home.Card.PlayChess.Button"),
       onClick: () => {
         setTabs((prev: Tab[]) => {
           const tab = prev.find((t) => t.value === id);
@@ -35,9 +39,9 @@ export default function NewTabHome({ id }: { id: string }) {
     },
     {
       icon: faChessBoard,
-      title: "Analysis Board",
-      description: "Analyze a game or position",
-      label: "Open",
+      title: t("Home.Card.AnalysisBoard.Title"),
+      description: t("Home.Card.AnalysisBoard.Desc"),
+      label: t("Home.Card.AnalysisBoard.Button"),
       onClick: () => {
         setTabs((prev: Tab[]) => {
           const tab = prev.find((t) => t.value === id);
@@ -50,18 +54,18 @@ export default function NewTabHome({ id }: { id: string }) {
     },
     {
       icon: faFileImport,
-      title: "Import Game",
-      description: "Import a game from a PGN",
-      label: "Import",
+      title: t("Home.Card.ImportGame.Title"),
+      description: t("Home.Card.ImportGame.Desc"),
+      label: t("Home.Card.ImportGame.Button"),
       onClick: () => {
         setOpenModal(true);
       },
     },
     {
       icon: faPuzzlePiece,
-      title: "Puzzles",
-      description: "Train your chess skills",
-      label: "Train",
+      title: t("Home.Card.Puzzle.Title"),
+      description: t("Home.Card.Puzzle.Desc"),
+      label: t("Home.Card.Puzzle.Button"),
       onClick: () => {
         setTabs((prev) => {
           const tab = prev.find((t) => t.value === id);

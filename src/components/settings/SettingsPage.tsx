@@ -57,8 +57,11 @@ import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
 import VolumeSlider from "./VolumeSlider";
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const { t } = useTranslation();
+
   // const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
@@ -73,28 +76,28 @@ export default function Page() {
     <Tabs defaultValue="board" orientation="vertical" h="100%">
       <Tabs.List>
         <Tabs.Tab value="board" leftSection={<IconChess size="1rem" />}>
-          Board
+          { t("Settings.Board") }
         </Tabs.Tab>
         <Tabs.Tab value="inputs" leftSection={<IconMouse size="1rem" />}>
-          Inputs
+          { t("Settings.Inputs") }
         </Tabs.Tab>
         <Tabs.Tab value="report" leftSection={<IconBook size="1rem" />}>
-          Opening Report
+          { t("Settings.OpeningReport") }
         </Tabs.Tab>
         <Tabs.Tab value="anarchy" leftSection={<IconFlag size="1rem" />}>
-          Anarchy
+          { t("Settings.Anarchy") }
         </Tabs.Tab>
         <Tabs.Tab value="appearance" leftSection={<IconBrush size="1rem" />}>
-          Appearance
+          { t("Settings.Appearance") }
         </Tabs.Tab>
         <Tabs.Tab value="sound" leftSection={<IconVolume size="1rem" />}>
-          Sound
+          { t("Settings.Sound") }
         </Tabs.Tab>
         <Tabs.Tab value="keybinds" leftSection={<IconKeyboard size="1rem" />}>
-          Keybinds
+          { t("Settings.Keybinds") }
         </Tabs.Tab>
         <Tabs.Tab value="directories" leftSection={<IconFolder size="1rem" />}>
-          Directories
+          { t("Settings.Directories") }
         </Tabs.Tab>
       </Tabs.List>
       <Stack flex={1} px="md" pt="md">
@@ -102,10 +105,10 @@ export default function Page() {
           <Card withBorder p="lg" className={classes.card} w="100%">
             <Tabs.Panel value="board">
               <Text size="lg" fw={500} className={classes.title}>
-                Board
+                { t("Settings.Board") }
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Customize the analysis board and game controls
+                { t("Settings.Board.Desc") }
               </Text>
               <Group
                 justify="space-between"
@@ -114,9 +117,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Piece Destinations</Text>
+                  <Text>{t("Settings.PieceDest")}</Text>
                   <Text size="xs" c="dimmed">
-                    Show possible moves for each piece
+                    {t("Settings.PieceDest.Desc")}
                   </Text>
                 </div>
                 <SettingsSwitch atom={showDestsAtom} />
@@ -128,9 +131,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Arrows</Text>
+                  <Text>{ t("Settings.Arrows") }</Text>
                   <Text size="xs" c="dimmed">
-                    Show best move arrows
+                    { t("Settings.Arrows.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
@@ -143,9 +146,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Snap Arrows</Text>
+                  <Text>{ t("Settings.SnapArrows") }</Text>
                   <Text size="xs" c="dimmed">
-                    Snap arrows to valid moves
+                    { t("Settings.SnapArrows.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={snapArrowsAtom} />
@@ -158,10 +161,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Consecutive Arrows</Text>
+                  <Text>{ t("Settings.ConsecutiveArrows") }</Text>
                   <Text size="xs" c="dimmed">
-                    Show multiple arrows for the best line, if it involves
-                    moving the same piece several times
+                    { t("Settings.ConsecutiveArrows.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={showConsecutiveArrowsAtom} />
@@ -173,10 +175,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Auto Promotion</Text>
+                  <Text>{ t("Settings.AutoPromition") }</Text>
                   <Text size="xs" c="dimmed">
-                    Automatically promote to a queen when a pawn reaches the
-                    last rank
+                    { t("Settings.AutoPromition.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={autoPromoteAtom} />
@@ -188,9 +189,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Coordinates</Text>
+                  <Text>{ t("Settings.Coordinates") }</Text>
                   <Text size="xs" c="dimmed">
-                    Show coordinates on the board
+                    { t("Settings.Coordinates.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={showCoordinatesAtom} />
@@ -202,9 +203,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Auto Save</Text>
+                  <Text>{ t("Settings.AutoSave") }</Text>
                   <Text size="xs" c="dimmed">
-                    Auto save to file after each move
+                    { t("Settings.AutoSave.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={autoSaveAtom} />
@@ -217,10 +218,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Preview Board</Text>
+                  <Text>{ t("Settings.PreviewBoard") }</Text>
                   <Text size="xs" c="dimmed">
-                    Show a preview of the board when hovering over a move in the
-                    engine analysis
+                    { t("Settings.PreviewBoard.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={previewBoardOnHoverAtom} />
@@ -232,9 +232,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Scroll Through Moves</Text>
+                  <Text>{ t("Settings.ScrollThroughMoves") }</Text>
                   <Text size="xs" c="dimmed">
-                    Enable or disable scrolling through moves on the chessboard
+                    { t("Settings.ScrollThroughMoves.Desc") }
                   </Text>
                 </div>
                 <SettingsSwitch atom={enableBoardScrollAtom} />
