@@ -6,6 +6,7 @@ import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
 import type { UseFormReturnType } from "@mantine/form";
 import { open } from "@tauri-apps/api/dialog";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import FileInput from "../common/FileInput";
 
@@ -18,6 +19,8 @@ export default function EngineForm({
   form: UseFormReturnType<LocalEngine, (values: LocalEngine) => LocalEngine>;
   submitLabel: string;
 }) {
+  const { t } = useTranslation();
+
   const { os } = usePlatform();
   const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(
     null,
@@ -41,8 +44,8 @@ export default function EngineForm({
       )}
     >
       <FileInput
-        label="Binary file"
-        description="Click to select the binary file"
+        label={t("Engines.Add.BinaryFile")}
+        description={t("Engines.Add.BinaryFile.Desc")}
         filename={form.values.path}
         withAsterisk
         onClick={async () => {
@@ -60,21 +63,21 @@ export default function EngineForm({
       />
 
       <TextInput
-        label="Name"
-        placeholder="Autodetect"
+        label={t("Engines.Add.Name")}
+        placeholder={t("Engines.Add.Name.Autodetect")}
         withAsterisk
         {...form.getInputProps("name")}
       />
 
       <NumberInput
         label="Elo"
-        placeholder="Engine's Elo"
+        placeholder={t("Engines.Add.Elo.Desc")}
         {...form.getInputProps("elo")}
       />
 
       <Input.Wrapper
-        label="Image file"
-        description="Click to select the image file (recommended size: 60x60)"
+        label={t("Engines.Add.ImageFile")}
+        description={t("Engines.Add.ImageFile.Desc")}
         {...form.getInputProps("image")}
       >
         <Input

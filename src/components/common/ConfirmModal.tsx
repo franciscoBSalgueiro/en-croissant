@@ -1,4 +1,5 @@
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 
 function ConfirmModal({
   title,
@@ -15,6 +16,8 @@ function ConfirmModal({
   onConfirm: () => void;
   confirmLabel?: string;
 }) {
+  const { t } = useTranslation();
+
   return (
     <Modal withCloseButton={false} opened={opened} onClose={onClose}>
       <Stack>
@@ -23,15 +26,15 @@ function ConfirmModal({
             {title}
           </Text>
           <Text>{description}</Text>
-          <Text>This action cannot be undone.</Text>
+          <Text>{ t("Common.CannotUndo") }</Text>
         </div>
 
         <Group justify="right">
           <Button variant="default" onClick={() => onClose()}>
-            Cancel
+            { t("Common.Cancel") }
           </Button>
           <Button color="red" onClick={() => onConfirm()}>
-            {confirmLabel || "Delete"}
+            {confirmLabel || t("Common.Delete")}
           </Button>
         </Group>
       </Stack>
