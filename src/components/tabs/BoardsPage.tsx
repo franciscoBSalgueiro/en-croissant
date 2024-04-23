@@ -8,8 +8,9 @@ import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { atom, useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useTransition } from "react";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -26,6 +27,8 @@ import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
+  const { t } = useTranslation();
+
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
   const [saveModalOpened, toggleSaveModal] = useToggle();
@@ -33,7 +36,7 @@ export default function BoardsPage() {
   useEffect(() => {
     if (tabs.length === 0) {
       createTab({
-        tab: { name: "New Tab", type: "new" },
+        tab: { name: t("Tab.NewTab"), type: "new" },
         setTabs,
         setActiveTab,
       });
@@ -213,7 +216,7 @@ export default function BoardsPage() {
                     onClick={() =>
                       createTab({
                         tab: {
-                          name: "New Tab",
+                          name: t("Tab.NewTab"),
                           type: "new",
                         },
                         setTabs,

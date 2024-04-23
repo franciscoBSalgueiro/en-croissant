@@ -8,6 +8,7 @@ import {
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import cx from "clsx";
 import * as classes from "./Sidebar.css";
@@ -48,8 +49,10 @@ const linksdata = [
 ];
 
 export function SideBar() {
+  const { t } = useTranslation();
+
   const links = linksdata.map((link) => (
-    <NavbarLink {...link} key={link.label} />
+    <NavbarLink {...link} label={t(`SideBar.${link.label}`)} key={link.label} />
   ));
 
   return (
@@ -61,7 +64,7 @@ export function SideBar() {
       </AppShellSection>
       <AppShellSection>
         <Stack justify="center" gap={0}>
-          <NavbarLink icon={IconSettings} label="Settings" url="/settings" />
+          <NavbarLink icon={IconSettings} label={t("SideBar.Settings")} url="/settings" />
         </Stack>
       </AppShellSection>
     </>
