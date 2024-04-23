@@ -560,6 +560,8 @@ function JSONModal({
   engine: Engine;
   setEngine: (v: Engine) => void;
 }) {
+  const { t } = useTranslation()
+
   const [value, setValue] = useState(JSON.stringify(engine, null, 2));
   const [error, setError] = useState<string | null>(null);
   return (
@@ -586,7 +588,7 @@ function JSONModal({
           }
         }}
       >
-        Save
+        { t("Common.Save") }
       </Button>
     </Modal>
   );
