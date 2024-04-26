@@ -53,9 +53,10 @@ import GoModeInput from "../common/GoModeInput";
 import LocalImage from "../common/LocalImage";
 import LinesSlider from "../panels/analysis/LinesSlider";
 import { useTranslation } from "react-i18next";
-import { t } from "i18next";
 
 export default function EnginesPage() {
+  const { t } = useTranslation();
+
   const [engines, setEngines] = useAtom(enginesAtom);
   const [opened, setOpened] = useState(false);
   const { selected } = Route.useSearch();

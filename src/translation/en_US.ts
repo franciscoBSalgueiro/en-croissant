@@ -9,6 +9,7 @@ export const en_US = {
         "Common.Remove": "Remove",
         "Common.Delete": "Delete",
         "Common.Add": "Add",
+        "Common.Create": "Create",
         "Common.Save": "Save",
         "Common.Download": "Download",
         "Common.Local": "Local",
@@ -117,6 +118,13 @@ export const en_US = {
         "Databases.Settings.ExportPGN": "Export to PGN",
         "Databases.Delete.Title": "Delete Database",
         "Databases.Delete.Message": "Are you sure you want to delete this database?",
+
+        "Files.Title": "Files",
+        "Files.FileType.Game": "Game",
+        "Files.FileType.Repertoire": "Repertoire",
+        "Files.FileType.Tournament": "Tournament",
+        "Files.FileType.Puzzle": "Puzzle",
+        "Files.FileType.Other": "Other",
 
         "Settings.Board": "Board",
         "Settings.Inputs": "Inputs",

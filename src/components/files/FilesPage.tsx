@@ -21,6 +21,7 @@ import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
 import { type FileMetadata, type FileType, readFileMetadata } from "./file";
+import { useTranslation } from "react-i18next";
 
 const FILE_TYPES: FileType[] = [
   "game",
@@ -101,6 +102,8 @@ const useFileDirectory = (dir: string) => {
 };
 
 function FilesPage() {
+  const { t } = useTranslation()
+
   const { documentDir } = useLoaderData({ from: "/files" });
   const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
 
@@ -139,7 +142,7 @@ function FilesPage() {
         />
       )}
       <Group align="baseline" pl="lg" py="sm">
-        <Title>Files</Title>
+        <Title>{ t("Files.Title") }</Title>
         <OpenFolderButton folder={documentDir} />
       </Group>
 
@@ -158,7 +161,7 @@ function FilesPage() {
               leftSection={<IconPlus size="1rem" />}
               onClick={() => toggleCreateModal()}
             >
-              Create
+              { t("Common.Create") }
             </Button>
             <Button
               size="xs"
@@ -167,7 +170,7 @@ function FilesPage() {
               leftSection={<IconX size="1rem" />}
               onClick={() => toggleDeleteModal()}
             >
-              Delete
+              { t("Common.Delete") }
             </Button>
           </Group>
           <Group>

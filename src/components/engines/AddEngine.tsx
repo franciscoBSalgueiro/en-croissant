@@ -32,7 +32,6 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
-import { t } from "i18next";
 
 function AddEngine({
   opened,
@@ -143,6 +142,8 @@ function AddEngine({
 }
 
 function CloudCard({ engine }: { engine: RemoteEngine }) {
+  const { t } = useTranslation();
+
   const [engines, setEngines] = useAtom(enginesAtom);
   return (
     <Paper withBorder radius="md" p={0} key={engine.name}>

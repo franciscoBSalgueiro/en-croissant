@@ -11,6 +11,7 @@ export const zh_CN = {
         "Common.Download": "下载",
         "Common.Local": "本地",
         "Common.Add": "添加",
+        "Common.Create": "创建",
         "Common.Save": "保存",
         "Common.Install": "安装",
         "Common.Installed": "已安装",
@@ -117,6 +118,13 @@ export const zh_CN = {
         "Databases.Settings.ExportPGN": "导出为 PGN",
         "Databases.Delete.Title": "删除数据库",
         "Databases.Delete.Message": "你确定要删除这个数据库吗？",
+
+        "Files.Title": "文件",
+        "Files.FileType.Game": "对局",
+        "Files.FileType.Repertoire": "开局库",
+        "Files.FileType.Tournament": "锦标赛",
+        "Files.FileType.Puzzle": "谜题",
+        "Files.FileType.Other": "其他",
 
         "Settings.Board": "棋盘",
         "Settings.Inputs": "输入",
