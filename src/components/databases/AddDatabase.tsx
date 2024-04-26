@@ -30,6 +30,7 @@ import { type Dispatch, type SetStateAction, useState } from "react";
 import type { KeyedMutator } from "swr";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
+import { useTranslation } from "react-i18next";
 
 function AddDatabase({
   databases,
@@ -44,6 +45,7 @@ function AddDatabase({
   setLoading: Dispatch<SetStateAction<boolean>>;
   setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
+  const { t } = useTranslation();
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
@@ -67,12 +69,12 @@ function AddDatabase({
 
     validate: {
       title: (value) => {
-        if (!value) return "Name is required";
+        if (!value) return t("Common.RequireName");
         if (databases.find((e) => e.title === value))
-          return "Name already used";
+          return t("Common.NameAlreadyUsed");
       },
       file: (value) => {
-        if (!value) return "Path is required";
+        if (!value) return t("Common.RequirePath");
       },
     },
   });
@@ -81,12 +83,12 @@ function AddDatabase({
     <Modal
       opened={opened}
       onClose={() => setOpened(false)}
-      title="Add Database"
+      title={t("Databases.Add.Title")}
     >
       <Tabs defaultValue="web">
         <Tabs.List>
-          <Tabs.Tab value="web">Web</Tabs.Tab>
-          <Tabs.Tab value="local">Local</Tabs.Tab>
+          <Tabs.Tab value="web">{ t("Databases.Add.Web") }</Tabs.Tab>
+          <Tabs.Tab value="local">{ t("Common.Local") }</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
           {isLoading && (
@@ -125,19 +127,19 @@ function AddDatabase({
             })}
           >
             <TextInput
-              label="Title"
+              label={t("Common.Name")}
               withAsterisk
               {...form.getInputProps("title")}
             />
 
             <TextInput
-              label="Description"
+              label={t("Common.Description")}
               {...form.getInputProps("description")}
             />
 
             <FileInput
-              label="PGN file"
-              description="Click to select the PGN file"
+              label={t("Common.PGNFile")}
+              description={t("Databases.Add.ClickToSelectPGN")}
               onClick={async () => {
                 const selected = await open({
                   multiple: false,
@@ -188,6 +190,8 @@ function DatabaseCard({
   databaseId: number;
   initInstalled: boolean;
 }) {
+  const { t } = useTranslation();
+
   const [inProgress, setInProgress] = useState<boolean>(false);
 
   async function downloadDatabase(id: number, url: string, name: string) {
@@ -219,19 +223,19 @@ function DatabaseCard({
           <Group wrap="nowrap" grow my="md">
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-                SIZE
+                { t("Common.Size") }
               </Text>
               <Text size="xs">{formatBytes(database.storage_size ?? 0)}</Text>
             </Stack>
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-                GAMES
+                { t("Databases.Card.Games") }
               </Text>
               <Text size="xs">{formatNumber(database.game_count)}</Text>
             </Stack>
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-                PLAYERS
+              { t("Databases.Card.Players") }
               </Text>
               <Text size="xs">{formatNumber(database.player_count)}</Text>
             </Stack>
@@ -241,10 +245,10 @@ function DatabaseCard({
             progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
-              completed: "Installed",
-              action: "Install",
-              inProgress: "Downloading",
-              finalizing: "Extracting",
+              completed: t("Common.Installed"),
+              action: t("Common.Install"),
+              inProgress: t("Common.Downloading"),
+              finalizing: t("Common.Extracting"),
             }}
             onClick={() =>
               downloadDatabase(

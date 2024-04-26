@@ -64,11 +64,11 @@ function AddEngine({
 
     validate: {
       name: (value) => {
-        if (!value) return "Name is required";
-        if (engines.find((e) => e.name === value)) return "Name already used";
+        if (!value) return t("Common.RequireName");
+        if (engines.find((e) => e.name === value)) return t("Common.NameAlreadyUsed");
       },
       path: (value) => {
-        if (!value) return "Path is required";
+        if (!value) return t("Common.RequirePath");
       },
     },
   });
