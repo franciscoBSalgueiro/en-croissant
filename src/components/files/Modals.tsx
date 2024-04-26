@@ -14,6 +14,7 @@ import { useState } from "react";
 import GenericCard from "../common/GenericCard";
 import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata, FileType } from "./file";
+import { useTranslation } from "react-i18next";
 
 const FILE_TYPES = [
   { label: "Game", value: "game" },
@@ -36,6 +37,8 @@ export function CreateModal({
   setFiles: (files: MetadataOrEntry[]) => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
 }) {
+  const { t } = useTranslation()
+
   const [filename, setFilename] = useState("");
   const [filetype, setFiletype] = useState<FileType>("game");
   const [pgn, setPgn] = useState("");
@@ -90,7 +93,7 @@ export function CreateModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={<Text ta="center">{v.label}</Text>}
+                Header={<Text ta="center">{ t(`Files.FileType.${v.label}`) }</Text>}
               />
             ))}
           </SimpleGrid>
@@ -125,6 +128,8 @@ export function EditModal({
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
   metadata: FileMetadata;
 }) {
+  const { t } = useTranslation();
+
   const [filename, setFilename] = useState(metadata.name);
   const [filetype, setFiletype] = useState<FileType>(metadata.metadata.type);
   const [error, setError] = useState("");
@@ -194,7 +199,7 @@ export function EditModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={<Text ta="center">{v.label}</Text>}
+                Header={<Text ta="center">{ t(`Files.FileType.${v.label}`) }</Text>}
               />
             ))}
           </SimpleGrid>
