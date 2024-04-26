@@ -124,12 +124,12 @@ export default function EnginesPage() {
         </ScrollArea>
         <Paper withBorder p="md" h="100%">
           {!selectedEngine || selected === undefined ? (
-            <Text ta="center">{ t("Engines.EngineSettings.NoEngine") }</Text>
+            <Text ta="center">{ t("Engines.Settings.NoEngine") }</Text>
           ) : selectedEngine.type === "local" ? (
             <EngineSettings selected={selected} setSelected={setSelected} />
           ) : (
             <Stack>
-              <Divider variant="dashed" label={ t("Engines.EngineSettings.GeneralSettings") } />
+              <Divider variant="dashed" label={ t("Common.GeneralSettings") } />
 
               <TextInput
                 w="50%"
@@ -157,9 +157,9 @@ export default function EnginesPage() {
                 }}
               />
 
-              <Divider variant="dashed" label={ t("Engines.EngineSettings.AdvancedSettings") } />
+              <Divider variant="dashed" label={ t("Engines.Settings.AdvancedSettings") } />
               <Stack w="50%">
-                <Text fw="bold">{ t("Engines.EngineSettings.NumOfLines") }</Text>
+                <Text fw="bold">{ t("Engines.Settings.NumOfLines") }</Text>
                 <LinesSlider
                   value={
                     Number(
@@ -318,7 +318,7 @@ function EngineSettings({
   return (
     <ScrollArea h="100%" offsetScrollbars>
       <Stack>
-        <Divider variant="dashed" label={ t("Engines.EngineSettings.GeneralSettings") } />
+        <Divider variant="dashed" label={ t("Common.GeneralSettings") } />
         <Group grow align="start" wrap="nowrap">
           <Stack>
             <Group wrap="nowrap" w="100%">
@@ -393,13 +393,13 @@ function EngineSettings({
             )}
           </Center>
         </Group>
-        <Divider variant="dashed" label={ t('Engines.EngineSettings.SearchSettings') } />
+        <Divider variant="dashed" label={ t('Engines.Settings.SearchSettings') } />
         <GoModeInput
           goMode={engine.go || null}
           setGoMode={(v) => setEngine({ ...engine, go: v })}
         />
 
-        <Divider variant="dashed" label={ t('Engines.EngineSettings.AdvancedSettings') } />
+        <Divider variant="dashed" label={ t('Engines.Settings.AdvancedSettings') } />
         <SimpleGrid cols={2}>
           {completeOptions
             .filter((option: { type: string }) => option.type !== "check")
@@ -490,7 +490,7 @@ function EngineSettings({
 
         <Group justify="end">
           <Button variant="default" onClick={() => toggleJSONModal(true)}>
-            { t("Engines.EngineSettings.EditJSON") }
+            { t("Engines.Settings.EditJSON") }
           </Button>
           <Button
             variant="default"
@@ -509,7 +509,7 @@ function EngineSettings({
               })
             }
           >
-            { t("Engines.EngineSettings.Reset") }
+            { t("Engines.Settings.Reset") }
           </Button>
           <Button color="red" onClick={() => toggleDeleteModal()}>
             { t("Common.Remove") }

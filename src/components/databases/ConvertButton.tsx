@@ -3,6 +3,7 @@ import { Box, Loader, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type Progress = {
   total: number;
@@ -16,6 +17,7 @@ function ConvertButton({
   setOpen: (open: boolean) => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const [progress, setProgress] = useState<Progress | null>(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ function ConvertButton({
       onClick={() => setOpen(true)}
     >
       <Stack gap={0} justify="center" w="100%" h="100%">
-        <Text mb={10}>Add New</Text>
+        <Text mb={10}>{ t("Common.AddNew") }</Text>
         <Box>
           {loading ? (
             <Loader variant="dots" size="1.3rem" />

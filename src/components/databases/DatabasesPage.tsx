@@ -28,6 +28,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { open as openDialog, save } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
@@ -37,6 +38,8 @@ import ConvertButton from "./ConvertButton";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 
 export default function DatabasesPage() {
+  const { t } = useTranslation();
+
   const {
     data: databases,
     error,
@@ -71,8 +74,8 @@ export default function DatabasesPage() {
   return (
     <Stack h="100%">
       <ConfirmModal
-        title={"Delete Database"}
-        description={"Are you sure you want to delete this database?"}
+        title={t("Databases.Delete.Title")}
+        description={t("Databases.Delete.Message")}
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
@@ -95,7 +98,7 @@ export default function DatabasesPage() {
       />
 
       <Group align="baseline" pl="lg" py="sm">
-        <Title>Your Databases</Title>
+        <Title>{ t("Databases.Title") }</Title>
         <OpenFolderButton base="AppDir" folder="db" />
       </Group>
 
@@ -160,11 +163,11 @@ export default function DatabasesPage() {
                   }
                   stats={[
                     {
-                      label: "Games",
+                      label: t("Databases.Card.Games"),
                       value: item.error ? "???" : formatNumber(item.game_count),
                     },
                     {
-                      label: "Storage",
+                      label: t("Databases.Card.Storage"),
                       value: item.error
                         ? "???"
                         : formatBytes(item.storage_size ?? 0),
@@ -201,14 +204,14 @@ export default function DatabasesPage() {
                   </>
                 ) : (
                   <>
-                    <Divider variant="dashed" label="General settings" />
+                    <Divider variant="dashed" label={t("Common.GeneralSettings")} />
                     <GeneralSettings
                       key={selectedDatabase.filename}
                       selectedDatabase={selectedDatabase}
                       mutate={mutate}
                     />
                     <Checkbox
-                      label="Reference Database"
+                      label={t("Databases.Settings.ReferenceDatabase")}
                       checked={isReference}
                       onChange={() => {
                         changeReferenceDatabase(selectedDatabase.file);
@@ -220,11 +223,11 @@ export default function DatabasesPage() {
                       setDatabases={mutate}
                     />
 
-                    <Divider variant="dashed" label="Data" />
+                    <Divider variant="dashed" label={t("Common.Data")} />
                     <Group grow>
                       <Stack gap={0} justify="center" ta="center">
                         <Text size="md" tt="uppercase" fw="bold" c="dimmed">
-                          Games
+                          { t("Databases.Card.Games") }
                         </Text>
                         <Text fw={700} size="lg">
                           {formatNumber(selectedDatabase.game_count)}
@@ -232,7 +235,7 @@ export default function DatabasesPage() {
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
                         <Text size="md" tt="uppercase" fw="bold" c="dimmed">
-                          Players
+                        { t("Databases.Card.Players") }
                         </Text>
                         <Text fw={700} size="lg">
                           {formatNumber(selectedDatabase.player_count)}
@@ -240,7 +243,7 @@ export default function DatabasesPage() {
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
                         <Text size="md" tt="uppercase" fw="bold" c="dimmed">
-                          Events
+                        { t("Databases.Settings.Events") }
                         </Text>
                         <Text fw={700} size="lg">
                           {formatNumber(selectedDatabase.event_count)}
@@ -260,7 +263,7 @@ export default function DatabasesPage() {
                           size="lg"
                           rightSection={<IconArrowRight size="1rem" />}
                         >
-                          Explore
+                          { t("Databases.Settings.Explore") }
                         </Button>
                       )}
                     </div>
@@ -276,7 +279,7 @@ export default function DatabasesPage() {
                   />
                 )}
 
-                <Divider variant="dashed" label="Actions" />
+                <Divider variant="dashed" label={t("Databases.Settings.Actions")} />
                 <Group justify="space-between">
                   {!selectedDatabase.error && (
                     <Group>
@@ -300,7 +303,7 @@ export default function DatabasesPage() {
                           setConvertLoading(false);
                         }}
                       >
-                        Add Games
+                        { t("Databases.Settings.AddGames") }
                       </Button>
                       <Button
                         rightSection={<IconArrowRight size="1rem" />}
@@ -319,12 +322,12 @@ export default function DatabasesPage() {
                           setExportLoading(false);
                         }}
                       >
-                        Export to PGN
+                        { t("Databases.Settings.ExportPGN") }
                       </Button>
                     </Group>
                   )}
                   <Button onClick={() => toggleDeleteModal()} color="red">
-                    Delete
+                    { t("Common.Delete") }
                   </Button>
                 </Group>
               </Stack>
@@ -343,6 +346,8 @@ function GeneralSettings({
   selectedDatabase: DatabaseInfo;
   mutate: () => void;
 }) {
+  const { t } = useTranslation()
+
   const [title, setTitle] = useState(selectedDatabase.title);
   const [description, setDescription] = useState(selectedDatabase.description);
 
@@ -360,13 +365,13 @@ function GeneralSettings({
   return (
     <>
       <TextInput
-        label="Title"
+        label={t("Common.Name")}
         value={title}
         onChange={(e) => setTitle(e.currentTarget.value)}
-        error={title === "" && "Name is required"}
+        error={title === "" && t("Common.RequireName")}
       />
       <Textarea
-        label="Description"
+        label={t("Common.Description")}
         value={description}
         onChange={(e) => setDescription(e.currentTarget.value)}
       />
@@ -394,6 +399,8 @@ function PlayerMerger({
 }: {
   selectedDatabase: DatabaseInfo;
 }) {
+  const { t } = useTranslation();
+
   const [player1, setPlayer1] = useState<number | undefined>(undefined);
   const [player2, setPlayer2] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
@@ -415,11 +422,10 @@ function PlayerMerger({
   return (
     <Stack>
       <Text fz="lg" fw="bold">
-        Merge Players
+        { t("Databases.Settings.MergePlayers") }
       </Text>
       <Text fz="sm">
-        Replace all occurrences of the first player with the second player in
-        the database.
+        { t("Databases.Settings.MergePlayers.Desc") }
       </Text>
       <Group grow>
         <PlayerSearchInput
@@ -432,7 +438,7 @@ function PlayerMerger({
           onClick={mergePlayers}
           rightSection={<IconArrowRight size="1rem" />}
         >
-          Merge
+          { t("Databases.Settings.Merge") }
         </Button>
         <PlayerSearchInput
           label="Player 2"
@@ -451,15 +457,16 @@ function DuplicateRemover({
   selectedDatabase: DatabaseInfo;
   reload: () => void;
 }) {
+  const { t } = useTranslation();
+
   const [loading, setLoading] = useState(false);
   return (
     <Stack>
       <Text fz="lg" fw="bold">
-        Batch Delete
+        { t("Databases.Settings.BatchDelete") }
       </Text>
       <Text fz="sm">
-        These actions will irreversibly remove games from the database. Use with
-        caution.
+        { t("Databases.Settings.BatchDelete.Desc") }
       </Text>
       <Group>
         <Button
@@ -477,7 +484,7 @@ function DuplicateRemover({
               });
           }}
         >
-          Remove Duplicates
+          { t("Databases.Settings.RemoveDup") }
         </Button>
 
         <Button
@@ -495,7 +502,7 @@ function DuplicateRemover({
               });
           }}
         >
-          Remove Empty Games
+          { t("Databases.Settings.RemoveEmpty") }
         </Button>
       </Group>
     </Stack>
@@ -511,12 +518,14 @@ function IndexInput({
   file: string;
   setDatabases: (dbs: DatabaseInfo[]) => void;
 }) {
+  const { t } = useTranslation();
+
   const [loading, setLoading] = useToggle();
   return (
     <Group>
-      <Tooltip label="Indexes are used to speed up the search process, but they take up extra space.">
+      <Tooltip label={t("Databases.Settings.Indexed.Desc")}>
         <Checkbox
-          label="Indexed"
+          label={t("Databases.Settings.Indexed")}
           disabled={loading}
           checked={indexed}
           onChange={(e) => {
