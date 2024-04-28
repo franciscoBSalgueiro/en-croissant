@@ -76,6 +76,7 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
+import { useTranslation } from "react-i18next";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
@@ -116,6 +117,8 @@ function Board({
   blackTc,
   practicing,
 }: ChessboardProps) {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
 
   const root = useStore(store, (s) => s.root);
@@ -201,8 +204,8 @@ function Board({
 
       if (!isRecalled) {
         notifications.show({
-          title: "Incorrect",
-          message: `The correct move was ${c.answer}`,
+          title: t("Common.Incorrect"),
+          message: t("Board.Practice.CorrectMoveWas", { move: c.answer }),
           color: "red",
         });
         await new Promise((resolve) => setTimeout(resolve, 500));

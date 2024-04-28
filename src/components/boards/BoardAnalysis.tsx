@@ -22,6 +22,7 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import MoveControls from "../common/MoveControls";
@@ -37,6 +38,8 @@ import EvalListener from "./EvalListener";
 import GameNotation from "./GameNotation";
 
 function BoardAnalysis() {
+  const { t } = useTranslation();
+
   const [editingMode, toggleEditingMode] = useToggle();
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
@@ -170,32 +173,32 @@ function BoardAnalysis() {
                   value="practice"
                   leftSection={<IconTargetArrow size="1rem" />}
                 >
-                  Practice
+                  { t("Board.Tabs.Practice") }
                 </Tabs.Tab>
               )}
               <Tabs.Tab
                 value="analysis"
                 leftSection={<IconZoomCheck size="1rem" />}
               >
-                Analysis
+                { t("Board.Tabs.Analysis") }
               </Tabs.Tab>
               <Tabs.Tab
                 value="database"
                 leftSection={<IconDatabase size="1rem" />}
               >
-                Database
+                { t("Board.Tabs.Database") }
               </Tabs.Tab>
               <Tabs.Tab
                 value="annotate"
                 leftSection={<IconNotes size="1rem" />}
               >
-                Annotate
+                { t("Board.Tabs.Annotate") }
               </Tabs.Tab>
               <Tabs.Tab
                 value="info"
                 leftSection={<IconInfoCircle size="1rem" />}
               >
-                Info
+                { t("Board.Tabs.Info") }
               </Tabs.Tab>
             </Tabs.List>
             {isRepertoire && (

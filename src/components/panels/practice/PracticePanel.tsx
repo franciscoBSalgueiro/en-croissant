@@ -33,12 +33,15 @@ import { IconArrowRight } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useHotkeys } from "react-hotkeys-hook";
 import { formatDate } from "ts-fsrs";
 import { useStore } from "zustand";
 import RepertoireInfo from "./RepertoireInfo";
 
 function PracticePanel() {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
   const root = useStore(store, (s) => s.root);
@@ -104,17 +107,16 @@ function PracticePanel() {
         }}
       >
         <Tabs.List>
-          <Tabs.Tab value="train">Train</Tabs.Tab>
-          <Tabs.Tab value="build">Build</Tabs.Tab>
+          <Tabs.Tab value="train">{t("Board.Practice.Train")}</Tabs.Tab>
+          <Tabs.Tab value="build">{t("Board.Practice.Build")}</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="train" style={{ overflow: "hidden" }}>
           <Stack>
             {stats.total === 0 && (
               <Text>
-                There are no position to practice. Start by adding moves to this
-                PGN file. <br />
-                You'll need to change to Analysis mode to be able to add moves.
+                {t("Board.Practice.NoPositionForTrain1")} <br />
+                {t("Board.Practice.NoPositionForTrain2")}
               </Text>
             )}
             {stats.total > 0 && (
@@ -152,15 +154,15 @@ function PracticePanel() {
                 <Group wrap="nowrap">
                   <Group wrap="nowrap">
                     <div>
-                      <Badge color="blue">Practiced</Badge>
+                      <Badge color="blue">{t("Board.Practice.Practiced")}</Badge>
                       <Text ta="center">{stats.practiced}</Text>
                     </div>
                     <div>
-                      <Badge color="yellow">Due</Badge>
+                      <Badge color="yellow">{t("Board.Practice.Due")}</Badge>
                       <Text ta="center">{stats.due}</Text>
                     </div>
                     <div>
-                      <Badge color="gray">Unseen</Badge>
+                      <Badge color="gray">{t("Board.Practice.Unseen")}</Badge>
                       <Text ta="center">{stats.unseen}</Text>
                     </div>
                   </Group>
@@ -168,16 +170,16 @@ function PracticePanel() {
                   <Group>
                     {stats.due === 0 && stats.unseen === 0 && (
                       <Text>
-                        You have practiced all positions.
+                        {t("Board.Practice.PracticedAll1")}
                         <br />
-                        The next review is on{" "}
+                        {t("Board.Practice.PracticedAll2")}{" "}
                         {dayjs(stats.nextDue).format("MMM D, HH:mm")}
                       </Text>
                     )}
                     <Button onClick={() => setPositionsOpen(true)}>
-                      Show all positions
+                      {t("Board.Practice.ShowAll")}
                     </Button>
-                    <Button onClick={() => setLogsOpen(true)}>Show logs</Button>
+                    <Button onClick={() => setLogsOpen(true)}>{t("Board.Practice.ShowLogs")}</Button>
                   </Group>
                 </Group>
               </Group>
@@ -212,7 +214,7 @@ function PracticePanel() {
                 }}
                 disabled={stats.due === 0 && stats.unseen === 0}
               >
-                Skip
+                {t("Common.Skip")}
               </Button>
               <Button
                 variant="default"
@@ -221,10 +223,10 @@ function PracticePanel() {
                   goToNext();
                 }}
               >
-                See Answer
+                {t("Board.Practice.SeeAnser")}
               </Button>
               <Button variant="default" onClick={() => toggleResetModal()}>
-                Reset
+                {t("Common.Reset")}
               </Button>
             </Group>
           </Stack>
@@ -270,6 +272,8 @@ function PositionsModal({
   setOpen: (open: boolean) => void;
   deck: PracticeData;
 }) {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const goToMove = useStore(store, (s) => s.goToMove);
@@ -310,10 +314,10 @@ function PositionsModal({
                     }
                   >
                     {c.card.reps === 0
-                      ? "Unseen"
+                      ? t("Board.Practice.Unseen")
                       : c.card.due < new Date()
-                        ? "Due"
-                        : "Practiced"}
+                        ? t("Board.Practice.Due")
+                        : t("Board.Practice.Practiced")}
                   </Badge>
                 </Stack>
                 <Stack>
