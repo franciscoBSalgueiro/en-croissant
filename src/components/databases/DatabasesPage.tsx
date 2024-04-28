@@ -270,7 +270,7 @@ export default function DatabasesPage() {
                   </>
                 )}
 
-                <Divider variant="dashed" label="Advanced tools" />
+                <Divider variant="dashed" label={t("Databases.Settings.AdvancedTools")} />
 
                 {!selectedDatabase.error && (
                   <AdvancedSettings
