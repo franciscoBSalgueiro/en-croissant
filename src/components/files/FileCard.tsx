@@ -17,6 +17,8 @@ import { useEffect, useState } from "react";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
 import type { FileMetadata } from "./file";
+import { useTranslation } from "react-i18next";
+import { capitalize } from "@/utils/format";
 
 function FileCard({
   selected,
@@ -29,6 +31,8 @@ function FileCard({
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
   toggleEditModal: () => void;
 }) {
+  const { t } = useTranslation();
+
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
   const navigate = useNavigate();
@@ -70,24 +74,24 @@ function FileCard({
         <Text ta="center" fz="xl" fw="bold">
           {selected?.name}
         </Text>
-        <Badge>{selected.metadata.type}</Badge>
+        <Badge>{t(`Files.FileType.${capitalize(selected.metadata.type)}`)}</Badge>
       </Stack>
 
       <Group align="center" grow>
         <Group>
-          <Tooltip label="Open">
+          <Tooltip label={t("Common.Open")}>
             <ActionIcon onClick={openGame}>
               <IconEye />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label="Edit Metadata">
+          <Tooltip label={t("Files.EditMetadata")}>
             <ActionIcon onClick={() => toggleEditModal()}>
               <IconEdit />
             </ActionIcon>
           </Tooltip>
         </Group>
         <Text ta="center" c="dimmed">
-          {selected?.numGames} Games
+          {selected?.numGames} {t("Common.Games")}
         </Text>
         <div />
       </Group>
