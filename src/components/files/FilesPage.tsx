@@ -152,7 +152,7 @@ function FilesPage() {
             <Input
               style={{ flexGrow: 1 }}
               rightSection={<IconSearch size="1rem" />}
-              placeholder="Search for files"
+              placeholder={t("Files.Search")}
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
             />
@@ -185,7 +185,7 @@ function FilesPage() {
                 }
                 checked={filter === type}
               >
-                {capitalize(type)}
+                {t(`Files.FileType.${capitalize(type)}`)}
               </Chip>
             ))}
           </Group>
@@ -204,8 +204,8 @@ function FilesPage() {
         {selected ? (
           <>
             <ConfirmModal
-              title={"Delete file"}
-              description={`Are you sure you want to delete "${selected.name}"?`}
+              title={t("Files.Delete.Title")}
+              description={t("Files.Delete.Message", { fileName: selected.name })}
               opened={deleteModal}
               onClose={toggleDeleteModal}
               onConfirm={async () => {

@@ -22,6 +22,7 @@ import * as classes from "./DirectoryTable.css";
 import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata } from "./file";
 import { getStats } from "./opening";
+import { useTranslation } from "react-i18next";
 
 function flattenFiles(files: MetadataOrEntry[]): MetadataOrEntry[] {
   return files.flatMap((f) => (f.children ? flattenFiles(f.children) : [f]));
@@ -158,6 +159,8 @@ function Table({
     React.SetStateAction<DataTableSortStatus<MetadataOrEntry>>
   >;
 }) {
+  const { t } = useTranslation();
+
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const expandedFiles = expandedIds.filter((id) =>
     files?.find((f) => f.path === id && f.children),
@@ -237,7 +240,7 @@ function Table({
           accessor: "metadata.type",
           title: "Type",
           width: 100,
-          render: (row) => capitalize(row.metadata?.type || "Folder"),
+          render: (row) => t(`Files.FileType.${capitalize(row.metadata?.type || "Folder")}`),
         },
         {
           accessor: "lastModified",

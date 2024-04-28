@@ -65,7 +65,7 @@ export function CreateModal({
   }
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title="Create file">
+    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Files.Create.Title")}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -74,8 +74,8 @@ export function CreateModal({
       >
         <Stack>
           <TextInput
-            label="Name"
-            placeholder="Enter your filename"
+            label={t("Common.Name")}
+            placeholder={t("Common.EnterFileName")}
             required
             value={filename}
             onChange={(e) => setFilename(e.currentTarget.value)}
@@ -83,7 +83,7 @@ export function CreateModal({
           />
 
           <Text fz="sm" fw="bold">
-            File type
+            {t("Files.FileType")}
           </Text>
 
           <SimpleGrid cols={3}>
@@ -101,13 +101,13 @@ export function CreateModal({
           <Textarea
             value={pgn}
             onChange={(event) => setPgn(event.currentTarget.value)}
-            label="PGN game"
+            label={t("Common.PGNGame")}
             placeholder="Leave empty to start from scratch"
             rows={10}
           />
 
           <Button style={{ marginTop: "1rem" }} type="submit">
-            Create
+            {t("Common.Create")}
           </Button>
         </Stack>
       </form>
@@ -171,7 +171,7 @@ export function EditModal({
   }
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title="Edit file">
+    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Files.Edit.Title")}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -180,8 +180,8 @@ export function EditModal({
       >
         <Stack>
           <TextInput
-            label="Name"
-            placeholder="Enter your filename"
+            label={t("Common.Name")}
+            placeholder={t("Common.EnterFileName")}
             required
             value={filename}
             onChange={(e) => setFilename(e.currentTarget.value)}
@@ -189,7 +189,7 @@ export function EditModal({
           />
 
           <Text fz="sm" fw="bold">
-            File type
+            {t("Files.FileType")}
           </Text>
 
           <SimpleGrid cols={3}>
@@ -205,7 +205,7 @@ export function EditModal({
           </SimpleGrid>
 
           <Button style={{ marginTop: "1rem" }} type="submit">
-            Edit
+            {t("Common.Edit")}
           </Button>
         </Stack>
       </form>
