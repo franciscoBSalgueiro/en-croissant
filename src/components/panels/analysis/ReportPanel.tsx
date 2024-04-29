@@ -95,6 +95,8 @@ type Stats = ReturnType<typeof getGameStats>;
 
 const GameStats = memo(
   function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
+    const { t } = useTranslation();
+
     const store = useContext(TreeStateContext)!;
     const goToAnnotation = useStore(store, (s) => s.goToAnnotation);
 
