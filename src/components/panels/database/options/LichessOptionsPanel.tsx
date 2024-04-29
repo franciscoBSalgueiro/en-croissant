@@ -2,6 +2,7 @@ import ToggleButtonGroup, {
   type ToggleButtonGroupOption,
 } from "@/components/common/ToggleButtonGroup";
 import { lichessOptionsAtom } from "@/state/atoms";
+import { capitalize } from "@/utils/format";
 import { MIN_DATE } from "@/utils/lichess/api";
 import type { LichessGameSpeed, LichessRating } from "@/utils/lichess/explorer";
 import { Group, Select, Stack, TextInput } from "@mantine/core";
@@ -15,9 +16,12 @@ import {
   IconSend,
 } from "@tabler/icons-react";
 import { useAtom } from "jotai";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 
 const LichessOptionsPanel = () => {
+  const { t } = useTranslation();
+
   const [options, setOptions] = useAtom(lichessOptionsAtom);
 
   const timeControls: LichessGameSpeed[] = [
@@ -46,7 +50,7 @@ const LichessOptionsPanel = () => {
       .exhaustive();
     return {
       content: icon,
-      name: name,
+      name: t(`TimeControl.${capitalize(name)}`),
       value: speed,
       isToggled: (options.speeds ?? []).some((s) => s === speed),
     };
@@ -95,14 +99,14 @@ const LichessOptionsPanel = () => {
   return (
     <Stack justify="flex-start">
       <ToggleButtonGroup
-        label="Time control"
+        label={t("Board.Database.TimeControl")}
         options={timeControls.map(mapTimeControl)}
         toggleOption={toggleTimeControl}
         minButtonWidth="9ch"
         includeTooltips
       />
       <ToggleButtonGroup
-        label="Average rating"
+        label={t("Board.Database.AverageRating")}
         options={ratings.map(mapRatingOption)}
         toggleOption={toggleRating}
         minButtonWidth="9ch"

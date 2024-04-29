@@ -93,6 +93,13 @@ export const en_US = {
         "RichText.Link": "Link",
         "RichText.RemoveLink": "Remove link",
 
+        "TimeControl.UltraBullet": "UltraBullet",
+        "TimeControl.Bullet": "Bullet",
+        "TimeControl.Blitz": "Blitz",
+        "TimeControl.Rapid": "Rapid",
+        "TimeControl.Classical": "Classical",
+        "TimeControl.Correspondence": "Correspondence",
+
         "Menu.File": "File",
         "Menu.File.NewTab": "New Tab",
         "Menu.File.OpenFile": "Open File",
@@ -178,6 +185,8 @@ export const en_US = {
         "Board.Database.NoReference2": "Please",
         "Board.Database.SelectReference": "add a database",
         "Board.Database.NoReference3": "first and mark it as the reference.",
+        "Board.Database.TimeControl": "Time control",
+        "Board.Database.AverageRating": "Average rating",
         "Board.Annotate.WriteHere": "Write here...",
 
         "Engines.Title": "Your Engines",
