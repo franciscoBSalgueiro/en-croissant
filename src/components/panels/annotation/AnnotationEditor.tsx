@@ -9,10 +9,13 @@ import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useAtomValue } from "jotai";
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import { Markdown } from "tiptap-markdown";
 import { useStore } from "zustand";
 
 function AnnotationEditor() {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
@@ -32,7 +35,7 @@ function AnnotationEditor() {
         Markdown.configure({
           linkify: true,
         }),
-        Placeholder.configure({ placeholder: "Write here..." }),
+        Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
       ],
       content: currentNode.comment,
       onUpdate: ({ editor }) => {
