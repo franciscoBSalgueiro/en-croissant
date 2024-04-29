@@ -7,8 +7,11 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import { IconMoon, IconSun } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 export default function ThemeButton() {
+  const { t } = useTranslation();
+
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   return (
@@ -22,7 +25,7 @@ export default function ThemeButton() {
             label: (
               <Center>
                 <IconSun size="1rem" stroke={1.5} />
-                <Box ml={10}>Light</Box>
+                <Box ml={10}>{t("Settings.Appearance.Theme.Light")}</Box>
               </Center>
             ),
           },
@@ -31,7 +34,7 @@ export default function ThemeButton() {
             label: (
               <Center>
                 <IconMoon size="1rem" stroke={1.5} />
-                <Box ml={10}>Dark</Box>
+                <Box ml={10}>{t("Settings.Appearance.Theme.Dark")}</Box>
               </Center>
             ),
           },

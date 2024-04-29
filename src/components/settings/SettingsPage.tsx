@@ -243,10 +243,10 @@ export default function Page() {
 
             <Tabs.Panel value="inputs">
               <Text size="lg" fw={500} className={classes.title}>
-                Inputs
+                {t("Settings.Inputs")}
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Customize the input settings
+                {t("Settings.Inputs.Desc")}
               </Text>
               <Group
                 justify="space-between"
@@ -255,9 +255,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Text Move Input</Text>
+                  <Text>{t("Settings.Inputs.TextInput")}</Text>
                   <Text size="xs" c="dimmed">
-                    Enter moves in text format
+                    {t("Settings.Inputs.TextInput.Desc")}
                   </Text>
                 </div>
                 <SettingsSwitch atom={moveInputAtom} />
@@ -269,9 +269,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Spell Check</Text>
+                  <Text>{t("Settings.Inputs.SpellCheck")}</Text>
                   <Text size="xs" c="dimmed">
-                    Enable or disable spell check on text inputs
+                    {t("Settings.Inputs.SpellCheck.Desc")}
                   </Text>
                 </div>
                 <SettingsSwitch atom={spellCheckAtom} />
@@ -279,10 +279,10 @@ export default function Page() {
             </Tabs.Panel>
             <Tabs.Panel value="report">
               <Text size="lg" fw={500} className={classes.title}>
-                Opening Report
+                {t("Settings.OpeningReport")}
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Customize the opening report settings
+                {t("Settings.OpeningReport.Desc")}
               </Text>
               <Group
                 justify="space-between"
@@ -291,9 +291,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Percentage Coverage</Text>
+                  <Text>{t("Settings.OpeningReport.PercentCoverage")}</Text>
                   <Text size="xs" c="dimmed">
-                    Percentage of moves covered in each position
+                    {t("Settings.OpeningReport.PercentCoverage.Desc")}
                   </Text>
                 </div>
                 <SettingsNumberInput
@@ -311,10 +311,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Minimum Games</Text>
+                  <Text>{t("Settings.OpeningReport.MinGames")}</Text>
                   <Text size="xs" c="dimmed">
-                    Minimum number of games in each position for it to be
-                    considered
+                    {t("Settings.OpeningReport.MinGames.Desc")}
                   </Text>
                 </div>
                 <SettingsNumberInput atom={minimumGamesAtom} min={0} step={1} />
@@ -323,10 +322,10 @@ export default function Page() {
 
             <Tabs.Panel value="anarchy">
               <Text size="lg" fw={500} className={classes.title}>
-                Anarchy
+                {t("Settings.Anarchy")}
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Fun options
+                {t("Settings.Anarchy.Desc")}
               </Text>
               <Group
                 justify="space-between"
@@ -335,9 +334,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Forced En Croissant</Text>
+                  <Text>{t("Settings.Anarchy.ForcedEnCroissant")}</Text>
                   <Text size="xs" c="dimmed">
-                    {"Forces you to play En Croissant, if it's a legal move."}
+                    {t("Settings.Anarchy.ForcedEnCroissant.Desc")}
                   </Text>
                 </div>
                 <SettingsSwitch atom={forcedEnPassantAtom} />
@@ -346,10 +345,10 @@ export default function Page() {
 
             <Tabs.Panel value="appearance">
               <Text size="lg" fw={500} className={classes.title}>
-                Appearance
+                {t("Settings.Appearance")}
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Customize the look of the app
+                {t("Settings.Appearance.Desc")}
               </Text>
               <Group
                 justify="space-between"
@@ -358,9 +357,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Theme</Text>
+                  <Text>{t("Settings.Appearance.Theme")}</Text>
                   <Text size="xs" c="dimmed">
-                    Overall color scheme
+                    {t("Settings.Appearance.Theme.Desc")}
                   </Text>
                 </div>
                 <ThemeButton />
@@ -372,9 +371,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Title Bar</Text>
+                  <Text>{t("Settings.Appearance.TitleBar")}</Text>
                   <Text size="xs" c="dimmed">
-                    Choose between native or custom title bar
+                    {t("Settings.Appearance.TitleBar.Desc")}
                   </Text>
                 </div>
                 <Select
@@ -393,9 +392,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Font Size</Text>
+                  <Text>{t("Settings.Appearance.FontSize")}</Text>
                   <Text size="xs" c="dimmed">
-                    Overall font size
+                    {t("Settings.Appearance.FontSize.Desc")}
                   </Text>
                 </div>
                 <FontSizeSlider />
@@ -407,9 +406,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Piece Set</Text>
+                  <Text>{t("Settings.Appearance.PieceSet")}</Text>
                   <Text size="xs" c="dimmed">
-                    Pieces used on the boards
+                    {t("Settings.Appearance.PieceSet.Desc")}
                   </Text>
                 </div>
                 <PiecesSelect />
@@ -421,9 +420,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Board image</Text>
+                  <Text>{t("Settings.Appearance.BoardImage")}</Text>
                   <Text size="xs" c="dimmed">
-                    Image used as the background of the board
+                    {t("Settings.Appearance.BoardImage.Desc")}
                   </Text>
                 </div>
                 <BoardSelect />
@@ -435,9 +434,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Accent Color</Text>
+                  <Text>{t("Settings.Appearance.AccentColor")}</Text>
                   <Text size="xs" c="dimmed">
-                    Main color of the app
+                    {t("Settings.Appearance.AccentColor.Desc")}
                   </Text>
                 </div>
                 <div style={{ width: 200 }}>
@@ -448,10 +447,10 @@ export default function Page() {
 
             <Tabs.Panel value="sound">
               <Text size="lg" fw={500} className={classes.title}>
-                Sound
+                {t("Settings.Sound")}
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Customize the sound settings
+                {t("Settings.Sound.Desc")}
               </Text>
               <Group
                 justify="space-between"
@@ -460,9 +459,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Volume</Text>
+                  <Text>{t("Settings.Sound.Volume")}</Text>
                   <Text size="xs" c="dimmed">
-                    Overall volume
+                    {t("Settings.Sound.Volume.Desc")}
                   </Text>
                 </div>
                 <VolumeSlider />
@@ -474,9 +473,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Sound collection</Text>
+                  <Text>{t("Settings.Sound.Collection")}</Text>
                   <Text size="xs" c="dimmed">
-                    Collection of sounds used
+                    {t("Settings.Sound.Collection.Desc")}
                   </Text>
                 </div>
                 <SoundSelect />
@@ -521,10 +520,10 @@ export default function Page() {
 
             <Tabs.Panel value="directories">
               <Text size="lg" fw={500} className={classes.title}>
-                Directories
+                {t("Settings.Directories")}
               </Text>
               <Text size="xs" c="dimmed" mt={3} mb="lg">
-                Customize the directories used by the app
+                {t("Settings.Directories.Desc")}
               </Text>
               <Group
                 justify="space-between"
@@ -533,9 +532,9 @@ export default function Page() {
                 className={classes.item}
               >
                 <div>
-                  <Text>Files directory</Text>
+                  <Text>{t("Settings.Directories.Files")}</Text>
                   <Text size="xs" c="dimmed">
-                    This is where your games in the Files page are stored
+                    {t("Settings.Directories.Files.Desc")}
                   </Text>
                 </div>
                 <FileInput
