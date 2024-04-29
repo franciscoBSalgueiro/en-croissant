@@ -19,6 +19,7 @@ import {
 import { IconChevronDown } from "@tabler/icons-react";
 import { atom, useAtom } from "jotai";
 import { memo, useContext } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import AnnotationEditor from "./AnnotationEditor";
 
@@ -29,13 +30,17 @@ const SymbolButton = memo(function SymbolButton({
   curAnnotations: Annotation[];
   annotation: Annotation;
 }) {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const setAnnotation = useStore(store, (s) => s.setAnnotation);
-  const { name, color } = ANNOTATION_INFO[annotation];
+  const { translationKey, name, color } = ANNOTATION_INFO[annotation];
   const isActive = curAnnotations.includes(annotation);
   const theme = useMantineTheme();
   return (
-    <Tooltip label={name} position="bottom">
+    <Tooltip label={
+      translationKey ? t(`Annotate.${translationKey}`) : name
+    } position="bottom">
       <ActionIcon
         onClick={() => setAnnotation(annotation)}
         variant={isActive ? "filled" : "default"}

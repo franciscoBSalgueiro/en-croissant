@@ -41,6 +41,7 @@ import OpeningsTable from "./OpeningsTable";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
 import LocalOptionsPanel from "./options/LocalOptionsPanel";
 import MasterOptionsPanel from "./options/MastersOptionsPanel";
+import { useTranslation } from "react-i18next";
 
 type DBType =
   | { type: "local"; options: LocalOptions }
@@ -105,6 +106,8 @@ async function fetchOpening(db: DBType, tab: string) {
 }
 
 function DatabasePanel() {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
   const referenceDatabase = useAtomValue(referenceDbAtom);
@@ -164,9 +167,9 @@ function DatabasePanel() {
       <Group justify="space-between" w="100%">
         <SegmentedControl
           data={[
-            { label: "Local", value: "local" },
-            { label: "Lichess All", value: "lch_all" },
-            { label: "Lichess Masters", value: "lch_master" },
+            { label: t("Board.Database.Local"), value: "local" },
+            { label: t("Board.Database.LichessAll"), value: "lch_all" },
+            { label: t("Board.Database.LichessMaster"), value: "lch_master" },
           ]}
           value={db}
           onChange={(value) =>
@@ -176,10 +179,13 @@ function DatabasePanel() {
 
         {tabType !== "options" && (
           <Text>
-            {formatNumber(
-              Math.max(grandTotal || 0, openingData?.games.length || 0),
-            )}{" "}
-            matches
+            {
+              t("Board.Database.Matches", {
+                matches: formatNumber(
+                  Math.max(grandTotal || 0, openingData?.games.length || 0),
+                )
+              })
+            }
           </Text>
         )}
       </Group>
@@ -203,10 +209,10 @@ function DatabasePanel() {
               dbType.type === "local" && dbType.options.type === "partial"
             }
           >
-            Stats
+            {t("Board.Database.Stats")}
           </Tabs.Tab>
-          <Tabs.Tab value="games">Games</Tabs.Tab>
-          <Tabs.Tab value="options">Options</Tabs.Tab>
+          <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>
+          <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
 
         <PanelWithError value="stats" error={error} type={db}>

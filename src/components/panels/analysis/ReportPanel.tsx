@@ -105,7 +105,7 @@ const GameStats = memo(
             .filter((a) => isBasicAnnotation(a))
             .map((annotation) => {
               const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
-              const { name, color } = ANNOTATION_INFO[s];
+              const { name, color, translationKey } = ANNOTATION_INFO[s];
               const w = whiteAnnotations[s];
               const b = blackAnnotations[s];
               return (
@@ -127,7 +127,7 @@ const GameStats = memo(
                     {annotation}
                   </Grid.Col>
                   <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
-                    {name}
+                    {translationKey ? t(`Annotate.${translationKey}`) : name}
                   </Grid.Col>
                   <Grid.Col
                     className={cx(b > 0 && label)}

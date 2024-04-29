@@ -73,6 +73,7 @@ export const NAG_INFO = new Map<string, Annotation>([
 type AnnotationInfo = {
   group?: string;
   name: string;
+  translationKey?: string;
   color?: MantineColor;
   nag: number;
 };
@@ -85,24 +86,24 @@ export const ANNOTATION_INFO: Record<Annotation, AnnotationInfo> = {
   "?!": { group: "basic", name: "Dubious", color: "yellow", nag: 6 },
   "?": { group: "basic", name: "Mistake", color: "orange", nag: 2 },
   "??": { group: "basic", name: "Blunder", color: "red", nag: 4 },
-  "+-": { group: "advantage", name: "White is winning", nag: 18 },
-  "±": { group: "advantage", name: "White has a clear advantage", nag: 16 },
-  "⩲": { group: "advantage", name: "White has a slight advantage", nag: 14 },
-  "=": { group: "advantage", name: "Equal position", nag: 10 },
-  "∞": { group: "advantage", name: "Unclear position", nag: 13 },
-  "⩱": { group: "advantage", name: "Black has a slight advantage", nag: 15 },
-  "∓": { group: "advantage", name: "Black has a clear advantage", nag: 17 },
-  "-+": { group: "advantage", name: "Black is winning", nag: 19 },
-  N: { name: "Novelty", nag: 146 },
-  "↑↑": { name: "Development", nag: 32 },
-  "↑": { name: "Initiative", nag: 36 },
-  "→": { name: "Attack", nag: 40 },
-  "⇆": { name: "Counterplay", nag: 132 },
-  "=∞": { name: "With compensation", nag: 44 },
-  "⊕": { name: "Time Trouble", nag: 138 },
-  "∆": { name: "With the idea", nag: 140 },
-  "□": { name: "Only move", nag: 7 },
-  "⨀": { name: "Zugzwang", nag: 22 },
+  "+-": { group: "advantage", name: "White is winning", translationKey: "WhiteWinning", nag: 18 },
+  "±": { group: "advantage", name: "White has a clear advantage", translationKey: "WhiteAdvantage", nag: 16 },
+  "⩲": { group: "advantage", name: "White has a slight advantage", translationKey: "WhiteEdge", nag: 14 },
+  "=": { group: "advantage", name: "Equal position", translationKey: "Equal", nag: 10 },
+  "∞": { group: "advantage", name: "Unclear position", translationKey: "Unclear", nag: 13 },
+  "⩱": { group: "advantage", name: "Black has a slight advantage", translationKey: "BlackEdge", nag: 15 },
+  "∓": { group: "advantage", name: "Black has a clear advantage", translationKey: "BlackAdvantage", nag: 17 },
+  "-+": { group: "advantage", name: "Black is winning", translationKey: "BlackWinning", nag: 19 },
+  N: { name: "Novelty", translationKey: "Novelty", nag: 146 },
+  "↑↑": { name: "Development", translationKey: "Development", nag: 32 },
+  "↑": { name: "Initiative", translationKey: "Initiative", nag: 36 },
+  "→": { name: "Attack", translationKey: "Attack", nag: 40 },
+  "⇆": { name: "Counterplay", translationKey: "Counterplay", nag: 132 },
+  "=∞": { name: "With compensation", translationKey: "WithCompensation", nag: 44 },
+  "⊕": { name: "Time Trouble", translationKey: "TimeTrouble", nag: 138 },
+  "∆": { name: "With the idea", translationKey: "WithIdea", nag: 140 },
+  "□": { name: "Only move", translationKey: "OnlyMove", nag: 7 },
+  "⨀": { name: "Zugzwang", translationKey: "Zugzwang", nag: 22 },
 };
 
 export function isBasicAnnotation(
