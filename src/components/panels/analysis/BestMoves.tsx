@@ -43,6 +43,7 @@ import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
+import { useTranslation } from "react-i18next";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },
@@ -70,6 +71,8 @@ function BestMovesComponent({
   dragHandleProps,
   orientation,
 }: BestMovesProps) {
+  const { t } = useTranslation();
+
   const activeTab = useAtomValue(activeTabAtom);
   const ev = useAtomValue(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
@@ -289,7 +292,7 @@ function BestMovesComponent({
                 <Table.Tr>
                   <Table.Td>
                     <Text ta="center" my="lg">
-                      {"Engine isn't enabled"}
+                      {t("Board.Analysis.InactiveEngine")}
                     </Text>
                   </Table.Td>
                 </Table.Tr>

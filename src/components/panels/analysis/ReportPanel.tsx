@@ -15,8 +15,11 @@ import { memo, useContext, useMemo } from "react";
 import { useStore } from "zustand";
 import { label } from "./AnalysisPanel.css";
 import ReportModal from "./ReportModal";
+import { useTranslation } from "react-i18next";
 
 function ReportPanel() {
+  const { t } = useTranslation();
+
   const activeTab = useAtomValue(activeTabAtom);
 
   const store = useContext(TreeStateContext)!;
@@ -46,12 +49,12 @@ function ReportPanel() {
           {stats.whiteAccuracy && stats.blackAccuracy && (
             <>
               <AccuracyCard
-                color="WHITE"
+                color={t("Common.WHITE")}
                 accuracy={stats.whiteAccuracy}
                 cpl={stats.whiteCPL}
               />
               <AccuracyCard
-                color="BLACK"
+                color={t("Common.BLACK")}
                 accuracy={stats.blackAccuracy}
                 cpl={stats.blackCPL}
               />
@@ -67,9 +70,9 @@ function ReportPanel() {
               initInstalled={false}
               progressEvent={events.reportProgress}
               labels={{
-                action: "Generate report",
-                completed: "Report generated",
-                inProgress: "Generating report",
+                action: t("Board.Analysis.GenerateReport"),
+                completed: t("Board.Analysis.ReportGenerated"),
+                inProgress: t("Board.Analysis.GeneratingReport"),
               }}
               inProgress={inProgress}
               setInProgress={setInProgress}
@@ -162,6 +165,8 @@ function AccuracyCard({
   cpl: number;
   accuracy: number;
 }) {
+  const { t } = useTranslation();
+
   return (
     <Paper withBorder p="xs">
       <Group justify="space-between">
@@ -174,7 +179,7 @@ function AccuracyCard({
             {accuracy.toFixed(1)}%
           </Text>
           <Text fz="sm" c="dimmed" lh="normal">
-            Accuracy
+            {t("Board.Analysis.Accuracy")}
           </Text>
         </Stack>
       </Group>

@@ -16,6 +16,7 @@ import { useForm } from "@mantine/form";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { memo, useContext, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 const reportSettingsAtom = atomWithStorage("report-settings", {
@@ -41,6 +42,8 @@ function ReportModal({
   toggleReportingMode: () => void;
   setInProgress: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const { t } = useTranslation();
+
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
   const localEngines = engines.filter(
@@ -64,11 +67,11 @@ function ReportModal({
 
     validate: {
       engine: (value) => {
-        if (!value) return "Engine is required";
+        if (!value) return t("Board.Analysis.EngineRequired");
       },
       novelty: (value) => {
         if (value && !referenceDb)
-          return "No reference database selected. Select one first in the databases page";
+          return t("Board.Analysis.RefDBRequired");
       },
     },
   });
@@ -112,14 +115,14 @@ function ReportModal({
     <Modal
       opened={reportingMode}
       onClose={() => toggleReportingMode()}
-      title="Generate report"
+      title={t("Board.Analysis.GenerateReport")}
     >
       <form onSubmit={form.onSubmit(() => analyze())}>
         <Stack>
           <Select
             allowDeselect={false}
             withAsterisk
-            label="Engine"
+            label={t("Common.Engine")}
             placeholder="Pick one"
             data={
               localEngines.map((engine) => {
@@ -138,7 +141,11 @@ function ReportModal({
                 position: "bottom",
                 middlewares: { flip: false, shift: false },
               }}
-              data={["Depth", { label: "Time (ms)", value: "Time" }, "Nodes"]}
+              data={[
+                { label: t("GoMode.Depth"), value: "Depth" },
+                { label: t("Board.Analysis.Time"), value: "Time" },
+                { label: t("GoMode.Nodes"), value: "Nodes" },
+              ]}
               value={form.values.goMode.t}
               onChange={(v) => {
                 const newGo = form.values.goMode;
@@ -159,19 +166,19 @@ function ReportModal({
           </Group>
 
           <Checkbox
-            label="Reversed analysis"
-            description="Analyze the game in starting from the last move."
+            label={t("Board.Analysis.Reversed")}
+            description={t("Board.Analysis.Reversed.Desc")}
             {...form.getInputProps("reversed", { type: "checkbox" })}
           />
 
           <Checkbox
-            label="Annotate Novelties"
-            description="Add a comment to the first position that is not in the reference database."
+            label={t("Board.Analysis.AnnotateNovelties")}
+            description={t("Board.Analysis.AnnotateNovelties.Desc")}
             {...form.getInputProps("novelty", { type: "checkbox" })}
           />
 
           <Group justify="right">
-            <Button type="submit">Analyze</Button>
+            <Button type="submit">{t("Board.Analysis.Analyze")}</Button>
           </Group>
         </Stack>
       </form>

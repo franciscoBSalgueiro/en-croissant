@@ -18,6 +18,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
+import { useTranslation } from "react-i18next";
 
 export type Settings = {
   enabled: boolean;
@@ -45,6 +46,8 @@ function EngineSettingsForm({
   remote,
   gameMode,
 }: EngineSettingsProps) {
+  const { t } = useTranslation();
+
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
@@ -73,7 +76,7 @@ function EngineSettingsForm({
       {!minimal && multipv && (
         <Group grow>
           <Text size="sm" fw="bold">
-            Number of Lines
+            {t("Engines.Settings.NumOfLines")}
           </Text>
           <LinesSlider
             value={Number(multipv.value || 1)}
@@ -96,7 +99,7 @@ function EngineSettingsForm({
         <>
           <Group grow>
             <Text size="sm" fw="bold">
-              Number of cores
+              {t("Engines.Settings.NumOfCores")}
             </Text>
             <CoresSlider
               value={Number(threads.value || 1)}
@@ -115,7 +118,7 @@ function EngineSettingsForm({
           {hash && (
             <Group grow>
               <Text size="sm" fw="bold">
-                Size of Hash
+                {t("Engines.Settings.SizeOfHash")}
               </Text>
               <HashSlider
                 value={Number(hash.value || 1)}
@@ -174,6 +177,8 @@ function SyncSettings({
   settings: Settings;
   setSettings: (fn: (prev: Settings) => Settings) => void;
 }) {
+  const { t } = useTranslation();
+
   const engines = useAtomValue(enginesAtom);
   const engineDefault = useMemo(
     () => engines.find((o) => o.name === engine)!,
@@ -182,7 +187,7 @@ function SyncSettings({
 
   return (
     <Checkbox
-      label="Sync globally"
+      label={t("Board.Analysis.SyncGlobally")}
       checked={settings.synced}
       onChange={(e) => {
         if (e.currentTarget.checked) {
@@ -204,11 +209,13 @@ function SyncSettings({
 }
 
 function AdvancedSettings({ engineName }: { engineName: string }) {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const engines = useAtomValue(enginesAtom);
 
   return (
-    <Tooltip label="Advanced settings">
+    <Tooltip label={t("Engines.Settings.AdvancedSettings")}>
       <ActionIcon
         variant="default"
         onClick={() =>
