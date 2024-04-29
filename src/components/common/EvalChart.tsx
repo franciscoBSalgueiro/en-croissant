@@ -21,6 +21,7 @@ import {
 import equal from "fast-deep-equal";
 import { useAtom } from "jotai";
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
 import { useStore } from "zustand";
 import * as classes from "./EvalChart.css";
@@ -44,6 +45,8 @@ type DataPoint = {
 };
 
 function EvalChart(props: EvalChartProps) {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
@@ -77,7 +80,7 @@ function EvalChart(props: EvalChartProps) {
   function getEvalText(node: TreeNode, type: "cp" | "wdl"): string {
     if (node.score) {
       if (type === "cp") {
-        return `Advantage: ${formatScore(node.score.value)}`;
+        return `${t("Board.Analysis.Advantage")}: ${formatScore(node.score.value)}`;
       }
       if (type === "wdl" && node.score.wdl) {
         return `
@@ -89,11 +92,11 @@ function EvalChart(props: EvalChartProps) {
     if (node.children.length === 0) {
       const [pos, error] = positionFromFen(node.fen);
       if (pos) {
-        if (pos.isCheckmate()) return "Checkmate";
-        if (pos.isStalemate()) return "Stalemate";
+        if (pos.isCheckmate()) return t("Common.Checkmate");
+        if (pos.isStalemate()) return t("Common.Stalemate");
       }
     }
-    return "Not analysed";
+    return t("Board.Analysis.NotAnalysed");
   }
 
   function getNodes(): ListNode[] {

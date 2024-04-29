@@ -35,6 +35,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useDeferredValue, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import BestMoves, { arrowColors } from "./BestMoves";
@@ -45,6 +46,8 @@ import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 
 function AnalysisPanel() {
+  const { t } = useTranslation();
+
   const store = useContext(TreeStateContext)!;
   const rootFen = useStore(store, (s) => s.root.fen);
   const headers = useStore(store, (s) => s.headers);
@@ -93,10 +96,10 @@ function AnalysisPanel() {
         keepMounted={false}
       >
         <Tabs.List>
-          <Tabs.Tab value="engines">Engines</Tabs.Tab>
-          <Tabs.Tab value="report">Report</Tabs.Tab>
+          <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
+          <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
           <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
-            Logs
+            {t("Board.Analysis.Logs")}
           </Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel
@@ -127,7 +130,7 @@ function AnalysisPanel() {
                   <Group w="100%">
                     <Stack w="6rem" gap="xs">
                       <Text ta="center" fw="bold">
-                        Summary
+                        {t("Board.Analysis.Summary")}
                       </Text>
                       <Button
                         rightSection={
@@ -140,7 +143,7 @@ function AnalysisPanel() {
                         variant={allEnabled ? "filled" : "default"}
                         onClick={() => enable(!allEnabled)}
                       >
-                        {allEnabled ? "Stop" : "Run"}
+                        {allEnabled ? t("Common.Stop") : t("Common.Run")}
                       </Button>
                     </Stack>
                     <Group grow flex={1}>
