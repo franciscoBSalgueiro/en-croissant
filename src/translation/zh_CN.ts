@@ -93,6 +93,13 @@ export const zh_CN = {
         "RichText.Link": "链接",
         "RichText.RemoveLink": "移除链接",
 
+        "TimeControl.UltraBullet": "UltraBullet",
+        "TimeControl.Bullet": "超超快棋",
+        "TimeControl.Blitz": "超快棋",
+        "TimeControl.Rapid": "快棋",
+        "TimeControl.Classical": "慢棋",
+        "TimeControl.Correspondence": "通讯棋",
+
         "Menu.File": "文件",
         "Menu.File.NewTab": "新建标签页",
         "Menu.File.OpenFile": "打开文件",
@@ -178,6 +185,8 @@ export const zh_CN = {
         "Board.Database.NoReference2": "请先",
         "Board.Database.SelectReference": "添加一个数据库",
         "Board.Database.NoReference3": "并将其作为参考",
+        "Board.Database.TimeControl": "时间控制",
+        "Board.Database.AverageRating": "平均等级分",
         "Board.Annotate.WriteHere": "在这里写评注...",
 
         "Engines.Title": "引擎管理",
