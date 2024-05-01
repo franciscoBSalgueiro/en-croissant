@@ -113,6 +113,10 @@ export const fontSizeAtom = atomWithStorage(
   Number.parseInt(document.documentElement.style.fontSize) || 100,
 );
 
+export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">(
+  "move-method",
+  "drag",
+);
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);

@@ -1,4 +1,4 @@
-import { boardImageAtom } from "@/state/atoms";
+import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
 import { Box } from "@mantine/core";
 import { Chessground as NativeChessground } from "chessground";
 import type { Api } from "chessground/api";
@@ -14,6 +14,8 @@ export function Chessground(
 
   const ref = useRef<HTMLDivElement>(null);
 
+  const moveMethod = useAtomValue(moveMethodAtom);
+
   useEffect(() => {
     if (ref?.current && !api) {
       const chessgroundApi = NativeChessground(ref.current, {
@@ -27,6 +29,14 @@ export function Chessground(
               }
             }
           },
+        },
+        draggable: {
+          ...props.draggable,
+          enabled: moveMethod !== "select",
+        },
+        selectable: {
+          ...props.selectable,
+          enabled: moveMethod !== "drag",
         },
       });
       setApi(chessgroundApi);

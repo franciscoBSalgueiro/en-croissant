@@ -6,6 +6,7 @@ import {
   forcedEnPassantAtom,
   minimumGamesAtom,
   moveInputAtom,
+  moveMethodAtom,
   nativeBarAtom,
   percentageCoverageAtom,
   previewBoardOnHoverAtom,
@@ -68,6 +69,8 @@ export default function Page() {
   } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
   filesDirectory = filesDirectory || documentDir;
+
+  const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -134,6 +137,32 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
+              </Group>
+
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Ways to Move Pieces</Text>
+                  <Text size="xs" c="dimmed">
+                    Move pieces by dragging, clicking, or both
+                  </Text>
+                </div>
+                <Select
+                  data={[
+                    { label: "Drag", value: "drag" },
+                    { label: "Click", value: "select" },
+                    { label: "Both", value: "both" },
+                  ]}
+                  allowDeselect={false}
+                  value={moveMethod}
+                  onChange={(val) =>
+                    setMoveMethod(val as "drag" | "select" | "both")
+                  }
+                />
               </Group>
 
               <Group
