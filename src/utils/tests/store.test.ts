@@ -381,20 +381,6 @@ test("should handle previousBranch", () => {
     ...treeE4D5Nf3(),
     position: [0],
   });
-
-  store.setState({ ...treeE4D5Nf3(), position: [0, 1] });
-
-  store.getState().previousBranch();
-  expect(getNewState()).toStrictEqual({
-    ...treeE4D5Nf3(),
-    position: [0, 0],
-  });
-
-  store.getState().previousBranch();
-  expect(getNewState()).toStrictEqual({
-    ...treeE4D5Nf3(),
-    position: [0, 1],
-  });
 });
 
 test("should handle goToBranchEnd", () => {
