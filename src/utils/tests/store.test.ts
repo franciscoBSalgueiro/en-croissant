@@ -184,7 +184,7 @@ const treeE4D5E5Nf3: () => TreeState = () => ({
     annotations: [],
     comment: "",
   },
-})
+});
 
 const getNewState = () => {
   const s = store.getState();
@@ -357,7 +357,6 @@ test("should handle nextBranch", () => {
     ...treeE4D5E5Nf3(),
     position: [0, 0],
   });
-
 });
 
 test("should handle previousBranch", () => {

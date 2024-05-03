@@ -291,8 +291,11 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
           if (branchCount >= 2) {
             // Go to next branch
-            let branchIndex = state.position[state.position.length - 1];
-            state.position = [...state.position.slice(0, -1), (branchIndex + 1) % branchCount];
+            const branchIndex = state.position[state.position.length - 1];
+            state.position = [
+              ...state.position.slice(0, -1),
+              (branchIndex + 1) % branchCount,
+            ];
           } else {
             // Go to next branching point
             while (branchCount === 1) {
@@ -313,8 +316,11 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
           if (branchCount >= 2) {
             // Go to previous branch
-            let branchIndex = state.position[state.position.length - 1];
-            state.position = [...state.position.slice(0, -1), (branchIndex + branchCount - 1) % branchCount];
+            const branchIndex = state.position[state.position.length - 1];
+            state.position = [
+              ...state.position.slice(0, -1),
+              (branchIndex + branchCount - 1) % branchCount,
+            ];
           } else {
             // Go to previous branching point
             while (branchCount === 1 && state.position.length > 0) {
