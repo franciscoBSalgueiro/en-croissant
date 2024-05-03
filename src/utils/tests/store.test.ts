@@ -11,6 +11,7 @@ beforeEach(() => {
 
 const e4 = parseUci("e2e4")!;
 const d5 = parseUci("d7d5")!;
+const e5 = parseUci("e7e5")!;
 const treeE4D5: () => TreeState = () => ({
   ...defaultTree(),
   position: [0, 0],
@@ -113,6 +114,77 @@ const treeE4D5Nf3: () => TreeState = () => ({
     comment: "",
   },
 });
+
+const treeE4D5E5Nf3: () => TreeState = () => ({
+  ...defaultTree(),
+  position: [0, 0],
+  root: {
+    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    move: null,
+    san: null,
+    children: [
+      {
+        fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        move: e4,
+        san: "e4",
+        children: [
+          {
+            fen: "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+            move: d5,
+            san: "d5",
+            clock: undefined,
+            children: [],
+            score: null,
+            depth: null,
+            halfMoves: 2,
+            shapes: [],
+            annotations: [],
+            comment: "",
+          },
+          {
+            fen: "rnbqkbnr/ppp1pppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+            move: e5,
+            san: "e5",
+            clock: undefined,
+            children: [],
+            score: null,
+            depth: null,
+            halfMoves: 2,
+            shapes: [],
+            annotations: [],
+            comment: "",
+          },
+        ],
+        clock: undefined,
+        score: null,
+        depth: null,
+        halfMoves: 1,
+        shapes: [],
+        annotations: [],
+        comment: "",
+      },
+      {
+        fen: "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
+        move: parseUci("g1f3")!,
+        san: "Nf3",
+        children: [],
+        clock: undefined,
+        score: null,
+        depth: null,
+        halfMoves: 1,
+        shapes: [],
+        annotations: [],
+        comment: "",
+      },
+    ],
+    score: null,
+    depth: null,
+    halfMoves: 0,
+    shapes: [],
+    annotations: [],
+    comment: "",
+  },
+})
 
 const getNewState = () => {
   const s = store.getState();
@@ -249,28 +321,43 @@ test("should handle goToPrevious", () => {
 });
 
 test("should handle nextBranch", () => {
-  store.setState({ ...treeE4D5Nf3(), position: [] });
+  store.setState({ ...treeE4D5E5Nf3(), position: [] });
   store.getState().nextBranch();
 
   expect(getNewState()).toStrictEqual({
-    ...treeE4D5Nf3(),
+    ...treeE4D5E5Nf3(),
     position: [],
   });
 
-  store.setState({ ...treeE4D5Nf3(), position: [0, 0] });
+  store.setState({ ...treeE4D5E5Nf3(), position: [0] });
 
   store.getState().nextBranch();
   expect(getNewState()).toStrictEqual({
-    ...treeE4D5Nf3(),
+    ...treeE4D5E5Nf3(),
     position: [1],
   });
 
   store.getState().nextBranch();
 
   expect(getNewState()).toStrictEqual({
-    ...treeE4D5Nf3(),
+    ...treeE4D5E5Nf3(),
     position: [0],
   });
+
+  store.setState({ ...treeE4D5E5Nf3(), position: [0, 0] });
+
+  store.getState().nextBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5E5Nf3(),
+    position: [0, 1],
+  });
+
+  store.getState().nextBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5E5Nf3(),
+    position: [0, 0],
+  });
+
 });
 
 test("should handle previousBranch", () => {
@@ -282,7 +369,8 @@ test("should handle previousBranch", () => {
     position: [],
   });
 
-  store.setState({ ...treeE4D5Nf3(), position: [0, 0] });
+  store.setState({ ...treeE4D5Nf3(), position: [0] });
+
   store.getState().previousBranch();
   expect(getNewState()).toStrictEqual({
     ...treeE4D5Nf3(),
@@ -293,6 +381,20 @@ test("should handle previousBranch", () => {
   expect(getNewState()).toStrictEqual({
     ...treeE4D5Nf3(),
     position: [0],
+  });
+
+  store.setState({ ...treeE4D5Nf3(), position: [0, 1] });
+
+  store.getState().previousBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [0, 0],
+  });
+
+  store.getState().previousBranch();
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [0, 1],
   });
 });
 
