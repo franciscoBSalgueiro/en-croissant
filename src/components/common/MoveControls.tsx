@@ -27,6 +27,8 @@ function MoveControls({
   const endBranch = useStore(store, (s) => s.goToBranchEnd);
   const nextBranch = useStore(store, (s) => s.nextBranch);
   const previousBranch = useStore(store, (s) => s.previousBranch);
+  const nextBranching = useStore(store, (s) => s.nextBranching);
+  const previousBranching = useStore(store, (s) => s.previousBranching);
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.PREVIOUS_MOVE.keys, previous);
@@ -38,6 +40,8 @@ function MoveControls({
   useHotkeys(keyMap.GO_TO_BRANCH_END.keys, endBranch);
   useHotkeys(keyMap.NEXT_BRANCH.keys, nextBranch);
   useHotkeys(keyMap.PREVIOUS_BRANCH.keys, previousBranch);
+  useHotkeys(keyMap.NEXT_BRANCHING.keys, nextBranching);
+  useHotkeys(keyMap.PREVIOUS_BRANCHING.keys, previousBranching);
 
   return (
     <Group grow gap="xs">
