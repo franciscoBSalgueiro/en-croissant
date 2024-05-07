@@ -107,7 +107,7 @@ export default function BoardSelect() {
 
       <Combobox.Dropdown>
         <Combobox.Options>
-          <ScrollArea.Autosize mah={200} type="scroll">
+          <ScrollArea.Autosize mah={200} type="always">
             {options}
           </ScrollArea.Autosize>
         </Combobox.Options>
