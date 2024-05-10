@@ -1,8 +1,19 @@
+import { moveNotationTypeAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { Box, rgba, useMantineTheme } from "@mantine/core";
 import { IconFlag } from "@tabler/icons-react";
+import { useAtom } from "jotai";
 import { type ForwardedRef, forwardRef } from "react";
 import * as classes from "./MoveCell.css";
+
+const pieceChars = { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘" };
+
+function addPieceIcon(move: string): string {
+  const pieceChar = pieceChars[move[0] as keyof typeof pieceChars];
+
+  if (typeof pieceChar === "undefined") return move;
+  return pieceChar + move.slice(1);
+}
 
 interface MoveCellProps {
   annotations: Annotation[];
@@ -17,6 +28,8 @@ const MoveCell = forwardRef(function MoveCell(
   props: MoveCellProps,
   ref: ForwardedRef<HTMLButtonElement>,
 ) {
+  const [moveNotationType] = useAtom(moveNotationTypeAtom);
+
   const color = ANNOTATION_INFO[props.annotations[0]]?.color || "gray";
   const theme = useMantineTheme();
   const hoverOpacity = props.isCurrentVariation ? 0.25 : 0.1;
@@ -58,7 +71,8 @@ const MoveCell = forwardRef(function MoveCell(
       onContextMenu={props.onContextMenu}
     >
       {props.isStart && <IconFlag style={{ marginRight: 5 }} size="0.875rem" />}
-      {props.move + props.annotations.join("")}
+      {moveNotationType === "symbols" ? addPieceIcon(props.move) : props.move}
+      {props.annotations.join("")}
     </Box>
   );
 });

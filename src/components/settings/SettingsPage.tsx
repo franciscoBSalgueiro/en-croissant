@@ -7,6 +7,7 @@ import {
   minimumGamesAtom,
   moveInputAtom,
   moveMethodAtom,
+  moveNotationTypeAtom,
   nativeBarAtom,
   percentageCoverageAtom,
   previewBoardOnHoverAtom,
@@ -71,6 +72,7 @@ export default function Page() {
   filesDirectory = filesDirectory || documentDir;
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
+  const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -138,7 +140,30 @@ export default function Page() {
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
               </Group>
-
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Move notation</Text>
+                  <Text size="xs" c="dimmed">
+                    Choose how to display pieces in notation
+                  </Text>
+                </div>
+                <Select
+                  data={[
+                    { label: "Letters (K Q R B N)", value: "letters" },
+                    { label: "Symbols (♔♕♖♗♘)", value: "symbols" },
+                  ]}
+                  allowDeselect={false}
+                  value={moveNotationType}
+                  onChange={(val) =>
+                    setMoveNotationType(val as "letters" | "symbols")
+                  }
+                />
+              </Group>
               <Group
                 justify="space-between"
                 wrap="nowrap"
