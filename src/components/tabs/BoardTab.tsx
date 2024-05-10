@@ -53,6 +53,7 @@ export function BoardTab({
           rightSection={
             <ActionIcon
               component="div"
+              className={classes.closeTabBtn}
               onClick={(e) => {
                 closeTab(tab.value);
                 e.stopPropagation();
