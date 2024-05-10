@@ -3,6 +3,7 @@ import { style } from "@vanilla-extract/css";
 
 export const tab = style({
   cursor: "unset",
+  paddingRight: 9,
   marginRight: 5,
   [vars.lightSelector]: {
     backgroundColor: "transparent",
@@ -40,4 +41,13 @@ export const input = style({
   paddingBottom: "0.4rem",
   outline: "none",
   textAlign: "start",
+});
+
+export const closeTabBtn = style({
+  boxSizing: "content-box",
+  padding: "0.3rem",
+  transition: "background-color 100ms ease",
+  ":hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
 });
