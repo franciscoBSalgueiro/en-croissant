@@ -1,7 +1,10 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { moveNotationTypeAtom } from "@/state/atoms";
+import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { Group, Progress, Text } from "@mantine/core";
+import { useAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { memo, useContext } from "react";
 import { useStore } from "zustand";
@@ -15,6 +18,7 @@ function OpeningsTable({
 }) {
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
+  const [moveNotationType] = useAtom(moveNotationTypeAtom);
 
   const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
   const blackTotal = openings?.reduce((acc, curr) => acc + curr.black, 0);
@@ -60,7 +64,11 @@ function OpeningsTable({
                   Game end
                 </Text>
               );
-            return <Text fz="sm">{move}</Text>;
+            return (
+              <Text fz="sm">
+                {moveNotationType === "symbols" ? addPieceSymbol(move) : move}
+              </Text>
+            );
           },
         },
         {
