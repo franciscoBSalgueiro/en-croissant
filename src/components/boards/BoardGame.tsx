@@ -536,6 +536,27 @@ function BoardGame() {
       ...headers,
       ...newHeaders,
     });
+
+    setTabs((prev) =>
+      prev.map((tab) => {
+        const whiteName =
+          players.white.type === "human"
+            ? players.white.name
+            : players.white.engine?.name ?? "?";
+
+        const blackName =
+          players.black.type === "human"
+            ? players.black.name
+            : players.black.engine?.name ?? "?";
+
+        return tab.value === activeTab
+          ? {
+              ...tab,
+              name: `${whiteName} vs. ${blackName}`,
+            }
+          : tab;
+      }),
+    );
   }
 
   useEffect(() => {
