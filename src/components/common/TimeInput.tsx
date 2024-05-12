@@ -1,15 +1,20 @@
 import type { GoMode } from "@/bindings";
 import { NumberInput, Select } from "@mantine/core";
-import { useState } from "react";
+import { atom, useAtom } from "jotai";
+import { atomFamily } from "jotai/utils";
 import { match } from "ts-pattern";
 
 type TimeType = "ms" | "s" | "m" | "h";
+export const timeTypeFamily = atomFamily((def: TimeType) =>
+  atom<TimeType>(def),
+);
+
 function TimeInput({
   value,
   setValue,
   defaultType,
 }: { value: number; setValue: (v: GoMode) => void; defaultType?: TimeType }) {
-  const [timeType, setTimeType] = useState<TimeType>(defaultType ?? "ms");
+  const [timeType, setTimeType] = useAtom(timeTypeFamily(defaultType ?? "ms"));
   const displayedValue = match(timeType)
     .with("ms", () => value)
     .with("s", () => value / 1000)
