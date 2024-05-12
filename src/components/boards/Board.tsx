@@ -23,6 +23,7 @@ import {
   getMaterialDiff,
   getVariationLine,
   parseTimeControl,
+  uciNormalize,
 } from "@/utils/chess";
 import {
   chessopsError,
@@ -39,7 +40,6 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
@@ -51,6 +51,7 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { emit } from "@tauri-apps/api/event";
 import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
@@ -92,10 +93,7 @@ interface ChessboardProps {
   saveFile?: () => void;
   addGame?: () => void;
   canTakeBack?: boolean;
-  whiteTime?: number;
-  blackTime?: number;
-  whiteTc?: TimeControlField;
-  blackTc?: TimeControlField;
+  inProgress?: boolean;
   practicing?: boolean;
 }
 
@@ -110,10 +108,7 @@ function Board({
   saveFile,
   addGame,
   canTakeBack,
-  whiteTime,
-  blackTime,
-  whiteTc,
-  blackTc,
+  inProgress,
   practicing,
 }: ChessboardProps) {
   const store = useContext(TreeStateContext)!;
@@ -216,10 +211,11 @@ function Board({
 
       updateCardPerformance(setDeck, i, c.card, isRecalled ? 4 : 1);
     } else {
-      storeMakeMove({
-        payload: move,
-        clock: pos.turn === "white" ? whiteTime : blackTime,
-      });
+      emit(
+        "game-move",
+        uciNormalize(pos, move, headers.variant === "Chess960"),
+      );
+      storeMakeMove({ payload: move });
       setPendingMove(null);
     }
   }
@@ -426,14 +422,11 @@ function Board({
       }
     }
   }
-  if (whiteTime) {
-    whiteSeconds = whiteTime / 1000;
-  }
-  if (blackTime) {
-    blackSeconds = blackTime / 1000;
-  }
 
-  function calculateProgress(clock?: number, tc?: TimeControlField) {
+  function calculateProgress(
+    clock: number | undefined,
+    tc: TimeControlField | null,
+  ) {
     if (!clock) {
       return 0;
     }
@@ -450,18 +443,16 @@ function Board({
   }
 
   const hasClock =
-    whiteTime !== undefined ||
-    blackTime !== undefined ||
-    headers.time_control !== undefined ||
-    whiteTc !== undefined ||
-    blackTc !== undefined;
+    whiteSeconds !== undefined ||
+    blackSeconds !== undefined ||
+    headers.time_control !== undefined;
+  const topTc = timeControl ? timeControl[0] : null;
+  const bottomTc = timeControl ? timeControl[0] : null;
 
   const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
-  const topTc = orientation === "black" ? whiteTc : blackTc;
   const topProgress = calculateProgress(topClock, topTc);
 
   const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
-  const bottomTc = orientation === "black" ? blackTc : whiteTc;
   const bottomProgress = calculateProgress(bottomClock, bottomTc);
 
   const [boardFen, setBoardFen] = useState<string | null>(null);
@@ -511,10 +502,11 @@ function Board({
             <Group ml="2.5rem" h="2.125rem">
               {hasClock && (
                 <Clock
-                  clock={topClock}
+                  initialClock={topClock}
                   color={orientation === "black" ? "white" : "black"}
                   progress={topProgress}
                   turn={turn}
+                  inProgress={inProgress}
                 />
               )}
               <ShowMaterial
@@ -680,10 +672,11 @@ function Board({
               <Group ml="2.5rem">
                 {hasClock && (
                   <Clock
-                    clock={bottomClock}
+                    initialClock={bottomClock}
                     color={orientation}
                     progress={bottomProgress}
                     turn={turn}
+                    inProgress={inProgress}
                   />
                 )}
                 <ShowMaterial

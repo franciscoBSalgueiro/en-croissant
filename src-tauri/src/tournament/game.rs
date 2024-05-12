@@ -1,8 +1,10 @@
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use shakmaty::uci::Uci;
 use shakmaty::{fen::Fen, Outcome};
 use shakmaty::{Chess, Color, FromSetup, Position};
 use specta::Type;
+use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 use tokio::io::{BufReader, Lines};
 use tokio::process::ChildStdout;
@@ -72,11 +74,17 @@ pub struct InitializingGame {
 pub struct RunningGame {
     config: GameConfig,
     position: Chess,
-    moves: Vec<Uci>,
-    positions: Vec<Chess>,
+    states: Vec<GameState>,
     white: Player,
     black: Player,
     halfmove_clock: u32,
+}
+
+struct GameState {
+    _move: Option<Uci>,
+    position: Chess,
+    white_time: u32,
+    black_time: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -97,8 +105,12 @@ impl InitializingGame {
         let game = RunningGame {
             white: Player::init(&self.config.white).await?,
             black: Player::init(&self.config.black).await?,
-            moves: vec![],
-            positions: vec![position.clone()],
+            states: vec![GameState {
+                _move: None,
+                position: position.clone(),
+                white_time: self.config.time_control[0].time,
+                black_time: self.config.time_control[0].time,
+            }],
             position,
             config: self.config,
             halfmove_clock: 0,
@@ -112,7 +124,25 @@ enum PlayResult {
     TimeExpired,
 }
 
-async fn get_next_move(reader: &mut Lines<BufReader<ChildStdout>>) -> Result<PlayResult, Error> {
+async fn wait_for_engine_move(
+    proc: &mut EngineProcess,
+    states: &[GameState],
+    reader: &mut Lines<BufReader<ChildStdout>>,
+    players_time: PlayersTime,
+) -> Result<PlayResult, Error> {
+    info!("Waiting for engine move");
+    proc.set_position(
+        &Fen::default().to_string(),
+        &states
+            .iter()
+            .filter(|m| m._move.is_some())
+            .map(|m| m._move.clone().unwrap().to_string())
+            .collect::<Vec<String>>(),
+    )
+    .await?;
+
+    proc.go(&GoMode::PlayersTime(players_time)).await?;
+
     while let Some(line) = reader.next_line().await? {
         let parsed = parse_one(&line);
         if let UciMessage::BestMove {
@@ -127,23 +157,63 @@ async fn get_next_move(reader: &mut Lines<BufReader<ChildStdout>>) -> Result<Pla
     Err(Error::NoStdout)
 }
 
+async fn wait_for_human_move(app: &AppHandle) -> Result<PlayResult, Error> {
+    info!("Waiting for human move");
+    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+    let id = app.listen_global("game-move", move |event| {
+        tokio::task::block_in_place(|| {
+            tauri::async_runtime::block_on(async {
+                let m = event.payload().unwrap().replace('\"', "");
+                println!("Received move: {}", m);
+                let uci = Uci::from_ascii(m.as_bytes()).unwrap();
+
+                if let Err(e) = tx.send(uci).await {
+                    log::error!("Error sending move: {}", e);
+                }
+            });
+        });
+    });
+
+    let uci = rx.recv().await.unwrap();
+    app.unlisten(id);
+    Ok(PlayResult::Move(uci))
+}
+
 #[derive(Serialize, Debug, Clone, Type, Event)]
 #[serde(rename_all = "camelCase")]
 pub struct GameEvent {
     pub id: String,
-    pub moves: Vec<String>,
-    pub white_time: u32,
-    pub black_time: u32,
+    pub states: Vec<(String, u32, u32)>,
 }
 
 impl RunningGame {
+    fn is_draw(&self) -> bool {
+        // 3-fold repetition
+        if self
+            .states
+            .iter()
+            .filter(|p| p.position == self.position)
+            .count()
+            >= 3
+        {
+            return true;
+        }
+
+        // 50 move rule
+        if self.halfmove_clock >= 100 {
+            return true;
+        }
+
+        false
+    }
+
     pub async fn run(mut self, id: String, app: tauri::AppHandle) -> Result<FinishedGame, Error> {
         let winc = self.config.time_control[0].increment.unwrap_or(0);
         let binc = self.config.time_control[0].increment.unwrap_or(0);
         let mut white_time = self.config.time_control[0].time;
         let mut black_time = self.config.time_control[0].time;
 
-        println!(
+        info!(
             "Starting game with time control: {:?}",
             self.config.time_control
         );
@@ -154,115 +224,118 @@ impl RunningGame {
                 Color::Black => &mut self.black,
             };
             let now = std::time::SystemTime::now();
-            match player {
-                Player::Human => {}
-                Player::Engine((proc, reader)) => {
-                    proc.set_position(
-                        &Fen::default().to_string(),
-                        &self
-                            .moves
-                            .iter()
-                            .map(|m| m.to_string())
-                            .collect::<Vec<String>>(),
-                    )
-                    .await?;
-                    proc.go(&GoMode::PlayersTime(PlayersTime::new(
-                        white_time, black_time, winc, binc,
-                    )))
-                    .await?;
 
-                    let time_left = match self.position.turn() {
-                        Color::White => white_time,
-                        Color::Black => black_time,
-                    };
+            let time_left = match self.position.turn() {
+                Color::White => white_time,
+                Color::Black => black_time,
+            };
 
-                    let res = select! {
+            let res = match player {
+                Player::Human => {
+                    select! {
                         _ = tokio::time::sleep(std::time::Duration::from_millis(time_left.into())) => {
                             PlayResult::TimeExpired
                         },
-                        v = get_next_move(reader) => {
+                        v = wait_for_human_move(&app)
+                         => {
                             v?
-                        }
-                    };
-                    match res {
-                        PlayResult::Move(uci) => {
-                            println!(
-                                "Engine {} played: {}; {} : {}",
-                                self.position.turn(),
-                                uci,
-                                white_time,
-                                black_time
-                            );
-
-                            // add halfmove clock
-                            if let Ok(m) = uci.to_move(&self.position) {
-                                if m.is_zeroing() {
-                                    self.halfmove_clock = 0;
-                                } else {
-                                    self.halfmove_clock += 1;
-                                }
-                            }
-
-                            // check for threefold repetition
-                            if self
-                                .positions
-                                .iter()
-                                .filter(|p| **p == self.position)
-                                .count()
-                                >= 3
-                            {
-                                result = Some(Outcome::Draw);
-                                break;
-                            }
-
-                            // check for 50 move rule
-                            if self.halfmove_clock >= 100 {
-                                result = Some(Outcome::Draw);
-                                break;
-                            }
-
-                            self.moves.push(uci.clone());
-                            self.position
-                                .play_unchecked(&uci.to_move(&self.position).unwrap());
-                            self.positions.push(self.position.clone());
-                        }
-                        PlayResult::TimeExpired => {
-                            println!("Time expired for player: {:?}", self.position.turn());
-                            result = Some(Outcome::Decisive {
-                                winner: self.position.turn().other(),
-                            });
-                            break;
                         }
                     }
                 }
-            }
+                Player::Engine((proc, reader)) => {
+                    select! {
+                        _ = tokio::time::sleep(std::time::Duration::from_millis(time_left.into())) => {
+                            PlayResult::TimeExpired
+                        },
+                        v = wait_for_engine_move(proc, &self.states, reader, PlayersTime::new(
+                            white_time, black_time, winc, binc))
+                         => {
+                            v?
+                        }
+                    }
+                }
+            };
+            let uci = match res {
+                PlayResult::Move(uci) => {
+                    info!("Engine {} played: {};", self.position.turn(), uci);
+
+                    self.position
+                        .play_unchecked(&uci.to_move(&self.position).unwrap());
+                    uci.clone()
+                }
+                PlayResult::TimeExpired => {
+                    info!("Time expired for player: {:?}", self.position.turn());
+                    result = Some(Outcome::Decisive {
+                        winner: self.position.turn().other(),
+                    });
+                    break;
+                }
+            };
             let time_passed = now.elapsed().unwrap().as_millis() as u32;
             let time_left = match self.position.turn() {
-                Color::White => &mut white_time,
-                Color::Black => &mut black_time,
+                Color::White => &mut black_time,
+                Color::Black => &mut white_time,
+            };
+            let increment = match self.position.turn() {
+                Color::White => winc,
+                Color::Black => binc,
             };
             if time_passed > *time_left {
-                println!("Time expired for player: {:?}", self.position.turn());
+                info!("Time expired for player: {:?}", self.position.turn());
                 result = Some(Outcome::Decisive {
                     winner: self.position.turn().other(),
                 });
             } else {
                 *time_left -= time_passed;
+                *time_left += increment;
                 if let Some(o) = self.position.outcome() {
                     result = Some(o);
                 }
             }
-            GameEvent {
-                id: id.clone(),
-                moves: self.moves.iter().map(|m| m.to_string()).collect(),
+            let new_state = GameState {
+                _move: Some(uci.clone()),
+                position: self.position.clone(),
                 white_time,
                 black_time,
+            };
+            self.states.push(new_state);
+            GameEvent {
+                id: id.clone(),
+                states: self
+                    .states
+                    .iter()
+                    .map(|m| {
+                        (
+                            m._move.clone().map(|m| m.to_string()).unwrap_or_default(),
+                            m.white_time,
+                            m.black_time,
+                        )
+                    })
+                    .collect(),
             }
             .emit_all(&app)?;
+
+            // add halfmove clock
+            if let Ok(m) = uci.to_move(&self.position) {
+                if m.is_zeroing() {
+                    self.halfmove_clock = 0;
+                } else {
+                    self.halfmove_clock += 1;
+                }
+            }
+
+            if self.is_draw() {
+                result = Some(Outcome::Draw);
+            }
         }
-        println!("Game finished: {:?}", result.unwrap());
+        info!("Game finished: {:?}", result.unwrap());
         Ok(FinishedGame {
-            moves: self.moves.iter().map(|m| m.to_string()).collect(),
+            moves: self
+                .states
+                .iter()
+                .filter(|m| m._move.is_some())
+                .map(|m| m._move.clone().unwrap().to_string())
+                .collect(),
             result: result.unwrap().to_string(),
         })
     }

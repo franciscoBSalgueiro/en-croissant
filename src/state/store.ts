@@ -15,7 +15,7 @@ import {
   treeIteratorMainLine,
 } from "@/utils/treeReducer";
 import type { DrawShape } from "chessground/draw";
-import { type Move, isNormal } from "chessops";
+import { type Move, isNormal, parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { produce } from "immer";
@@ -73,6 +73,8 @@ export interface TreeStoreState {
 
   setFen: (fen: string) => void;
 
+  setGame(states: [string, number, number][]): void;
+
   addAnalysis: (
     analysis: {
       best: BestMoves[];
@@ -96,6 +98,36 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
     setState: (state) => {
       set(() => state);
+    },
+
+    setGame: (states) => {
+      set(
+        produce((state) => {
+          state.root.children = [];
+          let node = state.root;
+          const [pos] = positionFromFen(node.fen);
+          if (!pos) return state;
+          state.position = [];
+          while (states.length > 0) {
+            const [move, whiteTime, blackTime] = states.pop()!;
+            if (!move) continue;
+            const m = parseUci(move)!;
+            const san = makeSan(pos, m);
+            pos.play(m);
+            if (!m) continue;
+            const newNode = createNode({
+              fen: makeFen(pos.toSetup()),
+              move: m,
+              san,
+              halfMoves: node.halfMoves + 1,
+              clock: pos.turn === "white" ? blackTime : whiteTime,
+            });
+            node.children.push(newNode);
+            node = newNode;
+            state.position.push(0);
+          }
+        }),
+      );
     },
 
     reset: () =>

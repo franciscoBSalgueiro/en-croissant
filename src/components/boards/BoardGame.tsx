@@ -8,7 +8,8 @@ import {
 } from "@/state/atoms";
 import { type TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import type { EngineSettings, LocalEngine } from "@/utils/engines";
+import type { Outcome } from "@/utils/db";
+import type { LocalEngine } from "@/utils/engines";
 import {
   type GameHeaders,
   getNodeAtPath,
@@ -18,7 +19,6 @@ import {
   ActionIcon,
   Box,
   Button,
-  Center,
   Checkbox,
   Divider,
   Group,
@@ -37,12 +37,11 @@ import {
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
+import dayjs from "dayjs";
 import { useAtom, useAtomValue } from "jotai";
 import {
   Suspense,
-  startTransition,
   useContext,
   useEffect,
   useMemo,
@@ -322,7 +321,7 @@ function BoardGame() {
   const headers = useStore(store, (s) => s.headers);
   const setFen = useStore(store, (s) => s.setFen);
   const setHeaders = useStore(store, (s) => s.setHeaders);
-  const appendMove = useStore(store, (s) => s.appendMove);
+  const setGame = useStore(store, (s) => s.setGame);
 
   const [, setTabs] = useAtom(tabsAtom);
 
@@ -337,12 +336,7 @@ function BoardGame() {
     );
   }
   const mainLine = Array.from(treeIteratorMainLine(root));
-  const currentNode = getNodeAtPath(root, position);
   const lastNode = mainLine[mainLine.length - 1].node;
-  const moves = useMemo(
-    () => getMainLine(root, headers.variant === "Chess960"),
-    [root, headers],
-  );
 
   const [pos, error] = useMemo(() => {
     return positionFromFen(lastNode.fen);
@@ -356,79 +350,8 @@ function BoardGame() {
 
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
-  useEffect(() => {
-    if (pos && gameState === "playing") {
-      if (headers.result !== "*") {
-        setGameState("gameOver");
-        return;
-      }
-      const currentTurn = pos.turn;
-      const player = currentTurn === "white" ? players.white : players.black;
-
-      if (player.type === "engine" && player.engine) {
-        commands.getBestMoves(
-          currentTurn,
-          player.engine.path,
-          activeTab + currentTurn,
-          player.timeControl
-            ? {
-                t: "PlayersTime",
-                c: {
-                  white: whiteTime ?? 0,
-                  black: blackTime ?? 0,
-                  winc: player.timeControl.increment ?? 0,
-                  binc: player.timeControl.increment ?? 0,
-                },
-              }
-            : player.go,
-          {
-            fen: root.fen,
-            moves: moves,
-            extraOptions: (player.engine.settings || [])
-              .filter((s) => s.name !== "MultiPV")
-              .map((s) => ({
-                ...s,
-                value: s.value?.toString() ?? "",
-              })),
-          },
-        );
-      }
-    }
-  }, [
-    gameState,
-    pos,
-    players,
-    headers.result,
-    setGameState,
-    activeTab,
-    root.fen,
-    moves,
-  ]);
-
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
-
-  useEffect(() => {
-    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      const ev = payload.bestLines;
-      if (
-        payload.progress === 100 &&
-        payload.engine === pos?.turn &&
-        payload.tab === activeTab + pos.turn &&
-        payload.fen === root.fen &&
-        payload.moves.join(",") === moves.join(",") &&
-        !pos?.isEnd()
-      ) {
-        appendMove({
-          payload: parseUci(ev[0].uciMoves[0])!,
-          clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
-        });
-      }
-    });
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -445,23 +368,8 @@ function BoardGame() {
 
   const [sameTimeControl, setSameTimeControl] = useState(true);
 
-  const [intervalId, setIntervalId] = useState<ReturnType<
-    typeof setInterval
-  > | null>(null);
-
-  useEffect(() => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
-    }
-  }, [pos?.turn]);
-
   useEffect(() => {
     if (gameState === "playing" && whiteTime !== null && whiteTime <= 0) {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-      setIntervalId(null);
       setGameState("gameOver");
       setHeaders({
         ...headers,
@@ -469,15 +377,6 @@ function BoardGame() {
       });
     }
   }, [gameState, whiteTime, setGameState, setHeaders, headers]);
-
-  useEffect(() => {
-    if (gameState !== "playing") {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-    }
-  }, [gameState, intervalId]);
 
   useEffect(() => {
     if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
@@ -489,37 +388,16 @@ function BoardGame() {
     }
   }, [gameState, blackTime, setGameState, setHeaders, headers]);
 
-  function decrementTime() {
-    if (pos?.turn === "white" && whiteTime !== null) {
-      setWhiteTime((prev) => prev! - 100);
-    } else if (pos?.turn === "black" && blackTime !== null) {
-      setBlackTime((prev) => prev! - 100);
-    }
-  }
-
-  useEffect(() => {
-    if (gameState === "playing" && !intervalId) {
-      const intervalId = setInterval(decrementTime, 100);
-      setIntervalId(intervalId);
-    }
-  }, [gameState, intervalId, pos?.turn]);
-
   const onePlayerIsEngine =
     (players.white.type === "engine" || players.black.type === "engine") &&
     players.white.type !== players.black.type;
 
   useEffect(() => {
     events.gameEvent.listen(({ payload }) => {
+      console.log("gameEvent", payload);
       if (payload.id === activeTab) {
-        const { moves, whiteTime, blackTime } = payload;
-        startTransition(() => {
-          appendMove({
-            payload: parseUci(moves[moves.length - 1])!,
-            clock: pos?.turn === "white" ? blackTime : whiteTime,
-          });
-          setWhiteTime(whiteTime);
-          setBlackTime(blackTime);
-        });
+        const { states } = payload;
+        setGame(states.toReversed());
       }
     });
   }, []);
@@ -536,14 +414,7 @@ function BoardGame() {
           boardRef={boardRef}
           canTakeBack={onePlayerIsEngine}
           movable={movable}
-          whiteTime={
-            gameState === "playing" ? whiteTime ?? undefined : undefined
-          }
-          blackTime={
-            gameState === "playing" ? blackTime ?? undefined : undefined
-          }
-          whiteTc={players.white.timeControl}
-          blackTc={players.black.timeControl}
+          inProgress={gameState === "playing"}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
@@ -599,7 +470,34 @@ function BoardGame() {
                     onClick={async () => {
                       setGameState("playing");
                       const players = getPlayers();
-
+                      setPlayers(players);
+                      const newHeaders: Partial<GameHeaders> = {
+                        white:
+                          (players.white.type === "human"
+                            ? players.white.name
+                            : players.white.engine?.name) ?? "?",
+                        black:
+                          (players.black.type === "human"
+                            ? players.black.name
+                            : players.black.engine?.name) ?? "?",
+                        time_control: undefined,
+                        date: dayjs().format("YYYY-MM-DD"),
+                        site: "En Croissant",
+                      };
+                      if (sameTimeControl && players.white.timeControl) {
+                        newHeaders.time_control = `${
+                          players.white.timeControl.seconds / 1000
+                        }`;
+                        if (players.white.timeControl.increment) {
+                          newHeaders.time_control += `+${
+                            players.white.timeControl.increment / 1000
+                          }`;
+                        }
+                      }
+                      setHeaders({
+                        ...headers,
+                        ...newHeaders,
+                      });
                       const res = await commands.startGame(activeTab || "", {
                         initial_position: INITIAL_FEN,
                         time_control: [
@@ -629,31 +527,12 @@ function BoardGame() {
                                 },
                               },
                       });
-                      const newHeaders: Partial<GameHeaders> = {
-                        white:
-                          (players.white.type === "human"
-                            ? players.white.name
-                            : players.white.engine?.name) ?? "?",
-                        black:
-                          (players.black.type === "human"
-                            ? players.black.name
-                            : players.black.engine?.name) ?? "?",
-                        time_control: undefined,
-                      };
-                      if (sameTimeControl && players.white.timeControl) {
-                        newHeaders.time_control = `${
-                          players.white.timeControl.seconds / 1000
-                        }`;
-                        if (players.white.timeControl.increment) {
-                          newHeaders.time_control += `+${
-                            players.white.timeControl.increment / 1000
-                          }`;
-                        }
-                      }
                       setHeaders({
                         ...headers,
                         ...newHeaders,
+                        result: res.result as Outcome,
                       });
+                      setGameState("gameOver");
                     }}
                     disabled={error !== null}
                   >

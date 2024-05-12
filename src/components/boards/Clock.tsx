@@ -1,17 +1,36 @@
 import { Paper, Progress, Text } from "@mantine/core";
+import { useEffect, useState } from "react";
 import * as classes from "./Clock.css";
 
 function Clock({
   color,
   turn,
   progress,
-  clock,
+  initialClock,
+  inProgress,
 }: {
   color: "white" | "black";
   turn: "white" | "black";
   progress: number;
-  clock: number | undefined;
+  initialClock: number | undefined;
+  inProgress?: boolean;
 }) {
+  const [clock, setClock] = useState(initialClock);
+
+  useEffect(() => {
+    if (clock === undefined || turn !== color || !inProgress) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setClock((c) => c! - 0.1);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [clock, turn, color, inProgress]);
+
+  useEffect(() => {
+    setClock(initialClock);
+  }, [initialClock]);
+
   return (
     <Paper
       className={color === "black" ? classes.blackClock : classes.whiteClock}
