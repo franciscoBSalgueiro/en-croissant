@@ -496,6 +496,69 @@ function BoardGame() {
     }
   }
 
+  function startGame() {
+    setGameState("playing");
+
+    const players = getPlayers();
+
+    if (players.white.timeControl) {
+      setWhiteTime(players.white.timeControl.seconds);
+    }
+
+    if (players.black.timeControl) {
+      setBlackTime(players.black.timeControl.seconds);
+    }
+
+    setPlayers(players);
+
+    const newHeaders: Partial<GameHeaders> = {
+      white:
+        (players.white.type === "human"
+          ? players.white.name
+          : players.white.engine?.name) ?? "?",
+      black:
+        (players.black.type === "human"
+          ? players.black.name
+          : players.black.engine?.name) ?? "?",
+      time_control: undefined,
+    };
+
+    if (sameTimeControl && players.white.timeControl) {
+      newHeaders.time_control = `${players.white.timeControl.seconds / 1000}`;
+      if (players.white.timeControl.increment) {
+        newHeaders.time_control += `+${
+          players.white.timeControl.increment / 1000
+        }`;
+      }
+    }
+
+    setHeaders({
+      ...headers,
+      ...newHeaders,
+    });
+
+    setTabs((prev) =>
+      prev.map((tab) => {
+        const whiteName =
+          players.white.type === "human"
+            ? players.white.name
+            : players.white.engine?.name ?? "?";
+
+        const blackName =
+          players.black.type === "human"
+            ? players.black.name
+            : players.black.engine?.name ?? "?";
+
+        return tab.value === activeTab
+          ? {
+              ...tab,
+              name: `${whiteName} vs. ${blackName}`,
+            }
+          : tab;
+      }),
+    );
+  }
+
   useEffect(() => {
     if (gameState === "playing" && !intervalId) {
       const intervalId = setInterval(decrementTime, 100);
@@ -588,45 +651,7 @@ function BoardGame() {
                 />
 
                 <Group>
-                  <Button
-                    onClick={() => {
-                      setGameState("playing");
-                      const players = getPlayers();
-                      if (players.white.timeControl) {
-                        setWhiteTime(players.white.timeControl.seconds);
-                      }
-                      if (players.black.timeControl) {
-                        setBlackTime(players.black.timeControl.seconds);
-                      }
-                      setPlayers(players);
-                      const newHeaders: Partial<GameHeaders> = {
-                        white:
-                          (players.white.type === "human"
-                            ? players.white.name
-                            : players.white.engine?.name) ?? "?",
-                        black:
-                          (players.black.type === "human"
-                            ? players.black.name
-                            : players.black.engine?.name) ?? "?",
-                        time_control: undefined,
-                      };
-                      if (sameTimeControl && players.white.timeControl) {
-                        newHeaders.time_control = `${
-                          players.white.timeControl.seconds / 1000
-                        }`;
-                        if (players.white.timeControl.increment) {
-                          newHeaders.time_control += `+${
-                            players.white.timeControl.increment / 1000
-                          }`;
-                        }
-                      }
-                      setHeaders({
-                        ...headers,
-                        ...newHeaders,
-                      });
-                    }}
-                    disabled={error !== null}
-                  >
+                  <Button onClick={startGame} disabled={error !== null}>
                     Start game
                   </Button>
                 </Group>
