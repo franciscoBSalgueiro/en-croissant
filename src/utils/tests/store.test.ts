@@ -11,6 +11,7 @@ beforeEach(() => {
 
 const e4 = parseUci("e2e4")!;
 const d5 = parseUci("d7d5")!;
+const e5 = parseUci("e7e5")!;
 const treeE4D5: () => TreeState = () => ({
   ...defaultTree(),
   position: [0, 0],
@@ -241,6 +242,26 @@ test("should handle goToNext", () => {
 test("should handle goToPrevious", () => {
   store.setState({ ...treeE4D5(), position: [0] });
   store.getState().goToPrevious();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5(),
+    position: [],
+  });
+});
+
+test("should handle goToBranchEnd", () => {
+  store.setState({ ...treeE4D5(), position: [] });
+  store.getState().goToBranchEnd();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5(),
+    position: [0, 0],
+  });
+});
+
+test("should handle goToBranchStart", () => {
+  store.setState({ ...treeE4D5(), position: [0, 0] });
+  store.getState().goToBranchStart();
 
   expect(getNewState()).toStrictEqual({
     ...treeE4D5(),

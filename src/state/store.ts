@@ -35,6 +35,12 @@ export interface TreeStoreState {
   goToStart: () => void;
   goToEnd: () => void;
   goToMove: (move: number[]) => void;
+  goToBranchStart: () => void;
+  goToBranchEnd: () => void;
+  nextBranch: () => void;
+  previousBranch: () => void;
+  nextBranching: () => void;
+  previousBranching: () => void;
 
   goToAnnotation: (annotation: Annotation, color: "white" | "black") => void;
 
@@ -247,6 +253,111 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         ...state,
         position: move,
       })),
+    goToBranchStart: () => {
+      set(
+        produce((state) => {
+          if (
+            state.position.length > 0 &&
+            state.position[state.position.length - 1] !== 0
+          ) {
+            state.position = state.position.slice(0, -1);
+          }
+
+          while (
+            state.position.length > 0 &&
+            state.position[state.position.length - 1] === 0
+          ) {
+            state.position = state.position.slice(0, -1);
+          }
+        }),
+      );
+    },
+
+    goToBranchEnd: () => {
+      set(
+        produce((state) => {
+          let currentNode = getNodeAtPath(state.root, state.position);
+          while (currentNode.children.length > 0) {
+            state.position.push(0);
+            currentNode = currentNode.children[0];
+          }
+        }),
+      );
+    },
+
+    nextBranch: () =>
+      set(
+        produce((state) => {
+          if (state.position.length === 0) return;
+
+          const parent = getNodeAtPath(state.root, state.position.slice(0, -1));
+          const branchIndex = state.position[state.position.length - 1];
+          const node = parent.children[branchIndex];
+
+          // Makes the navigation more fluid and compatible with next/previous branching
+          if (node.children.length >= 2 && parent.children.length <= 1) {
+            state.position.push(0);
+          }
+
+          state.position = [
+            ...state.position.slice(0, -1),
+            (branchIndex + 1) % parent.children.length,
+          ];
+        }),
+      ),
+    previousBranch: () =>
+      set(
+        produce((state) => {
+          if (state.position.length === 0) return;
+
+          const parent = getNodeAtPath(state.root, state.position.slice(0, -1));
+          const branchIndex = state.position[state.position.length - 1];
+          const node = parent.children[branchIndex];
+
+          // Makes the navigation more fluid and compatible with next/previous branching
+          if (node.children.length >= 2 && parent.children.length <= 1) {
+            state.position.push(0);
+          }
+
+          state.position = [
+            ...state.position.slice(0, -1),
+            (branchIndex + parent.children.length - 1) % parent.children.length,
+          ];
+        }),
+      ),
+
+    nextBranching: () =>
+      set(
+        produce((state) => {
+          let node = getNodeAtPath(state.root, state.position);
+          let branchCount = node.children.length;
+
+          if (branchCount === 0) return;
+
+          do {
+            state.position.push(0);
+            node = node.children[0];
+            branchCount = node.children.length;
+          } while (branchCount === 1);
+        }),
+      ),
+
+    previousBranching: () =>
+      set(
+        produce((state) => {
+          let node = getNodeAtPath(state.root, state.position);
+          let branchCount = node.children.length;
+
+          if (state.position.length === 0) return;
+
+          do {
+            state.position = state.position.slice(0, -1);
+            node = getNodeAtPath(state.root, state.position);
+            branchCount = node.children.length;
+          } while (branchCount === 1 && state.position.length > 0);
+        }),
+      ),
+
     deleteMove: (path) =>
       set(
         produce((state) => {
