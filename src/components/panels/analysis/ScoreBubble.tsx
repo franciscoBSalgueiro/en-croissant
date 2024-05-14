@@ -1,6 +1,6 @@
 import type { Score } from "@/bindings";
 import { formatScore } from "@/utils/score";
-import { Box, Progress, Text } from "@mantine/core";
+import { Box, Progress, Text, Tooltip } from "@mantine/core";
 import * as classes from "./ScoreBubble.css";
 
 function ScoreBubble({
@@ -71,20 +71,26 @@ function ScoreBubble({
         boxShadow: theme.shadows.md,
       })}
     >
-      <Text
-        fw={700}
-        c={score.value.value >= 0 ? "black" : "white"}
-        size={size}
-        ta="center"
-        style={(theme) => ({
-          fontFamily: theme.fontFamilyMonospace,
-          textOverflow: "ellipsis",
-          overflow: "hidden",
-          whiteSpace: "nowrap",
-        })}
+      <Tooltip
+        position="left"
+        color={score.value.value < 0 ? "dark" : undefined}
+        label={formatScore(score.value)}
       >
-        {formatScore(score.value)}
-      </Text>
+        <Text
+          fw={700}
+          c={score.value.value >= 0 ? "black" : "white"}
+          size={size}
+          ta="center"
+          style={(theme) => ({
+            fontFamily: theme.fontFamilyMonospace,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          })}
+        >
+          {formatScore(score.value)}
+        </Text>
+      </Tooltip>
     </Box>
   );
 }
