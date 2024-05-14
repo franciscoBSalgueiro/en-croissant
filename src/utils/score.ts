@@ -14,9 +14,12 @@ export const INITIAL_SCORE: Score = {
 
 const CP_CEILING = 1000;
 
-export function formatScore(score: ScoreValue, precision = 2): string {
+export function formatScore(score: ScoreValue): string {
   let scoreText = match(score.type)
-    .with("cp", () => Math.abs(score.value / 100).toFixed(precision))
+    // yoinked from: https://github.com/lichess-org/lila/blob/e110605c138c1f6fec417ab9317968b32a928a16/ui/ceval/src/util.ts#L8
+    .with("cp", () =>
+      Math.min(Math.round(Math.abs(score.value) / 10) / 10, 99).toFixed(1),
+    )
     .with("mate", () => `M${Math.abs(score.value)}`)
     .with("dtz", () => `DTZ${Math.abs(score.value)}`)
     .exhaustive();

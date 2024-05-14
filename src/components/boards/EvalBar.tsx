@@ -39,7 +39,7 @@ function EvalBar({
           py={3}
           mt={orientation === "black" ? "auto" : undefined}
         >
-          {score.value <= 0 && formatScore(score, 1).replace(/\+|-/, "")}
+          {score.value <= 0 && formatScore(score).replace(/\+|-/, "")}
         </Text>
       </Box>,
       <Box
@@ -59,7 +59,7 @@ function EvalBar({
           ta="center"
           mt={orientation === "white" ? "auto" : undefined}
         >
-          {score.value > 0 && formatScore(score, 1).slice(1)}
+          {score.value > 0 && formatScore(score).slice(1)}
         </Text>
       </Box>,
     ];
