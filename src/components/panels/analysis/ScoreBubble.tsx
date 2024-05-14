@@ -78,6 +78,9 @@ function ScoreBubble({
         ta="center"
         style={(theme) => ({
           fontFamily: theme.fontFamilyMonospace,
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
         })}
       >
         {formatScore(score.value)}
