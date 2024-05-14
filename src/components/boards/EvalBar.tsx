@@ -58,6 +58,11 @@ function EvalBar({
           c={theme.colors.dark[8]}
           ta="center"
           mt={orientation === "white" ? "auto" : undefined}
+          style={{
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
         >
           {score.value > 0 && formatScore(score).slice(1)}
         </Text>
