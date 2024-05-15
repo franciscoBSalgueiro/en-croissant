@@ -74,7 +74,7 @@ function ScoreBubble({
       <Tooltip
         position="left"
         color={score.value.value < 0 ? "dark" : undefined}
-        label={formatScore(score.value)}
+        label={formatScore(score.value, false)}
       >
         <Text
           fw={700}

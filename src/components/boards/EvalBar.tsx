@@ -78,7 +78,7 @@ function EvalBar({
     <Tooltip
       position="right"
       color={score && score.value < 0 ? "dark" : undefined}
-      label={score ? formatScore(score) : undefined}
+      label={score ? formatScore(score, false) : undefined}
       disabled={!score}
     >
       <Box
