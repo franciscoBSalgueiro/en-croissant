@@ -88,7 +88,7 @@ function ScoreBubble({
             whiteSpace: "nowrap",
           })}
         >
-          {formatScore(score.value)}
+          {formatScore(score.value, false)}
         </Text>
       </Tooltip>
     </Box>
