@@ -23,7 +23,7 @@ function ScoreBubble({
         style={(theme) => ({
           borderRadius: theme.radius.sm,
           boxShadow: theme.shadows.md,
-          width: size === "md" ? "4.5rem" : "3.5rem",
+          width: size === "md" ? "5.0rem" : "3.5rem",
           height: size === "md" ? "1.85rem" : "1.6rem",
         })}
         fz="0.5rem"
@@ -66,7 +66,7 @@ function ScoreBubble({
         textAlign: "center",
         padding: "0.15rem",
         borderRadius: theme.radius.sm,
-        width: size === "md" ? "4.5rem" : "3.5rem",
+        width: size === "md" ? "5.0rem" : "3.5rem",
         height: size === "md" ? "1.85rem" : "1.6rem",
         boxShadow: theme.shadows.md,
       })}
