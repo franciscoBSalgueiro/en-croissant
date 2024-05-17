@@ -8,15 +8,15 @@ import {
 } from "../score";
 
 test("should format a positive cp score correctly", () => {
-  expect(formatScore({ type: "cp", value: 50 })).toBe("+0.5");
+  expect(formatScore({ type: "cp", value: 50 })).toBe("+0.50");
 });
 
 test("should format a negative cp score correctly", () => {
-  expect(formatScore({ type: "cp", value: -50 })).toBe("-0.5");
+  expect(formatScore({ type: "cp", value: -50 })).toBe("-0.50");
 });
 
-test("should format a large cp score correctly", () => {
-  expect(formatScore({ type: "cp", value: 12345.67 })).toBe("+99.0");
+test("should truncate a large cp score correctly", () => {
+  expect(formatScore({ type: "cp", value: 12345.67 }, false)).toBe("+99.0");
 });
 
 test("should format a mate score correctly", () => {

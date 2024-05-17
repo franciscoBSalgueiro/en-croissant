@@ -39,7 +39,7 @@ function EvalBar({
           py={3}
           mt={orientation === "black" ? "auto" : undefined}
         >
-          {score.value <= 0 && formatScore(score).replace(/\+|-/, "")}
+          {score.value <= 0 && formatScore(score, false).replace(/\+|-/, "")}
         </Text>
       </Box>,
       <Box
@@ -64,7 +64,7 @@ function EvalBar({
             whiteSpace: "nowrap",
           }}
         >
-          {score.value > 0 && formatScore(score).slice(1)}
+          {score.value > 0 && formatScore(score, false).slice(1)}
         </Text>
       </Box>,
     ];
@@ -78,7 +78,7 @@ function EvalBar({
     <Tooltip
       position="right"
       color={score && score.value < 0 ? "dark" : undefined}
-      label={score ? formatScore(score, false) : undefined}
+      label={score ? formatScore(score) : undefined}
       disabled={!score}
     >
       <Box

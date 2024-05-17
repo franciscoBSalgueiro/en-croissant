@@ -77,7 +77,7 @@ function EvalChart(props: EvalChartProps) {
   function getEvalText(node: TreeNode, type: "cp" | "wdl"): string {
     if (node.score) {
       if (type === "cp") {
-        return `Advantage: ${formatScore(node.score.value, false)}`;
+        return `Advantage: ${formatScore(node.score.value)}`;
       }
       if (type === "wdl" && node.score.wdl) {
         return `
