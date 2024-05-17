@@ -16,7 +16,7 @@ test("should format a negative cp score correctly", () => {
 });
 
 test("should truncate a large cp score correctly", () => {
-  expect(formatScore({ type: "cp", value: 12345.67 }, false)).toBe("+99.0");
+  expect(formatScore({ type: "cp", value: 20000 }, false)).toBe("+99.0");
 });
 
 test("should format a mate score correctly", () => {
