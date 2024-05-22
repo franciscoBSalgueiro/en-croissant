@@ -15,10 +15,10 @@ import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
-import { useTranslation } from "react-i18next";
 
 export type Settings = {
   enabled: boolean;

@@ -1,10 +1,10 @@
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import i18n from "i18next";
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
-import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import App from "./App";
 
 import { en_US } from "./translation/en_US";
 import { zh_CN } from "./translation/zh_CN";

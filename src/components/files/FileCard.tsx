@@ -1,5 +1,6 @@
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { read_games } from "@/utils/db";
+import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -14,11 +15,10 @@ import { IconEdit, IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
 import type { FileMetadata } from "./file";
-import { useTranslation } from "react-i18next";
-import { capitalize } from "@/utils/format";
 
 function FileCard({
   selected,

@@ -31,6 +31,7 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
@@ -41,7 +42,6 @@ import OpeningsTable from "./OpeningsTable";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
 import LocalOptionsPanel from "./options/LocalOptionsPanel";
 import MasterOptionsPanel from "./options/MastersOptionsPanel";
-import { useTranslation } from "react-i18next";
 
 type DBType =
   | { type: "local"; options: LocalOptions }

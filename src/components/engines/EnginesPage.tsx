@@ -46,13 +46,13 @@ import { unwrap } from "@/utils/invoke";
 import { useToggle } from "@mantine/hooks";
 import { useNavigate } from "@tanstack/react-router";
 import { open } from "@tauri-apps/api/dialog";
+import { useTranslation } from "react-i18next";
 import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import GoModeInput from "../common/GoModeInput";
 import LocalImage from "../common/LocalImage";
 import LinesSlider from "../panels/analysis/LinesSlider";
-import { useTranslation } from "react-i18next";
 
 export default function EnginesPage() {
   const { t } = useTranslation();

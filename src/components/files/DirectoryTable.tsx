@@ -18,11 +18,11 @@ import { useAtom, useSetAtom } from "jotai";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as classes from "./DirectoryTable.css";
 import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata } from "./file";
 import { getStats } from "./opening";
-import { useTranslation } from "react-i18next";
 
 function flattenFiles(files: MetadataOrEntry[]): MetadataOrEntry[] {
   return files.flatMap((f) => (f.children ? flattenFiles(f.children) : [f]));

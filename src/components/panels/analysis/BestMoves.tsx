@@ -39,11 +39,11 @@ import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
-import { useTranslation } from "react-i18next";
 
 export const arrowColors = [
   { strong: "blue", pale: "paleBlue" },
