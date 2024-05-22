@@ -12,10 +12,10 @@ import cx from "clsx";
 import { useAtomValue } from "jotai";
 import React, { Suspense, useState } from "react";
 import { memo, useContext, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { label } from "./AnalysisPanel.css";
 import ReportModal from "./ReportModal";
-import { useTranslation } from "react-i18next";
 
 function ReportPanel() {
   const { t } = useTranslation();

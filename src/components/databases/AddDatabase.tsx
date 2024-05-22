@@ -27,10 +27,10 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { open } from "@tauri-apps/api/dialog";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { type Dispatch, type SetStateAction, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
-import { useTranslation } from "react-i18next";
 
 function AddDatabase({
   databases,

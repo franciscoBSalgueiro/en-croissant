@@ -11,10 +11,10 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { renameFile, writeTextFile } from "@tauri-apps/api/fs";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import GenericCard from "../common/GenericCard";
 import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata, FileType } from "./file";
-import { useTranslation } from "react-i18next";
 
 const FILE_TYPES = [
   { label: "Game", value: "game" },

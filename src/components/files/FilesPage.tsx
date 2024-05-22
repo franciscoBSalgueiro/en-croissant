@@ -14,6 +14,7 @@ import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { type FileEntry, readDir, removeFile } from "@tauri-apps/api/fs";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -21,7 +22,6 @@ import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
 import { type FileMetadata, type FileType, readFileMetadata } from "./file";
-import { useTranslation } from "react-i18next";
 
 const FILE_TYPES: FileType[] = [
   "game",

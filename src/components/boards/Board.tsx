@@ -64,6 +64,7 @@ import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -76,7 +77,6 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
-import { useTranslation } from "react-i18next";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;

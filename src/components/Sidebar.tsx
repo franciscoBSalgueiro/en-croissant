@@ -8,9 +8,9 @@ import {
   IconSettings,
   IconUser,
 } from "@tabler/icons-react";
-import { useTranslation } from "react-i18next";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import cx from "clsx";
+import { useTranslation } from "react-i18next";
 import * as classes from "./Sidebar.css";
 
 interface NavbarLinkProps {
