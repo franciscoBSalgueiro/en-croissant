@@ -14,7 +14,7 @@ i18n.use(initReactI18next).init({
     en: en_US,
     zh_CN: zh_CN,
   },
-  lng: "zh_CN",
+  lng: localStorage.getItem("lang") || "en_US",
   fallbackLng: "en",
 });
 
