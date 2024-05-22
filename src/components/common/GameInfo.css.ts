@@ -23,12 +23,7 @@ export const contentEditablePlaceholder = style({
     fontStyle: "italic",
     cursor: "text",
   },
-  [vars.lightSelector]: {
-    color: vars.colors.gray[0],
-  },
-  [vars.darkSelector]: {
-    color: vars.colors.gray[6],
-  },
+  color: vars.colors.gray[6],
 });
 
 export const textInput = style({
