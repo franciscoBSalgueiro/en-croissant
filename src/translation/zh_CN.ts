@@ -314,6 +314,8 @@ export const zh_CN = {
     "Settings.Appearance.Theme.Dark": "暗",
     "Settings.Appearance.TitleBar": "标题栏",
     "Settings.Appearance.TitleBar.Desc": "使用原生或自定义标题栏",
+    "Settings.Appearance.Language": "语言",
+    "Settings.Appearance.Language.Desc": "应用程序中使用的语言",
     "Settings.Appearance.TitleBar.Native": "Native",
     "Settings.Appearance.TitleBar.Custom": "Custom",
     "Settings.Appearance.FontSize": "字体大小",
