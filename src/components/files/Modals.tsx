@@ -37,7 +37,7 @@ export function CreateModal({
   setFiles: (files: MetadataOrEntry[]) => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   const [filename, setFilename] = useState("");
   const [filetype, setFiletype] = useState<FileType>("game");
@@ -65,7 +65,11 @@ export function CreateModal({
   }
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Files.Create.Title")}>
+    <Modal
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title={t("Files.Create.Title")}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -93,7 +97,9 @@ export function CreateModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={<Text ta="center">{ t(`Files.FileType.${v.label}`) }</Text>}
+                Header={
+                  <Text ta="center">{t(`Files.FileType.${v.label}`)}</Text>
+                }
               />
             ))}
           </SimpleGrid>
@@ -171,7 +177,11 @@ export function EditModal({
   }
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Files.Edit.Title")}>
+    <Modal
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title={t("Files.Edit.Title")}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -199,7 +209,9 @@ export function EditModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={<Text ta="center">{ t(`Files.FileType.${v.label}`) }</Text>}
+                Header={
+                  <Text ta="center">{t(`Files.FileType.${v.label}`)}</Text>
+                }
               />
             ))}
           </SimpleGrid>

@@ -26,12 +26,12 @@ function ConfirmModal({
             {title}
           </Text>
           <Text>{description}</Text>
-          <Text>{ t("Common.CannotUndo") }</Text>
+          <Text>{t("Common.CannotUndo")}</Text>
         </div>
 
         <Group justify="right">
           <Button variant="default" onClick={() => onClose()}>
-            { t("Common.Cancel") }
+            {t("Common.Cancel")}
           </Button>
           <Button color="red" onClick={() => onConfirm()}>
             {confirmLabel || t("Common.Delete")}

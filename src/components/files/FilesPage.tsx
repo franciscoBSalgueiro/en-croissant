@@ -102,7 +102,7 @@ const useFileDirectory = (dir: string) => {
 };
 
 function FilesPage() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   const { documentDir } = useLoaderData({ from: "/files" });
   const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
@@ -142,7 +142,7 @@ function FilesPage() {
         />
       )}
       <Group align="baseline" pl="lg" py="sm">
-        <Title>{ t("Files.Title") }</Title>
+        <Title>{t("Files.Title")}</Title>
         <OpenFolderButton folder={documentDir} />
       </Group>
 
@@ -161,7 +161,7 @@ function FilesPage() {
               leftSection={<IconPlus size="1rem" />}
               onClick={() => toggleCreateModal()}
             >
-              { t("Common.Create") }
+              {t("Common.Create")}
             </Button>
             <Button
               size="xs"
@@ -170,7 +170,7 @@ function FilesPage() {
               leftSection={<IconX size="1rem" />}
               onClick={() => toggleDeleteModal()}
             >
-              { t("Common.Delete") }
+              {t("Common.Delete")}
             </Button>
           </Group>
           <Group>
@@ -205,7 +205,9 @@ function FilesPage() {
           <>
             <ConfirmModal
               title={t("Files.Delete.Title")}
-              description={t("Files.Delete.Message", { fileName: selected.name })}
+              description={t("Files.Delete.Message", {
+                fileName: selected.name,
+              })}
               opened={deleteModal}
               onClose={toggleDeleteModal}
               onConfirm={async () => {

@@ -240,7 +240,8 @@ function Table({
           accessor: "metadata.type",
           title: "Type",
           width: 100,
-          render: (row) => t(`Files.FileType.${capitalize(row.metadata?.type || "Folder")}`),
+          render: (row) =>
+            t(`Files.FileType.${capitalize(row.metadata?.type || "Folder")}`),
         },
         {
           accessor: "lastModified",

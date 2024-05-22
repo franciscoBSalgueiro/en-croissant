@@ -179,13 +179,11 @@ function DatabasePanel() {
 
         {tabType !== "options" && (
           <Text>
-            {
-              t("Board.Database.Matches", {
-                matches: formatNumber(
-                  Math.max(grandTotal || 0, openingData?.games.length || 0),
-                )
-              })
-            }
+            {t("Board.Database.Matches", {
+              matches: formatNumber(
+                Math.max(grandTotal || 0, openingData?.games.length || 0),
+              ),
+            })}
           </Text>
         )}
       </Group>

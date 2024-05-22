@@ -98,7 +98,7 @@ export default function DatabasesPage() {
       />
 
       <Group align="baseline" pl="lg" py="sm">
-        <Title>{ t("Databases.Title") }</Title>
+        <Title>{t("Databases.Title")}</Title>
         <OpenFolderButton base="AppDir" folder="db" />
       </Group>
 
@@ -204,7 +204,10 @@ export default function DatabasesPage() {
                   </>
                 ) : (
                   <>
-                    <Divider variant="dashed" label={t("Common.GeneralSettings")} />
+                    <Divider
+                      variant="dashed"
+                      label={t("Common.GeneralSettings")}
+                    />
                     <GeneralSettings
                       key={selectedDatabase.filename}
                       selectedDatabase={selectedDatabase}
@@ -227,7 +230,7 @@ export default function DatabasesPage() {
                     <Group grow>
                       <Stack gap={0} justify="center" ta="center">
                         <Text size="md" tt="uppercase" fw="bold" c="dimmed">
-                          { t("Databases.Card.Games") }
+                          {t("Databases.Card.Games")}
                         </Text>
                         <Text fw={700} size="lg">
                           {formatNumber(selectedDatabase.game_count)}
@@ -235,7 +238,7 @@ export default function DatabasesPage() {
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
                         <Text size="md" tt="uppercase" fw="bold" c="dimmed">
-                        { t("Databases.Card.Players") }
+                          {t("Databases.Card.Players")}
                         </Text>
                         <Text fw={700} size="lg">
                           {formatNumber(selectedDatabase.player_count)}
@@ -243,7 +246,7 @@ export default function DatabasesPage() {
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
                         <Text size="md" tt="uppercase" fw="bold" c="dimmed">
-                        { t("Databases.Settings.Events") }
+                          {t("Databases.Settings.Events")}
                         </Text>
                         <Text fw={700} size="lg">
                           {formatNumber(selectedDatabase.event_count)}
@@ -263,14 +266,17 @@ export default function DatabasesPage() {
                           size="lg"
                           rightSection={<IconArrowRight size="1rem" />}
                         >
-                          { t("Databases.Settings.Explore") }
+                          {t("Databases.Settings.Explore")}
                         </Button>
                       )}
                     </div>
                   </>
                 )}
 
-                <Divider variant="dashed" label={t("Databases.Settings.AdvancedTools")} />
+                <Divider
+                  variant="dashed"
+                  label={t("Databases.Settings.AdvancedTools")}
+                />
 
                 {!selectedDatabase.error && (
                   <AdvancedSettings
@@ -279,7 +285,10 @@ export default function DatabasesPage() {
                   />
                 )}
 
-                <Divider variant="dashed" label={t("Databases.Settings.Actions")} />
+                <Divider
+                  variant="dashed"
+                  label={t("Databases.Settings.Actions")}
+                />
                 <Group justify="space-between">
                   {!selectedDatabase.error && (
                     <Group>
@@ -303,7 +312,7 @@ export default function DatabasesPage() {
                           setConvertLoading(false);
                         }}
                       >
-                        { t("Databases.Settings.AddGames") }
+                        {t("Databases.Settings.AddGames")}
                       </Button>
                       <Button
                         rightSection={<IconArrowRight size="1rem" />}
@@ -322,12 +331,12 @@ export default function DatabasesPage() {
                           setExportLoading(false);
                         }}
                       >
-                        { t("Databases.Settings.ExportPGN") }
+                        {t("Databases.Settings.ExportPGN")}
                       </Button>
                     </Group>
                   )}
                   <Button onClick={() => toggleDeleteModal()} color="red">
-                    { t("Common.Delete") }
+                    {t("Common.Delete")}
                   </Button>
                 </Group>
               </Stack>
@@ -346,7 +355,7 @@ function GeneralSettings({
   selectedDatabase: DatabaseInfo;
   mutate: () => void;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState(selectedDatabase.title);
   const [description, setDescription] = useState(selectedDatabase.description);
@@ -422,11 +431,9 @@ function PlayerMerger({
   return (
     <Stack>
       <Text fz="lg" fw="bold">
-        { t("Databases.Settings.MergePlayers") }
+        {t("Databases.Settings.MergePlayers")}
       </Text>
-      <Text fz="sm">
-        { t("Databases.Settings.MergePlayers.Desc") }
-      </Text>
+      <Text fz="sm">{t("Databases.Settings.MergePlayers.Desc")}</Text>
       <Group grow>
         <PlayerSearchInput
           label="Player 1"
@@ -438,7 +445,7 @@ function PlayerMerger({
           onClick={mergePlayers}
           rightSection={<IconArrowRight size="1rem" />}
         >
-          { t("Databases.Settings.Merge") }
+          {t("Databases.Settings.Merge")}
         </Button>
         <PlayerSearchInput
           label="Player 2"
@@ -463,11 +470,9 @@ function DuplicateRemover({
   return (
     <Stack>
       <Text fz="lg" fw="bold">
-        { t("Databases.Settings.BatchDelete") }
+        {t("Databases.Settings.BatchDelete")}
       </Text>
-      <Text fz="sm">
-        { t("Databases.Settings.BatchDelete.Desc") }
-      </Text>
+      <Text fz="sm">{t("Databases.Settings.BatchDelete.Desc")}</Text>
       <Group>
         <Button
           loading={loading}
@@ -484,7 +489,7 @@ function DuplicateRemover({
               });
           }}
         >
-          { t("Databases.Settings.RemoveDup") }
+          {t("Databases.Settings.RemoveDup")}
         </Button>
 
         <Button
@@ -502,7 +507,7 @@ function DuplicateRemover({
               });
           }}
         >
-          { t("Databases.Settings.RemoveEmpty") }
+          {t("Databases.Settings.RemoveEmpty")}
         </Button>
       </Group>
     </Stack>

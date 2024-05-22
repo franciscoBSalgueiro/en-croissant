@@ -87,8 +87,8 @@ function AddDatabase({
     >
       <Tabs defaultValue="web">
         <Tabs.List>
-          <Tabs.Tab value="web">{ t("Databases.Add.Web") }</Tabs.Tab>
-          <Tabs.Tab value="local">{ t("Common.Local") }</Tabs.Tab>
+          <Tabs.Tab value="web">{t("Databases.Add.Web")}</Tabs.Tab>
+          <Tabs.Tab value="local">{t("Common.Local")}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="web" pt="xs">
           {isLoading && (
@@ -223,19 +223,19 @@ function DatabaseCard({
           <Group wrap="nowrap" grow my="md">
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-                { t("Common.Size") }
+                {t("Common.Size")}
               </Text>
               <Text size="xs">{formatBytes(database.storage_size ?? 0)}</Text>
             </Stack>
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-                { t("Databases.Card.Games") }
+                {t("Databases.Card.Games")}
               </Text>
               <Text size="xs">{formatNumber(database.game_count)}</Text>
             </Stack>
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-              { t("Databases.Card.Players") }
+                {t("Databases.Card.Players")}
               </Text>
               <Text size="xs">{formatNumber(database.player_count)}</Text>
             </Stack>
