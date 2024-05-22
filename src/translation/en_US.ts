@@ -324,6 +324,8 @@ export const en_US = {
     "Settings.Appearance.TitleBar": "Title Bar",
     "Settings.Appearance.TitleBar.Desc":
       "Choose between native or custom title bar",
+    "Settings.Appearance.Language": "Language",
+    "Settings.Appearance.Language.Desc": "Language used in the app",
     "Settings.Appearance.TitleBar.Native": "Native",
     "Settings.Appearance.TitleBar.Custom": "Custom",
     "Settings.Appearance.FontSize": "Font Size",

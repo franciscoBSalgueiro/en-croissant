@@ -47,6 +47,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/api/dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
+import { useTranslation } from "react-i18next";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
@@ -59,10 +60,9 @@ import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
 import VolumeSlider from "./VolumeSlider";
-import { useTranslation } from "react-i18next";
 
 export default function Page() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // const version = useLoaderData() as string;
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
@@ -417,6 +417,36 @@ export default function Page() {
                   </Text>
                 </div>
                 <ThemeButton />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>{t("Settings.Appearance.Language")}</Text>
+                  <Text size="xs" c="dimmed">
+                    {t("Settings.Appearance.Language.Desc")}
+                  </Text>
+                </div>
+                <Select
+                  allowDeselect={false}
+                  data={[
+                    {
+                      value: "en_US",
+                      label: "English",
+                    },
+                    {
+                      value: "zh_CN",
+                      label: "Chinese",
+                    },
+                  ]}
+                  value={i18n.language}
+                  onChange={(val) => {
+                    i18n.changeLanguage(val || "en_US");
+                  }}
+                />
               </Group>
               <Group
                 justify="space-between"
