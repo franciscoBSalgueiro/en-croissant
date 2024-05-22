@@ -445,6 +445,7 @@ export default function Page() {
                   value={i18n.language}
                   onChange={(val) => {
                     i18n.changeLanguage(val || "en_US");
+                    localStorage.setItem("lang", val || "en_US");
                   }}
                 />
               </Group>
