@@ -334,5 +334,12 @@ export const zh_CN = {
     "Settings.Directories.Desc": "自定义应用程序使用的目录",
     "Settings.Directories.Files": "文件目录",
     "Settings.Directories.Files.Desc": "这是你在文件页面中的对局存储的位置",
+
+    "PgnInput.Comments": "Comments",
+    "PgnInput.Glyphs": "Glyphs",
+    "PgnInput.Variations": "Variations",
+    "PgnInput.ExtraMarkups": "Extra Markups",
+    "PgnInput.MaxDepth": "Max Depth",
+    "PgnInput.TotalMoves": "Total Moves",
   },
 };

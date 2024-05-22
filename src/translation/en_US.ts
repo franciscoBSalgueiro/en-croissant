@@ -24,8 +24,8 @@ export const en_US = {
     "Common.Unknown": "Unknown",
     "Common.Cancel": "Cancel",
     "Common.CannotUndo": "This action cannot be undone.",
-    "Common.NameAlreadyUsed": "Name is required",
-    "Common.RequireName": "Name already used",
+    "Common.NameAlreadyUsed": "Name already used",
+    "Common.RequireName": "Name is required",
     "Common.RequirePath": "Path is required",
     "Common.PGNFile": "PGN file",
     "Common.PGNGame": "PGN Game",
@@ -346,5 +346,12 @@ export const en_US = {
     "Settings.Directories.Files": "Files directory",
     "Settings.Directories.Files.Desc":
       "This is where your games in the Files page are stored",
+
+    "PgnInput.Comments": "Comments",
+    "PgnInput.Glyphs": "Glyphs",
+    "PgnInput.Variations": "Variations",
+    "PgnInput.ExtraMarkups": "Extra Markups",
+    "PgnInput.MaxDepth": "Max Depth",
+    "PgnInput.TotalMoves": "Total Moves",
   },
 };
