@@ -65,7 +65,7 @@
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
     "swr": "^2.2.5",
-    "tauri-plugin-log-api": "../tauri-plugin-log",
+    "tauri-plugin-log-api": "github:tauri-apps/tauri-plugin-log#v1",
     "tiptap-markdown": "^0.8.9",
     "ts-fsrs": "^3.5.1",
     "ts-pattern": "^5.0.8",
