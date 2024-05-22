@@ -441,6 +441,10 @@ export default function Page() {
                       value: "zh_CN",
                       label: "Chinese",
                     },
+                    {
+                      value: "pt_PT",
+                      label: "Portuguese",
+                    },
                   ]}
                   value={i18n.language}
                   onChange={(val) => {
