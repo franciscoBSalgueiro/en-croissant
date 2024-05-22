@@ -39,13 +39,13 @@ import {
   Tooltip,
   useMantineTheme,
 } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
   IconChevronRight,
   IconDeviceFloppy,
   IconEdit,
+  IconEditOff,
   IconPlus,
   IconSwitchVertical,
   IconTarget,
@@ -327,11 +327,15 @@ function Board({
         {!disableVariations && (
           <Tooltip label="Edit Position">
             <ActionIcon
-              variant="default"
+              variant={editingMode ? "filled" : "default"}
               size="lg"
               onClick={() => toggleEditingMode()}
             >
-              <IconEdit size="1.3rem" />
+              {editingMode ? (
+                <IconEditOff size="1.3rem" />
+              ) : (
+                <IconEdit size="1.3rem" />
+              )}
             </ActionIcon>
           </Tooltip>
         )}
