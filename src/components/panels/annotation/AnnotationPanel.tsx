@@ -38,9 +38,10 @@ const SymbolButton = memo(function SymbolButton({
   const isActive = curAnnotations.includes(annotation);
   const theme = useMantineTheme();
   return (
-    <Tooltip label={
-      translationKey ? t(`Annotate.${translationKey}`) : name
-    } position="bottom">
+    <Tooltip
+      label={translationKey ? t(`Annotate.${translationKey}`) : name}
+      position="bottom"
+    >
       <ActionIcon
         onClick={() => setAnnotation(annotation)}
         variant={isActive ? "filled" : "default"}

@@ -173,32 +173,32 @@ function BoardAnalysis() {
                   value="practice"
                   leftSection={<IconTargetArrow size="1rem" />}
                 >
-                  { t("Board.Tabs.Practice") }
+                  {t("Board.Tabs.Practice")}
                 </Tabs.Tab>
               )}
               <Tabs.Tab
                 value="analysis"
                 leftSection={<IconZoomCheck size="1rem" />}
               >
-                { t("Board.Tabs.Analysis") }
+                {t("Board.Tabs.Analysis")}
               </Tabs.Tab>
               <Tabs.Tab
                 value="database"
                 leftSection={<IconDatabase size="1rem" />}
               >
-                { t("Board.Tabs.Database") }
+                {t("Board.Tabs.Database")}
               </Tabs.Tab>
               <Tabs.Tab
                 value="annotate"
                 leftSection={<IconNotes size="1rem" />}
               >
-                { t("Board.Tabs.Annotate") }
+                {t("Board.Tabs.Annotate")}
               </Tabs.Tab>
               <Tabs.Tab
                 value="info"
                 leftSection={<IconInfoCircle size="1rem" />}
               >
-                { t("Board.Tabs.Info") }
+                {t("Board.Tabs.Info")}
               </Tabs.Tab>
             </Tabs.List>
             {isRepertoire && (

@@ -30,7 +30,7 @@ export default function EditEngine({
 
   return (
     <EngineForm
-      submitLabel={ t("Common.Save") }
+      submitLabel={t("Common.Save")}
       form={form}
       onSubmit={(values) => {
         setEngines(async (prev) =>

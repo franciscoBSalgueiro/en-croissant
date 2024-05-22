@@ -74,7 +74,9 @@ function FileCard({
         <Text ta="center" fz="xl" fw="bold">
           {selected?.name}
         </Text>
-        <Badge>{t(`Files.FileType.${capitalize(selected.metadata.type)}`)}</Badge>
+        <Badge>
+          {t(`Files.FileType.${capitalize(selected.metadata.type)}`)}
+        </Badge>
       </Stack>
 
       <Group align="center" grow>

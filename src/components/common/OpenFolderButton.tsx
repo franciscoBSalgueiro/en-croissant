@@ -21,7 +21,7 @@ function OpenFolderButton({
     open(dir);
   }
   return (
-    <Tooltip label={ t("Common.OpenFolder") }>
+    <Tooltip label={t("Common.OpenFolder")}>
       <ActionIcon onClick={() => openAppDirData()}>
         <IconFolder size="1.5rem" />
       </ActionIcon>

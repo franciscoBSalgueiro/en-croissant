@@ -37,7 +37,7 @@ function ConvertButton({
       onClick={() => setOpen(true)}
     >
       <Stack gap={0} justify="center" w="100%" h="100%">
-        <Text mb={10}>{ t("Common.AddNew") }</Text>
+        <Text mb={10}>{t("Common.AddNew")}</Text>
         <Box>
           {loading ? (
             <Loader variant="dots" size="1.3rem" />

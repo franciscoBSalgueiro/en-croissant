@@ -154,7 +154,9 @@ function PracticePanel() {
                 <Group wrap="nowrap">
                   <Group wrap="nowrap">
                     <div>
-                      <Badge color="blue">{t("Board.Practice.Practiced")}</Badge>
+                      <Badge color="blue">
+                        {t("Board.Practice.Practiced")}
+                      </Badge>
                       <Text ta="center">{stats.practiced}</Text>
                     </div>
                     <div>
@@ -179,7 +181,9 @@ function PracticePanel() {
                     <Button onClick={() => setPositionsOpen(true)}>
                       {t("Board.Practice.ShowAll")}
                     </Button>
-                    <Button onClick={() => setLogsOpen(true)}>{t("Board.Practice.ShowLogs")}</Button>
+                    <Button onClick={() => setLogsOpen(true)}>
+                      {t("Board.Practice.ShowLogs")}
+                    </Button>
                   </Group>
                 </Group>
               </Group>

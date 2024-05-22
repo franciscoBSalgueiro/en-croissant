@@ -64,7 +64,8 @@ function AddEngine({
     validate: {
       name: (value) => {
         if (!value) return t("Common.RequireName");
-        if (engines.find((e) => e.name === value)) return t("Common.NameAlreadyUsed");
+        if (engines.find((e) => e.name === value))
+          return t("Common.NameAlreadyUsed");
       },
       path: (value) => {
         if (!value) return t("Common.RequirePath");
@@ -73,12 +74,16 @@ function AddEngine({
   });
 
   return (
-    <Modal opened={opened} onClose={() => setOpened(false)} title={ t("Engines.Add.Title") }>
+    <Modal
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title={t("Engines.Add.Title")}
+    >
       <Tabs defaultValue="download">
         <Tabs.List>
-          <Tabs.Tab value="download">{ t("Common.Download") }</Tabs.Tab>
-          <Tabs.Tab value="cloud">{ t("Engines.Add.Cloud") }</Tabs.Tab>
-          <Tabs.Tab value="local">{ t("Common.Local") }</Tabs.Tab>
+          <Tabs.Tab value="download">{t("Common.Download")}</Tabs.Tab>
+          <Tabs.Tab value="cloud">{t("Engines.Add.Cloud")}</Tabs.Tab>
+          <Tabs.Tab value="local">{t("Common.Local")}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="download" pt="xs">
           {isLoading && (
@@ -99,10 +104,10 @@ function AddEngine({
               {error && (
                 <Alert
                   icon={<IconAlertCircle size="1rem" />}
-                  title={ t("Common.Error") }
+                  title={t("Common.Error")}
                   color="red"
                 >
-                  { t("Engines.Add.ErrorFetch") }
+                  {t("Engines.Add.ErrorFetch")}
                 </Alert>
               )}
             </Stack>
@@ -128,7 +133,7 @@ function AddEngine({
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm
-            submitLabel={ t("Common.Add") }
+            submitLabel={t("Common.Add")}
             form={form}
             onSubmit={(values: LocalEngine) => {
               setEngines(async (prev) => [...(await prev), values]);
@@ -176,7 +181,7 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
               ]);
             }}
           >
-            { t("Common.Add") }
+            {t("Common.Add")}
           </Button>
         </Box>
       </Group>

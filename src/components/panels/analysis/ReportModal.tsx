@@ -70,8 +70,7 @@ function ReportModal({
         if (!value) return t("Board.Analysis.EngineRequired");
       },
       novelty: (value) => {
-        if (value && !referenceDb)
-          return t("Board.Analysis.RefDBRequired");
+        if (value && !referenceDb) return t("Board.Analysis.RefDBRequired");
       },
     },
   });
