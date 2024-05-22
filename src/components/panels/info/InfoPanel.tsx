@@ -12,6 +12,7 @@ import { useToggle } from "@mantine/hooks";
 import { invoke } from "@tauri-apps/api";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
@@ -27,6 +28,8 @@ function InfoPanel() {
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
   const isReportoire = currentTab?.file?.metadata.type === "repertoire";
+
+  const { t } = useTranslation();
 
   const stats = useMemo(() => getTreeStats(root), [root]);
 
@@ -51,9 +54,15 @@ function InfoPanel() {
           <PgnInput />
 
           <Group>
-            <Text>Variations: {stats.leafs}</Text>
-            <Text>Max Depth: {stats.depth}</Text>
-            <Text>Total moves: {stats.total}</Text>
+            <Text>
+              {t("PgnInput.Variations")}: {stats.leafs}
+            </Text>
+            <Text>
+              {t("PgnInput.MaxDepth")}: {stats.depth}
+            </Text>
+            <Text>
+              {t("PgnInput.TotalMoves")}: {stats.total}
+            </Text>
           </Group>
         </Stack>
       </ScrollArea>

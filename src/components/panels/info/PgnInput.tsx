@@ -18,6 +18,7 @@ import { IconCheck, IconCopy } from "@tabler/icons-react";
 import deepEqual from "fast-deep-equal";
 import { useAtom } from "jotai";
 import { useContext, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 function PgnInput() {
@@ -26,6 +27,7 @@ function PgnInput() {
   const headers = useStore(store, (s) => s.headers);
   const setState = useStore(store, (s) => s.setState);
   const [options, setOptions] = useAtom(currentPgnOptionsAtom);
+  const { t } = useTranslation();
 
   const realPGN = useMemo(
     () =>
@@ -62,7 +64,7 @@ function PgnInput() {
       <Text fw="bold">PGN</Text>
       <Group my="sm">
         <Checkbox
-          label="Comments"
+          label={t("PgnInput.Comments")}
           size="xs"
           checked={options.comments}
           onChange={() =>
@@ -70,13 +72,13 @@ function PgnInput() {
           }
         />
         <Checkbox
-          label="Glyphs"
+          label={t("PgnInput.Glyphs")}
           size="xs"
           checked={options.glyphs}
           onChange={() => setOptions({ ...options, glyphs: !options.glyphs })}
         />
         <Checkbox
-          label="Variations"
+          label={t("PgnInput.Variations")}
           size="xs"
           checked={options.variations}
           onChange={() =>
@@ -84,7 +86,7 @@ function PgnInput() {
           }
         />
         <Checkbox
-          label="Extra Markups"
+          label={t("PgnInput.ExtraMarkups")}
           size="xs"
           checked={options.extraMarkups}
           onChange={() =>
