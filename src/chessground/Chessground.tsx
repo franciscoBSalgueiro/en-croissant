@@ -3,7 +3,6 @@ import { Box } from "@mantine/core";
 import { Chessground as NativeChessground } from "chessground";
 import type { Api } from "chessground/api";
 import type { Config } from "chessground/config";
-import { makeFen, parseFen } from "chessops/fen";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
@@ -23,10 +22,7 @@ export function Chessground(
         events: {
           change: () => {
             if (props.setBoardFen && chessgroundApi) {
-              const fen = parseFen(chessgroundApi.getFen());
-              if (fen.isOk) {
-                props.setBoardFen(makeFen(fen.value));
-              }
+              props.setBoardFen(chessgroundApi.getFen());
             }
           },
         },
@@ -41,12 +37,30 @@ export function Chessground(
       });
       setApi(chessgroundApi);
     } else if (ref?.current && api) {
-      api?.set(props);
+      api?.set({
+        ...props,
+        events: {
+          change: () => {
+            if (props.setBoardFen && api) {
+              props.setBoardFen(api.getFen());
+            }
+          },
+        },
+      });
     }
   }, [api, props, ref]);
 
   useEffect(() => {
-    api?.set(props);
+    api?.set({
+      ...props,
+      events: {
+        change: () => {
+          if (props.setBoardFen && api) {
+            props.setBoardFen(api.getFen());
+          }
+        },
+      },
+    });
   }, [api, props]);
 
   const boardImage = useAtomValue(boardImageAtom);
