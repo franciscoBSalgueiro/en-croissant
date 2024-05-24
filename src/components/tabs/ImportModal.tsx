@@ -119,7 +119,7 @@ export default function ImportModal({
       if (link.includes("chess.com")) {
         pgn = await getChesscomGame(link);
       } else if (link.includes("lichess")) {
-        const gameId = link.split("/")[3].split("?")[0];
+        const gameId = link.split("?")[0].split("/").pop() || "";
         pgn = await getLichessGame(gameId);
       }
 
