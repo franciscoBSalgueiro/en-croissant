@@ -48,7 +48,7 @@ The built app can be found at `src-tauri/target/release`
 
 ## Donate
 
-If you with to support the development of this GUI, you can do so [here](https://encroissant.org/support). All donations are greatly appreciated!
+If you wish to support the development of this GUI, you can do so [here](https://encroissant.org/support). All donations are greatly appreciated!
 
 ## Contributing
 
