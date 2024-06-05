@@ -47,7 +47,7 @@ function RepertoireInfo() {
 
   function searchForMissingMoves() {
     if (!referenceDb) {
-      throw Error("No refernce database selected");
+      throw Error("No reference database selected");
     }
     if (!currentTab) {
       throw Error("No current tab");

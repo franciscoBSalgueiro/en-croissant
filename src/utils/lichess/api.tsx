@@ -401,7 +401,7 @@ export async function downloadLichess(
     url,
     path,
     token,
-    totalSize: games > 0 ? games * 900 : undefined, // aprox size of a game
+    totalSize: games > 0 ? games * 900 : undefined, // approx. size of a game
   });
 }
 

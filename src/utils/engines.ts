@@ -110,7 +110,7 @@ export function useDefaultEngines(os: OS | undefined, opened: boolean) {
       if (!data.ok) {
         throw new Error("Failed to fetch engines");
       }
-      /// @ts-expect-error only exists on dowloaded
+      /// @ts-expect-error only exists on downloaded
       return data.data.filter((e) => e.os === os && e.bmi2 === bmi2);
     },
   );

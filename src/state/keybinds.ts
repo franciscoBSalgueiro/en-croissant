@@ -33,7 +33,7 @@ const keys = {
   DATABASE_TAB: { name: "Go to database tab", keys: "b" },
   ANNOTATE_TAB: { name: "Go to annotate tab", keys: "d" },
   INFO_TAB: { name: "Go to info tab", keys: "i" },
-  ANNOTATION_BRILLIANT: { name: "Toggle brillant move annotation", keys: "1" },
+  ANNOTATION_BRILLIANT: { name: "Toggle brilliant move annotation", keys: "1" },
   ANNOTATION_GOOD: { name: "Toggle good move annotation", keys: "2" },
   ANNOTATION_INTERESTING: {
     name: "Toggle interesting move annotation",
