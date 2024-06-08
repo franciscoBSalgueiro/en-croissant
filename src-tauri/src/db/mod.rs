@@ -1169,7 +1169,7 @@ pub async fn get_players_game_info(
             let mut chess = Chess::default();
             for (i, byte) in moves.iter().enumerate() {
                 if i > 54 {
-                    // max lenght of opening in data
+                    // max length of opening in data
                     break;
                 }
                 let m = decode_move(*byte, &chess).unwrap();
