@@ -17,7 +17,7 @@ import Fuse from "fuse.js";
 import { useAtom, useSetAtom } from "jotai";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
-import { useCallback, useMemo, useState } from "react";
+import { Reducer, useCallback, useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as classes from "./DirectoryTable.css";
 import type { MetadataOrEntry } from "./FilesPage";
@@ -56,6 +56,22 @@ function recursiveSort(
     });
 }
 
+type SortStatus = DataTableSortStatus<MetadataOrEntry>;
+const sortColumnAccessorStorageId = `${DirectoryTable.name}-column-accessor` as const;
+const sortDirectionStorageId = `${DirectoryTable.name}-direction` as const;
+
+function sortReducer(_previousSort: SortStatus, sort: SortStatus) {
+  localStorage.setItem(sortColumnAccessorStorageId, sort.columnAccessor);
+  localStorage.setItem(sortDirectionStorageId, sort.direction);
+  return sort;
+}
+
+function initializeSortState(sort: SortStatus) {
+  sort.columnAccessor = localStorage.getItem(sortDirectionStorageId) || sort.columnAccessor;
+  sort.direction = localStorage.getItem(sortDirectionStorageId) as typeof sort.direction || sort.direction;
+  return sort;
+}
+
 export default function DirectoryTable({
   files,
   isLoading,
@@ -73,10 +89,10 @@ export default function DirectoryTable({
   search: string;
   filter: string;
 }) {
-  const [sort, setSort] = useState<DataTableSortStatus<MetadataOrEntry>>({
-    columnAccessor: "lastModified",
-    direction: "desc",
-  });
+  const [sort, dispatchSort] = useReducer<Reducer<SortStatus, SortStatus>, SortStatus>(sortReducer, {
+    columnAccessor: 'lastModified',
+    direction: 'desc',
+  }, initializeSortState);
 
   const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
   const fuse = useMemo(
@@ -133,7 +149,7 @@ export default function DirectoryTable({
       selected={selectedFile}
       setSelectedFile={setSelectedFile}
       sort={sort}
-      setSort={setSort}
+      setSort={dispatchSort}
     />
   );
 }
