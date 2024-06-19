@@ -2,7 +2,7 @@ import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
 import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
-import { Badge, Box, Group, Text } from "@mantine/core";
+import { Badge, Box, Group } from "@mantine/core";
 import {
   IconChevronRight,
   IconEye,
@@ -15,9 +15,10 @@ import clsx from "clsx";
 import dayjs from "dayjs";
 import Fuse from "fuse.js";
 import { useAtom, useSetAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
-import { Reducer, useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as classes from "./DirectoryTable.css";
 import type { MetadataOrEntry } from "./FilesPage";
@@ -57,20 +58,11 @@ function recursiveSort(
 }
 
 type SortStatus = DataTableSortStatus<MetadataOrEntry>;
-const sortColumnAccessorStorageId = `${DirectoryTable.name}-column-accessor` as const;
-const sortDirectionStorageId = `${DirectoryTable.name}-direction` as const;
-
-function sortReducer(_previousSort: SortStatus, sort: SortStatus) {
-  localStorage.setItem(sortColumnAccessorStorageId, sort.columnAccessor);
-  localStorage.setItem(sortDirectionStorageId, sort.direction);
-  return sort;
-}
-
-function initializeSortState(sort: SortStatus) {
-  sort.columnAccessor = localStorage.getItem(sortDirectionStorageId) || sort.columnAccessor;
-  sort.direction = localStorage.getItem(sortDirectionStorageId) as typeof sort.direction || sort.direction;
-  return sort;
-}
+const sortStatusStorageId = `${DirectoryTable.name}-sort-status` as const;
+const sortStatusAtom = atomWithStorage<SortStatus>(sortStatusStorageId, {
+  columnAccessor: "lastModified",
+  direction: "desc",
+}, undefined, { getOnInit: true });
 
 export default function DirectoryTable({
   files,
@@ -89,10 +81,7 @@ export default function DirectoryTable({
   search: string;
   filter: string;
 }) {
-  const [sort, dispatchSort] = useReducer<Reducer<SortStatus, SortStatus>, SortStatus>(sortReducer, {
-    columnAccessor: 'lastModified',
-    direction: 'desc',
-  }, initializeSortState);
+  const [sort, setSort] = useAtom<SortStatus>(sortStatusAtom);
 
   const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
   const fuse = useMemo(
@@ -149,7 +138,7 @@ export default function DirectoryTable({
       selected={selectedFile}
       setSelectedFile={setSelectedFile}
       sort={sort}
-      setSort={dispatchSort}
+      setSort={setSort}
     />
   );
 }
@@ -171,7 +160,7 @@ function Table({
   selected: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   sort: DataTableSortStatus<MetadataOrEntry>;
-  setSort: React.Dispatch<SortStatus>;
+  setSort: (sort: SortStatus) => void;
 }) {
   const { t } = useTranslation();
 
