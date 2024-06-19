@@ -171,9 +171,7 @@ function Table({
   selected: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   sort: DataTableSortStatus<MetadataOrEntry>;
-  setSort: React.Dispatch<
-    React.SetStateAction<DataTableSortStatus<MetadataOrEntry>>
-  >;
+  setSort: React.Dispatch<SortStatus>;
 }) {
   const { t } = useTranslation();
 
