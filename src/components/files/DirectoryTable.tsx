@@ -59,10 +59,15 @@ function recursiveSort(
 
 type SortStatus = DataTableSortStatus<MetadataOrEntry>;
 const sortStatusStorageId = `${DirectoryTable.name}-sort-status` as const;
-const sortStatusAtom = atomWithStorage<SortStatus>(sortStatusStorageId, {
-  columnAccessor: "lastModified",
-  direction: "desc",
-}, undefined, { getOnInit: true });
+const sortStatusAtom = atomWithStorage<SortStatus>(
+  sortStatusStorageId,
+  {
+    columnAccessor: "lastModified",
+    direction: "desc",
+  },
+  undefined,
+  { getOnInit: true },
+);
 
 export default function DirectoryTable({
   files,
