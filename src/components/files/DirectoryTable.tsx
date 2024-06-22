@@ -2,7 +2,7 @@ import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
 import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
-import { Badge, Box, Group, Text } from "@mantine/core";
+import { Badge, Box, Group } from "@mantine/core";
 import {
   IconChevronRight,
   IconEye,
@@ -15,6 +15,7 @@ import clsx from "clsx";
 import dayjs from "dayjs";
 import Fuse from "fuse.js";
 import { useAtom, useSetAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
@@ -56,6 +57,18 @@ function recursiveSort(
     });
 }
 
+type SortStatus = DataTableSortStatus<MetadataOrEntry>;
+const sortStatusStorageId = `${DirectoryTable.name}-sort-status` as const;
+const sortStatusAtom = atomWithStorage<SortStatus>(
+  sortStatusStorageId,
+  {
+    columnAccessor: "lastModified",
+    direction: "desc",
+  },
+  undefined,
+  { getOnInit: true },
+);
+
 export default function DirectoryTable({
   files,
   isLoading,
@@ -73,10 +86,7 @@ export default function DirectoryTable({
   search: string;
   filter: string;
 }) {
-  const [sort, setSort] = useState<DataTableSortStatus<MetadataOrEntry>>({
-    columnAccessor: "lastModified",
-    direction: "desc",
-  });
+  const [sort, setSort] = useAtom<SortStatus>(sortStatusAtom);
 
   const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
   const fuse = useMemo(
@@ -155,9 +165,7 @@ function Table({
   selected: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   sort: DataTableSortStatus<MetadataOrEntry>;
-  setSort: React.Dispatch<
-    React.SetStateAction<DataTableSortStatus<MetadataOrEntry>>
-  >;
+  setSort: (sort: SortStatus) => void;
 }) {
   const { t } = useTranslation();
 
