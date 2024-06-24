@@ -46,6 +46,7 @@ import {
   IconDeviceFloppy,
   IconEdit,
   IconEditOff,
+  IconEraser,
   IconPlus,
   IconSwitchVertical,
   IconTarget,
@@ -62,7 +63,7 @@ import {
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useContext, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -322,6 +323,15 @@ function Board({
             ) : (
               <IconZoomCheck size="1.3rem" />
             )}
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label="Clear Drawings">
+          <ActionIcon
+            variant={editingMode ? "filled" : "default"}
+            size="lg"
+            onClick={() => setShapes([])}
+          >
+            <IconEraser size="1.3rem" />
           </ActionIcon>
         </Tooltip>
         {!disableVariations && (
