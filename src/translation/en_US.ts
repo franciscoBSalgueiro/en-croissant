@@ -286,6 +286,9 @@ export const en_US = {
     "Settings.ConsecutiveArrows": "Consecutive Arrows",
     "Settings.ConsecutiveArrows.Desc":
       "Show multiple arrows for the best line, if it involves moving the same piece several times",
+    "Settings.EraseDrawablesOnClick": "Erase Drawables On Click",
+    "Settings.EraseDrawablesOnClick.Desc":
+      "Clear the board of drawn arrows & circles by left-clicking the mouse",
     "Settings.AutoPromition": "Auto Promotion",
     "Settings.AutoPromition.Desc":
       "Automatically promote to a queen when a pawn reaches the last rank",

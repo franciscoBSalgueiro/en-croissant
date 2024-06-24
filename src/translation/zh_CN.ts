@@ -280,6 +280,9 @@ export const zh_CN = {
     "Settings.ConsecutiveArrows": "连续箭头",
     "Settings.ConsecutiveArrows.Desc":
       "如果最佳着法中会多次移动同一个棋子，显示多个箭头",
+    "Settings.EraseDrawablesOnClick": "单击时擦除可绘制对象",
+    "Settings.EraseDrawablesOnClick.Desc":
+      "通过单击鼠标左键清除棋盘上绘制的箭头和圆圈",
     "Settings.AutoPromition": "自动升变",
     "Settings.AutoPromition.Desc": "兵抵达底线时自动升变为后",
     "Settings.Coordinates": "坐标",

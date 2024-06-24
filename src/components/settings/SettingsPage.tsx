@@ -1,8 +1,8 @@
-import type { Dirs } from "@/App";
 import {
   autoPromoteAtom,
   autoSaveAtom,
   enableBoardScrollAtom,
+  eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
   minimumGamesAtom,
   moveInputAtom,
@@ -221,6 +221,20 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showConsecutiveArrowsAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>{t("Settings.EraseDrawablesOnClick")}</Text>
+                  <Text size="xs" c="dimmed">
+                    {t("Settings.EraseDrawablesOnClick.Desc")}
+                  </Text>
+                </div>
+                <SettingsSwitch atom={eraseDrawablesOnClickAtom} />
               </Group>
               <Group
                 justify="space-between"
