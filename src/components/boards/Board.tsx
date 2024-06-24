@@ -145,6 +145,7 @@ function Board({
   const storeMakeMove = useStore(store, (s) => s.makeMove);
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const deleteMove = useStore(store, (s) => s.deleteMove);
+  const clearShapes = useStore(store, (s) => s.clearShapes);
   const setShapes = useStore(store, (s) => s.setShapes);
   const setFen = useStore(store, (s) => s.setFen);
 
@@ -332,7 +333,7 @@ function Board({
             <ActionIcon
               variant={editingMode ? "filled" : "default"}
               size="lg"
-              onClick={() => setShapes([])}
+              onClick={() => clearShapes()}
             >
               <IconEraser size="1.3rem" />
             </ActionIcon>
@@ -603,7 +604,7 @@ function Board({
               className={chessboard}
               ref={boardRef}
               onClick={() => {
-                eraseDrawablesOnClick && setShapes([]);
+                eraseDrawablesOnClick && clearShapes();
               }}
               onWheel={(e) => {
                 if (enableBoardScroll) {
