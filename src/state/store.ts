@@ -468,9 +468,9 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
     clearShapes: () =>
       set(
         produce((state) => {
-          state.dirty = true;
           const node = getNodeAtPath(state.root, state.position);
-          if (node) {
+          if (node && node.shapes.length > 0) {
+            state.dirty = true;
             node.shapes = [];
           }
         }),
