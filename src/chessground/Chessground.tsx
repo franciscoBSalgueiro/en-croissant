@@ -16,7 +16,19 @@ export function Chessground(
   const moveMethod = useAtomValue(moveMethodAtom);
 
   useEffect(() => {
-    if (ref?.current && !api) {
+    if (ref?.current == null) return;
+    if (api) {
+      api?.set({
+        ...props,
+        events: {
+          change: () => {
+            if (props.setBoardFen && api) {
+              props.setBoardFen(api.getFen());
+            }
+          },
+        },
+      });
+    } else {
       const chessgroundApi = NativeChessground(ref.current, {
         ...props,
         events: {
@@ -36,17 +48,6 @@ export function Chessground(
         },
       });
       setApi(chessgroundApi);
-    } else if (ref?.current && api) {
-      api?.set({
-        ...props,
-        events: {
-          change: () => {
-            if (props.setBoardFen && api) {
-              props.setBoardFen(api.getFen());
-            }
-          },
-        },
-      });
     }
   }, [api, props, ref]);
 

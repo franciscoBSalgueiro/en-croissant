@@ -130,6 +130,10 @@ export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
   "show-consecutive-arrows",
   false,
 );
+export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
+  "erase-drawables-on-click",
+  false,
+);
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>(

@@ -468,9 +468,9 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
     clearShapes: () =>
       set(
         produce((state) => {
-          state.dirty = true;
           const node = getNodeAtPath(state.root, state.position);
-          if (node) {
+          if (node && node.shapes.length > 0) {
+            state.dirty = true;
             node.shapes = [];
           }
         }),
@@ -640,16 +640,23 @@ function promoteVariation(state: TreeState, path: number[]) {
 function setShapes(state: TreeState, shapes: DrawShape[]) {
   const node = getNodeAtPath(state.root, state.position);
   if (!node) return state;
-  const shape = shapes[0];
-  const index = node.shapes.findIndex(
-    (s) => s.orig === shape.orig && s.dest === shape.dest,
-  );
 
-  if (index !== -1) {
-    node.shapes.splice(index, 1);
+  const [shape] = shapes;
+  if (shape) {
+    const index = node.shapes.findIndex(
+      (s) => s.orig === shape.orig && s.dest === shape.dest,
+    );
+
+    if (index !== -1) {
+      node.shapes.splice(index, 1);
+    } else {
+      node.shapes.push(shape);
+    }
   } else {
-    node.shapes.push(shape);
+    node.shapes = [];
   }
+
+  return state;
 }
 
 function addAnalysis(

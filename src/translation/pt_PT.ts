@@ -285,6 +285,9 @@ export const pt_PT = {
     "Settings.ConsecutiveArrows": "Setas consecutivas",
     "Settings.ConsecutiveArrows.Desc":
       "Mostra várias setas para a melhor linha, caso ela consista em mover a mesma peça várias vezes",
+    "Settings.EraseDrawablesOnClick": "Apagar desenhos ao clicar",
+    "Settings.EraseDrawablesOnClick.Desc":
+      "Limpar o tabuleiro das setas e círculos desenhados ao clicar com o botão esquerdo do rato",
     "Settings.AutoPromition": "Auto Promoção",
     "Settings.AutoPromition.Desc": "Automaticamente promover para rainha",
     "Settings.Coordinates": "Coordenadas",

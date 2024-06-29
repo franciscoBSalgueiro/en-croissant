@@ -7,6 +7,7 @@ import {
   currentTabAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
+  eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
   moveInputAtom,
   showArrowsAtom,
@@ -46,6 +47,7 @@ import {
   IconDeviceFloppy,
   IconEdit,
   IconEditOff,
+  IconEraser,
   IconPlus,
   IconSwitchVertical,
   IconTarget,
@@ -143,6 +145,7 @@ function Board({
   const storeMakeMove = useStore(store, (s) => s.makeMove);
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const deleteMove = useStore(store, (s) => s.deleteMove);
+  const clearShapes = useStore(store, (s) => s.clearShapes);
   const setShapes = useStore(store, (s) => s.setShapes);
   const setFen = useStore(store, (s) => s.setFen);
 
@@ -152,6 +155,7 @@ function Board({
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
+  const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
@@ -324,6 +328,17 @@ function Board({
             )}
           </ActionIcon>
         </Tooltip>
+        {!eraseDrawablesOnClick && (
+          <Tooltip label="Clear Drawings">
+            <ActionIcon
+              variant={editingMode ? "filled" : "default"}
+              size="lg"
+              onClick={() => clearShapes()}
+            >
+              <IconEraser size="1.3rem" />
+            </ActionIcon>
+          </Tooltip>
+        )}
         {!disableVariations && (
           <Tooltip label="Edit Position">
             <ActionIcon
@@ -588,6 +603,9 @@ function Board({
               }
               className={chessboard}
               ref={boardRef}
+              onClick={() => {
+                eraseDrawablesOnClick && clearShapes();
+              }}
               onWheel={(e) => {
                 if (enableBoardScroll) {
                   if (e.deltaY > 0) {
