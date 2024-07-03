@@ -18,7 +18,7 @@ export function Chessground(
   useEffect(() => {
     if (ref?.current == null) return;
     if (api) {
-      api?.set({
+      api.set({
         ...props,
         events: {
           change: () => {
