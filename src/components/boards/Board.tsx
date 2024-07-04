@@ -43,6 +43,8 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
+  IconChess,
+  IconChessFilled,
   IconChevronRight,
   IconDeviceFloppy,
   IconEdit,
@@ -65,6 +67,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo, useState } from "react";
+import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -167,8 +170,11 @@ function Board({
   if (forcedEP && pos) {
     dests = forceEnPassant(dests, pos);
   }
-  const turn = pos?.turn || "white";
+
+  const [viewPawnStructure, setViewPawnStructure] = useState(false);
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
+
+  const turn = pos?.turn || "white";
   const orientation =
     movable === "white" || movable === "black"
       ? movable
@@ -354,6 +360,21 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
+
+        <Tooltip label="Toggle Pawn Structure View">
+          <ActionIcon
+            variant={editingMode ? "filled" : "default"}
+            size="lg"
+            onClick={() => setViewPawnStructure(!viewPawnStructure)}
+          >
+            {viewPawnStructure ? (
+              <IconChessFilled size="1.3rem" />
+            ) : (
+              <IconChess size="1.3rem" />
+            )}
+          </ActionIcon>
+        </Tooltip>
+
         {saveFile && (
           <Tooltip label={`Save PGN (${keyMap.SAVE_FILE.keys})`}>
             <ActionIcon
@@ -518,6 +539,11 @@ function Board({
 
   return (
     <>
+      {viewPawnStructure && (
+        <Helmet>
+          <link rel="stylesheet" href="/pieces/view-pawn-structure.css" />
+        </Helmet>
+      )}
       <Box w="100%" h="100%">
         <Box
           style={{
@@ -649,7 +675,7 @@ function Board({
                         : dests,
                   showDests,
                   events: {
-                    after: (orig, dest, metadata) => {
+                    after(orig, dest, metadata) {
                       if (!editingMode) {
                         const from = parseSquare(orig)!;
                         const to = parseSquare(dest)!;
@@ -690,6 +716,7 @@ function Board({
                   enabled: false,
                 }}
                 draggable={{
+                  enabled: !viewPawnStructure,
                   deleteOnDropOff: editingMode,
                 }}
                 drawable={{

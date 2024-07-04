@@ -1,0 +1,7 @@
+.bishop,
+.knight,
+.rook,
+.queen,
+.king {
+  display: none;
+}
