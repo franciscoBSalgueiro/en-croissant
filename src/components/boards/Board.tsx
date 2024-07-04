@@ -43,13 +43,13 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
+  IconChess,
+  IconChessFilled,
   IconChevronRight,
   IconDeviceFloppy,
   IconEdit,
   IconEditOff,
   IconEraser,
-  IconEye,
-  IconEyeOff,
   IconPlus,
   IconSwitchVertical,
   IconTarget,
@@ -368,9 +368,9 @@ function Board({
             onClick={() => setViewPawnStructure(!viewPawnStructure)}
           >
             {viewPawnStructure ? (
-              <IconEyeOff size="1.3rem" />
+              <IconChessFilled size="1.3rem" />
             ) : (
-              <IconEye size="1.3rem" />
+              <IconChess size="1.3rem" />
             )}
           </ActionIcon>
         </Tooltip>
