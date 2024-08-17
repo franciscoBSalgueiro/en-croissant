@@ -1,6 +1,7 @@
 import { Comment } from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { currentInvisibleAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -28,6 +29,7 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useStore } from "zustand";
 import CompleteMoveCell from "./CompleteMoveCell";
 import OpeningName from "./OpeningName";
@@ -55,10 +57,14 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
     }
   }, [currentNode.fen]);
 
-  const invisible = topBar && useAtomValue(currentInvisibleAtom);
+  const [invisibleValue, setInvisible] = useAtom(currentInvisibleAtom);
+  const invisible = topBar && invisibleValue;
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
   const colorScheme = useColorScheme();
+
+  const keyMap = useAtomValue(keyMapAtom);
+  useHotkeys(keyMap.TOGGLE_BLUR.keys, () => setInvisible((v) => !v));
 
   return (
     <Paper
