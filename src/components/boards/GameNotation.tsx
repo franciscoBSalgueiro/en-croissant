@@ -83,7 +83,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
                 <Overlay
                   backgroundOpacity={0.6}
                   color={colorScheme === "dark" ? "#1a1b1e" : undefined}
-                  blur={3}
+                  blur={8}
                   zIndex={2}
                 />
               )}
