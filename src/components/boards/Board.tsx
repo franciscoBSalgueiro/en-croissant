@@ -65,12 +65,13 @@ import {
   parseUci,
 } from "chessops";
 import { save } from "@tauri-apps/api/dialog";
-import { documentDir } from '@tauri-apps/api/path';
+import { writeBinaryFile } from "@tauri-apps/api/fs";
+import { documentDir } from "@tauri-apps/api/path";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
+import html2canvas from "html2canvas";
 import { memo, useContext, useMemo, useState } from "react";
-import { exportComponentAsPNG } from "react-component-export-image";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -86,6 +87,7 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
+import { parse } from "path";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
@@ -190,24 +192,35 @@ function Board({
     });
 
   const takeSnapshot = async () => {
-    const documentsDirPath = await documentDir();
-    const fileName = await save({
-      title: "Save board snapshot",
-      defaultPath: documentsDirPath,
-      filters: [
-        {
-          name: "Png image",
-          extensions: ["png"],
-        },
-      ],
+    const ref = boardRef?.current;
+    if (ref == null) return;
+    
+    // We must get the first children two level below, as it has the right dimensions.
+    const refChildNode = ref.children[0].children[0] as HTMLElement;
+    if (refChildNode == null) return;
+
+    const canvas = await html2canvas(refChildNode, {
+      logging: false,
+      backgroundColor: "transparent",
     });
-    if (fileName == null) return;
-    exportComponentAsPNG(boardRef, {
-      fileName: fileName,
-      html2CanvasOptions: {
-        logging: false,
-        backgroundColor: "transparent",
-      },
+
+    canvas.toBlob(async (blob) => {
+      if (blob == null) return;
+      const documentsDirPath = await documentDir();
+
+      const filePath = await save({
+        title: "Save board snapshot",
+        defaultPath: documentsDirPath,
+        filters: [
+          {
+            name: "Png image",
+            extensions: ["png"],
+          },
+        ],
+      });
+      const arrayBuffer = await blob.arrayBuffer();
+      if (filePath == null) return;
+      await writeBinaryFile(filePath, arrayBuffer);
     });
   };
 
