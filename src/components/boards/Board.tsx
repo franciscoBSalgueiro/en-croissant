@@ -1,3 +1,4 @@
+import { parse } from "path";
 import { Chessground } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
@@ -56,6 +57,9 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { save } from "@tauri-apps/api/dialog";
+import { writeBinaryFile } from "@tauri-apps/api/fs";
+import { documentDir } from "@tauri-apps/api/path";
 import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
@@ -64,13 +68,10 @@ import {
   parseSquare,
   parseUci,
 } from "chessops";
-import { save } from "@tauri-apps/api/dialog";
-import { writeBinaryFile } from "@tauri-apps/api/fs";
-import { documentDir } from "@tauri-apps/api/path";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
-import { useAtom, useAtomValue } from "jotai";
 import html2canvas from "html2canvas";
+import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -87,7 +88,6 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
-import { parse } from "path";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
@@ -194,7 +194,7 @@ function Board({
   const takeSnapshot = async () => {
     const ref = boardRef?.current;
     if (ref == null) return;
-    
+
     // We must get the first children two level below, as it has the right dimensions.
     const refChildNode = ref.children[0].children[0] as HTMLElement;
     if (refChildNode == null) return;
