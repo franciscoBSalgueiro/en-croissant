@@ -43,6 +43,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
+  IconCamera,
   IconChess,
   IconChessFilled,
   IconChevronRight,
@@ -184,6 +185,10 @@ function Board({
       ...headers,
       orientation: orientation === "black" ? "white" : "black",
     });
+
+  const takeSnapshot = async () => {
+
+  };
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
@@ -400,6 +405,15 @@ function Board({
             onClick={() => toggleOrientation()}
           >
             <IconSwitchVertical size="1.3rem" />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label={`Take snapshot`}>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            onClick={() => takeSnapshot()}
+          >
+            <IconCamera size="1.3rem" />
           </ActionIcon>
         </Tooltip>
       </ActionIcon.Group>
