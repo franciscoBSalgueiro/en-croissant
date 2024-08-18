@@ -53,6 +53,7 @@
     "mantine-datatable": "^7.6.1",
     "mantine-flagpack": "^4.0.0",
     "react": "^18.2.0",
+    "react-component-export-image": "^1.0.6",
     "react-contenteditable": "^3.3.7",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",

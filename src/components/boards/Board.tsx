@@ -64,10 +64,13 @@ import {
   parseSquare,
   parseUci,
 } from "chessops";
+import { save } from "@tauri-apps/api/dialog";
+import { documentDir } from '@tauri-apps/api/path';
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo, useState } from "react";
+import { exportComponentAsPNG } from "react-component-export-image";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -187,7 +190,25 @@ function Board({
     });
 
   const takeSnapshot = async () => {
-
+    const documentsDirPath = await documentDir();
+    const fileName = await save({
+      title: "Save board snapshot",
+      defaultPath: documentsDirPath,
+      filters: [
+        {
+          name: "Png image",
+          extensions: ["png"],
+        },
+      ],
+    });
+    if (fileName == null) return;
+    exportComponentAsPNG(boardRef, {
+      fileName: fileName,
+      html2CanvasOptions: {
+        logging: false,
+        backgroundColor: "transparent",
+      },
+    });
   };
 
   const keyMap = useAtomValue(keyMapAtom);
