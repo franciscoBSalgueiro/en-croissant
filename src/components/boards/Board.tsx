@@ -1,4 +1,3 @@
-import { parse } from "path";
 import { Chessground } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
@@ -70,7 +69,7 @@ import {
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
-import html2canvas from "html2canvas";
+import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
@@ -195,16 +194,11 @@ function Board({
     const ref = boardRef?.current;
     if (ref == null) return;
 
-    // We must get the first children two level below, as it has the right dimensions.
-    const refChildNode = ref.children[0].children[0] as HTMLElement;
+    // We must get the first children three levels below, as it has the right dimensions.
+    const refChildNode = ref.children[0].children[0].children[0] as HTMLElement;
     if (refChildNode == null) return;
 
-    const canvas = await html2canvas(refChildNode, {
-      logging: false,
-      backgroundColor: "transparent",
-    });
-
-    canvas.toBlob(async (blob) => {
+    domtoimage.toBlob(refChildNode).then(async (blob) => {
       if (blob == null) return;
       const documentsDirPath = await documentDir();
 
@@ -441,7 +435,7 @@ function Board({
             <IconSwitchVertical size="1.3rem" />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label={`Take snapshot`}>
+        <Tooltip label={"Take snapshot"}>
           <ActionIcon
             variant="default"
             size="lg"
