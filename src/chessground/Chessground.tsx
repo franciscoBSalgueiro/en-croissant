@@ -31,6 +31,7 @@ export function Chessground(
     } else {
       const chessgroundApi = NativeChessground(ref.current, {
         ...props,
+        addDimensionsCssVarsTo: ref.current,
         events: {
           change: () => {
             if (props.setBoardFen && chessgroundApi) {

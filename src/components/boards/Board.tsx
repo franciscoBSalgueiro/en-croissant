@@ -43,6 +43,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
+  IconCamera,
   IconChess,
   IconChessFilled,
   IconChevronRight,
@@ -55,6 +56,9 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { save } from "@tauri-apps/api/dialog";
+import { writeBinaryFile } from "@tauri-apps/api/fs";
+import { documentDir } from "@tauri-apps/api/path";
 import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
@@ -65,6 +69,7 @@ import {
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
+import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
@@ -184,6 +189,34 @@ function Board({
       ...headers,
       orientation: orientation === "black" ? "white" : "black",
     });
+
+  const takeSnapshot = async () => {
+    const ref = boardRef?.current;
+    if (ref == null) return;
+
+    // We must get the first children three levels below, as it has the right dimensions.
+    const refChildNode = ref.children[0].children[0].children[0] as HTMLElement;
+    if (refChildNode == null) return;
+
+    domtoimage.toBlob(refChildNode).then(async (blob) => {
+      if (blob == null) return;
+      const documentsDirPath = await documentDir();
+
+      const filePath = await save({
+        title: "Save board snapshot",
+        defaultPath: documentsDirPath,
+        filters: [
+          {
+            name: "Png image",
+            extensions: ["png"],
+          },
+        ],
+      });
+      const arrayBuffer = await blob.arrayBuffer();
+      if (filePath == null) return;
+      await writeBinaryFile(filePath, arrayBuffer);
+    });
+  };
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
@@ -400,6 +433,15 @@ function Board({
             onClick={() => toggleOrientation()}
           >
             <IconSwitchVertical size="1.3rem" />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label={"Take snapshot"}>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            onClick={() => takeSnapshot()}
+          >
+            <IconCamera size="1.3rem" />
           </ActionIcon>
         </Tooltip>
       </ActionIcon.Group>
