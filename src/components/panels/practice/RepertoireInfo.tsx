@@ -23,7 +23,8 @@ import {
 } from "@mantine/core";
 import { IconInfoCircle, IconReload } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { DataTable } from "mantine-datatable";
+import { atomWithStorage } from "jotai/utils";
+import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useContext, useMemo, useState } from "react";
 import { useStore } from "zustand";
 
@@ -113,6 +114,18 @@ function RepertoireInfo() {
   );
 }
 
+type SortStatus = DataTableSortStatus<MissingMove>;
+const sortStatusStorageId = `${MissingMoves.name}-sort-status` as const;
+const sortStatusAtom = atomWithStorage<SortStatus>(
+  sortStatusStorageId,
+  {
+    columnAccessor: "move",
+    direction: "asc",
+  },
+  undefined,
+  { getOnInit: true },
+);
+
 function MissingMoves({
   missingMoves,
   search,
@@ -123,13 +136,41 @@ function MissingMoves({
   const store = useContext(TreeStateContext)!;
   const goToMove = useStore(store, (s) => s.goToMove);
 
+  const [sort, setSort] = useAtom<SortStatus>(sortStatusAtom);
+  const sortedMissingMoves = useMemo(
+    () =>
+      missingMoves.sort((a, b) => {
+        if (sort.direction === "desc") {
+          if (sort.columnAccessor === "move") {
+            return b.position.length - a.position.length;
+          }
+          if (sort.columnAccessor === "games") {
+            return b.games - a.games;
+          }
+          if (sort.columnAccessor === "percentage") {
+            return b.percentage - a.percentage;
+          }
+        }
+        if (sort.columnAccessor === "move") {
+          return a.position.length - b.position.length;
+        }
+        if (sort.columnAccessor === "games") {
+          return a.games - b.games;
+        }
+        return a.percentage - b.percentage;
+      }),
+    [missingMoves, sort],
+  );
+
   return (
     <DataTable
       withTableBorder
       emptyState={<Text py={200}>No missing moves found</Text>}
       highlightOnHover
-      records={missingMoves}
+      records={sortedMissingMoves}
       onRowClick={({ record }) => goToMove(record.position)}
+      sortStatus={sort}
+      onSortStatusChange={setSort}
       groups={[
         {
           id: "Missing Moves",
@@ -146,6 +187,7 @@ function MissingMoves({
           columns: [
             {
               accessor: "move",
+              sortable: true,
               render: ({ move, position }) => {
                 const total_moves = position.length + 1;
                 const is_white = total_moves % 2 === 1;
@@ -165,9 +207,11 @@ function MissingMoves({
             },
             {
               accessor: "games",
+              sortable: true,
             },
             {
               accessor: "percentage",
+              sortable: true,
               render: ({ percentage }) => (
                 <Text>{(percentage * 100).toFixed(1)}%</Text>
               ),
