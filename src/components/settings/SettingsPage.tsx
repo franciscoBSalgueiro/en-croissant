@@ -460,6 +460,10 @@ export default function Page() {
                       label: "English",
                     },
                     {
+                      value: "pl_PL",
+                      label: "Polish",
+                    },
+                    {
                       value: "pt_PT",
                       label: "Portuguese",
                     },

@@ -8,6 +8,7 @@ import App from "./App";
 
 import { be_BY } from "./translation/be_BY";
 import { en_US } from "./translation/en_US";
+import { pl_PL } from "./translation/pl_PL";
 import { pt_PT } from "./translation/pt_PT";
 import { ru_RU } from "./translation/ru_RU";
 import { uk_UA } from "./translation/uk_UA";
@@ -21,6 +22,7 @@ i18n.use(initReactI18next).init({
     ru_RU: ru_RU,
     uk_UA: uk_UA,
     be_BY: be_BY,
+    pl_PL: pl_PL,
   },
   lng: localStorage.getItem("lang") || "en_US",
   fallbackLng: "en",
