@@ -48,7 +48,7 @@ export const es_ES = {
     "Common.BLACK": "NEGRAS",
 
     "GoMode.Time": "Tiempo",
-    "GoMode.Depth": "Profundidad", 
+    "GoMode.Depth": "Profundidad",
     "GoMode.Nodes": "Nodos",
     "GoMode.Infinite": "Infinito",
 
@@ -171,7 +171,8 @@ export const es_ES = {
       "Ninguna base de datos seleccionada. Empieza por seleccionar una en la pagina de base de datos",
     "Board.Analysis.Time": "Tiempo (ms)",
     "Board.Analysis.Reversed": "Analisis invertido",
-    "Board.Analysis.Reversed.Desc": "Analizar juego a partir de la útima posición.",
+    "Board.Analysis.Reversed.Desc":
+      "Analizar juego a partir de la útima posición.",
     "Board.Analysis.AnnotateNovelties": "Anotar novedades",
     "Board.Analysis.AnnotateNovelties.Desc":
       "Añadir comentario en la primera posición que no esta en la base de datos.",
@@ -224,8 +225,10 @@ export const es_ES = {
     "Databases.Card.Storage": "Almacenamiento",
     "Databases.Add.Title": "Añadir base de datos",
     "Databases.Add.Web": "Web",
-    "Databases.Add.ErrorFetch": "No se pudieron recuperar las bases de datos del servidor.",
-    "Databases.Add.ClickToSelectPGN": "Haga clic para seleccionar el archivo PGN",
+    "Databases.Add.ErrorFetch":
+      "No se pudieron recuperar las bases de datos del servidor.",
+    "Databases.Add.ClickToSelectPGN":
+      "Haga clic para seleccionar el archivo PGN",
     "Databases.Add.Convert": "Convertir",
     "Databases.Settings.ReferenceDatabase": "Base de dados de referencia",
     "Databases.Settings.Indexed": "Indexado",
@@ -344,7 +347,8 @@ export const es_ES = {
     "Settings.Sound.Volume.Desc": "Volumen general",
     "Settings.Sound.Collection": "Colección de sonidos",
     "Settings.Sound.Collection.Desc": "Colección de sonidos usados",
-    "Settings.Directories.Desc": "Personalizar los directorios utilizados por la aplicación.",
+    "Settings.Directories.Desc":
+      "Personalizar los directorios utilizados por la aplicación.",
     "Settings.Directories.Files": "Directorio para archivos",
     "Settings.Directories.Files.Desc":
       "Aquí es donde se almacenan los archivos del juego en la página de archivos.",

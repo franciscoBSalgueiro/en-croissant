@@ -206,8 +206,7 @@ export const ru_RU = {
     "Engines.Add.Cloud": "Облако",
     "Engines.Add.ErrorFetch": "Не удалось получить движки с сервера.",
     "Engines.Add.BinaryFile": "Исполняемый файл",
-    "Engines.Add.BinaryFile.Desc":
-      "Нажмите для выбора исполняемого файла",
+    "Engines.Add.BinaryFile.Desc": "Нажмите для выбора исполняемого файла",
     "Engines.Add.Name": "Имя",
     "Engines.Add.Name.Autodetect": "Автоопределение",
     "Engines.Add.Elo.Desc": "Эло движка",
@@ -306,8 +305,7 @@ export const ru_RU = {
     "Settings.Inputs.SpellCheck": "Проверка орфографии",
     "Settings.Inputs.SpellCheck.Desc":
       "Включить или отключить проверку орфографии при вводе текста",
-    "Settings.OpeningReport.Desc":
-      "Настроить параметры отчёта по дебютам",
+    "Settings.OpeningReport.Desc": "Настроить параметры отчёта по дебютам",
     "Settings.OpeningReport.PercentCoverage": "Процент охвата",
     "Settings.OpeningReport.PercentCoverage.Desc":
       "Процент охваченных ходов в каждой позиции",

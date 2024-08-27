@@ -206,8 +206,7 @@ export const be_BY = {
     "Engines.Add.Cloud": "Хмара",
     "Engines.Add.ErrorFetch": "Не ўдалося атрымаць рухавікі з сервера.",
     "Engines.Add.BinaryFile": "Выконваемы файл",
-    "Engines.Add.BinaryFile.Desc":
-      "Націсніце для выбару выконваемага файла",
+    "Engines.Add.BinaryFile.Desc": "Націсніце для выбару выконваемага файла",
     "Engines.Add.Name": "Імя",
     "Engines.Add.Name.Autodetect": "Аўтавызначэнне",
     "Engines.Add.Elo.Desc": "Эла рухавіка",
@@ -306,8 +305,7 @@ export const be_BY = {
     "Settings.Inputs.SpellCheck": "Праверка арфаграфіі",
     "Settings.Inputs.SpellCheck.Desc":
       "Уключыць або выключыць праверку арфаграфіі пры ўводзе тэксту",
-    "Settings.OpeningReport.Desc":
-      "Наладзіць параметры справаздачы па дэбютах",
+    "Settings.OpeningReport.Desc": "Наладзіць параметры справаздачы па дэбютах",
     "Settings.OpeningReport.PercentCoverage": "Працэнт ахопу",
     "Settings.OpeningReport.PercentCoverage.Desc":
       "Працэнт ахопленых хадоў у кожнай пазіцыі",
@@ -333,7 +331,8 @@ export const be_BY = {
     "Settings.Appearance.FontSize": "Памер шрыфта",
     "Settings.Appearance.FontSize.Desc": "Агульны памер шрыфта",
     "Settings.Appearance.PieceSet": "Набор фігур",
-    "Settings.Appearance.PieceSet.Desc": "Фігуры, што выкарыстоўваюцца на дошцы",
+    "Settings.Appearance.PieceSet.Desc":
+      "Фігуры, што выкарыстоўваюцца на дошцы",
     "Settings.Appearance.BoardImage": "Выява дошкі",
     "Settings.Appearance.BoardImage.Desc":
       "Выява, што выкарыстоўваецца як фон для дошкі",
@@ -344,7 +343,8 @@ export const be_BY = {
     "Settings.Sound.Volume.Desc": "Агульная гучнасць",
     "Settings.Sound.Collection": "Калекцыя гукаў",
     "Settings.Sound.Collection.Desc": "Выкарыстоўваная калекцыя гукаў",
-    "Settings.Directories.Desc": "Наладзіць каталогі, якія выкарыстоўваюцца праграмай",
+    "Settings.Directories.Desc":
+      "Наладзіць каталогі, якія выкарыстоўваюцца праграмай",
     "Settings.Directories.Files": "Каталог для файлаў",
     "Settings.Directories.Files.Desc":
       "Тут захоўваюцца гульнявыя файлы на старонцы файлаў",
