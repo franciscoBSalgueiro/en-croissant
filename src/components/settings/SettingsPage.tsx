@@ -448,16 +448,28 @@ export default function Page() {
                   allowDeselect={false}
                   data={[
                     {
-                      value: "en_US",
-                      label: "English",
+                      value: "be_BY",
+                      label: "Belarusian",
                     },
                     {
                       value: "zh_CN",
                       label: "Chinese",
                     },
                     {
+                      value: "en_US",
+                      label: "English",
+                    },
+                    {
                       value: "pt_PT",
                       label: "Portuguese",
+                    },
+                    {
+                      value: "ru_RU",
+                      label: "Russian",
+                    },
+                    {
+                      value: "uk_UA",
+                      label: "Ukrainian",
                     },
                   ]}
                   value={i18n.language}
