@@ -44,6 +44,8 @@ const keys = {
   ANNOTATION_BLUNDER: { name: "Toggle blunder move annotation", keys: "6" },
   TOGGLE_ALL_ENGINES: { name: "Toggle all engines", keys: "ctrl+a" },
   TOGGLE_BLUR: { name: "Toggle blur", keys: "ctrl+b" },
+  PREVIOUS_GAME: { name: "Next game", keys: "pageup" },
+  NEXT_GAME: { name: "Next game", keys: "pagedown" },
 };
 
 export const keyMapAtom = atomWithStorage(

@@ -2,6 +2,7 @@ import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 import { currentTabAtom, missingMovesAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
@@ -12,6 +13,7 @@ import { useToggle } from "@mantine/hooks";
 import { invoke } from "@tauri-apps/api";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useMemo, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import FenSearch from "./FenSearch";
@@ -130,6 +132,14 @@ function GameSelectorAccordion({
     });
     setGames(new Map());
   }
+
+  const keyMap = useAtomValue(keyMapAtom);
+  useHotkeys(keyMap.NEXT_GAME.keys, () =>
+    setPage(Math.min(gameNumber + 1, currentTab.file!.numGames - 1)),
+  );
+  useHotkeys(keyMap.PREVIOUS_GAME.keys, () =>
+    setPage(Math.max(0, gameNumber - 1)),
+  );
 
   return (
     <>
