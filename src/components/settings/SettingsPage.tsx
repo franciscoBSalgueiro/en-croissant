@@ -472,6 +472,10 @@ export default function Page() {
                       label: "Russian",
                     },
                     {
+                      value: "es_ES",
+                      label: "Spanish",
+                    },
+                    {
                       value: "uk_UA",
                       label: "Ukrainian",
                     },
