@@ -59,6 +59,7 @@ sysinfo = "0.29.10"
 window-shadows = "0.2.2"
 governor = "0.6.3"
 nonzero_ext = "0.3.0"
+tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 
 [features]
 # by default Tauri runs in production mode
