@@ -342,7 +342,7 @@ export default function DatabasesPage() {
                         rightSection={<IconArrowRight size="1rem" />}
                         variant="default"
                         onClick={async () => {
-                          let data = await get_random_game(selectedDatabase.file);
+                          let data = await get_random_game(selectedDatabase.file, selectedDatabase.game_count);
                           let games = data?.data ?? [];
                           const record = games[0];
 

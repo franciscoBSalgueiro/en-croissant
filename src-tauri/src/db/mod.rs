@@ -24,7 +24,6 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
     sql_query,
     sql_types::Text,
-    dsl::{sql, count}
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
@@ -899,29 +898,27 @@ pub async fn get_games(
 #[tauri::command]
 pub async fn get_random_game(
     file: PathBuf,
+    count: i32,
     state: tauri::State<'_, AppState>,
 ) ->  Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let total_count: i64 = games::table.select(count(games::id)).first(db)?;
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
     let mut rng = rand::thread_rng();
     let mut attempts = 0;
     let max_attempts = 10;
 
-    if total_count == 0 {
+    if count == 0 {
         attempts = max_attempts;
     }
-    let (white_players, black_players) = diesel::alias!(players as white, players as black);
     while attempts < max_attempts {
-        let random_index = rng.gen_range(0..total_count);
+        let random_index = rng.gen_range(1..count) as i32;
 
         let game_query = games::table
+            .filter(games::id.eq(random_index))
             .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
             .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
             .inner_join(events::table.on(games::event_id.eq(events::id)))
             .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-            .offset(random_index)
-            .limit(1)
-            .into_boxed()
             .load::<(Game, Player, Player, Event, Site)>(db)?;
 
         if !game_query.is_empty() {

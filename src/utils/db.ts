@@ -119,9 +119,10 @@ export async function query_games(
 }
 
 export async function get_random_game(
-  db: string
+  db: string,
+  count: number
 ): Promise<QueryResponse<NormalizedGame[]>> {
-  return invoke("get_random_game", {file: db});
+  return invoke("get_random_game", {file: db, count: count});
 
 }
 
