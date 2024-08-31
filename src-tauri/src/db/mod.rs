@@ -24,10 +24,11 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
     sql_query,
     sql_types::Text,
-    dsl::sql
+    dsl::{sql, count}
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
     fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
@@ -901,28 +902,43 @@ pub async fn get_random_game(
     state: tauri::State<'_, AppState>,
 ) ->  Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let total_count: i64 = games::table.select(count(games::id)).first(db)?;
+    let mut rng = rand::thread_rng();
+    let mut attempts = 0;
+    let max_attempts = 10;
 
-    let mut count: Option<i64> = None;
+    if total_count == 0 {
+        attempts = max_attempts;
+    }
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    let mut sql_query = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .into_boxed();
-    let mut count_query = games::table.into_boxed();
+    while attempts < max_attempts {
+        let random_index = rng.gen_range(0..total_count);
 
-    sql_query = sql_query.order(sql::<diesel::sql_types::Integer>("RANDOM()"));
+        let game_query = games::table
+            .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+            .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+            .inner_join(events::table.on(games::event_id.eq(events::id)))
+            .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+            .offset(random_index)
+            .limit(1)
+            .into_boxed()
+            .load::<(Game, Player, Player, Event, Site)>(db)?;
 
+        if !game_query.is_empty() {
+            let normalized_games = normalize_games(game_query);
+            return Ok(QueryResponse {
+                data: normalized_games,
+                count: Some(1),
+            });
+        }
 
+        attempts += 1;
+    }
 
-    let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
-    let normalized_games = normalize_games(games);
-
-    Ok(QueryResponse {
-        data: normalized_games,
-        count: Some(4) // Doesn't matter really
-    })
+    return Ok(QueryResponse {
+        data: Vec::new(),
+        count: Some(0),
+    });
 }
 
 fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<NormalizedGame> {
