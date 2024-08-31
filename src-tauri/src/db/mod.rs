@@ -24,6 +24,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
     sql_query,
     sql_types::Text,
+    dsl::sql
 };
 use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
@@ -890,6 +891,37 @@ pub async fn get_games(
     Ok(QueryResponse {
         data: normalized_games,
         count,
+    })
+}
+
+
+#[tauri::command]
+pub async fn get_random_game(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) ->  Result<QueryResponse<Vec<NormalizedGame>>, Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let mut count: Option<i64> = None;
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let mut sql_query = games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .into_boxed();
+    let mut count_query = games::table.into_boxed();
+
+    sql_query = sql_query.order(sql::<diesel::sql_types::Integer>("RANDOM()"));
+
+
+
+    let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
+    let normalized_games = normalize_games(games);
+
+    Ok(QueryResponse {
+        data: normalized_games,
+        count: Some(4) // Doesn't matter really
     })
 }
 

@@ -248,6 +248,7 @@ export const en_US = {
     "Databases.Settings.Actions": "Actions",
     "Databases.Settings.AddGames": "Add Games",
     "Databases.Settings.ExportPGN": "Export to PGN",
+    "Databases.Settings.RandomGame": "Random Game",
     "Databases.Delete.Title": "Delete Database",
     "Databases.Delete.Message":
       "Are you sure you want to delete this database?",

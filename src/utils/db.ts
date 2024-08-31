@@ -118,6 +118,14 @@ export async function query_games(
   });
 }
 
+export async function get_random_game(
+  db: string
+): Promise<QueryResponse<NormalizedGame[]>> {
+  return invoke("get_random_game", {file: db});
+
+}
+
+
 interface PlayerQuery extends Query {
   name?: string;
   range?: [number, number];

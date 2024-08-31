@@ -1,8 +1,9 @@
 import { commands } from "@/bindings";
 import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
-import { type DatabaseInfo, getDatabases } from "@/utils/db";
+import { type DatabaseInfo, get_random_game, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke, unwrap } from "@/utils/invoke";
+import { createTab } from "@/utils/tabs";
 import {
   Box,
   Button,
@@ -26,7 +27,8 @@ import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { open as openDialog, save } from "@tauri-apps/api/dialog";
-import { useAtom } from "jotai";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
@@ -70,6 +72,9 @@ export default function DatabasesPage() {
     }
   }
   const navigate = useNavigate();
+
+  const [, setTabs] = useAtom(tabsAtom);
+  const setActiveTab = useSetAtom(activeTabAtom);
 
   return (
     <Stack h="100%">
@@ -333,6 +338,29 @@ export default function DatabasesPage() {
                       >
                         {t("Databases.Settings.ExportPGN")}
                       </Button>
+                      <Button
+                        rightSection={<IconArrowRight size="1rem" />}
+                        variant="default"
+                        onClick={async () => {
+                          let data = await get_random_game(selectedDatabase.file);
+                          let games = data?.data ?? [];
+                          const record = games[0];
+
+                          createTab({
+                            tab: {
+                              name: `${record.white} - ${record.black}`,
+                              type: "analysis",
+                            },
+                            setTabs,
+                            setActiveTab,
+                            pgn: record.moves,
+                            headers: record,
+                          });
+                          navigate({ to: "/" });
+                        }}
+                      >
+                        {t("Databases.Settings.RandomGame")}
+                      </Button>                      
                     </Group>
                   )}
                   <Button onClick={() => toggleDeleteModal()} color="red">
