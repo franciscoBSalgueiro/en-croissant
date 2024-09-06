@@ -36,6 +36,7 @@ import {
   Box,
   Center,
   Group,
+  Menu,
   Text,
   Tooltip,
   useMantineTheme,
@@ -48,6 +49,7 @@ import {
   IconChessFilled,
   IconChevronRight,
   IconDeviceFloppy,
+  IconDotsVertical,
   IconEdit,
   IconEditOff,
   IconEraser,
@@ -343,6 +345,33 @@ function Board({
   const controls = useMemo(
     () => (
       <ActionIcon.Group>
+        <Menu closeOnItemClick={false}>
+          <Menu.Target>
+            <ActionIcon variant="default" size="lg">
+              <IconDotsVertical size="1.3rem" />
+            </ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              leftSection={
+                viewPawnStructure ? (
+                  <IconChessFilled size="1.3rem" />
+                ) : (
+                  <IconChess size="1.3rem" />
+                )
+              }
+              onClick={() => setViewPawnStructure(!viewPawnStructure)}
+            >
+              Toggle Pawn Structure View
+            </Menu.Item>
+            <Menu.Item
+              leftSection={<IconCamera size="1.3rem" />}
+              onClick={() => takeSnapshot()}
+            >
+              Take Snapshot
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
         {canTakeBack && (
           <Tooltip label="Take Back">
             <ActionIcon
@@ -394,20 +423,6 @@ function Board({
           </Tooltip>
         )}
 
-        <Tooltip label="Toggle Pawn Structure View">
-          <ActionIcon
-            variant={editingMode ? "filled" : "default"}
-            size="lg"
-            onClick={() => setViewPawnStructure(!viewPawnStructure)}
-          >
-            {viewPawnStructure ? (
-              <IconChessFilled size="1.3rem" />
-            ) : (
-              <IconChess size="1.3rem" />
-            )}
-          </ActionIcon>
-        </Tooltip>
-
         {saveFile && (
           <Tooltip label={`Save PGN (${keyMap.SAVE_FILE.keys})`}>
             <ActionIcon
@@ -433,15 +448,6 @@ function Board({
             onClick={() => toggleOrientation()}
           >
             <IconSwitchVertical size="1.3rem" />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label={"Take snapshot"}>
-          <ActionIcon
-            variant="default"
-            size="lg"
-            onClick={() => takeSnapshot()}
-          >
-            <IconCamera size="1.3rem" />
           </ActionIcon>
         </Tooltip>
       </ActionIcon.Group>
