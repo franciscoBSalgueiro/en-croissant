@@ -480,6 +480,10 @@ export default function Page() {
                       label: "Spanish",
                     },
                     {
+                      value: "it_IT",
+                      label: "Italian",
+                    },
+                    {
                       value: "uk_UA",
                       label: "Ukrainian",
                     },
