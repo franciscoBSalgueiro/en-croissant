@@ -6,6 +6,7 @@ import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useElementSize, useForceUpdate } from "@mantine/hooks";
+import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import {
   Chess,
   type Move,
@@ -41,6 +42,11 @@ function PuzzleBoard({
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
+  const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
+    useLocalStorage<boolean>({
+      key: "puzzle-jump-immediately",
+      defaultValue: true,
+    });
 
   const currentNode = getNodeAtPath(root, position);
 
@@ -77,17 +83,20 @@ function PuzzleBoard({
 
   function checkMove(move: Move) {
     if (!pos) return;
+    if (!puzzle) return;
+
     const newPos = pos.clone();
     const uci = makeUci(move);
     newPos.play(move);
-    if (puzzle && (puzzle.moves[currentMove] === uci || newPos.isCheckmate())) {
+
+    if (puzzle.moves[currentMove] === uci) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
           changeCompletion("correct");
         }
         setEnded(false);
 
-        if (db) {
+        if (db && newPos.isCheckmate() && jumpToNextPuzzleImmediately) {
           generatePuzzle(db);
         }
       }

@@ -31,6 +31,7 @@ import {
   ScrollArea,
   Select,
   Stack,
+  Switch,
   Text,
   Tooltip,
 } from "@mantine/core";
@@ -40,6 +41,7 @@ import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import GameNotation from "../boards/GameNotation";
 import ChallengeHistory from "../common/ChallengeHistory";
@@ -49,6 +51,7 @@ import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
 
 function Puzzles({ id }: { id: string }) {
+  const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const setFen = useStore(store, (s) => s.setFen);
   const goToStart = useStore(store, (s) => s.goToStart);
@@ -73,6 +76,12 @@ function Puzzles({ id }: { id: string }) {
     key: "puzzle-ratings",
     defaultValue: [1000, 1500],
   });
+
+  const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
+    useLocalStorage<boolean>({
+      key: "puzzle-jump-immediately",
+      defaultValue: true,
+    });
 
   const wonPuzzles = puzzles.filter(
     (puzzle) => puzzle.completion === "correct",
@@ -249,6 +258,15 @@ function Puzzles({ id }: { id: string }) {
               </Text>
             )}
             <Group>
+              <Switch
+                defaultChecked
+                onChange={(event) =>
+                  setJumpToNextPuzzleImmediately(event.currentTarget.checked)
+                }
+                checked={jumpToNextPuzzleImmediately}
+                label={t("Puzzle.JumpToNextPuzzleImmediately")}
+              />
+
               <Tooltip label="New Puzzle">
                 <ActionIcon
                   disabled={!selectedDb}

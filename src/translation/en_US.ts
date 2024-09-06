@@ -356,5 +356,7 @@ export const en_US = {
     "PgnInput.ExtraMarkups": "Extra Markups",
     "PgnInput.MaxDepth": "Max Depth",
     "PgnInput.TotalMoves": "Total Moves",
+
+    "Puzzle.JumpToNextPuzzleImmediately": "Jump to next puzzle immediately",
   },
 };
