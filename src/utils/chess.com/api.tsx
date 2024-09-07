@@ -176,6 +176,11 @@ export async function downloadChessCom(
   });
 }
 
+const chessComGameSchema = z.object({
+  moveList: z.string(),
+  pgnHeaders: z.record(z.string(), z.string()),
+});
+
 export async function getChesscomGame(gameURL: string) {
   const regex = /.*\/game\/(live|daily)\/(\d+)/;
   const match = gameURL.match(regex);
@@ -187,15 +192,42 @@ export async function getChesscomGame(gameURL: string) {
   const gameType = match[1];
   const gameId = match[2];
 
-  const apiData = await fetch<{
-    game: { moveList: string; pgnHeaders: Record<string, string | number> };
-  }>(`https://www.chess.com/callback/${gameType}/game/${gameId}`, {
-    headers,
-    method: "GET",
-  });
-  const apiDataJson = await apiData.data;
-  const moveList = apiDataJson.game.moveList;
-  const pgnHeaders = apiDataJson.game.pgnHeaders;
+  const response = await fetch(
+    `https://www.chess.com/callback/${gameType}/game/${gameId}`,
+    {
+      headers,
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    error(`Failed to fetch Chess.com game: ${response.status} ${response.url}`);
+    notifications.show({
+      title: "Failed to fetch Chess.com game",
+      message: `Could not find game "${gameURL}" on chess.com`,
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
+  }
+
+  const apiData = await response.data;
+  const gameData = chessComGameSchema.safeParse(apiData);
+  if (!gameData.success) {
+    error(
+      `Invalid response for Chess.com game: ${response.status} ${response.url}\n${gameData.error}`,
+    );
+    notifications.show({
+      title: "Failed to fetch Chess.com game",
+      message: `Invalid response for "${gameURL}" on chess.com`,
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
+  }
+
+  const moveList = gameData.data.moveList;
+  const pgnHeaders = gameData.data.pgnHeaders;
   const moves = moveList.match(/.{1,2}/g);
   if (!moves) {
     return "";
