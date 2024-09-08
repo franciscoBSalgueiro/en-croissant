@@ -32,7 +32,8 @@ export function buildFromTree(
     if (
       item.node.children.length === 0 ||
       isPrefix(item.position, start) ||
-      !item.node.children[0].san
+      !item.node.children[0].san ||
+      cards.find((c) => c.fen === item.node.fen)
     ) {
       continue;
     }
