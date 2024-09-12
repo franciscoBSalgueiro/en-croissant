@@ -487,6 +487,10 @@ export default function Page() {
                       value: "uk_UA",
                       label: "Ukrainian",
                     },
+                    {
+                      value: "tr_TR",
+                      label: "Türkçe"
+                    }
                   ]}
                   value={i18n.language}
                   onChange={(val) => {
