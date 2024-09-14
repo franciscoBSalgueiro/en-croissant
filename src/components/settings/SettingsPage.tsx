@@ -489,8 +489,8 @@ export default function Page() {
                     },
                     {
                       value: "tr_TR",
-                      label: "Türkçe"
-                    }
+                      label: "Türkçe",
+                    },
                   ]}
                   value={i18n.language}
                   onChange={(val) => {

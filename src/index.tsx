@@ -14,9 +14,9 @@ import { it_IT } from "./translation/it_IT";
 import { pl_PL } from "./translation/pl_PL";
 import { pt_PT } from "./translation/pt_PT";
 import { ru_RU } from "./translation/ru_RU";
+import { tr_TR } from "./translation/tr_TR";
 import { uk_UA } from "./translation/uk_UA";
 import { zh_CN } from "./translation/zh_CN";
-import { tr_TR } from "./translation/tr_TR"
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -30,7 +30,7 @@ i18n.use(initReactI18next).init({
     es_ES: es_ES,
     it_IT: it_IT,
     fr_FR: fr_FR,
-    tr_TR: tr_TR
+    tr_TR: tr_TR,
   },
   lng: localStorage.getItem("lang") || "en_US",
   fallbackLng: "en",
