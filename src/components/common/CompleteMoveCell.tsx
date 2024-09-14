@@ -13,8 +13,8 @@ import {
 import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
 import { useStore } from "zustand";
-import { TreeStateContext } from "../common/TreeStateContext";
 import MoveCell from "./MoveCell";
+import { TreeStateContext } from "./TreeStateContext";
 
 function CompleteMoveCell({
   movePath,

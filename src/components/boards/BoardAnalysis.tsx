@@ -25,6 +25,7 @@ import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
@@ -35,7 +36,6 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
-import GameNotation from "./GameNotation";
 
 function BoardAnalysis() {
   const { t } = useTranslation();

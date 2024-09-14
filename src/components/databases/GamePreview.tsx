@@ -10,9 +10,9 @@ import { useElementSize } from "@mantine/hooks";
 import { useContext, useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
-import GameNotation from "../boards/GameNotation";
-import OpeningName from "../boards/OpeningName";
+import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
+import OpeningName from "../common/OpeningName";
 import {
   TreeStateContext,
   TreeStateProvider,

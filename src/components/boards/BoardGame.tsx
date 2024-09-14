@@ -51,12 +51,12 @@ import {
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import GameInfo from "../common/GameInfo";
+import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import TimeInput from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
-import GameNotation from "./GameNotation";
 
 function EnginesSelect({
   engine,
