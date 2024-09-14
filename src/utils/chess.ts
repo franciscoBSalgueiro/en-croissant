@@ -16,7 +16,7 @@ import { match } from "ts-pattern";
 import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
 import type { Outcome } from "./db";
-import { harmonicMean, mean } from "./misc";
+import { harmonicMean, isPrefix, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
 import {
   type GameHeaders,
@@ -699,4 +699,29 @@ export function getMaterialDiff(fen: string) {
     pieces.p * 1 + pieces.n * 3 + pieces.b * 3 + pieces.r * 5 + pieces.q * 9;
 
   return { pieces, diff };
+}
+
+export function stripClock(fen: string): string {
+  return fen.split(" ").slice(0, -2).join(" ");
+}
+
+export function hasMorePriority(
+  position1: number[],
+  position2: number[],
+): boolean {
+  if (isPrefix(position1, position2)) {
+    return true;
+  }
+
+  // remove common beggining of the arrays
+  let i = 0;
+  while (
+    i < position1.length &&
+    i < position2.length &&
+    position1[i] === position2[i]
+  ) {
+    i++;
+  }
+
+  return position1[i] < position2[i];
 }

@@ -56,7 +56,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
         });
       }
     }
-  }, [currentNode.fen]);
+  }, [position, currentNode.fen]);
 
   const [invisibleValue, setInvisible] = useAtom(currentInvisibleAtom);
   const invisible = topBar && invisibleValue;
@@ -207,6 +207,7 @@ const RenderVariationTree = memo(
               comment={variation.comment}
               halfMoves={variation.halfMoves}
               move={variation.san}
+              fen={variation.fen}
               movePath={[...path, variations.indexOf(variation)]}
               showComments={showComments}
               isCurrentVariation={shallowEqual(
@@ -242,6 +243,7 @@ const RenderVariationTree = memo(
             comment={variations[0].comment}
             halfMoves={variations[0].halfMoves}
             move={variations[0].san}
+            fen={variations[0].fen}
             movePath={[...path, 0]}
             showComments={showComments}
             isCurrentVariation={shallowEqual([...path, 0], currentPath)}

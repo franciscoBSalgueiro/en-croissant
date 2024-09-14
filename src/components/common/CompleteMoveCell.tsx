@@ -1,9 +1,12 @@
 import { Comment } from "@/components/common/Comment";
 import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
-import { Box, Menu, Portal } from "@mantine/core";
+import { hasMorePriority, stripClock } from "@/utils/chess";
+import { type TreeNode, treeIterator } from "@/utils/treeReducer";
+import { ActionIcon, Box, Menu, Portal, Tooltip } from "@mantine/core";
 import { shallowEqual, useClickOutside } from "@mantine/hooks";
 import {
+  IconArrowsJoin,
   IconChevronUp,
   IconChevronsUp,
   IconCopy,
@@ -16,10 +19,27 @@ import { useStore } from "zustand";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
 
+function getTranspositions(fen: string, position: number[], root: TreeNode) {
+  if (position.length === 0 || position.every((v) => v === 0)) return [];
+  const transpositions: number[][] = [];
+  const strippedFen = stripClock(fen);
+  const iterator = treeIterator(root);
+  for (const item of iterator) {
+    if (hasMorePriority(position, item.position)) {
+      continue;
+    }
+    if (stripClock(item.node.fen) === strippedFen) {
+      transpositions.push(item.position);
+    }
+  }
+  return transpositions;
+}
+
 function CompleteMoveCell({
   movePath,
   halfMoves,
   move,
+  fen,
   comment,
   annotations,
   showComments,
@@ -33,6 +53,7 @@ function CompleteMoveCell({
   annotations: Annotation[];
   showComments: boolean;
   move?: string | null;
+  fen?: string;
   first?: boolean;
   isCurrentVariation: boolean;
   isStart: boolean;
@@ -40,6 +61,7 @@ function CompleteMoveCell({
   targetRef: React.RefObject<HTMLSpanElement>;
 }) {
   const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
   const goToMove = useStore(store, (s) => s.goToMove);
   const deleteMove = useStore(store, (s) => s.deleteMove);
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
@@ -55,6 +77,8 @@ function CompleteMoveCell({
   });
   const [open, setOpen] = useState(false);
   const currentTab = useAtomValue(currentTabAtom);
+
+  const transpositions = fen ? getTranspositions(fen, movePath, root) : [];
 
   return (
     <>
@@ -127,6 +151,13 @@ function CompleteMoveCell({
             </Portal>
           </Menu>
         )}
+        {transpositions.length > 0 && (
+          <Tooltip label="Transposition">
+            <ActionIcon size="xs" onClick={() => goToMove(transpositions[0])}>
+              <IconArrowsJoin size="0.875rem" />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </Box>
       {showComments && comment && <Comment comment={comment} />}
     </>
@@ -136,6 +167,7 @@ function CompleteMoveCell({
 export default memo(CompleteMoveCell, (prev, next) => {
   return (
     prev.move === next.move &&
+    prev.fen === next.fen &&
     prev.comment === next.comment &&
     shallowEqual(prev.annotations, next.annotations) &&
     prev.showComments === next.showComments &&
