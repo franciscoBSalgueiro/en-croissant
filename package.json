@@ -77,7 +77,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.6.1",
+    "@biomejs/biome": "1.9.0",
     "@tanstack/router-vite-plugin": "^1.20.0",
     "@tauri-apps/cli": "^1.5.11",
     "@types/lodash": "^4.17.0",
