@@ -205,7 +205,14 @@ function EngineCard({
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
-      const path = await resolve(await appDataDir(), "engines");
+      let path = await resolve(
+        await appDataDir(),
+        "engines",
+        `${url.slice(url.lastIndexOf("/") + 1)}`,
+      );
+      if (url.endsWith(".zip") || url.endsWith(".tar")) {
+        path = await resolve(await appDataDir(), "engines");
+      }
       await invoke("download_file", {
         id: `engine_${id}`,
         url,
