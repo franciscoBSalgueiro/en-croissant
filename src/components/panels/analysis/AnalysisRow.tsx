@@ -1,6 +1,6 @@
 import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
-import MoveCell from "@/components/boards/MoveCell";
+import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";

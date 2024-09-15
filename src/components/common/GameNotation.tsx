@@ -32,6 +32,7 @@ import { memo, useContext, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useStore } from "zustand";
 import CompleteMoveCell from "./CompleteMoveCell";
+import * as styles from "./GameNotation.css";
 import OpeningName from "./OpeningName";
 
 function GameNotation({ topBar }: { topBar?: boolean }) {
@@ -55,7 +56,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
         });
       }
     }
-  }, [currentNode.fen]);
+  }, [position, currentNode.fen]);
 
   const [invisibleValue, setInvisible] = useAtom(currentInvisibleAtom);
   const invisible = topBar && invisibleValue;
@@ -141,7 +142,7 @@ const NotationHeader = memo(function NotationHeader({
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   return (
     <Stack>
-      <Group style={{ justifyContent: "space-between" }}>
+      <Group justify="space-between">
         <OpeningName />
         <Group gap="sm">
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
@@ -206,6 +207,7 @@ const RenderVariationTree = memo(
               comment={variation.comment}
               halfMoves={variation.halfMoves}
               move={variation.san}
+              fen={variation.fen}
               movePath={[...path, variations.indexOf(variation)]}
               showComments={showComments}
               isCurrentVariation={shallowEqual(
@@ -241,6 +243,7 @@ const RenderVariationTree = memo(
             comment={variations[0].comment}
             halfMoves={variations[0].halfMoves}
             move={variations[0].san}
+            fen={variations[0].fen}
             movePath={[...path, 0]}
             showComments={showComments}
             isCurrentVariation={shallowEqual([...path, 0], currentPath)}
@@ -280,46 +283,20 @@ const RenderVariationTree = memo(
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   const [expanded, setExpanded] = useState(true);
-  if (moveNodes.length >= 1)
-    return (
-      <>
-        <Box
-          style={{
-            borderLeft: "2px solid #404040",
-            paddingLeft: 5,
-            marginLeft: 12,
-          }}
-        >
-          <ActionIcon size="xs" onClick={() => setExpanded((v) => !v)}>
-            {!expanded ? (
-              <IconPlus size="0.5rem" />
-            ) : (
-              <IconMinus size="0.5rem" />
-            )}
-          </ActionIcon>
-          {expanded &&
-            moveNodes.map((node, i) => (
-              <Box
-                key={i}
-                style={{
-                  "::before": {
-                    display: "inline-block",
-                    content: '" "',
-                    borderTop: "2px solid #404040",
-                    width: 8,
-                    height: 5,
-                    marginLeft: -5,
-                    marginTop: 16,
-                  },
-                }}
-              >
-                {node}
-              </Box>
-            ))}
-        </Box>
-      </>
-    );
-  return <></>;
+  if (moveNodes.length === 0) return null;
+  return (
+    <Box className={styles.variationBorder}>
+      <ActionIcon size="xs" onClick={() => setExpanded((v) => !v)}>
+        {expanded ? <IconMinus size="0.5rem" /> : <IconPlus size="0.5rem" />}
+      </ActionIcon>
+      {expanded &&
+        moveNodes.map((node, i) => (
+          <Box key={i} className={styles.lineBeforeVariation}>
+            {node}
+          </Box>
+        ))}
+    </Box>
+  );
 }
 
 export default memo(GameNotation);

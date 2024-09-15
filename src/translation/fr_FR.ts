@@ -180,7 +180,7 @@ export const fr_FR = {
     "Board.Analysis.Advantage": "Avantage",
     "Board.Analysis.Accuracy": "Précision",
     "Board.Database.Local": "Local",
-    "Board.Database.LichessAll": "Lichess Complète",
+    "Board.Database.LichessAll": "Lichess Entier",
     "Board.Database.LichessMaster": "Lichess Maîtres",
     "Board.Database.Matches": "{{matches}} correspondance",
     "Board.Database.Stats": "Statistiques",
@@ -334,7 +334,7 @@ export const fr_FR = {
     "Settings.Appearance.Theme.Dark": "Sombre",
     "Settings.Appearance.TitleBar": "Barre de titre",
     "Settings.Appearance.TitleBar.Desc":
-      "Choicissez entre une barre native ou personnalisée",
+      "Choisissez entre une barre native ou personnalisée",
     "Settings.Appearance.Language": "Langue",
     "Settings.Appearance.Language.Desc": "Langue utilisée dans l'application",
     "Settings.Appearance.TitleBar.Native": "Native",
