@@ -3,7 +3,9 @@ import {
   activeTabAtom,
   currentPuzzleAtom,
   hidePuzzleRatingAtom,
+  jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
+  puzzleRatingRangeAtom,
   selectedPuzzleDbAtom,
   tabsAtom,
 } from "@/state/atoms";
@@ -35,7 +37,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
+import { useSessionStorage } from "@mantine/hooks";
 import { IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
 import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
@@ -72,16 +74,10 @@ function Puzzles({ id }: { id: string }) {
     });
   }, []);
 
-  const [ratingRange, setRatingRange] = useLocalStorage<[number, number]>({
-    key: "puzzle-ratings",
-    defaultValue: [1000, 1500],
-  });
+  const [ratingRange, setRatingRange] = useAtom(puzzleRatingRangeAtom);
 
   const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
-    useLocalStorage<boolean>({
-      key: "puzzle-jump-immediately",
-      defaultValue: true,
-    });
+    useAtom(jumpToNextPuzzleAtom);
 
   const wonPuzzles = puzzles.filter(
     (puzzle) => puzzle.completion === "correct",

@@ -1,12 +1,11 @@
 import { Chessground } from "@/chessground/Chessground";
-import { showCoordinatesAtom } from "@/state/atoms";
+import { jumpToNextPuzzleAtom, showCoordinatesAtom } from "@/state/atoms";
 import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useElementSize, useForceUpdate } from "@mantine/hooks";
-import { useLocalStorage, useSessionStorage } from "@mantine/hooks";
 import {
   Chess,
   type Move,
@@ -17,7 +16,7 @@ import {
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import PromotionModal from "../boards/PromotionModal";
@@ -42,11 +41,7 @@ function PuzzleBoard({
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
-  const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
-    useLocalStorage<boolean>({
-      key: "puzzle-jump-immediately",
-      defaultValue: true,
-    });
+  const [jumpToNextPuzzleImmediately] = useAtom(jumpToNextPuzzleAtom);
 
   const currentNode = getNodeAtPath(root, position);
 
@@ -96,7 +91,7 @@ function PuzzleBoard({
         }
         setEnded(false);
 
-        if (db && newPos.isCheckmate() && jumpToNextPuzzleImmediately) {
+        if (db && jumpToNextPuzzleImmediately) {
           generatePuzzle(db);
         }
       }
