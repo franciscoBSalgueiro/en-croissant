@@ -1,15 +1,24 @@
 cg-board {
-  background-image: var(--board-image, url('/board/gray.svg'));
+  background-image: var(--board-image, url("/board/gray.svg"));
   border-radius: var(--mantine-radius-default);
   overflow: hidden;
 }
 
 /** Interactive board square colors */
 cg-board square.premove-dest {
-  background: radial-gradient(rgba(20, 30, 85, 0.5) 22%, #203085 0, rgba(0, 0, 0, 0.3) 0, rgba(0, 0, 0, 0) 0);
+  background: radial-gradient(
+    rgba(20, 30, 85, 0.5) 22%,
+    #203085 0,
+    rgba(0, 0, 0, 0.3) 0,
+    rgba(0, 0, 0, 0) 0
+  );
 }
 cg-board square.oc.premove-dest {
-  background: radial-gradient(transparent 0%, transparent 80%, rgba(20, 30, 85, 0.2) 80%);
+  background: radial-gradient(
+    transparent 0%,
+    transparent 80%,
+    rgba(20, 30, 85, 0.2) 80%
+  );
 }
 cg-board square.premove-dest:hover {
   background: rgba(20, 30, 85, 0.2);

@@ -29,6 +29,7 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
+import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useStore } from "zustand";
 import CompleteMoveCell from "./CompleteMoveCell";
@@ -200,7 +201,7 @@ const RenderVariationTree = memo(
     const variations = tree.children;
     const moveNodes = showVariations
       ? variations.slice(1).map((variation) => (
-          <>
+          <React.Fragment key={variation.fen}>
             <CompleteMoveCell
               targetRef={targetRef}
               annotations={variation.annotations}
@@ -230,7 +231,7 @@ const RenderVariationTree = memo(
               start={start}
               path={[...path, variations.indexOf(variation)]}
             />
-          </>
+          </React.Fragment>
         ))
       : [];
 

@@ -154,8 +154,9 @@ function PlayerSession({
       </Group>
       <Divider />
       <Accordion multiple chevronSize={0}>
-        {sessions.map((session) => (
+        {sessions.map((session, i) => (
           <LichessOrChessCom
+            key={i}
             session={session}
             databases={databases}
             setDatabases={setDatabases}

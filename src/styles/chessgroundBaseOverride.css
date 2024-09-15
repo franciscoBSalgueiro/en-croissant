@@ -137,7 +137,7 @@ piece.fading {
   top: -4%;
   flex-flow: column-reverse;
   height: 100%;
-  width: 1rem
+  width: 1rem;
 }
 
 .cg-wrap coords.ranks.black {
