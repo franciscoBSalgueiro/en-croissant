@@ -89,7 +89,7 @@ function PuzzleBoard({
     const uci = makeUci(move);
     newPos.play(move);
 
-    if (puzzle.moves[currentMove] === uci) {
+    if (puzzle.moves[currentMove] === uci || newPos.isCheckmate()) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
           changeCompletion("correct");
