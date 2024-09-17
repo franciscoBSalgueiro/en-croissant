@@ -26,7 +26,7 @@ export const nb_NO = {
         "Common.CannotUndo": "Denne handlingen kan ikke angres",
         "Common.NameAlreadyUsed": "Navn er allerede brukt",
         "Common.RequireName": "Navn kreves",
-        "Common.RequirePath": "Path is required", //todo
+        "Common.RequirePath": "Fil kreves",
         "Common.PGNFile": "PGN file",
         "Common.PGNGame": "PGN parti",
         "Common.Size": "Størrelse",
@@ -49,7 +49,7 @@ export const nb_NO = {
 
         "GoMode.Time": "Tid",
         "GoMode.Depth": "Dybde",
-        "GoMode.Nodes": "Nodes", //todo
+        "GoMode.Nodes": "Noder",
         "GoMode.Infinite": "Uendelig",
 
         "Annotate.Brilliant": "Briljant",
@@ -75,9 +75,9 @@ export const nb_NO = {
         "Annotate.TimeTrouble": "Tidsnød",
         "Annotate.WithIdea": "Med ideen",
         "Annotate.OnlyMove": "Eneste trekk",
-        "Annotate.Zugzwang": "Zugzwang", //todo keep? optional translate
+        "Annotate.Zugzwang": "Zugzwang",
 
-        "RichText.Bold": "Fet", //todo
+        "RichText.Bold": "Fet",
         "RichText.Italic": "Kursiv",
         "RichText.Underline": "Understrek",
         "RichText.Strike": "Gjennomstreking",
@@ -111,7 +111,7 @@ export const nb_NO = {
         "Menu.Help.ClearSavedData": "Fjern lagrede data",
         "Menu.Help.OpenLogs": "Åpne logger",
         "Menu.Help.CheckUpdate": "Se etter oppdateringer",
-        "Menu.Help.About": "Om",
+        "Menu.Help.About": "Om En Croissant",
 
         "SideBar.Board": "Brett",
         "SideBar.User": "Bruker",
@@ -128,7 +128,7 @@ export const nb_NO = {
         "Home.Card.AnalysisBoard.Title": "Analysebrett",
         "Home.Card.AnalysisBoard.Desc": "Analyser et parti eller en stilling",
         "Home.Card.AnalysisBoard.Button": "Åpne",
-        "Home.Card.ImportGame.Title": "Importer parti",
+        "Home.Card.ImportGame.Title": "Importer Parti",
         "Home.Card.ImportGame.Desc": "Importer et parti fra en PGN",
         "Home.Card.ImportGame.Button": "Importer",
         "Home.Card.Puzzle.Title": "Sjakknøtter",
@@ -162,9 +162,9 @@ export const nb_NO = {
         "Board.Analysis.InactiveEngine": "Computern er ikke aktivert",
         "Board.Analysis.SyncGlobally": "Synkroniser globalt",
         "Board.Analysis.KillEngine": "Stopp computer",
-        "Board.Analysis.GenerateReport": "Lag raport",
-        "Board.Analysis.ReportGenerated": "Raport lagd",
-        "Board.Analysis.GeneratingReport": "Lagger raport",
+        "Board.Analysis.GenerateReport": "Lag rapport",
+        "Board.Analysis.ReportGenerated": "Rapport lagd",
+        "Board.Analysis.GeneratingReport": "Lagger rapport",
         "Board.Analysis.NotAnalysed": "Ikke analysert",
         "Board.Analysis.EngineRequired": "Computer kreves",
         "Board.Analysis.RefDBRequired":
@@ -180,9 +180,9 @@ export const nb_NO = {
         "Board.Analysis.Advantage": "Fordel",
         "Board.Analysis.Accuracy": "Presisjon",
         "Board.Database.Local": "Lokal",
-        "Board.Database.LichessAll": "Lichess Alle",
-        "Board.Database.LichessMaster": "Lichess Mester",
-        "Board.Database.Matches": "{{matches}} matches", //todo
+        "Board.Database.LichessAll": "Lichess Spillere",
+        "Board.Database.LichessMaster": "Lichess Mestere",
+        "Board.Database.Matches": "{{matches}} partier",
         "Board.Database.Stats": "Statestikk",
         "Board.Database.Games": "Partier",
         "Board.Database.Options": "Valg",
@@ -234,7 +234,7 @@ export const nb_NO = {
         "Databases.Settings.Indexed.Desc":
             "Indekser brukes for raskere søk, men tar ekstra plass.",
         "Databases.Settings.Events": "Turneringer",
-        "Databases.Settings.Explore": "Explore", //todo
+        "Databases.Settings.Explore": "Åpne",
         "Databases.Settings.AdvancedTools": "Avanserte verktøy",
         "Databases.Settings.MergePlayers": "Slå sammen spillere",
         "Databases.Settings.MergePlayers.Desc":
@@ -268,59 +268,60 @@ export const nb_NO = {
         "Files.Search": "Søk etter filer",
 
         "Settings.Board": "Brett",
-        "Settings.Inputs": "Inputs", //todo
+        "Settings.Inputs": "Inputs",
         "Settings.OpeningReport": "Åpningsrapport",
         "Settings.Anarchy": "Anarki",
         "Settings.Appearance": "Utseende",
         "Settings.Sound": "Lyd",
-        "Settings.Keybinds": "Keybinds", //todo
+        "Settings.Keybinds": "Tastaturbindinger",
         "Settings.Directories": "Mapper",
 
-        "Settings.Board.Desc": "Customize the analysis board and game controls",
-        "Settings.PieceDest": "Piece Destinations",
-        "Settings.PieceDest.Desc": "Show possible moves for each piece",
-        "Settings.Arrows": "Arrows",
-        "Settings.Arrows.Desc": "Show best move arrows",
-        "Settings.SnapArrows": "Snap Arrows",
-        "Settings.SnapArrows.Desc": "Snap arrows to valid moves",
-        "Settings.ConsecutiveArrows": "Consecutive Arrows",
+        "Settings.Board.Desc": "Tilpass analysebrett",
+        "Settings.PieceDest": "Brikker",
+        "Settings.PieceDest.Desc": "Vis mulige trekk",
+        "Settings.Arrows": "Piler",
+        "Settings.Arrows.Desc": "Vis beste trekk",
+        "Settings.SnapArrows": "Lås piler",
+        "Settings.SnapArrows.Desc": "Lås piller til lovelige trekk",
+        "Settings.ConsecutiveArrows": "Konskutive Piler",
         "Settings.ConsecutiveArrows.Desc":
-            "Show multiple arrows for the best line, if it involves moving the same piece several times",
-        "Settings.EraseDrawablesOnClick": "Erase Drawables On Click",
+            "Vis flere piler for den beste linjen, hvis det innebærer å flytte den samme brikken flere ganger",
+        "Settings.EraseDrawablesOnClick": "Slett tegninger ved klikk",
         "Settings.EraseDrawablesOnClick.Desc":
-            "Clear the board of drawn arrows & circles by left-clicking the mouse",
-        "Settings.AutoPromition": "Auto Promotion",
+            "Fjern piler og sirkler fra brette med venstre museklikk",
+        "Settings.AutoPromition": "Automatisk forvandeling",
         "Settings.AutoPromition.Desc":
-            "Automatically promote to a queen when a pawn reaches the last rank",
-        "Settings.Coordinates": "Coordinates",
-        "Settings.Coordinates.Desc": "Show coordinates on the board",
-        "Settings.AutoSave": "Auto Save",
-        "Settings.AutoSave.Desc": "Auto save to file after each move",
-        "Settings.PreviewBoard": "Preview Board",
+            "Bonden blir til en dronning når den kommer til siste rad.",
+        "Settings.Coordinates": "Kordinater",
+        "Settings.Coordinates.Desc": "Vis kordinater på brette",
+        "Settings.AutoSave": "Lagre automatisk",
+        "Settings.AutoSave.Desc": "Lagre til filen etter hvert trekk",
+        "Settings.PreviewBoard": "Forhåndshvis brett",
         "Settings.PreviewBoard.Desc":
-            "Show a preview of the board when hovering over a move in the engine analysis",
-        "Settings.ScrollThroughMoves": "Scroll Through Moves",
+            "Vis sjakkbrett når musen er over trekk i komputeranalysen.",
+        "Settings.ScrollThroughMoves": "Bla gjennom trekk",
         "Settings.ScrollThroughMoves.Desc":
-            "Enable or disable scrolling through moves on the chessboard",
-        "Settings.Inputs.Desc": "Customize the input settings",
-        "Settings.Inputs.TextInput": "Text Move Input",
-        "Settings.Inputs.TextInput.Desc": "Enter moves in text format",
-        "Settings.Inputs.SpellCheck": "Spell Check",
+            "Slå av eller på muligheten til å bla gjennom trekk på brettet",
+        "Settings.Inputs.Desc": "Tilpass input instillinger",
+        "Settings.Inputs.TextInput": "Tekst for trekk",
+        "Settings.Inputs.TextInput.Desc": "Legg til trekk i tekstformat",
+        "Settings.Inputs.SpellCheck": "Stavekontroll",
         "Settings.Inputs.SpellCheck.Desc":
-            "Enable or disable spell check on text inputs",
-        "Settings.OpeningReport.Desc": "Customize the opening report settings",
-        "Settings.OpeningReport.PercentCoverage": "Percent Coverage",
+            "Slå av eller på stavekontroll på tekst",
+        "Settings.OpeningReport.Desc":
+            "Tilpass innstillinger for åpningsrapporter",
+        "Settings.OpeningReport.PercentCoverage": "Dekning i prosent",
         "Settings.OpeningReport.PercentCoverage.Desc":
-            "Percentage of moves covered in each position",
-        "Settings.OpeningReport.MinGames": "Minimum Games",
+            "Prosentandel av trekk dekket i hver posisjon",
+        "Settings.OpeningReport.MinGames": "Minimum partier",
         "Settings.OpeningReport.MinGames.Desc":
-            "Minimum number of games in each position for it to be considered",
-        "Settings.Anarchy.Desc": "Fun options",
+            "Minimum antall partier i hver posisjon for at den skal tas med",
+        "Settings.Anarchy.Desc": "Morsome valg",
         "Settings.Anarchy.ForcedEnCroissant": "Forced En Croissant",
         "Settings.Anarchy.ForcedEnCroissant.Desc":
-            "Forces you to play En Croissant, if it's a legal move.",
-        "Settings.Appearance.Desc": "Customize the look of the app",
-        "Settings.Appearance.Theme": "Theme", //todo
+            "Tvinger deg til å spille en passant, hvis det er ett lovlig trekk.",
+        "Settings.Appearance.Desc": "Tilpass hvordan appen ser ut",
+        "Settings.Appearance.Theme": "Tema",
         "Settings.Appearance.Theme.Desc": "Generell fargemodus",
         "Settings.Appearance.Theme.Light": "Lys",
         "Settings.Appearance.Theme.Dark": "Mørk",
@@ -329,30 +330,30 @@ export const nb_NO = {
             "Velg mellom standard eller tilpasset tittelbar",
         "Settings.Appearance.Language": "Språk",
         "Settings.Appearance.Language.Desc": "Språk brukt i appen",
-        "Settings.Appearance.TitleBar.Native": "Standard", //todo
+        "Settings.Appearance.TitleBar.Native": "Standard",
         "Settings.Appearance.TitleBar.Custom": "Tilpasset",
         "Settings.Appearance.FontSize": "Skriftstørelse",
         "Settings.Appearance.FontSize.Desc": "Generell skriftstørrelse",
         "Settings.Appearance.PieceSet": "Brikker",
-        "Settings.Appearance.PieceSet.Desc": "Brikker brukt på sjakkbrette",
+        "Settings.Appearance.PieceSet.Desc": "Brikker på sjakkbrette",
         "Settings.Appearance.BoardImage": "Sjakkbrett",
-        "Settings.Appearance.BoardImage.Desc": "Farget på sjakkbrette",
+        "Settings.Appearance.BoardImage.Desc": "Fargen på sjakkbrette",
         "Settings.Appearance.AccentColor": "Aksentfarge",
         "Settings.Appearance.AccentColor.Desc": "Sekundær farge",
         "Settings.Sound.Desc": "Tilpass lydinnstillingene",
         "Settings.Sound.Volume": "Volum",
         "Settings.Sound.Volume.Desc": "Generelt volum",
-        "Settings.Sound.Collection": "Sound collection", //todo
-        "Settings.Sound.Collection.Desc": "Collection of sounds used",
+        "Settings.Sound.Collection": "Lyd",
+        "Settings.Sound.Collection.Desc": "Velg mellom flere lydprofiler",
         "Settings.Directories.Desc": "Tilpass mappene brukt av appen",
         "Settings.Directories.Files": "Filmappe",
         "Settings.Directories.Files.Desc":
-            "Detter er hvor partiene fra Fil-siden are lagres",
+            "Dette er hvor partiene fra Fil-siden blir lagret",
 
         "PgnInput.Comments": "Kommentarer",
         "PgnInput.Glyphs": "Symboler",
         "PgnInput.Variations": "Varianter",
-        "PgnInput.ExtraMarkups": "Extra Markups", //todo
+        "PgnInput.ExtraMarkups": "Markups",
         "PgnInput.MaxDepth": "Maks dybde",
         "PgnInput.TotalMoves": "Totalt antall trekk",
 
