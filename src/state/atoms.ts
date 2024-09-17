@@ -250,6 +250,14 @@ export const progressivePuzzlesAtom = atomWithStorage<boolean>(
   "progressive-puzzles",
   false,
 );
+export const jumpToNextPuzzleAtom = atomWithStorage<boolean>(
+  "puzzle-jump-immediately",
+  true,
+);
+export const puzzleRatingRangeAtom = atomWithStorage<[number, number]>(
+  "puzzle-ratings",
+  [1000, 1500],
+);
 
 // CP / WDL
 

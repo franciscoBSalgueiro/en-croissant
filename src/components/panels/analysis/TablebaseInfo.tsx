@@ -56,7 +56,11 @@ function TablebaseInfo({
           <Accordion.Control>
             <Group>
               <Text fw="bold">Tablebase</Text>
-              {isLoading && <Text ta="center">Loading...</Text>}
+              {isLoading && (
+                <Group p="xs">
+                  <Badge variant="transparent">Loading...</Badge>
+                </Group>
+              )}
               {error && <Text ta="center">Error: {error.message}</Text>}
               {data && (
                 <OutcomeBadge category={data.category} turn={turn} wins />

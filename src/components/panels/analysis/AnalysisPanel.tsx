@@ -110,163 +110,156 @@ function AnalysisPanel() {
             flexDirection: "column",
           }}
         >
-          <>
-            <ScrollArea
-              offsetScrollbars
-              onScrollPositionChange={() =>
-                document.dispatchEvent(new Event("analysis-panel-scroll"))
-              }
-            >
-              {pos &&
-                (getPiecesCount(pos) <= 7 ||
-                  (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
-                  <>
-                    <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
-                    <Space h="sm" />
-                  </>
-                )}
-              {loadedEngines.length > 1 && (
-                <Paper withBorder p="xs" flex={1}>
-                  <Group w="100%">
-                    <Stack w="6rem" gap="xs">
-                      <Text ta="center" fw="bold">
-                        {t("Board.Analysis.Summary")}
-                      </Text>
-                      <Button
-                        rightSection={
-                          allEnabled ? (
-                            <IconPlayerPause size="1.2rem" />
-                          ) : (
-                            <IconChevronsRight size="1.2rem" />
-                          )
-                        }
-                        variant={allEnabled ? "filled" : "default"}
-                        onClick={() => enable(!allEnabled)}
-                      >
-                        {allEnabled ? t("Common.Stop") : t("Common.Run")}
-                      </Button>
-                    </Stack>
-                    <Group grow flex={1}>
-                      {loadedEngines.map((engine, i) => (
-                        <EngineSummary
-                          key={engine.name}
-                          engine={engine}
-                          fen={rootFen}
-                          moves={moves}
-                          i={i}
-                        />
-                      ))}
-                    </Group>
-                  </Group>
-                </Paper>
+          <ScrollArea
+            offsetScrollbars
+            onScrollPositionChange={() =>
+              document.dispatchEvent(new Event("analysis-panel-scroll"))
+            }
+          >
+            {pos &&
+              (getPiecesCount(pos) <= 7 ||
+                (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
+                <>
+                  <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
+                  <Space h="sm" />
+                </>
               )}
-              <Stack mt="sm">
-                <Accordion
-                  variant="separated"
-                  multiple
-                  chevronSize={0}
-                  defaultValue={loadedEngines.map((e) => e.name)}
-                  value={expanded}
-                  onChange={(v) => setExpanded(v)}
-                  styles={{
-                    label: {
-                      paddingTop: 0,
-                      paddingBottom: 0,
-                    },
-                    content: {
-                      padding: "0.3rem",
-                    },
-                  }}
-                >
-                  <DragDropContext
-                    onDragEnd={({ destination, source }) =>
-                      destination?.index !== undefined &&
-                      setEngines(async (prev) => {
-                        const result = Array.from(await prev);
-                        const prevLoaded = result.filter((e) => e.loaded);
-                        const [removed] = prevLoaded.splice(source.index, 1);
-                        prevLoaded.splice(destination.index, 0, removed);
-
-                        result.forEach((e, i) => {
-                          if (e.loaded) {
-                            result[i] = prevLoaded.shift()!;
-                          }
-                        });
-                        return result;
-                      })
-                    }
-                  >
-                    <Droppable droppableId="droppable" direction="vertical">
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                        >
-                          <Stack w="100%">
-                            {loadedEngines.map((engine, i) => (
-                              <Draggable
-                                key={engine.name + i.toString()}
-                                draggableId={engine.name}
-                                index={i}
-                              >
-                                {(provided) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                  >
-                                    <Accordion.Item value={engine.name}>
-                                      <BestMoves
-                                        id={i}
-                                        engine={engine}
-                                        fen={rootFen}
-                                        moves={moves}
-                                        halfMoves={currentNodeHalfMoves}
-                                        dragHandleProps={
-                                          provided.dragHandleProps
-                                        }
-                                        orientation={
-                                          headers.orientation || "white"
-                                        }
-                                      />
-                                    </Accordion.Item>
-                                  </div>
-                                )}
-                              </Draggable>
-                            ))}
-                          </Stack>
-
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
-                </Accordion>
-                <Group gap="xs">
-                  <Button
-                    flex={1}
-                    variant="default"
-                    onClick={() => {
-                      navigate({ to: "/engines" });
-                    }}
-                    leftSection={<IconSettings size="0.875rem" />}
-                  >
-                    Manage Engines
-                  </Button>
-                  <Popover width={250} position="top-end" shadow="md">
-                    <Popover.Target>
-                      <ActionIcon variant="default" size="lg">
-                        <IconSelector />
-                      </ActionIcon>
-                    </Popover.Target>
-
-                    <Popover.Dropdown>
-                      <EngineSelection />
-                    </Popover.Dropdown>
-                  </Popover>
+            {loadedEngines.length > 1 && (
+              <Paper withBorder p="xs" flex={1}>
+                <Group w="100%">
+                  <Stack w="6rem" gap="xs">
+                    <Text ta="center" fw="bold">
+                      {t("Board.Analysis.Summary")}
+                    </Text>
+                    <Button
+                      rightSection={
+                        allEnabled ? (
+                          <IconPlayerPause size="1.2rem" />
+                        ) : (
+                          <IconChevronsRight size="1.2rem" />
+                        )
+                      }
+                      variant={allEnabled ? "filled" : "default"}
+                      onClick={() => enable(!allEnabled)}
+                    >
+                      {allEnabled ? t("Common.Stop") : t("Common.Run")}
+                    </Button>
+                  </Stack>
+                  <Group grow flex={1}>
+                    {loadedEngines.map((engine, i) => (
+                      <EngineSummary
+                        key={engine.name}
+                        engine={engine}
+                        fen={rootFen}
+                        moves={moves}
+                        i={i}
+                      />
+                    ))}
+                  </Group>
                 </Group>
-              </Stack>
-            </ScrollArea>
-          </>
+              </Paper>
+            )}
+            <Stack mt="sm">
+              <Accordion
+                variant="separated"
+                multiple
+                chevronSize={0}
+                defaultValue={loadedEngines.map((e) => e.name)}
+                value={expanded}
+                onChange={(v) => setExpanded(v)}
+                styles={{
+                  label: {
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                  },
+                  content: {
+                    padding: "0.3rem",
+                  },
+                }}
+              >
+                <DragDropContext
+                  onDragEnd={({ destination, source }) =>
+                    destination?.index !== undefined &&
+                    setEngines(async (prev) => {
+                      const result = Array.from(await prev);
+                      const prevLoaded = result.filter((e) => e.loaded);
+                      const [removed] = prevLoaded.splice(source.index, 1);
+                      prevLoaded.splice(destination.index, 0, removed);
+
+                      result.forEach((e, i) => {
+                        if (e.loaded) {
+                          result[i] = prevLoaded.shift()!;
+                        }
+                      });
+                      return result;
+                    })
+                  }
+                >
+                  <Droppable droppableId="droppable" direction="vertical">
+                    {(provided) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps}>
+                        <Stack w="100%">
+                          {loadedEngines.map((engine, i) => (
+                            <Draggable
+                              key={engine.name + i.toString()}
+                              draggableId={engine.name}
+                              index={i}
+                            >
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                >
+                                  <Accordion.Item value={engine.name}>
+                                    <BestMoves
+                                      id={i}
+                                      engine={engine}
+                                      fen={rootFen}
+                                      moves={moves}
+                                      halfMoves={currentNodeHalfMoves}
+                                      dragHandleProps={provided.dragHandleProps}
+                                      orientation={
+                                        headers.orientation || "white"
+                                      }
+                                    />
+                                  </Accordion.Item>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                        </Stack>
+
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              </Accordion>
+              <Group gap="xs">
+                <Button
+                  flex={1}
+                  variant="default"
+                  onClick={() => {
+                    navigate({ to: "/engines" });
+                  }}
+                  leftSection={<IconSettings size="0.875rem" />}
+                >
+                  Manage Engines
+                </Button>
+                <Popover width={250} position="top-end" shadow="md">
+                  <Popover.Target>
+                    <ActionIcon variant="default" size="lg">
+                      <IconSelector />
+                    </ActionIcon>
+                  </Popover.Target>
+
+                  <Popover.Dropdown>
+                    <EngineSelection />
+                  </Popover.Dropdown>
+                </Popover>
+              </Group>
+            </Stack>
+          </ScrollArea>
         </Tabs.Panel>
         <Tabs.Panel
           value="report"

@@ -542,12 +542,12 @@ function BoardGame() {
         const whiteName =
           players.white.type === "human"
             ? players.white.name
-            : players.white.engine?.name ?? "?";
+            : (players.white.engine?.name ?? "?");
 
         const blackName =
           players.black.type === "human"
             ? players.black.name
-            : players.black.engine?.name ?? "?";
+            : (players.black.engine?.name ?? "?");
 
         return tab.value === activeTab
           ? {
@@ -593,10 +593,10 @@ function BoardGame() {
           canTakeBack={onePlayerIsEngine}
           movable={movable}
           whiteTime={
-            gameState === "playing" ? whiteTime ?? undefined : undefined
+            gameState === "playing" ? (whiteTime ?? undefined) : undefined
           }
           blackTime={
-            gameState === "playing" ? blackTime ?? undefined : undefined
+            gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           whiteTc={players.white.timeControl}
           blackTc={players.black.timeControl}
