@@ -34,10 +34,10 @@ pub enum Error {
     ChessPosition(#[from] shakmaty::PositionError<Chess>),
 
     #[error(transparent)]
-    IllegalUci(#[from] shakmaty::uci::IllegalUciError),
+    IllegalUciMove(#[from] shakmaty::uci::IllegalUciMoveError),
 
     #[error(transparent)]
-    ParseUci(#[from] shakmaty::uci::ParseUciError),
+    ParseUciMove(#[from] shakmaty::uci::ParseUciMoveError),
 
     #[error(transparent)]
     Fen(#[from] shakmaty::fen::ParseFenError),

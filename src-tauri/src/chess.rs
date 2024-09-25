@@ -6,8 +6,8 @@ use log::{error, info};
 use nonzero_ext::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::SanPlus, uci::Uci, ByColor, CastlingMode, Chess, Color, EnPassantMode, Position,
-    Role,
+    fen::Fen, san::SanPlus, uci::UciMove, ByColor, CastlingMode, Chess, Color, EnPassantMode,
+    Position, Role,
 };
 use specta::Type;
 use tauri_specta::Event;
@@ -130,7 +130,7 @@ impl EngineProcess {
             Err(e) => e.ignore_too_much_material()?,
         };
         for m in &options.moves {
-            let uci = Uci::from_ascii(m.as_bytes())?;
+            let uci = UciMove::from_ascii(m.as_bytes())?;
             let mv = uci.to_move(&pos)?;
             pos.play_unchecked(&mv);
         }
@@ -276,7 +276,7 @@ fn parse_uci_attrs(
         Err(e) => e.ignore_too_much_material()?,
     };
     for m in moves {
-        let uci = Uci::from_ascii(m.as_bytes())?;
+        let uci = UciMove::from_ascii(m.as_bytes())?;
         let mv = uci.to_move(&pos)?;
         pos.play_unchecked(&mv);
     }
@@ -286,7 +286,7 @@ fn parse_uci_attrs(
         match a {
             UciInfoAttribute::Pv(m) => {
                 for mv in m {
-                    let uci: Uci = mv.to_string().parse()?;
+                    let uci: UciMove = mv.to_string().parse()?;
                     let m = uci.to_move(&pos)?;
                     let san = SanPlus::from_move_and_play_unchecked(&mut pos, &m);
                     best_moves.san_moves.push(san.to_string());
@@ -616,7 +616,7 @@ pub async fn analyze_game(
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
     options.moves.iter().enumerate().for_each(|(i, m)| {
-        let uci = Uci::from_ascii(m.as_bytes()).unwrap();
+        let uci = UciMove::from_ascii(m.as_bytes()).unwrap();
         let m = uci.to_move(&chess).unwrap();
         let previous_pos = chess.clone();
         chess.play_unchecked(&m);
