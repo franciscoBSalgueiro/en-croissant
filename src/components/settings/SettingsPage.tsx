@@ -468,6 +468,10 @@ export default function Page() {
                       label: "Polish",
                     },
                     {
+                      value: "nb_NO",
+                      label: "Norsk bokmål",
+                    },
+                    {
                       value: "pt_PT",
                       label: "Portuguese",
                     },

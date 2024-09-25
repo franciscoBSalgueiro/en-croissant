@@ -11,6 +11,7 @@ import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
 import { fr_FR } from "./translation/fr_FR";
 import { it_IT } from "./translation/it_IT";
+import { nb_NO } from "./translation/nb_NO";
 import { pl_PL } from "./translation/pl_PL";
 import { pt_PT } from "./translation/pt_PT";
 import { ru_RU } from "./translation/ru_RU";
@@ -26,6 +27,7 @@ i18n.use(initReactI18next).init({
     ru_RU: ru_RU,
     uk_UA: uk_UA,
     be_BY: be_BY,
+    nb_NO: nb_NO,
     pl_PL: pl_PL,
     es_ES: es_ES,
     it_IT: it_IT,
