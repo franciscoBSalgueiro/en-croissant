@@ -186,7 +186,8 @@ export const es_ES = {
     "Board.Database.Stats": "Estadísticas",
     "Board.Database.Games": "Partidas",
     "Board.Database.Options": "Opciones",
-    "Board.Database.NoReference1": "No se ha seleccionado una base de datos de referencia.",
+    "Board.Database.NoReference1":
+      "No se ha seleccionado una base de datos de referencia.",
     "Board.Database.NoReference2": "Por favor",
     "Board.Database.SelectReference": "agrega una base de datos",
     "Board.Database.NoReference3": "primero y marcarla como la referencia.",
@@ -228,7 +229,8 @@ export const es_ES = {
     "Databases.Add.Web": "Web",
     "Databases.Add.ErrorFetch":
       "No se pudo obtener la información de la base de datos del servidor.",
-    "Databases.Add.ClickToSelectPGN": "Haga clic para seleccionar el archivo PGN",
+    "Databases.Add.ClickToSelectPGN":
+      "Haga clic para seleccionar el archivo PGN",
     "Databases.Add.Convert": "Convertir",
     "Databases.Settings.ReferenceDatabase": "Base de datos de referencia",
     "Databases.Settings.Indexed": "Indexada",
@@ -280,7 +282,8 @@ export const es_ES = {
     "Settings.Board.Desc":
       "Personalizar el tablero de análisis y los controles de la partida",
     "Settings.PieceDest": "Destinos de las piezas",
-    "Settings.PieceDest.Desc": "Mostrar los movimientos posibles para cada pieza",
+    "Settings.PieceDest.Desc":
+      "Mostrar los movimientos posibles para cada pieza",
     "Settings.Arrows": "Flechas",
     "Settings.Arrows.Desc": "Mostrar la flecha del mejor movimiento",
     "Settings.SnapArrows": "Ajustar Flechas",
@@ -296,7 +299,8 @@ export const es_ES = {
     "Settings.Coordinates": "Coordenadas",
     "Settings.Coordinates.Desc": "Mostrar coordenadas en el tablero",
     "Settings.AutoSave": "Guardar automáticamente",
-    "Settings.AutoSave.Desc": "Guardar automáticamente después de cada movimiento",
+    "Settings.AutoSave.Desc":
+      "Guardar automáticamente después de cada movimiento",
     "Settings.PreviewBoard": "Previsualizar tablero",
     "Settings.PreviewBoard.Desc":
       "Mostrar una previsualización del tablero al pasar el ratón sobre un movimiento en el análisis del motor",
@@ -305,7 +309,8 @@ export const es_ES = {
       "Habilitar o deshabilitar el desplazamiento por los movimientos con el ratón en el tablero",
     "Settings.Inputs.Desc": "Personalizar la configuración de entrada",
     "Settings.Inputs.TextInput": "Entrada de texto de movimientos",
-    "Settings.Inputs.TextInput.Desc": "Ingresar movimientos en formato de texto",
+    "Settings.Inputs.TextInput.Desc":
+      "Ingresar movimientos en formato de texto",
     "Settings.Inputs.SpellCheck": "Revisión ortográfica",
     "Settings.Inputs.SpellCheck.Desc":
       "Habilitar o deshabilitar la revisión ortográfica en las entradas de texto",
@@ -360,6 +365,7 @@ export const es_ES = {
     "PgnInput.MaxDepth": "Profundidad máxima",
     "PgnInput.TotalMoves": "Movimientos totales",
 
-    "Puzzle.JumpToNextPuzzleImmediately": "Saltar al siguiente puzzle inmediatamente",
+    "Puzzle.JumpToNextPuzzleImmediately":
+      "Saltar al siguiente puzzle inmediatamente",
   },
 };
