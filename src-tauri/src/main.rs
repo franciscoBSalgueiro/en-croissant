@@ -109,11 +109,6 @@ async fn close_splashscreen(window: Window) -> Result<(), String> {
     window
         .get_window("main")
         .expect("no window labeled 'main' found")
-        .maximize()
-        .unwrap();
-    window
-        .get_window("main")
-        .expect("no window labeled 'main' found")
         .show()
         .unwrap();
     Ok(())
@@ -289,6 +284,7 @@ fn main() {
             delete_empty_games,
             export_to_pgn
         ])
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

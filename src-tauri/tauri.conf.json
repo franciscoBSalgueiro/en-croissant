@@ -47,8 +47,7 @@
         "minimize": true,
         "unmaximize": true,
         "unminimize": true,
-        "startDragging": true,
-        "setFullscreen": true
+        "startDragging": true
       }
     },
     "bundle": {
@@ -101,9 +100,10 @@
     "windows": [
       {
         "title": "En Croissant",
-        "maximized": true,
         "visible": false,
-        "decorations": false
+        "decorations": false,
+        "minWidth": 820,
+        "minHeight": 620
       }
     ],
     "cli": {
