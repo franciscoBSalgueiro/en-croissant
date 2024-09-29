@@ -27,7 +27,7 @@ const boardImages: string[] = [
   "horsey.jpg",
   "ic.svg",
   "leather.jpg",
-  "lol.jpg",
+  "lolz.jpg",
   "maple.jpg",
   "maple2.jpg",
   "marble.jpg",
