@@ -30,6 +30,7 @@ const pieceSets: Item[] = [
   { label: "Dubrovny", value: "dubrovny" },
   { label: "Fantasy", value: "fantasy" },
   { label: "Fresca", value: "fresca" },
+  { label: "Game Room", value: "game_room" },
   { label: "Gioco", value: "gioco" },
   { label: "Governor", value: "governor" },
   { label: "Horsey", value: "horsey" },
@@ -40,6 +41,8 @@ const pieceSets: Item[] = [
   { label: "Libra", value: "libra" },
   { label: "Maestro", value: "maestro" },
   { label: "Merida", value: "merida" },
+  { label: "Neo", value: "neo" },
+  { label: "Neo Wood", value: "neo_wood" },
   { label: "Pirouetti", value: "pirouetti" },
   { label: "Pixel", value: "pixel" },
   { label: "Reillycraig", value: "reillycraig" },
@@ -48,6 +51,7 @@ const pieceSets: Item[] = [
   { label: "Spatial", value: "spatial" },
   { label: "Staunty", value: "staunty" },
   { label: "Tatiana", value: "tatiana" },
+  { label: "Wood", value: "wood" },
 ];
 
 function SelectOption({ label, piece }: { label: string; piece?: boolean }) {
