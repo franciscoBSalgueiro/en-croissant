@@ -146,7 +146,9 @@ function PuzzleBoard({
           movable={{
             free: false,
             color:
-              puzzle && equal(position, Array(currentMove).fill(0))
+              puzzle &&
+              equal(position, Array(currentMove).fill(0)) &&
+              puzzle.completion === "incomplete"
                 ? turn
                 : undefined,
             dests: dests,
