@@ -25,3 +25,5 @@ tsconfig.tsbuildinfo
 *.njsproj
 *.sln
 *.sw?
+
+src-tauri/gen/

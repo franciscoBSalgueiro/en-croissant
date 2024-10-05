@@ -82,16 +82,6 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
-  const isNative = useAtomValue(nativeBarAtom);
-
-  useEffect(() => {
-    // setTimeout(() => {
-    //   commands.setMenuVisisble(isNative);
-    // }, 100);
-    // console.log(isNative);
-    // window.getCurrentWindow().setDecorations(isNative);
-    getCurrentWindow().setDecorations(isNative);
-  }, [isNative]);
 
   useEffect(() => {
     (async () => {

@@ -226,8 +226,13 @@ function RootLayout() {
   );
 
   useEffect(() => {
-    menu?.setAsAppMenu();
-  }, [menu]);
+    if (!menu) return;
+    if (isNative) {
+      menu.setAsAppMenu();
+    } else {
+      Menu.new().then((m) => m.setAsAppMenu())
+    }
+  }, [menu, isNative]);
 
   return (
     <AppShell
