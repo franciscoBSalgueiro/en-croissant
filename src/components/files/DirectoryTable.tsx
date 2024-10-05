@@ -217,30 +217,30 @@ function Table({
       // }}
       onSortStatusChange={setSort}
       columns={[
-        // {
-        //   accessor: "name",
-        //   sortable: true,
-        //   noWrap: true,
-        //   render: (row) => (
-        //     <Box ml={20 * depth}>
-        //       <Group>
-        //         {row.children && (
-        //           <IconChevronRight
-        //             className={clsx(classes.icon, classes.expandIcon, {
-        //               [classes.expandIconRotated]: expandedFiles.includes(
-        //                 row.path,
-        //               ),
-        //             })}
-        //           />
-        //         )}
-        //         <span>{row.name}</span>
-        //         {row.metadata?.type === "repertoire" && (
-        //           <DuePositions file={row.path} />
-        //         )}
-        //       </Group>
-        //     </Box>
-        //   ),
-        // },
+        {
+          accessor: "name",
+          sortable: true,
+          noWrap: true,
+          render: (row) => (
+            <Box ml={20 * depth}>
+              <Group>
+                {row.children && (
+                  <IconChevronRight
+                    className={clsx(classes.icon, classes.expandIcon, {
+                      [classes.expandIconRotated]: expandedFiles.includes(
+                        row.path,
+                      ),
+                    })}
+                  />
+                )}
+                <span>{row.name}</span>
+                {row.metadata?.type === "repertoire" && (
+                  <DuePositions file={row.path} />
+                )}
+              </Group>
+            </Box>
+          ),
+        },
         {
           accessor: "metadata.type",
           title: "Type",
@@ -284,11 +284,11 @@ function Table({
       //       />
       //     ),
       // }}
-      // onRowClick={({ record }) => {
-      //   if (!record.children) {
-      //     setSelectedFile(record as FileMetadata);
-      //   }
-      // }}
+      onRowClick={({ record }) => {
+        if (!record.children) {
+          setSelectedFile(record as FileMetadata);
+        }
+      }}
       // onRowContextMenu={({ record, event }) => {
       //   return showContextMenu([
       //     {

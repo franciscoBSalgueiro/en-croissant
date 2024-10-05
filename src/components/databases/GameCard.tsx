@@ -16,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
+import { commands } from "@/bindings";
 
 function GameCard({
   game,
@@ -60,10 +61,7 @@ function GameCard({
                 variant="subtle"
                 color="red"
                 onClick={() => {
-                  invoke("delete_db_game", {
-                    file,
-                    gameId: game.id,
-                  }).then(() => mutate());
+                  commands.deleteDbGame(file, game.id).then(() => mutate());
                 }}
               >
                 <IconTrash size="1.2rem" stroke={1.5} />

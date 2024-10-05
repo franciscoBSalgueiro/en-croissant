@@ -197,11 +197,7 @@ function DatabaseCard({
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(await appDataDir(), "db", `${name}.db3`);
-    await invoke("download_file", {
-      id: `db_${id}`,
-      url,
-      path,
-    });
+    await commands.downloadFile(`db_${id}`, url, path, null, null, null);
     setDatabases(await getDatabases());
   }
 

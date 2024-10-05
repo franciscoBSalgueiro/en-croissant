@@ -1,4 +1,5 @@
 import {
+  commands,
   events,
   type BestMoves,
   type EngineOptions,
@@ -401,13 +402,14 @@ export async function downloadLichess(
   }
   const path = await resolve(await appDataDir(), "db", `${player}_lichess.pgn`);
 
-  await invoke("download_file", {
-    id: `lichess_${player}`,
+  await commands.downloadFile(
+    `lichess_${player}`,
     url,
     path,
-    token,
-    totalSize: games > 0 ? games * 900 : undefined, // approx. size of a game
-  });
+    token ?? null,
+    null,
+    games > 0 ? games * 900 : null, // approx. size of a game
+  );
 }
 
 export async function getLichessGame(gameId: string): Promise<string> {

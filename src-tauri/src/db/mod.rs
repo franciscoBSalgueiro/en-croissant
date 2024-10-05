@@ -487,7 +487,7 @@ pub async fn convert_pgn(
     Ok(())
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Type)]
 pub struct DatabaseInfo {
     title: String,
     description: String,
@@ -562,6 +562,7 @@ pub async fn get_db_info(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -571,6 +572,7 @@ pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -580,6 +582,7 @@ pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn edit_db_info(
     file: PathBuf,
     title: Option<String>,
@@ -1298,6 +1301,7 @@ pub async fn get_players_game_info(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
@@ -1312,6 +1316,7 @@ pub async fn delete_database(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_duplicated_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
@@ -1337,6 +1342,7 @@ pub async fn delete_duplicated_games(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_empty_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
@@ -1432,6 +1438,7 @@ impl PgnGame {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn export_to_pgn(
     file: PathBuf,
     dest_file: PathBuf,
@@ -1490,6 +1497,7 @@ pub async fn export_to_pgn(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_db_game(
     file: PathBuf,
     game_id: i32,
@@ -1548,6 +1556,7 @@ pub async fn merge_players(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn clear_games(state: tauri::State<'_, AppState>) {
     let mut state = state.db_cache.lock().unwrap();
     state.clear();

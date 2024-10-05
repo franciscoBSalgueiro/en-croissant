@@ -21,6 +21,7 @@
         "process:default",
         "log:default",
         "fs:default",
+        "fs:write-all",
         {
             "identifier": "fs:scope",
             "allow": [

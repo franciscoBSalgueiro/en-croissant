@@ -57,6 +57,7 @@ impl Default for AuthState {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn authenticate(
     username: String,
     state: tauri::State<'_, AppState>,

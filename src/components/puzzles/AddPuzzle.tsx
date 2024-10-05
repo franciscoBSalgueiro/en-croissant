@@ -1,4 +1,4 @@
-import { events } from "@/bindings";
+import { commands, events } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";
@@ -84,11 +84,7 @@ function PuzzleDbCard({
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(await appDataDir(), "puzzles", `${name}.db3`);
-    await invoke("download_file", {
-      id: `puzzle_db_${id}`,
-      url,
-      path,
-    });
+    await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
     setPuzzleDbs(await getPuzzleDatabases());
   }
 

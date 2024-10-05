@@ -210,9 +210,10 @@ fn write_to_end<R: Read>(reader: &mut R, writer: &mut File) -> io::Result<()> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn write_game(
     file: PathBuf,
-    n: usize,
+    n: i32,
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
@@ -228,7 +229,7 @@ pub async fn write_game(
 
     let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser.offset_by_index(n, &state, &file.to_string_lossy().to_string())?;
+    parser.offset_by_index(n as usize, &state, &file.to_string_lossy().to_string())?;
 
     tmpf.seek(SeekFrom::Start(parser.position()?))?;
     tmpf.write_all(pgn.as_bytes())?;

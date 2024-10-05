@@ -62,7 +62,7 @@ export default function DatabasesPage() {
   const [exportLoading, setExportLoading] = useState(false);
 
   function changeReferenceDatabase(file: string) {
-    invoke("clear_games");
+    commands.clearGames();
     if (file === referenceDatabase) {
       setReferenceDatabase(null);
     } else {
@@ -79,12 +79,10 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          invoke("delete_database", { file: selectedDatabase?.file }).then(
-            () => {
-              mutate();
-              setSelected(null);
-            },
-          );
+          commands.deleteDatabase(selectedDatabase?.file!).then(() => {
+            mutate();
+            setSelected(null);
+          });
           toggleDeleteModal();
         }}
       />
@@ -324,10 +322,10 @@ export default function DatabasesPage() {
                           });
                           if (!destFile) return;
                           setExportLoading(true);
-                          await invoke("export_to_pgn", {
-                            file: selectedDatabase.file,
+                          await commands.exportToPgn(
+                            selectedDatabase.file,
                             destFile,
-                          });
+                          );
                           setExportLoading(false);
                         }}
                       >
@@ -364,11 +362,13 @@ function GeneralSettings({
   const [debouncedDescription] = useDebouncedValue(description, 300);
 
   useEffect(() => {
-    invoke("edit_db_info", {
-      file: selectedDatabase.file,
-      title: debouncedTitle,
-      description: debouncedDescription,
-    }).then(() => mutate());
+    commands
+      .editDbInfo(
+        selectedDatabase.file,
+        debouncedTitle ?? null,
+        debouncedDescription ?? null,
+      )
+      .then(() => mutate());
   }, [debouncedTitle, debouncedDescription]);
 
   return (
@@ -478,7 +478,8 @@ function DuplicateRemover({
           loading={loading}
           onClick={async () => {
             setLoading(true);
-            invoke("delete_duplicated_games", { file: selectedDatabase.file })
+            commands
+              .deleteDuplicatedGames(selectedDatabase.file)
               .then(() => {
                 setLoading(false);
                 reload();
@@ -496,7 +497,8 @@ function DuplicateRemover({
           loading={loading}
           onClick={async () => {
             setLoading(true);
-            invoke("delete_empty_games", { file: selectedDatabase.file })
+            commands
+              .deleteEmptyGames(selectedDatabase.file)
               .then(() => {
                 setLoading(false);
                 reload();
@@ -535,12 +537,10 @@ function IndexInput({
           checked={indexed}
           onChange={(e) => {
             setLoading(true);
-            invoke(
-              e.currentTarget.checked ? "create_indexes" : "delete_indexes",
-              {
-                file,
-              },
-            ).then(() => {
+            const fn = e.currentTarget.checked
+              ? commands.createIndexes
+              : commands.deleteIndexes;
+            fn(file).then(() => {
               getDatabases().then((dbs) => {
                 setDatabases(dbs);
                 setLoading(false);

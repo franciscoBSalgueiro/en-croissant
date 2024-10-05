@@ -41,7 +41,7 @@ use crate::db::{
     search_position,
 };
 use crate::fide::{download_fide_db, find_fide_player};
-use crate::fs::{append_to_file, set_file_as_executable, DownloadProgress};
+use crate::fs::{set_file_as_executable, DownloadProgress};
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -141,7 +141,21 @@ fn main() {
             read_games,
             lex_pgn,
             is_bmi2_compatible,
-            delete_game
+            delete_game,
+            delete_duplicated_games,
+            delete_empty_games,
+            clear_games,
+            set_file_as_executable,
+            delete_indexes,
+            create_indexes,
+            edit_db_info,
+            delete_db_game,
+            delete_database,
+            export_to_pgn,
+            authenticate,
+            write_game,
+            download_fide_db,
+            download_file
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
@@ -179,28 +193,11 @@ fn main() {
         )
         .invoke_handler(
             specta_builder.invoke_handler(), //     tauri::generate_handler![
-                                             //     download_file,
                                              //     get_games,
                                              //     get_players,
                                              //     get_tournaments,
-                                             //     get_db_info,
                                              //     get_puzzle_db_info,
-                                             //     edit_db_info,
-                                             //     delete_duplicated_games,
-                                             //     authenticate,
-                                             //     delete_database,
                                              //     search_position,
-                                             //     clear_games,
-                                             //     set_file_as_executable,
-                                             //     append_to_file,
-                                             //     write_game,
-                                             //     delete_indexes,
-                                             //     create_indexes,
-                                             //     download_fide_db,
-                                             //     search_opening_name,
-                                             //     delete_db_game,
-                                             //     delete_empty_games,
-                                             //     export_to_pgn
                                              // ]
         )
         .plugin(tauri_plugin_shell::init())

@@ -6,6 +6,7 @@ import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
 import { invoke } from "./invoke";
 import type { GameHeaders, TreeNode } from "./treeReducer";
+import { commands } from "@/bindings";
 
 export const tabSchema = z.object({
   name: z.string(),
@@ -126,16 +127,16 @@ export async function saveToFile({
       };
     });
   }
-  await invoke("write_game", {
-    file: filePath,
-    n: tab?.gameNumber || 0,
-    pgn: `${getPGN(store.getState().root, {
+  await commands.writeGame(
+    filePath,
+    tab?.gameNumber || 0,
+    `${getPGN(store.getState().root, {
       headers: store.getState().headers,
       comments: true,
       extraMarkups: true,
       glyphs: true,
       variations: true,
     })}\n\n`,
-  });
+  );
   store.getState().save();
 }

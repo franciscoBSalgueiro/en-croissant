@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import AccountCards from "../common/AccountCards";
 import GenericCard from "../common/GenericCard";
 import LichessLogo from "./LichessLogo";
+import { commands } from "@/bindings";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);
@@ -31,7 +32,7 @@ function Accounts() {
   const [open, setOpen] = useState(false);
 
   async function login(username: string) {
-    await invoke("authenticate", { username });
+    await commands.authenticate(username);
   }
 
   async function addLichess(

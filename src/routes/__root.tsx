@@ -31,6 +31,7 @@ import {
 import useSWRImmutable from "swr/immutable";
 import { exit } from "@tauri-apps/plugin-process";
 import { match } from "ts-pattern";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 type MenuGroup = {
   label: string;
@@ -229,8 +230,10 @@ function RootLayout() {
     if (!menu) return;
     if (isNative) {
       menu.setAsAppMenu();
+      getCurrentWindow().setDecorations(true);
     } else {
-      Menu.new().then((m) => m.setAsAppMenu())
+      Menu.new().then((m) => m.setAsAppMenu());
+      getCurrentWindow().setDecorations(false);
     }
   }, [menu, isNative]);
 

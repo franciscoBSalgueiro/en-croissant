@@ -78,6 +78,7 @@ pub struct PlayersList {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn download_fide_db(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,

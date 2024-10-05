@@ -93,7 +93,7 @@ function FideInfo({
             id="fide_db"
             initInstalled={false}
             progressEvent={events.downloadProgress}
-            onClick={() => invoke("download_fide_db")}
+            onClick={() => commands.downloadFideDb()}
             labels={{
               completed: "Downloaded",
               action: "Download",

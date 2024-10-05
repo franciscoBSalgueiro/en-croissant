@@ -36,6 +36,7 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -82,9 +83,8 @@ function BoardAnalysis() {
       return { ...prev };
     });
     reset();
-    invoke("append_to_file", {
-      path: currentTab?.file?.path,
-      text: "\n\n",
+    writeTextFile(currentTab?.file?.path!, "\n\n", {
+      append: true,
     });
   }, [setCurrentTab, reset, currentTab?.file?.path]);
 
