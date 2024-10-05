@@ -45,7 +45,7 @@ import { Route } from "@/routes/engines";
 import { unwrap } from "@/utils/invoke";
 import { useToggle } from "@mantine/hooks";
 import { useNavigate } from "@tanstack/react-router";
-import { open } from "@tauri-apps/api/dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
 import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";

@@ -1,5 +1,4 @@
 import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
-import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
 import { Badge, Box, Group } from "@mantine/core";
@@ -10,7 +9,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { removeDir, removeFile } from "@tauri-apps/api/fs";
+import { remove } from "@tauri-apps/plugin-fs";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import Fuse from "fuse.js";
@@ -21,43 +20,40 @@ import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as classes from "./DirectoryTable.css";
-import type { MetadataOrEntry } from "./FilesPage";
 import type { FileMetadata } from "./file";
 import { getStats } from "./opening";
+import { commands } from "@/bindings";
+import { unwrap } from "@/utils/invoke";
 
-function flattenFiles(files: MetadataOrEntry[]): MetadataOrEntry[] {
-  return files.flatMap((f) => (f.children ? flattenFiles(f.children) : [f]));
-}
+// function recursiveSort(
+//   files: FileMetadata[],
+//   sort: DataTableSortStatus<FileMetadata>,
+// ): MetadataOrEntry[] {
+//   return files
+//     .map((f) => {
+//       if (!f.children) return f;
+//       return {
+//         ...f,
+//         children: recursiveSort(f.children, sort),
+//       };
+//     })
+//     .sort((a, b) => {
+//       if (sort.direction === "desc") {
+//         if (sort.columnAccessor === "name") {
+//           return b.name.localeCompare(a.name);
+//         }
+//         // @ts-ignore
+//         return b[sort.columnAccessor] > a[sort.columnAccessor] ? 1 : -1;
+//       }
+//       if (sort.columnAccessor === "name") {
+//         return a.name.localeCompare(b.name);
+//       }
+//       // @ts-ignore
+//       return a[sort.columnAccessor] > b[sort.columnAccessor] ? 1 : -1;
+//     });
+// }
 
-function recursiveSort(
-  files: MetadataOrEntry[],
-  sort: DataTableSortStatus<MetadataOrEntry>,
-): MetadataOrEntry[] {
-  return files
-    .map((f) => {
-      if (!f.children) return f;
-      return {
-        ...f,
-        children: recursiveSort(f.children, sort),
-      };
-    })
-    .sort((a, b) => {
-      if (sort.direction === "desc") {
-        if (sort.columnAccessor === "name") {
-          return b.name.localeCompare(a.name);
-        }
-        // @ts-ignore
-        return b[sort.columnAccessor] > a[sort.columnAccessor] ? 1 : -1;
-      }
-      if (sort.columnAccessor === "name") {
-        return a.name.localeCompare(b.name);
-      }
-      // @ts-ignore
-      return a[sort.columnAccessor] > b[sort.columnAccessor] ? 1 : -1;
-    });
-}
-
-type SortStatus = DataTableSortStatus<MetadataOrEntry>;
+type SortStatus = DataTableSortStatus<FileMetadata>;
 const sortStatusStorageId = `${DirectoryTable.name}-sort-status` as const;
 const sortStatusAtom = atomWithStorage<SortStatus>(
   sortStatusStorageId,
@@ -78,9 +74,9 @@ export default function DirectoryTable({
   search,
   filter,
 }: {
-  files: MetadataOrEntry[] | undefined;
+  files: FileMetadata[] | undefined;
   isLoading: boolean;
-  setFiles: (files: MetadataOrEntry[]) => void;
+  setFiles: (files: FileMetadata[]) => void;
   selectedFile: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   search: string;
@@ -88,7 +84,8 @@ export default function DirectoryTable({
 }) {
   const [sort, setSort] = useAtom<SortStatus>(sortStatusAtom);
 
-  const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
+  // const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
+  const flattedFiles = files ?? [];
   const fuse = useMemo(
     () =>
       new Fuse(flattedFiles ?? [], {
@@ -97,42 +94,42 @@ export default function DirectoryTable({
     [flattedFiles],
   );
 
-  let filteredFiles = files ?? [];
+  const filteredFiles = files ?? [];
 
-  if (search) {
-    const searchResults = fuse.search(search);
-    filteredFiles = filteredFiles
-      .filter((f) => searchResults.some((r) => r.item.path.includes(f.path)))
-      .map((f) => {
-        if (!f.children) return f;
-        const children = f.children.filter((c) =>
-          searchResults.some((r) => r.item.path.includes(c.path)),
-        );
-        return {
-          ...f,
-          children,
-        };
-      });
-  }
-  if (filter) {
-    const typeFilteredFiles = flattedFiles.filter(
-      (f) => f.metadata?.type === filter,
-    );
-    filteredFiles = filteredFiles
-      .filter((f) => typeFilteredFiles.some((r) => r.path.includes(f.path)))
-      .map((f) => {
-        if (!f.children) return f;
-        const children = f.children.filter((c) =>
-          typeFilteredFiles.some((r) => r.path.includes(c.path)),
-        );
-        return {
-          ...f,
-          children,
-        };
-      });
-  }
+  // if (search) {
+  //   const searchResults = fuse.search(search);
+  //   filteredFiles = filteredFiles
+  //     .filter((f) => searchResults.some((r) => r.item.path.includes(f.path)))
+  //     .map((f) => {
+  //       if (!f.children) return f;
+  //       const children = f.children.filter((c) =>
+  //         searchResults.some((r) => r.item.path.includes(c.path)),
+  //       );
+  //       return {
+  //         ...f,
+  //         children,
+  //       };
+  //     });
+  // }
+  // if (filter) {
+  //   const typeFilteredFiles = flattedFiles.filter(
+  //     (f) => f.metadata?.type === filter,
+  //   );
+  //   filteredFiles = filteredFiles
+  //     .filter((f) => typeFilteredFiles.some((r) => r.path.includes(f.path)))
+  //     .map((f) => {
+  //       if (!f.children) return f;
+  //       const children = f.children.filter((c) =>
+  //         typeFilteredFiles.some((r) => r.path.includes(c.path)),
+  //       );
+  //       return {
+  //         ...f,
+  //         children,
+  //       };
+  //     });
+  // }
 
-  filteredFiles = recursiveSort(filteredFiles, sort);
+  // filteredFiles = recursiveSort(filteredFiles, sort);
 
   return (
     <Table
@@ -158,21 +155,21 @@ function Table({
   sort,
   setSort,
 }: {
-  files: MetadataOrEntry[];
+  files: FileMetadata[];
   isLoading: boolean;
   depth: number;
-  setFiles: (files: MetadataOrEntry[]) => void;
+  setFiles: (files: FileMetadata[]) => void;
   selected: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
-  sort: DataTableSortStatus<MetadataOrEntry>;
+  sort: DataTableSortStatus<FileMetadata>;
   setSort: (sort: SortStatus) => void;
 }) {
   const { t } = useTranslation();
 
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
-  const expandedFiles = expandedIds.filter((id) =>
-    files?.find((f) => f.path === id && f.children),
-  );
+  // const expandedFiles = expandedIds.filter((id) =>
+  //   files?.find((f) => f.path === id && f.children),
+  // );
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -181,7 +178,7 @@ function Table({
 
   const openFile = useCallback(
     async (record: FileMetadata) => {
-      const pgn = await read_games(record.path, 0, 0);
+      const pgn = unwrap(await commands.readGames(record.path, 0, 0));
       createTab({
         tab: {
           name: record?.name || "Untitled",
@@ -214,36 +211,36 @@ function Table({
         record.path === selected?.path ? classes.selected : ""
       }
       sortStatus={sort}
-      onRowDoubleClick={({ record }) => {
-        if (record.children) return;
-        openFile(record as FileMetadata);
-      }}
+      // onRowDoubleClick={({ record }) => {
+      //   if (record.children) return;
+      //   openFile(record as FileMetadata);
+      // }}
       onSortStatusChange={setSort}
       columns={[
-        {
-          accessor: "name",
-          sortable: true,
-          noWrap: true,
-          render: (row) => (
-            <Box ml={20 * depth}>
-              <Group>
-                {row.children && (
-                  <IconChevronRight
-                    className={clsx(classes.icon, classes.expandIcon, {
-                      [classes.expandIconRotated]: expandedFiles.includes(
-                        row.path,
-                      ),
-                    })}
-                  />
-                )}
-                <span>{row.name}</span>
-                {row.metadata?.type === "repertoire" && (
-                  <DuePositions file={row.path} />
-                )}
-              </Group>
-            </Box>
-          ),
-        },
+        // {
+        //   accessor: "name",
+        //   sortable: true,
+        //   noWrap: true,
+        //   render: (row) => (
+        //     <Box ml={20 * depth}>
+        //       <Group>
+        //         {row.children && (
+        //           <IconChevronRight
+        //             className={clsx(classes.icon, classes.expandIcon, {
+        //               [classes.expandIconRotated]: expandedFiles.includes(
+        //                 row.path,
+        //               ),
+        //             })}
+        //           />
+        //         )}
+        //         <span>{row.name}</span>
+        //         {row.metadata?.type === "repertoire" && (
+        //           <DuePositions file={row.path} />
+        //         )}
+        //       </Group>
+        //     </Box>
+        //   ),
+        // },
         {
           accessor: "metadata.type",
           title: "Type",
@@ -267,58 +264,58 @@ function Table({
         },
       ]}
       records={files}
-      rowExpansion={{
-        allowMultiple: true,
-        expanded: {
-          recordIds: expandedFiles,
-          onRecordIdsChange: setExpandedIds,
-        },
-        content: ({ record }) =>
-          record.children && (
-            <Table
-              files={record.children}
-              isLoading={isLoading}
-              setFiles={setFiles}
-              depth={depth + 1}
-              selected={selected}
-              setSelectedFile={setSelectedFile}
-              sort={sort}
-              setSort={setSort}
-            />
-          ),
-      }}
-      onRowClick={({ record }) => {
-        if (!record.children) {
-          setSelectedFile(record as FileMetadata);
-        }
-      }}
-      onRowContextMenu={({ record, event }) => {
-        return showContextMenu([
-          {
-            key: "open-file",
-            icon: <IconEye size={16} />,
-            disabled: !!record.children,
-            onClick: () => {
-              if (record.children) return;
-              openFile(record as FileMetadata);
-            },
-          },
-          {
-            key: "delete-file",
-            icon: <IconTrash size={16} />,
-            title: "Delete",
-            color: "red",
-            onClick: async () => {
-              if (record.children) {
-                await removeDir(record.path, { recursive: true });
-              } else {
-                await removeFile(record.path);
-              }
-              setFiles(files?.filter((f) => record.path.includes(f.path)));
-            },
-          },
-        ])(event);
-      }}
+      // rowExpansion={{
+      //   allowMultiple: true,
+      //   expanded: {
+      //     recordIds: expandedFiles,
+      //     onRecordIdsChange: setExpandedIds,
+      //   },
+      //   content: ({ record }) =>
+      //     record.children && (
+      //       <Table
+      //         files={record.children}
+      //         isLoading={isLoading}
+      //         setFiles={setFiles}
+      //         depth={depth + 1}
+      //         selected={selected}
+      //         setSelectedFile={setSelectedFile}
+      //         sort={sort}
+      //         setSort={setSort}
+      //       />
+      //     ),
+      // }}
+      // onRowClick={({ record }) => {
+      //   if (!record.children) {
+      //     setSelectedFile(record as FileMetadata);
+      //   }
+      // }}
+      // onRowContextMenu={({ record, event }) => {
+      //   return showContextMenu([
+      //     {
+      //       key: "open-file",
+      //       icon: <IconEye size={16} />,
+      //       disabled: !!record.children,
+      //       onClick: () => {
+      //         if (record.children) return;
+      //         openFile(record as FileMetadata);
+      //       },
+      //     },
+      //     {
+      //       key: "delete-file",
+      //       icon: <IconTrash size={16} />,
+      //       title: "Delete",
+      //       color: "red",
+      //       onClick: async () => {
+      //         if (record.children) {
+      //           await remove(record.path, { recursive: true });
+      //         } else {
+      //           await remove(record.path);
+      //         }
+      //         setFiles(files?.filter((f) => record.path.includes(f.path)));
+      //       },
+      //     },
+      //   ])(event);
+      // }}
     />
   );
 }

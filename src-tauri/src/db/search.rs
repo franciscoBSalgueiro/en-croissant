@@ -12,7 +12,7 @@ use std::{
     },
     time::Instant,
 };
-use tauri::Manager;
+use tauri::Emitter;
 
 use crate::{
     db::{
@@ -285,7 +285,7 @@ pub async fn search_position(
             let index = processed.load(Ordering::Relaxed);
             if (index + 1) % 10000 == 0 {
                 info!("{} games processed: {:?}", index + 1, start.elapsed());
-                app.emit_all(
+                app.emit(
                     "search_progress",
                     ProgressPayload {
                         progress: (index as f64 / games.len() as f64) * 100.0,

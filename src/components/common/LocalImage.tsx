@@ -1,5 +1,5 @@
 import { Image, type ImageProps } from "@mantine/core";
-import { convertFileSrc } from "@tauri-apps/api/tauri";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import useSWRImmutable from "swr/immutable";
 
 function LocalImage(props: ImageProps & { alt?: string }) {

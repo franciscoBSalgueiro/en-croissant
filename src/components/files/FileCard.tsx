@@ -1,5 +1,4 @@
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { read_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
 import {
@@ -19,6 +18,8 @@ import { useTranslation } from "react-i18next";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
 import type { FileMetadata } from "./file";
+import { unwrap } from "@/utils/invoke";
+import { commands } from "@/bindings";
 
 function FileCard({
   selected,
@@ -46,7 +47,7 @@ function FileCard({
 
   useEffect(() => {
     async function loadGames() {
-      const data = await read_games(selected.path, page, page);
+      const data = unwrap(await commands.readGames(selected.path, page, page));
 
       setSelectedGame(data[0]);
     }

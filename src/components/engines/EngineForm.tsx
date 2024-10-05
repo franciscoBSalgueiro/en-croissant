@@ -4,7 +4,7 @@ import { usePlatform } from "@/utils/files";
 import { unwrap } from "@/utils/invoke";
 import { Button, Input, NumberInput, Text, TextInput } from "@mantine/core";
 import type { UseFormReturnType } from "@mantine/form";
-import { open } from "@tauri-apps/api/dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";

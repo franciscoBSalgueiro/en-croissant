@@ -3,27 +3,23 @@ use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::San, Chess, EnPassantMode, Position, Setup};
 
 use lazy_static::lazy_static;
+use specta::{specta, Type};
 use strsim::{jaro_winkler, sorensen_dice};
 
 use crate::error::Error;
 
 #[derive(Debug, Clone)]
-pub struct Opening {
+struct Opening {
     eco: String,
     name: String,
     setup: Setup,
     pgn: Option<String>,
 }
 
-impl Serialize for Opening {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut state = serializer.serialize_struct("Opening", 3)?;
-        state.serialize_field("eco", &self.eco)?;
-        state.serialize_field("name", &self.name)?;
-        let fen = Fen::from_setup(self.setup.clone()).to_string();
-        state.serialize_field("fen", &fen)?;
-        state.end()
-    }
+#[derive(Debug, Clone, Type, Serialize)]
+pub struct OutOpening {
+    name: String,
+    fen: String,
 }
 
 #[derive(Deserialize)]
@@ -75,7 +71,8 @@ pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
 }
 
 #[tauri::command]
-pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
+#[specta::specta]
+pub async fn search_opening_name(query: String) -> Result<Vec<OutOpening>, Error> {
     let lower_query = query.to_lowercase();
     let scores = OPENINGS
         .iter()
@@ -98,6 +95,10 @@ pub async fn search_opening_name(query: String) -> Result<Vec<Opening>, Error> {
         .iter()
         .map(|(o, _)| o.clone())
         .take(15)
+        .map(|o| OutOpening {
+            name: o.name,
+            fen: Fen::from_setup(o.setup.clone()).to_string(),
+        })
         .collect();
     Ok(best_matches_names)
 }

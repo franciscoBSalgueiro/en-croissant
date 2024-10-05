@@ -14,8 +14,8 @@ import {
 } from "@mantine/core";
 import { IconFileExport, IconRefresh } from "@tabler/icons-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { save } from "@tauri-apps/api/dialog";
-import { writeTextFile } from "@tauri-apps/api/fs";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";

@@ -1,10 +1,11 @@
 import type { MonthData, Results } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { BaseDirectory, readDir } from "@tauri-apps/api/fs";
-import { fetch } from "@tauri-apps/api/http";
+import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
+import { fetch } from "@tauri-apps/plugin-http";
 import useSWR from "swr";
 import { invoke } from "./invoke";
 import type { PuzzleDatabase } from "./puzzles";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
@@ -179,15 +180,17 @@ export async function query_tournaments(
 }
 
 export async function getDatabases(): Promise<DatabaseInfo[]> {
-  const files = await readDir("db", { dir: BaseDirectory.AppData });
+  const files = await readDir("db", { baseDir: BaseDirectory.AppData });
   const dbs = files.filter((file) => file.name?.endsWith(".db3"));
-  return (await Promise.allSettled(dbs.map((db) => getDatabase(db.path))))
+  return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
     .filter((r) => r.status === "fulfilled")
     .map((r) => (r as PromiseFulfilledResult<DatabaseInfo>).value);
 }
 
-export async function getDatabase(path: string): Promise<DatabaseInfo> {
+async function getDatabase(name: string): Promise<DatabaseInfo> {
   let db: DatabaseInfo;
+  const appDataDirPath = await appDataDir();
+  const path = await resolve(appDataDirPath, name);
   try {
     db = await invoke<DatabaseInfo>(
       "get_db_info",
@@ -212,16 +215,13 @@ export function useDefaultDatabases(opened: boolean) {
   const { data, error, isLoading } = useSWR(
     opened ? "default-dbs" : null,
     async () => {
-      const data = await fetch<DatabaseInfo[]>(
-        "https://www.encroissant.org/databases",
-        {
-          method: "GET",
-        },
-      );
+      const data = await fetch("https://www.encroissant.org/databases", {
+        method: "GET",
+      });
       if (!data.ok) {
         throw new Error("Failed to fetch engines");
       }
-      return data.data;
+      return (await data.json()) as DatabaseInfo[];
     },
   );
   return {
@@ -232,16 +232,13 @@ export function useDefaultDatabases(opened: boolean) {
 }
 
 export async function getDefaultPuzzleDatabases(): Promise<PuzzleDatabase[]> {
-  const data = await fetch<PuzzleDatabase[]>(
-    "https://www.encroissant.org/puzzle_databases",
-    {
-      method: "GET",
-    },
-  );
+  const data = await fetch("https://www.encroissant.org/puzzle_databases", {
+    method: "GET",
+  });
   if (!data.ok) {
     throw new Error("Failed to fetch puzzle databases");
   }
-  return data.data;
+  return (await data.json()) as PuzzleDatabase[];
 }
 
 export interface Opening {
@@ -311,19 +308,4 @@ export async function searchPosition(options: LocalOptions, tab: string) {
     (s) => s === "Search stopped",
   );
   return openings;
-}
-
-export async function count_pgn_games(file: string) {
-  return await invoke<number>("count_pgn_games", {
-    file,
-  });
-}
-
-export async function read_games(file: string, start: number, end: number) {
-  const games = await invoke<string[]>("read_games", {
-    file,
-    start,
-    end,
-  });
-  return games;
 }

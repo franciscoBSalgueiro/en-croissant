@@ -1,7 +1,7 @@
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { invoke as invokeTauri } from "@tauri-apps/api";
-import { error } from "tauri-plugin-log-api";
+import { invoke as invokeTauri } from "@tauri-apps/api/core";
+import { error } from "@tauri-apps/plugin-log";
 
 export async function invoke<T>(
   name: string,

@@ -9,12 +9,12 @@ import {
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { getMatches } from "@tauri-apps/api/cli";
+import { getMatches } from "@tauri-apps/plugin-cli";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect } from "react";
 import { Helmet } from "react-helmet";
-import { attachConsole, info } from "tauri-plugin-log-api";
+import { attachConsole, info } from "@tauri-apps/plugin-log";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -25,6 +25,7 @@ import {
   storedDocumentDirAtom,
   tabsAtom,
 } from "./state/atoms";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
@@ -84,9 +85,12 @@ export default function App() {
   const isNative = useAtomValue(nativeBarAtom);
 
   useEffect(() => {
-    setTimeout(() => {
-      commands.setMenuVisisble(isNative);
-    }, 100);
+    // setTimeout(() => {
+    //   commands.setMenuVisisble(isNative);
+    // }, 100);
+    // console.log(isNative);
+    // window.getCurrentWindow().setDecorations(isNative);
+    getCurrentWindow().setDecorations(isNative);
   }, [isNative]);
 
   useEffect(() => {

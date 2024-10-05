@@ -1,4 +1,8 @@
-import { BaseDirectory, readTextFile, writeTextFile } from "@tauri-apps/api/fs";
+import {
+  BaseDirectory,
+  readTextFile,
+  writeTextFile,
+} from "@tauri-apps/plugin-fs";
 import type React from "react";
 import { useEffect, useState } from "react";
 
@@ -13,7 +17,7 @@ export function useLocalFile<T>(
 
   useEffect(() => {
     readTextFile(filename, {
-      dir: BaseDirectory.AppData,
+      baseDir: BaseDirectory.AppData,
     }).then((text) => {
       setLoaded(true);
       if (text === "") {
@@ -27,7 +31,7 @@ export function useLocalFile<T>(
   useEffect(() => {
     if (loaded) {
       writeTextFile(filename, JSON.stringify(state), {
-        dir: BaseDirectory.AppData,
+        baseDir: BaseDirectory.AppData,
       });
     }
   }, [filename, state, loaded]);

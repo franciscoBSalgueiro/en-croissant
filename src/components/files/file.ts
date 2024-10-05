@@ -1,12 +1,13 @@
 import { commands } from "@/bindings";
-import { count_pgn_games } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
+import { BaseDirectory, join, basename } from "@tauri-apps/api/path";
 import {
-  type FileEntry,
+  type DirEntry,
   exists,
+  readDir,
   readTextFile,
   writeTextFile,
-} from "@tauri-apps/api/fs";
+} from "@tauri-apps/plugin-fs";
 import { z } from "zod";
 
 const fileTypeSchema = z.enum([
@@ -41,19 +42,8 @@ export type FileData = {
   games: string[];
 };
 
-export async function readFileMetadata(
-  name: string,
-  path: string,
-  children?: FileEntry[],
-): Promise<FileMetadata | FileEntry | null> {
-  if (children) {
-    return {
-      name,
-      path,
-      children,
-    };
-  }
-  if (!name.endsWith(".pgn")) {
+async function readFileMetadata(path: string): Promise<FileMetadata | null> {
+  if (!path.endsWith(".pgn")) {
     return null;
   }
   const metadataPath = path.replace(".pgn", ".info");
@@ -68,12 +58,36 @@ export async function readFileMetadata(
     await writeTextFile(metadataPath, JSON.stringify(metadata));
   }
   const fileMetadata = unwrap(await commands.getFileMetadata(path));
-  const numGames = await count_pgn_games(path);
+  const numGames = unwrap(await commands.countPgnGames(path));
   return {
     path,
-    name: name.replace(".pgn", ""),
+    name: (await basename(path)).replace(".pgn", ""),
     numGames,
     metadata,
     lastModified: fileMetadata.last_modified,
   };
+}
+
+export async function processEntriesRecursively(
+  parent: string,
+  entries: DirEntry[],
+) {
+  const allEntries: FileMetadata[] = [];
+  for (const entry of entries) {
+    if (entry.isFile) {
+      const metadata = await readFileMetadata(await join(parent, entry.name));
+      console.log(metadata);
+      if (!metadata) continue;
+      allEntries.push(metadata);
+    }
+    if (entry.isDirectory) {
+      const dir = await join(parent, entry.name);
+      const newEntries = await processEntriesRecursively(
+        dir,
+        await readDir(dir, { baseDir: BaseDirectory.AppLocalData }),
+      );
+      allEntries.push(...newEntries);
+    }
+  }
+  return allEntries;
 }

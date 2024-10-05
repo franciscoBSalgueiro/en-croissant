@@ -3,10 +3,7 @@ use std::{collections::VecDeque, path::PathBuf, sync::Mutex};
 use diesel::{dsl::sql, sql_types::Bool, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use once_cell::sync::Lazy;
 use serde::Serialize;
-use tauri::{
-    api::path::{resolve_path, BaseDirectory},
-    Manager,
-};
+use tauri::{path::BaseDirectory, Manager};
 
 use crate::{
     db::{puzzles, Puzzle},
@@ -31,12 +28,7 @@ impl PuzzleCache {
         }
     }
 
-    fn get_puzzles(
-        &mut self,
-        file: &str,
-        min_rating: u16,
-        max_rating: u16,
-    ) -> Result<(), Error> {
+    fn get_puzzles(&mut self, file: &str, min_rating: u16, max_rating: u16) -> Result<(), Error> {
         if self.cache.is_empty()
             || self.min_rating != min_rating
             || self.max_rating != max_rating
@@ -97,13 +89,7 @@ pub async fn get_puzzle_db_info(
 ) -> Result<PuzzleDatabaseInfo, Error> {
     let db_path = PathBuf::from("puzzles").join(file);
 
-    let path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        db_path,
-        Some(BaseDirectory::AppData),
-    )?;
+    let path = app.path().resolve(db_path, BaseDirectory::AppData)?;
 
     let mut db =
         diesel::SqliteConnection::establish(&path.to_string_lossy()).expect("open database");

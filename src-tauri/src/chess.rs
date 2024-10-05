@@ -539,7 +539,7 @@ pub async fn get_best_moves(
                                     moves: proc.options.moves.clone(),
                                     progress,
                                 }
-                                .emit_all(&app)?;
+                                .emit(&app)?;
                                 proc.last_depth = cur_depth;
                                 proc.last_best_moves = proc.best_moves.clone();
                                 proc.last_progress = progress as f32;
@@ -558,7 +558,7 @@ pub async fn get_best_moves(
                     moves: proc.options.moves.clone(),
                     progress: 100.0,
                 }
-                .emit_all(&app)?;
+                .emit(&app)?;
                 proc.last_progress = 100.0;
             }
             _ => {}
@@ -644,7 +644,7 @@ pub async fn analyze_game(
             id: id.clone(),
             finished: false,
         }
-        .emit_all(&app)?;
+        .emit(&app)?;
 
         let mut extra_options = uci_options.clone();
         if !extra_options.iter().any(|x| x.name == "MultiPV") {
@@ -733,7 +733,7 @@ pub async fn analyze_game(
         id: id.clone(),
         finished: true,
     }
-    .emit_all(&app)?;
+    .emit(&app)?;
     Ok(analysis)
 }
 

@@ -67,7 +67,7 @@ pub async fn download_file(
                 id: id.clone(),
                 finished: false,
             }
-            .emit_all(&app)?;
+            .emit(&app)?;
         }
     }
 
@@ -90,7 +90,7 @@ pub async fn download_file(
             id,
             finished: true,
         }
-        .emit_all(&app)?;
+        .emit(&app)?;
     }
     // remove_file(&path).await;
     Ok(())

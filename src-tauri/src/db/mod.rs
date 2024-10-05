@@ -39,11 +39,8 @@ use std::{
     sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
-use tauri::State;
-use tauri::{
-    api::path::{resolve_path, BaseDirectory},
-    Manager,
-};
+use tauri::{path::BaseDirectory, Manager};
+use tauri::{Emitter, State};
 use tauri_specta::Event as _;
 
 use self::encoding::encode_move;
@@ -453,7 +450,7 @@ pub async fn convert_pgn(
         {
             if i % 1000 == 0 {
                 let elapsed = start.elapsed().as_millis() as u32;
-                app.emit_all("convert_progress", (i, elapsed)).unwrap();
+                app.emit("convert_progress", (i, elapsed)).unwrap();
             }
             game.insert_to_db(db)?;
         }
@@ -522,13 +519,7 @@ pub async fn get_db_info(
 ) -> Result<DatabaseInfo, Error> {
     let db_path = PathBuf::from("db").join(file);
 
-    let path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        db_path,
-        Some(BaseDirectory::AppData),
-    )?;
+    let path = app.path().resolve(db_path, BaseDirectory::AppData)?;
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -1267,7 +1258,7 @@ pub async fn get_players_game_info(
                     id: id.to_string(),
                     progress: (p as f64 / info.len() as f64) * 100_f64,
                 }
-                .emit_all(&app);
+                .emit(&app);
             }
         },
     );
