@@ -3,7 +3,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import * as classes from "./TopBar.css";
 
 import { useColorScheme } from "@mantine/hooks";
-const appWindow = getCurrentWebviewWindow()
+const appWindow = getCurrentWebviewWindow();
 
 function IconMinimize() {
   return (

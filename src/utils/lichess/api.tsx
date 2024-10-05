@@ -1,9 +1,9 @@
 import {
-  commands,
   events,
   type BestMoves,
   type EngineOptions,
   type GoMode,
+  commands,
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -18,13 +18,13 @@ import {
 import { countMainPly } from "@/utils/treeReducer";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { fetch } from "@tauri-apps/plugin-http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { fetch } from "@tauri-apps/plugin-http";
+import { error } from "@tauri-apps/plugin-log";
 import type { Color } from "chessground/types";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
-import { error } from "@tauri-apps/plugin-log";
 import { P, match } from "ts-pattern";
 
 const baseURL = "https://lichess.org/api";

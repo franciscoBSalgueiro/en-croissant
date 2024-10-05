@@ -1,7 +1,9 @@
+import { commands } from "@/bindings";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { fontSizeAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/invoke";
 import { getGameName } from "@/utils/treeReducer";
 import { ActionIcon, Box, Group, ScrollArea, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
@@ -11,8 +13,6 @@ import cx from "clsx";
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
 import * as classes from "./GameSelector.css";
-import { commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
 
 export default function GameSelector({
   games,

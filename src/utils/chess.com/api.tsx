@@ -1,9 +1,10 @@
 import { events } from "@/bindings";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { error, info } from "@tauri-apps/plugin-log";
 import { Chess } from "chessops";
 import {
   ChildNode,
@@ -12,7 +13,6 @@ import {
   makePgn,
 } from "chessops/pgn";
 import { makeSan } from "chessops/san";
-import { error, info } from "@tauri-apps/plugin-log";
 import { z } from "zod";
 import { decodeTCN } from "./tcn";
 

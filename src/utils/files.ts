@@ -1,15 +1,15 @@
-import { unwrap } from "@/utils/invoke";
+import { commands } from "@/bindings";
 import type { FileMetadata } from "@/components/files/file";
+import { unwrap } from "@/utils/invoke";
 import { Result } from "@badrap/result";
+import { resolve } from "@tauri-apps/api/path";
 import { exists, writeTextFile } from "@tauri-apps/plugin-fs";
 import { platform } from "@tauri-apps/plugin-os";
-import { resolve } from "@tauri-apps/api/path";
 import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
 import { parsePGN } from "./chess";
 import { type Tab, createTab } from "./tabs";
 import { getGameName } from "./treeReducer";
-import { commands } from "@/bindings";
 
 export function usePlatform() {
   const r = useSWR("os", async () => {

@@ -20,6 +20,7 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtom, useAtomValue } from "jotai";
 import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,7 +37,6 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 function BoardAnalysis() {
   const { t } = useTranslation();

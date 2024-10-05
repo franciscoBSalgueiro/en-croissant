@@ -1,3 +1,4 @@
+import { commands } from "@/bindings";
 import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
@@ -5,6 +6,7 @@ import { currentTabAtom, missingMovesAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
+import { invoke, unwrap } from "@/utils/invoke";
 import { getTreeStats } from "@/utils/repertoire";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { Accordion, Box, Group, ScrollArea, Stack, Text } from "@mantine/core";
@@ -18,8 +20,6 @@ import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
-import { invoke, unwrap } from "@/utils/invoke";
-import { commands } from "@/bindings";
 
 function InfoPanel() {
   const store = useContext(TreeStateContext)!;

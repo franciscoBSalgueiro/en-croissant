@@ -25,8 +25,8 @@ import {
   type TablerIconsProps,
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { useEffect, useState } from "react";
 import { info } from "@tauri-apps/plugin-log";
+import { useEffect, useState } from "react";
 import LichessLogo from "./LichessLogo";
 import * as classes from "./styles.css";
 

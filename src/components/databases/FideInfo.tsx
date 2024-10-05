@@ -14,12 +14,12 @@ import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
 
 import { events, commands } from "@/bindings";
+import { invoke } from "@/utils/invoke";
 import { BaseDirectory, exists } from "@tauri-apps/plugin-fs";
 import { useEffect, useState } from "react";
 import useSWR from "swr/immutable";
 import ProgressButton from "../common/ProgressButton";
 import COUNTRIES from "./countries.json";
-import { invoke } from "@/utils/invoke";
 
 const flags = Object.entries(Flags).map(([key, value]) => ({
   key: key.replace("Flag", ""),

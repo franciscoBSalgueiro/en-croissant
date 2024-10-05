@@ -1,6 +1,6 @@
+import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
 import { invoke } from "./invoke";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
 
 export type Completion = "correct" | "incorrect" | "incomplete";
 

@@ -5,10 +5,10 @@ import {
   commands,
 } from "@/bindings";
 import { fetch } from "@tauri-apps/plugin-http";
+import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { unwrap } from "./invoke";
-import type { Platform } from "@tauri-apps/plugin-os";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 

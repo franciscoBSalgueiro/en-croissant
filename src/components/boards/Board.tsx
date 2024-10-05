@@ -58,9 +58,9 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { documentDir } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import { documentDir } from "@tauri-apps/api/path";
 import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,

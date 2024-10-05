@@ -1,3 +1,4 @@
+import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import type { TreeStoreState } from "@/state/store";
 import { save } from "@tauri-apps/plugin-dialog";
@@ -6,7 +7,6 @@ import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
 import { invoke } from "./invoke";
 import type { GameHeaders, TreeNode } from "./treeReducer";
-import { commands } from "@/bindings";
 
 export const tabSchema = z.object({
   name: z.string(),

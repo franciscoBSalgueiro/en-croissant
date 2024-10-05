@@ -13,11 +13,11 @@ import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import {
+  BaseDirectory,
+  type DirEntry,
   type FileInfo,
   readDir,
   remove,
-  BaseDirectory,
-  type DirEntry,
 } from "@tauri-apps/plugin-fs";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

@@ -1,3 +1,4 @@
+import { commands } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount } from "@/utils/chess.com/api";
 import { type DatabaseInfo, getDatabases } from "@/utils/db";
@@ -20,7 +21,6 @@ import { useEffect, useRef, useState } from "react";
 import AccountCards from "../common/AccountCards";
 import GenericCard from "../common/GenericCard";
 import LichessLogo from "./LichessLogo";
-import { commands } from "@/bindings";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);

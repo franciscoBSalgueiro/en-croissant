@@ -1,5 +1,7 @@
+import { commands } from "@/bindings";
 import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
 import { capitalize } from "@/utils/format";
+import { unwrap } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
 import { Badge, Box, Group } from "@mantine/core";
 import {
@@ -22,8 +24,6 @@ import { useTranslation } from "react-i18next";
 import * as classes from "./DirectoryTable.css";
 import type { FileMetadata } from "./file";
 import { getStats } from "./opening";
-import { commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
 
 // function recursiveSort(
 //   files: FileMetadata[],

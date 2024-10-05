@@ -1,4 +1,4 @@
-import { commands, events } from "@/bindings";
+import { events, commands } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { invoke } from "@/utils/invoke";

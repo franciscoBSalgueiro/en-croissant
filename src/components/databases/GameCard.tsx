@@ -1,3 +1,4 @@
+import { commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import type { NormalizedGame } from "@/utils/db";
 import { invoke } from "@/utils/invoke";
@@ -16,7 +17,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
-import { commands } from "@/bindings";
 
 function GameCard({
   game,

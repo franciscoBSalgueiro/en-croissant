@@ -9,12 +9,13 @@ import {
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getMatches } from "@tauri-apps/plugin-cli";
+import { attachConsole, info } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect } from "react";
 import { Helmet } from "react-helmet";
-import { attachConsole, info } from "@tauri-apps/plugin-log";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -25,7 +26,6 @@ import {
   storedDocumentDirAtom,
   tabsAtom,
 } from "./state/atoms";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";

@@ -13,25 +13,25 @@ import {
   createRootRouteWithContext,
   useNavigate,
 } from "@tanstack/react-router";
-import { ask, message, open } from "@tauri-apps/plugin-dialog";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { appLogDir, resolve } from "@tauri-apps/api/path";
-import { open as shellOpen } from "@tauri-apps/plugin-shell";
-import { check } from "@tauri-apps/plugin-updater";
-import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useTranslation } from "react-i18next";
 import {
   Menu,
   MenuItem,
   PredefinedMenuItem,
   Submenu,
 } from "@tauri-apps/api/menu";
-import useSWRImmutable from "swr/immutable";
-import { exit } from "@tauri-apps/plugin-process";
-import { match } from "ts-pattern";
+import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ask, message, open } from "@tauri-apps/plugin-dialog";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { exit } from "@tauri-apps/plugin-process";
+import { open as shellOpen } from "@tauri-apps/plugin-shell";
+import { check } from "@tauri-apps/plugin-updater";
+import { useAtom, useAtomValue } from "jotai";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
+import useSWRImmutable from "swr/immutable";
+import { match } from "ts-pattern";
 
 type MenuGroup = {
   label: string;
