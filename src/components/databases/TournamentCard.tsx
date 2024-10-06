@@ -1,9 +1,6 @@
+import type { Event, NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import {
-  type NormalizedGame,
-  type Tournament,
-  getTournamentGames,
-} from "@/utils/db";
+import { getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -40,7 +37,7 @@ function TournamentCard({
   tournament,
   file,
 }: {
-  tournament: Tournament;
+  tournament: Event;
   file: string;
 }) {
   const theme = useMantineTheme();

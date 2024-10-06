@@ -32,18 +32,20 @@ use shakmaty::{
     fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
 };
 use specta::Type;
-use std::io::{BufWriter, Write};
 use std::{
     fs::{remove_file, File, OpenOptions},
     path::PathBuf,
     sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
-use tauri::State;
-use tauri::{
-    api::path::{resolve_path, BaseDirectory},
-    Manager,
+use std::{
+    io::{BufWriter, Write},
+    str::FromStr,
 };
+use tauri::{path::BaseDirectory, Manager};
+use tauri::{Emitter, State};
+
+use log::info;
 use tauri_specta::Event as _;
 
 use self::encoding::encode_move;
@@ -51,7 +53,9 @@ use self::encoding::encode_move;
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
 pub use self::schema::puzzles;
-pub use self::search::{is_position_in_db, search_position, PositionQuery, PositionStats};
+pub use self::search::{
+    is_position_in_db, search_position, PositionQuery, PositionQueryJs, PositionStats,
+};
 
 const DATABASE_VERSION: &str = "1.0.0";
 
@@ -453,7 +457,7 @@ pub async fn convert_pgn(
         {
             if i % 1000 == 0 {
                 let elapsed = start.elapsed().as_millis() as u32;
-                app.emit_all("convert_progress", (i, elapsed)).unwrap();
+                app.emit("convert_progress", (i, elapsed)).unwrap();
             }
             game.insert_to_db(db)?;
         }
@@ -490,14 +494,14 @@ pub async fn convert_pgn(
     Ok(())
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Type)]
 pub struct DatabaseInfo {
     title: String,
     description: String,
-    player_count: usize,
-    event_count: usize,
-    game_count: usize,
-    storage_size: usize,
+    player_count: i32,
+    event_count: i32,
+    game_count: i32,
+    storage_size: i32,
     filename: String,
     indexed: bool,
 }
@@ -515,6 +519,7 @@ fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_db_info(
     file: PathBuf,
     app: tauri::AppHandle,
@@ -522,19 +527,15 @@ pub async fn get_db_info(
 ) -> Result<DatabaseInfo, Error> {
     let db_path = PathBuf::from("db").join(file);
 
-    let path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        db_path,
-        Some(BaseDirectory::AppData),
-    )?;
+    info!("get_db_info {:?}", db_path);
+
+    let path = app.path().resolve(db_path, BaseDirectory::AppData)?;
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let player_count = players::table.count().get_result::<i64>(db)? as usize;
-    let game_count = games::table.count().get_result::<i64>(db)? as usize;
-    let event_count = events::table.count().get_result::<i64>(db)? as usize;
+    let player_count = players::table.count().get_result::<i64>(db)? as i32;
+    let game_count = games::table.count().get_result::<i64>(db)? as i32;
+    let event_count = events::table.count().get_result::<i64>(db)? as i32;
 
     let title = match info::table
         .filter(info::name.eq("Title"))
@@ -554,7 +555,7 @@ pub async fn get_db_info(
         _ => "".to_string(),
     };
 
-    let storage_size = path.metadata()?.len() as usize;
+    let storage_size = path.metadata()?.len() as i32;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     let is_indexed = check_index_exists(db)?;
@@ -571,6 +572,7 @@ pub async fn get_db_info(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -580,6 +582,7 @@ pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -589,6 +592,7 @@ pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn edit_db_info(
     file: PathBuf,
     title: Option<String>,
@@ -621,14 +625,14 @@ pub async fn edit_db_info(
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Type)]
 pub enum Sides {
     BlackWhite,
     WhiteBlack,
     Any,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Type)]
 pub enum GameSort {
     #[default]
     #[serde(rename = "id")]
@@ -643,7 +647,7 @@ pub enum GameSort {
     PlyCount,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Type)]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Asc,
@@ -652,16 +656,19 @@ pub enum SortDirection {
     Desc,
 }
 
-#[derive(Default, Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Deserialize, PartialEq, Eq, Hash, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct QueryOptions<SortT> {
     pub skip_count: bool,
-    pub page: Option<i64>,
-    pub page_size: Option<i64>,
+    #[specta(optional)]
+    pub page: Option<i32>,
+    #[specta(optional)]
+    pub page_size: Option<i32>,
     pub sort: SortT,
     pub direction: SortDirection,
 }
 
-#[derive(Debug, Clone, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct GameQuery {
     pub options: Option<QueryOptions<GameSort>>,
     pub player1: Option<i32>,
@@ -676,26 +683,53 @@ pub struct GameQuery {
     pub position: Option<PositionQuery>,
 }
 
-impl GameQuery {
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, Hash, Type)]
+pub struct GameQueryJs {
+    #[specta(optional)]
+    pub options: Option<QueryOptions<GameSort>>,
+    #[specta(optional)]
+    pub player1: Option<i32>,
+    #[specta(optional)]
+    pub player2: Option<i32>,
+    #[specta(optional)]
+    pub tournament_id: Option<i32>,
+    #[specta(optional)]
+    pub start_date: Option<String>,
+    #[specta(optional)]
+    pub end_date: Option<String>,
+    #[specta(optional)]
+    pub range1: Option<(i32, i32)>,
+    #[specta(optional)]
+    pub range2: Option<(i32, i32)>,
+    #[specta(optional)]
+    pub sides: Option<Sides>,
+    #[specta(optional)]
+    pub outcome: Option<String>,
+    #[specta(optional)]
+    pub position: Option<PositionQueryJs>,
+}
+
+impl GameQueryJs {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn position(mut self, position: PositionQuery) -> Self {
+    pub fn position(mut self, position: PositionQueryJs) -> Self {
         self.position = Some(position);
         self
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 pub struct QueryResponse<T> {
     pub data: T,
-    pub count: Option<i64>,
+    pub count: Option<i32>,
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_games(
     file: PathBuf,
-    query: GameQuery,
+    query: GameQueryJs,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
@@ -738,11 +772,11 @@ pub async fn get_games(
     }
 
     if let Some(limit) = query_options.page_size {
-        sql_query = sql_query.limit(limit);
+        sql_query = sql_query.limit(limit as i64);
     }
 
     if let Some(page) = query_options.page {
-        sql_query = sql_query.offset((page - 1) * query_options.page_size.unwrap_or(10));
+        sql_query = sql_query.offset(((page - 1) * query_options.page_size.unwrap_or(10)) as i64);
     }
 
     match query.sides {
@@ -889,7 +923,7 @@ pub async fn get_games(
 
     Ok(QueryResponse {
         data: normalized_games,
-        count,
+        count: count.map(|c| c as i32),
     })
 }
 
@@ -917,11 +951,9 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
                 black: black.name.unwrap_or_default(),
                 black_id: game.black_id,
                 black_elo: game.black_elo,
-                result: game.result,
+                result: Outcome::from_str(&game.result.unwrap_or_default()).unwrap_or_default(),
                 time_control: game.time_control,
                 eco: game.eco,
-                white_material: game.white_material,
-                black_material: game.black_material,
                 ply_count: game.ply_count,
                 fen: fen.to_string(),
                 moves: decode_moves(game.moves, fen).unwrap_or_default().join(" "),
@@ -930,14 +962,16 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
         .collect()
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Type)]
 pub struct PlayerQuery {
     pub options: QueryOptions<PlayerSort>,
+    #[specta(optional)]
     pub name: Option<String>,
+    #[specta(optional)]
     pub range: Option<(i32, i32)>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum PlayerSort {
     #[serde(rename = "id")]
     Id,
@@ -963,13 +997,14 @@ pub async fn get_player(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_players(
     file: PathBuf,
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let mut count = None;
+    let mut count: Option<i64> = None;
 
     let mut sql_query = players::table.into_boxed();
     let mut count_query = players::table.into_boxed();
@@ -991,11 +1026,11 @@ pub async fn get_players(
     }
 
     if let Some(limit) = query.options.page_size {
-        sql_query = sql_query.limit(limit);
+        sql_query = sql_query.limit(limit as i64);
     }
 
     if let Some(page) = query.options.page {
-        sql_query = sql_query.offset((page - 1) * query.options.page_size.unwrap_or(10));
+        sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
     }
 
     sql_query = match query.options.sort {
@@ -1017,11 +1052,11 @@ pub async fn get_players(
 
     Ok(QueryResponse {
         data: players,
-        count,
+        count: count.map(|c| c as i32),
     })
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum TournamentSort {
     #[serde(rename = "id")]
     Id,
@@ -1029,20 +1064,21 @@ pub enum TournamentSort {
     Name,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Type)]
 pub struct TournamentQuery {
     pub options: QueryOptions<TournamentSort>,
     pub name: Option<String>,
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_tournaments(
     file: PathBuf,
     query: TournamentQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Event>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let mut count = None;
+    let mut count: Option<i64> = None;
 
     let mut sql_query = events::table.into_boxed();
     let mut count_query = events::table.into_boxed();
@@ -1059,11 +1095,11 @@ pub async fn get_tournaments(
     }
 
     if let Some(limit) = query.options.page_size {
-        sql_query = sql_query.limit(limit);
+        sql_query = sql_query.limit(limit as i64);
     }
 
     if let Some(page) = query.options.page {
-        sql_query = sql_query.offset((page - 1) * query.options.page_size.unwrap_or(10));
+        sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
     }
 
     sql_query = match query.options.sort {
@@ -1081,7 +1117,7 @@ pub async fn get_tournaments(
 
     Ok(QueryResponse {
         data: events,
-        count,
+        count: count.map(|c| c as i32),
     })
 }
 
@@ -1267,7 +1303,7 @@ pub async fn get_players_game_info(
                     id: id.to_string(),
                     progress: (p as f64 / info.len() as f64) * 100_f64,
                 }
-                .emit_all(&app);
+                .emit(&app);
             }
         },
     );
@@ -1307,6 +1343,7 @@ pub async fn get_players_game_info(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
@@ -1321,6 +1358,7 @@ pub async fn delete_database(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_duplicated_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
@@ -1346,6 +1384,7 @@ pub async fn delete_duplicated_games(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_empty_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
@@ -1441,6 +1480,7 @@ impl PgnGame {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn export_to_pgn(
     file: PathBuf,
     dest_file: PathBuf,
@@ -1499,6 +1539,7 @@ pub async fn export_to_pgn(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_db_game(
     file: PathBuf,
     game_id: i32,
@@ -1557,6 +1598,7 @@ pub async fn merge_players(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn clear_games(state: tauri::State<'_, AppState>) {
     let mut state = state.db_cache.lock().unwrap();
     state.clear();

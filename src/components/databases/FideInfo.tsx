@@ -14,8 +14,7 @@ import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
 
 import { events, commands } from "@/bindings";
-import { invoke } from "@tauri-apps/api";
-import { BaseDirectory, exists } from "@tauri-apps/api/fs";
+import { BaseDirectory, exists } from "@tauri-apps/plugin-fs";
 import { useEffect, useState } from "react";
 import useSWR from "swr/immutable";
 import ProgressButton from "../common/ProgressButton";
@@ -55,7 +54,7 @@ function FideInfo({
     : undefined;
 
   useEffect(() => {
-    exists("fide.bin", { dir: BaseDirectory.AppData }).then((exists) => {
+    exists("fide.bin", { baseDir: BaseDirectory.AppData }).then((exists) => {
       setFileExists(exists);
     });
   }, []);
@@ -93,7 +92,7 @@ function FideInfo({
             id="fide_db"
             initInstalled={false}
             progressEvent={events.downloadProgress}
-            onClick={() => invoke("download_fide_db")}
+            onClick={() => commands.downloadFideDb()}
             labels={{
               completed: "Downloaded",
               action: "Download",

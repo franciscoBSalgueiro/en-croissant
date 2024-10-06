@@ -1,9 +1,10 @@
 import {
   type DatabaseInfo,
-  type Player,
-  type Tournament,
-  query_tournaments,
-} from "@/utils/db";
+  type Event,
+  type TournamentSort,
+  commands,
+} from "@/bindings";
+import { unwrap } from "@/utils/unwrap";
 import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
@@ -15,14 +16,14 @@ import * as classes from "./styles.css";
 
 function TournamentTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
-  const [tournaments, setTournaments] = useState<Player[]>([]);
+  const [tournaments, setTournaments] = useState<Event[]>([]);
   const [count, setCount] = useState(0);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [limit, setLimit] = useState(25);
   const [activePage, setActivePage] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
-  const [sort, setSort] = useState<DataTableSortStatus<Tournament>>({
+  const [sort, setSort] = useState<DataTableSortStatus<Event>>({
     columnAccessor: "id",
     direction: "asc",
   });
@@ -31,33 +32,45 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
     setActivePage(1);
     setSelected(null);
     setLoading(true);
-    query_tournaments(file, {
-      name: name,
-      page: 1,
-      pageSize: limit,
-      sort: sort.columnAccessor,
-      direction: sort.direction,
-    }).then((res) => {
-      setLoading(false);
-      setTournaments(res.data);
-      setCount(res.count);
-    });
+    commands
+      .getTournaments(file, {
+        name: name,
+        options: {
+          page: 1,
+          pageSize: limit,
+          skipCount: false,
+          sort: sort.columnAccessor as TournamentSort,
+          direction: sort.direction,
+        },
+      })
+      .then((res) => {
+        const { data, count } = unwrap(res);
+        setLoading(false);
+        setTournaments(data);
+        setCount(count!);
+      });
   }, [name, limit, file]);
 
   useEffect(() => {
     setLoading(true);
     setSelected(null);
-    query_tournaments(file, {
-      name: name === "" ? undefined : name,
-      page: activePage,
-      pageSize: limit,
-      sort: sort.columnAccessor,
-      direction: sort.direction,
-    }).then((res) => {
-      setLoading(false);
-      setTournaments(res.data);
-      setCount(res.count);
-    });
+    commands
+      .getTournaments(file, {
+        name: name === "" ? null : name,
+        options: {
+          page: activePage,
+          pageSize: limit,
+          skipCount: false,
+          sort: sort.columnAccessor as TournamentSort,
+          direction: sort.direction,
+        },
+      })
+      .then((res) => {
+        const { data, count } = unwrap(res);
+        setLoading(false);
+        setTournaments(data);
+        setCount(count!);
+      });
   }, [activePage, sort]);
 
   useHotkeys("ArrowUp", () => {
@@ -97,7 +110,7 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
         </Flex>
       }
       table={
-        <DataTable<Tournament>
+        <DataTable<Event>
           withTableBorder
           highlightOnHover
           records={tournaments}

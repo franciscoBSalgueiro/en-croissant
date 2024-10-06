@@ -1,9 +1,10 @@
+import { commands } from "@/bindings";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { fontSizeAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
-import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { getGameName } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import { ActionIcon, Box, Group, ScrollArea, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
@@ -36,7 +37,9 @@ export default function GameSelector({
 
   const loadMoreRows = useCallback(
     async (startIndex: number, stopIndex: number) => {
-      const data = await read_games(path, startIndex, stopIndex);
+      const data = unwrap(
+        await commands.readGames(path, startIndex, stopIndex),
+      );
       const newGames = new Map(games);
       data.forEach(async (game, index) => {
         const { headers } = await parsePGN(game);

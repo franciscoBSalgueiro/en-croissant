@@ -1,9 +1,9 @@
 import {
   BaseDirectory,
   readTextFile,
-  removeFile,
+  remove,
   writeTextFile,
-} from "@tauri-apps/api/fs";
+} from "@tauri-apps/plugin-fs";
 import type {
   AsyncStorage,
   AsyncStringStorage,
@@ -11,10 +11,10 @@ import type {
   SyncStringStorage,
 } from "jotai/vanilla/utils/atomWithStorage";
 
-import { warn } from "tauri-plugin-log-api";
+import { warn } from "@tauri-apps/plugin-log";
 import type { z } from "zod";
 
-const options = { dir: BaseDirectory.AppData };
+const options = { baseDir: BaseDirectory.AppData };
 export const fileStorage: AsyncStringStorage = {
   async getItem(key) {
     try {
@@ -27,7 +27,7 @@ export const fileStorage: AsyncStringStorage = {
     await writeTextFile(key, newValue, options);
   },
   async removeItem(key) {
-    await removeFile(key, options);
+    await remove(key, options);
   },
 };
 

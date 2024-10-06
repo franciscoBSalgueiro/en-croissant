@@ -1,5 +1,5 @@
 import type { BestMoves, EngineOptions, GoMode, ScoreValue } from "@/bindings";
-import { fetch } from "@tauri-apps/api/http";
+import { fetch } from "@tauri-apps/plugin-http";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { positionFromFen } from "../chessops";
@@ -112,13 +112,13 @@ async function queryPosition(fen: string) {
   url.searchParams.append("action", "queryall");
   url.searchParams.append("json", "1");
   url.searchParams.append("board", fen);
-  const res = await fetch<AllResponse>(url.toString());
+  const res = (await (await fetch(url.toString())).json()) as AllResponse;
 
-  if (res.data.status !== "ok") {
+  if (res.status !== "ok") {
     return [];
   }
 
-  const data: CachedResult[] = res.data.moves.map((m) => ({
+  const data: CachedResult[] = res.moves.map((m) => ({
     ...m,
     score: side === "b" ? -m.score : m.score,
     uci: [m.uci],
@@ -141,17 +141,16 @@ async function queryBest(fen: string) {
   url.searchParams.append("action", "querypv");
   url.searchParams.append("json", "1");
   url.searchParams.append("board", fen);
-  const res = await fetch<BestResponse>(url.toString());
+  const res = (await (await fetch(url.toString())).json()) as BestResponse;
 
-  if (res.data.status !== "ok") {
+  if (res.status !== "ok") {
     return null;
   }
 
-  const data = res.data;
   const side = fen.split(" ")[1];
   if (side === "b") {
-    data.score *= -1;
+    res.score *= -1;
   }
 
-  return data;
+  return res;
 }

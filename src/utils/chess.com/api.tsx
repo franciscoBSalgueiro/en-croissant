@@ -1,9 +1,10 @@
 import { events } from "@/bindings";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { writeTextFile } from "@tauri-apps/api/fs";
-import { fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { fetch } from "@tauri-apps/plugin-http";
+import { error, info } from "@tauri-apps/plugin-log";
 import { Chess } from "chessops";
 import {
   ChildNode,
@@ -12,7 +13,6 @@ import {
   makePgn,
 } from "chessops/pgn";
 import { makeSan } from "chessops/san";
-import { error, info } from "tauri-plugin-log-api";
 import { z } from "zod";
 import { decodeTCN } from "./tcn";
 
@@ -86,7 +86,7 @@ export async function getChessComAccount(
     });
     return null;
   }
-  const data = await response.data;
+  const data = await response.json();
   const stats = ChessComStatsSchema.safeParse(data);
   if (!stats.success) {
     error(
@@ -105,8 +105,8 @@ export async function getChessComAccount(
 
 async function getGameArchives(player: string) {
   const url = `${baseURL}/pub/player/${player}/games/archives`;
-  const response = await fetch<Archive>(url, { headers, method: "GET" });
-  return response.data;
+  const response = await fetch(url, { headers, method: "GET" });
+  return (await response.json()) as Archive;
 }
 
 export async function downloadChessCom(
@@ -144,7 +144,7 @@ export async function downloadChessCom(
       headers,
       method: "GET",
     });
-    const games = ChessComGames.safeParse(await response.data);
+    const games = ChessComGames.safeParse(await response.json());
 
     if (!games.success) {
       error(
@@ -211,7 +211,7 @@ export async function getChesscomGame(gameURL: string) {
     return null;
   }
 
-  const apiData = await response.data;
+  const apiData = await response.json();
   const gameData = chessComGameSchema.safeParse(apiData);
   if (!gameData.success) {
     error(

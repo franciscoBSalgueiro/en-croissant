@@ -1,11 +1,12 @@
+import { commands } from "@/bindings";
 import { currentTabAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
-import { count_pgn_games, read_games } from "@/utils/db";
 import { createFile } from "@/utils/files";
 import { getLichessGame } from "@/utils/lichess/api";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import {
   Button,
   Checkbox,
@@ -20,7 +21,7 @@ import {
   Textarea,
 } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
-import { open } from "@tauri-apps/api/dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtom } from "jotai";
 import { useState } from "react";
@@ -67,8 +68,8 @@ export default function ImportModal({
         let fileInfo: FileMetadata | undefined;
         let input = pgn;
         if (file) {
-          const count = await count_pgn_games(file);
-          input = (await read_games(file, 0, 0))[0];
+          const count = unwrap(await commands.countPgnGames(file));
+          input = unwrap(await commands.readGames(file, 0, 0))[0];
           if (save) {
             const newFile = await createFile({
               filename,
@@ -84,6 +85,7 @@ export default function ImportModal({
             fileInfo = newFile.value;
           } else {
             fileInfo = {
+              type: "file",
               path: file,
               numGames: count,
               name: filename,

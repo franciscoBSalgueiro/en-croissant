@@ -7,11 +7,11 @@ export const Route = createFileRoute("/databases/")({
   component: DatabasesPage,
   beforeLoad: async () => {
     const store = getDefaultStore();
-    const db = store.get(selectedDatabaseAtom)?.title;
+    const db = store.get(selectedDatabaseAtom);
     if (db) {
       throw redirect({
         to: "/databases/$databaseId",
-        params: { databaseId: db },
+        params: { databaseId: db.title },
       });
     }
     return null;

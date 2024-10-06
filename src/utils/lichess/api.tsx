@@ -1,13 +1,12 @@
 import {
-  events,
   type BestMoves,
   type EngineOptions,
   type GoMode,
+  type NormalizedGame,
+  commands,
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import type { NormalizedGame } from "@/utils/db";
-import { invoke } from "@/utils/invoke";
 import {
   type LichessGamesOptions,
   type MasterGamesOptions,
@@ -17,13 +16,13 @@ import {
 import { countMainPly } from "@/utils/treeReducer";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { type Response, fetch } from "@tauri-apps/api/http";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { fetch } from "@tauri-apps/plugin-http";
+import { error } from "@tauri-apps/plugin-log";
 import type { Color } from "chessground/types";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
-import { error } from "tauri-plugin-log-api";
 import { P, match } from "ts-pattern";
 
 const baseURL = "https://lichess.org/api";
@@ -213,15 +212,15 @@ export async function getLichessAccount({
   token?: string;
   username?: string;
 }): Promise<LichessAccount | null> {
-  let response: Response<LichessAccount>;
+  let response: Response;
   if (token) {
-    response = await fetch<LichessAccount>(`${baseURL}/account`, {
+    response = await fetch(`${baseURL}/account`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
   } else {
     const url = `${baseURL}/user/${username}`;
-    response = await fetch<LichessAccount>(url);
+    response = await fetch(url);
   }
   if (!response.ok) {
     error(
@@ -235,7 +234,7 @@ export async function getLichessAccount({
     });
     return null;
   }
-  return response.data;
+  return response.json();
 }
 
 export async function getBestMoves(
@@ -321,7 +320,10 @@ type LichessMate = {
   moves: string;
 };
 
-async function getCloudEvaluation(fen: string, multipv: number) {
+async function getCloudEvaluation(
+  fen: string,
+  multipv: number,
+): Promise<LichessCloudData> {
   if (cache.has(`${fen}-${multipv}`)) {
     return cache.get(`${fen}-${multipv}`)!;
   }
@@ -329,10 +331,10 @@ async function getCloudEvaluation(fen: string, multipv: number) {
   url.searchParams.append("fen", fen);
   url.searchParams.append("multiPv", multipv.toString());
 
-  const response = await fetch<LichessCloudData>(url.toString());
-
-  cache.set(`${fen}-${multipv}`, response.data);
-  return response.data;
+  const response = await fetch(url.toString());
+  const data = (await response.json()) as LichessCloudData;
+  cache.set(`${fen}-${multipv}`, data);
+  return data;
 }
 
 export async function getLichessGames(
@@ -348,12 +350,13 @@ export async function getLichessGames(
     .otherwise(
       () => `${explorerURL}/player?${getLichessGamesQueryParams(fen, options)}`,
     );
-  const res = await fetch<PositionData>(url);
+  const res = await fetch(url);
+  const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(`${res.data}`);
+    throw new Error(`${data}`);
   }
-  return res.data;
+  return data;
 }
 
 export async function getMasterGames(
@@ -364,11 +367,12 @@ export async function getMasterGames(
     fen,
     options,
   )}`;
-  const res = await fetch<PositionData>(url);
+  const res = await fetch(url);
+  const data = await res.json();
   if (!res.ok) {
-    throw new Error(`${res.data}`);
+    throw new Error(`${data}`);
   }
-  return res.data;
+  return data;
 }
 
 export async function getPlayerGames(
@@ -380,7 +384,7 @@ export async function getPlayerGames(
     await fetch(
       `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`,
     )
-  ).data;
+  ).json();
 }
 
 export async function downloadLichess(
@@ -396,13 +400,14 @@ export async function downloadLichess(
   }
   const path = await resolve(await appDataDir(), "db", `${player}_lichess.pgn`);
 
-  await invoke("download_file", {
-    id: `lichess_${player}`,
+  await commands.downloadFile(
+    `lichess_${player}`,
     url,
     path,
-    token,
-    totalSize: games > 0 ? games * 900 : undefined, // approx. size of a game
-  });
+    token ?? null,
+    null,
+    games > 0 ? games * 900 : null, // approx. size of a game
+  );
 }
 
 export async function getLichessGame(gameId: string): Promise<string> {
@@ -417,10 +422,10 @@ export async function getLichessGame(gameId: string): Promise<string> {
   return await response.text();
 }
 
-export async function getTablebaseInfo(fen: string) {
-  const res = await fetch<TablebaseData>(`${tablebaseURL}/standard?fen=${fen}`);
+export async function getTablebaseInfo(fen: string): Promise<TablebaseData> {
+  const res = await fetch(`${tablebaseURL}/standard?fen=${fen}`);
   if (!res.ok) {
     throw new Error(`Failed to load tablebase info for ${fen} - ${res.status}`);
   }
-  return res.data;
+  return res.json();
 }

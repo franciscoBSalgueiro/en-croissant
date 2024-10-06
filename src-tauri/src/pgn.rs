@@ -121,10 +121,11 @@ fn ignore_bom(reader: &mut BufReader<File>) -> io::Result<u64> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn count_pgn_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<usize, Error> {
+) -> Result<i32, Error> {
     let files_string = file.to_string_lossy().to_string();
 
     let file = File::open(&file)?;
@@ -140,7 +141,7 @@ pub async fn count_pgn_games(
             break;
         }
         count += 1;
-        if count % GAME_OFFSET_FREQ == 0 {
+        if count % GAME_OFFSET_FREQ as i32 == 0 {
             let cur_pos = parser.position()?;
             offsets.push(cur_pos);
         }
@@ -151,19 +152,20 @@ pub async fn count_pgn_games(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn read_games(
     file: PathBuf,
-    start: usize,
-    end: usize,
+    start: i32,
+    end: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<String>, Error> {
     let file_r = File::open(&file)?;
 
     let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser.offset_by_index(start, &state, &file.to_string_lossy().to_string())?;
+    parser.offset_by_index(start as usize, &state, &file.to_string_lossy().to_string())?;
 
-    let mut games: Vec<String> = Vec::with_capacity(end - start);
+    let mut games: Vec<String> = Vec::with_capacity((end - start) as usize);
 
     for _ in start..=end {
         let game = parser.read_game()?;
@@ -176,16 +178,17 @@ pub async fn read_games(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_game(
     file: PathBuf,
-    n: usize,
+    n: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let file_r = File::open(&file)?;
 
     let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser.offset_by_index(n, &state, &file.to_string_lossy().to_string())?;
+    parser.offset_by_index(n as usize, &state, &file.to_string_lossy().to_string())?;
 
     let starting_bytes = parser.position()?;
 
@@ -207,9 +210,10 @@ fn write_to_end<R: Read>(reader: &mut R, writer: &mut File) -> io::Result<()> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn write_game(
     file: PathBuf,
-    n: usize,
+    n: i32,
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
@@ -225,7 +229,7 @@ pub async fn write_game(
 
     let mut parser = PgnParser::new(file_r.try_clone()?);
 
-    parser.offset_by_index(n, &state, &file.to_string_lossy().to_string())?;
+    parser.offset_by_index(n as usize, &state, &file.to_string_lossy().to_string())?;
 
     tmpf.seek(SeekFrom::Start(parser.position()?))?;
     tmpf.write_all(pgn.as_bytes())?;

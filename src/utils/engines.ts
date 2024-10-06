@@ -4,10 +4,11 @@ import {
   type GoMode,
   commands,
 } from "@/bindings";
-import { fetch } from "@tauri-apps/api/http";
+import { fetch } from "@tauri-apps/plugin-http";
+import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
-import { invoke, unwrap } from "./invoke";
+import { unwrap } from "./unwrap";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
@@ -94,14 +95,12 @@ export function getBestMoves(
     .then((r) => unwrap(r));
 }
 
-type OS = "windows" | "linux" | "macos";
-
-export function useDefaultEngines(os: OS | undefined, opened: boolean) {
+export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
   const { data, error, isLoading } = useSWR(
     opened ? os : null,
-    async (os: OS) => {
-      const bmi2: boolean = await invoke("is_bmi2_compatible");
-      const data = await fetch<LocalEngine[]>(
+    async (os: Platform) => {
+      const bmi2: boolean = await commands.isBmi2Compatible();
+      const data = await fetch(
         `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
         {
           method: "GET",
@@ -110,12 +109,16 @@ export function useDefaultEngines(os: OS | undefined, opened: boolean) {
       if (!data.ok) {
         throw new Error("Failed to fetch engines");
       }
-      /// @ts-expect-error only exists on downloaded
-      return data.data.filter((e) => e.os === os && e.bmi2 === bmi2);
+      return (await data.json()).filter(
+        (e: {
+          os: Platform;
+          bmi2: boolean;
+        }) => e.os === os && e.bmi2 === bmi2,
+      );
     },
   );
   return {
-    defaultEngines: data,
+    defaultEngines: data as LocalEngine[],
     error,
     isLoading,
   };

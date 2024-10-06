@@ -1,4 +1,4 @@
-import type { Outcome } from "@/utils/db";
+import type { Outcome } from "@/bindings";
 import type { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";

@@ -1,5 +1,6 @@
 use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use serde::Serialize;
+use specta::Type;
 
 use crate::error::Error;
 
@@ -7,7 +8,7 @@ struct Lexer {
     tokens: Vec<Token>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Type)]
 #[serde(tag = "type", content = "value")]
 pub enum Token {
     ParenOpen,
@@ -63,6 +64,7 @@ impl Visitor for Lexer {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn lex_pgn(pgn: String) -> Result<Vec<Token>, Error> {
     let mut reader = BufferedReader::new(pgn.as_bytes());
 

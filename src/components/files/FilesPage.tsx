@@ -12,7 +12,13 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
-import { type FileEntry, readDir, removeFile } from "@tauri-apps/api/fs";
+import {
+  BaseDirectory,
+  type DirEntry,
+  type FileInfo,
+  readDir,
+  remove,
+} from "@tauri-apps/plugin-fs";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
@@ -21,7 +27,11 @@ import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { CreateModal, EditModal } from "./Modals";
-import { type FileMetadata, type FileType, readFileMetadata } from "./file";
+import {
+  type FileMetadata,
+  type FileType,
+  processEntriesRecursively,
+} from "./file";
 
 const FILE_TYPES: FileType[] = [
   "game",
@@ -31,68 +41,17 @@ const FILE_TYPES: FileType[] = [
   "other",
 ];
 
-export type MetadataOrEntry = {
-  name: string;
-  path: string;
-  children?: MetadataOrEntry[];
-} & Partial<FileMetadata>;
-
-async function processFiles(
-  files: MetadataOrEntry[],
-): Promise<MetadataOrEntry[]> {
-  const filesInfo = (
-    await Promise.allSettled(
-      files.map((f) => readFileMetadata(f.name, f.path, f.children)),
-    )
-  )
-    .filter((r) => r.status === "fulfilled")
-    .map(
-      (r) =>
-        (r as PromiseFulfilledResult<FileMetadata | FileEntry | null>).value,
-    );
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (file.children) {
-      filesInfo[i] = {
-        name: file.name || "",
-        path: file.path,
-        children: await processFiles(file.children),
-      };
-    }
-  }
-  return filesInfo.filter((f) => f !== null) as MetadataOrEntry[];
-}
-
 const useFileDirectory = (dir: string) => {
   const { data, error, isLoading, mutate } = useSWR(
     "file-directory",
     async () => {
-      const files = await readDir(dir, { recursive: true });
-      const filesInfo = await processFiles(
-        files.filter((f) => !f.name?.startsWith(".")) as MetadataOrEntry[],
-      );
+      const entries = await readDir(dir);
+      const allEntries = processEntriesRecursively(dir, entries);
 
-      return filesInfo
-        .sort((a, b) => {
-          return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
-        })
-        .filter((f) => {
-          return f.children === undefined || f.children?.length > 0;
-        })
-        .sort((a, b) => {
-          if (a.children != null && b.children == null) {
-            return 1;
-          }
-          if (a.children != null && b.children != null) {
-            return 0;
-          }
-          if (a.children == null && b.children == null) {
-            return 0;
-          }
-          return -1;
-        });
+      return allEntries;
     },
   );
+  console.log(error);
   return {
     files: data,
     isLoading,
@@ -211,8 +170,8 @@ function FilesPage() {
               opened={deleteModal}
               onClose={toggleDeleteModal}
               onConfirm={async () => {
-                await removeFile(selected.path);
-                await removeFile(selected.path.replace(".pgn", ".info"));
+                await remove(selected.path);
+                await remove(selected.path.replace(".pgn", ".info"));
                 mutate(files?.filter((file) => file.name !== selected.name));
                 toggleDeleteModal();
                 setSelected(null);

@@ -1,6 +1,7 @@
+import { commands } from "@/bindings";
 import { currentTabAtom } from "@/state/atoms";
-import { count_pgn_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import { ActionIcon, Code, Divider, Group, Text, Tooltip } from "@mantine/core";
 import { IconReload } from "@tabler/icons-react";
 import { useAtom } from "jotai";
@@ -31,9 +32,9 @@ function FileInfo({
               size="sm"
               onClick={() =>
                 tab.file &&
-                count_pgn_games(tab.file.path).then((v) => {
+                commands.countPgnGames(tab.file.path).then((v) => {
                   setCurrentTab((prev) => {
-                    prev.file!.numGames = v;
+                    prev.file!.numGames = unwrap(v);
                     return { ...prev };
                   });
                   setGames(new Map());

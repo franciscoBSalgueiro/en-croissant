@@ -1,11 +1,12 @@
+import type {
+  DatabaseInfo,
+  GameQuery,
+  GameSort,
+  NormalizedGame,
+  Outcome,
+} from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import {
-  type DatabaseInfo,
-  type GameQuery,
-  type NormalizedGame,
-  type Outcome,
-  query_games,
-} from "@/utils/db";
+import { query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -19,7 +20,6 @@ import {
   Select,
   Stack,
   Text,
-  useMantineTheme,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useHotkeys, useToggle } from "@mantine/hooks";
@@ -40,21 +40,22 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;
   const [query, setQuery] = useState<GameQuery>({
     player1: undefined,
-    rangePlayer1: [0, 3000],
+    range1: [0, 3000],
     player2: undefined,
-    rangePlayer2: [0, 3000],
+    range2: [0, 3000],
     sides: "WhiteBlack",
     outcome: undefined,
-    sort: "date",
-    direction: "desc",
-    pageSize: 25,
-    page: 1,
+    options: {
+      sort: "date",
+      direction: "desc",
+      pageSize: 25,
+      page: 1,
+      skipCount: false,
+    },
   });
 
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const [openedSettings, toggleOpenedSettings] = useToggle();
-
-  const theme = useMantineTheme();
 
   const navigate = useNavigate();
 
@@ -145,7 +146,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                           { value: 3000, label: "3000" },
                         ]}
                         onChangeEnd={(value) =>
-                          setQuery({ ...query, rangePlayer1: value })
+                          setQuery({ ...query, range1: value })
                         }
                       />
                     </InputWrapper>
@@ -161,7 +162,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                           { value: 3000, label: "3000" },
                         ]}
                         onChangeEnd={(value) =>
-                          setQuery({ ...query, rangePlayer2: value })
+                          setQuery({ ...query, range2: value })
                         }
                       />
                     </InputWrapper>
@@ -293,22 +294,36 @@ function GameTable({ database }: { database: DatabaseInfo }) {
               i === selectedGame ? classes.selected : ""
             }
             noRecordsText="No games found"
-            totalRecords={count}
-            recordsPerPage={query.pageSize ?? 25}
-            page={query.page ?? 1}
-            onPageChange={(page) => setQuery({ ...query, page })}
+            totalRecords={count!}
+            recordsPerPage={query.options?.pageSize ?? 25}
+            page={query.options?.page ?? 1}
+            onPageChange={(page) =>
+              setQuery({
+                ...query,
+                options: {
+                  ...query.options!,
+                  page,
+                },
+              })
+            }
             onRecordsPerPageChange={(value) =>
-              setQuery({ ...query, pageSize: value })
+              setQuery({
+                ...query,
+                options: { ...query.options!, pageSize: value },
+              })
             }
             sortStatus={{
-              columnAccessor: query.sort,
-              direction: query.direction,
+              columnAccessor: query.options?.sort || "date",
+              direction: query.options?.direction || "desc",
             }}
             onSortStatusChange={(value) =>
               setQuery({
                 ...query,
-                sort: value.columnAccessor,
-                direction: value.direction,
+                options: {
+                  ...query.options!,
+                  sort: value.columnAccessor as GameSort,
+                  direction: value.direction,
+                },
               })
             }
             recordsPerPageOptions={[10, 25, 50]}

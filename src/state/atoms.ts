@@ -1,7 +1,6 @@
-import type { BestMoves, GoMode } from "@/bindings";
+import type { BestMoves, DatabaseInfo, GoMode } from "@/bindings";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import type { DatabaseInfo } from "@/utils/db";
 import {
   type Engine,
   type EngineSettings,
@@ -19,6 +18,7 @@ import type { MantineColor } from "@mantine/core";
 
 import type { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
+import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
@@ -195,7 +195,7 @@ export const selectedPuzzleDbAtom = atomWithStorage<string | null>(
   null,
 );
 
-export const selectedDatabaseAtom = atomWithStorage<DatabaseInfo | null>(
+export const selectedDatabaseAtom = atomWithStorage<SuccessDatabaseInfo | null>(
   "database-view",
   null,
   createJSONStorage(() => sessionStorage),

@@ -9,7 +9,8 @@ use std::{
     net::{SocketAddr, TcpListener},
     sync::Arc,
 };
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use tauri_plugin_shell::ShellExt;
 
 use crate::{error::Error, AppState};
 
@@ -56,6 +57,7 @@ impl Default for AuthState {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn authenticate(
     username: String,
     state: tauri::State<'_, AppState>,
@@ -70,7 +72,7 @@ pub async fn authenticate(
         .add_extra_param("username", username)
         .set_pkce_challenge(state.auth.pkce.0.clone())
         .url();
-    tauri::api::shell::open(&app.shell_scope(), auth_url, None)?;
+    app.shell().open(auth_url, None)?;
     let _server_handle = tauri::async_runtime::spawn(async move { run_server(app).await });
     Ok(())
 }
@@ -101,7 +103,7 @@ async fn authorize(
         .unwrap();
 
     let access_token = token.access_token().secret();
-    app.emit_all("access_token", access_token).unwrap();
+    app.emit("access_token", access_token).unwrap();
 
     "authorized".to_string()
 }

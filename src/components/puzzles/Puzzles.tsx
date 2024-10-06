@@ -1,4 +1,4 @@
-import { commands } from "@/bindings";
+import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleAtom,
@@ -10,15 +10,14 @@ import {
   tabsAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
-import { unwrap } from "@/utils/invoke";
 import {
   type Completion,
   type Puzzle,
-  type PuzzleDatabase,
   getPuzzleDatabases,
 } from "@/utils/puzzles";
 import { createTab } from "@/utils/tabs";
 import { defaultTree } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import {
   ActionIcon,
   Button,
@@ -65,7 +64,7 @@ function Puzzles({ id }: { id: string }) {
   });
   const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
 
-  const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
+  const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
 
   useEffect(() => {

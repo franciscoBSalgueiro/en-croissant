@@ -1,6 +1,6 @@
+import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { chessopsError } from "@/utils/chessops";
-import { invoke } from "@/utils/invoke";
 import {
   Combobox,
   Group,
@@ -52,14 +52,13 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
 
   const { data, isLoading } = useSWRImmutable(
     ["search_opening_name", search],
-    ([, search]) =>
-      invoke<
-        {
-          eco: string;
-          name: string;
-          fen: string;
-        }[]
-      >("search_opening_name", { query: search }),
+    async ([, search]) => {
+      const res = await commands.searchOpeningName(search);
+      if (res.status === "ok") {
+        return res.data;
+      }
+      throw new Error(res.error);
+    },
   );
 
   const exactOptionMatch = data?.some((item) => item.fen === search);

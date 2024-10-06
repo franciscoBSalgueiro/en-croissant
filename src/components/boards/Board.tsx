@@ -58,9 +58,9 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { save } from "@tauri-apps/api/dialog";
-import { writeBinaryFile } from "@tauri-apps/api/fs";
 import { documentDir } from "@tauri-apps/api/path";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeFile } from "@tauri-apps/plugin-fs";
 import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
@@ -216,7 +216,7 @@ function Board({
       });
       const arrayBuffer = await blob.arrayBuffer();
       if (filePath == null) return;
-      await writeBinaryFile(filePath, arrayBuffer);
+      await writeFile(filePath, new Uint8Array(arrayBuffer));
     });
   };
 

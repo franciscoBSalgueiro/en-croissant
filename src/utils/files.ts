@@ -1,27 +1,19 @@
+import { commands } from "@/bindings";
 import type { FileMetadata } from "@/components/files/file";
+import { unwrap } from "@/utils/unwrap";
 import { Result } from "@badrap/result";
-import { exists, writeTextFile } from "@tauri-apps/api/fs";
-import { platform } from "@tauri-apps/api/os";
 import { resolve } from "@tauri-apps/api/path";
+import { exists, writeTextFile } from "@tauri-apps/plugin-fs";
+import { platform } from "@tauri-apps/plugin-os";
 import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
-import { match } from "ts-pattern";
 import { parsePGN } from "./chess";
-import { count_pgn_games, read_games } from "./db";
 import { type Tab, createTab } from "./tabs";
 import { getGameName } from "./treeReducer";
 
 export function usePlatform() {
   const r = useSWR("os", async () => {
-    const p = await platform();
-    const os = match(p)
-      .with("win32", () => "windows" as const)
-      .with("linux", () => "linux" as const)
-      .with("darwin", () => "macos" as const)
-      .otherwise(() => {
-        throw Error("OS not supported");
-      });
-    return os;
+    return platform();
   });
   return { os: r.data, ...r };
 }
@@ -31,10 +23,11 @@ export async function openFile(
   setTabs: React.Dispatch<React.SetStateAction<Tab[]>>,
   setActiveTab: React.Dispatch<React.SetStateAction<string | null>>,
 ) {
-  const count = await count_pgn_games(file);
-  const input = (await read_games(file, 0, 0))[0];
+  const count = unwrap(await commands.countPgnGames(file));
+  const input = unwrap(await commands.readGames(file, 0, 0))[0];
 
   const fileInfo = {
+    type: "file" as const,
     metadata: {
       tags: [],
       type: "game" as const,
@@ -79,6 +72,7 @@ export async function createFile({
   await writeTextFile(file, pgn || makePgn(defaultGame()));
   await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
   return Result.ok({
+    type: "file",
     name: filename,
     path: file,
     numGames: 1,
