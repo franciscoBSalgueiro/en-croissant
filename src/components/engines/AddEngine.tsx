@@ -8,7 +8,7 @@ import {
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
-import { invoke, unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/invoke";
 import {
   Alert,
   Box,

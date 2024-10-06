@@ -1,7 +1,5 @@
-import { commands } from "@/bindings";
+import { type NormalizedGame, commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import type { NormalizedGame } from "@/utils/db";
-import { invoke } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,

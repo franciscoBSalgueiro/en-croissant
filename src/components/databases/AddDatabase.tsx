@@ -1,11 +1,11 @@
-import { events, commands } from "@/bindings";
+import { events, commands, type DatabaseInfo } from "@/bindings";
 import {
-  type DatabaseInfo,
+  type SuccessDatabaseInfo,
   getDatabases,
   useDefaultDatabases,
 } from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
-import { invoke, unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/invoke";
 import {
   Alert,
   Box,
@@ -58,7 +58,7 @@ function AddDatabase({
     setLoading(false);
   }
 
-  const form = useForm<DatabaseInfo>({
+  const form = useForm<Partial<Extract<DatabaseInfo, { type: "success" }>>>({
     initialValues: {
       title: "",
       description: "",
@@ -70,7 +70,7 @@ function AddDatabase({
     validate: {
       title: (value) => {
         if (!value) return t("Common.RequireName");
-        if (databases.find((e) => e.title === value))
+        if (databases.find((e) => e.type === "success" && e.title === value))
           return t("Common.NameAlreadyUsed");
       },
       file: (value) => {
@@ -104,7 +104,12 @@ function AddDatabase({
                   databaseId={i}
                   key={i}
                   setDatabases={setDatabases}
-                  initInstalled={databases.some((e) => e.title === db.title)}
+                  initInstalled={databases.some(
+                    (e) =>
+                      e.type === "success" &&
+                      db.type === "success" &&
+                      e.title === db.title,
+                  )}
                 />
               ))}
               {error && (
@@ -122,7 +127,7 @@ function AddDatabase({
         <Tabs.Panel value="local" pt="xs">
           <form
             onSubmit={form.onSubmit(async (values) => {
-              convertDB(values.file, values.title!, values.description);
+              convertDB(values.file!, values.title!, values.description);
               setOpened(false);
             })}
           >
@@ -165,7 +170,7 @@ function AddDatabase({
                   }
                 }
               }}
-              filename={form.values.filename}
+              filename={form.values.filename ?? null}
               {...form.getInputProps("path")}
             />
 
@@ -186,7 +191,7 @@ function DatabaseCard({
   initInstalled,
 }: {
   setDatabases: KeyedMutator<DatabaseInfo[]>;
-  database: DatabaseInfo;
+  database: SuccessDatabaseInfo;
   databaseId: number;
   initInstalled: boolean;
 }) {

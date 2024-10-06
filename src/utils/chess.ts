@@ -1,4 +1,4 @@
-import { type Score, type Token, commands } from "@/bindings";
+import { type Score, type Token, commands, type Outcome } from "@/bindings";
 import type { DrawShape } from "chessground/draw";
 import {
   type Color,
@@ -14,8 +14,7 @@ import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import type { Outcome } from "./db";
-import { invoke, unwrap } from "./invoke";
+import { unwrap } from "./invoke";
 import { harmonicMean, isPrefix, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
 import {

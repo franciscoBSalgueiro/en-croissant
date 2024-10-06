@@ -6,7 +6,7 @@ import { currentTabAtom, missingMovesAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
-import { invoke, unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/invoke";
 import { getTreeStats } from "@/utils/repertoire";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { Accordion, Box, Group, ScrollArea, Stack, Text } from "@mantine/core";

@@ -1,4 +1,4 @@
-import { commands } from "@/bindings";
+import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleAtom,
@@ -14,7 +14,6 @@ import { unwrap } from "@/utils/invoke";
 import {
   type Completion,
   type Puzzle,
-  type PuzzleDatabase,
   getPuzzleDatabases,
 } from "@/utils/puzzles";
 import { createTab } from "@/utils/tabs";
@@ -65,7 +64,7 @@ function Puzzles({ id }: { id: string }) {
   });
   const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
 
-  const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabase[]>([]);
+  const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ use std::{collections::VecDeque, path::PathBuf, sync::Mutex};
 use diesel::{dsl::sql, sql_types::Bool, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use once_cell::sync::Lazy;
 use serde::Serialize;
+use specta::Type;
 use tauri::{path::BaseDirectory, Manager};
 
 use crate::{
@@ -73,16 +74,18 @@ pub fn get_puzzle(file: String, min_rating: u16, max_rating: u16) -> Result<Puzz
     cache.get_next_puzzle().ok_or(Error::NoPuzzles)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct PuzzleDatabaseInfo {
     title: String,
     description: String,
-    puzzle_count: usize,
-    storage_size: usize,
+    puzzle_count: i32,
+    storage_size: i32,
     path: String,
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_puzzle_db_info(
     file: PathBuf,
     app: tauri::AppHandle,
@@ -94,9 +97,9 @@ pub async fn get_puzzle_db_info(
     let mut db =
         diesel::SqliteConnection::establish(&path.to_string_lossy()).expect("open database");
 
-    let puzzle_count = puzzles::table.count().get_result::<i64>(&mut db)? as usize;
+    let puzzle_count = puzzles::table.count().get_result::<i64>(&mut db)? as i32;
 
-    let storage_size = path.metadata()?.len() as usize;
+    let storage_size = path.metadata()?.len() as i32;
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     Ok(PuzzleDatabaseInfo {

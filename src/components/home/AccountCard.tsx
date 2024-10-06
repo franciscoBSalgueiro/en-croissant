@@ -1,6 +1,7 @@
 import { events, commands } from "@/bindings";
 import { downloadChessCom } from "@/utils/chess.com/api";
-import { type DatabaseInfo, getDatabases, query_games } from "@/utils/db";
+import { getDatabases, query_games } from "@/utils/db";
+import type { DatabaseInfo } from "@/bindings";
 import { capitalize } from "@/utils/format";
 import { unwrap } from "@/utils/invoke";
 import { downloadLichess } from "@/utils/lichess/api";
@@ -140,7 +141,8 @@ export function AccountCard({
     };
   }, [setDatabases]);
 
-  const downloadedGames = database?.game_count ?? 0;
+  const downloadedGames =
+    database?.type === "success" ? database.game_count : 0;
   const percentage = ((downloadedGames / total) * 100).toFixed(2);
 
   async function getLastGameDate({
@@ -149,12 +151,15 @@ export function AccountCard({
     database: DatabaseInfo;
   }) {
     const games = await query_games(database.file, {
-      page: 1,
-      pageSize: 1,
-      sort: "date",
-      direction: "desc",
+      options: {
+        page: 1,
+        pageSize: 1,
+        sort: "date",
+        direction: "desc",
+        skipCount: false,
+      },
     });
-    if (games.count > 0 && games.data[0].date && games.data[0].time) {
+    if (games.count! > 0 && games.data[0].date && games.data[0].time) {
       const [year, month, day] = games.data[0].date.split(".").map(Number);
       const [hour, minute, second] = games.data[0].time.split(":").map(Number);
       const d = Date.UTC(year, month - 1, day, hour, minute, second);

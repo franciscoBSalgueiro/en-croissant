@@ -14,7 +14,6 @@ import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
 
 import { events, commands } from "@/bindings";
-import { invoke } from "@/utils/invoke";
 import { BaseDirectory, exists } from "@tauri-apps/plugin-fs";
 import { useEffect, useState } from "react";
 import useSWR from "swr/immutable";

@@ -5,8 +5,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
-import { invoke } from "./invoke";
-import type { GameHeaders, TreeNode } from "./treeReducer";
+import type { GameHeaders } from "./treeReducer";
 
 export const tabSchema = z.object({
   name: z.string(),

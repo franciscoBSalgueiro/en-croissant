@@ -1,4 +1,3 @@
-import type { Outcome } from "@/utils/db";
 import type { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
@@ -10,6 +9,7 @@ import FideInfo from "../databases/FideInfo";
 import { ContentEditable } from "../tabs/ContentEditable";
 import * as classes from "./GameInfo.css";
 import { TreeStateContext } from "./TreeStateContext";
+import type { Outcome } from "@/bindings";
 
 function GameInfo({
   headers,

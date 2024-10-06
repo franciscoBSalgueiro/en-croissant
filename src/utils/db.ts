@@ -1,44 +1,29 @@
-import type { MonthData, Results } from "@/bindings";
+import {
+  type DatabaseInfo,
+  commands,
+  type MonthData,
+  type QueryResponse,
+  type Results,
+  type NormalizedGame,
+  type GameQuery,
+  type PlayerQuery,
+  type Player,
+  type PuzzleDatabaseInfo,
+} from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import useSWR from "swr";
-import { invoke } from "./invoke";
-import type { PuzzleDatabase } from "./puzzles";
+import { unwrap } from "./invoke";
+
+export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
 
 export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
 
 export interface CompleteGame {
   game: NormalizedGame;
   currentMove: number[];
-}
-
-export interface DatabaseInfo {
-  title?: string;
-  description?: string;
-  filename: string;
-  game_count?: number;
-  player_count?: number;
-  event_count?: number;
-  storage_size?: number;
-  downloadLink?: string;
-  error?: string;
-  file: string;
-  indexed: boolean;
-}
-
-interface Query {
-  skip_count?: boolean;
-  page?: number;
-  pageSize?: number;
-  sort: string;
-  direction: "asc" | "desc";
-}
-
-interface QueryResponse<T> {
-  data: T;
-  count: number;
 }
 
 export type Speed =
@@ -50,42 +35,10 @@ export type Speed =
   | "Correspondence"
   | "Unknown";
 
-export type Outcome = "*" | "1-0" | "0-1" | "1/2-1/2";
-
-export interface GameQuery extends Query {
-  player1?: number;
-  player2?: number;
-  tournament_id?: number;
-  sides?: Sides;
-  rangePlayer1?: [number, number];
-  rangePlayer2?: [number, number];
-  speed?: Speed;
-  outcome?: Outcome;
-  start_date?: string;
-  end_date?: string;
-}
-
-export interface Game {
-  white_id: number;
-  white_elo: number;
-  black_id: number;
-  black_elo: number;
-  speed: Speed;
-  outcome: Outcome;
-  moves: string;
-  date: string;
-  site: string;
-}
-
-export interface Site {
-  id: number;
-  name: string;
-}
-
 function normalizeRange(
-  range?: [number, number],
+  range?: [number, number] | null,
 ): [number, number] | undefined {
-  if (range === undefined || range[1] - range[0] === 3000) {
+  if (!range || range[1] - range[0] === 3000) {
     return undefined;
   }
   return range;
@@ -95,88 +48,46 @@ export async function query_games(
   db: string,
   query: GameQuery,
 ): Promise<QueryResponse<NormalizedGame[]>> {
-  return invoke("get_games", {
-    file: db,
-    query: {
-      options: {
-        skip_count: query.skip_count ?? false,
-        page: query.page,
-        page_size: query.pageSize,
-        sort: query.sort,
-        direction: query.direction,
-      },
+  return unwrap(
+    await commands.getGames(db, {
       player1: query.player1,
-      range1: normalizeRange(query.rangePlayer1),
+      range1: normalizeRange(query.range1),
       player2: query.player2,
-      range2: normalizeRange(query.rangePlayer2),
+      range2: normalizeRange(query.range2),
       tournament_id: query.tournament_id,
       sides: query.sides,
-      speed: query.speed,
       outcome: query.outcome,
       start_date: query.start_date,
       end_date: query.end_date,
-    },
-  });
-}
-
-interface PlayerQuery extends Query {
-  name?: string;
-  range?: [number, number];
-}
-
-export interface Player {
-  id: number;
-  name: string;
-  elo?: number;
-  image?: string;
+      position: null,
+      options: {
+        skipCount: query.options?.skipCount ?? false,
+        page: query.options?.page,
+        pageSize: query.options?.pageSize,
+        sort: query.options?.sort || "id",
+        direction: query.options?.direction || "desc",
+      },
+    }),
+  );
 }
 
 export async function query_players(
   db: string,
   query: PlayerQuery,
 ): Promise<QueryResponse<Player[]>> {
-  return invoke("get_players", {
-    file: db,
-    query: {
+  return unwrap(
+    await commands.getPlayers(db, {
       options: {
-        skip_count: query.skip_count || false,
-        page: query.page,
-        page_size: query.pageSize,
-        sort: query.sort,
-        direction: query.direction,
+        skipCount: query.options.skipCount || false,
+        page: query.options.page,
+        pageSize: query.options.pageSize,
+        sort: query.options.sort,
+        direction: query.options.direction,
       },
       name: query.name,
       range: normalizeRange(query.range),
-    },
-  });
-}
-
-interface TournamentQuery extends Query {
-  name?: string;
-}
-
-export interface Tournament {
-  id: number;
-  name: string;
-}
-
-export async function query_tournaments(
-  db: string,
-  query: TournamentQuery,
-): Promise<QueryResponse<Tournament[]>> {
-  return invoke("get_tournaments", {
-    file: db,
-    query: {
-      options: {
-        skip_count: query.skip_count || false,
-        page: query.page,
-        page_size: query.pageSize,
-        sort: query.sort,
-        direction: query.direction,
-      },
-      name: query.name,
-    },
-  });
+    }),
+  );
 }
 
 export async function getDatabases(): Promise<DatabaseInfo[]> {
@@ -188,27 +99,23 @@ export async function getDatabases(): Promise<DatabaseInfo[]> {
 }
 
 async function getDatabase(name: string): Promise<DatabaseInfo> {
-  let db: DatabaseInfo;
   const appDataDirPath = await appDataDir();
-  const path = await resolve(appDataDirPath, name);
-  try {
-    db = await invoke<DatabaseInfo>(
-      "get_db_info",
-      {
-        file: path,
-      },
-      () => true,
-    );
-  } catch (e) {
-    db = {
-      filename: path,
+  const path = await resolve(appDataDirPath, "db", name);
+  const res = await commands.getDbInfo(path);
+  if (res.status === "ok") {
+    return {
+      type: "success",
+      ...res.data,
       file: path,
-      error: e as string,
-      indexed: false,
     };
   }
-  db.file = path;
-  return db;
+  return {
+    type: "error",
+    filename: path,
+    file: path,
+    error: res.error,
+    indexed: false,
+  };
 }
 
 export function useDefaultDatabases(opened: boolean) {
@@ -221,7 +128,7 @@ export function useDefaultDatabases(opened: boolean) {
       if (!data.ok) {
         throw new Error("Failed to fetch engines");
       }
-      return (await data.json()) as DatabaseInfo[];
+      return (await data.json()) as SuccessDatabaseInfo[];
     },
   );
   return {
@@ -231,14 +138,18 @@ export function useDefaultDatabases(opened: boolean) {
   };
 }
 
-export async function getDefaultPuzzleDatabases(): Promise<PuzzleDatabase[]> {
+export async function getDefaultPuzzleDatabases(): Promise<
+  (PuzzleDatabaseInfo & { downloadLink: string })[]
+> {
   const data = await fetch("https://www.encroissant.org/puzzle_databases", {
     method: "GET",
   });
   if (!data.ok) {
     throw new Error("Failed to fetch puzzle databases");
   }
-  return (await data.json()) as PuzzleDatabase[];
+  return (await data.json()) as (PuzzleDatabaseInfo & {
+    downloadLink: string;
+  })[];
 }
 
 export interface Opening {
@@ -248,37 +159,14 @@ export interface Opening {
   draw: number;
 }
 
-export type NormalizedGame = {
-  id: number;
-  fen: string;
-  event: string;
-  event_id: number;
-  site: string;
-  site_id: number;
-  date?: string;
-  time?: string;
-  round?: string;
-  white: string;
-  white_id: number;
-  white_elo?: number | null;
-  black: string;
-  black_id: number;
-  black_elo?: number | null;
-  result: Outcome;
-  time_control?: string;
-  eco?: string;
-  ply_count: number;
-  white_material?: number;
-  black_material?: number;
-  moves: string;
-};
-
 export async function getTournamentGames(file: string, id: number) {
   return await query_games(file, {
-    direction: "asc",
-    sort: "id",
+    options: {
+      direction: "asc",
+      sort: "id",
+      skipCount: true,
+    },
     tournament_id: id,
-    skip_count: true,
   });
 }
 
@@ -292,20 +180,25 @@ export interface PlayerGameInfo {
 }
 
 export async function searchPosition(options: LocalOptions, tab: string) {
-  const openings: [Opening[], NormalizedGame[]] = await invoke(
-    "search_position",
+  const res = await commands.searchPosition(
+    options.path!,
     {
-      file: options.path,
-      query: {
-        player1: options.color === "white" ? options.player : undefined,
-        player2: options.color === "black" ? options.player : undefined,
-        position: options,
-        start_date: options.start_date,
-        end_date: options.end_date,
+      player1: options.color === "white" ? options.player : undefined,
+      player2: options.color === "black" ? options.player : undefined,
+      position: {
+        fen: options.fen,
+        type_: options.type,
       },
-      tabId: tab,
+      start_date: options.start_date,
+      end_date: options.end_date,
     },
-    (s) => s === "Search stopped",
+    tab,
   );
-  return openings;
+  if (res.status === "error") {
+    if (res.error !== "Search stopped") {
+      unwrap(res);
+    }
+    return Promise.reject();
+  }
+  return res.data;
 }

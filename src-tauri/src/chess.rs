@@ -23,7 +23,7 @@ use vampirc_uci::{
 };
 
 use crate::{
-    db::{is_position_in_db, GameQuery, PositionQuery},
+    db::{is_position_in_db, GameQueryJs, PositionQueryJs},
     error::Error,
     AppState,
 };
@@ -709,14 +709,18 @@ pub async fn analyze_game(
 
     for (i, analysis) in analysis.iter_mut().enumerate() {
         let fen = &fens[i].0;
-        let query = PositionQuery::exact_from_fen(&fen.to_string())?;
+        // let query = PositionQuery::exact_from_fen(&fen.to_string())?;
+        let query = PositionQueryJs {
+            fen: fen.to_string(),
+            type_: "exact".to_string(),
+        };
 
         analysis.is_sacrifice = fens[i].2;
         if options.annotate_novelties && !novelty_found {
             if let Some(reference) = options.reference_db.clone() {
                 analysis.novelty = !is_position_in_db(
                     reference,
-                    GameQuery::new().position(query.clone()).clone(),
+                    GameQueryJs::new().position(query.clone()).clone(),
                     state.clone(),
                 )
                 .await?;

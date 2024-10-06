@@ -20,16 +20,15 @@ use std::{fs::create_dir_all, path::Path};
 
 use chess::{BestMovesPayload, EngineProcess, ReportProgress};
 use dashmap::DashMap;
-use db::{DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
+use db::{DatabaseProgress, GameQueryJs, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use fide::FidePlayer;
 use log::LevelFilter;
 use oauth::AuthState;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use sysinfo::SystemExt;
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::path::BaseDirectory;
-use tauri::{Manager, WebviewWindow, Window};
+use tauri::{Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
 use crate::chess::{
@@ -76,7 +75,7 @@ pub struct AppState {
         String,
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
-    line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
+    line_cache: DashMap<(GameQueryJs, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     db_cache: Mutex<Vec<GameData>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
@@ -155,7 +154,13 @@ fn main() {
             authenticate,
             write_game,
             download_fide_db,
-            download_file
+            download_file,
+            get_tournaments,
+            get_db_info,
+            get_games,
+            search_position,
+            get_players,
+            get_puzzle_db_info
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
@@ -191,15 +196,7 @@ fn main() {
                 .level(LevelFilter::Info)
                 .build(),
         )
-        .invoke_handler(
-            specta_builder.invoke_handler(), //     tauri::generate_handler![
-                                             //     get_games,
-                                             //     get_players,
-                                             //     get_tournaments,
-                                             //     get_puzzle_db_info,
-                                             //     search_position,
-                                             // ]
-        )
+        .invoke_handler(specta_builder.invoke_handler())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_fs::init())
@@ -239,6 +236,8 @@ fn main() {
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
+
+            log::info!("Finished rust initialization");
 
             Ok(())
         })

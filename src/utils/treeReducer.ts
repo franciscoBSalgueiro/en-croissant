@@ -1,10 +1,9 @@
-import type { Score } from "@/bindings";
+import type { Outcome, Score } from "@/bindings";
 import type { DrawShape } from "chessground/draw";
 import type { Move } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import type { Annotation } from "./annotation";
 import { positionFromFen } from "./chessops";
-import type { Outcome } from "./db";
 
 export interface TreeState {
   root: TreeNode;
@@ -137,19 +136,17 @@ export type GameHeaders = {
   fen: string;
   event: string;
   site: string;
-  date?: string;
-  time?: string;
-  round?: string;
+  date?: string | null;
+  time?: string | null;
+  round?: string | null;
   white: string;
   white_elo?: number | null;
   black: string;
   black_elo?: number | null;
   result: Outcome;
-  time_control?: string;
-  eco?: string;
-  white_material?: number;
-  black_material?: number;
-  variant?: string;
+  time_control?: string | null;
+  eco?: string | null;
+  variant?: string | null;
   // Repertoire headers
   start?: number[];
   orientation?: "white" | "black";

@@ -1,7 +1,6 @@
-import type { BestMoves, GoMode } from "@/bindings";
+import type { BestMoves, GoMode, DatabaseInfo } from "@/bindings";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import type { DatabaseInfo } from "@/utils/db";
 import {
   type Engine,
   type EngineSettings,
@@ -35,6 +34,7 @@ import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
+import type { SuccessDatabaseInfo } from "@/utils/db";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;
@@ -195,7 +195,7 @@ export const selectedPuzzleDbAtom = atomWithStorage<string | null>(
   null,
 );
 
-export const selectedDatabaseAtom = atomWithStorage<DatabaseInfo | null>(
+export const selectedDatabaseAtom = atomWithStorage<SuccessDatabaseInfo | null>(
   "database-view",
   null,
   createJSONStorage(() => sessionStorage),

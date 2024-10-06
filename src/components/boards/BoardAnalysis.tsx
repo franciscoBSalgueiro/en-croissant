@@ -8,7 +8,6 @@ import {
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { getVariationLine } from "@/utils/chess";
-import { invoke } from "@/utils/invoke";
 import { saveToFile } from "@/utils/tabs";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
