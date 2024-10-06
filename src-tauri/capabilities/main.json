@@ -22,6 +22,7 @@
         "log:default",
         "fs:default",
         "fs:write-all",
+        "window-state:default",
         {
             "identifier": "fs:scope",
             "allow": [

@@ -103,11 +103,6 @@ async fn close_splashscreen(window: Window) -> Result<(), String> {
     window
         .get_webview_window("main")
         .expect("no window labeled 'main' found")
-        .maximize()
-        .unwrap();
-    window
-        .get_webview_window("main")
-        .expect("no window labeled 'main' found")
         .show()
         .unwrap();
     Ok(())
@@ -189,6 +184,7 @@ fn main() {
     ];
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_log::Builder::default()
