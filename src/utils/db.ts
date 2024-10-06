@@ -1,14 +1,14 @@
 import {
   type DatabaseInfo,
-  commands,
+  type GameQuery,
   type MonthData,
+  type NormalizedGame,
+  type Player,
+  type PlayerQuery,
+  type PuzzleDatabaseInfo,
   type QueryResponse,
   type Results,
-  type NormalizedGame,
-  type GameQuery,
-  type PlayerQuery,
-  type Player,
-  type PuzzleDatabaseInfo,
+  commands,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { appDataDir, resolve } from "@tauri-apps/api/path";

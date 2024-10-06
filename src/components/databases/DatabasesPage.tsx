@@ -1,7 +1,7 @@
 import { commands } from "@/bindings";
+import type { DatabaseInfo } from "@/bindings";
 import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
 import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
-import type { DatabaseInfo } from "@/bindings";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/invoke";
 import {

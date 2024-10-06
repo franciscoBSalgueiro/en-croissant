@@ -1,4 +1,5 @@
-import { query_players, type SuccessDatabaseInfo } from "@/utils/db";
+import type { Player, PlayerSort } from "@/bindings";
+import { type SuccessDatabaseInfo, query_players } from "@/utils/db";
 import {
   ActionIcon,
   Center,
@@ -16,8 +17,6 @@ import { useHotkeys } from "react-hotkeys-hook";
 import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";
 import * as classes from "./styles.css";
-import type { Player, PlayerSort } from "@/bindings";
-import { as } from "vitest/dist/chunks/reporters.WnPwkmgA.js";
 
 function PlayerTable({ database }: { database: SuccessDatabaseInfo }) {
   const file = database.file;

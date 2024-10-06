@@ -1,8 +1,8 @@
 import { commands } from "@/bindings";
+import type { DatabaseInfo } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount } from "@/utils/chess.com/api";
 import { getDatabases } from "@/utils/db";
-import type { DatabaseInfo } from "@/bindings";
 import { getLichessAccount } from "@/utils/lichess/api";
 import {
   Autocomplete,

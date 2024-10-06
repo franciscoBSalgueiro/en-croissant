@@ -1,4 +1,4 @@
-import { type Score, type Token, commands, type Outcome } from "@/bindings";
+import { type Outcome, type Score, type Token, commands } from "@/bindings";
 import type { DrawShape } from "chessground/draw";
 import {
   type Color,

@@ -1,4 +1,4 @@
-import type { BestMoves, GoMode, DatabaseInfo } from "@/bindings";
+import type { BestMoves, DatabaseInfo, GoMode } from "@/bindings";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import {
@@ -18,6 +18,7 @@ import type { MantineColor } from "@mantine/core";
 
 import type { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
+import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
@@ -34,7 +35,6 @@ import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
-import type { SuccessDatabaseInfo } from "@/utils/db";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;

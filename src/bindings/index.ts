@@ -1,9 +1,9 @@
 import type {
   BestMoves as BestMovesT,
-  Score as ScoreT,
-  ScoreValue as ScoreValueT,
   DatabaseInfo as DatabaseInfoT,
   GameQueryJs,
+  Score as ScoreT,
+  ScoreValue as ScoreValueT,
 } from "./generated";
 
 export * from "./generated";

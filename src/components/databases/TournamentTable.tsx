@@ -1,3 +1,10 @@
+import {
+  type DatabaseInfo,
+  type Event,
+  type TournamentSort,
+  commands,
+} from "@/bindings";
+import { unwrap } from "@/utils/invoke";
 import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
@@ -5,14 +12,7 @@ import { useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import GridLayout from "./GridLayout";
 import TournamentCard from "./TournamentCard";
-import {
-  type Event,
-  type DatabaseInfo,
-  commands,
-  type TournamentSort,
-} from "@/bindings";
 import * as classes from "./styles.css";
-import { unwrap } from "@/utils/invoke";
 
 function TournamentTable({ database }: { database: DatabaseInfo }) {
   const file = database.file;

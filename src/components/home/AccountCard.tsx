@@ -1,7 +1,7 @@
 import { events, commands } from "@/bindings";
+import type { DatabaseInfo } from "@/bindings";
 import { downloadChessCom } from "@/utils/chess.com/api";
 import { getDatabases, query_games } from "@/utils/db";
-import type { DatabaseInfo } from "@/bindings";
 import { capitalize } from "@/utils/format";
 import { unwrap } from "@/utils/invoke";
 import { downloadLichess } from "@/utils/lichess/api";

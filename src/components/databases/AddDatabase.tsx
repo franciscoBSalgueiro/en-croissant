@@ -1,4 +1,4 @@
-import { events, commands, type DatabaseInfo } from "@/bindings";
+import { events, type DatabaseInfo, commands } from "@/bindings";
 import {
   type SuccessDatabaseInfo,
   getDatabases,

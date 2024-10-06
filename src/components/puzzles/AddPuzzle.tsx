@@ -1,4 +1,4 @@
-import { events, commands, type PuzzleDatabaseInfo } from "@/bindings";
+import { events, type PuzzleDatabaseInfo, commands } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { getPuzzleDatabases } from "@/utils/puzzles";

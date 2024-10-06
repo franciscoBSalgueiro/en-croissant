@@ -1,4 +1,5 @@
 import { events, type MonthData, type Results, commands } from "@/bindings";
+import type { DatabaseInfo as PlainDatabaseInfo, Player } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { type PlayerGameInfo, getDatabases, query_players } from "@/utils/db";
 import { unwrap } from "@/utils/invoke";
@@ -8,7 +9,6 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "./PersonalCard";
-import type { DatabaseInfo as PlainDatabaseInfo, Player } from "@/bindings";
 
 type DatabaseInfo = PlainDatabaseInfo & {
   username?: string;

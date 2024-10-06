@@ -1,7 +1,7 @@
+import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
 import { unwrap } from "./invoke";
-import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 
 export type Completion = "correct" | "incorrect" | "incomplete";
 

@@ -2,8 +2,8 @@ import {
   type BestMoves,
   type EngineOptions,
   type GoMode,
-  commands,
   type NormalizedGame,
+  commands,
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";

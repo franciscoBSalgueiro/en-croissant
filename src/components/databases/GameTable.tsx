@@ -1,5 +1,3 @@
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { query_games } from "@/utils/db";
 import type {
   DatabaseInfo,
   GameQuery,
@@ -7,6 +5,8 @@ import type {
   NormalizedGame,
   Outcome,
 } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,

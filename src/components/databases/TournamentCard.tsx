@@ -1,3 +1,4 @@
+import type { Event, NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -16,7 +17,6 @@ import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
-import type { Event, NormalizedGame } from "@/bindings";
 
 const gamePoints = (game: NormalizedGame, player: string) => {
   if (game.white === player) {
