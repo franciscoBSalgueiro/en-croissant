@@ -4,7 +4,7 @@ import {
   type TournamentSort,
   commands,
 } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";

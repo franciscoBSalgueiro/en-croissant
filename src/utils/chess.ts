@@ -14,7 +14,6 @@ import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import { unwrap } from "./invoke";
 import { harmonicMean, isPrefix, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
 import {
@@ -25,6 +24,7 @@ import {
   defaultTree,
   getNodeAtPath,
 } from "./treeReducer";
+import { unwrap } from "./unwrap";
 
 export interface BestMoves {
   depth: number;

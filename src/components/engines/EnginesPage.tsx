@@ -42,7 +42,7 @@ import AddEngine from "./AddEngine";
 import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
 import { Route } from "@/routes/engines";
-import { unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import { useToggle } from "@mantine/hooks";
 import { useNavigate } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";

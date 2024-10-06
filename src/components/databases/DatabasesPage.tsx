@@ -3,7 +3,7 @@ import type { DatabaseInfo } from "@/bindings";
 import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
 import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import {
   Box,
   Button,

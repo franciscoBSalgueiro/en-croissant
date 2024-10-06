@@ -8,7 +8,7 @@ import { fetch } from "@tauri-apps/plugin-http";
 import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
-import { unwrap } from "./invoke";
+import { unwrap } from "./unwrap";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 

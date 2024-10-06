@@ -1,8 +1,8 @@
 import { commands } from "@/bindings";
 import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
 import { capitalize } from "@/utils/format";
-import { unwrap } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
+import { unwrap } from "@/utils/unwrap";
 import { Badge, Box, Group } from "@mantine/core";
 import {
   IconChevronRight,

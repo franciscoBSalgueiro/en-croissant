@@ -3,8 +3,8 @@ import type { DatabaseInfo } from "@/bindings";
 import { downloadChessCom } from "@/utils/chess.com/api";
 import { getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
-import { unwrap } from "@/utils/invoke";
 import { downloadLichess } from "@/utils/lichess/api";
+import { unwrap } from "@/utils/unwrap";
 import {
   Accordion,
   ActionIcon,

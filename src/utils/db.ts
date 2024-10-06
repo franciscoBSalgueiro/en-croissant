@@ -15,7 +15,7 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import useSWR from "swr";
-import { unwrap } from "./invoke";
+import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
 

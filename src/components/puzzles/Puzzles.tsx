@@ -10,7 +10,6 @@ import {
   tabsAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
-import { unwrap } from "@/utils/invoke";
 import {
   type Completion,
   type Puzzle,
@@ -18,6 +17,7 @@ import {
 } from "@/utils/puzzles";
 import { createTab } from "@/utils/tabs";
 import { defaultTree } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import {
   ActionIcon,
   Button,

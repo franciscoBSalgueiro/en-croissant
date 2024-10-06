@@ -1,6 +1,6 @@
 import { commands } from "@/bindings";
 import type { FileMetadata } from "@/components/files/file";
-import { unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import { Result } from "@badrap/result";
 import { resolve } from "@tauri-apps/api/path";
 import { exists, writeTextFile } from "@tauri-apps/plugin-fs";

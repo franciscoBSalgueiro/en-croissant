@@ -1,5 +1,5 @@
 import { commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import { BaseDirectory, basename, join } from "@tauri-apps/api/path";
 import {
   type DirEntry,

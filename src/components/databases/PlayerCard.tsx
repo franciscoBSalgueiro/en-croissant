@@ -1,5 +1,5 @@
 import { type Player, commands } from "@/bindings";
-import { unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import { Center, Loader, Paper, Stack, Text } from "@mantine/core";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "../home/PersonalCard";
