@@ -114,6 +114,7 @@ export async function saveToFile({
       return {
         ...prev,
         file: {
+          type: "file",
           name: userChoice,
           path: userChoice,
           numGames: 1,

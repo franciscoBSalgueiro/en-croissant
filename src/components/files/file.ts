@@ -28,6 +28,7 @@ const fileInfoMetadataSchema = z.object({
 export type FileInfoMetadata = z.infer<typeof fileInfoMetadataSchema>;
 
 export const fileMetadataSchema = z.object({
+  type: z.literal("file"),
   name: z.string(),
   path: z.string(),
   numGames: z.number(),
@@ -60,6 +61,7 @@ async function readFileMetadata(path: string): Promise<FileMetadata | null> {
   const fileMetadata = unwrap(await commands.getFileMetadata(path));
   const numGames = unwrap(await commands.countPgnGames(path));
   return {
+    type: "file",
     path,
     name: (await basename(path)).replace(".pgn", ""),
     numGames,
@@ -68,15 +70,21 @@ async function readFileMetadata(path: string): Promise<FileMetadata | null> {
   };
 }
 
+export type Directory = {
+  type: "directory";
+  children: (FileMetadata | Directory)[];
+  path: string;
+  name: string;
+};
+
 export async function processEntriesRecursively(
   parent: string,
   entries: DirEntry[],
 ) {
-  const allEntries: FileMetadata[] = [];
+  const allEntries: (FileMetadata | Directory)[] = [];
   for (const entry of entries) {
     if (entry.isFile) {
       const metadata = await readFileMetadata(await join(parent, entry.name));
-      console.log(metadata);
       if (!metadata) continue;
       allEntries.push(metadata);
     }
@@ -86,7 +94,12 @@ export async function processEntriesRecursively(
         dir,
         await readDir(dir, { baseDir: BaseDirectory.AppLocalData }),
       );
-      allEntries.push(...newEntries);
+      allEntries.push({
+        type: "directory",
+        name: entry.name,
+        path: dir,
+        children: newEntries,
+      });
     }
   }
   return allEntries;

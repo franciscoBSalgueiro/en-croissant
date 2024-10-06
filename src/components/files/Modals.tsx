@@ -13,7 +13,7 @@ import { rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import GenericCard from "../common/GenericCard";
-import type { FileMetadata, FileType } from "./file";
+import type { Directory, FileMetadata, FileType } from "./file";
 
 const FILE_TYPES = [
   { label: "Game", value: "game" },
@@ -32,8 +32,8 @@ export function CreateModal({
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  files: FileMetadata[];
-  setFiles: (files: FileMetadata[]) => void;
+  files: (FileMetadata | Directory)[];
+  setFiles: (files: (FileMetadata | Directory)[]) => void;
   setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
 }) {
   const { t } = useTranslation();

@@ -27,6 +27,7 @@ export async function openFile(
   const input = unwrap(await commands.readGames(file, 0, 0))[0];
 
   const fileInfo = {
+    type: "file" as const,
     metadata: {
       tags: [],
       type: "game" as const,
@@ -71,6 +72,7 @@ export async function createFile({
   await writeTextFile(file, pgn || makePgn(defaultGame()));
   await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
   return Result.ok({
+    type: "file",
     name: filename,
     path: file,
     numGames: 1,

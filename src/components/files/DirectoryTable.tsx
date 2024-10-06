@@ -22,38 +22,64 @@ import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as classes from "./DirectoryTable.css";
-import type { FileMetadata } from "./file";
+import type { Directory, FileMetadata } from "./file";
 import { getStats } from "./opening";
 
-// function recursiveSort(
-//   files: FileMetadata[],
-//   sort: DataTableSortStatus<FileMetadata>,
-// ): MetadataOrEntry[] {
-//   return files
-//     .map((f) => {
-//       if (!f.children) return f;
-//       return {
-//         ...f,
-//         children: recursiveSort(f.children, sort),
-//       };
-//     })
-//     .sort((a, b) => {
-//       if (sort.direction === "desc") {
-//         if (sort.columnAccessor === "name") {
-//           return b.name.localeCompare(a.name);
-//         }
-//         // @ts-ignore
-//         return b[sort.columnAccessor] > a[sort.columnAccessor] ? 1 : -1;
-//       }
-//       if (sort.columnAccessor === "name") {
-//         return a.name.localeCompare(b.name);
-//       }
-//       // @ts-ignore
-//       return a[sort.columnAccessor] > b[sort.columnAccessor] ? 1 : -1;
-//     });
-// }
+function flattenFiles(
+  files: (FileMetadata | Directory)[],
+): (FileMetadata | Directory)[] {
+  return files.flatMap((f) =>
+    f.type === "directory" ? flattenFiles(f.children) : [f],
+  );
+}
 
-type SortStatus = DataTableSortStatus<FileMetadata>;
+function recursiveSort(
+  files: (FileMetadata | Directory)[],
+  sort: DataTableSortStatus<FileMetadata | Directory>,
+): (FileMetadata | Directory)[] {
+  return files
+    .map((f) => {
+      if (f.type === "file") return f;
+      return {
+        ...f,
+        children: recursiveSort(f.children, sort),
+      };
+    })
+    .sort((a, b) => {
+      return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
+    })
+    .filter((f) => {
+      return f.type === "file" || f.children.length > 0;
+    })
+    .sort((a, b) => {
+      if (sort.direction === "desc") {
+        if (sort.columnAccessor === "name") {
+          return b.name.localeCompare(a.name);
+        }
+        // @ts-ignore
+        return b[sort.columnAccessor] > a[sort.columnAccessor] ? 1 : -1;
+      }
+      if (sort.columnAccessor === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      // @ts-ignore
+      return a[sort.columnAccessor] > b[sort.columnAccessor] ? 1 : -1;
+    })
+    .sort((a, b) => {
+      if (a.type === "directory" && b.type === "file") {
+        return -1;
+      }
+      if (a.type === "directory" && b.type === "directory") {
+        return 0;
+      }
+      if (a.type === "file" && b.type === "file") {
+        return 0;
+      }
+      return 1;
+    });
+}
+
+type SortStatus = DataTableSortStatus<FileMetadata | Directory>;
 const sortStatusStorageId = `${DirectoryTable.name}-sort-status` as const;
 const sortStatusAtom = atomWithStorage<SortStatus>(
   sortStatusStorageId,
@@ -74,9 +100,9 @@ export default function DirectoryTable({
   search,
   filter,
 }: {
-  files: FileMetadata[] | undefined;
+  files: (FileMetadata | Directory)[] | undefined;
   isLoading: boolean;
-  setFiles: (files: FileMetadata[]) => void;
+  setFiles: (files: (FileMetadata | Directory)[]) => void;
   selectedFile: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
   search: string;
@@ -84,8 +110,7 @@ export default function DirectoryTable({
 }) {
   const [sort, setSort] = useAtom<SortStatus>(sortStatusAtom);
 
-  // const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
-  const flattedFiles = files ?? [];
+  const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
   const fuse = useMemo(
     () =>
       new Fuse(flattedFiles ?? [], {
@@ -94,42 +119,42 @@ export default function DirectoryTable({
     [flattedFiles],
   );
 
-  const filteredFiles = files ?? [];
+  let filteredFiles = files ?? [];
 
-  // if (search) {
-  //   const searchResults = fuse.search(search);
-  //   filteredFiles = filteredFiles
-  //     .filter((f) => searchResults.some((r) => r.item.path.includes(f.path)))
-  //     .map((f) => {
-  //       if (!f.children) return f;
-  //       const children = f.children.filter((c) =>
-  //         searchResults.some((r) => r.item.path.includes(c.path)),
-  //       );
-  //       return {
-  //         ...f,
-  //         children,
-  //       };
-  //     });
-  // }
-  // if (filter) {
-  //   const typeFilteredFiles = flattedFiles.filter(
-  //     (f) => f.metadata?.type === filter,
-  //   );
-  //   filteredFiles = filteredFiles
-  //     .filter((f) => typeFilteredFiles.some((r) => r.path.includes(f.path)))
-  //     .map((f) => {
-  //       if (!f.children) return f;
-  //       const children = f.children.filter((c) =>
-  //         typeFilteredFiles.some((r) => r.path.includes(c.path)),
-  //       );
-  //       return {
-  //         ...f,
-  //         children,
-  //       };
-  //     });
-  // }
+  if (search) {
+    const searchResults = fuse.search(search);
+    filteredFiles = filteredFiles
+      .filter((f) => searchResults.some((r) => r.item.path.includes(f.path)))
+      .map((f) => {
+        if (f.type === "file") return f;
+        const children = f.children.filter((c) =>
+          searchResults.some((r) => r.item.path.includes(c.path)),
+        );
+        return {
+          ...f,
+          children,
+        };
+      });
+  }
+  if (filter) {
+    const typeFilteredFiles = flattedFiles.filter(
+      (f) => (f.type === "file" && f.metadata.type) === filter,
+    );
+    filteredFiles = filteredFiles
+      .filter((f) => typeFilteredFiles.some((r) => r.path.includes(f.path)))
+      .map((f) => {
+        if (f.type === "file") return f;
+        const children = f.children.filter((c) =>
+          typeFilteredFiles.some((r) => r.path.includes(c.path)),
+        );
+        return {
+          ...f,
+          children,
+        };
+      });
+  }
 
-  // filteredFiles = recursiveSort(filteredFiles, sort);
+  filteredFiles = recursiveSort(filteredFiles, sort);
 
   return (
     <Table
@@ -155,21 +180,21 @@ function Table({
   sort,
   setSort,
 }: {
-  files: FileMetadata[];
+  files: (FileMetadata | Directory)[];
   isLoading: boolean;
   depth: number;
-  setFiles: (files: FileMetadata[]) => void;
+  setFiles: (files: (FileMetadata | Directory)[]) => void;
   selected: FileMetadata | null;
   setSelectedFile: (file: FileMetadata) => void;
-  sort: DataTableSortStatus<FileMetadata>;
+  sort: DataTableSortStatus<FileMetadata | Directory>;
   setSort: (sort: SortStatus) => void;
 }) {
   const { t } = useTranslation();
 
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
-  // const expandedFiles = expandedIds.filter((id) =>
-  //   files?.find((f) => f.path === id && f.children),
-  // );
+  const expandedFiles = expandedIds.filter((id) =>
+    files?.find((f) => f.path === id && f.type === "directory"),
+  );
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -211,10 +236,10 @@ function Table({
         record.path === selected?.path ? classes.selected : ""
       }
       sortStatus={sort}
-      // onRowDoubleClick={({ record }) => {
-      //   if (record.children) return;
-      //   openFile(record as FileMetadata);
-      // }}
+      onRowDoubleClick={({ record }) => {
+        if (record.type === "directory") return;
+        openFile(record);
+      }}
       onSortStatusChange={setSort}
       columns={[
         {
@@ -224,7 +249,7 @@ function Table({
           render: (row) => (
             <Box ml={20 * depth}>
               <Group>
-                {row.children && (
+                {row.type === "directory" && (
                   <IconChevronRight
                     className={clsx(classes.icon, classes.expandIcon, {
                       [classes.expandIconRotated]: expandedFiles.includes(
@@ -234,7 +259,7 @@ function Table({
                   />
                 )}
                 <span>{row.name}</span>
-                {row.metadata?.type === "repertoire" && (
+                {row.type === "file" && row.metadata.type === "repertoire" && (
                   <DuePositions file={row.path} />
                 )}
               </Group>
@@ -246,7 +271,9 @@ function Table({
           title: "Type",
           width: 100,
           render: (row) =>
-            t(`Files.FileType.${capitalize(row.metadata?.type || "Folder")}`),
+            t(
+              `Files.FileType.${capitalize((row.type === "file" && row.metadata.type) || "Folder")}`,
+            ),
         },
         {
           accessor: "lastModified",
@@ -254,7 +281,7 @@ function Table({
           textAlign: "right",
           width: 200,
           render: (row) => {
-            if (!row.lastModified) return null;
+            if (row.type === "directory") return null;
             return (
               <Box ml={20 * depth}>
                 {dayjs(row.lastModified * 1000).format("DD MMM YYYY HH:mm")}
@@ -264,58 +291,58 @@ function Table({
         },
       ]}
       records={files}
-      // rowExpansion={{
-      //   allowMultiple: true,
-      //   expanded: {
-      //     recordIds: expandedFiles,
-      //     onRecordIdsChange: setExpandedIds,
-      //   },
-      //   content: ({ record }) =>
-      //     record.children && (
-      //       <Table
-      //         files={record.children}
-      //         isLoading={isLoading}
-      //         setFiles={setFiles}
-      //         depth={depth + 1}
-      //         selected={selected}
-      //         setSelectedFile={setSelectedFile}
-      //         sort={sort}
-      //         setSort={setSort}
-      //       />
-      //     ),
-      // }}
+      rowExpansion={{
+        allowMultiple: true,
+        expanded: {
+          recordIds: expandedFiles,
+          onRecordIdsChange: setExpandedIds,
+        },
+        content: ({ record }) =>
+          record.type === "directory" && (
+            <Table
+              files={record.children}
+              isLoading={isLoading}
+              setFiles={setFiles}
+              depth={depth + 1}
+              selected={selected}
+              setSelectedFile={setSelectedFile}
+              sort={sort}
+              setSort={setSort}
+            />
+          ),
+      }}
       onRowClick={({ record }) => {
-        if (!record.children) {
-          setSelectedFile(record as FileMetadata);
+        if (record.type === "file") {
+          setSelectedFile(record);
         }
       }}
-      // onRowContextMenu={({ record, event }) => {
-      //   return showContextMenu([
-      //     {
-      //       key: "open-file",
-      //       icon: <IconEye size={16} />,
-      //       disabled: !!record.children,
-      //       onClick: () => {
-      //         if (record.children) return;
-      //         openFile(record as FileMetadata);
-      //       },
-      //     },
-      //     {
-      //       key: "delete-file",
-      //       icon: <IconTrash size={16} />,
-      //       title: "Delete",
-      //       color: "red",
-      //       onClick: async () => {
-      //         if (record.children) {
-      //           await remove(record.path, { recursive: true });
-      //         } else {
-      //           await remove(record.path);
-      //         }
-      //         setFiles(files?.filter((f) => record.path.includes(f.path)));
-      //       },
-      //     },
-      //   ])(event);
-      // }}
+      onRowContextMenu={({ record, event }) => {
+        return showContextMenu([
+          {
+            key: "open-file",
+            icon: <IconEye size={16} />,
+            disabled: record.type === "directory",
+            onClick: () => {
+              if (record.type === "directory") return;
+              openFile(record);
+            },
+          },
+          {
+            key: "delete-file",
+            icon: <IconTrash size={16} />,
+            title: "Delete",
+            color: "red",
+            onClick: async () => {
+              if (record.type === "directory") {
+                await remove(record.path, { recursive: true });
+              } else {
+                await remove(record.path);
+              }
+              setFiles(files?.filter((f) => record.path.includes(f.path)));
+            },
+          },
+        ])(event);
+      }}
     />
   );
 }

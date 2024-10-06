@@ -45,34 +45,10 @@ const useFileDirectory = (dir: string) => {
   const { data, error, isLoading, mutate } = useSWR(
     "file-directory",
     async () => {
-      // const files = await readDir(dir, { recursive: true });
-      // const filesInfo = await processFiles(
-      //   files.filter((f) => !f.name?.startsWith(".")) as MetadataOrEntry[],
-      // );
       const entries = await readDir(dir);
       const allEntries = processEntriesRecursively(dir, entries);
 
-      console.log({ allEntries });
       return allEntries;
-      // return allEntries
-      //   .sort((a, b) => {
-      //     return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
-      //   })
-      //   .filter((f) => {
-      //     return f.children === undefined || f.children?.length > 0;
-      //   })
-      //   .sort((a, b) => {
-      //     if (a.children != null && b.children == null) {
-      //       return 1;
-      //     }
-      //     if (a.children != null && b.children != null) {
-      //       return 0;
-      //     }
-      //     if (a.children == null && b.children == null) {
-      //       return 0;
-      //     }
-      //     return -1;
-      //   });
     },
   );
   console.log(error);

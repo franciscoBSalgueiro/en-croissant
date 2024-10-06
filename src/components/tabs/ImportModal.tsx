@@ -85,6 +85,7 @@ export default function ImportModal({
             fileInfo = newFile.value;
           } else {
             fileInfo = {
+              type: "file",
               path: file,
               numGames: count,
               name: filename,
