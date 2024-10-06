@@ -800,7 +800,7 @@ function Board({
 
             {error && (
               <Text ta="center" c="red">
-                {chessopsError(error)}
+                {t(chessopsError(error))}
               </Text>
             )}
 

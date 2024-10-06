@@ -252,6 +252,21 @@ export const en_US = {
     "Databases.Delete.Message":
       "Are you sure you want to delete this database?",
 
+    "Errors.EmptyBoard": "Empty board",
+    "Errors.InvalidKings": "Invalid number of kings",
+    "Errors.OppositeCheck": "Opposite check",
+    "Errors.PawnsOnBackrank": "Pawns on backrank",
+    "Errors.InvalidBoard": "Invalid board",
+    "Errors.InvalidCastlingRights": "Invalid castling rights",
+    "Errors.InvalidEpSquare": "Invalid en passant square",
+    "Errors.InvalidFen": "Invalid FEN",
+    "Errors.InvalidFullmoves": "Invalid fullmove number",
+    "Errors.InvalidHaldmoves": "Invalid halfmove number",
+    "Errors.InvalidPockets": "Invalid pockets",
+    "Errors.InvalidRemainingChecks": "Invalid remaining checks",
+    "Errors.InvalidTurn": "Invalid turn",
+    "Errors.Unknown": "Unknown error",
+
     "Files.Title": "Files",
     "Files.FileType": "File type",
     "Files.FileType.Game": "Game",

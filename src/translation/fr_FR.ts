@@ -254,6 +254,21 @@ export const fr_FR = {
     "Databases.Delete.Message":
       "Êtes-vous sûr de vouloir supprimer cette base de données ?",
 
+    "Errors.EmptyBoard": "Échiquier vide",
+    "Errors.InvalidKings": "Nombre de Rois invalide",
+    "Errors.OppositeCheck": "Échec opposé",
+    "Errors.PawnsOnBackrank": "Pions en dernière rangée",
+    "Errors.InvalidBoard": "Échiquier invalide",
+    "Errors.InvalidCastlingRights": "Droits de roque invalide",
+    "Errors.InvalidEpSquare": "Case en passant invalide",
+    "Errors.InvalidFen": "FEN invalide",
+    "Errors.InvalidFullmoves": "Nombre de coup complet invalide",
+    "Errors.InvalidHalfmoves": "Nombre de demi-coup invalide",
+    "Errors.InvalidPockets": "Invalid pockets",
+    "Errors.InvalidRemainingChecks": "Échecs restant invalide",
+    "Errors.InvalidTurn": "Trait invalide",
+    "Errors.Unknown": "Erreur inconnue",
+
     "Files.Title": "Fichiers",
     "Files.FileType": "Type de fichier",
     "Files.FileType.Game": "Partie",

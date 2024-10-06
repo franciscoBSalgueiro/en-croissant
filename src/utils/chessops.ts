@@ -61,23 +61,29 @@ export function squareToCoordinates(
 
 export function chessopsError(error: PositionError | FenError) {
   return match(error)
-    .with({ message: IllegalSetup.Empty }, () => "Empty board")
-    .with({ message: IllegalSetup.Kings }, () => "Invalid number of kings")
-    .with({ message: IllegalSetup.OppositeCheck }, () => "Opposite check")
-    .with({ message: IllegalSetup.PawnsOnBackrank }, () => "Pawns on backrank")
-    .with({ message: InvalidFen.Board }, () => "Invalid board")
-    .with({ message: InvalidFen.Castling }, () => "Invalid castling rights")
-    .with({ message: InvalidFen.EpSquare }, () => "Invalid en passant square")
-    .with({ message: InvalidFen.Fen }, () => "Invalid FEN")
-    .with({ message: InvalidFen.Fullmoves }, () => "Invalid fullmove number")
-    .with({ message: InvalidFen.Halfmoves }, () => "Invalid halfmove number")
-    .with({ message: InvalidFen.Pockets }, () => "Invalid pockets")
+    .with({ message: IllegalSetup.Empty }, () => "Errors.EmptyBoard")
+    .with({ message: IllegalSetup.Kings }, () => "Errors.InvalidKings")
+    .with({ message: IllegalSetup.OppositeCheck }, () => "Errors.OppositeCheck")
+    .with(
+      { message: IllegalSetup.PawnsOnBackrank },
+      () => "Errors.PawnsOnBackrank",
+    )
+    .with({ message: InvalidFen.Board }, () => "Errors.InvalidBoard")
+    .with(
+      { message: InvalidFen.Castling },
+      () => "Errors.InvalidCastlingRights",
+    )
+    .with({ message: InvalidFen.EpSquare }, () => "Errors.InvalidEpSquare")
+    .with({ message: InvalidFen.Fen }, () => "Errors.InvalidFen")
+    .with({ message: InvalidFen.Fullmoves }, () => "Errors.InvalidFullmoves")
+    .with({ message: InvalidFen.Halfmoves }, () => "Errors.InvalidHalfmoves")
+    .with({ message: InvalidFen.Pockets }, () => "Errors.InvalidPockets")
     .with(
       { message: InvalidFen.RemainingChecks },
-      () => "Invalid remaining checks",
+      () => "Errors.InvalidRemainingChecks",
     )
-    .with({ message: InvalidFen.Turn }, () => "Invalid turn")
-    .otherwise(() => "Unknown error");
+    .with({ message: InvalidFen.Turn }, () => "Errors.InvalidTurn")
+    .otherwise(() => "Errors.Unknown");
 }
 
 export function forceEnPassant(
