@@ -13,7 +13,6 @@
         "core:window:allow-minimize",
         "core:window:allow-close",
         "shell:default",
-        "http:default",
         "dialog:default",
         "os:default",
         "cli:default",
@@ -29,6 +28,18 @@
                 {
                     "path": "**"
                 }
+            ]
+        },
+        {
+            "identifier": "http:default",
+            "allow": [
+                "https://www.encroissant.org/**",
+                "https://api.chess.com/**",
+                "https://www.chess.com/**",
+                "https://lichess.org/**",
+                "https://explorer.lichess.ovh/**",
+                "https://tablebase.lichess.ovh/**",
+                "https://www.chessdb.cn/**"
             ]
         }
     ]
