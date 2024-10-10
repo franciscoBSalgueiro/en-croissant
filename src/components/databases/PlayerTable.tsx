@@ -1,4 +1,5 @@
-import { type DatabaseInfo, type Player, query_players } from "@/utils/db";
+import type { Player, PlayerSort } from "@/bindings";
+import { type SuccessDatabaseInfo, query_players } from "@/utils/db";
 import {
   ActionIcon,
   Center,
@@ -17,7 +18,7 @@ import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";
 import * as classes from "./styles.css";
 
-function PlayerTable({ database }: { database: DatabaseInfo }) {
+function PlayerTable({ database }: { database: SuccessDatabaseInfo }) {
   const file = database.file;
   const [players, setPlayers] = useState<Player[]>([]);
   const [count, setCount] = useState(0);
@@ -40,14 +41,17 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
     query_players(file, {
       name: name,
       range: range,
-      page: 1,
-      pageSize: limit,
-      sort: sort.columnAccessor,
-      direction: sort.direction,
+      options: {
+        page: 1,
+        pageSize: limit,
+        sort: sort.columnAccessor as PlayerSort,
+        direction: sort.direction,
+        skipCount: false,
+      },
     }).then((res) => {
       setLoading(false);
       setPlayers(res.data);
-      setCount(res.count);
+      setCount(res.count!);
     });
   }, [name, range, limit, file]);
 
@@ -57,14 +61,17 @@ function PlayerTable({ database }: { database: DatabaseInfo }) {
     query_players(file, {
       name: name === "" ? undefined : name,
       range: range,
-      page: activePage,
-      pageSize: limit,
-      sort: sort.columnAccessor,
-      direction: sort.direction,
+      options: {
+        page: activePage,
+        pageSize: limit,
+        sort: sort.columnAccessor as PlayerSort,
+        direction: sort.direction,
+        skipCount: false,
+      },
     }).then((res) => {
       setLoading(false);
       setPlayers(res.data);
-      setCount(res.count);
+      setCount(res.count!);
     });
   }, [activePage, sort]);
 

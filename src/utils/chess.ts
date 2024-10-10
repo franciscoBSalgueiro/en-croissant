@@ -1,5 +1,4 @@
-import { type Score, commands } from "@/bindings";
-import { invoke } from "@tauri-apps/api";
+import { type Outcome, type Score, type Token, commands } from "@/bindings";
 import type { DrawShape } from "chessground/draw";
 import {
   type Color,
@@ -15,7 +14,6 @@ import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
 import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
-import type { Outcome } from "./db";
 import { harmonicMean, isPrefix, mean } from "./misc";
 import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
 import {
@@ -26,6 +24,7 @@ import {
   defaultTree,
   getNodeAtPath,
 } from "./treeReducer";
+import { unwrap } from "./unwrap";
 
 export interface BestMoves {
   depth: number;
@@ -362,15 +361,6 @@ export async function getOpening(
   return res.data;
 }
 
-type Token =
-  | { type: "ParenOpen" }
-  | { type: "ParenClose" }
-  | { type: "Comment"; value: string }
-  | { type: "San"; value: string }
-  | { type: "Header"; value: { tag: string; value: string } }
-  | { type: "Nag"; value: string }
-  | { type: "Outcome"; value: string };
-
 function innerParsePGN(
   tokens: Token[],
   fen: string = INITIAL_FEN,
@@ -489,7 +479,7 @@ export async function parsePGN(
   pgn: string,
   initialFen?: string,
 ): Promise<TreeState> {
-  const tokens = await invoke<Token[]>("lex_pgn", { pgn: pgn });
+  const tokens = unwrap(await commands.lexPgn(pgn));
 
   const headers = getPgnHeaders(tokens);
   const fen = initialFen?.trim() || headers.fen.trim();

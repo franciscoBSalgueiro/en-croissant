@@ -4,6 +4,7 @@ use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, FromSetup, Position, Setup};
+use specta::Type;
 use std::{
     path::PathBuf,
     sync::{
@@ -12,7 +13,7 @@ use std::{
     },
     time::Instant,
 };
-use tauri::Manager;
+use tauri::Emitter;
 
 use crate::{
     db::{
@@ -23,7 +24,7 @@ use crate::{
     AppState,
 };
 
-use super::GameQuery;
+use super::GameQueryJs;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
@@ -69,34 +70,17 @@ impl PositionQuery {
     }
 }
 
-impl<'de> Deserialize<'de> for PositionQuery {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        match value {
-            serde_json::Value::Object(map) => {
-                let type_ = map
-                    .get("type")
-                    .ok_or(serde::de::Error::custom("Missing type"))?;
-                let value = map
-                    .get("fen")
-                    .ok_or(serde::de::Error::custom("Missing fen"))?;
-                match type_.as_str().unwrap() {
-                    "exact" => {
-                        let fen = value.as_str().unwrap();
-                        PositionQuery::exact_from_fen(fen).map_err(serde::de::Error::custom)
-                    }
-                    "partial" => {
-                        let fen = value.as_str().unwrap();
-                        PositionQuery::partial_from_fen(fen).map_err(serde::de::Error::custom)
-                    }
-                    _ => Err(serde::de::Error::custom("Invalid key")),
-                }
-            }
-            _ => Err(serde::de::Error::custom("Invalid value")),
-        }
+#[derive(Debug, Clone, Deserialize, Type, PartialEq, Eq, Hash)]
+pub struct PositionQueryJs {
+    pub fen: String,
+    pub type_: String,
+}
+
+fn convert_position_query(query: PositionQueryJs) -> Result<PositionQuery, Error> {
+    match query.type_.as_str() {
+        "exact" => PositionQuery::exact_from_fen(&query.fen),
+        "partial" => PositionQuery::partial_from_fen(&query.fen),
+        _ => unreachable!(),
     }
 }
 
@@ -158,7 +142,7 @@ fn is_contained(container: Bitboard, subset: Bitboard) -> bool {
     container & subset == subset
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Type)]
 pub struct PositionStats {
     #[serde(rename = "move")]
     pub move_: String,
@@ -215,9 +199,10 @@ pub struct ProgressPayload {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn search_position(
     file: PathBuf,
-    query: GameQuery,
+    query: GameQueryJs,
     app: tauri::AppHandle,
     tab_id: String,
     state: tauri::State<'_, AppState>,
@@ -285,7 +270,7 @@ pub async fn search_position(
             let index = processed.load(Ordering::Relaxed);
             if (index + 1) % 10000 == 0 {
                 info!("{} games processed: {:?}", index + 1, start.elapsed());
-                app.emit_all(
+                app.emit(
                     "search_progress",
                     ProgressPayload {
                         progress: (index as f64 / games.len() as f64) * 100.0,
@@ -325,8 +310,10 @@ pub async fn search_position(
             }
 
             if let Some(position_query) = &query.position {
+                let position_query =
+                    convert_position_query(position_query.clone()).expect("Invalid position query");
                 if position_query.can_reach(&end_material, *end_pawn_home as u16) {
-                    if let Ok(Some(m)) = get_move_after_match(game, fen, position_query) {
+                    if let Ok(Some(m)) = get_move_after_match(game, fen, &position_query) {
                         if sample_games.lock().unwrap().len() < 10 {
                             sample_games.lock().unwrap().push(*id);
                         }
@@ -392,7 +379,7 @@ pub async fn search_position(
 
 pub async fn is_position_in_db(
     file: PathBuf,
-    query: GameQuery,
+    query: GameQueryJs,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
@@ -448,8 +435,10 @@ pub async fn is_position_in_db(
                 black: *black_material as u8,
             };
             if let Some(position_query) = &query.position {
+                let position_query =
+                    convert_position_query(position_query.clone()).expect("Invalid position query");
                 position_query.can_reach(&end_material, *end_pawn_home as u16)
-                    && get_move_after_match(game, fen, position_query)
+                    && get_move_after_match(game, fen, &position_query)
                         .unwrap_or(None)
                         .is_some()
             } else {

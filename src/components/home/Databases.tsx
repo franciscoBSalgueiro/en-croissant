@@ -1,23 +1,18 @@
 import { events, type MonthData, type Results, commands } from "@/bindings";
+import type { DatabaseInfo as PlainDatabaseInfo, Player } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
-import {
-  type DatabaseInfo as PlainDatabaseInfo,
-  type Player,
-  type PlayerGameInfo,
-  getDatabases,
-  query_players,
-} from "@/utils/db";
-import { unwrap } from "@/utils/invoke";
+import { type PlayerGameInfo, getDatabases, query_players } from "@/utils/db";
 import type { Session } from "@/utils/session";
+import { unwrap } from "@/utils/unwrap";
 import { Flex, Progress, Select, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "./PersonalCard";
 
-interface DatabaseInfo extends PlainDatabaseInfo {
+type DatabaseInfo = PlainDatabaseInfo & {
   username?: string;
-}
+};
 
 function getSessionUsername(session: Session): string {
   const username =
@@ -144,7 +139,7 @@ function Databases() {
   const { data: databases } = useSWRImmutable<DatabaseInfo[]>(
     sessions.length === 0 ? null : ["personalDatabases", sessions],
     async () => {
-      const dbs = (await getDatabases()).filter((db) => db.error === undefined);
+      const dbs = (await getDatabases()).filter((db) => db.type === "success");
       return dbs.filter((db) => isDatabaseFromSession(db, sessions));
     },
   );
@@ -160,20 +155,23 @@ function Databases() {
       if (!databases || !playerDbs) return [];
       const results = await Promise.allSettled(
         databases
-          .filter((db) => playerDbs.includes(db.title || ""))
+          .filter((db) =>
+            playerDbs.includes((db.type === "success" && db.title) || ""),
+          )
           .map(async (db, i) => {
-            let player: Player | null = null;
             const players = await query_players(db.file, {
               name: db.username,
-              pageSize: 1,
-              direction: "asc",
-              sort: "id",
+              options: {
+                pageSize: 1,
+                direction: "asc",
+                sort: "id",
+                skipCount: false,
+              },
             });
-            if (players.data.length > 0) {
-              player = players.data[0];
-            } else {
+            if (players.data.length === 0) {
               throw new Error("Player not found in database");
             }
+            const player = players.data[0];
             const info = unwrap(
               await commands.getPlayersGameInfo(db.file, player.id),
             );

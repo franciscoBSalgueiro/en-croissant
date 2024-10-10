@@ -8,10 +8,7 @@ use quick_xml::de::from_reader;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use strsim::{jaro_winkler, sorensen_dice};
-use tauri::{
-    api::path::{app_config_dir, resolve_path, BaseDirectory},
-    Manager,
-};
+use tauri::{path::BaseDirectory, Manager};
 use tauri_specta::Event;
 
 use crate::{error::Error, fs::DownloadProgress};
@@ -81,22 +78,17 @@ pub struct PlayersList {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn download_fide_db(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<(), Error> {
-    let fide_path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        "fide.bin",
-        Some(BaseDirectory::AppData),
-    )?;
+    let fide_path = app.path().resolve("fide.bin", BaseDirectory::AppData)?;
 
     download_file(
         "fide_db".to_string(),
         "http://ratings.fide.com/download/players_list_xml.zip".to_string(),
-        app_config_dir(&app.config()).unwrap(),
+        app.path().config_dir().unwrap(),
         app.clone(),
         None,
         Some(false),
@@ -104,13 +96,9 @@ pub async fn download_fide_db(
     )
     .await?;
 
-    let xml_path = resolve_path(
-        &app.config(),
-        app.package_info(),
-        &app.env(),
-        "players_list_xml_foa.xml",
-        Some(BaseDirectory::AppData),
-    )?;
+    let xml_path = app
+        .path()
+        .resolve("players_list_xml_foa.xml", BaseDirectory::AppData)?;
 
     let reader = BufReader::new(File::open(&xml_path)?);
     let players_list: PlayersList = from_reader(reader)?;
@@ -126,7 +114,7 @@ pub async fn download_fide_db(
         id: "fide_db".to_string(),
         finished: true,
     }
-    .emit_all(&app)?;
+    .emit(&app)?;
 
     remove_file(&xml_path)?;
 
@@ -145,13 +133,7 @@ pub async fn find_fide_player(
     if fide_players.is_empty() {
         drop(fide_players);
         let config = config::standard();
-        let fide_path = resolve_path(
-            &app.config(),
-            app.package_info(),
-            &app.env(),
-            "fide.bin",
-            Some(BaseDirectory::AppData),
-        )?;
+        let fide_path = app.path().resolve("fide.bin", BaseDirectory::AppData)?;
 
         if let Ok(f) = File::open(&fide_path) {
             let mut fide_players = state.fide_players.write().await;

@@ -24,6 +24,7 @@ pub struct DownloadProgress {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn download_file(
     id: String,
     url: String,
@@ -67,7 +68,7 @@ pub async fn download_file(
                 id: id.clone(),
                 finished: false,
             }
-            .emit_all(&app)?;
+            .emit(&app)?;
         }
     }
 
@@ -90,7 +91,7 @@ pub async fn download_file(
             id,
             finished: true,
         }
-        .emit_all(&app)?;
+        .emit(&app)?;
     }
     // remove_file(&path).await;
     Ok(())
@@ -128,6 +129,7 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn set_file_as_executable(_path: String) -> Result<(), Error> {
     #[cfg(unix)]
     {
@@ -137,13 +139,6 @@ pub async fn set_file_as_executable(_path: String) -> Result<(), Error> {
         permissions.set_mode(0o755);
         std::fs::set_permissions(path, permissions)?;
     }
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn append_to_file(path: String, text: String) -> Result<(), Error> {
-    let mut file = std::fs::OpenOptions::new().append(true).open(path)?;
-    file.write_all(text.as_bytes())?;
     Ok(())
 }
 

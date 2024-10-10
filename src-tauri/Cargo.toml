@@ -10,13 +10,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.5", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.6", features = ["cli", "api-all", "updater"] }
+tauri = { version = "2", features = ["protocol-asset"] }
 zip = "2.1.6"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
@@ -46,8 +45,8 @@ vampirc-uci = { git = "https://github.com/franciscoBSalgueiro/vampirc-uci", rev 
 ] }
 tempfile = "3.6.0"
 quick-xml = { version = "0.31.0", features = ["serialize"] }
-specta = { version = "2.0.0-rc.7", features = ["typescript"] }
-tauri-specta = { version = "2.0.0-rc.4", features = ["typescript"] }
+specta = { version = "^2.0.0-rc.20", features = ["derive"] }
+tauri-specta = { version = "^2.0.0-rc.20", features = ["derive", "typescript"] }
 strsim = "0.11.0"
 bincode = "2.0.0-rc.3"
 thiserror = "1.0.48"
@@ -56,9 +55,19 @@ oauth2 = "4.4.2"
 axum = "0.6.20"
 tar = "0.4.40"
 sysinfo = "0.29.10"
-window-shadows = "0.2.2"
 governor = "0.6.3"
 nonzero_ext = "0.3.0"
+specta-typescript = "0.0.7"
+tauri-plugin-shell = "2.0.1"
+tauri-plugin-http = "2.0.1"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2.0.1"
+tauri-plugin-os = "2.0.1"
+tauri-plugin-cli = "2.0.1"
+tauri-plugin-updater = "2.0.1"
+tauri-plugin-process = "2"
+tauri-plugin-log = "2"
+tauri-plugin-window-state = "2"
 
 [features]
 # by default Tauri runs in production mode

@@ -1,11 +1,11 @@
+import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import type { TreeStoreState } from "@/state/store";
-import { save } from "@tauri-apps/api/dialog";
+import { save } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
-import { invoke } from "./invoke";
-import type { GameHeaders, TreeNode } from "./treeReducer";
+import type { GameHeaders } from "./treeReducer";
 
 export const tabSchema = z.object({
   name: z.string(),
@@ -114,6 +114,7 @@ export async function saveToFile({
       return {
         ...prev,
         file: {
+          type: "file",
           name: userChoice,
           path: userChoice,
           numGames: 1,
@@ -126,16 +127,16 @@ export async function saveToFile({
       };
     });
   }
-  await invoke("write_game", {
-    file: filePath,
-    n: tab?.gameNumber || 0,
-    pgn: `${getPGN(store.getState().root, {
+  await commands.writeGame(
+    filePath,
+    tab?.gameNumber || 0,
+    `${getPGN(store.getState().root, {
       headers: store.getState().headers,
       comments: true,
       extraMarkups: true,
       glyphs: true,
       variations: true,
     })}\n\n`,
-  });
+  );
   store.getState().save();
 }

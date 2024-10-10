@@ -8,7 +8,6 @@ import {
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { getVariationLine } from "@/utils/chess";
-import { invoke } from "@/utils/invoke";
 import { saveToFile } from "@/utils/tabs";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
@@ -20,6 +19,7 @@ import {
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtom, useAtomValue } from "jotai";
 import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -82,9 +82,8 @@ function BoardAnalysis() {
       return { ...prev };
     });
     reset();
-    invoke("append_to_file", {
-      path: currentTab?.file?.path,
-      text: "\n\n",
+    writeTextFile(currentTab?.file?.path!, "\n\n", {
+      append: true,
     });
   }, [setCurrentTab, reset, currentTab?.file?.path]);
 

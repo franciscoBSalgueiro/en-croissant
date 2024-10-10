@@ -9,12 +9,13 @@ import {
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { getMatches } from "@tauri-apps/api/cli";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getMatches } from "@tauri-apps/plugin-cli";
+import { attachConsole, info } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect } from "react";
 import { Helmet } from "react-helmet";
-import { attachConsole, info } from "tauri-plugin-log-api";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -81,13 +82,6 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
-  const isNative = useAtomValue(nativeBarAtom);
-
-  useEffect(() => {
-    setTimeout(() => {
-      commands.setMenuVisisble(isNative);
-    }, 100);
-  }, [isNative]);
 
   useEffect(() => {
     (async () => {

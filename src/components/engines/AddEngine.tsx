@@ -8,7 +8,7 @@ import {
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
-import { invoke, unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import {
   Alert,
   Box,
@@ -213,11 +213,7 @@ function EngineCard({
       if (url.endsWith(".zip") || url.endsWith(".tar")) {
         path = await resolve(await appDataDir(), "engines");
       }
-      await invoke("download_file", {
-        id: `engine_${id}`,
-        url,
-        path,
-      });
+      await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
       let appDataDirPath = await appDataDir();
       if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
         appDataDirPath = appDataDirPath.slice(0, -1);
@@ -227,7 +223,7 @@ function EngineCard({
         "engines",
         ...engine.path.split("/"),
       );
-      await invoke("set_file_as_executable", { path: enginePath });
+      await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
         ...(await prev),

@@ -1,8 +1,9 @@
 import { commands } from "@/bindings";
+import type { DatabaseInfo } from "@/bindings";
 import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
-import { type DatabaseInfo, getDatabases } from "@/utils/db";
+import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke, unwrap } from "@/utils/invoke";
+import { unwrap } from "@/utils/unwrap";
 import {
   Box,
   Button,
@@ -25,7 +26,7 @@ import {
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { open as openDialog, save } from "@tauri-apps/api/dialog";
+import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -62,7 +63,7 @@ export default function DatabasesPage() {
   const [exportLoading, setExportLoading] = useState(false);
 
   function changeReferenceDatabase(file: string) {
-    invoke("clear_games");
+    commands.clearGames();
     if (file === referenceDatabase) {
       setReferenceDatabase(null);
     } else {
@@ -79,12 +80,10 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          invoke("delete_database", { file: selectedDatabase?.file }).then(
-            () => {
-              mutate();
-              setSelected(null);
-            },
-          );
+          commands.deleteDatabase(selectedDatabase?.file!).then(() => {
+            mutate();
+            setSelected(null);
+          });
           toggleDeleteModal();
         }}
       />
@@ -129,11 +128,14 @@ export default function DatabasesPage() {
                   key={item.filename}
                   isSelected={selectedDatabase?.filename === item.filename}
                   setSelected={setSelected}
-                  error={item.error}
+                  error={item.type === "error" ? item.error : ""}
                   onDoubleClick={() => {
+                    if (item.type === "error") return;
                     navigate({
                       to: "/databases/$databaseId",
-                      params: { databaseId: item.title || "" },
+                      params: {
+                        databaseId: item.title,
+                      },
                     });
                     setStorageSelected(item);
                   }}
@@ -142,13 +144,17 @@ export default function DatabasesPage() {
                       <Group wrap="nowrap" miw={0}>
                         <IconDatabase size="1.5rem" />
                         <Box miw={0}>
-                          <Text fw={500}>{item.error ?? item.title}</Text>
+                          <Text fw={500}>
+                            {item.type === "success" ? item.title : item.error}
+                          </Text>
                           <Text
                             size="xs"
                             c="dimmed"
                             style={{ wordWrap: "break-word" }}
                           >
-                            {item.error ? item.file : item.description}
+                            {item.type === "error"
+                              ? item.file
+                              : item.description}
                           </Text>
                         </Box>
                       </Group>
@@ -164,13 +170,17 @@ export default function DatabasesPage() {
                   stats={[
                     {
                       label: t("Databases.Card.Games"),
-                      value: item.error ? "???" : formatNumber(item.game_count),
+                      value:
+                        item.type === "success"
+                          ? formatNumber(item.game_count)
+                          : "???",
                     },
                     {
                       label: t("Databases.Card.Storage"),
-                      value: item.error
-                        ? "???"
-                        : formatBytes(item.storage_size ?? 0),
+                      value:
+                        item.type === "success"
+                          ? formatBytes(item.storage_size ?? 0)
+                          : "???",
                     },
                   ]}
                 />
@@ -185,7 +195,7 @@ export default function DatabasesPage() {
           ) : (
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
-                {selectedDatabase.error ? (
+                {selectedDatabase.type === "error" ? (
                   <>
                     <Text fz="lg" fw="bold">
                       There was an error loading this database
@@ -255,7 +265,7 @@ export default function DatabasesPage() {
                     </Group>
 
                     <div>
-                      {!selectedDatabase.error && (
+                      {selectedDatabase.type === "success" && (
                         <Button
                           component={Link}
                           to="/databases/$databaseId"
@@ -278,7 +288,7 @@ export default function DatabasesPage() {
                   label={t("Databases.Settings.AdvancedTools")}
                 />
 
-                {!selectedDatabase.error && (
+                {selectedDatabase.type === "success" && (
                   <AdvancedSettings
                     selectedDatabase={selectedDatabase}
                     reload={mutate}
@@ -290,7 +300,7 @@ export default function DatabasesPage() {
                   label={t("Databases.Settings.Actions")}
                 />
                 <Group justify="space-between">
-                  {!selectedDatabase.error && (
+                  {selectedDatabase.type === "success" && (
                     <Group>
                       <Button
                         variant="default"
@@ -324,10 +334,10 @@ export default function DatabasesPage() {
                           });
                           if (!destFile) return;
                           setExportLoading(true);
-                          await invoke("export_to_pgn", {
-                            file: selectedDatabase.file,
+                          await commands.exportToPgn(
+                            selectedDatabase.file,
                             destFile,
-                          });
+                          );
                           setExportLoading(false);
                         }}
                       >
@@ -352,7 +362,7 @@ function GeneralSettings({
   selectedDatabase,
   mutate,
 }: {
-  selectedDatabase: DatabaseInfo;
+  selectedDatabase: SuccessDatabaseInfo;
   mutate: () => void;
 }) {
   const { t } = useTranslation();
@@ -364,11 +374,13 @@ function GeneralSettings({
   const [debouncedDescription] = useDebouncedValue(description, 300);
 
   useEffect(() => {
-    invoke("edit_db_info", {
-      file: selectedDatabase.file,
-      title: debouncedTitle,
-      description: debouncedDescription,
-    }).then(() => mutate());
+    commands
+      .editDbInfo(
+        selectedDatabase.file,
+        debouncedTitle ?? null,
+        debouncedDescription ?? null,
+      )
+      .then(() => mutate());
   }, [debouncedTitle, debouncedDescription]);
 
   return (
@@ -478,7 +490,8 @@ function DuplicateRemover({
           loading={loading}
           onClick={async () => {
             setLoading(true);
-            invoke("delete_duplicated_games", { file: selectedDatabase.file })
+            commands
+              .deleteDuplicatedGames(selectedDatabase.file)
               .then(() => {
                 setLoading(false);
                 reload();
@@ -496,7 +509,8 @@ function DuplicateRemover({
           loading={loading}
           onClick={async () => {
             setLoading(true);
-            invoke("delete_empty_games", { file: selectedDatabase.file })
+            commands
+              .deleteEmptyGames(selectedDatabase.file)
               .then(() => {
                 setLoading(false);
                 reload();
@@ -535,12 +549,10 @@ function IndexInput({
           checked={indexed}
           onChange={(e) => {
             setLoading(true);
-            invoke(
-              e.currentTarget.checked ? "create_indexes" : "delete_indexes",
-              {
-                file,
-              },
-            ).then(() => {
+            const fn = e.currentTarget.checked
+              ? commands.createIndexes
+              : commands.deleteIndexes;
+            fn(file).then(() => {
               getDatabases().then((dbs) => {
                 setDatabases(dbs);
                 setLoading(false);

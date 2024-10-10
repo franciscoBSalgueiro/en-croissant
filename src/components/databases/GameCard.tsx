@@ -1,6 +1,5 @@
+import { type NormalizedGame, commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import type { NormalizedGame } from "@/utils/db";
-import { invoke } from "@/utils/invoke";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -60,10 +59,7 @@ function GameCard({
                 variant="subtle"
                 color="red"
                 onClick={() => {
-                  invoke("delete_db_game", {
-                    file,
-                    gameId: game.id,
-                  }).then(() => mutate());
+                  commands.deleteDbGame(file, game.id).then(() => mutate());
                 }}
               >
                 <IconTrash size="1.2rem" stroke={1.5} />

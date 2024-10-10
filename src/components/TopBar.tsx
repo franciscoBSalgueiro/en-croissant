@@ -1,8 +1,9 @@
 import { Box, Button, Center, Group, Image, Menu, Text } from "@mantine/core";
-import { appWindow } from "@tauri-apps/api/window";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import * as classes from "./TopBar.css";
 
 import { useColorScheme } from "@mantine/hooks";
+const appWindow = getCurrentWebviewWindow();
 
 function IconMinimize() {
   return (

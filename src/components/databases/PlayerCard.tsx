@@ -1,6 +1,5 @@
-import { commands } from "@/bindings";
-import type { Player } from "@/utils/db";
-import { unwrap } from "@/utils/invoke";
+import { type Player, commands } from "@/bindings";
+import { unwrap } from "@/utils/unwrap";
 import { Center, Loader, Paper, Stack, Text } from "@mantine/core";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "../home/PersonalCard";
@@ -26,7 +25,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           </Center>
         </Paper>
       )}
-      {info && <PersonalPlayerCard name={player.name} info={info} />}
+      {info && <PersonalPlayerCard name={player.name!} info={info} />}
     </>
   );
 }

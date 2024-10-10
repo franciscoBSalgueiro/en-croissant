@@ -1,16 +1,16 @@
+import { commands } from "@/bindings";
 import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 import { currentTabAtom, missingMovesAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
-import { read_games } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { getTreeStats } from "@/utils/repertoire";
 import { getNodeAtPath } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import { Accordion, Box, Group, ScrollArea, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { invoke } from "@tauri-apps/api";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -102,7 +102,9 @@ function GameSelectorAccordion({
 
     if (!currentTab?.file) return;
 
-    const data = await read_games(currentTab.file.path, page, page);
+    const data = unwrap(
+      await commands.readGames(currentTab.file.path, page, page),
+    );
     const tree = await parsePGN(data[0]);
     setState(tree);
 
@@ -121,10 +123,7 @@ function GameSelectorAccordion({
   }
 
   async function deleteGame(index: number) {
-    await invoke("delete_game", {
-      file: currentTab?.file?.path,
-      n: index,
-    });
+    await commands.deleteGame(currentTab?.file?.path!, index);
     setCurrentTab((prev) => {
       if (!prev.file) return prev;
       prev.file.numGames -= 1;

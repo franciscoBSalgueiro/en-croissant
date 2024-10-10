@@ -1,8 +1,7 @@
-import { events } from "@/bindings";
+import { events, type PuzzleDatabaseInfo, commands } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
-import { invoke } from "@/utils/invoke";
-import { type PuzzleDatabase, getPuzzleDatabases } from "@/utils/puzzles";
+import { getPuzzleDatabases } from "@/utils/puzzles";
 import {
   Alert,
   Box,
@@ -26,10 +25,10 @@ function AddPuzzle({
   setOpened,
   setPuzzleDbs,
 }: {
-  puzzleDbs: PuzzleDatabase[];
+  puzzleDbs: PuzzleDatabaseInfo[];
   opened: boolean;
   setOpened: (opened: boolean) => void;
-  setPuzzleDbs: Dispatch<SetStateAction<PuzzleDatabase[]>>;
+  setPuzzleDbs: Dispatch<SetStateAction<PuzzleDatabaseInfo[]>>;
 }) {
   const { data: dbs, error } = useSWRImmutable(
     "default_puzzle_databases",
@@ -74,8 +73,8 @@ function PuzzleDbCard({
   databaseId,
   initInstalled,
 }: {
-  setPuzzleDbs: Dispatch<SetStateAction<PuzzleDatabase[]>>;
-  puzzleDb: PuzzleDatabase;
+  setPuzzleDbs: Dispatch<SetStateAction<PuzzleDatabaseInfo[]>>;
+  puzzleDb: PuzzleDatabaseInfo & { downloadLink: string };
   databaseId: number;
   initInstalled: boolean;
 }) {
@@ -84,11 +83,7 @@ function PuzzleDbCard({
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(await appDataDir(), "puzzles", `${name}.db3`);
-    await invoke("download_file", {
-      id: `puzzle_db_${id}`,
-      url,
-      path,
-    });
+    await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
     setPuzzleDbs(await getPuzzleDatabases());
   }
 
@@ -112,13 +107,13 @@ function PuzzleDbCard({
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 SIZE
               </Text>
-              <Text size="xs">{formatBytes(puzzleDb.storage_size)}</Text>
+              <Text size="xs">{formatBytes(puzzleDb.storageSize)}</Text>
             </Stack>
             <Stack gap={0} align="center">
               <Text tt="uppercase" c="dimmed" fw={700} size="xs">
                 PUZZLES
               </Text>
-              <Text size="xs">{formatNumber(puzzleDb.puzzle_count)}</Text>
+              <Text size="xs">{formatNumber(puzzleDb.puzzleCount)}</Text>
             </Stack>
           </Group>
           <ProgressButton

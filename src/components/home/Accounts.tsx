@@ -1,7 +1,8 @@
+import { commands } from "@/bindings";
+import type { DatabaseInfo } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount } from "@/utils/chess.com/api";
-import { type DatabaseInfo, getDatabases } from "@/utils/db";
-import { invoke } from "@/utils/invoke";
+import { getDatabases } from "@/utils/db";
 import { getLichessAccount } from "@/utils/lichess/api";
 import {
   Autocomplete,
@@ -31,7 +32,7 @@ function Accounts() {
   const [open, setOpen] = useState(false);
 
   async function login(username: string) {
-    await invoke("authenticate", { username });
+    await commands.authenticate(username);
   }
 
   async function addLichess(

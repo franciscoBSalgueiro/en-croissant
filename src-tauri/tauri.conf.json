@@ -1,111 +1,52 @@
 {
-  "package": {
-    "productName": "en-croissant"
-  },
-  "build": {
-    "beforeDevCommand": "pnpm start-vite",
-    "beforeBuildCommand": "pnpm build-vite",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist",
-    "withGlobalTauri": false
-  },
-  "tauri": {
-    "allowlist": {
-      "all": true,
-      "protocol": {
-        "all": false,
-        "asset": true,
-        "assetScope": [
-          "**"
-        ]
-      },
-      "fs": {
-        "all": true,
-        "scope": [
-          "$APPDATA/**",
-          "$DOCUMENT/**",
-          "**"
-        ]
-      },
-      "http": {
-        "scope": [
-          "https://www.encroissant.org/**",
-          "https://api.chess.com/**",
-          "https://www.chess.com/**",
-          "https://lichess.org/**",
-          "https://explorer.lichess.ovh/**",
-          "https://tablebase.lichess.ovh/**",
-          "https://www.chessdb.cn/**"
-        ]
-      },
-      "window": {
-        "all": false,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true,
-        "setFullscreen": true
-      }
+  "bundle": {
+    "active": true,
+    "category": "BoardGame",
+    "copyright": "",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
     },
-    "bundle": {
-      "active": true,
-      "category": "BoardGame",
-      "copyright": "",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
       "deb": {
         "depends": []
-      },
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "identifier": "org.encroissant.app",
-      "publisher": "Francisco Salgueiro",
-      "shortDescription": "A Modern Chess Database",
-      "longDescription": "",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerShortName": null,
-        "signingIdentity": null
-      },
-      "resources": [],
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
       },
       "appimage": {
         "bundleMediaFramework": true
       }
     },
-    "security": {
-      "csp": null
+    "publisher": "Francisco Salgueiro",
+    "shortDescription": "Ultimate Chess Toolkit",
+    "longDescription": "",
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
     },
-    "updater": {
-      "active": true,
-      "endpoints": [
-        "https://www.encroissant.org/updates"
-      ],
-      "dialog": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGOTBFNjg2MzFGM0RDODUKUldTRjNQTXhodWFRZjc2MTNVeXRONGJkRjdGUXlCeW1MSlZESUczT0U4eE5hKzBmY3M2S0U2L0oK"
-    },
-    "windows": [
-      {
-        "title": "En Croissant",
-        "maximized": true,
-        "visible": false,
-        "decorations": false
-      }
-    ],
+    "resources": [],
+    "targets": "all",
+    "createUpdaterArtifacts": "v1Compatible"
+  },
+  "build": {
+    "beforeDevCommand": "pnpm start-vite",
+    "beforeBuildCommand": "pnpm build-vite",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
+  },
+  "productName": "en-croissant",
+  "mainBinaryName": "en-croissant",
+  "identifier": "org.encroissant.app",
+  "plugins": {
     "cli": {
       "args": [
         {
@@ -114,6 +55,32 @@
           "takesValue": true
         }
       ]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGOTBFNjg2MzFGM0RDODUKUldTRjNQTXhodWFRZjc2MTNVeXRONGJkRjdGUXlCeW1MSlZESUczT0U4eE5hKzBmY3M2S0U2L0oK",
+      "endpoints": [
+        "https://www.encroissant.org/updates"
+      ]
+    }
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "En Croissant",
+        "maximized": true,
+        "visible": false,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "assetProtocol": {
+        "scope": [
+          "**"
+        ],
+        "enable": true
+      },
+      "csp": null
     }
   }
 }

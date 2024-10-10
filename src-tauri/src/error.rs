@@ -25,7 +25,7 @@ pub enum Error {
     Tauri(#[from] tauri::Error),
 
     #[error(transparent)]
-    TauriApi(#[from] tauri::api::Error),
+    TauriShell(#[from] tauri_plugin_shell::Error),
 
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
@@ -98,7 +98,10 @@ impl serde::Serialize for Error {
 }
 
 impl Type for Error {
-    fn inline(_type_map: &mut specta::TypeMap, _generics: &[specta::DataType]) -> specta::DataType {
-        specta::DataType::Primitive(specta::PrimitiveType::String)
+    fn inline(
+        _type_map: &mut specta::TypeMap,
+        _generics: specta::Generics,
+    ) -> specta::datatype::DataType {
+        specta::datatype::DataType::Primitive(specta::datatype::PrimitiveType::String)
     }
 }
