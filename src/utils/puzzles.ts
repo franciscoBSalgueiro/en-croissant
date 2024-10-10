@@ -17,7 +17,7 @@ export interface Puzzle {
 
 async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo> {
   const appDataDirPath = await appDataDir();
-  const path = await resolve(appDataDirPath, name);
+  const path = await resolve(appDataDirPath, "puzzles", name);
   return unwrap(await commands.getPuzzleDbInfo(path));
 }
 
