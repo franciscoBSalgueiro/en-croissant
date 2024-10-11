@@ -2,23 +2,17 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getCastlingSquare, swapMove } from "@/utils/chessops";
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
-import { memo, useContext } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 import FenSearch from "./FenSearch";
+import { SquareSet, type Setup } from "chessops";
 
 type Castlingrights = {
   k: boolean;
   q: boolean;
 };
 
-function FenInput({ currentFen }: { currentFen: string }) {
-  const store = useContext(TreeStateContext)!;
-  const setFen = useStore(store, (s) => s.setFen);
-
-  const [setup, error] = parseFen(currentFen).unwrap(
-    (v) => [v, null],
-    (e) => [null, e],
-  );
+function getCastlingRights(setup: Setup) {
   let whiteCastling: Castlingrights = { k: false, q: false };
   let blackCastling: Castlingrights = { k: false, q: false };
 
@@ -49,19 +43,78 @@ function FenInput({ currentFen }: { currentFen: string }) {
     };
   }
 
-  function setCastlingRights(
-    color: "w" | "b",
-    side: "q" | "k",
-    value: boolean,
-  ) {
-    if (setup) {
-      const castlingSquare = getCastlingSquare(setup, color, side);
-      if (castlingSquare !== undefined) {
-        setup.castlingRights = setup.castlingRights.set(castlingSquare, value);
-        setFen(makeFen(setup));
-      }
-    }
+  return {
+    whiteCastling,
+    blackCastling,
+  };
+}
+
+function FenInput({ currentFen }: { currentFen: string }) {
+  const store = useContext(TreeStateContext)!;
+  const setFen = useStore(store, (s) => s.setFen);
+
+  const [setup, error] = useMemo(
+    () =>
+      parseFen(currentFen).unwrap(
+        (v) => [v, null],
+        (e) => [null, e],
+      ),
+    [currentFen],
+  );
+
+  if (!setup) {
+    return <Text>{error.message}</Text>;
   }
+
+  const { whiteCastling, blackCastling } = useMemo(
+    () => getCastlingRights(setup),
+    [setup],
+  );
+
+  const setCastlingRights = useCallback(
+    (color: "w" | "b", side: "q" | "k", value: boolean) => {
+      if (setup) {
+        const castlingSquare = getCastlingSquare(setup, color, side);
+        if (castlingSquare !== undefined) {
+          setup.castlingRights = setup.castlingRights.set(
+            castlingSquare,
+            value,
+          );
+          setFen(makeFen(setup));
+        }
+      }
+    },
+    [setup, setFen],
+  );
+
+  useEffect(() => {
+    let newCastlingRights = SquareSet.empty();
+    if (whiteCastling.q) {
+      newCastlingRights = newCastlingRights.set(
+        getCastlingSquare(setup, "w", "q")!,
+        true,
+      );
+    }
+    if (blackCastling.q) {
+      newCastlingRights = newCastlingRights.set(
+        getCastlingSquare(setup, "b", "q")!,
+        true,
+      );
+    }
+    if (whiteCastling.k) {
+      newCastlingRights = newCastlingRights.set(
+        getCastlingSquare(setup, "w", "k")!,
+        true,
+      );
+    }
+    if (blackCastling.k) {
+      newCastlingRights = newCastlingRights.set(
+        getCastlingSquare(setup, "b", "k")!,
+        true,
+      );
+    }
+    setFen(makeFen({ ...setup, castlingRights: newCastlingRights }));
+  }, [blackCastling, setCastlingRights, setup, whiteCastling, setFen]);
 
   return (
     <Stack gap="sm">

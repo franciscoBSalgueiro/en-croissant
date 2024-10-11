@@ -73,7 +73,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -558,16 +558,19 @@ function Board({
   const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
   const [snapArrows] = useAtom(snapArrowsAtom);
 
-  const setBoardFen = (fen: string) => {
-    if (!fen || !editingMode) {
-      return;
-    }
-    const newFen = `${fen} ${currentNode.fen.split(" ").slice(1).join(" ")}`;
+  const setBoardFen = useCallback(
+    (fen: string) => {
+      if (!fen || !editingMode) {
+        return;
+      }
+      const newFen = `${fen} ${currentNode.fen.split(" ").slice(1).join(" ")}`;
 
-    if (newFen !== currentNode.fen) {
-      setFen(newFen);
-    }
-  };
+      if (newFen !== currentNode.fen) {
+        setFen(newFen);
+      }
+    },
+    [editingMode, currentNode, setFen],
+  );
 
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
