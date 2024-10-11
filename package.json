@@ -6,7 +6,7 @@
   "scripts": {
     "start-vite": "vite",
     "build-vite": "tsc --noEmit && vite build",
-    "build": "tauri build",
+    "build": "tauri build --no-bundle",
     "dev": "tauri dev",
     "tauri": "tauri",
     "format": "biome format --write ./src",
