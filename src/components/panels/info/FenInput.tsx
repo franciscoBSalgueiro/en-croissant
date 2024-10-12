@@ -1,11 +1,11 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getCastlingSquare, swapMove } from "@/utils/chessops";
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
+import { type Setup, SquareSet } from "chessops";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { memo, useCallback, useContext, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 import FenSearch from "./FenSearch";
-import { SquareSet, type Setup } from "chessops";
 
 type Castlingrights = {
   k: boolean;
