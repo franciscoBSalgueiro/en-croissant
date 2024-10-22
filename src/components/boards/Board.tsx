@@ -362,13 +362,13 @@ function Board({
               }
               onClick={() => setViewPawnStructure(!viewPawnStructure)}
             >
-              Toggle Pawn Structure View
+              {t("Board.Action.TogglePawnStructureView")}
             </Menu.Item>
             <Menu.Item
               leftSection={<IconCamera size="1.3rem" />}
               onClick={() => takeSnapshot()}
             >
-              Take Snapshot
+              {t("Board.Action.TakeSnapshot")}
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
@@ -384,9 +384,11 @@ function Board({
           </Tooltip>
         )}
         <Tooltip
-          label={
-            currentTab?.type === "analysis" ? "Play from here" : "Analyze game"
-          }
+          label={t(
+            currentTab?.type === "analysis"
+              ? "Board.Action.PlayFromHere"
+              : "Board.AnalyzeGame",
+          )}
         >
           <ActionIcon variant="default" size="lg" onClick={changeTabType}>
             {currentTab?.type === "analysis" ? (
@@ -397,7 +399,7 @@ function Board({
           </ActionIcon>
         </Tooltip>
         {!eraseDrawablesOnClick && (
-          <Tooltip label="Clear Drawings">
+          <Tooltip label={t("Board.Action.ClearDrawings")}>
             <ActionIcon
               variant={editingMode ? "filled" : "default"}
               size="lg"
@@ -408,7 +410,7 @@ function Board({
           </Tooltip>
         )}
         {!disableVariations && (
-          <Tooltip label="Edit Position">
+          <Tooltip label={t("Board.Action.EditPosition")}>
             <ActionIcon
               variant={editingMode ? "filled" : "default"}
               size="lg"
@@ -424,7 +426,9 @@ function Board({
         )}
 
         {saveFile && (
-          <Tooltip label={`Save PGN (${keyMap.SAVE_FILE.keys})`}>
+          <Tooltip
+            label={t("Board.Action.SavePGN", { key: keyMap.SAVE_FILE.keys })}
+          >
             <ActionIcon
               onClick={() => saveFile()}
               size="lg"
@@ -435,13 +439,17 @@ function Board({
           </Tooltip>
         )}
         {addGame && currentTab?.file && (
-          <Tooltip label="Add Game">
+          <Tooltip label={t("Board.Action.AddGame")}>
             <ActionIcon variant="default" size="lg" onClick={() => addGame()}>
               <IconPlus size="1.3rem" />
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip label={`Flip Board (${keyMap.SWAP_ORIENTATION.keys})`}>
+        <Tooltip
+          label={t("Board.Action.FlipBoard", {
+            key: keyMap.SWAP_ORIENTATION.keys,
+          })}
+        >
           <ActionIcon
             variant="default"
             size="lg"

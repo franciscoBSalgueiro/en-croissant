@@ -1,11 +1,12 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getCastlingSquare, swapMove } from "@/utils/chessops";
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
+import { type Setup, SquareSet } from "chessops";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { memo, useCallback, useContext, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import FenSearch from "./FenSearch";
-import { SquareSet, type Setup } from "chessops";
 
 type Castlingrights = {
   k: boolean;
@@ -116,6 +117,8 @@ function FenInput({ currentFen }: { currentFen: string }) {
     setFen(makeFen({ ...setup, castlingRights: newCastlingRights }));
   }, [blackCastling, setCastlingRights, setup, whiteCastling, setFen]);
 
+  const { t } = useTranslation();
+
   return (
     <Stack gap="sm">
       <Group>
@@ -124,17 +127,17 @@ function FenInput({ currentFen }: { currentFen: string }) {
           <FenSearch currentFen={currentFen} />
           <Group>
             <Button variant="default" onClick={() => setFen(INITIAL_FEN)}>
-              Start
+              {t("Fen.Start")}
             </Button>
             <Button variant="default" onClick={() => setFen(EMPTY_FEN)}>
-              Empty
+              {t("Fen.Empty")}
             </Button>
             <Select
               flex={1}
               allowDeselect={false}
               data={[
-                { label: "White to move", value: "white" },
-                { label: "Black to move", value: "black" },
+                { label: t("Fen.WhiteToMove"), value: "white" },
+                { label: t("Fen.BlackToMove"), value: "black" },
               ]}
               value={setup?.turn || "white"}
               onChange={(value) => {
@@ -151,7 +154,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
         </Stack>
         <Group>
           <Stack>
-            <Text size="sm">White</Text>
+            <Text size="sm">{t("Fen.White")}</Text>
             <Checkbox
               label="O-O"
               checked={whiteCastling.k}
@@ -170,7 +173,7 @@ function FenInput({ currentFen }: { currentFen: string }) {
             />
           </Stack>
           <Stack>
-            <Text size="sm">Black</Text>
+            <Text size="sm">{t("Fen.Black")}</Text>
             <Checkbox
               label="O-O"
               checked={blackCastling.k}

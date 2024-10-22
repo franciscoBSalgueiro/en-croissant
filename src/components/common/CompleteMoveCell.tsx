@@ -15,6 +15,7 @@ import {
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
@@ -79,6 +80,7 @@ function CompleteMoveCell({
   const currentTab = useAtomValue(currentTabAtom);
 
   const transpositions = fen ? getTranspositions(fen, movePath, root) : [];
+  const { t } = useTranslation();
 
   return (
     <>
@@ -116,28 +118,28 @@ function CompleteMoveCell({
                     leftSection={<IconFlag size="0.875rem" />}
                     onClick={() => setStart(movePath)}
                   >
-                    Mark as start
+                    {t("Menu.MarkAsStart")}
                   </Menu.Item>
                 )}
                 <Menu.Item
                   leftSection={<IconChevronsUp size="0.875rem" />}
                   onClick={() => promoteToMainline(movePath)}
                 >
-                  Promote to Main Line
+                  {t("Menu.PromoteToMainLine")}
                 </Menu.Item>
 
                 <Menu.Item
                   leftSection={<IconChevronUp size="0.875rem" />}
                   onClick={() => promoteVariation(movePath)}
                 >
-                  Promote Variation
+                  {t("Menu.PromoteVariation")}
                 </Menu.Item>
 
                 <Menu.Item
                   leftSection={<IconCopy size="0.875rem" />}
                   onClick={() => copyVariationPgn(movePath)}
                 >
-                  Copy Variation PGN
+                  {t("Menu.CopyVariationPGN")}
                 </Menu.Item>
 
                 <Menu.Item
@@ -145,7 +147,7 @@ function CompleteMoveCell({
                   leftSection={<IconX size="0.875rem" />}
                   onClick={() => deleteMove(movePath)}
                 >
-                  Delete Move
+                  {t("Menu.DeleteMove")}
                 </Menu.Item>
               </Menu.Dropdown>
             </Portal>
