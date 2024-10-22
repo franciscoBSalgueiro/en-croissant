@@ -135,6 +135,16 @@ export const en_US = {
     "Home.Card.Puzzle.Desc": "Train your chess skills",
     "Home.Card.Puzzle.Button": "Train",
 
+    "Board.Action.TogglePawnStructureView": "Toggle Pawn Structure View",
+    "Board.Action.TakeSnapshot": "Take Snapshot",
+    "Board.Action.AnalyzeGame": "Analyze game",
+    "Board.Action.PlayFromHere": "Play from here",
+    "Board.Action.ClearDrawings": "Clear Drawings",
+    "Board.Action.EditPosition": "Edit Position",
+    "Board.Action.SavePGN": "Save PGN ({{key}})",
+    "Board.Action.AddGame": "Add Game",
+    "Board.Action.FlipBoard": "Flip Board ({{key}})",
+
     "Board.Tabs.Practice": "Practice",
     "Board.Tabs.Analysis": "Analysis",
     "Board.Tabs.Database": "Database",
@@ -267,6 +277,13 @@ export const en_US = {
     "Errors.InvalidTurn": "Invalid turn",
     "Errors.Unknown": "Unknown error",
 
+    "Fen.Start": "Start",
+    "Fen.Empty": "Empty",
+    "Fen.White": "White",
+    "Fen.Black": "Black",
+    "Fen.WhiteToMove": "White to move",
+    "Fen.BlackToMove": "Black to move",
+
     "Files.Title": "Files",
     "Files.FileType": "File type",
     "Files.FileType.Game": "Game",
@@ -281,6 +298,12 @@ export const en_US = {
     "Files.Edit.Title": "Edit file",
     "Files.Create.Title": "Create file",
     "Files.Search": "Search for files",
+
+    "Menu.MarkAsStart": "Mark as start",
+    "Menu.PromoteToMainLine": "Promote to Main Line",
+    "Menu.PromoteVariation": "Promote Variation",
+    "Menu.CopyVariationPGN": "Copy Variation PGN",
+    "Menu.DeleteMove": "Delete Move",
 
     "Settings.Board": "Board",
     "Settings.Inputs": "Inputs",

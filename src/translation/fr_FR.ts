@@ -135,6 +135,17 @@ export const fr_FR = {
     "Home.Card.Puzzle.Desc": "Entraînement pour vous améliorer",
     "Home.Card.Puzzle.Button": "S'entraîner",
 
+    "Board.Action.TogglePawnStructureView":
+      "Basculer l'affichage de la structure de pions",
+    "Board.Action.TakeSnapshot": "Prendre une capture d'écran",
+    "Board.Action.AnalyzeGame": "Analyser la partie",
+    "Board.Action.PlayFromHere": "Jouer à partir d'ici",
+    "Board.Action.ClearDrawings": "Effacer les dessins",
+    "Board.Action.EditPosition": "Éditer la position",
+    "Board.Action.SavePGN": "Enregistrer le PGN ({{key}})",
+    "Board.Action.AddGame": "Ajouter une partie",
+    "Board.Action.FlipBoard": "Tourner l'échiquier ({{key}})",
+
     "Board.Tabs.Practice": "Entraînement",
     "Board.Tabs.Analysis": "Analyse",
     "Board.Tabs.Database": "Base de données",
@@ -269,6 +280,13 @@ export const fr_FR = {
     "Errors.InvalidTurn": "Trait invalide",
     "Errors.Unknown": "Erreur inconnue",
 
+    "Fen.Start": "Départ",
+    "Fen.Empty": "Vide",
+    "Fen.White": "Blancs",
+    "Fen.Black": "Noirs",
+    "Fen.WhiteToMove": "Trait aux Blancs",
+    "Fen.BlackToMove": "Trait aux Noirs",
+
     "Files.Title": "Fichiers",
     "Files.FileType": "Type de fichier",
     "Files.FileType.Game": "Partie",
@@ -283,6 +301,12 @@ export const fr_FR = {
     "Files.Edit.Title": "Éditer fichier",
     "Files.Create.Title": "Créer fichier",
     "Files.Search": "Rechercher des fichiers",
+
+    "Menu.MarkAsStart": "Marquer comme début",
+    "Menu.PromoteToMainLine": "Variante principale",
+    "Menu.PromoteVariation": "Promouvoir la variante",
+    "Menu.CopyVariationPGN": "Copier le PGN de la variante",
+    "Menu.DeleteMove": "Supprimer le coup",
 
     "Settings.Board": "Échiquier",
     "Settings.Inputs": "Entrées",

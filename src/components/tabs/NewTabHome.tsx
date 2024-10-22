@@ -46,7 +46,7 @@ export default function NewTabHome({ id }: { id: string }) {
         setTabs((prev: Tab[]) => {
           const tab = prev.find((t) => t.value === id);
           if (!tab) return prev;
-          tab.name = "Analysis Board";
+          tab.name = t("Home.Card.AnalysisBoard.Title");
           tab.type = "analysis";
           return [...prev];
         });
