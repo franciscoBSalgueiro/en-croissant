@@ -26,7 +26,7 @@
             "identifier": "fs:scope-appdata-recursive",
             "allow": [
                 {
-                    "path": "$APPDATA/**"
+                    "path": "**"
                 }
             ]
         },
