@@ -23,10 +23,10 @@
         "fs:write-all",
         "window-state:default",
         {
-            "identifier": "fs:scope",
+            "identifier": "fs:scope-appdata-recursive",
             "allow": [
                 {
-                    "path": "**"
+                    "path": "$APPDATA/**"
                 }
             ]
         },
