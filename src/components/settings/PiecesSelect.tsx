@@ -2,6 +2,7 @@ import { pieceSetAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,
+  Flex,
   Group,
   Input,
   InputBase,
@@ -65,6 +66,19 @@ function SelectOption({ label, piece }: { label: string; piece?: boolean }) {
   );
 }
 
+function DisplayPieces() {
+  const pieces = ["rook", "knight", "bishop", "queen", "king", "pawn"];
+  return (
+    <Flex gap="xs">
+      {pieces.map((role, index) => (
+        <Box key={index} h="2.5rem" w="2.5rem">
+          <PieceComponent piece={{ color: "white", role }} />
+        </Box>
+      ))}
+    </Flex>
+  );
+}
+
 export default function PiecesSelect() {
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
@@ -81,38 +95,43 @@ export default function PiecesSelect() {
   const selected = pieceSets.find((p) => p.value === pieceSet);
 
   return (
-    <Combobox
-      store={combobox}
-      withinPortal={false}
-      onOptionSubmit={(val) => {
-        setPieceSet(val);
-        combobox.closeDropdown();
-      }}
-    >
-      <Combobox.Target>
-        <InputBase
-          component="button"
-          type="button"
-          pointer
-          onClick={() => combobox.toggleDropdown()}
-          multiline
-          w="10rem"
+    <div>
+      <Flex justify="space-between" align="center" gap="md">
+        <DisplayPieces />
+        <Combobox
+          store={combobox}
+          withinPortal={false}
+          onOptionSubmit={(val) => {
+            setPieceSet(val);
+            combobox.closeDropdown();
+          }}
         >
-          {selected ? (
-            <SelectOption label={selected.label} piece />
-          ) : (
-            <Input.Placeholder>Pick value</Input.Placeholder>
-          )}
-        </InputBase>
-      </Combobox.Target>
+          <Combobox.Target>
+            <InputBase
+              component="button"
+              type="button"
+              pointer
+              onClick={() => combobox.toggleDropdown()}
+              multiline
+              w="10rem"
+            >
+              {selected ? (
+                <SelectOption label={selected.label} piece />
+              ) : (
+                <Input.Placeholder>Pick value</Input.Placeholder>
+              )}
+            </InputBase>
+          </Combobox.Target>
 
-      <Combobox.Dropdown>
-        <Combobox.Options>
-          <ScrollArea.Autosize mah={200} type="always">
-            {options}
-          </ScrollArea.Autosize>
-        </Combobox.Options>
-      </Combobox.Dropdown>
-    </Combobox>
+          <Combobox.Dropdown>
+            <Combobox.Options>
+              <ScrollArea.Autosize mah={200} type="always">
+                {options}
+              </ScrollArea.Autosize>
+            </Combobox.Options>
+          </Combobox.Dropdown>
+        </Combobox>
+      </Flex>
+    </div>
   );
 }
