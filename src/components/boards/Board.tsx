@@ -189,7 +189,7 @@ function Board({
   const toggleOrientation = () =>
     setHeaders({
       ...headers,
-      fen: currentNode.fen, // To keep the current board setup
+      fen: root.fen, // To keep the current board setup
       orientation: orientation === "black" ? "white" : "black",
     });
 
