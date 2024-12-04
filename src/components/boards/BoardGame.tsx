@@ -568,15 +568,13 @@ function BoardGame() {
         );
       }
       if (pos?.turn === "white" && blackTime !== null) {
-        setBlackTime(
-          (prev) => {
-            if (pos?.fullmoves === 1) {
-              return prev!;
-            }
-
-            return prev! + (players.black.timeControl?.increment ?? 0);
+        setBlackTime((prev) => {
+          if (pos?.fullmoves === 1) {
+            return prev!;
           }
-        );
+
+          return prev! + (players.black.timeControl?.increment ?? 0);
+        });
       }
       setIntervalId(intervalId);
     }

@@ -3,7 +3,6 @@ import {
   Box,
   Combobox,
   Flex,
-  Group,
   Input,
   InputBase,
   ScrollArea,
@@ -51,23 +50,8 @@ const pieceSets: Item[] = [
   { label: "Tatiana", value: "tatiana" },
 ];
 
-function SelectOption({ label, piece }: { label: string; piece?: boolean }) {
-  return (
-    <Group wrap="nowrap">
-      {piece && (
-        <Box h="2.5rem" w="2.5rem">
-          <PieceComponent piece={{ color: "white", role: "knight" }} />
-        </Box>
-      )}
-      <Text fz="sm" fw={500}>
-        {label}
-      </Text>
-    </Group>
-  );
-}
-
 function DisplayPieces() {
-  const pieces = ["rook", "knight", "bishop", "queen", "king", "pawn"];
+  const pieces = ["rook", "knight", "bishop", "queen", "king", "pawn"] as const;
   return (
     <Flex gap="xs">
       {pieces.map((role, index) => (
@@ -87,8 +71,14 @@ export default function PiecesSelect() {
   const [pieceSet, setPieceSet] = useAtom(pieceSetAtom);
 
   const options = pieceSets.map((item) => (
-    <Combobox.Option value={item.value} key={item.value}>
-      <SelectOption label={item.label} />
+    <Combobox.Option
+      value={item.value}
+      key={item.value}
+      onMouseOver={() => setPieceSet(item.value)}
+    >
+      <Text fz="sm" fw={500}>
+        {item.label}
+      </Text>
     </Combobox.Option>
   ));
 
@@ -116,7 +106,9 @@ export default function PiecesSelect() {
               w="10rem"
             >
               {selected ? (
-                <SelectOption label={selected.label} piece />
+                <Text fz="sm" fw={500}>
+                  {selected.label}
+                </Text>
               ) : (
                 <Input.Placeholder>Pick value</Input.Placeholder>
               )}
@@ -125,7 +117,7 @@ export default function PiecesSelect() {
 
           <Combobox.Dropdown>
             <Combobox.Options>
-              <ScrollArea.Autosize mah={200} type="always">
+              <ScrollArea.Autosize mah={200} type="always" scrollbars="y">
                 {options}
               </ScrollArea.Autosize>
             </Combobox.Options>

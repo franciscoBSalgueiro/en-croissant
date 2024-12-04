@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react-swc";
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import { defineConfig } from "vite";
 
-const isDebug = !!process.env.TAURI_DEBUG;
+const isDebug = !!process.env.TAURI_ENV_DEBUG;
 
 // https://vitejs.dev/config/
 export default defineConfig({
