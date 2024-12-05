@@ -27,7 +27,6 @@ import type { CategoricalChartFunc } from "recharts/types/chart/generateCategori
 import { useStore } from "zustand";
 import * as classes from "./EvalChart.css";
 import { TreeStateContext } from "./TreeStateContext";
-import { IconInfoCircle } from "@tabler/icons-react";
 
 interface EvalChartProps {
   isAnalysing: boolean;
