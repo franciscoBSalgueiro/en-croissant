@@ -225,6 +225,10 @@ function headersToPGN(game: GameHeaders): string {
   return headers;
 }
 
+export function defaultPGN() {
+  return `[Event "?"]\n[Site "?"]\n[Date "????.??.??"]\n[Round "?"]\n[White "?"]\n[Black "?"]\n[Result "*"]\n\n*`;
+}
+
 export function getPGN(
   tree: TreeNode,
   {

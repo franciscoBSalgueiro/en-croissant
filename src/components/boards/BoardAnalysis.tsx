@@ -7,7 +7,7 @@ import {
   enableAllAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { getVariationLine } from "@/utils/chess";
+import { defaultPGN, getVariationLine } from "@/utils/chess";
 import { saveToFile } from "@/utils/tabs";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
@@ -67,7 +67,7 @@ function BoardAnalysis() {
       tab: currentTab,
       store,
     });
-  }, [setCurrentTab, currentTab]);
+  }, [setCurrentTab, currentTab, documentDir, store]);
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
@@ -82,7 +82,7 @@ function BoardAnalysis() {
       return { ...prev };
     });
     reset();
-    writeTextFile(currentTab?.file?.path!, "\n\n", {
+    writeTextFile(currentTab?.file?.path!, `\n\n${defaultPGN()}\n\n`, {
       append: true,
     });
   }, [setCurrentTab, reset, currentTab?.file?.path]);
