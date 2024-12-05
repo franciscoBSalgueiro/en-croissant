@@ -166,10 +166,12 @@ export function getGameName(headers: GameHeaders) {
 }
 
 export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
-  if (path.length === 0) return node;
-  const index = path[0];
-  // if (index >= node.children.length) throw new Error("Invalid path");
-  // Just return the root in case of invalid path as handling this is annoying
-  if (index >= node.children.length) return node;
-  return getNodeAtPath(node.children[index], path.slice(1));
+  let currentNode = node;
+  for (const index of path) {
+    if (!currentNode.children || index >= currentNode.children.length) {
+      return currentNode;
+    }
+    currentNode = currentNode.children[index];
+  }
+  return currentNode;
 };
