@@ -124,6 +124,7 @@ function EngineListener({
     }),
   );
   useEffect(() => {
+    if (!settings.enabled) return;
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       const ev = payload.bestLines;
       if (
