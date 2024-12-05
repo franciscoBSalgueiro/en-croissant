@@ -10,6 +10,7 @@ import {
 } from "@/utils/treeReducer";
 import { AreaChart } from "@mantine/charts";
 import {
+  Alert,
   Box,
   LoadingOverlay,
   Paper,
@@ -20,12 +21,13 @@ import {
 } from "@mantine/core";
 import equal from "fast-deep-equal";
 import { useAtom } from "jotai";
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
 import { useStore } from "zustand";
 import * as classes from "./EvalChart.css";
 import { TreeStateContext } from "./TreeStateContext";
+import { IconInfoCircle } from "@tabler/icons-react";
 
 interface EvalChartProps {
   isAnalysing: boolean;
@@ -168,6 +170,12 @@ function EvalChart(props: EvalChartProps) {
 
   const [chartType, setChartType] = useAtom(reportTypeAtom);
 
+  const isWDLDisabled = useMemo(() => {
+    return !data.some(
+      (point) => point.White !== 0 || point.Black !== 0 || point.Draw !== 0,
+    );
+  }, [data]);
+
   return (
     <Stack>
       <Box pos="relative">
@@ -215,42 +223,47 @@ function EvalChart(props: EvalChartProps) {
             }}
           />
         )}
-        {chartType === "WDL" && (
-          <AreaChart
-            h={150}
-            curveType="monotone"
-            data={data}
-            dataKey={"name"}
-            series={[
-              { name: "White", color: "white" },
-              { name: "Draw", color: "gray" },
-              { name: "Black", color: "black" },
-            ]}
-            connectNulls={false}
-            withXAxis={false}
-            withYAxis={false}
-            type="percent"
-            fillOpacity={0.8}
-            activeDotProps={{ r: 3, strokeWidth: 1 }}
-            dotProps={{ r: 0 }}
-            referenceLines={[
-              {
-                x: currentPositionName,
-                color: theme.colors[theme.primaryColor][7],
-              },
-            ]}
-            areaChartProps={{
-              onClick: onChartClick,
-              style: { cursor: "pointer" },
-            }}
-            gridAxis="none"
-            tooltipProps={{
-              content: ({ payload, active }) => (
-                <CustomTooltip active={active} payload={payload} type="wdl" />
-              ),
-            }}
-          />
-        )}
+        {chartType === "WDL" &&
+          (isWDLDisabled ? (
+            <Alert variant="outline" title="Enable WDL" mt="sm">
+              {t("Board.Analysis.EnableWDL")}
+            </Alert>
+          ) : (
+            <AreaChart
+              h={150}
+              curveType="monotone"
+              data={data}
+              dataKey={"name"}
+              series={[
+                { name: "White", color: "white" },
+                { name: "Draw", color: "gray" },
+                { name: "Black", color: "black" },
+              ]}
+              connectNulls={false}
+              withXAxis={false}
+              withYAxis={false}
+              type="percent"
+              fillOpacity={0.8}
+              activeDotProps={{ r: 3, strokeWidth: 1 }}
+              dotProps={{ r: 0 }}
+              referenceLines={[
+                {
+                  x: currentPositionName,
+                  color: theme.colors[theme.primaryColor][7],
+                },
+              ]}
+              areaChartProps={{
+                onClick: onChartClick,
+                style: { cursor: "pointer" },
+              }}
+              gridAxis="none"
+              tooltipProps={{
+                content: ({ payload, active }) => (
+                  <CustomTooltip active={active} payload={payload} type="wdl" />
+                ),
+              }}
+            />
+          ))}
       </Box>
     </Stack>
   );

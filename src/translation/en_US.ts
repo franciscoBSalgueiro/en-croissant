@@ -189,6 +189,8 @@ export const en_US = {
     "Board.Analysis.Analyze": "Analyze",
     "Board.Analysis.Advantage": "Advantage",
     "Board.Analysis.Accuracy": "Accuracy",
+    "Board.Analysis.EnableWDL":
+      "You have to enable UCI_ShowWDL in the engine settings to use this feature.",
     "Board.Database.Local": "Local",
     "Board.Database.LichessAll": "Lichess All",
     "Board.Database.LichessMaster": "Lichess Masters",
