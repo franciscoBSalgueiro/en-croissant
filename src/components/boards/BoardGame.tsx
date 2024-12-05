@@ -8,17 +8,12 @@ import {
 } from "@/state/atoms";
 import { type TimeControlField, getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import type { EngineSettings, LocalEngine } from "@/utils/engines";
-import {
-  type GameHeaders,
-  getNodeAtPath,
-  treeIteratorMainLine,
-} from "@/utils/treeReducer";
+import type { LocalEngine } from "@/utils/engines";
+import { type GameHeaders, treeIteratorMainLine } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
   Button,
-  Center,
   Checkbox,
   Divider,
   Group,
@@ -317,7 +312,6 @@ function BoardGame() {
 
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
-  const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
   const setFen = useStore(store, (s) => s.setFen);
   const setHeaders = useStore(store, (s) => s.setHeaders);
@@ -336,7 +330,6 @@ function BoardGame() {
     );
   }
   const mainLine = Array.from(treeIteratorMainLine(root));
-  const currentNode = getNodeAtPath(root, position);
   const lastNode = mainLine[mainLine.length - 1].node;
   const moves = useMemo(
     () => getMainLine(root, headers.variant === "Chess960"),
@@ -535,6 +528,7 @@ function BoardGame() {
     setHeaders({
       ...headers,
       ...newHeaders,
+      fen: root.fen,
     });
 
     setTabs((prev) =>
