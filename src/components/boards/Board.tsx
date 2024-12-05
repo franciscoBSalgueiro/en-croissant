@@ -402,7 +402,7 @@ function Board({
         {!eraseDrawablesOnClick && (
           <Tooltip label={t("Board.Action.ClearDrawings")}>
             <ActionIcon
-              variant={editingMode ? "filled" : "default"}
+              variant="default"
               size="lg"
               onClick={() => clearShapes()}
             >
