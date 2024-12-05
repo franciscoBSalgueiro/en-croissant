@@ -1,10 +1,3 @@
-import {
-  faChess,
-  faChessBoard,
-  faFileImport,
-  faPuzzlePiece,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Box, Button, Card, SimpleGrid, Stack, Text } from "@mantine/core";
 
 import { tabsAtom } from "@/state/atoms";
@@ -14,6 +7,8 @@ import { useState } from "react";
 import ImportModal from "./ImportModal";
 
 import { useTranslation } from "react-i18next";
+import { IconChess, IconFileImport, IconPuzzle } from "@tabler/icons-react";
+import Chessboard from "../icons/Chessboard";
 
 export default function NewTabHome({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -23,7 +18,7 @@ export default function NewTabHome({ id }: { id: string }) {
 
   const cards = [
     {
-      icon: faChess,
+      icon: <IconChess size={60} />,
       title: t("Home.Card.PlayChess.Title"),
       description: t("Home.Card.PlayChess.Desc"),
       label: t("Home.Card.PlayChess.Button"),
@@ -38,7 +33,7 @@ export default function NewTabHome({ id }: { id: string }) {
       },
     },
     {
-      icon: faChessBoard,
+      icon: <Chessboard size={60} />,
       title: t("Home.Card.AnalysisBoard.Title"),
       description: t("Home.Card.AnalysisBoard.Desc"),
       label: t("Home.Card.AnalysisBoard.Button"),
@@ -53,7 +48,7 @@ export default function NewTabHome({ id }: { id: string }) {
       },
     },
     {
-      icon: faFileImport,
+      icon: <IconFileImport size={60} />,
       title: t("Home.Card.ImportGame.Title"),
       description: t("Home.Card.ImportGame.Desc"),
       label: t("Home.Card.ImportGame.Button"),
@@ -62,7 +57,7 @@ export default function NewTabHome({ id }: { id: string }) {
       },
     },
     {
-      icon: faPuzzlePiece,
+      icon: <IconPuzzle size={60} />,
       title: t("Home.Card.Puzzle.Title"),
       description: t("Home.Card.Puzzle.Desc"),
       label: t("Home.Card.Puzzle.Button"),
@@ -85,7 +80,7 @@ export default function NewTabHome({ id }: { id: string }) {
         {cards.map((card) => (
           <Card shadow="sm" p="lg" radius="md" withBorder key={card.title}>
             <Stack align="center" h="100%" justify="space-between">
-              <FontAwesomeIcon icon={card.icon} size="4x" />
+              {card.icon}
 
               <Box style={{ textAlign: "center" }}>
                 <Text fw={500}>{card.title}</Text>
