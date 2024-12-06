@@ -22,6 +22,7 @@ import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
+import equal from "fast-deep-equal";
 import { type PrimitiveAtom, atom } from "jotai";
 import {
   atomFamily,
@@ -449,24 +450,22 @@ export const bestMovesFamily = atomFamily(
           );
           bestMoves.set(
             n,
-            moves
-              .map((m) => {
-                const winChance = getWinChance(
-                  normalizeScore(m.score.value, pos?.turn || "white"),
-                );
-                return {
-                  pv: m.uciMoves,
-                  winChance,
-                };
-              })
-              .filter((m) => bestWinChange - m.winChance < 10),
+            moves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
+              const winChance = getWinChance(
+                normalizeScore(m.score.value, pos?.turn || "white"),
+              );
+              if (bestWinChange - winChance < 10) {
+                acc.push({ pv: m.uciMoves, winChance });
+              }
+              return acc;
+            }, []),
           );
         }
         n++;
       }
       return bestMoves;
     }),
-  (a, b) => a.fen === b.fen && a.gameMoves.join(",") === b.gameMoves.join(","),
+  (a, b) => a.fen === b.fen && equal(a.gameMoves, b.gameMoves),
 );
 
 export const tabEngineSettingsFamily = atomFamily(

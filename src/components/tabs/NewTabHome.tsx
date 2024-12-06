@@ -6,8 +6,8 @@ import { useAtom } from "jotai";
 import { useState } from "react";
 import ImportModal from "./ImportModal";
 
-import { useTranslation } from "react-i18next";
 import { IconChess, IconFileImport, IconPuzzle } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import Chessboard from "../icons/Chessboard";
 
 export default function NewTabHome({ id }: { id: string }) {

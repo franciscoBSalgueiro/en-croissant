@@ -6,9 +6,10 @@ import { activeTabAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getGameStats, getMainLine } from "@/utils/chess";
 import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
-import { shallowEqual, useToggle } from "@mantine/hooks";
+import { useToggle } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
+import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
 import React, { Suspense, useState } from "react";
 import { memo, useContext, useMemo } from "react";
@@ -152,8 +153,8 @@ const GameStats = memo(
   },
   (prev, next) => {
     return (
-      shallowEqual(prev.whiteAnnotations, next.whiteAnnotations) &&
-      shallowEqual(prev.blackAnnotations, next.blackAnnotations)
+      equal(prev.whiteAnnotations, next.whiteAnnotations) &&
+      equal(prev.blackAnnotations, next.blackAnnotations)
     );
   },
 );

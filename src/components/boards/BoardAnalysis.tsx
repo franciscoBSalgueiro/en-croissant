@@ -48,13 +48,7 @@ function BoardAnalysis() {
 
   const store = useContext(TreeStateContext)!;
 
-  const rootFen = useStore(store, (s) => s.root.fen);
-  const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
   const dirty = useStore(store, (s) => s.dirty);
-  const moves = useStore(
-    store,
-    useShallow((s) => getVariationLine(s.root, s.position, is960)),
-  );
 
   const reset = useStore(store, (s) => s.reset);
   const clearShapes = useStore(store, (s) => s.clearShapes);
@@ -133,7 +127,7 @@ function BoardAnalysis() {
 
   return (
     <>
-      <EvalListener fen={rootFen} moves={moves} chess960={is960} />
+      <EvalListener />
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           practicing={practicing}

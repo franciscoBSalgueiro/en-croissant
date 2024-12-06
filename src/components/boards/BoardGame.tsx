@@ -34,6 +34,7 @@ import {
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
+import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import {
   Suspense,
@@ -408,7 +409,7 @@ function BoardGame() {
         payload.engine === pos?.turn &&
         payload.tab === activeTab + pos.turn &&
         payload.fen === root.fen &&
-        payload.moves.join(",") === moves.join(",") &&
+        equal(payload.moves, moves) &&
         !pos?.isEnd()
       ) {
         appendMove({

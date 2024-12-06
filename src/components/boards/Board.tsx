@@ -182,10 +182,7 @@ function Board({
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
 
   const turn = pos?.turn || "white";
-  const orientation =
-    movable === "white" || movable === "black"
-      ? movable
-      : headers.orientation || "white";
+  const orientation = headers.orientation || "white";
   const toggleOrientation = () =>
     setHeaders({
       ...headers,

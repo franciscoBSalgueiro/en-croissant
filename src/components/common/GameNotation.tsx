@@ -15,7 +15,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { shallowEqual, useColorScheme, useToggle } from "@mantine/hooks";
+import { useColorScheme, useToggle } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
@@ -27,6 +27,7 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { INITIAL_FEN } from "chessops/fen";
+import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
 import React from "react";
@@ -211,14 +212,11 @@ const RenderVariationTree = memo(
               fen={variation.fen}
               movePath={[...path, variations.indexOf(variation)]}
               showComments={showComments}
-              isCurrentVariation={shallowEqual(
+              isCurrentVariation={equal(
                 [...path, variations.indexOf(variation)],
                 currentPath,
               )}
-              isStart={shallowEqual(
-                [...path, variations.indexOf(variation)],
-                start,
-              )}
+              isStart={equal([...path, variations.indexOf(variation)], start)}
               first
             />
             <RenderVariationTree
@@ -234,6 +232,7 @@ const RenderVariationTree = memo(
           </React.Fragment>
         ))
       : [];
+    const newPath = [...path, 0];
 
     return (
       <>
@@ -245,10 +244,10 @@ const RenderVariationTree = memo(
             halfMoves={variations[0].halfMoves}
             move={variations[0].san}
             fen={variations[0].fen}
-            movePath={[...path, 0]}
+            movePath={newPath}
             showComments={showComments}
-            isCurrentVariation={shallowEqual([...path, 0], currentPath)}
-            isStart={shallowEqual([...path, 0], start)}
+            isCurrentVariation={equal(newPath, currentPath)}
+            isStart={equal(newPath, start)}
             first={first}
           />
         )}
@@ -263,7 +262,7 @@ const RenderVariationTree = memo(
             showVariations={showVariations}
             start={start}
             showComments={showComments}
-            path={[...path, 0]}
+            path={newPath}
           />
         )}
       </>
@@ -276,8 +275,8 @@ const RenderVariationTree = memo(
       prev.first === next.first &&
       prev.showVariations === next.showVariations &&
       prev.showComments === next.showComments &&
-      shallowEqual(prev.path, next.path) &&
-      shallowEqual(prev.start, next.start)
+      equal(prev.path, next.path) &&
+      equal(prev.start, next.start)
     );
   },
 );
