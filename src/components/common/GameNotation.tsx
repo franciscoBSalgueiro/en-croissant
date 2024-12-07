@@ -40,16 +40,15 @@ import OpeningName from "./OpeningName";
 function GameNotation({ topBar }: { topBar?: boolean }) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
-  const position = useStore(store, (s) => s.position);
+  const currentFen = useStore(store, (s) => s.currentNode().fen);
   const headers = useStore(store, (s) => s.headers);
-  const currentNode = getNodeAtPath(root, position);
 
   const viewport = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (viewport.current) {
-      if (currentNode.fen === INITIAL_FEN) {
+      if (currentFen === INITIAL_FEN) {
         viewport.current.scrollTo({ top: 0, behavior: "smooth" });
       } else if (targetRef.current) {
         viewport.current.scrollTo({
@@ -58,7 +57,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
         });
       }
     }
-  }, [position, currentNode.fen]);
+  }, [currentFen]);
 
   const [invisibleValue, setInvisible] = useAtom(currentInvisibleAtom);
   const invisible = topBar && invisibleValue;
@@ -197,43 +196,40 @@ const RenderVariationTree = memo(
     targetRef: React.RefObject<HTMLSpanElement>;
     path: number[];
   }) {
-    const store = useContext(TreeStateContext)!;
-    const currentPath = useStore(store, (s) => s.position);
     const variations = tree.children;
-    const moveNodes = showVariations
-      ? variations.slice(1).map((variation) => (
-          <React.Fragment key={variation.fen}>
-            <CompleteMoveCell
-              targetRef={targetRef}
-              annotations={variation.annotations}
-              comment={variation.comment}
-              halfMoves={variation.halfMoves}
-              move={variation.san}
-              fen={variation.fen}
-              movePath={[...path, variations.indexOf(variation)]}
-              showComments={showComments}
-              isCurrentVariation={equal(
-                [...path, variations.indexOf(variation)],
-                currentPath,
-              )}
-              isStart={equal([...path, variations.indexOf(variation)], start)}
-              first
-            />
-            <RenderVariationTree
-              targetRef={targetRef}
-              tree={variation}
-              depth={depth + 2}
-              first
-              showVariations={showVariations}
-              showComments={showComments}
-              start={start}
-              path={[...path, variations.indexOf(variation)]}
-            />
-          </React.Fragment>
-        ))
+    const variationNodes = showVariations
+      ? variations.slice(1).map((variation) => {
+          const newPath = [...path, variations.indexOf(variation)];
+          return (
+            <React.Fragment key={variation.fen}>
+              <CompleteMoveCell
+                targetRef={targetRef}
+                annotations={variation.annotations}
+                comment={variation.comment}
+                halfMoves={variation.halfMoves}
+                move={variation.san}
+                fen={variation.fen}
+                movePath={newPath}
+                showComments={showComments}
+                isStart={equal(newPath, start)}
+                first
+              />
+              <RenderVariationTree
+                targetRef={targetRef}
+                tree={variation}
+                depth={depth + 2}
+                first
+                showVariations={showVariations}
+                showComments={showComments}
+                start={start}
+                path={newPath}
+              />
+            </React.Fragment>
+          );
+        })
       : [];
-    const newPath = [...path, 0];
 
+    const newPath = [...path, 0];
     return (
       <>
         {variations.length > 0 && (
@@ -246,13 +242,12 @@ const RenderVariationTree = memo(
             fen={variations[0].fen}
             movePath={newPath}
             showComments={showComments}
-            isCurrentVariation={equal(newPath, currentPath)}
             isStart={equal(newPath, start)}
             first={first}
           />
         )}
 
-        <VariationCell moveNodes={moveNodes} />
+        <VariationCell moveNodes={variationNodes} />
 
         {tree.children.length > 0 && (
           <RenderVariationTree

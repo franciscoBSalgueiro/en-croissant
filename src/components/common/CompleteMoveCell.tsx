@@ -46,7 +46,6 @@ function CompleteMoveCell({
   annotations,
   showComments,
   first,
-  isCurrentVariation,
   isStart,
   targetRef,
 }: {
@@ -57,12 +56,14 @@ function CompleteMoveCell({
   move?: string | null;
   fen?: string;
   first?: boolean;
-  isCurrentVariation: boolean;
   isStart: boolean;
   movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement>;
 }) {
   const store = useContext(TreeStateContext)!;
+  const isCurrentVariation = useStore(store, (s) =>
+    equal(s.position, movePath),
+  );
   const root = useStore(store, (s) => s.root);
   const goToMove = useStore(store, (s) => s.goToMove);
   const deleteMove = useStore(store, (s) => s.deleteMove);
@@ -175,7 +176,6 @@ export default memo(CompleteMoveCell, (prev, next) => {
     equal(prev.annotations, next.annotations) &&
     prev.showComments === next.showComments &&
     prev.first === next.first &&
-    prev.isCurrentVariation === next.isCurrentVariation &&
     prev.isStart === next.isStart &&
     equal(prev.movePath, next.movePath) &&
     prev.halfMoves === next.halfMoves
