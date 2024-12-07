@@ -216,6 +216,12 @@ function headersToPGN(game: GameHeaders): string {
   if (game.time_control) {
     headers += `[TimeControl "${game.time_control}"]\n`;
   }
+  if (game.white_time_control) {
+    headers += `[WhiteTimeControl "${game.white_time_control}"]\n`;
+  }
+  if (game.black_time_control) {
+    headers += `[BlackTimeControl "${game.black_time_control}"]\n`;
+  }
   if (game.eco) {
     headers += `[ECO "${game.eco}"]\n`;
   }
@@ -548,39 +554,6 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     variant: Variant,
   };
   return headers;
-}
-
-export type TimeControlField = {
-  seconds: number;
-  increment?: number;
-  moves?: number;
-};
-
-export type TimeControl = TimeControlField[];
-
-export function parseTimeControl(timeControl: string): TimeControl {
-  const fields = timeControl.split(":");
-  const timeControlFields: TimeControl = [];
-  for (const field of fields) {
-    const match = field.match(/(?:(\d+)\/)?(\d+)(?:\+(\d+))?/);
-    if (!match) {
-      continue;
-    }
-    const moves = match[1];
-    const seconds = match[2];
-    const increment = match[3];
-    const timeControlField: TimeControlField = {
-      seconds: Number.parseInt(seconds) * 1000,
-    };
-    if (increment) {
-      timeControlField.increment = Number.parseInt(increment) * 1000;
-    }
-    if (moves) {
-      timeControlField.moves = Number.parseInt(moves);
-    }
-    timeControlFields.push(timeControlField);
-  }
-  return timeControlFields;
 }
 
 type ColorMap<T> = {

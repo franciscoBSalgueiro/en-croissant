@@ -6,8 +6,9 @@ import {
   enginesAtom,
   tabsAtom,
 } from "@/state/atoms";
-import { type TimeControlField, getMainLine } from "@/utils/chess";
+import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
+import type { TimeControlField } from "@/utils/clock";
 import type { LocalEngine } from "@/utils/engines";
 import { type GameHeaders, treeIteratorMainLine } from "@/utils/treeReducer";
 import {
@@ -517,12 +518,31 @@ function BoardGame() {
       time_control: undefined,
     };
 
-    if (sameTimeControl && players.white.timeControl) {
-      newHeaders.time_control = `${players.white.timeControl.seconds / 1000}`;
-      if (players.white.timeControl.increment) {
-        newHeaders.time_control += `+${
-          players.white.timeControl.increment / 1000
-        }`;
+    if (players.white.timeControl || players.black.timeControl) {
+      if (sameTimeControl && players.white.timeControl) {
+        newHeaders.time_control = `${players.white.timeControl.seconds / 1000}`;
+        if (players.white.timeControl.increment) {
+          newHeaders.time_control += `+${
+            players.white.timeControl.increment / 1000
+          }`;
+        }
+      } else {
+        if (players.white.timeControl) {
+          newHeaders.white_time_control = `${players.white.timeControl.seconds / 1000}`;
+          if (players.white.timeControl.increment) {
+            newHeaders.white_time_control += `+${
+              players.white.timeControl.increment / 1000
+            }`;
+          }
+        }
+        if (players.black.timeControl) {
+          newHeaders.black_time_control = `${players.black.timeControl.seconds / 1000}`;
+          if (players.black.timeControl.increment) {
+            newHeaders.black_time_control += `+${
+              players.black.timeControl.increment / 1000
+            }`;
+          }
+        }
       }
     }
 
@@ -597,8 +617,6 @@ function BoardGame() {
           blackTime={
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
-          whiteTc={players.white.timeControl}
-          blackTc={players.black.timeControl}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>

@@ -19,17 +19,13 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 import { chessboard } from "@/styles/Chessboard.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
-import {
-  type TimeControlField,
-  getMaterialDiff,
-  getVariationLine,
-  parseTimeControl,
-} from "@/utils/chess";
+import { getMaterialDiff, getVariationLine } from "@/utils/chess";
 import {
   chessopsError,
   forceEnPassant,
   positionFromFen,
 } from "@/utils/chessops";
+import { type TimeControlField, getClockInfo } from "@/utils/clock";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
@@ -107,8 +103,6 @@ interface ChessboardProps {
   canTakeBack?: boolean;
   whiteTime?: number;
   blackTime?: number;
-  whiteTc?: TimeControlField;
-  blackTc?: TimeControlField;
   practicing?: boolean;
 }
 
@@ -125,8 +119,6 @@ function Board({
   canTakeBack,
   whiteTime,
   blackTime,
-  whiteTc,
-  blackTc,
   practicing,
 }: ChessboardProps) {
   const { t } = useTranslation();
@@ -331,6 +323,13 @@ function Board({
     shapes = shapes.concat(currentNode.shapes);
   }
 
+  const hasClock =
+    whiteTime !== undefined ||
+    blackTime !== undefined ||
+    headers.time_control !== undefined ||
+    headers.white_time_control !== undefined ||
+    headers.black_time_control !== undefined;
+
   function changeTabType() {
     setCurrentTab((t) => {
       return {
@@ -494,73 +493,6 @@ function Board({
   const lightColor = theme.colors[color][6];
   const darkColor = theme.colors[color][8];
 
-  const timeControl = headers.time_control
-    ? parseTimeControl(headers.time_control)
-    : null;
-  let { whiteSeconds, blackSeconds } = match(pos?.turn)
-    .with("white", () => ({
-      whiteSeconds: getNodeAtPath(root, position.slice(0, -1))?.clock,
-      blackSeconds: currentNode.clock,
-    }))
-    .with("black", () => ({
-      whiteSeconds: currentNode.clock,
-      blackSeconds: getNodeAtPath(root, position.slice(0, -1))?.clock,
-    }))
-    .otherwise(() => {
-      return {
-        whiteSeconds: undefined,
-        blackSeconds: undefined,
-      };
-    });
-  if (position.length <= 1 && timeControl) {
-    if (timeControl.length > 0) {
-      const seconds = timeControl[0].seconds / 1000;
-      if (!whiteSeconds) {
-        whiteSeconds = seconds;
-      }
-      if (!blackSeconds) {
-        blackSeconds = seconds;
-      }
-    }
-  }
-  if (whiteTime) {
-    whiteSeconds = whiteTime / 1000;
-  }
-  if (blackTime) {
-    blackSeconds = blackTime / 1000;
-  }
-
-  function calculateProgress(clock?: number, tc?: TimeControlField) {
-    if (!clock) {
-      return 0;
-    }
-    if (tc) {
-      return clock / (tc.seconds / 1000);
-    }
-    if (timeControl) {
-      return clock / (timeControl[0].seconds / 1000);
-    }
-    if (root.children.length > 0 && root.children[0].clock) {
-      return clock / root.children[0].clock;
-    }
-    return 0;
-  }
-
-  const hasClock =
-    whiteTime !== undefined ||
-    blackTime !== undefined ||
-    headers.time_control !== undefined ||
-    whiteTc !== undefined ||
-    blackTc !== undefined;
-
-  const topClock = orientation === "black" ? whiteSeconds : blackSeconds;
-  const topTc = orientation === "black" ? whiteTc : blackTc;
-  const topProgress = calculateProgress(topClock, topTc);
-
-  const bottomClock = orientation === "black" ? blackSeconds : whiteSeconds;
-  const bottomTc = orientation === "black" ? blackTc : whiteTc;
-  const bottomProgress = calculateProgress(bottomClock, bottomTc);
-
   const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
   const [snapArrows] = useAtom(snapArrowsAtom);
 
@@ -620,10 +552,10 @@ function Board({
             <Group ml="2.5rem" h="2.125rem">
               {hasClock && (
                 <Clock
-                  clock={topClock}
                   color={orientation === "black" ? "white" : "black"}
-                  progress={topProgress}
                   turn={turn}
+                  whiteTime={whiteTime}
+                  blackTime={blackTime}
                 />
               )}
               <ShowMaterial
@@ -793,10 +725,10 @@ function Board({
               <Group ml="2.5rem">
                 {hasClock && (
                   <Clock
-                    clock={bottomClock}
                     color={orientation}
-                    progress={bottomProgress}
                     turn={turn}
+                    whiteTime={whiteTime}
+                    blackTime={blackTime}
                   />
                 )}
                 <ShowMaterial

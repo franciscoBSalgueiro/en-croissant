@@ -7,6 +7,7 @@ import {
   enginesAtom,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
+import { getVariationLine } from "@/utils/chess";
 import { getBestMoves as chessdbGetBestMoves } from "@/utils/chessdb/api";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import {
@@ -24,9 +25,8 @@ import { useAtom, useAtomValue } from "jotai";
 import { startTransition, useContext, useEffect, useMemo } from "react";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { TreeStateContext } from "../common/TreeStateContext";
-import { getVariationLine } from "@/utils/chess";
 import { useShallow } from "zustand/react/shallow";
+import { TreeStateContext } from "../common/TreeStateContext";
 
 function EvalListener() {
   const [engines] = useAtom(enginesAtom);

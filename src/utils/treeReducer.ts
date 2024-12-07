@@ -145,6 +145,8 @@ export type GameHeaders = {
   black_elo?: number | null;
   result: Outcome;
   time_control?: string | null;
+  white_time_control?: string | null;
+  black_time_control?: string | null;
   eco?: string | null;
   variant?: string | null;
   // Repertoire headers
