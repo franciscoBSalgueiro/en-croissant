@@ -69,12 +69,13 @@ export default function ImportModal({
         let input = pgn;
         if (file) {
           const count = unwrap(await commands.countPgnGames(file));
-          input = unwrap(await commands.readGames(file, 0, 0))[0];
           if (save) {
+            const games = unwrap(await commands.readGames(file, 0, count - 1));
+            input = games[0];
             const newFile = await createFile({
               filename,
               filetype,
-              pgn: input,
+              pgn: games.join(""),
               dir: documentDir,
             });
             if (newFile.isErr) {
@@ -82,8 +83,13 @@ export default function ImportModal({
               setLoading(false);
               return;
             }
-            fileInfo = newFile.value;
+            fileInfo = {
+              ...newFile.value,
+              numGames: count,
+              path: file,
+            };
           } else {
+            input = unwrap(await commands.readGames(file, 0, 0))[0];
             fileInfo = {
               type: "file",
               path: file,
