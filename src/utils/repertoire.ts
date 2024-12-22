@@ -74,7 +74,7 @@ export async function openingReport({
         fen: item.node.fen,
         color: "white",
         player: null,
-        result: "any"
+        result: "any",
       },
       "opening",
     );

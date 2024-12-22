@@ -6,10 +6,10 @@ import {
   Box,
   Button,
   Group,
+  NativeSelect,
   SegmentedControl,
   Stack,
   Text,
-  NativeSelect
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { parseSquare } from "chessops";
@@ -69,7 +69,14 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             ]}
             value={options.result}
             onChange={(v) =>
-              setOptions({ ...options, result: v.currentTarget.value as "any" | "whitewon" | "draw" | "blackwon" })
+              setOptions({
+                ...options,
+                result: v.currentTarget.value as
+                  | "any"
+                  | "whitewon"
+                  | "draw"
+                  | "blackwon",
+              })
             }
           />
         </Group>
