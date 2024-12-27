@@ -317,6 +317,7 @@ function BoardGame() {
   const headers = useStore(store, (s) => s.headers);
   const setFen = useStore(store, (s) => s.setFen);
   const setHeaders = useStore(store, (s) => s.setHeaders);
+  const setResult = useStore(store, (s) => s.setResult);
   const appendMove = useStore(store, (s) => s.appendMove);
 
   const [, setTabs] = useAtom(tabsAtom);
@@ -452,17 +453,10 @@ function BoardGame() {
 
   useEffect(() => {
     if (gameState === "playing" && whiteTime !== null && whiteTime <= 0) {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-      setIntervalId(null);
       setGameState("gameOver");
-      setHeaders({
-        ...headers,
-        result: "0-1",
-      });
+      setResult("0-1");
     }
-  }, [gameState, whiteTime, setGameState, setHeaders, headers]);
+  }, [gameState, whiteTime, setGameState, setResult]);
 
   useEffect(() => {
     if (gameState !== "playing") {
@@ -476,18 +470,17 @@ function BoardGame() {
   useEffect(() => {
     if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
       setGameState("gameOver");
-      setHeaders({
-        ...headers,
-        result: "1-0",
-      });
+      setResult("1-0");
     }
-  }, [gameState, blackTime, setGameState, setHeaders, headers]);
+  }, [gameState, blackTime, setGameState, setResult]);
 
   function decrementTime() {
-    if (pos?.turn === "white" && whiteTime !== null) {
-      setWhiteTime((prev) => prev! - 100);
-    } else if (pos?.turn === "black" && blackTime !== null) {
-      setBlackTime((prev) => prev! - 100);
+    if (gameState === "playing") {
+      if (pos?.turn === "white" && whiteTime !== null) {
+        setWhiteTime((prev) => prev! - 100);
+      } else if (pos?.turn === "black" && blackTime !== null) {
+        setBlackTime((prev) => prev! - 100);
+      }
     }
   }
 
