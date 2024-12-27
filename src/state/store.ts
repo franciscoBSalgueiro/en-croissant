@@ -1,4 +1,4 @@
-import type { BestMoves, Score } from "@/bindings";
+import type { BestMoves, Outcome, Score } from "@/bindings";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { getPGN } from "@/utils/chess";
 import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
@@ -72,6 +72,7 @@ export interface TreeStoreState {
   setAnnotation: (payload: Annotation) => void;
   setComment: (payload: string) => void;
   setHeaders: (payload: GameHeaders) => void;
+  setResult: (payload: Outcome) => void;
   setShapes: (shapes: DrawShape[]) => void;
   setScore: (score: Score) => void;
 
@@ -438,6 +439,13 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
             state.root = defaultTree(headers.fen).root;
             state.position = [];
           }
+        }),
+      ),
+    setResult: (result) =>
+      set(
+        produce((state) => {
+          state.dirty = true;
+          state.headers.result = result;
         }),
       ),
     setShapes: (shapes) =>
