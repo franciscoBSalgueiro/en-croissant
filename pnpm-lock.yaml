@@ -48,38 +48,38 @@ importers:
         specifier: ^3.1.3
         version: 3.1.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tauri-apps/api':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.1.1
+        version: 2.1.1
       '@tauri-apps/plugin-cli':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-dialog':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-fs':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-http':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-log':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-os':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-process':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-shell':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tauri-apps/plugin-updater':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.3.0
+        version: 2.3.0
       '@tauri-apps/plugin-window-state':
-        specifier: ~2
-        version: 2.0.0
+        specifier: ~2.2.0
+        version: 2.2.0
       '@tiptap/extension-link':
         specifier: 2.2.4
         version: 2.2.4(@tiptap/core@2.2.4(@tiptap/pm@2.2.4))(@tiptap/pm@2.2.4)
@@ -141,8 +141,8 @@ importers:
         specifier: ^7.6.1
         version: 7.6.1(@mantine/core@7.6.2(@mantine/hooks@7.6.2(react@18.3.1))(@types/react@18.3.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mantine/hooks@7.6.2(react@18.3.1))(clsx@2.1.0)(react@18.3.1)
       mantine-flagpack:
-        specifier: ^4.0.0
-        version: 4.0.0(@mantine/core@7.6.2(@mantine/hooks@7.6.2(react@18.3.1))(@types/react@18.3.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mantine/hooks@7.6.2(react@18.3.1))(clsx@2.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 4.0.1
+        version: 4.0.1(@mantine/core@7.6.2(@mantine/hooks@7.6.2(react@18.3.1))(@types/react@18.3.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mantine/hooks@7.6.2(react@18.3.1))(clsx@2.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -1015,8 +1015,8 @@ packages:
   '@tanstack/virtual-core@3.1.3':
     resolution: {integrity: sha512-Y5B4EYyv1j9V8LzeAoOVeTg0LI7Fo5InYKgAjkY1Pu9GjtUwX/EKxNcU7ng3sKr99WEf+bPTcktAeybyMOYo+g==}
 
-  '@tauri-apps/api@2.0.0':
-    resolution: {integrity: sha512-moKgCp2EX7X5GiOx/G/bmoEpkFQVVmyS98UaJU4xUVzan+E1BdwlAKcbip+cGldshYOqL4JSwAEN1OkRXeug0Q==}
+  '@tauri-apps/api@2.1.1':
+    resolution: {integrity: sha512-fzUfFFKo4lknXGJq8qrCidkUcKcH2UHhfaaCNt4GzgzGaW2iS26uFOg4tS3H4P8D6ZEeUxtiD5z0nwFF0UN30A==}
 
   '@tauri-apps/cli-darwin-arm64@2.0.1':
     resolution: {integrity: sha512-oWjCZoFbm57V0eLEkIbc6aUmB4iW65QF7J8JVh5sNzH4xHGP9rzlQarbkg7LOn89z7mFSZpaLJAWlaaZwoV2Ug==}
@@ -1083,35 +1083,35 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@tauri-apps/plugin-cli@2.0.0':
-    resolution: {integrity: sha512-glQmlL1IiCGEa1FHYa/PTPSeYhfu56omLRgHXWlJECDt6DbJyRuJWVgtkQfUxtqnVdYnnU+DGIGeiInoEqtjLw==}
+  '@tauri-apps/plugin-cli@2.2.0':
+    resolution: {integrity: sha512-rvNhMog9rHr01Xk+trBFKJ0eZICIvPkm9GX6ogB89/0hROU/lf+a/sb4vC0wtSeR7zrJuCSxwxYuvHCZheaYFA==}
 
-  '@tauri-apps/plugin-dialog@2.0.0':
-    resolution: {integrity: sha512-ApNkejXP2jpPBSifznPPcHTXxu9/YaRW+eJ+8+nYwqp0lLUtebFHG4QhxitM43wwReHE81WAV1DQ/b+2VBftOA==}
+  '@tauri-apps/plugin-dialog@2.2.0':
+    resolution: {integrity: sha512-6bLkYK68zyK31418AK5fNccCdVuRnNpbxquCl8IqgFByOgWFivbiIlvb79wpSXi0O+8k8RCSsIpOquebusRVSg==}
 
-  '@tauri-apps/plugin-fs@2.0.0':
-    resolution: {integrity: sha512-BNEeQQ5aH8J5SwYuWgRszVyItsmquRuzK2QRkVj8Z0sCsLnSvJFYI3JHRzzr3ltZGq1nMPtblrlZzuKqVzRawA==}
+  '@tauri-apps/plugin-fs@2.2.0':
+    resolution: {integrity: sha512-+08mApuONKI8/sCNEZ6AR8vf5vI9DXD4YfrQ9NQmhRxYKMLVhRW164vdW5BSLmMpuevftpQ2FVoL9EFkfG9Z+g==}
 
-  '@tauri-apps/plugin-http@2.0.0':
-    resolution: {integrity: sha512-UfKAICL25ayluV/SjiEQujz8q/2uyAzp3u9uaHFkaIyKS5usBL8DoqSwi4eKz2mEjkbxTwldhDEXG4CEfTE0JQ==}
+  '@tauri-apps/plugin-http@2.2.0':
+    resolution: {integrity: sha512-ZY6sIHhgu8hcu6BkkegoiOEbvOsQFSVcK8J7l+g9RNHrkhl5uzpNIytR4R/H50fj7gyG80DJvrXDx/LBo7Easw==}
 
-  '@tauri-apps/plugin-log@2.0.0':
-    resolution: {integrity: sha512-C+NII9vzswqnOQE8k7oRtnaw0z5TZsMmnirRhXkCKDEhQQH9841Us/PC1WHtGiAaJ8za1A1JB2xXndEq/47X/w==}
+  '@tauri-apps/plugin-log@2.2.0':
+    resolution: {integrity: sha512-g6CsQAR1lsm5ABSZZxpM/iCn86GrMDTTlhj7GPkZkYBRSm3+WczfOAl7SV7HDn77tOKCzhZffwI5uHfRoHutrw==}
 
-  '@tauri-apps/plugin-os@2.0.0':
-    resolution: {integrity: sha512-M7hG/nNyQYTJxVG/UhTKhp9mpXriwWzrs9mqDreB8mIgqA3ek5nHLdwRZJWhkKjZrnDT4v9CpA9BhYeplTlAiA==}
+  '@tauri-apps/plugin-os@2.2.0':
+    resolution: {integrity: sha512-HszbCdbisMlu5QhCNAN8YIWyz2v33abAWha6+uvV2CKX8P5VSct/y+kEe22JeyqrxCnWlQ3DRx7s49Byg7/0EA==}
 
-  '@tauri-apps/plugin-process@2.0.0':
-    resolution: {integrity: sha512-OYzi0GnkrF4NAnsHZU7U3tjSoP0PbeAlO7T1Z+vJoBUH9sFQ1NSLqWYWQyf8hcb3gVWe7P1JggjiskO+LST1ug==}
+  '@tauri-apps/plugin-process@2.2.0':
+    resolution: {integrity: sha512-uypN2Crmyop9z+KRJr3zl71OyVFgTuvHFjsJ0UxxQ/J5212jVa5w4nPEYjIewcn8bUEXacRebwE6F7owgrbhSw==}
 
-  '@tauri-apps/plugin-shell@2.0.0':
-    resolution: {integrity: sha512-OpW2+ycgJLrEoZityWeWYk+6ZWP9VyiAfbO+N/O8VfLkqyOym8kXh7odKDfINx9RAotkSGBtQM4abyKfJDkcUg==}
+  '@tauri-apps/plugin-shell@2.2.0':
+    resolution: {integrity: sha512-iC3Ic1hLmasoboG7BO+7p+AriSoqAwKrIk+Hpk+S/bjTQdXqbl2GbdclghI4gM32X0bls7xHzIFqhRdrlvJeaA==}
 
-  '@tauri-apps/plugin-updater@2.0.0':
-    resolution: {integrity: sha512-N0cl71g7RPr7zK2Fe5aoIwzw14NcdLcz7XMGFWZVjprsqgDRWoxbnUkknyCQMZthjhGkppCd/wN2MIsUz+eAhQ==}
+  '@tauri-apps/plugin-updater@2.3.0':
+    resolution: {integrity: sha512-qdzyZEUN69FZQ/nRx51fBub10tT6wffJl3DLVo9q922Gvw8Wk++rZhoD9eethPlZYbog/7RGgT8JkrfLh5BKAg==}
 
-  '@tauri-apps/plugin-window-state@2.0.0':
-    resolution: {integrity: sha512-O82iRlrh1BLgBI8CTc+NMTPxQhQo8II5admKq9mLvH45Us5i4Zcr74At6eM46nOflFd7R8bZsVNGy+PxOEqUmQ==}
+  '@tauri-apps/plugin-window-state@2.2.0':
+    resolution: {integrity: sha512-PFZ/vkZ6UPaRyuggEn8jWc/xwpiEw3Id8i6bin54zUR3vHY0MOK+ovvpvp6SEHKryCJbZMigYJz0OUT2eZ4YmQ==}
 
   '@tiptap/core@2.2.4':
     resolution: {integrity: sha512-cRrI8IlLIhCE1hacBQzXIC8dsRvGq6a4lYWQK/BaHuZg21CG7szp3Vd8Ix+ra1f5v0xPOT+Hy+QFNQooRMKMCw==}
@@ -1351,6 +1351,9 @@ packages:
 
   '@types/react@18.3.14':
     resolution: {integrity: sha512-NzahNKvjNhVjuPBQ+2G7WlxstQ+47kXZNHlUvFakDViuIEfGY926GqhMueQFZ7woG+sPiQKlF36XfrIUVSUfFg==}
+
+  '@types/react@18.3.18':
+    resolution: {integrity: sha512-t4yC+vtgnkYjNSKlFx1jkAhH8LgTo2N/7Qvi83kdEaUtMDiwpbLAktKDaAMlRcJ5eSxZkH74eEGt1ky31d7kfQ==}
 
   '@types/unist@2.0.10':
     resolution: {integrity: sha512-IfYcSBWE3hLpBg8+X2SEa8LVkJdJEkT2Ese2aaLs3ptGdVtABxndrMaxuFlQ1qdFf9Q5rDvDpxI3WwgvKFAsQA==}
@@ -1950,12 +1953,12 @@ packages:
       clsx: '>=2'
       react: '>=18.2'
 
-  mantine-flagpack@4.0.0:
-    resolution: {integrity: sha512-qPV4XJt2YB11i0Ps+C+yV1ULEBEPvnkq6i4bw9cKxjJsVVGGSjWlefTU8MYslkS5+g44bptvDRpsj6bBSWOVtQ==}
+  mantine-flagpack@4.0.1:
+    resolution: {integrity: sha512-8kIk0mzCByNngNqvs1uXQlpgJOG8tTC5J8c29TE5F7ZymOCr0K4lb49MMcwQ+jX0Pu5AfeRyx24jqI/ZwaVrhw==}
     peerDependencies:
       '@mantine/core': '>=7.0.0'
       '@mantine/hooks': '>=7.0.0'
-      clsx: 2.0.0
+      clsx: ^2.1.0
       react: ^18.2.0
       react-dom: ^18.2.0
 
@@ -3507,7 +3510,7 @@ snapshots:
 
   '@tanstack/virtual-core@3.1.3': {}
 
-  '@tauri-apps/api@2.0.0': {}
+  '@tauri-apps/api@2.1.1': {}
 
   '@tauri-apps/cli-darwin-arm64@2.0.1':
     optional: true
@@ -3552,45 +3555,45 @@ snapshots:
       '@tauri-apps/cli-win32-ia32-msvc': 2.0.1
       '@tauri-apps/cli-win32-x64-msvc': 2.0.1
 
-  '@tauri-apps/plugin-cli@2.0.0':
+  '@tauri-apps/plugin-cli@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-dialog@2.0.0':
+  '@tauri-apps/plugin-dialog@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-fs@2.0.0':
+  '@tauri-apps/plugin-fs@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-http@2.0.0':
+  '@tauri-apps/plugin-http@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-log@2.0.0':
+  '@tauri-apps/plugin-log@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-os@2.0.0':
+  '@tauri-apps/plugin-os@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-process@2.0.0':
+  '@tauri-apps/plugin-process@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-shell@2.0.0':
+  '@tauri-apps/plugin-shell@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-updater@2.0.0':
+  '@tauri-apps/plugin-updater@2.3.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
-  '@tauri-apps/plugin-window-state@2.0.0':
+  '@tauri-apps/plugin-window-state@2.2.0':
     dependencies:
-      '@tauri-apps/api': 2.0.0
+      '@tauri-apps/api': 2.1.1
 
   '@tiptap/core@2.2.4(@tiptap/pm@2.2.4)':
     dependencies:
@@ -3803,7 +3806,7 @@ snapshots:
 
   '@types/hoist-non-react-statics@3.3.6':
     dependencies:
-      '@types/react': 18.3.14
+      '@types/react': 18.3.18
       hoist-non-react-statics: 3.3.2
     optional: true
 
@@ -3860,6 +3863,12 @@ snapshots:
     dependencies:
       '@types/prop-types': 15.7.14
       csstype: 3.1.3
+
+  '@types/react@18.3.18':
+    dependencies:
+      '@types/prop-types': 15.7.14
+      csstype: 3.1.3
+    optional: true
 
   '@types/unist@2.0.10': {}
 
@@ -4533,7 +4542,7 @@ snapshots:
       clsx: 2.1.0
       react: 18.3.1
 
-  mantine-flagpack@4.0.0(@mantine/core@7.6.2(@mantine/hooks@7.6.2(react@18.3.1))(@types/react@18.3.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mantine/hooks@7.6.2(react@18.3.1))(clsx@2.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  mantine-flagpack@4.0.1(@mantine/core@7.6.2(@mantine/hooks@7.6.2(react@18.3.1))(@types/react@18.3.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mantine/hooks@7.6.2(react@18.3.1))(clsx@2.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@mantine/core': 7.6.2(@mantine/hooks@7.6.2(react@18.3.1))(@types/react@18.3.14)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mantine/hooks': 7.6.2(react@18.3.1)
