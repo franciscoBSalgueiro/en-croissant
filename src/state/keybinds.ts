@@ -5,12 +5,12 @@ import type {
 } from "jotai/vanilla/utils/atomWithStorage";
 
 const keys = {
-  NEW_TAB: { name: "New tab", keys: "ctrl+t" },
-  CLOSE_TAB: { name: "Close tab", keys: "ctrl+w" },
-  OPEN_FILE: { name: "Open File", keys: "ctrl+o" },
-  SAVE_FILE: { name: "Save File", keys: "ctrl+s" },
+  NEW_TAB: { name: "New tab", keys: "mod+t" },
+  CLOSE_TAB: { name: "Close tab", keys: "mod+w" },
+  OPEN_FILE: { name: "Open File", keys: "mod+o" },
+  SAVE_FILE: { name: "Save File", keys: "mod+s" },
   SWAP_ORIENTATION: { name: "Swap orientation", keys: "f" },
-  CLEAR_SHAPES: { name: "Clear shapes", keys: "ctrl+l" },
+  CLEAR_SHAPES: { name: "Clear shapes", keys: "mod+l" },
   NEXT_MOVE: { name: "Next move", keys: "arrowright" },
   PREVIOUS_MOVE: { name: "Previous move", keys: "arrowleft" },
   GO_TO_BRANCH_START: { name: "Go to start of branch", keys: "arrowup" },
@@ -42,8 +42,8 @@ const keys = {
   ANNOTATION_DUBIOUS: { name: "Toggle dubious move annotation", keys: "4" },
   ANNOTATION_MISTAKE: { name: "Toggle mistake move annotation", keys: "5" },
   ANNOTATION_BLUNDER: { name: "Toggle blunder move annotation", keys: "6" },
-  TOGGLE_ALL_ENGINES: { name: "Toggle all engines", keys: "ctrl+a" },
-  TOGGLE_BLUR: { name: "Toggle blur", keys: "ctrl+b" },
+  TOGGLE_ALL_ENGINES: { name: "Toggle all engines", keys: "mod+a" },
+  TOGGLE_BLUR: { name: "Toggle blur", keys: "mod+b" },
   PREVIOUS_GAME: { name: "Previous game", keys: "pageup" },
   NEXT_GAME: { name: "Next game", keys: "pagedown" },
 };
