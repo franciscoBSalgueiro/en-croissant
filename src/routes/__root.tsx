@@ -131,7 +131,7 @@ function RootLayout() {
 
   const [keyMap] = useAtom(keyMapAtom);
 
-  useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
+  useHotkeys(keyMap.NEW_BOARD_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
   const [opened, setOpened] = useState(false);
 
@@ -143,7 +143,7 @@ function RootLayout() {
           {
             label: t("Menu.File.NewTab"),
             id: "new_tab",
-            shortcut: keyMap.NEW_TAB.keys,
+            shortcut: keyMap.NEW_BOARD_TAB.keys,
             action: createNewTab,
           },
           {
