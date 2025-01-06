@@ -7,6 +7,7 @@ import type {
 const keys = {
   OPEN_FILE: { name: "Open File", keys: "mod+o" },
   SAVE_FILE: { name: "Save File", keys: "mod+s" },
+  EXIT_APP: { name: "Exit En-Croissant", keys: "mod+q" },
   NEW_BOARD_TAB: { name: "New board tab", keys: "mod+t" },
   CLOSE_BOARD_TAB: { name: "Close board tab", keys: "mod+w" },
   BOARD_TAB_ONE: { name: "Go to board tab one", keys: "mod+1" },

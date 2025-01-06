@@ -133,6 +133,7 @@ function RootLayout() {
 
   useHotkeys(keyMap.NEW_BOARD_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
+  useHotkeys(keyMap.EXIT_APP.keys, () => exit(0));
   const [opened, setOpened] = useState(false);
 
   const menuActions: MenuGroup[] = useMemo(
