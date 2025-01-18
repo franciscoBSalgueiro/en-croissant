@@ -175,7 +175,7 @@ export const soundVolumeAtom = atomWithStorage<number>(
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const boardImageAtom = atomWithStorage<string>(
   "board-image",
-  "gray.svg",
+  "gray.jpg",
 );
 export const primaryColorAtom = atomWithStorage<MantineColor>(
   "mantine-primary-color",
