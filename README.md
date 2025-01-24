@@ -37,6 +37,8 @@ En-Croissant is an open-source, cross-platform chess GUI that aims to be powerfu
 
 Refer to the [Tauri documentation](https://tauri.app/v1/guides/getting-started/prerequisites) for the requirements on your platform.
 
+En-Croissant uses pnpm as the package manager for dependencies. Refer to the [pnpm install instructions](https://pnpm.io/installation) for how to install it on your platform.
+
 ```bash
 git clone https://github.com/franciscoBSalgueiro/en-croissant
 cd en-croissant
