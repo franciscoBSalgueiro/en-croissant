@@ -126,7 +126,7 @@ export default function ImportModal({
         }
         pgn = res;
       } else if (link.includes("lichess")) {
-        const gameId = link.split("/")[3];
+        const gameId = link.split("?")[0].split("/").pop() || "";
         pgn = await getLichessGame(gameId);
       }
 
