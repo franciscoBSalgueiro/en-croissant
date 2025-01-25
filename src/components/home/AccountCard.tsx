@@ -143,7 +143,7 @@ export function AccountCard({
 
   const downloadedGames =
     database?.type === "success" ? database.game_count : 0;
-  const percentage = ((downloadedGames / total) * 100).toFixed(2);
+  const percentage = total === 0 || downloadedGames === 0 ? "0" : ((downloadedGames / total) * 100).toFixed(2);
 
   async function getLastGameDate({
     database,
@@ -256,7 +256,7 @@ export function AccountCard({
 
               <div>
                 <Tooltip label={`${downloadedGames} games`}>
-                  <Text fw="bold">{percentage}%</Text>
+                    <Text fw="bold">{percentage === "0" ? "0" : `${percentage}%`}</Text>
                 </Tooltip>
                 <Text size="xs" c="dimmed">
                   Downloaded
