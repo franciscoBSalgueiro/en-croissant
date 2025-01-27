@@ -377,7 +377,10 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       set(
         produce((state) => {
           state.dirty = true;
-          while (!promoteVariation(state, path)) {}
+          while (path.some((v) => v !== 0)) {
+            promoteVariation(state, path);
+            path = state.position;
+          }
         }),
       ),
     copyVariationPgn: (path) => {
