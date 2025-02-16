@@ -23,6 +23,7 @@ const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
   reversed: true,
   goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
+  engine: ""
 });
 
 function ReportModal({
@@ -52,19 +53,10 @@ function ReportModal({
   const store = useContext(TreeStateContext)!;
   const addAnalysis = useStore(store, (s) => s.addAnalysis);
 
-  useEffect(() => {
-    if (!form.values.engine && localEngines.length > 0) {
-      form.setFieldValue("engine", localEngines[0].path);
-    }
-  }, [localEngines.length]);
   const [reportSettings, setReportSettings] = useAtom(reportSettingsAtom);
 
   const form = useForm({
-    initialValues: {
-      ...reportSettings,
-      engine: "",
-    },
-
+    initialValues: reportSettings,
     validate: {
       engine: (value) => {
         if (!value) return t("Board.Analysis.EngineRequired");
@@ -74,6 +66,14 @@ function ReportModal({
       },
     },
   });
+
+  useEffect(() => {
+    const engine = localEngines.length === 0 ? "" :
+      (!reportSettings.engine || !localEngines.some(l => l.path === reportSettings.engine) ?
+        localEngines[0].path : reportSettings.engine)
+
+    form.setValues({ ...reportSettings, engine });
+  }, [localEngines.length, reportSettings]);
 
   function analyze() {
     setReportSettings(form.values);
