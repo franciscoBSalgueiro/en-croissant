@@ -23,7 +23,7 @@ const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
   reversed: true,
   goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
-  engine: ""
+  engine: "",
 });
 
 function ReportModal({
@@ -68,9 +68,13 @@ function ReportModal({
   });
 
   useEffect(() => {
-    const engine = localEngines.length === 0 ? "" :
-      (!reportSettings.engine || !localEngines.some(l => l.path === reportSettings.engine) ?
-        localEngines[0].path : reportSettings.engine)
+    const engine =
+      localEngines.length === 0
+        ? ""
+        : !reportSettings.engine ||
+            !localEngines.some((l) => l.path === reportSettings.engine)
+          ? localEngines[0].path
+          : reportSettings.engine;
 
     form.setValues({ ...reportSettings, engine });
   }, [localEngines.length, reportSettings]);
