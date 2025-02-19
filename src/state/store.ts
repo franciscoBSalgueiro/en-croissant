@@ -713,3 +713,41 @@ function addAnalysis(
     i++;
   }
 }
+
+export interface ReportState {
+  progress: number;
+  isCompleted: boolean;
+  inProgress: boolean;
+  setProgress: (progress: number) => void;
+  setCompleted: (isCompleted: boolean) => void;
+  setInProgress: (inProgress: boolean) => void;
+}
+
+export type ReportStore = ReturnType<typeof createReportStore>;
+
+export const createReportStore = (id?: string, initial?: ReportState) => {
+  const stateCreator: StateCreator<ReportState> = (set) => {
+    return {
+      ...(initial ?? { progress: 0, isCompleted: false, inProgress: false }),
+      setProgress: (progress) => {
+        set((state) => ({ ...state, progress }));
+      },
+      setCompleted: (isCompleted) => {
+        set((state) => ({ ...state, isCompleted }));
+      },
+      setInProgress: (inProgress) => {
+        set((state) => ({ ...state, inProgress }));
+      },
+    };
+  };
+
+  if (id) {
+    return createStore<ReportState>()(
+      persist(stateCreator, {
+        name: `report_${id}`,
+        storage: createJSONStorage(() => sessionStorage),
+      }),
+    );
+  }
+  return createStore<ReportState>()(stateCreator);
+};
