@@ -1,5 +1,6 @@
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButtonWithOutState";
+import { ReportStateContext } from "@/components/common/ReportStateContext";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { activeTabAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
@@ -16,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { label } from "./AnalysisPanel.css";
 import ReportModal from "./ReportModal";
-import { ReportStateContext } from "@/components/common/ReportStateContext";
 
 function ReportPanel() {
   const { t } = useTranslation();

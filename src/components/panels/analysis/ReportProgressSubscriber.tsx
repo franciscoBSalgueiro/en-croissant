@@ -1,7 +1,7 @@
 import { events } from "@/bindings";
-import { useStore } from "zustand";
-import React, { memo, useEffect, useContext } from "react";
 import { ReportStateContext } from "@/components/common/ReportStateContext";
+import React, { memo, useEffect, useContext } from "react";
+import { useStore } from "zustand";
 
 type Props = {
   id: string;

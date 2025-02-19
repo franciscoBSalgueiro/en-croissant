@@ -24,9 +24,9 @@ import "react-mosaic-component/react-mosaic-component.css";
 
 import "@/styles/react-mosaic.css";
 import { atomWithStorage } from "jotai/utils";
-import * as classes from "./BoardsPage.css";
 import { ReportStateProvider } from "../common/ReportStateContext";
 import ReportProgressSubscriber from "../panels/analysis/ReportProgressSubscriber";
+import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();

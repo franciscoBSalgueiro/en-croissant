@@ -1,4 +1,4 @@
-import { type EventCallback, type UnlistenFn } from "@tauri-apps/api/event";
+import type { EventCallback, UnlistenFn } from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
 import ProgressButtonWithOutState from "./ProgressButtonWithOutState";
 
