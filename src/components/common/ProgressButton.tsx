@@ -1,11 +1,6 @@
-import { Box, Button, Progress, useMantineTheme } from "@mantine/core";
-import {
-  type EventCallback,
-  type UnlistenFn,
-  listen,
-} from "@tauri-apps/api/event";
+import { type EventCallback, type UnlistenFn } from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
-import * as classes from "./ProgressButton.css";
+import ProgressButtonWithOutState from "./ProgressButtonWithOutState";
 
 type Payload = {
   id: string;
@@ -62,40 +57,18 @@ function ProgressButton<T extends Payload>({
     };
   }, [id]);
 
-  let label: string;
-  if (completed) {
-    label = labels.completed;
-  } else {
-    if (progress === 0 && !inProgress) label = labels.action;
-    else if (progress === 100) label = labels.finalizing ?? labels.inProgress;
-    else label = labels.inProgress;
-  }
-  const theme = useMantineTheme();
-
   return (
-    <>
-      <Button
-        fullWidth
-        onClick={() => {
-          onClick(id);
-        }}
-        color={completed ? "green" : theme.primaryColor}
-        disabled={inProgress || (completed && !redoable) || disabled}
-        leftSection={<Box className={classes.label}>{leftIcon}</Box>}
-        autoContrast
-      >
-        <span className={classes.label}>{label}</span>
-        {progress !== 0 && (
-          <Progress
-            pos="absolute"
-            h="100%"
-            value={progress}
-            className={classes.progress}
-            radius="sm"
-          />
-        )}
-      </Button>
-    </>
+    <ProgressButtonWithOutState
+      id={id}
+      onClick={onClick}
+      leftIcon={leftIcon}
+      labels={labels}
+      disabled={disabled}
+      redoable={redoable}
+      inProgress={inProgress}
+      progress={progress}
+      completed={completed}
+    />
   );
 }
 

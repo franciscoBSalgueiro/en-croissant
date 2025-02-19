@@ -1,6 +1,5 @@
-import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
-import ProgressButton from "@/components/common/ProgressButton";
+import ProgressButton from "@/components/common/ProgressButtonWithOutState";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { activeTabAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
@@ -11,12 +10,13 @@ import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import React, { Suspense, useState } from "react";
+import React, { Suspense } from "react";
 import { memo, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { label } from "./AnalysisPanel.css";
 import ReportModal from "./ReportModal";
+import { ReportStateContext } from "@/components/common/ReportStateContext";
 
 function ReportPanel() {
   const { t } = useTranslation();
@@ -27,8 +27,13 @@ function ReportPanel() {
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
 
+  const reportStore = useContext(ReportStateContext)!;
+  const inProgress = useStore(reportStore, (s) => s.inProgress);
+  const setInProgress = useStore(reportStore, (s) => s.setInProgress);
+  const progress = useStore(reportStore, (s) => s.progress);
+  const isCompleted = useStore(reportStore, (s) => s.isCompleted);
+
   const [reportingMode, toggleReportingMode] = useToggle();
-  const [inProgress, setInProgress] = useState(false);
 
   const stats = useMemo(() => getGameStats(root), [root]);
 
@@ -64,19 +69,18 @@ function ReportPanel() {
           <div>
             <ProgressButton
               id={`report_${activeTab}`}
-              redoable
-              disabled={root.children.length === 0}
-              leftIcon={<IconZoomCheck size="0.875rem" />}
               onClick={() => toggleReportingMode()}
-              initInstalled={false}
-              progressEvent={events.reportProgress}
+              leftIcon={<IconZoomCheck size="0.875rem" />}
               labels={{
                 action: t("Board.Analysis.GenerateReport"),
                 completed: t("Board.Analysis.ReportGenerated"),
                 inProgress: t("Board.Analysis.GeneratingReport"),
               }}
+              disabled={root.children.length === 0}
+              redoable
               inProgress={inProgress}
-              setInProgress={setInProgress}
+              progress={progress}
+              completed={isCompleted}
             />
           </div>
         </Group>

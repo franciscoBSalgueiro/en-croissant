@@ -25,6 +25,8 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
+import { ReportStateProvider } from "../common/ReportStateContext";
+import ReportProgressSubscriber from "../panels/analysis/ReportProgressSubscriber";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
@@ -312,18 +314,21 @@ function TabSwitch({
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
-        <BoardAnalysis />
-        <ConfirmChangesModal
-          opened={saveModalOpened}
-          toggle={toggleSaveModal}
-          closeTab={() => closeTab(activeTab, true)}
-        />
+        <ReportStateProvider id={tab.value}>
+          <Mosaic<ViewId>
+            renderTile={(id) => fullLayout[id]}
+            value={windowsState.currentNode}
+            onChange={(currentNode) => setWindowsState({ currentNode })}
+            resize={{ minimumPaneSizePercentage: 0 }}
+          />
+          <ReportProgressSubscriber id={`report_${tab.value}`} />
+          <BoardAnalysis />
+          <ConfirmChangesModal
+            opened={saveModalOpened}
+            toggle={toggleSaveModal}
+            closeTab={() => closeTab(activeTab, true)}
+          />
+        </ReportStateProvider>
       </TreeStateProvider>
     ))
     .with("puzzles", () => (
