@@ -55,3 +55,5 @@ If you wish to support the development of this GUI, you can do so [here](https:/
 ## Contributing
 
 For contributing to this project please refer to the [Contributing guide](./CONTRIBUTING.md).
+## License
+This software is licensed under GPL-3.0 License.
