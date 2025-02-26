@@ -18,16 +18,11 @@ import type { DrawShape } from "chessground/draw";
 import { type Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
-import { produce } from "immer";
+import { type Draft, produce } from "immer";
 import { type StateCreator, createStore } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-export interface TreeStoreState {
-  root: TreeNode;
-  headers: GameHeaders;
-  position: number[];
-  dirty: boolean;
-
+export interface TreeStoreState extends TreeState {
   currentNode: () => TreeNode;
 
   goToNext: () => void;
@@ -52,10 +47,7 @@ export interface TreeStoreState {
     changeHeaders?: boolean;
   }) => void;
 
-  appendMove: (args: {
-    payload: Move;
-    clock?: number;
-  }) => void;
+  appendMove: (args: { payload: Move; clock?: number }) => void;
 
   makeMoves: (args: {
     payload: string[];
@@ -493,6 +485,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       }),
     );
   }
+
   return createStore<TreeStoreState>()(stateCreator);
 };
 
