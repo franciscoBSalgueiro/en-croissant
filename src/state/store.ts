@@ -18,7 +18,7 @@ import type { DrawShape } from "chessground/draw";
 import { type Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
-import { produce, Draft } from "immer";
+import { type Draft, produce } from "immer";
 import { type StateCreator, createStore } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
