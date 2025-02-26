@@ -1,6 +1,7 @@
 import { commands } from "@/bindings";
 import type { DatabaseInfo } from "@/bindings";
-import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
+import { referenceDbAtom } from "@/state/atoms";
+import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
@@ -27,7 +28,7 @@ import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
+import { useAtom, useStore } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
@@ -54,7 +55,11 @@ export default function DatabasesPage() {
     () => (databases ?? []).find((db) => db.file === selected) ?? null,
     [databases, selected],
   );
-  const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
+  // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
+  const setActiveDatabase = useActiveDatabaseViewStore(
+    (store) => store.setDatabase,
+  );
+
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
@@ -137,7 +142,8 @@ export default function DatabasesPage() {
                         databaseId: item.title,
                       },
                     });
-                    setStorageSelected(item);
+                    setActiveDatabase(item);
+                    //setStorageSelected(item);
                   }}
                   Header={
                     <Group wrap="nowrap" justify="space-between">
@@ -270,7 +276,8 @@ export default function DatabasesPage() {
                           component={Link}
                           to="/databases/$databaseId"
                           params={{ databaseId: selectedDatabase.title }}
-                          onClick={() => setStorageSelected(selectedDatabase)}
+                          //onClick={() => setStorageSelected(selectedDatabase)}
+                          onClick={() => setActiveDatabase(selectedDatabase)}
                           fullWidth
                           variant="default"
                           size="lg"
@@ -361,10 +368,7 @@ export default function DatabasesPage() {
 function GeneralSettings({
   selectedDatabase,
   mutate,
-}: {
-  selectedDatabase: SuccessDatabaseInfo;
-  mutate: () => void;
-}) {
+}: { selectedDatabase: SuccessDatabaseInfo; mutate: () => void }) {
   const { t } = useTranslation();
 
   const [title, setTitle] = useState(selectedDatabase.title);
@@ -403,10 +407,7 @@ function GeneralSettings({
 function AdvancedSettings({
   selectedDatabase,
   reload,
-}: {
-  selectedDatabase: DatabaseInfo;
-  reload: () => void;
-}) {
+}: { selectedDatabase: DatabaseInfo; reload: () => void }) {
   return (
     <Stack>
       <PlayerMerger selectedDatabase={selectedDatabase} />
@@ -417,9 +418,7 @@ function AdvancedSettings({
 
 function PlayerMerger({
   selectedDatabase,
-}: {
-  selectedDatabase: DatabaseInfo;
-}) {
+}: { selectedDatabase: DatabaseInfo }) {
   const { t } = useTranslation();
 
   const [player1, setPlayer1] = useState<number | undefined>(undefined);
@@ -472,10 +471,7 @@ function PlayerMerger({
 function DuplicateRemover({
   selectedDatabase,
   reload,
-}: {
-  selectedDatabase: DatabaseInfo;
-  reload: () => void;
-}) {
+}: { selectedDatabase: DatabaseInfo; reload: () => void }) {
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(false);

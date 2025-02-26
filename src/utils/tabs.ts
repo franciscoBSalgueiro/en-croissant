@@ -1,6 +1,6 @@
 import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
-import type { TreeStoreState } from "@/state/store";
+import type { TreeStoreState } from "@/state/store/tree";
 import { save } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import type { StoreApi } from "zustand";

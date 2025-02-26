@@ -1,99 +1,50 @@
-import {
-  type DatabaseInfo,
-  type Event,
-  type TournamentSort,
-  commands,
-} from "@/bindings";
+import { type Event, type TournamentSort, commands } from "@/bindings";
 import { unwrap } from "@/utils/unwrap";
 import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { DataTable, type DataTableSortStatus } from "mantine-datatable";
-import { useEffect, useState } from "react";
+import { DataTable } from "mantine-datatable";
+import { useContext } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import useSWR from "swr";
+import { useStore } from "zustand";
+import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
 import TournamentCard from "./TournamentCard";
 import * as classes from "./styles.css";
 
-function TournamentTable({ database }: { database: DatabaseInfo }) {
-  const file = database.file;
-  const [tournaments, setTournaments] = useState<Event[]>([]);
-  const [count, setCount] = useState(0);
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [limit, setLimit] = useState(25);
-  const [activePage, setActivePage] = useState(1);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [sort, setSort] = useState<DataTableSortStatus<Event>>({
-    columnAccessor: "id",
-    direction: "asc",
-  });
+function TournamentTable() {
+  const store = useContext(DatabaseViewStateContext)!;
 
-  useEffect(() => {
-    setActivePage(1);
-    setSelected(null);
-    setLoading(true);
-    commands
-      .getTournaments(file, {
-        name: name,
-        options: {
-          page: 1,
-          pageSize: limit,
-          skipCount: false,
-          sort: sort.columnAccessor as TournamentSort,
-          direction: sort.direction,
-        },
-      })
-      .then((res) => {
-        const { data, count } = unwrap(res);
-        setLoading(false);
-        setTournaments(data);
-        setCount(count!);
-      });
-  }, [name, limit, file]);
+  const file = useStore(store, (s) => s.database?.file)!;
+  const query = useStore(store, (s) => s.tournaments.query);
+  const selected = useStore(store, (s) => s.tournaments.selectedTournamet);
+  const setQuery = useStore(store, (s) => s.setTournamentsQuery);
+  const setSelected = useStore(store, (s) => s.setTournamentsSelectedTournamet);
 
-  useEffect(() => {
-    setLoading(true);
-    setSelected(null);
-    commands
-      .getTournaments(file, {
-        name: name === "" ? null : name,
-        options: {
-          page: activePage,
-          pageSize: limit,
-          skipCount: false,
-          sort: sort.columnAccessor as TournamentSort,
-          direction: sort.direction,
-        },
-      })
-      .then((res) => {
-        const { data, count } = unwrap(res);
-        setLoading(false);
-        setTournaments(data);
-        setCount(count!);
-      });
-  }, [activePage, sort]);
+  const { data, isLoading } = useSWR(["tournaments", query], () =>
+    commands.getTournaments(file, query).then(unwrap),
+  );
+  const tournaments = data?.data ?? [];
+  const count = data?.count;
+  const tournament = tournaments.find((t) => t.id === selected);
 
   useHotkeys("ArrowUp", () => {
-    setSelected((prev) => {
-      if (prev === null) {
-        return null;
+    if (selected != null) {
+      const prevIndex = tournaments.findIndex((p) => p.id === selected) - 1;
+      if (prevIndex > -1) {
+        setSelected(tournaments[prevIndex].id);
       }
-      if (prev === 0) {
-        return 0;
-      }
-      return prev - 1;
-    });
+    }
   });
   useHotkeys("ArrowDown", () => {
-    setSelected((prev) => {
-      if (prev === null) {
-        return 0;
+    const curIndex = tournaments.findIndex((p) => p.id === selected);
+    if (curIndex > -1) {
+      const nextIndex = curIndex + 1;
+
+      if (nextIndex < (count ?? 0)) {
+        setSelected(tournaments[nextIndex].id);
       }
-      if (prev === tournaments.length - 1) {
-        return tournaments.length - 1;
-      }
-      return prev + 1;
-    });
+    }
   });
 
   return (
@@ -104,8 +55,13 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
             style={{ flexGrow: 1 }}
             placeholder="Search tournament..."
             leftSection={<IconSearch size="1rem" />}
-            value={name}
-            onChange={(v) => setName(v.currentTarget.value)}
+            value={query.name ?? ""}
+            onChange={(v) =>
+              setQuery({
+                ...query,
+                name: v.currentTarget.value,
+              })
+            }
           />
         </Flex>
       }
@@ -114,32 +70,57 @@ function TournamentTable({ database }: { database: DatabaseInfo }) {
           withTableBorder
           highlightOnHover
           records={tournaments}
-          fetching={loading}
+          fetching={isLoading}
           columns={[
             { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },
           ]}
-          rowClassName={(_, i) => (i === selected ? classes.selected : "")}
+          rowClassName={(t) => (t.id === selected ? classes.selected : "")}
           noRecordsText="No tournaments found"
-          totalRecords={count}
-          recordsPerPage={limit}
-          page={activePage}
-          onPageChange={setActivePage}
-          onRecordsPerPageChange={setLimit}
-          sortStatus={sort}
-          onSortStatusChange={setSort}
+          totalRecords={count!}
+          recordsPerPage={query.options.pageSize ?? 25}
+          page={query.options.page ?? 1}
+          onPageChange={(page) =>
+            setQuery({
+              ...query,
+              options: {
+                ...query.options!,
+                page,
+              },
+            })
+          }
+          onRecordsPerPageChange={(value) =>
+            setQuery({
+              ...query,
+              options: { ...query.options!, pageSize: value },
+            })
+          }
+          sortStatus={{
+            columnAccessor: query.options?.sort || "name",
+            direction: query.options?.direction || "desc",
+          }}
+          onSortStatusChange={(value) =>
+            setQuery({
+              ...query,
+              options: {
+                ...query.options!,
+                sort: value.columnAccessor as TournamentSort,
+                direction: value.direction,
+              },
+            })
+          }
           recordsPerPageOptions={[10, 25, 50]}
           onRowClick={({ index }) => {
-            setSelected(index);
+            setSelected(tournaments[index].id);
           }}
         />
       }
       preview={
-        selected !== null && tournaments[selected] ? (
+        tournament != null ? (
           <TournamentCard
-            tournament={tournaments[selected]}
-            file={database.file}
-            key={tournaments[selected].id}
+            tournament={tournament}
+            file={file}
+            key={tournament.id}
           />
         ) : (
           <Center h="100%">

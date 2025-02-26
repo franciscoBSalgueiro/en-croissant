@@ -1,5 +1,6 @@
 import type { Event, NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import type { DatabaseViewStore } from "@/state/store/database";
 import { getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
@@ -14,9 +15,11 @@ import { IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
+import { useStore } from "zustand";
+import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 
 const gamePoints = (game: NormalizedGame, player: string) => {
   if (game.white === player) {
@@ -36,10 +39,14 @@ const gamePoints = (game: NormalizedGame, player: string) => {
 function TournamentCard({
   tournament,
   file,
-}: {
-  tournament: Event;
-  file: string;
-}) {
+}: { tournament: Event; file: string }) {
+  const store = useContext(DatabaseViewStateContext)!;
+  const tournamentsActiveTab = useStore(store, (s) => s.tournaments.activeTab);
+  const setTournamentsActiveTab = useStore(
+    store,
+    (s) => s.setTournamentsActiveTab,
+  );
+
   const theme = useMantineTheme();
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
@@ -117,7 +124,12 @@ function TournamentCard({
           {tournament.name}
         </Text>
         <Tabs
-          defaultValue="games"
+          value={tournamentsActiveTab}
+          onChange={(tab) =>
+            setTournamentsActiveTab(
+              tab as DatabaseViewStore["tournaments"]["activeTab"],
+            )
+          }
           style={{ flexDirection: "column", overflow: "hidden" }}
           display="flex"
           h="100%"

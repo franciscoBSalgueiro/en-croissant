@@ -5,6 +5,7 @@ import {
   sessionsAtom,
   tabsAtom,
 } from "@/state/atoms";
+import type { DatabaseViewStore } from "@/state/store/database";
 import { parsePGN } from "@/utils/chess";
 import type { PlayerGameInfo } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -22,7 +23,6 @@ import {
   ScrollArea,
   Select,
   Stack,
-  Table,
   Tabs,
   Text,
   useMantineColorScheme,
@@ -33,7 +33,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Color } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -45,6 +45,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useStore } from "zustand";
+import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import FideInfo from "../databases/FideInfo";
 import * as classes from "./PersonalCard.css";
 
@@ -125,6 +127,10 @@ function PersonalPlayerCard({
   setName?: (name: string) => void;
   info: PlayerGameInfo;
 }) {
+  const store = useContext(DatabaseViewStateContext)!;
+  const activeTab = useStore(store, (s) => s.players.activeTab);
+  const setActiveTab = useStore(store, (s) => s.setPlayersActiveTab);
+
   const total = info ? info.won + info.lost + info.draw : 0;
 
   const white_openings = info?.white_openings ?? [];
@@ -193,7 +199,10 @@ function PersonalPlayerCard({
       <Tabs
         mt="xs"
         keepMounted={false}
-        defaultValue="overview"
+        value={activeTab}
+        onChange={(v) =>
+          setActiveTab(v as DatabaseViewStore["players"]["activeTab"])
+        }
         variant="outline"
         flex={1}
         style={{
@@ -358,9 +367,7 @@ function OpeningsPanel({
 
 function DateChart({
   data_per_month,
-}: {
-  data_per_month: [string, MonthData][];
-}) {
+}: { data_per_month: [string, MonthData][] }) {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   let data = fillMissingMonths(
@@ -439,12 +446,7 @@ function ResultsChart({
   draw,
   lost,
   size,
-}: {
-  won: number;
-  draw: number;
-  lost: number;
-  size: string;
-}) {
+}: { won: number; draw: number; lost: number; size: string }) {
   const total = won + draw + lost;
   return (
     <Progress.Root size={size}>
