@@ -28,7 +28,9 @@ function ReportPanel() {
   const headers = useStore(store, (s) => s.headers);
 
   const [reportingMode, toggleReportingMode] = useToggle();
-  const [inProgress, setInProgress] = useState(false);
+
+  const inProgress = useStore(store, (s) => s.report.inProgress);
+  const setInProgress = useStore(store, (s) => s.setReportInProgress);
 
   const stats = useMemo(() => getGameStats(root), [root]);
 
@@ -80,12 +82,14 @@ function ReportPanel() {
             />
           </div>
         </Group>
+
         <Paper withBorder p="md">
           <EvalChart
             isAnalysing={inProgress}
             startAnalysis={toggleReportingMode}
           />
         </Paper>
+
         <GameStats {...stats} />
       </Stack>
     </ScrollArea>
@@ -163,11 +167,7 @@ function AccuracyCard({
   color,
   cpl,
   accuracy,
-}: {
-  color: string;
-  cpl: number;
-  accuracy: number;
-}) {
+}: { color: string; cpl: number; accuracy: number }) {
   const { t } = useTranslation();
 
   return (

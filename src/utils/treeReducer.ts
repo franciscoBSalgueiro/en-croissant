@@ -10,6 +10,7 @@ export interface TreeState {
   headers: GameHeaders;
   position: number[];
   dirty: boolean;
+  report: ReportState;
 }
 
 export interface TreeNode {
@@ -100,6 +101,9 @@ export function defaultTree(fen?: string): TreeState {
       event: "",
       site: "",
     },
+    report: {
+      inProgress: false,
+    },
   };
 }
 
@@ -177,3 +181,7 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
   }
   return currentNode;
 };
+
+export interface ReportState {
+  inProgress: boolean;
+}
