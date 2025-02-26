@@ -18,16 +18,11 @@ import type { DrawShape } from "chessground/draw";
 import { type Move, isNormal } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
-import { produce } from "immer";
+import { produce, Draft } from "immer";
 import { type StateCreator, createStore } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-export interface TreeStoreState {
-  root: TreeNode;
-  headers: GameHeaders;
-  position: number[];
-  dirty: boolean;
-
+export interface TreeStoreState extends TreeState {
   currentNode: () => TreeNode;
 
   goToNext: () => void;
@@ -52,10 +47,7 @@ export interface TreeStoreState {
     changeHeaders?: boolean;
   }) => void;
 
-  appendMove: (args: {
-    payload: Move;
-    clock?: number;
-  }) => void;
+  appendMove: (args: { payload: Move; clock?: number }) => void;
 
   makeMoves: (args: {
     payload: string[];
@@ -87,6 +79,8 @@ export interface TreeStoreState {
       is_sacrifice: boolean;
     }[],
   ) => void;
+
+  setReportInProgress: (value: boolean) => void;
 
   setState: (state: TreeState) => void;
   reset: () => void;
@@ -473,6 +467,14 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         }),
       ),
 
+    setReportInProgress: (value: boolean) => {
+      set(
+        produce((state: Draft<TreeStoreState>) => {
+          state.report.inProgress = value;
+        }),
+      );
+    },
+
     clearShapes: () =>
       set(
         produce((state) => {
@@ -493,6 +495,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       }),
     );
   }
+
   return createStore<TreeStoreState>()(stateCreator);
 };
 
