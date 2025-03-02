@@ -68,7 +68,6 @@
     "windows": [
       {
         "title": "En Croissant",
-        "maximized": true,
         "visible": false,
         "decorations": true
       }
