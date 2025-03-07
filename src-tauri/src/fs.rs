@@ -1,6 +1,6 @@
 use std::{
     fs::create_dir_all,
-    io::{Cursor, Write},
+    io::Cursor,
     path::{Path, PathBuf},
 };
 
