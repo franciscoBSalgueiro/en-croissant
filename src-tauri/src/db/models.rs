@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::string::ToString;
 
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -36,7 +37,7 @@ pub struct NewPlayer<'a> {
 struct White(pub Player);
 struct Black(pub Player);
 
-#[derive(Default, Queryable, Serialize, Deserialize, Identifiable, Associations)]
+#[derive(Default, Queryable, Selectable, Serialize, Deserialize, Identifiable, Associations)]
 #[diesel(belongs_to(White, foreign_key = white_id))]
 #[diesel(belongs_to(Black, foreign_key = black_id))]
 #[diesel(table_name = games)]
@@ -142,6 +143,17 @@ impl FromStr for Outcome {
     }
 }
 
+impl ToString for Outcome {
+    fn to_string(&self) -> String {
+        match &self {
+            Outcome::WhiteWin => "1-0".to_string(),
+            Outcome::BlackWin => "1-0".to_string(),
+            Outcome::Draw => "1-0".to_string(),
+            Outcome::Unknown => "1-0".to_string(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Type)]
 pub struct NormalizedGame {
     pub id: i32,
@@ -162,6 +174,33 @@ pub struct NormalizedGame {
     pub white_elo: Option<i32>,
     pub black: String,
     pub black_id: i32,
+    #[specta(optional)]
+    pub black_elo: Option<i32>,
+    pub result: Outcome,
+    #[specta(optional)]
+    pub time_control: Option<String>,
+    #[specta(optional)]
+    pub eco: Option<String>,
+    #[specta(optional)]
+    pub ply_count: Option<i32>,
+    pub moves: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Type)]
+pub struct UpdateGame {
+    pub fen: String,
+    pub event: String,
+    pub site: String,
+    #[specta(optional)]
+    pub date: Option<String>,
+    #[specta(optional)]
+    pub time: Option<String>,
+    #[specta(optional)]
+    pub round: Option<String>,
+    pub white: String,
+    #[specta(optional)]
+    pub white_elo: Option<i32>,
+    pub black: String,
     #[specta(optional)]
     pub black_elo: Option<i32>,
     pub result: Outcome,

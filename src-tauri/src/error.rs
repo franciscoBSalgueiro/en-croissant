@@ -57,6 +57,12 @@ pub enum Error {
     #[error(transparent)]
     SystemTime(#[from] std::time::SystemTimeError),
 
+    #[error(transparent)]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
+
+    #[error(transparent)]
+    FormatError(#[from] std::fmt::Error),
+
     #[error("No stdin")]
     NoStdin,
 
@@ -86,10 +92,13 @@ pub enum Error {
 
     #[error("Players aren't the same. They have played against each other")]
     NotDistinctPlayers,
+
+    #[error("Invalid binary data")]
+    InvalidBinaryData
 }
 
 impl serde::Serialize for Error {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,
     {
@@ -105,3 +114,5 @@ impl Type for Error {
         specta::datatype::DataType::Primitive(specta::datatype::PrimitiveType::String)
     }
 }
+
+pub type Result<T> = std::result::Result<T, Error>;

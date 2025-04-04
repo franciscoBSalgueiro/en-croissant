@@ -3,19 +3,21 @@ mod models;
 mod ops;
 mod schema;
 mod search;
+mod core;
+mod pgn;
 
 use crate::{
     db::{
-        encoding::{decode_move, decode_moves},
+        encoding::{decode_move},
         models::*,
         ops::*,
         schema::*,
     },
-    error::Error,
+    error::{Error, Result},
     opening::get_opening_from_setup,
     AppState,
 };
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{NaiveDate};
 use dashmap::DashMap;
 use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
@@ -25,11 +27,12 @@ use diesel::{
     sql_query,
     sql_types::Text,
 };
-use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
+use pgn_reader::{BufferedReader};
+use pgn::{GameTree, Importer, TempGame};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
+    fen::Fen, Board, Chess, EnPassantMode, Piece, Position, FromSetup, CastlingMode
 };
 use specta::Type;
 use std::{
@@ -38,17 +41,14 @@ use std::{
     sync::atomic::{AtomicI32, AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
-use std::{
-    io::{BufWriter, Write},
-    str::FromStr,
-};
+use std::io::{BufWriter, Write};
 use tauri::{path::BaseDirectory, Manager};
 use tauri::{Emitter, State};
 
 use log::info;
 use tauri_specta::Event as _;
 
-use self::encoding::encode_move;
+
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -57,13 +57,9 @@ pub use self::search::{
     is_position_in_db, search_position, PositionQuery, PositionQueryJs, PositionStats,
 };
 
-const DATABASE_VERSION: &str = "1.0.0";
-
 const INDEXES_SQL: &str = include_str!("indexes.sql");
 
 const DELETE_INDEXES_SQL: &str = include_str!("delete_indexes.sql");
-
-const CREATE_TABLES_SQL: &str = include_str!("create.sql");
 
 const WHITE_PAWN: Piece = Piece {
     color: shakmaty::Color::White,
@@ -75,17 +71,6 @@ const BLACK_PAWN: Piece = Piece {
     role: shakmaty::Role::Pawn,
 };
 
-type MaterialCount = ByColor<u8>;
-
-fn get_material_count(board: &Board) -> MaterialCount {
-    board.material().map(|material| {
-        material.pawn
-            + material.knight * 3
-            + material.bishop * 3
-            + material.rook * 5
-            + material.queen * 9
-    })
-}
 
 /// Returns the bit representation of the pawns on the second and seventh rank
 /// of the given board.
@@ -123,7 +108,7 @@ impl Default for ConnectionOptions {
 impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
     for ConnectionOptions
 {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
+    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
         (|| {
             match self.journal_mode {
                 JournalMode::Delete => conn.batch_execute("PRAGMA journal_mode = DELETE;")?,
@@ -145,10 +130,7 @@ fn get_db_or_create(
     state: &State<AppState>,
     db_path: &str,
     options: ConnectionOptions,
-) -> Result<
-    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
-    Error,
-> {
+) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>> {
     let pool = match state.connection_pool.get(db_path) {
         Some(pool) => pool.clone(),
         None => {
@@ -188,212 +170,65 @@ pub struct TempPlayer {
     rating: Option<i32>,
 }
 
-#[derive(Default, Debug)]
-pub struct TempGame {
-    pub event_name: Option<String>,
-    pub site_name: Option<String>,
-    pub date: Option<String>,
-    pub time: Option<String>,
-    pub round: Option<String>,
-    pub white_name: Option<String>,
-    pub white_elo: Option<i32>,
-    pub black_name: Option<String>,
-    pub black_elo: Option<i32>,
-    pub result: Option<String>,
-    pub time_control: Option<String>,
-    pub eco: Option<String>,
-    pub fen: Option<String>,
-    pub moves: Vec<u8>,
-    pub position: Chess,
-    pub material_count: MaterialColor,
+
+pub fn insert_to_db(db: &mut SqliteConnection, game: &TempGame) -> Result<()> {
+    let pawn_home = get_pawn_home(game.position.board());
+
+    let white_id = if let Some(name) = &game.white_name {
+        create_player(db, name)?.id
+    } else {
+        0
+    };
+    let black_id = if let Some(name) = &game.black_name {
+        create_player(db, name)?.id
+    } else {
+        0
+    };
+
+    let event_id = if let Some(name) = &game.event_name {
+        create_event(db, name)?.id
+    } else {
+        0
+    };
+
+    let site_id = if let Some(name) = &game.site_name {
+        create_site(db, name)?.id
+    } else {
+        0
+    };
+
+    let ply_count = (game.moves.len()) as i32;
+    let final_material = pgn::get_material_count(game.position.board());
+    let minimal_white_material = game.material_count.white.min(final_material.white) as i32;
+    let minimal_black_material = game.material_count.black.min(final_material.black) as i32;
+
+    let new_game = NewGame {
+        white_id,
+        black_id,
+        ply_count,
+        eco: game.eco.as_deref(),
+        round: game.round.as_deref(),
+        white_elo: game.white_elo,
+        black_elo: game.black_elo,
+        white_material: minimal_white_material,
+        black_material: minimal_black_material,
+        // max_rating: game.game.white.rating.max(game.game.black.rating),
+        date: game.date.as_deref(),
+        time: game.time.as_deref(),
+        time_control: game.time_control.as_deref(),
+        site_id,
+        event_id,
+        fen: game.fen.as_deref(),
+        result: game.result.as_deref(),
+        moves: game.moves.as_slice(),
+        pawn_home: pawn_home as i32,
+    };
+
+    core::add_game(db, new_game)?;
+    
+    Ok(())
 }
 
-impl TempGame {
-    pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
-        let pawn_home = get_pawn_home(self.position.board());
-
-        let white_id = if let Some(name) = &self.white_name {
-            create_player(db, name)?.id
-        } else {
-            0
-        };
-        let black_id = if let Some(name) = &self.black_name {
-            create_player(db, name)?.id
-        } else {
-            0
-        };
-
-        let event_id = if let Some(name) = &self.event_name {
-            create_event(db, name)?.id
-        } else {
-            0
-        };
-
-        let site_id = if let Some(name) = &self.site_name {
-            create_site(db, name)?.id
-        } else {
-            0
-        };
-
-        let ply_count = (self.moves.len()) as i32;
-        let final_material = get_material_count(self.position.board());
-        let minimal_white_material = self.material_count.white.min(final_material.white) as i32;
-        let minimal_black_material = self.material_count.black.min(final_material.black) as i32;
-
-        let new_game = NewGame {
-            white_id,
-            black_id,
-            ply_count,
-            eco: self.eco.as_deref(),
-            round: self.round.as_deref(),
-            white_elo: self.white_elo,
-            black_elo: self.black_elo,
-            white_material: minimal_white_material,
-            black_material: minimal_black_material,
-            // max_rating: self.game.white.rating.max(self.game.black.rating),
-            date: self.date.as_deref(),
-            time: self.time.as_deref(),
-            time_control: self.time_control.as_deref(),
-            site_id,
-            event_id,
-            fen: self.fen.as_deref(),
-            result: self.result.as_deref(),
-            moves: self.moves.as_slice(),
-            pawn_home: pawn_home as i32,
-        };
-
-        create_game(db, new_game)?;
-        Ok(())
-    }
-}
-
-struct Importer {
-    game: TempGame,
-    timestamp: Option<i64>,
-    skip: bool,
-}
-
-impl Importer {
-    fn new(timestamp: Option<i64>) -> Importer {
-        Importer {
-            game: TempGame::default(),
-            timestamp,
-            skip: false,
-        }
-    }
-}
-
-impl Visitor for Importer {
-    type Result = Option<TempGame>;
-
-    fn begin_game(&mut self) {
-        self.skip = false;
-    }
-
-    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
-        if key == b"White" {
-            self.game.white_name = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"Black" {
-            self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"WhiteElo" {
-            self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
-        } else if key == b"BlackElo" {
-            self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
-        } else if key == b"TimeControl" {
-            self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"ECO" {
-            self.game.eco = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"Round" {
-            self.game.round = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"Date" || key == b"UTCDate" {
-            self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"UTCTime" {
-            self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"Site" {
-            self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"Event" {
-            self.game.event_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"Result" {
-            self.game.result = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"FEN" {
-            if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
-                self.game.fen = None;
-            } else {
-                let fen = Fen::from_ascii(value.as_bytes());
-                if let Ok(fen) = fen {
-                    self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                    if let Ok(setup) =
-                        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)
-                            .or_else(PositionError::ignore_too_much_material)
-                    {
-                        self.game.position = setup;
-                    } else {
-                        self.skip = true;
-                    }
-                } else {
-                    self.skip = true;
-                }
-            }
-        }
-    }
-
-    fn end_headers(&mut self) -> Skip {
-        // Skip games with timestamp before
-        let cur_timestamp = self.game.date.as_ref().and_then(|date| {
-            let date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
-            let time = self
-                .game
-                .time
-                .as_ref()
-                .and_then(|time| NaiveTime::parse_from_str(time, "%H:%M:%S").ok())?;
-            Some(date.and_time(time).and_utc().timestamp())
-        });
-
-        if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
-            if cur_timestamp <= timestamp {
-                self.skip = true;
-            }
-        }
-
-        // Skip games without ELO
-        // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
-        Skip(self.skip)
-    }
-
-    fn san(&mut self, san: SanPlus) {
-        let m = san.san.to_move(&self.game.position).ok();
-        if let Some(m) = m {
-            if m.is_promotion() {
-                let cur_material = get_material_count(self.game.position.board());
-                if cur_material.white < self.game.material_count.white {
-                    self.game.material_count.white = cur_material.white;
-                }
-                if cur_material.black < self.game.material_count.black {
-                    self.game.material_count.black = cur_material.black;
-                }
-            }
-            self.game
-                .moves
-                .push(encode_move(&m, &self.game.position).unwrap());
-            self.game.position.play_unchecked(&m);
-        } else {
-            self.skip = true;
-        }
-    }
-
-    fn begin_variation(&mut self) -> Skip {
-        Skip(true) // stay in the mainline
-    }
-
-    fn end_game(&mut self) -> Self::Result {
-        if self.skip {
-            self.game = TempGame::default();
-            None
-        } else {
-            Some(std::mem::take(&mut self.game))
-        }
-    }
-}
 
 #[tauri::command]
 #[specta::specta]
@@ -405,7 +240,7 @@ pub async fn convert_pgn(
     title: String,
     description: Option<String>,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let description = description.unwrap_or_default();
     let extension = file.extension();
 
@@ -423,15 +258,7 @@ pub async fn convert_pgn(
     )?;
 
     if !db_exists {
-        db.batch_execute(CREATE_TABLES_SQL)?;
-        db.batch_execute(
-            format!(
-                "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
-            )
-            .as_str(),
-        )?;
+        core::init_db(db, &title, &description)?;
     }
 
     let file = File::open(&file)?;
@@ -448,7 +275,7 @@ pub async fn convert_pgn(
     let start = Instant::now();
 
     let mut importer = Importer::new(timestamp.map(|t| t as i64));
-    db.transaction::<_, diesel::result::Error, _>(|db| {
+    db.transaction::<_, Error, _>(|db| {
         for (i, game) in BufferedReader::new(uncompressed)
             .into_iter(&mut importer)
             .flatten()
@@ -459,7 +286,7 @@ pub async fn convert_pgn(
                 let elapsed = start.elapsed().as_millis() as u32;
                 app.emit("convert_progress", (i, elapsed)).unwrap();
             }
-            game.insert_to_db(db)?;
+            insert_to_db(db, &game)?;
         }
         Ok(())
     })?;
@@ -512,7 +339,7 @@ struct IndexInfo {
     _name: String,
 }
 
-fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
+fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool> {
     let query = sql_query("SELECT name FROM pragma_index_list('Games');");
     let indexes: Vec<IndexInfo> = query.load(conn)?;
     Ok(!indexes.is_empty())
@@ -524,7 +351,7 @@ pub async fn get_db_info(
     file: PathBuf,
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-) -> Result<DatabaseInfo, Error> {
+) -> Result<DatabaseInfo> {
     let db_path = PathBuf::from("db").join(file);
 
     info!("get_db_info {:?}", db_path);
@@ -573,7 +400,7 @@ pub async fn get_db_info(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(INDEXES_SQL)?;
@@ -583,7 +410,7 @@ pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
 
 #[tauri::command]
 #[specta::specta]
-pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(DELETE_INDEXES_SQL)?;
@@ -598,7 +425,7 @@ pub async fn edit_db_info(
     title: Option<String>,
     description: Option<String>,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(title) = title {
@@ -731,7 +558,7 @@ pub async fn get_games(
     file: PathBuf,
     query: GameQueryJs,
     state: tauri::State<'_, AppState>,
-) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
+) -> Result<QueryResponse<Vec<NormalizedGame>>> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut count: Option<i64> = None;
@@ -919,7 +746,7 @@ pub async fn get_games(
     // );
 
     let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
-    let normalized_games = normalize_games(games);
+    let normalized_games = normalize_games(games)?;
 
     Ok(QueryResponse {
         data: normalized_games,
@@ -927,39 +754,11 @@ pub async fn get_games(
     })
 }
 
-fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<NormalizedGame> {
+fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Result<Vec<NormalizedGame>> {
     games
         .into_iter()
-        .map(|(game, white, black, event, site)| {
-            let fen: Fen = game
-                .fen
-                .map(|f| Fen::from_ascii(f.as_bytes()).unwrap())
-                .unwrap_or_default();
-
-            NormalizedGame {
-                id: game.id,
-                event: event.name.unwrap_or_default(),
-                event_id: event.id,
-                site: site.name.unwrap_or_default(),
-                site_id: site.id,
-                date: game.date,
-                time: game.time,
-                round: game.round,
-                white: white.name.unwrap_or_default(),
-                white_id: game.white_id,
-                white_elo: game.white_elo,
-                black: black.name.unwrap_or_default(),
-                black_id: game.black_id,
-                black_elo: game.black_elo,
-                result: Outcome::from_str(&game.result.unwrap_or_default()).unwrap_or_default(),
-                time_control: game.time_control,
-                eco: game.eco,
-                ply_count: game.ply_count,
-                fen: fen.to_string(),
-                moves: decode_moves(game.moves, fen).unwrap_or_default().join(" "),
-            }
-        })
-        .collect()
+        .map(|(game, white, black, event, site)| core::normalize_game(game, white, black, event, site))
+        .collect::<Result<_>>()
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -987,7 +786,7 @@ pub async fn get_player(
     file: PathBuf,
     id: i32,
     state: tauri::State<'_, AppState>,
-) -> Result<Option<Player>, Error> {
+) -> Result<Option<Player>> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let player = players::table
         .filter(players::id.eq(id))
@@ -1002,7 +801,7 @@ pub async fn get_players(
     file: PathBuf,
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<QueryResponse<Vec<Player>>, Error> {
+) -> Result<QueryResponse<Vec<Player>>> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count: Option<i64> = None;
 
@@ -1076,7 +875,7 @@ pub async fn get_tournaments(
     file: PathBuf,
     query: TournamentQuery,
     state: tauri::State<'_, AppState>,
-) -> Result<QueryResponse<Vec<Event>>, Error> {
+) -> Result<QueryResponse<Vec<Event>>> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count: Option<i64> = None;
 
@@ -1159,7 +958,7 @@ pub async fn get_players_game_info(
     id: i32,
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
-) -> Result<PlayerGameInfo, Error> {
+) -> Result<PlayerGameInfo> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let timer = Instant::now();
 
@@ -1347,7 +1146,7 @@ pub async fn get_players_game_info(
 pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let pool = &state.connection_pool;
     let path_str = file.to_str().unwrap();
     pool.remove(path_str);
@@ -1362,7 +1161,7 @@ pub async fn delete_database(
 pub async fn delete_duplicated_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(
@@ -1388,7 +1187,7 @@ pub async fn delete_duplicated_games(
 pub async fn delete_empty_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
@@ -1410,11 +1209,11 @@ struct PgnGame {
     black_elo: Option<String>,
     ply_count: Option<String>,
     fen: Option<String>,
-    moves: Option<Vec<String>>,
+    moves: String,
 }
 
 impl PgnGame {
-    fn write(&self, writer: &mut impl Write) -> Result<(), Error> {
+    fn write(&self, writer: &mut impl Write) -> Result<()> {
         writeln!(
             writer,
             "[Event \"{}\"]",
@@ -1461,13 +1260,10 @@ impl PgnGame {
             writeln!(writer, "[SetUp \"1\"]")?;
             writeln!(writer, "[FEN \"{}\"]", fen)?;
         }
+        
         writeln!(writer)?;
-        for (i, move_) in self.moves.as_ref().unwrap().iter().enumerate() {
-            if i % 2 == 0 {
-                write!(writer, "{}. ", i / 2 + 1)?;
-            }
-            write!(writer, "{} ", move_)?;
-        }
+        writer.write(self.moves.as_bytes())?;
+        
         match self.result.as_deref() {
             Some("1-0") => writeln!(writer, "1-0"),
             Some("0-1") => writeln!(writer, "0-1"),
@@ -1485,7 +1281,7 @@ pub async fn export_to_pgn(
     file: PathBuf,
     dest_file: PathBuf,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let file = OpenOptions::new()
@@ -1505,6 +1301,9 @@ pub async fn export_to_pgn(
         .load_iter::<(Game, Player, Player, Event, Site), DefaultLoadingMode>(db)?
         .flatten()
         .map(|(game, white, black, event, site)| {
+
+            //let x = game.fen.clone().map(|fen| Fen::from_ascii(fen.as_bytes()).ok()).flatten().map(|fen| Chess::from_setup(fen.into(), CastlingMode::Chess960).ok()).flatten();
+
             let pgn = PgnGame {
                 event: event.name,
                 site: site.name,
@@ -1519,22 +1318,21 @@ pub async fn export_to_pgn(
                 black_elo: game.black_elo.map(|e| e.to_string()),
                 ply_count: game.ply_count.map(|e| e.to_string()),
                 fen: game.fen.clone(),
-                moves: decode_moves(
-                    game.moves,
-                    if let Some(fen) = game.fen {
-                        Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
-                    } else {
-                        Fen::default()
-                    },
-                )
-                .ok(),
+                moves: GameTree::from_bytes(
+                    &game.moves,
+                    game.fen
+                        .map(|fen| Fen::from_ascii(fen.as_bytes()).ok())
+                        .flatten()
+                        .map(|fen| Chess::from_setup(fen.into(), CastlingMode::Chess960).ok())
+                        .flatten()
+                )?.to_string(),
             };
 
             pgn.write(&mut writer)?;
 
             Ok(())
         })
-        .collect::<Result<Vec<_>, Error>>()?;
+        .collect::<Result<Vec<_>>>()?;
     Ok(())
 }
 
@@ -1544,13 +1342,42 @@ pub async fn delete_db_game(
     file: PathBuf,
     game_id: i32,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
+    core::remove_game(db, game_id)?;
 
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_game(
+    file: PathBuf,
+    game_id: i32,
+    state: tauri::State<'_, AppState>,
+) -> Result<NormalizedGame> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    
+    Ok(core::get_game(db, game_id)?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn update_game(
+    file: PathBuf,
+    game_id: i32,
+    update: UpdateGame,
+    state: tauri::State<'_, AppState>,
+) -> Result<()> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    core::update_game(db, game_id, &update)?;
+    
+    Ok(())
+}
+
+
 
 #[tauri::command]
 #[specta::specta]
@@ -1559,7 +1386,7 @@ pub async fn merge_players(
     player1: i32,
     player2: i32,
     state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     // Check if the players never played against each other

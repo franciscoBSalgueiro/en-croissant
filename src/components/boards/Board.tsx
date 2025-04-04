@@ -33,6 +33,7 @@ import {
   Center,
   Group,
   Menu,
+  Space,
   Text,
   Tooltip,
   useMantineTheme,
@@ -50,6 +51,7 @@ import {
   IconEditOff,
   IconEraser,
   IconPlus,
+  IconReload,
   IconSwitchVertical,
   IconTarget,
   IconZoomCheck,
@@ -99,6 +101,7 @@ interface ChessboardProps {
   movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
+  reload?: () => void;
   addGame?: () => void;
   canTakeBack?: boolean;
   whiteTime?: number;
@@ -115,6 +118,7 @@ function Board({
   movable = "turn",
   boardRef,
   saveFile,
+  reload,
   addGame,
   canTakeBack,
   whiteTime,
@@ -217,7 +221,7 @@ function Board({
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      file: currentTab?.file?.path || "",
+      file: currentTab?.source?.type === "file" ? currentTab.source.path : "",
       game: currentTab?.gameNumber || 0,
     }),
   );
@@ -435,7 +439,20 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        {addGame && currentTab?.file && (
+
+        {reload && (
+          <Tooltip label={t("Menu.View.Reload")}>
+            <ActionIcon
+              onClick={() => reload()}
+              size="lg"
+              variant={dirty ? "outline" : "default"}
+            >
+              <IconReload size="1.3rem" />
+            </ActionIcon>
+          </Tooltip>
+        )}
+
+        {addGame && currentTab?.source?.type === "file" && (
           <Tooltip label={t("Board.Action.AddGame")}>
             <ActionIcon variant="default" size="lg" onClick={() => addGame()}>
               <IconPlus size="1.3rem" />

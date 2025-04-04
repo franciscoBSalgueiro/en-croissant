@@ -29,7 +29,9 @@ function InfoPanel() {
   const currentNode = getNodeAtPath(root, position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
-  const isReportoire = currentTab?.file?.metadata.type === "repertoire";
+  const isReportoire =
+    currentTab?.source?.type === "file" &&
+    currentTab.source.metadata.type === "repertoire";
 
   const { t } = useTranslation();
 
@@ -37,9 +39,9 @@ function InfoPanel() {
 
   return (
     <Stack h="100%">
+      <FileInfo setGames={setGames} />
       <GameSelectorAccordion games={games} setGames={setGames} />
       <ScrollArea offsetScrollbars>
-        <FileInfo setGames={setGames} />
         <Stack>
           <GameInfo
             headers={headers}
@@ -88,88 +90,96 @@ function GameSelectorAccordion({
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
 
-  if (!currentTab?.file) return null;
+  if (currentTab?.source?.type === "file") {
+    const gameNumber = currentTab.gameNumber || 0;
+    const currentName = games.get(gameNumber) || "Untitled";
 
-  const gameNumber = currentTab.gameNumber || 0;
-  const currentName = games.get(gameNumber) || "Untitled";
+    async function setPage(page: number, forced?: boolean) {
+      if (!forced && dirty) {
+        setTempPage(page);
+        toggleConfirmChanges();
+        return;
+      }
 
-  async function setPage(page: number, forced?: boolean) {
-    if (!forced && dirty) {
-      setTempPage(page);
-      toggleConfirmChanges();
-      return;
+      if (currentTab?.source?.type === "file") {
+        const data = unwrap(
+          await commands.readGames(currentTab.source.path, page, page),
+        );
+        const tree = await parsePGN(data[0]);
+        setState(tree);
+
+        setCurrentTab((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            gameNumber: page,
+          };
+        });
+
+        setMissingMoves((prev) => ({
+          ...prev,
+          [currentTab?.value]: null,
+        }));
+      }
     }
 
-    if (!currentTab?.file) return;
+    async function deleteGame(index: number) {
+      if (currentTab?.source?.type === "file") {
+        await commands.deleteGame(currentTab.source.path, index);
+        setCurrentTab((prev) => {
+          if (prev?.source?.type === "file") {
+            prev.source.numGames -= 1;
+          }
 
-    const data = unwrap(
-      await commands.readGames(currentTab.file.path, page, page),
+          return { ...prev };
+        });
+        setGames(new Map());
+      }
+    }
+
+    const keyMap = useAtomValue(keyMapAtom);
+    useHotkeys(keyMap.NEXT_GAME.keys, () => {
+      if (currentTab.source?.type === "file") {
+        setPage(Math.min(gameNumber + 1, currentTab.source.numGames - 1));
+      }
+    });
+    useHotkeys(keyMap.PREVIOUS_GAME.keys, () =>
+      setPage(Math.max(0, gameNumber - 1)),
     );
-    const tree = await parsePGN(data[0]);
-    setState(tree);
 
-    setCurrentTab((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        gameNumber: page,
-      };
-    });
-
-    setMissingMoves((prev) => ({
-      ...prev,
-      [currentTab?.value]: null,
-    }));
+    return (
+      <>
+        <ConfirmChangesModal
+          opened={confirmChanges}
+          toggle={toggleConfirmChanges}
+          closeTab={() => {
+            setPage(tempPage, true);
+          }}
+        />
+        <Accordion>
+          <Accordion.Item value="game">
+            <Accordion.Control>
+              {formatNumber(gameNumber + 1)}. {currentName}
+            </Accordion.Control>
+            <Accordion.Panel>
+              <Box h="10rem">
+                <GameSelector
+                  games={games}
+                  setGames={setGames}
+                  setPage={setPage}
+                  deleteGame={deleteGame}
+                  path={currentTab.source.path}
+                  activePage={gameNumber || 0}
+                  total={currentTab.source.numGames}
+                />
+              </Box>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
+      </>
+    );
   }
 
-  async function deleteGame(index: number) {
-    await commands.deleteGame(currentTab?.file?.path!, index);
-    setCurrentTab((prev) => {
-      if (!prev.file) return prev;
-      prev.file.numGames -= 1;
-      return { ...prev };
-    });
-    setGames(new Map());
-  }
-
-  const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys(keyMap.NEXT_GAME.keys, () =>
-    setPage(Math.min(gameNumber + 1, currentTab.file!.numGames - 1)),
-  );
-  useHotkeys(keyMap.PREVIOUS_GAME.keys, () =>
-    setPage(Math.max(0, gameNumber - 1)),
-  );
-
-  return (
-    <>
-      <ConfirmChangesModal
-        opened={confirmChanges}
-        toggle={toggleConfirmChanges}
-        closeTab={() => {
-          setPage(tempPage, true);
-        }}
-      />
-      <Accordion>
-        <Accordion.Item value="game">
-          <Accordion.Control>
-            {formatNumber(gameNumber + 1)}. {currentName}
-          </Accordion.Control>
-          <Accordion.Panel>
-            <Box h="10rem">
-              <GameSelector
-                games={games}
-                setGames={setGames}
-                setPage={setPage}
-                deleteGame={deleteGame}
-                path={currentTab.file.path}
-                activePage={gameNumber || 0}
-                total={currentTab.file.numGames}
-              />
-            </Box>
-          </Accordion.Panel>
-        </Accordion.Item>
-      </Accordion>
-    </>
-  );
+  return null;
 }
 export default InfoPanel;

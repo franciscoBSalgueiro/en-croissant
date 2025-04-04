@@ -36,10 +36,7 @@ const gamePoints = (game: NormalizedGame, player: string) => {
 function TournamentCard({
   tournament,
   file,
-}: {
-  tournament: Event;
-  file: string;
-}) {
+}: { tournament: Event; file: string }) {
   const theme = useMantineTheme();
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
@@ -158,6 +155,11 @@ function TournamentCard({
                           setActiveTab,
                           pgn: game.moves,
                           headers: game,
+                          srcInfo: {
+                            type: "db",
+                            db: file,
+                            id: game.id,
+                          },
                         });
                         navigate({ to: "/" });
                       }}

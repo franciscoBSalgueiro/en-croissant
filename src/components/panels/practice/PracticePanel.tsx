@@ -52,9 +52,12 @@ function PracticePanel() {
   const currentTab = useAtomValue(currentTabAtom);
   const [resetModal, toggleResetModal] = useToggle();
 
+  const fileName =
+    currentTab?.source?.type === "file" ? currentTab.source.name : "";
+
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      file: currentTab?.file?.path || "",
+      file: currentTab?.source?.type === "file" ? currentTab.source.path : "",
       game: currentTab?.gameNumber || 0,
     }),
   );
@@ -128,9 +131,7 @@ function PracticePanel() {
                     <Text ta="center" px="xs" style={{ pointerEvents: "none" }}>
                       {stats.total === 0
                         ? "0%"
-                        : `${Math.round(
-                            (stats.practiced / stats.total) * 100,
-                          )}%`}
+                        : `${Math.round((stats.practiced / stats.total) * 100)}%`}
                     </Text>
                   }
                   sections={[
@@ -243,7 +244,7 @@ function PracticePanel() {
 
       <ConfirmModal
         title={"Reset opening data"}
-        description={`Are you sure you want to reset the opening data for "${currentTab?.file?.name}"? All the learning progress will be lost.`}
+        description={`Are you sure you want to reset the opening data for "${fileName}"? All the learning progress will be lost.`}
         opened={resetModal}
         onClose={toggleResetModal}
         onConfirm={() => {

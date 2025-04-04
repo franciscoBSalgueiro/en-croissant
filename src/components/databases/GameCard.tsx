@@ -46,6 +46,11 @@ function GameCard({
                     setActiveTab,
                     pgn: game.moves,
                     headers: game,
+                    srcInfo: {
+                      type: "db",
+                      db: file,
+                      id: game.id,
+                    },
                   });
                   navigate({ to: "/" });
                 }}

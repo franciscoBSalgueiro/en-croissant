@@ -26,11 +26,11 @@ export async function openFile(
   const count = unwrap(await commands.countPgnGames(file));
   const input = unwrap(await commands.readGames(file, 0, 0))[0];
 
-  const fileInfo = {
-    type: "file" as const,
+  const fileInfo: FileMetadata = {
+    type: "file",
     metadata: {
       tags: [],
-      type: "game" as const,
+      type: "game",
     },
     name: file,
     path: file,
@@ -46,7 +46,7 @@ export async function openFile(
     setTabs,
     setActiveTab,
     pgn: input,
-    fileInfo,
+    srcInfo: fileInfo,
   });
 }
 

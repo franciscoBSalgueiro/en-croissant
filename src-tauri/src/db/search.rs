@@ -17,8 +17,9 @@ use tauri::Emitter;
 
 use crate::{
     db::{
-        encoding::decode_move, get_db_or_create, get_material_count, get_pawn_home, models::*,
-        normalize_games, schema::*, ConnectionOptions, MaterialCount,
+        encoding::decode_move, get_db_or_create, get_pawn_home, models::*,
+        pgn::{get_material_count, MaterialCount},
+        normalize_games, schema::*, ConnectionOptions,
     },
     error::Error,
     AppState,
@@ -368,7 +369,7 @@ pub async fn search_position(
         .inner_join(sites::table.on(games::site_id.eq(sites::id)))
         .filter(games::id.eq_any(ids))
         .load(db)?;
-    let normalized_games = normalize_games(games);
+    let normalized_games = normalize_games(games)?;
 
     state
         .line_cache

@@ -48,7 +48,7 @@ export default function BoardsPage() {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
+        if (tabState && closedTab?.source && tabState.state.dirty && !forced) {
           toggleSaveModal();
           return;
         }
