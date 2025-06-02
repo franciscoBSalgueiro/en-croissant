@@ -50,7 +50,6 @@ import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
-import { set } from "zod";
 
 function Puzzles({ id }: { id: string }) {
   const { t } = useTranslation();
