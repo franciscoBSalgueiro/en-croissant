@@ -50,6 +50,7 @@ import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
+import { set } from "zod";
 
 function Puzzles({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -128,6 +129,7 @@ function Puzzles({ id }: { id: string }) {
   }
 
   const [addOpened, setAddOpened] = useState(false);
+  const [showingSolution, setShowingSolution] = useState(false);
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
@@ -315,6 +317,7 @@ function Puzzles({ id }: { id: string }) {
             mt="sm"
             variant="light"
             onClick={async () => {
+              setShowingSolution(true);
               const curPuzzle = puzzles[currentPuzzle];
               if (curPuzzle.completion === "incomplete") {
                 changeCompletion("incorrect");
@@ -327,10 +330,11 @@ function Puzzles({ id }: { id: string }) {
                 });
                 await new Promise((r) => setTimeout(r, 500));
               }
+              setShowingSolution(false);
             }}
-            disabled={puzzles.length === 0}
+            disabled={puzzles.length === 0 || showingSolution}
           >
-            View Solution
+            { showingSolution ?  "Showing Solution" : "View Solution" }
           </Button>
         </Paper>
       </Portal>
