@@ -34,7 +34,11 @@ impl PgnParser {
     fn offset_by_index(&mut self, n: usize, state: &AppState, file: &String) -> io::Result<()> {
         let offset_index = n / GAME_OFFSET_FREQ;
         let n_left = n % GAME_OFFSET_FREQ;
-        let pgn_offsets = state.pgn_offsets.get(file).unwrap();
+        let wrapped_pgn_offsets = state.pgn_offsets.get(file);
+        if wrapped_pgn_offsets.is_none() {
+            return Ok(());
+        }
+        let pgn_offsets = wrapped_pgn_offsets.unwrap();
 
         if offset_index == 0 || offset_index < pgn_offsets.len() {
             let offset = match offset_index {
