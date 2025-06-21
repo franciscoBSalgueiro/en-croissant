@@ -135,6 +135,16 @@ export const ru_RU = {
     "Home.Card.Puzzle.Desc": "Тренируйте шахматные навыки",
     "Home.Card.Puzzle.Button": "Тренироваться",
 
+    "Board.Action.TogglePawnStructureView": "Переключить отображение структуры пешек",
+    "Board.Action.TakeSnapshot": "Сделать скриншот",
+    "Board.Action.AnalyzeGame": "Анализировать партию",
+    "Board.Action.PlayFromHere": "Играть отсюда",
+    "Board.Action.ClearDrawings": "Стереть отметки",
+    "Board.Action.EditPosition": "Редактировать позицию",
+    "Board.Action.SavePGN": "Сохранить PGN ({{key}})",
+    "Board.Action.AddGame": "Добавить партию",
+    "Board.Action.FlipBoard": "Инвертировать доску ({{key}})",
+
     "Board.Tabs.Practice": "Практика",
     "Board.Tabs.Analysis": "Анализ",
     "Board.Tabs.Database": "База данных",
@@ -178,6 +188,8 @@ export const ru_RU = {
     "Board.Analysis.Analyze": "Анализировать",
     "Board.Analysis.Advantage": "Преимущество",
     "Board.Analysis.Accuracy": "Точность",
+    "Board.Analysis.EnableWDL":
+      "Чтобы использовать эту функцию, нужно включить UCI_ShowWDL в настройках движка.",
     "Board.Database.Local": "Локальная",
     "Board.Database.LichessAll": "Lichess Все",
     "Board.Database.LichessMaster": "Lichess Мастера",
@@ -249,6 +261,28 @@ export const ru_RU = {
     "Databases.Delete.Message":
       "Вы уверены, что хотите удалить эту базу данных?",
 
+    "Errors.EmptyBoard": "Пустая доска",
+    "Errors.InvalidKings": "Неверное количество королей",
+    "Errors.OppositeCheck": "Обе стороны под шахом",
+    "Errors.PawnsOnBackrank": "Пешки на последней горизонтали",
+    "Errors.InvalidBoard": "Неверная доска",
+    "Errors.InvalidCastlingRights": "Неверные права на рокировку",
+    "Errors.InvalidEpSquare": "Неверная клетка взятия на проходе",
+    "Errors.InvalidFen": "Неверный FEN",
+    "Errors.InvalidFullmoves": "Неверное число полных ходов",
+    "Errors.InvalidHaldmoves": "Неверное число полуходов",
+    "Errors.InvalidPockets": "Неверные карманы",
+    "Errors.InvalidRemainingChecks": "Неверное число оставшихся шахов",
+    "Errors.InvalidTurn": "Неверный ход",
+    "Errors.Unknown": "Неизвестная ошибка",
+
+    "Fen.Start": "Начало",
+    "Fen.Empty": "Пусто",
+    "Fen.White": "Белые",
+    "Fen.Black": "Чёрные",
+    "Fen.WhiteToMove": "Ход белых",
+    "Fen.BlackToMove": "Ход чёрных",
+
     "Files.Title": "Файлы",
     "Files.FileType": "Тип файла",
     "Files.FileType.Game": "Игра",
@@ -263,6 +297,12 @@ export const ru_RU = {
     "Files.Edit.Title": "Редактировать файл",
     "Files.Create.Title": "Создать файл",
     "Files.Search": "Поиск файлов",
+
+    "Menu.MarkAsStart": "Отметить как начало",
+    "Menu.PromoteToMainLine": "Повысить до главного варианта",
+    "Menu.PromoteVariation": "Повысить вариант",
+    "Menu.CopyVariationPGN": "Скопировать PGN варианта",
+    "Menu.DeleteMove": "Удалить ход",
 
     "Settings.Board": "Доска",
     "Settings.Inputs": "Ввод",
@@ -353,5 +393,7 @@ export const ru_RU = {
     "PgnInput.ExtraMarkups": "Дополнительные аннотации",
     "PgnInput.MaxDepth": "Максимальная глубина",
     "PgnInput.TotalMoves": "Всего ходов",
+
+    "Puzzle.JumpToNextPuzzleImmediately": "Сразу переходить к следующей головоломке",
   },
 };
