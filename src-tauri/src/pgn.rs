@@ -223,11 +223,12 @@ fn write_to_end<R: Read>(reader: &mut R, writer: &mut File) -> io::Result<()> {
 #[tauri::command]
 #[specta::specta]
 pub async fn write_game(
-    file: PathBuf,
+    file_path: String,
     n: i32,
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    let file = PathBuf::from(file_path);
     if !file.exists() {
         File::create(&file)?;
     }

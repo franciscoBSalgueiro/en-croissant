@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
 import type { GameHeaders } from "./treeReducer";
+import { create, remove } from "@tauri-apps/plugin-fs";
 
 export const tabSchema = z.object({
   name: z.string(),
@@ -108,15 +109,22 @@ export async function saveToFile({
         },
       ],
     });
-    if (userChoice === null) return;
-    filePath = userChoice;
+    if (userChoice === null) {
+      return;
+    } else if (userChoice.endsWith(".pgn")) {
+      filePath = userChoice;
+    } else {
+      // on Linux filters for userChoice seemingly don't work
+      // so userChoice can end without 'pgn' extension
+      filePath = userChoice.concat(".pgn"); 
+    }
     setCurrentTab((prev) => {
       return {
         ...prev,
         file: {
           type: "file",
-          name: userChoice,
-          path: userChoice,
+          name: filePath,
+          path: filePath,
           numGames: 1,
           metadata: {
             tags: [],
