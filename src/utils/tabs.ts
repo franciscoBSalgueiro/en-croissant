@@ -6,7 +6,6 @@ import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
 import type { GameHeaders } from "./treeReducer";
-import { create, remove } from "@tauri-apps/plugin-fs";
 
 export const tabSchema = z.object({
   name: z.string(),
