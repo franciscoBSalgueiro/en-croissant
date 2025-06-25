@@ -88,6 +88,14 @@ function GameSelectorAccordion({
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
 
+  const keyMap = useAtomValue(keyMapAtom);
+  useHotkeys(keyMap.NEXT_GAME.keys, () =>
+    setPage(Math.min(gameNumber + 1, currentTab.file!.numGames - 1)),
+  );
+  useHotkeys(keyMap.PREVIOUS_GAME.keys, () =>
+    setPage(Math.max(0, gameNumber - 1)),
+  );
+
   if (!currentTab?.file) return null;
 
   const gameNumber = currentTab.gameNumber || 0;
@@ -132,13 +140,7 @@ function GameSelectorAccordion({
     setGames(new Map());
   }
 
-  const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys(keyMap.NEXT_GAME.keys, () =>
-    setPage(Math.min(gameNumber + 1, currentTab.file!.numGames - 1)),
-  );
-  useHotkeys(keyMap.PREVIOUS_GAME.keys, () =>
-    setPage(Math.max(0, gameNumber - 1)),
-  );
+
 
   return (
     <>

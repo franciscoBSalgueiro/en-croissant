@@ -278,9 +278,9 @@ async authenticate(username: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async writeGame(file: string, n: number, pgn: string) : Promise<Result<null, string>> {
+async writeGame(filePath: string, n: number, pgn: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("write_game", { file, n, pgn }) };
+    return { status: "ok", data: await TAURI_INVOKE("write_game", { filePath, n, pgn }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
