@@ -5,6 +5,7 @@ import {
   currentPlayersAtom,
   enginesAtom,
   tabsAtom,
+  currentEnginePausedAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -30,6 +31,8 @@ import {
 } from "@mantine/core";
 import {
   IconArrowsExchange,
+  IconPlayerPlay,
+  IconPlayerStop,
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
@@ -324,6 +327,7 @@ function BoardGame() {
 
   const boardRef = useRef(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
+  const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
@@ -352,7 +356,7 @@ function BoardGame() {
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
   useEffect(() => {
-    if (pos && gameState === "playing") {
+    if (pos && gameState === "playing" && !enginePaused) {
       if (headers.result !== "*") {
         setGameState("gameOver");
         return;
@@ -398,6 +402,7 @@ function BoardGame() {
     activeTab,
     root.fen,
     moves,
+    enginePaused,
   ]);
 
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
@@ -674,6 +679,16 @@ function BoardGame() {
                 <GameInfo headers={headers} />
               </Box>
               <Group grow>
+                {onePlayerIsEngine && (
+                  <Button
+                    onClick={() => setEnginePaused((prev) => !prev)}
+                    leftSection={
+                      enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />
+                    }
+                  >
+                    {enginePaused ? "Play" : "Stop"}
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
                     setGameState("settingUp");

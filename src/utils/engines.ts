@@ -2,6 +2,7 @@ import {
   type BestMoves,
   type EngineOptions,
   type GoMode,
+  type EngineOption,
   commands,
 } from "@/bindings";
 import { fetch } from "@tauri-apps/plugin-http";
@@ -9,6 +10,9 @@ import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { unwrap } from "./unwrap";
+import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { info, warn } from "@tauri-apps/plugin-log";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
@@ -71,6 +75,27 @@ export type RemoteEngine = z.infer<typeof remoteEngineSchema>;
 
 export const engineSchema = z.union([localEngineSchema, remoteEngineSchema]);
 export type Engine = z.infer<typeof engineSchema>;
+
+export async function saveEngines(engines: Engine[]): Promise<void> {
+  try {
+    const dir = await appDataDir();
+    const fullPath = await resolve(dir, "engines", "engines.json");
+    await info(
+      `saveEngines: writing ${engines.length} engine(s) to ${fullPath}`,
+    );
+    await writeTextFile(fullPath as any, JSON.stringify(engines, null, 4));
+    const raw: any = await readTextFile(fullPath as any);
+    const contents = typeof raw === "string" ? raw : String(raw);
+    await info(
+      `saveEngines: verify read ${contents ? contents.length : 0} bytes`,
+    );
+    if (!contents || contents.length === 0) {
+      await warn("saveEngines: file is empty after write");
+    }
+  } catch (e) {
+    await warn(`saveEngines: write failed: ${e}`);
+  }
+}
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
   return commands.stopEngine(engine.path, tab).then((r) => {

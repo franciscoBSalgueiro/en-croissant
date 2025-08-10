@@ -38,6 +38,7 @@ import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
+import { info } from "@tauri-apps/plugin-log";
 
 import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
@@ -66,6 +67,18 @@ export default function EnginesPage() {
   };
 
   const selectedEngine = selected !== undefined ? engines[selected] : null;
+
+  useEffect(() => {
+    info(`EnginesPage: mount engines=${engines.length}`);
+  }, []);
+
+  useEffect(() => {
+    info(`EnginesPage: engines changed -> ${engines.length}`);
+  }, [engines]);
+
+  useEffect(() => {
+    info(`EnginesPage: selected=${String(selected)} selectedEngine=${selectedEngine?.name ?? "none"}`);
+  }, [selected, selectedEngine]);
 
   return (
     <Stack h="100%" px="lg" pb="lg">
@@ -137,8 +150,8 @@ export default function EnginesPage() {
                 label={t("Common.Name")}
                 value={selectedEngine.name}
                 onChange={(e) => {
-                  setEngines(async (prev) => {
-                    const copy = [...(await prev)];
+                  setEngines((prev) => {
+                    const copy = [...prev];
                     copy[selected].name = e.currentTarget.value;
                     return copy;
                   });
@@ -150,8 +163,8 @@ export default function EnginesPage() {
                 checked={!!selectedEngine.loaded}
                 onChange={(e) => {
                   const checked = e.currentTarget.checked;
-                  setEngines(async (prev) => {
-                    const copy = [...(await prev)];
+                  setEngines((prev) => {
+                    const copy = [...prev];
                     copy[selected].loaded = checked;
                     return copy;
                   });
@@ -173,8 +186,8 @@ export default function EnginesPage() {
                     ) || 1
                   }
                   setValue={(v) => {
-                    setEngines(async (prev) => {
-                      const copy = [...(await prev)];
+                    setEngines((prev) => {
+                      const copy = [...prev];
                       const setting = copy[selected].settings?.find(
                         (setting) => setting.name === "MultiPV",
                       );
@@ -196,8 +209,8 @@ export default function EnginesPage() {
                 <Button
                   color="red"
                   onClick={() => {
-                    setEngines(async (prev) => {
-                      const copy = [...(await prev)];
+                    setEngines((prev) => {
+                      const copy = [...prev];
                       copy.splice(selected, 1);
                       return copy;
                     });
@@ -231,8 +244,8 @@ function EngineSettings({
   );
 
   function setEngine(newEngine: LocalEngine) {
-    setEngines(async (prev) => {
-      const copy = [...(await prev)];
+    setEngines((prev) => {
+      const copy = [...prev];
       copy[selected] = newEngine;
       return copy;
     });
@@ -531,9 +544,7 @@ function EngineSettings({
           opened={deleteModal}
           onClose={toggleDeleteModal}
           onConfirm={() => {
-            setEngines(async (prev) =>
-              (await prev).filter((e) => e.name !== engine.name),
-            );
+            setEngines((prev) => prev.filter((e) => e.name !== engine.name));
             setSelected(null);
             toggleDeleteModal();
           }}
@@ -546,8 +557,8 @@ function EngineSettings({
         toggleOpened={toggleJSONModal}
         engine={engine}
         setEngine={(v) =>
-          setEngines(async (prev) => {
-            const copy = [...(await prev)];
+          setEngines((prev) => {
+            const copy = [...prev];
             copy[selected] = v;
             return copy;
           })

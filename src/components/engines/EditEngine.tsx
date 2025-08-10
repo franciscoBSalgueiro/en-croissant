@@ -33,9 +33,7 @@ export default function EditEngine({
       submitLabel={t("Common.Save")}
       form={form}
       onSubmit={(values) => {
-        setEngines(async (prev) =>
-          (await prev).map((e) => (e === initialEngine ? values : e)),
-        );
+        setEngines((prev) => prev.map((e) => (e === initialEngine ? values : e)));
       }}
     />
   );

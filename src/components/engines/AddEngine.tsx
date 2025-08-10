@@ -1,9 +1,10 @@
 import { events, commands } from "@/bindings";
-import { enginesAtom, loadableEnginesAtom } from "@/state/atoms";
+import { enginesAtom, loadableEnginesAtom, persistEnginesAtom } from "@/state/atoms";
 import {
+  type Engine,
   type LocalEngine,
   requiredEngineSettings,
-  type Engine,
+  saveEngines,
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
@@ -26,11 +27,13 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
+import { useSetAtom } from "jotai/react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
+import { info } from "@tauri-apps/plugin-log";
 
 function AddEngine({
   opened,
@@ -42,15 +45,73 @@ function AddEngine({
   const { t } = useTranslation();
 
   const allEngines = useAtomValue(loadableEnginesAtom);
-  const setEngines = useSetAtom(enginesAtom);
+  const [, setEngines] = useAtom(enginesAtom);
+  const persist = useSetAtom(persistEnginesAtom);
   const engines =
     allEngines.state === "hasData"
-      ? allEngines.data.filter((e): e is LocalEngine => e.type === "local")
+      ? allEngines.data.filter((e: Engine): e is LocalEngine => e.type === "local")
       : [];
 
-  const { os } = usePlatform();
+  const {
+    os,
+    arch,
+    isLoading: platformLoading,
+  } = usePlatform();
 
-  const { defaultEngines, error, isLoading } = useDefaultEngines(os, opened);
+  const getStockfishEngine = (): LocalEngine | null => {
+    if (!os || !arch) return null;
+
+    let engineInfo: Partial<LocalEngine> = {
+      type: "local",
+      name: "Stockfish",
+      image: "",
+      elo: 3635,
+      downloadSize: 0,
+    };
+
+    if (os === "macos") {
+      if (arch === "aarch64") {
+        engineInfo = {
+          ...engineInfo,
+          version: "Latest (Apple Silicon)",
+          path: "stockfish/stockfish-macos-m1-apple-silicon",
+          downloadLink:
+            "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-macos-m1-apple-silicon.tar",
+        };
+      } else {
+        // x86_64
+        engineInfo = {
+          ...engineInfo,
+          version: "Latest (Intel)",
+          path: "stockfish/stockfish-macos-x86-64-modern",
+          downloadLink:
+            "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-macos-x86-64-modern.tar",
+        };
+      }
+    } else if (os === "windows") {
+      engineInfo = {
+        ...engineInfo,
+        version: "Latest (AVX2)",
+        path: "stockfish/stockfish-windows-x86-64-avx2.exe",
+        downloadLink:
+          "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip",
+      };
+    } else if (os === "linux") {
+      engineInfo = {
+        ...engineInfo,
+        version: "Latest (AVX2)",
+        path: "stockfish/stockfish-linux-x86-64-avx2",
+        downloadLink:
+          "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-linux-x86-64-avx2.tar.zst",
+      };
+    } else {
+      return null;
+    }
+
+    return engineInfo as LocalEngine;
+  };
+
+  const stockfishEngine = getStockfishEngine();
 
   const form = useForm<LocalEngine>({
     initialValues: {
@@ -60,12 +121,13 @@ function AddEngine({
       path: "",
       image: "",
       elo: undefined,
+      loaded: false,
     },
 
     validate: {
       name: (value) => {
         if (!value) return t("Common.RequireName");
-        if (engines.find((e) => e.name === value))
+        if (engines.find((e: LocalEngine) => e.name === value))
           return t("Common.NameAlreadyUsed");
       },
       path: (value) => {
@@ -83,54 +145,32 @@ function AddEngine({
       <Tabs defaultValue="download">
         <Tabs.List>
           <Tabs.Tab value="download">{t("Common.Download")}</Tabs.Tab>
-          <Tabs.Tab value="cloud">{t("Engines.Add.Cloud")}</Tabs.Tab>
           <Tabs.Tab value="local">{t("Common.Local")}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="download" pt="xs">
-          {isLoading && (
+          {platformLoading && (
             <Center>
               <Loader />
             </Center>
           )}
-          <ScrollArea.Autosize mah={500} offsetScrollbars>
-            <Stack>
-              {defaultEngines?.map((engine, i) => (
+          {stockfishEngine && (
+            <ScrollArea.Autosize mah={500} offsetScrollbars>
+              <Stack>
                 <EngineCard
-                  engine={engine}
-                  engineId={i}
-                  key={i}
-                  initInstalled={engines.some((e) => e.name === engine.name)}
+                  engine={stockfishEngine}
+                  engineId={0}
+                  initInstalled={engines.some(
+                    (e: LocalEngine) =>
+                      e.name === stockfishEngine.name &&
+                      e.version === stockfishEngine.version,
+                  )}
                 />
-              ))}
-              {error && (
-                <Alert
-                  icon={<IconAlertCircle size="1rem" />}
-                  title={t("Common.Error")}
-                  color="red"
-                >
-                  {t("Engines.Add.ErrorFetch")}
-                </Alert>
-              )}
-            </Stack>
-          </ScrollArea.Autosize>
-        </Tabs.Panel>
-        <Tabs.Panel value="cloud" pt="xs">
-          <Stack>
-            <CloudCard
-              engine={{
-                name: "ChessDB",
-                type: "chessdb",
-                url: "https://chessdb.cn",
-              }}
-            />
-            <CloudCard
-              engine={{
-                name: "Lichess Cloud",
-                type: "lichess",
-                url: "https://lichess.org",
-              }}
-            />
-          </Stack>
+              </Stack>
+            </ScrollArea.Autosize>
+          )}
+          {!stockfishEngine && !platformLoading && (
+            <Text>Stockfish is not available for your platform.</Text>
+          )}
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm
@@ -138,56 +178,22 @@ function AddEngine({
             form={form}
             onSubmit={async (values: LocalEngine) => {
               if (allEngines.state !== "hasData") return;
-              await setEngines([...allEngines.data, values]);
+              await info(
+                `AddEngine.local: adding engine name=${values.name} path=${values.path}`,
+              );
+              const updatedEngines = [...allEngines.data, values];
+              setEngines(updatedEngines);
+              await saveEngines(updatedEngines);
+              await persist(updatedEngines as any);
+              await info(
+                `AddEngine.local: saved engines count=${updatedEngines.length}`,
+              );
               setOpened(false);
             }}
           />
         </Tabs.Panel>
       </Tabs>
     </Modal>
-  );
-}
-
-function CloudCard({ engine }: { engine: RemoteEngine }) {
-  const { t } = useTranslation();
-
-  const [engines, setEngines] = useAtomValue(loadableEnginesAtom);
-  return (
-    <Paper withBorder radius="md" p={0} key={engine.name}>
-      <Group wrap="nowrap" gap={0} grow>
-        <Box p="md" flex={1}>
-          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
-            ENGINE
-          </Text>
-          <Text fw="bold">{engine.name}</Text>
-          <Text size="xs" c="dimmed" mb="xs">
-            {engine.url}
-          </Text>
-          <Button
-            disabled={engines.find((e) => e.type === engine.type) !== undefined}
-            fullWidth
-            onClick={() => {
-              setEngines(async (prev) => [
-                ...(await prev),
-                {
-                  ...engine,
-                  type: engine.type,
-                  loaded: true,
-                  settings: [
-                    {
-                      name: "MultiPV",
-                      value: "1",
-                    },
-                  ],
-                },
-              ]);
-            }}
-          >
-            {t("Common.Add")}
-          </Button>
-        </Box>
-      </Group>
-    </Paper>
   );
 }
 
@@ -203,19 +209,23 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [, setEngines] = useAtom(enginesAtom);
   const allEngines = useAtomValue(loadableEnginesAtom);
-  const setEngines = useSetAtom(enginesAtom);
+  const persist = useSetAtom(persistEnginesAtom);
+
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
+      await info(`AddEngine.download: start id=${id} url=${url}`);
       setInProgress(true);
       let path = await resolve(
         await appDataDir(),
         "engines",
         `${url.slice(url.lastIndexOf("/") + 1)}`,
       );
-      if (url.endsWith(".zip") || url.endsWith(".tar")) {
+      if (url.endsWith(".zip") || url.endsWith(".tar") || url.endsWith(".zst")) {
         path = await resolve(await appDataDir(), "engines");
       }
+      await info(`AddEngine.download: destination=${path}`);
       await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
       let appDataDirPath = await appDataDir();
       if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
@@ -226,28 +236,40 @@ function EngineCard({
         "engines",
         ...engine.path.split("/"),
       );
+      await info(`AddEngine.download: enginePath=${enginePath}`);
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
+      await info(
+        `AddEngine.download: loaded engine config options=${config.options.length}`,
+      );
+      const newEngine: LocalEngine = {
+        ...engine,
+        type: "local",
+        path: enginePath,
+        loaded: true,
+        settings: config.options
+          .filter(
+            (o) =>
+              requiredEngineSettings.includes(o.value.name) &&
+              "default" in o.value,
+          )
+          .map((o) => ({
+            name: o.value.name,
+            value: (o.value as { default: string | number | boolean | null })
+              .default,
+          })),
+      };
       if (allEngines.state !== "hasData") return;
-      await setEngines([
-        ...allEngines.data,
-        {
-          ...engine,
-          type: "local",
-          path: enginePath,
-          loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
-        },
-      ]);
+      const updatedEngines = [...allEngines.data, newEngine];
+      setEngines(updatedEngines);
+      await saveEngines(updatedEngines);
+      await persist(updatedEngines as any);
+      await info(
+        `AddEngine.download: engine added name=${newEngine.name}, total=${updatedEngines.length}`,
+      );
       setInProgress(false);
     },
-    [engine, setEngines, allEngines],
+    [engine, setEngines, allEngines, persist],
   );
 
   return (

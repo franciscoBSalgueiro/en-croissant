@@ -94,9 +94,6 @@ const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
     (BaseDirectory::Document, "EnCroissant"),
 ];
 
-const REQUIRED_FILES: &[(BaseDirectory, &str, &str)] =
-    &[(BaseDirectory::AppData, "engines/engines.json", "[]")];
-
 #[tauri::command]
 #[specta::specta]
 async fn close_splashscreen(window: Window) -> Result<(), String> {
@@ -210,15 +207,6 @@ fn main() {
                         create_dir_all(&path).unwrap();
                     }
                 };
-            }
-
-            log::info!("Checking for required files");
-            for (dir, path, contents) in REQUIRED_FILES.iter() {
-                let path = app.path().resolve(path, *dir).unwrap();
-                if !Path::new(&path).exists() {
-                    log::info!("Creating file {}", path.to_string_lossy());
-                    std::fs::write(&path, contents).unwrap();
-                }
             }
 
             // #[cfg(any(windows, target_os = "macos"))]

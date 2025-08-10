@@ -35,7 +35,9 @@ import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
-import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
+import { createZodStorage } from "./utils";
+import { saveEngines } from "@/utils/engines";
+import { info, warn } from "@tauri-apps/plugin-log";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;
@@ -49,12 +51,24 @@ const zodArray = <S>(itemSchema: z.ZodType<S>) => {
 };
 
 export const enginesAtom = atomWithStorage<Engine[]>(
-  "engines/engines.json",
+  "engines",
   [],
-  createAsyncZodStorage(zodArray(engineSchema), fileStorage),
+  createZodStorage(zodArray(engineSchema), localStorage),
+  { getOnInit: true },
 );
 
-const loadableEnginesAtom = loadable(enginesAtom);
+export const loadableEnginesAtom = loadable(enginesAtom);
+
+// Write-through persistence: ensure disk file is updated whenever enginesAtom changes
+export const persistEnginesAtom = atom(null, async (get, set, _update: Engine[]) => {
+  const engines = await get(enginesAtom);
+  try {
+    await saveEngines(engines);
+    await info(`persistEnginesAtom: saved ${engines.length} engine(s)`);
+  } catch (e) {
+    warn(`persistEnginesAtom: failed to save engines: ${e}`);
+  }
+});
 
 // Tabs
 
@@ -333,6 +347,10 @@ const expandedEnginesFamily = atomFamily((tab: string) =>
   atom<string[] | undefined>(undefined),
 );
 export const currentExpandedEnginesAtom = tabValue(expandedEnginesFamily);
+
+// Add a per-tab flag to pause/resume the game engine
+const enginePausedFamily = atomFamily((tab: string) => atom(false));
+export const currentEnginePausedAtom = tabValue(enginePausedFamily);
 
 const pgnOptionsFamily = atomFamily((tab: string) =>
   atom({

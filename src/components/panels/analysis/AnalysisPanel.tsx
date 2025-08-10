@@ -180,8 +180,8 @@ function AnalysisPanel() {
                 <DragDropContext
                   onDragEnd={({ destination, source }) =>
                     destination?.index !== undefined &&
-                    setEngines(async (prev) => {
-                      const result = Array.from(await prev);
+                    setEngines((prev) => {
+                      const result = Array.from(prev);
                       const prevLoaded = result.filter((e) => e.loaded);
                       const [removed] = prevLoaded.splice(source.index, 1);
                       prevLoaded.splice(destination.index, 0, removed);

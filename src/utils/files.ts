@@ -4,7 +4,7 @@ import { unwrap } from "@/utils/unwrap";
 import { Result } from "@badrap/result";
 import { resolve } from "@tauri-apps/api/path";
 import { exists, writeTextFile } from "@tauri-apps/plugin-fs";
-import { platform } from "@tauri-apps/plugin-os";
+import { arch, platform } from "@tauri-apps/plugin-os";
 import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
 import { parsePGN } from "./chess";
@@ -12,10 +12,9 @@ import { type Tab, createTab } from "./tabs";
 import { getGameName } from "./treeReducer";
 
 export function usePlatform() {
-  const r = useSWR("os", async () => {
-    return platform();
-  });
-  return { os: r.data, ...r };
+  const { data: os, ...rest } = useSWR("os", platform);
+  const { data: archData } = useSWR("arch", arch);
+  return { os, arch: archData, ...rest };
 }
 
 export async function openFile(

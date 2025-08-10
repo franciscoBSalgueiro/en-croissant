@@ -3,7 +3,7 @@
   "build": {
     "beforeDevCommand": "pnpm start-vite",
     "beforeBuildCommand": "pnpm build-vite",
-    "distDir": "../dist",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
   "productName": "botvinnik-app",

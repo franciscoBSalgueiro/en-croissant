@@ -1,5 +1,5 @@
 import LocalImage from "@/components/common/LocalImage";
-import { activeTabAtom, enginesAtom, persistEnginesAtom } from "@/state/atoms";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
 import { type Engine, stopEngine } from "@/utils/engines";
 import {
   Center,
@@ -13,7 +13,6 @@ import {
 import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { useSetAtom } from "jotai/react";
 import { memo } from "react";
 import { info } from "@tauri-apps/plugin-log";
 
@@ -62,7 +61,6 @@ function EngineBox({
 
 function EngineSelection() {
   const [engines, setEngines] = useAtom(enginesAtom);
-  const persist = useSetAtom(persistEnginesAtom);
 
   return (
     <>
@@ -87,9 +85,6 @@ function EngineSelection() {
                     e.name === engine.name ? { ...e, loaded: !e.loaded } : e,
                   ),
                 );
-                // write-through to disk
-                // persist is triggered elsewhere after state changes
-
               }}
             />
           ))}
@@ -99,4 +94,4 @@ function EngineSelection() {
   );
 }
 
-export default memo(EngineSelection);
+export default memo(EngineSelection); 

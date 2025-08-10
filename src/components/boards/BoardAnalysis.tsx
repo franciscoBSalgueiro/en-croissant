@@ -5,11 +5,21 @@ import {
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
+  currentEnginePausedAtom,
 } from "@/state/atoms";
+import { activeTabAtom } from "@/state/atoms";
+import { commands, events } from "@/bindings";
+import equal from "fast-deep-equal";
+import { parseUci } from "chessops";
+import { getMainLine } from "@/utils/chess";
+import { treeIteratorMainLine } from "@/utils/treeReducer";
+import { positionFromFen } from "@/utils/chessops";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN, getVariationLine } from "@/utils/chess";
 import { saveToFile } from "@/utils/tabs";
-import { Paper, Portal, Stack, Tabs } from "@mantine/core";
+import { Button, Group, Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconDatabase,
@@ -17,11 +27,13 @@ import {
   IconNotes,
   IconTargetArrow,
   IconZoomCheck,
+  IconPlayerPlay,
+  IconPlayerStop,
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtom, useAtomValue } from "jotai";
-import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
+import { Suspense, useCallback, useContext, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -36,6 +48,8 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
+import { match } from "ts-pattern";
+import GameInfo from "../common/GameInfo";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -53,6 +67,8 @@ function BoardAnalysis() {
   const reset = useStore(store, (s) => s.reset);
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const setAnnotation = useStore(store, (s) => s.setAnnotation);
+  const gameState = useAtomValue(currentGameStateAtom);
+  const players = useAtomValue(currentPlayersAtom);
 
   const saveFile = useCallback(async () => {
     saveToFile({
@@ -124,6 +140,76 @@ function BoardAnalysis() {
   const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
   const practicing =
     currentTabSelected === "practice" && practiceTabSelected === "train";
+  const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
+  const activeTab = useAtomValue(activeTabAtom);
+
+  // Background game engine runner to continue play while viewing Analysis
+  const root = useStore(store, (s) => s.root);
+  const headers = useStore(store, (s) => s.headers);
+  const appendMove = useStore(store, (s) => s.appendMove);
+  const mainLine = Array.from(treeIteratorMainLine(root));
+  const lastNode = mainLine[mainLine.length - 1].node;
+  const movesFromRoot = useMemo(
+    () => getMainLine(root, headers.variant === "Chess960"),
+    [root, headers],
+  );
+  const [pos] = positionFromFen(lastNode.fen);
+
+  useEffect(() => {
+    if (!pos) return;
+    if (gameState !== "playing") return;
+    if (enginePaused) return;
+    if (headers.result !== "*") return;
+    const currentTurn = pos.turn;
+    const player = currentTurn === "white" ? players.white : players.black;
+    if (player.type === "engine" && player.engine) {
+      commands.getBestMoves(
+        currentTurn,
+        player.engine.path,
+        activeTab + currentTurn,
+        // Use configured go mode; omit PlayersTime here while in analysis
+        player.go,
+        {
+          fen: root.fen,
+          moves: movesFromRoot,
+          extraOptions: (player.engine.settings || [])
+            .filter((s) => s.name !== "MultiPV")
+            .map((s) => ({ ...s, value: s.value?.toString() ?? "" })),
+        },
+      );
+    }
+  }, [pos, gameState, enginePaused, headers.result, players, activeTab, root.fen, JSON.stringify(movesFromRoot)]);
+
+  useEffect(() => {
+    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
+      if (
+        payload.progress === 100 &&
+        payload.engine === pos?.turn &&
+        payload.tab === activeTab + pos?.turn &&
+        payload.fen === root.fen &&
+        equal(payload.moves, movesFromRoot) &&
+        !pos?.isEnd()
+      ) {
+        const ev = payload.bestLines;
+        appendMove({ payload: parseUci(ev[0].uciMoves[0])! });
+      }
+    });
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [appendMove, activeTab, pos, root.fen, JSON.stringify(movesFromRoot)]);
+
+  const movable: "both" | "white" | "black" | "turn" | "none" =
+    gameState === "playing"
+      ? match(players)
+          .with(
+            { white: { type: "human" }, black: { type: "human" } },
+            () => "turn" as const,
+          )
+          .with({ white: { type: "human" } }, () => "white" as const)
+          .with({ black: { type: "human" } }, () => "black" as const)
+          .otherwise(() => "none" as const)
+      : "turn";
 
   return (
     <>
@@ -137,6 +223,7 @@ function BoardAnalysis() {
           boardRef={boardRef}
           saveFile={saveFile}
           addGame={addGame}
+          movable={movable}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
@@ -161,6 +248,9 @@ function BoardAnalysis() {
             }}
           >
             <Tabs.List grow mb="1rem">
+              <Tabs.Tab value="game" leftSection={<IconZoomCheck size="1rem" />}>
+                Game
+              </Tabs.Tab>
               {isRepertoire && (
                 <Tabs.Tab
                   value="practice"
@@ -194,6 +284,21 @@ function BoardAnalysis() {
                 {t("Board.Tabs.Info")}
               </Tabs.Tab>
             </Tabs.List>
+            <Tabs.Panel value="game" flex={1} style={{ overflowY: "hidden" }}>
+              <Stack h="100%">
+                <GameInfo headers={headers} />
+                <Group grow>
+                  <Button
+                    onClick={() => setEnginePaused((prev: boolean) => !prev)}
+                    leftSection={
+                      enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />
+                    }
+                  >
+                    {enginePaused ? "Play" : "Stop"}
+                  </Button>
+                </Group>
+              </Stack>
+            </Tabs.Panel>
             {isRepertoire && (
               <Tabs.Panel
                 value="practice"
