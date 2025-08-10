@@ -1,10 +1,9 @@
 import { events, commands } from "@/bindings";
-import { enginesAtom } from "@/state/atoms";
+import { enginesAtom, loadableEnginesAtom } from "@/state/atoms";
 import {
   type LocalEngine,
-  type RemoteEngine,
   requiredEngineSettings,
-  useDefaultEngines,
+  type Engine,
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
@@ -27,7 +26,7 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
-import { useAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
@@ -42,10 +41,12 @@ function AddEngine({
 }) {
   const { t } = useTranslation();
 
-  const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = allEngines.filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
+  const allEngines = useAtomValue(loadableEnginesAtom);
+  const setEngines = useSetAtom(enginesAtom);
+  const engines =
+    allEngines.state === "hasData"
+      ? allEngines.data.filter((e): e is LocalEngine => e.type === "local")
+      : [];
 
   const { os } = usePlatform();
 
@@ -135,8 +136,9 @@ function AddEngine({
           <EngineForm
             submitLabel={t("Common.Add")}
             form={form}
-            onSubmit={(values: LocalEngine) => {
-              setEngines(async (prev) => [...(await prev), values]);
+            onSubmit={async (values: LocalEngine) => {
+              if (allEngines.state !== "hasData") return;
+              await setEngines([...allEngines.data, values]);
               setOpened(false);
             }}
           />
@@ -149,7 +151,7 @@ function AddEngine({
 function CloudCard({ engine }: { engine: RemoteEngine }) {
   const { t } = useTranslation();
 
-  const [engines, setEngines] = useAtom(enginesAtom);
+  const [engines, setEngines] = useAtomValue(loadableEnginesAtom);
   return (
     <Paper withBorder radius="md" p={0} key={engine.name}>
       <Group wrap="nowrap" gap={0} grow>
@@ -201,7 +203,8 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
-  const [, setEngines] = useAtom(enginesAtom);
+  const allEngines = useAtomValue(loadableEnginesAtom);
+  const setEngines = useSetAtom(enginesAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
@@ -225,8 +228,9 @@ function EngineCard({
       );
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
-      setEngines(async (prev) => [
-        ...(await prev),
+      if (allEngines.state !== "hasData") return;
+      await setEngines([
+        ...allEngines.data,
         {
           ...engine,
           type: "local",
@@ -241,8 +245,9 @@ function EngineCard({
             })),
         },
       ]);
+      setInProgress(false);
     },
-    [engine, setEngines],
+    [engine, setEngines, allEngines],
   );
 
   return (
