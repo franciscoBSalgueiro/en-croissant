@@ -29,6 +29,7 @@ import {
   IconZoomCheck,
   IconPlayerPlay,
   IconPlayerStop,
+  IconPlus,
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
@@ -50,6 +51,7 @@ import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
 import { match } from "ts-pattern";
 import GameInfo from "../common/GameInfo";
+import { INITIAL_FEN } from "chessops/fen";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -146,6 +148,9 @@ function BoardAnalysis() {
   // Background game engine runner to continue play while viewing Analysis
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
+  const setFen = useStore(store, (s) => s.setFen);
+  const setHeaders = useStore(store, (s) => s.setHeaders);
+  const [, setGameState] = useAtom(currentGameStateAtom);
   const appendMove = useStore(store, (s) => s.appendMove);
   const mainLine = Array.from(treeIteratorMainLine(root));
   const lastNode = mainLine[mainLine.length - 1].node;
@@ -154,6 +159,12 @@ function BoardAnalysis() {
     [root, headers],
   );
   const [pos] = positionFromFen(lastNode.fen);
+
+  const newGame = useCallback(() => {
+    setGameState("settingUp");
+    setFen(INITIAL_FEN);
+    setHeaders({ ...headers, result: "*" });
+  }, [setGameState, setFen, setHeaders, headers]);
 
   useEffect(() => {
     if (!pos) return;
@@ -227,26 +238,42 @@ function BoardAnalysis() {
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
-        <Paper
-          withBorder
-          p="xs"
-          style={{
-            height: "100%",
-          }}
-          pos="relative"
-        >
-          <Tabs
-            w="100%"
-            h="100%"
-            value={currentTabSelected}
-            onChange={(v) => setCurrentTabSelected(v || "info")}
-            keepMounted={false}
-            activateTabWithKeyboard={false}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
+                <Paper
+           withBorder
+           p="xs"
+           style={{
+             height: "100%",
+             display: "flex",
+             flexDirection: "column",
+           }}
+           pos="relative"
+         >
+                    <Stack gap="xs" h="100%">
+            <Group grow>
+              <Button
+                onClick={() => setEnginePaused((prev: boolean) => !prev)}
+                leftSection={
+                  enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />
+                }
+              >
+                {enginePaused ? "Play" : "Stop"}
+              </Button>
+              <Button leftSection={<IconPlus />} onClick={newGame}>
+                New Game
+              </Button>
+            </Group>
+            <Tabs
+              w="100%"
+              h="100%"
+              value={currentTabSelected}
+              onChange={(v) => setCurrentTabSelected(v || "info")}
+              keepMounted={false}
+              activateTabWithKeyboard={false}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
             <Tabs.List grow mb="1rem">
               <Tabs.Tab value="game" leftSection={<IconZoomCheck size="1rem" />}>
                 Game
@@ -287,16 +314,6 @@ function BoardAnalysis() {
             <Tabs.Panel value="game" flex={1} style={{ overflowY: "hidden" }}>
               <Stack h="100%">
                 <GameInfo headers={headers} />
-                <Group grow>
-                  <Button
-                    onClick={() => setEnginePaused((prev: boolean) => !prev)}
-                    leftSection={
-                      enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />
-                    }
-                  >
-                    {enginePaused ? "Play" : "Stop"}
-                  </Button>
-                </Group>
               </Stack>
             </Tabs.Panel>
             {isRepertoire && (
@@ -327,17 +344,14 @@ function BoardAnalysis() {
             >
               <AnnotationPanel />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="analysis"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="analysis" flex={1} style={{ overflowY: "hidden" }}>
               <Suspense>
                 <AnalysisPanel />
               </Suspense>
             </Tabs.Panel>
-          </Tabs>
-        </Paper>
+                      </Tabs>
+          </Stack>
+          </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         {editingMode ? (
