@@ -1,7 +1,15 @@
 {
-  "name": "en-croissant",
-  "private": true,
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeDevCommand": "pnpm start-vite",
+    "beforeBuildCommand": "pnpm build-vite",
+    "distDir": "../dist",
+    "devUrl": "http://localhost:1420"
+  },
+  "productName": "botvinnik-app",
   "version": "0.11.1",
+  "identifier": "org.encroissant.app",
+  "private": true,
   "type": "module",
   "scripts": {
     "start-vite": "vite",
@@ -84,7 +92,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.0",
     "@tanstack/router-vite-plugin": "^1.20.0",
-    "@tauri-apps/cli": "2.0.1",
+    "@tauri-apps/cli": "^2.1.0",
     "@types/lodash": "^4.17.0",
     "@types/react": "^18.2.65",
     "@types/react-dom": "^18.2.22",

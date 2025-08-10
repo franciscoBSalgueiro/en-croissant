@@ -1,10 +1,10 @@
 [package]
-name = "en-croissant"
+name = "botvinnik-app"
 version = "0.11.1"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
 license = "GPL-3.0-only"
-repository = "https://github.com/franciscoBSalgueiro/en-croissant"
+repository = "https://github.com/franciscoBSalgueiro/botvinnik-app"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
