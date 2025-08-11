@@ -832,12 +832,40 @@ pub async fn score_all_moves(
 ) -> Result<Vec<MoveScore>, Error> {
     use std::collections::HashMap;
 
-    // Create cache key for this analysis request
-    let mut cache_key = EngineCacheKey {
+    // Determine legal move count from the provided position first
+    let fen: Fen = options.fen.parse()?;
+    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Chess960) {
+        Ok(p) => p,
+        Err(e) => e.ignore_too_much_material()?,
+    };
+    for m in &options.moves {
+        let uci = UciMove::from_ascii(m.as_bytes())?;
+        let mv = uci.to_move(&pos)?;
+        pos.play_unchecked(&mv);
+    }
+    let legal_count = pos.legal_moves().len() as u16;
+
+    // Force MultiPV to number of legal moves BEFORE creating cache key
+    let mut adjusted = options.clone();
+    if let Some(opt) = adjusted
+        .extra_options
+        .iter_mut()
+        .find(|x| x.name == "MultiPV")
+    {
+        opt.value = legal_count.to_string();
+    } else {
+        adjusted.extra_options.push(EngineOption {
+            name: "MultiPV".to_string(),
+            value: legal_count.to_string(),
+        });
+    }
+
+    // Create cache key with the ADJUSTED options
+    let cache_key = EngineCacheKey {
         fen: options.fen.clone(),
         moves: options.moves.clone(),
         engine_path: engine.clone(),
-        engine_options: options.extra_options.clone(),
+        engine_options: adjusted.extra_options.clone(),
         go_mode: go_mode.clone(),
     };
 
@@ -862,37 +890,6 @@ pub async fn score_all_moves(
     // Prepare engine process
     let path = PathBuf::from(&engine);
     let (mut process, mut reader) = EngineProcess::new(path).await?;
-
-    // Determine legal move count from the provided position
-    let fen: Fen = options.fen.parse()?;
-    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Chess960) {
-        Ok(p) => p,
-        Err(e) => e.ignore_too_much_material()?,
-    };
-    for m in &options.moves {
-        let uci = UciMove::from_ascii(m.as_bytes())?;
-        let mv = uci.to_move(&pos)?;
-        pos.play_unchecked(&mv);
-    }
-    let legal_count = pos.legal_moves().len() as u16;
-
-    // Force MultiPV to number of legal moves
-    let mut adjusted = options.clone();
-    if let Some(opt) = adjusted
-        .extra_options
-        .iter_mut()
-        .find(|x| x.name == "MultiPV")
-    {
-        opt.value = legal_count.to_string();
-    } else {
-        adjusted.extra_options.push(EngineOption {
-            name: "MultiPV".to_string(),
-            value: legal_count.to_string(),
-        });
-    }
-
-    // Update cache key with adjusted options
-    cache_key.engine_options = adjusted.extra_options.clone();
 
     process.set_options(adjusted.clone()).await?;
     process.go(&go_mode).await?;
@@ -1348,46 +1345,75 @@ async fn get_cached_analysis(
     ensure_cache_db_exists(app).await?;
     let cache_path = get_cache_db_path(app).await?;
     
-    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
-    
-    let key_hash = cache_key.to_hash_string();
-    
-    let result: Option<CacheQueryResult> = diesel::sql_query(
-        "SELECT BestMoves as best_moves, GoMode as go_mode, CreatedAt as created_at, LastAccessed as last_accessed FROM EngineCache WHERE CacheKey = ?1"
-    )
-    .bind::<diesel::sql_types::Text, _>(&key_hash)
-    .get_result::<CacheQueryResult>(&mut connection)
-    .optional()?;
-    
-    if let Some(cache_result) = result {
-        let serializable_best_moves: Vec<SerializableBestMoves> = serde_json::from_str(&cache_result.best_moves)
-            .map_err(|_| Error::CacheError)?;
-        let stored_go_mode: GoMode = serde_json::from_str(&cache_result.go_mode)
-            .map_err(|_| Error::CacheError)?;
-        
-        // Verify the go mode matches (important for cache validity)
-        if stored_go_mode == cache_key.go_mode {
-            // Update last accessed time
-            diesel::sql_query("UPDATE EngineCache SET LastAccessed = ?1 WHERE CacheKey = ?2")
-                .bind::<diesel::sql_types::Integer, _>(
-                    std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs() as i32
+    // Retry logic for database locks
+    for attempt in 0..3 {
+        match SqliteConnection::establish(cache_path.to_str().unwrap()) {
+            Ok(mut connection) => {
+                // Set a short timeout for database operations
+                let _ = connection.batch_execute("PRAGMA busy_timeout = 1000;");
+                
+                let key_hash = cache_key.to_hash_string();
+                
+                let result: Result<Option<CacheQueryResult>, _> = diesel::sql_query(
+                    "SELECT BestMoves as best_moves, GoMode as go_mode, CreatedAt as created_at, LastAccessed as last_accessed FROM EngineCache WHERE CacheKey = ?1"
                 )
                 .bind::<diesel::sql_types::Text, _>(&key_hash)
-                .execute(&mut connection)?;
-            
-            let mut cached_result = CachedAnalysisResult {
-                best_moves: serializable_best_moves,
-                depth: 0, // Will be calculated
-                nodes: 0, // Will be calculated
-                created_at: cache_result.created_at as i64,
-                last_accessed: cache_result.last_accessed as i64,
-            };
-            cached_result.touch();
-            
-            return Ok(Some(cached_result));
+                .get_result::<CacheQueryResult>(&mut connection)
+                .optional();
+                
+                match result {
+                    Ok(Some(cache_result)) => {
+                        let serializable_best_moves: Vec<SerializableBestMoves> = serde_json::from_str(&cache_result.best_moves)
+                            .map_err(|_| Error::CacheError)?;
+                        let stored_go_mode: GoMode = serde_json::from_str(&cache_result.go_mode)
+                            .map_err(|_| Error::CacheError)?;
+                        
+                        // Verify the go mode matches (important for cache validity)
+                        if stored_go_mode == cache_key.go_mode {
+                            // Update last accessed time
+                            let _ = diesel::sql_query("UPDATE EngineCache SET LastAccessed = ?1 WHERE CacheKey = ?2")
+                                .bind::<diesel::sql_types::Integer, _>(
+                                    std::time::SystemTime::now()
+                                        .duration_since(std::time::UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs() as i32
+                                )
+                                .bind::<diesel::sql_types::Text, _>(&key_hash)
+                                .execute(&mut connection);
+                            
+                            let mut cached_result = CachedAnalysisResult {
+                                best_moves: serializable_best_moves,
+                                depth: 0, // Will be calculated
+                                nodes: 0, // Will be calculated
+                                created_at: cache_result.created_at as i64,
+                                last_accessed: cache_result.last_accessed as i64,
+                            };
+                            cached_result.touch();
+                            
+                            return Ok(Some(cached_result));
+                        }
+                    }
+                    Ok(None) => return Ok(None),
+                    Err(e) => {
+                        if attempt < 2 && format!("{:?}", e).contains("database is locked") {
+                            // Wait and retry for lock errors
+                            tokio::time::sleep(std::time::Duration::from_millis(50 * (attempt + 1) as u64)).await;
+                            continue;
+                        } else {
+                            return Err(e.into());
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                if attempt < 2 && format!("{:?}", e).contains("database is locked") {
+                    // Wait and retry for connection errors
+                    tokio::time::sleep(std::time::Duration::from_millis(50 * (attempt + 1) as u64)).await;
+                    continue;
+                } else {
+                    return Err(e.into());
+                }
+            }
         }
     }
     
@@ -1405,37 +1431,67 @@ async fn store_analysis_in_cache(
     ensure_cache_db_exists(app).await?;
     let cache_path = get_cache_db_path(app).await?;
     
-    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+    // Retry logic for database locks
+    for attempt in 0..3 {
+        match SqliteConnection::establish(cache_path.to_str().unwrap()) {
+            Ok(mut connection) => {
+                // Set a short timeout for database operations
+                let _ = connection.batch_execute("PRAGMA busy_timeout = 1000;");
+                
+                let key_hash = cache_key.to_hash_string();
+                let moves_json = serde_json::to_string(&cache_key.moves)
+                    .map_err(|_| Error::CacheError)?;
+                let options_json = serde_json::to_string(&cache_key.engine_options)
+                    .map_err(|_| Error::CacheError)?;
+                let go_mode_json = serde_json::to_string(&cache_key.go_mode)
+                    .map_err(|_| Error::CacheError)?;
+                let best_moves_json = serde_json::to_string(&result.best_moves)
+                    .map_err(|_| Error::CacheError)?;
+                
+                let insert_result = diesel::sql_query(
+                    "INSERT OR REPLACE INTO EngineCache 
+                     (CacheKey, FEN, Moves, EnginePath, EngineOptions, GoMode, BestMoves, Depth, Nodes, CreatedAt, LastAccessed)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
+                )
+                .bind::<diesel::sql_types::Text, _>(&key_hash)
+                .bind::<diesel::sql_types::Text, _>(&cache_key.fen)
+                .bind::<diesel::sql_types::Text, _>(&moves_json)
+                .bind::<diesel::sql_types::Text, _>(&cache_key.engine_path)
+                .bind::<diesel::sql_types::Text, _>(&options_json)
+                .bind::<diesel::sql_types::Text, _>(&go_mode_json)
+                .bind::<diesel::sql_types::Text, _>(&best_moves_json)
+                .bind::<diesel::sql_types::Integer, _>(result.depth as i32)
+                .bind::<diesel::sql_types::Integer, _>(result.nodes as i32)
+                .bind::<diesel::sql_types::Integer, _>(result.created_at as i32)
+                .bind::<diesel::sql_types::Integer, _>(result.last_accessed as i32)
+                .execute(&mut connection);
+                
+                match insert_result {
+                    Ok(_) => return Ok(()),
+                    Err(e) => {
+                        if attempt < 2 && format!("{:?}", e).contains("database is locked") {
+                            // Wait and retry for lock errors
+                            tokio::time::sleep(std::time::Duration::from_millis(50 * (attempt + 1) as u64)).await;
+                            continue;
+                        } else {
+                            return Err(e.into());
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                if attempt < 2 && format!("{:?}", e).contains("database is locked") {
+                    // Wait and retry for connection errors
+                    tokio::time::sleep(std::time::Duration::from_millis(50 * (attempt + 1) as u64)).await;
+                    continue;
+                } else {
+                    return Err(e.into());
+                }
+            }
+        }
+    }
     
-    let key_hash = cache_key.to_hash_string();
-    let moves_json = serde_json::to_string(&cache_key.moves)
-        .map_err(|_| Error::CacheError)?;
-    let options_json = serde_json::to_string(&cache_key.engine_options)
-        .map_err(|_| Error::CacheError)?;
-    let go_mode_json = serde_json::to_string(&cache_key.go_mode)
-        .map_err(|_| Error::CacheError)?;
-    let best_moves_json = serde_json::to_string(&result.best_moves)
-        .map_err(|_| Error::CacheError)?;
-    
-    diesel::sql_query(
-        "INSERT OR REPLACE INTO EngineCache 
-         (CacheKey, FEN, Moves, EnginePath, EngineOptions, GoMode, BestMoves, Depth, Nodes, CreatedAt, LastAccessed)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
-    )
-    .bind::<diesel::sql_types::Text, _>(&key_hash)
-    .bind::<diesel::sql_types::Text, _>(&cache_key.fen)
-    .bind::<diesel::sql_types::Text, _>(&moves_json)
-    .bind::<diesel::sql_types::Text, _>(&cache_key.engine_path)
-    .bind::<diesel::sql_types::Text, _>(&options_json)
-    .bind::<diesel::sql_types::Text, _>(&go_mode_json)
-    .bind::<diesel::sql_types::Text, _>(&best_moves_json)
-    .bind::<diesel::sql_types::Integer, _>(result.depth as i32)
-    .bind::<diesel::sql_types::Integer, _>(result.nodes as i32)
-    .bind::<diesel::sql_types::Integer, _>(result.created_at as i32)
-    .bind::<diesel::sql_types::Integer, _>(result.last_accessed as i32)
-    .execute(&mut connection)?;
-    
-    Ok(())
+    Err(Error::CacheError)
 }
 
 async fn cleanup_old_cache_entries(app: &tauri::AppHandle, max_entries: i32) -> Result<(), Error> {
