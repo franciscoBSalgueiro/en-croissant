@@ -58,7 +58,6 @@ import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
-import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
@@ -69,24 +68,20 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
 // Define the sidebar panel layout
-type SidebarViewId = "gameInfo" | "analysis" | "database" | "moves";
+type SidebarViewId = "gameInfo" | "analysis" | "moves";
 
 interface SidebarState {
   currentNode: MosaicNode<SidebarViewId> | null;
 }
 
-const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarState", {
+const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarStateV2", {
   currentNode: {
     direction: "column",
     first: "gameInfo",
     second: {
       direction: "column", 
       first: "analysis",
-      second: {
-        direction: "column",
-        first: "database",
-        second: "moves",
-      },
+      second: "moves",
     },
   },
 });
@@ -274,19 +269,10 @@ function BoardAnalysis() {
       </Paper>
     ),
     analysis: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <Suspense>
-            <AnalysisPanel />
-          </Suspense>
-        </ScrollArea>
-      </Paper>
-    ),
-    database: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <DatabasePanel />
-        </ScrollArea>
+      <Paper withBorder p="xs" h="100%" style={{ display: "flex" }}>
+        <Suspense>
+          <AnalysisPanel />
+        </Suspense>
       </Paper>
     ),
     moves: (
@@ -364,9 +350,9 @@ function BoardAnalysis() {
                 </Suspense>
               </Paper>
             )}
-            <Paper withBorder p="xs">
+            {/* <Paper withBorder p="xs">
               <AnnotationPanel />
-            </Paper>
+            </Paper> */}
             <Paper withBorder p="xs">
               <InfoPanel />
             </Paper>

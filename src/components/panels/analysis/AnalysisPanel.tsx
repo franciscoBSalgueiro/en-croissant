@@ -2,7 +2,6 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   activeTabAtom,
   allEnabledAtom,
-  currentAnalysisTabAtom,
   currentExpandedEnginesAtom,
   enableAllAtom,
   engineMovesFamily,
@@ -38,6 +37,8 @@ import { memo, useContext, useDeferredValue, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { atomWithStorage } from "jotai/utils";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LastMoveScore from "./LastMoveScore";
@@ -45,6 +46,48 @@ import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
+import UnifiedMovesTable from "./UnifiedMovesTable";
+
+import "react-mosaic-component/react-mosaic-component.css";
+import "@/styles/react-mosaic.css";
+
+// Analysis panel mosaic layout
+type AnalysisViewId = "engines" | "moves" | "report" | "logs";
+
+interface AnalysisMosaicState {
+  currentNode: MosaicNode<AnalysisViewId> | null;
+}
+
+const analysisMosaicStateAtom = atomWithStorage<AnalysisMosaicState>("analysisMosaicState", {
+  currentNode: {
+    direction: "column",
+    first: "engines",
+    second: {
+      direction: "column", 
+      first: "moves",
+      second: {
+        direction: "column",
+        first: "report",
+        second: "logs",
+      },
+    },
+  },
+});
+
+// Provide a fallback layout in case the stored mosaic state is empty or null
+const defaultAnalysisLayout: MosaicNode<AnalysisViewId> = {
+  direction: "column",
+  first: "engines",
+  second: {
+    direction: "column",
+    first: "moves",
+    second: {
+      direction: "column",
+      first: "report",
+      second: "logs",
+    },
+  },
+};
 
 function AnalysisPanel() {
   const { t } = useTranslation();
@@ -77,56 +120,30 @@ function AnalysisPanel() {
   const allEnabled =
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
-  const [tab, setTab] = useAtom(currentAnalysisTabAtom);
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
+  const [mosaicState, setMosaicState] = useAtom(analysisMosaicStateAtom);
+
+  // Ensure we always have a valid layout to display
+  const currentNode = mosaicState.currentNode ?? defaultAnalysisLayout;
 
   const [pos] = positionFromFen(currentNodeFen);
   const navigate = useNavigate();
 
-  return (
-    <Stack h="100%">
-      <Tabs
-        h="100%"
-        orientation="vertical"
-        placement="right"
-        value={tab}
-        onChange={(v) => setTab(v!)}
-        style={{
-          display: "flex",
-        }}
-        keepMounted={false}
-      >
-        <Tabs.List>
-          <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
-          <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
-          <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
-            {t("Board.Analysis.Logs")}
-          </Tabs.Tab>
-        </Tabs.List>
-        <Tabs.Panel
-          value="engines"
-          style={{
-            overflow: "hidden",
-            display: tab === "engines" ? "flex" : "none",
-            flexDirection: "column",
-          }}
-        >
-          <ScrollArea
-            offsetScrollbars
-            onScrollPositionChange={() =>
-              document.dispatchEvent(new Event("analysis-panel-scroll"))
-            }
-          >
+  // Define the analysis panel components
+  const analysisLayout: { [viewId in AnalysisViewId]: JSX.Element } = {
+    engines: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%" offsetScrollbars>
+          <Stack gap="sm">
             {pos &&
               (getPiecesCount(pos) <= 7 ||
                 (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
                 <>
                   <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
-                  <Space h="sm" />
                 </>
               )}
             {loadedEngines.length > 1 && (
-              <Paper withBorder p="xs" flex={1}>
+              <Paper withBorder p="xs">
                 <Group w="100%">
                   <Stack w="6rem" gap="xs">
                     <Text ta="center" fw="bold">
@@ -160,133 +177,139 @@ function AnalysisPanel() {
                 </Group>
               </Paper>
             )}
-            <Stack mt="sm">
-              <Accordion
-                variant="separated"
-                multiple
-                chevronSize={0}
-                defaultValue={loadedEngines.map((e) => e.name)}
-                value={expanded}
-                onChange={(v) => setExpanded(v)}
-                styles={{
-                  label: {
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                  },
-                  content: {
-                    padding: "0.3rem",
-                  },
-                }}
+            <Accordion
+              variant="separated"
+              multiple
+              chevronSize={0}
+              defaultValue={loadedEngines.map((e) => e.name)}
+              value={expanded}
+              onChange={(v) => setExpanded(v)}
+              styles={{
+                label: {
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                },
+                content: {
+                  padding: "0.3rem",
+                },
+              }}
+            >
+              <DragDropContext
+                onDragEnd={({ destination, source }) =>
+                  destination?.index !== undefined &&
+                  setEngines((prev) => {
+                    const result = Array.from(prev);
+                    const prevLoaded = result.filter((e) => e.loaded);
+                    const [removed] = prevLoaded.splice(source.index, 1);
+                    prevLoaded.splice(destination.index, 0, removed);
+
+                    result.forEach((e, i) => {
+                      if (e.loaded) {
+                        result[i] = prevLoaded.shift()!;
+                      }
+                    });
+                    return result;
+                  })
+                }
               >
-                <DragDropContext
-                  onDragEnd={({ destination, source }) =>
-                    destination?.index !== undefined &&
-                    setEngines((prev) => {
-                      const result = Array.from(prev);
-                      const prevLoaded = result.filter((e) => e.loaded);
-                      const [removed] = prevLoaded.splice(source.index, 1);
-                      prevLoaded.splice(destination.index, 0, removed);
+                <Droppable droppableId="droppable" direction="vertical">
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps}>
+                      <Stack w="100%">
+                        {loadedEngines.map((engine, i) => (
+                          <Draggable
+                            key={engine.name + i.toString()}
+                            draggableId={engine.name}
+                            index={i}
+                          >
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                              >
+                                <Accordion.Item value={engine.name}>
+                                  <BestMoves
+                                    id={i}
+                                    engine={engine}
+                                    fen={rootFen}
+                                    moves={moves}
+                                    halfMoves={currentNodeHalfMoves}
+                                    dragHandleProps={provided.dragHandleProps}
+                                    orientation={
+                                      headers.orientation || "white"
+                                    }
+                                  />
+                                </Accordion.Item>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                      </Stack>
 
-                      result.forEach((e, i) => {
-                        if (e.loaded) {
-                          result[i] = prevLoaded.shift()!;
-                        }
-                      });
-                      return result;
-                    })
-                  }
-                >
-                  <Droppable droppableId="droppable" direction="vertical">
-                    {(provided) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps}>
-                        <Stack w="100%">
-                          {loadedEngines.map((engine, i) => (
-                            <Draggable
-                              key={engine.name + i.toString()}
-                              draggableId={engine.name}
-                              index={i}
-                            >
-                              {(provided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                >
-                                  <Accordion.Item value={engine.name}>
-                                    <BestMoves
-                                      id={i}
-                                      engine={engine}
-                                      fen={rootFen}
-                                      moves={moves}
-                                      halfMoves={currentNodeHalfMoves}
-                                      dragHandleProps={provided.dragHandleProps}
-                                      orientation={
-                                        headers.orientation || "white"
-                                      }
-                                    />
-                                  </Accordion.Item>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                        </Stack>
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </Accordion>
+            <Group gap="xs">
+              <Button
+                flex={1}
+                variant="default"
+                onClick={() => {
+                  navigate({ to: "/engines" });
+                }}
+                leftSection={<IconSettings size="0.875rem" />}
+              >
+                Manage Engines
+              </Button>
+                              <Popover width={250} position="top-end" shadow="md" withinPortal>
+                <Popover.Target>
+                  <ActionIcon variant="default" size="lg">
+                    <IconSelector />
+                  </ActionIcon>
+                </Popover.Target>
 
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              </Accordion>
-              <Group gap="xs">
-                <Button
-                  flex={1}
-                  variant="default"
-                  onClick={() => {
-                    navigate({ to: "/engines" });
-                  }}
-                  leftSection={<IconSettings size="0.875rem" />}
-                >
-                  Manage Engines
-                </Button>
-                <Popover width={250} position="top-end" shadow="md">
-                  <Popover.Target>
-                    <ActionIcon variant="default" size="lg">
-                      <IconSelector />
-                    </ActionIcon>
-                  </Popover.Target>
-
-                  <Popover.Dropdown>
-                    <EngineSelection />
-                  </Popover.Dropdown>
-                </Popover>
-              </Group>
-            </Stack>
-          </ScrollArea>
-        </Tabs.Panel>
-        <Tabs.Panel
-          value="report"
-          pt="xs"
-          style={{
-            overflow: "hidden",
-            display: tab === "report" ? "flex" : "none",
-            flexDirection: "column",
-          }}
-        >
+                <Popover.Dropdown>
+                  <EngineSelection />
+                </Popover.Dropdown>
+              </Popover>
+            </Group>
+          </Stack>
+        </ScrollArea>
+      </Paper>
+    ),
+    moves: (
+      <Paper withBorder p="xs" h="100%">
+        <UnifiedMovesTable />
+      </Paper>
+    ),
+    report: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
           <ReportPanel />
-        </Tabs.Panel>
-        <Tabs.Panel
-          value="logs"
-          pt="xs"
-          style={{
-            overflow: "hidden",
-            display: tab === "logs" ? "flex" : "none",
-            flexDirection: "column",
-          }}
-        >
+        </ScrollArea>
+      </Paper>
+    ),
+    logs: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
           <LogsPanel />
-        </Tabs.Panel>
-      </Tabs>
-    </Stack>
-  );
+        </ScrollArea>
+      </Paper>
+    ),
+  };
+
+  return (
+    <Stack h="100%">
+      <Mosaic<AnalysisViewId>
+        renderTile={(id) => analysisLayout[id]}
+        value={currentNode}
+        onChange={(currentNode) => setMosaicState({ currentNode })}
+                 resize={{ minimumPaneSizePercentage: 10 }}
+       />
+     </Stack>
+   );
 }
 
 function EngineSummary({

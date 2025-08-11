@@ -9,6 +9,7 @@ import {
   tabsAtom,
   allEnabledAtom,
   enableAllAtom,
+  currentTabAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -55,7 +56,6 @@ import { TreeStateContext } from "../common/TreeStateContext";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
-import DatabasePanel from "../panels/database/DatabasePanel";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import EvalListener from "./EvalListener";
@@ -290,14 +290,13 @@ const DEFAULT_TIME_CONTROL: TimeControlField = {
 type SidebarViewId =
   | "gameInfo"
   | "analysis"
-  | "database"
   | "moves"
   | "annotation"
   | "info";
 interface SidebarState {
   currentNode: MosaicNode<SidebarViewId> | null;
 }
-const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarState", {
+const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarStateV2", {
   currentNode: {
     direction: "column",
     first: "gameInfo",
@@ -306,15 +305,11 @@ const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarState", {
       first: "analysis",
       second: {
         direction: "column",
-        first: "database",
+        first: "moves",
         second: {
           direction: "column",
-          first: "moves",
-          second: {
-            direction: "column",
-            first: "annotation",
-            second: "info",
-          },
+          first: "annotation",
+          second: "info",
         },
       },
     },
@@ -323,6 +318,8 @@ const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarState", {
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
+  const currentTab = useAtomValue(currentTabAtom);
+  const isAnalysisTab = currentTab?.type === "analysis";
 
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white",
@@ -661,7 +658,7 @@ function BoardGame() {
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
         <Paper withBorder shadow="sm" p="md" h="100%">
-          {gameState === "settingUp" && (
+          {gameState === "settingUp" && !isAnalysisTab && (
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 <Group>
@@ -715,7 +712,7 @@ function BoardGame() {
               </Stack>
             </ScrollArea>
           )}
-          {(gameState === "playing" || gameState === "gameOver") && (
+          {(gameState === "playing" || gameState === "gameOver" || isAnalysisTab) && (
             <UnifiedSidebar headers={headers} onePlayerIsEngine={onePlayerIsEngine} enginePaused={enginePaused} setEnginePaused={setEnginePaused} onNewGame={() => {
               setGameState("settingUp");
               setWhiteTime(null);
@@ -764,19 +761,10 @@ function UnifiedSidebar({
       </Paper>
     ),
     analysis: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <Suspense>
-            <AnalysisPanel />
-          </Suspense>
-        </ScrollArea>
-      </Paper>
-    ),
-    database: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <DatabasePanel />
-        </ScrollArea>
+      <Paper withBorder p="xs" h="100%" style={{ display: "flex" }}>
+        <Suspense>
+          <AnalysisPanel />
+        </Suspense>
       </Paper>
     ),
     moves: (
