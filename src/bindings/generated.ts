@@ -29,6 +29,14 @@ async getBestMoves(id: string, engine: string, tab: string, goMode: GoMode, opti
     else return { status: "error", error: e  as any };
 }
 },
+async scoreAllMoves(engine: string, goMode: GoMode, options: EngineOptions) : Promise<Result<MoveScore[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("score_all_moves", { engine, goMode, options }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async analyzeGame(id: string, engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<Result<MoveAnalysis[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("analyze_game", { id, engine, goMode, options, uciOptions }) };
@@ -391,6 +399,7 @@ export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" } | { t: "SearchMoves"; c: { mode: GoMode; moves: string[] } }
 export type MonthData = { count: number; avg_elo: number }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
+export type MoveScore = { uci: string; score: Score }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"

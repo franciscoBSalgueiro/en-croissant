@@ -4,6 +4,7 @@ import {
   type EngineOptions,
   type GoMode,
   commands,
+  type Score,
 } from "@/bindings";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
@@ -118,6 +119,16 @@ export function getBestMoves(
   return commands
     .getBestMoves(engine.name, engine.path, tab, goMode, options)
     .then((r) => unwrap(r));
+}
+
+export type MoveScore = { uci: string; score: Score };
+
+export function scoreAllMoves(
+  engine: LocalEngine,
+  goMode: GoMode,
+  options: EngineOptions,
+): Promise<MoveScore[]> {
+  return commands.scoreAllMoves(engine.path, goMode, options).then((r) => unwrap(r));
 }
 
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {

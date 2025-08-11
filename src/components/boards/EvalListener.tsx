@@ -17,11 +17,13 @@ import {
   type LocalEngine,
   getBestMoves as localGetBestMoves,
   stopEngine,
+  scoreAllMoves as localScoreAllMoves,
 } from "@/utils/engines";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
 import { useThrottledEffect } from "@/utils/misc";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
+import { makeSan } from "chessops/san";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { startTransition, useContext, useEffect, useMemo } from "react";
@@ -277,6 +279,70 @@ function EngineListener({
           if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
             options.push({ name: "UCI_Chess960", value: "true" });
           }
+          if (engine.type === "local" && settings.allMoves) {
+            const impliedDepth = settings.go.t === "Depth" ? settings.go.c : 0;
+            localScoreAllMoves(engine as LocalEngine, settings.go, {
+              moves: searchingMoves,
+              fen: searchingFen,
+              extraOptions: options,
+            }).then((scores) => {
+              if (!scores) return;
+              const [baseStart] = positionFromFen(searchingFen);
+              const basePos = (() => {
+                if (!baseStart) return null;
+                const p = baseStart.clone();
+                for (const uci of searchingMoves) {
+                  const m = parseUci(uci);
+                  if (!m) return null;
+                  p.play(m);
+                }
+                return p;
+              })();
+              const isBlackToMove = basePos?.turn === "black";
+              // Get MultiPV setting to limit arrows
+              const multiPvSetting = Number.parseInt(
+                options.find((o) => o.name === "MultiPV")?.value ?? "5"
+              );
+              const bestMoves = scores
+                .map((s) => {
+                  let san: string | null = null;
+                  if (basePos) {
+                    const posCopy = basePos.clone();
+                    const m = parseUci(s.uci);
+                    if (m) {
+                      san = makeSan(posCopy, m);
+                    }
+                  }
+                  if (!san) return null;
+                  return {
+                    depth: impliedDepth,
+                    nodes: 0,
+                    score: s.score,
+                    uciMoves: [s.uci],
+                    sanMoves: [san],
+                    multipv: 0, // temporary, will set after sort
+                    nps: 0,
+                  };
+                })
+                .filter((x): x is NonNullable<typeof x> => x !== null)
+                .sort((a, b) => {
+                  const av = a.score.value.type === "cp" ? a.score.value.value : a.score.value.value * 1000;
+                  const bv = b.score.value.type === "cp" ? b.score.value.value : b.score.value.value * 1000;
+                  // Sort by raw engine score: higher is better for white, lower is better for black
+                  return isBlackToMove ? av - bv : bv - av;
+                })
+                .slice(0, multiPvSetting) // Limit to top N moves for arrows
+                .map((x, i) => ({ ...x, multipv: i + 1 }));
+              if (bestMoves.length === 0) return;
+              setEngineVariation((prev) => {
+                const newMap = new Map(prev);
+                newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, bestMoves);
+                return newMap;
+              });
+              setProgress(100);
+            });
+            return;
+          }
           getBestMoves(activeTab!, settings.go, {
             moves: searchingMoves,
             fen: searchingFen,
@@ -305,6 +371,7 @@ function EngineListener({
     50,
     [
       settings.enabled,
+      settings.allMoves,
       JSON.stringify(settings.settings),
       settings.go,
       searchingFen,

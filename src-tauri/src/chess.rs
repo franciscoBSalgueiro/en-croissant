@@ -623,6 +623,86 @@ pub struct ReportProgress {
     pub finished: bool,
 }
 
+#[derive(Serialize, Debug, Clone, Type)]
+pub struct MoveScore {
+    pub uci: String,
+    pub score: Score,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn score_all_moves(
+    engine: String,
+    go_mode: GoMode,
+    options: EngineOptions,
+) -> Result<Vec<MoveScore>, Error> {
+    use std::collections::HashMap;
+
+    // Prepare engine process
+    let path = PathBuf::from(&engine);
+    let (mut process, mut reader) = EngineProcess::new(path).await?;
+
+    // Determine legal move count from the provided position
+    let fen: Fen = options.fen.parse()?;
+    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Chess960) {
+        Ok(p) => p,
+        Err(e) => e.ignore_too_much_material()?,
+    };
+    for m in &options.moves {
+        let uci = UciMove::from_ascii(m.as_bytes())?;
+        let mv = uci.to_move(&pos)?;
+        pos.play_unchecked(&mv);
+    }
+    let legal_count = pos.legal_moves().len() as u16;
+
+    // Force MultiPV to number of legal moves
+    let mut adjusted = options.clone();
+    if let Some(opt) = adjusted
+        .extra_options
+        .iter_mut()
+        .find(|x| x.name == "MultiPV")
+    {
+        opt.value = legal_count.to_string();
+    } else {
+        adjusted.extra_options.push(EngineOption {
+            name: "MultiPV".to_string(),
+            value: legal_count.to_string(),
+        });
+    }
+
+    process.set_options(adjusted.clone()).await?;
+    process.go(&go_mode).await?;
+
+    let mut scores: HashMap<String, Score> = HashMap::new();
+
+    while let Some(line) = reader.next_line().await? {
+        match parse_one(&line) {
+            UciMessage::Info(attrs) => {
+                if let Ok(best_moves) =
+                    parse_uci_attrs(attrs, &adjusted.fen.parse()?, &adjusted.moves)
+                {
+                    if let Some(first_uci) = best_moves.uci_moves.first().cloned() {
+                        scores.insert(first_uci, best_moves.score);
+                    }
+                }
+            }
+            UciMessage::BestMove { .. } => {
+                // Ensure engine process exits to avoid leaks
+                let _ = process.kill().await;
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    let result: Vec<MoveScore> = scores
+        .into_iter()
+        .map(|(uci, score)| MoveScore { uci, score })
+        .collect();
+
+    Ok(result)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(

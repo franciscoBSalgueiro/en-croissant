@@ -250,6 +250,7 @@ function OpponentForm({
                 settings: opponent.engine.settings || [],
                 enabled: true,
                 synced: false,
+                allMoves: false,
               }}
               setSettings={(fn) =>
                 setOpponent((prev) => {
@@ -261,6 +262,7 @@ function OpponentForm({
                     settings: prev.engine?.settings || [],
                     enabled: true,
                     synced: false,
+                    allMoves: false,
                   });
                   return { ...prev, ...newSettings };
                 })

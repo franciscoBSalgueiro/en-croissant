@@ -25,6 +25,7 @@ export type Settings = {
   go: GoMode;
   settings: EngineSettings;
   synced: boolean;
+  allMoves: boolean;
 };
 
 interface EngineSettingsProps {
@@ -142,6 +143,13 @@ function EngineSettingsForm({
             settings={settings}
             engine={engine.name}
             setSettings={setSettings}
+          />
+          <Checkbox
+            label={t("Engines.Settings.ScoreAllMoves", "Score all legal moves")}
+            checked={settings.allMoves}
+            onChange={(e) =>
+              setSettings((prev) => ({ ...prev, allMoves: e.currentTarget.checked }))
+            }
           />
           <ActionIcon.Group>
             {engine.type === "local" && (
