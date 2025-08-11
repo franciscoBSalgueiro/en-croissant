@@ -1,11 +1,12 @@
 import { events, type GoMode, commands } from "@/bindings";
 import {
   activeTabAtom,
+  currentEnginePausedAtom,
   currentGameStateAtom,
   currentPlayersAtom,
   enginesAtom,
+  lastMovedAtom,
   tabsAtom,
-  currentEnginePausedAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -39,7 +40,7 @@ import {
 import { parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   Suspense,
   useContext,
@@ -323,6 +324,7 @@ function BoardGame() {
   const setResult = useStore(store, (s) => s.setResult);
   const appendMove = useStore(store, (s) => s.appendMove);
 
+  const setLastMove = useSetAtom(lastMovedAtom);
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
@@ -419,10 +421,12 @@ function BoardGame() {
         equal(payload.moves, moves) &&
         !pos?.isEnd()
       ) {
+        const move = parseUci(ev[0].uciMoves[0])!;
         appendMove({
-          payload: parseUci(ev[0].uciMoves[0])!,
+          payload: move,
           clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
+        setLastMove(ev[0].uciMoves[0]);
       }
     });
     return () => {

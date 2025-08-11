@@ -1,34 +1,59 @@
+import { events, commands } from "@/bindings";
 import {
   allEnabledAtom,
   autoSaveAtom,
+  currentEnginePausedAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
   currentPracticeTabAtom,
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
-  currentGameStateAtom,
-  currentPlayersAtom,
-  currentEnginePausedAtom,
+  lastMovedAtom,
 } from "@/state/atoms";
 import { activeTabAtom } from "@/state/atoms";
-import { commands, events } from "@/bindings";
-import equal from "fast-deep-equal";
-import { parseUci } from "chessops";
-import { getMainLine } from "@/utils/chess";
-import { treeIteratorMainLine } from "@/utils/treeReducer";
-import { positionFromFen } from "@/utils/chessops";
 import { keyMapAtom } from "@/state/keybinds";
+import { getMainLine } from "@/utils/chess";
 import { defaultPGN, getVariationLine } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
 import { saveToFile } from "@/utils/tabs";
-import { Button, Group, Paper, Portal, Stack, Accordion, ScrollArea } from "@mantine/core";
+import { treeIteratorMainLine } from "@/utils/treeReducer";
+import {
+  Accordion,
+  Button,
+  Group,
+  Paper,
+  Portal,
+  ScrollArea,
+  Stack,
+} from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconPlayerPlay, IconPlayerStop, IconPlus, IconZoomCheck } from "@tabler/icons-react";
+import {
+  IconPlayerPlay,
+  IconPlayerStop,
+  IconPlus,
+  IconZoomCheck,
+} from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { useAtom, useAtomValue } from "jotai";
-import { Suspense, useCallback, useContext, useEffect, useRef, useMemo } from "react";
+import { parseUci } from "chessops";
+import { INITIAL_FEN } from "chessops/fen";
+import equal from "fast-deep-equal";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -40,10 +65,6 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
-import { match } from "ts-pattern";
-import GameInfo from "../common/GameInfo";
-import { INITIAL_FEN } from "chessops/fen";
-import { useState } from "react";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -174,6 +195,7 @@ function BoardAnalysis() {
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const [, setGameState] = useAtom(currentGameStateAtom);
   const appendMove = useStore(store, (s) => s.appendMove);
+  const setLastMove = useSetAtom(lastMovedAtom);
   const mainLine = Array.from(treeIteratorMainLine(root));
   const lastNode = mainLine[mainLine.length - 1].node;
   const movesFromRoot = useMemo(
@@ -211,7 +233,16 @@ function BoardAnalysis() {
         },
       );
     }
-  }, [pos, gameState, enginePaused, headers.result, players, activeTab, root.fen, JSON.stringify(movesFromRoot)]);
+  }, [
+    pos,
+    gameState,
+    enginePaused,
+    headers.result,
+    players,
+    activeTab,
+    root.fen,
+    JSON.stringify(movesFromRoot),
+  ]);
 
   useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
@@ -224,7 +255,9 @@ function BoardAnalysis() {
         !pos?.isEnd()
       ) {
         const ev = payload.bestLines;
-        appendMove({ payload: parseUci(ev[0].uciMoves[0])! });
+        const move = parseUci(ev[0].uciMoves[0])!;
+        appendMove({ payload: move });
+        setLastMove(ev[0].uciMoves[0]);
       }
     });
     return () => {
@@ -260,17 +293,17 @@ function BoardAnalysis() {
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
-                <Paper
-           withBorder
-           p="xs"
-           style={{
-             height: "100%",
-             display: "flex",
-             flexDirection: "column",
-           }}
-           pos="relative"
-         >
-                    <Stack gap="xs" h="100%">
+        <Paper
+          withBorder
+          p="xs"
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+          }}
+          pos="relative"
+        >
+          <Stack gap="xs" h="100%">
             <Group grow>
               <Button
                 onClick={() => setEnginePaused((prev: boolean) => !prev)}
@@ -317,7 +350,9 @@ function BoardAnalysis() {
                 </Accordion.Item>
                 {isRepertoire && (
                   <Accordion.Item value="practice">
-                    <Accordion.Control>{t("Board.Tabs.Practice")}</Accordion.Control>
+                    <Accordion.Control>
+                      {t("Board.Tabs.Practice")}
+                    </Accordion.Control>
                     <Accordion.Panel>
                       <Suspense>
                         <PracticePanel />
@@ -326,7 +361,9 @@ function BoardAnalysis() {
                   </Accordion.Item>
                 )}
                 <Accordion.Item value="analysis">
-                  <Accordion.Control>{t("Board.Tabs.Analysis")}</Accordion.Control>
+                  <Accordion.Control>
+                    {t("Board.Tabs.Analysis")}
+                  </Accordion.Control>
                   <Accordion.Panel>
                     <Suspense>
                       <AnalysisPanel />
@@ -334,13 +371,17 @@ function BoardAnalysis() {
                   </Accordion.Panel>
                 </Accordion.Item>
                 <Accordion.Item value="database">
-                  <Accordion.Control>{t("Board.Tabs.Database")}</Accordion.Control>
+                  <Accordion.Control>
+                    {t("Board.Tabs.Database")}
+                  </Accordion.Control>
                   <Accordion.Panel>
                     <DatabasePanel />
                   </Accordion.Panel>
                 </Accordion.Item>
                 <Accordion.Item value="annotate">
-                  <Accordion.Control>{t("Board.Tabs.Annotate")}</Accordion.Control>
+                  <Accordion.Control>
+                    {t("Board.Tabs.Annotate")}
+                  </Accordion.Control>
                   <Accordion.Panel>
                     <AnnotationPanel />
                   </Accordion.Panel>
@@ -354,7 +395,7 @@ function BoardAnalysis() {
               </Accordion>
             </ScrollArea>
           </Stack>
-          </Paper>
+        </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         {editingMode ? (

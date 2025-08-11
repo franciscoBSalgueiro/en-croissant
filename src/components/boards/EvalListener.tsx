@@ -5,6 +5,8 @@ import {
   engineMovesFamily,
   engineProgressFamily,
   enginesAtom,
+  lastMovedAtom,
+  lastMoveEvaluationFamily,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
@@ -21,12 +23,13 @@ import { useThrottledEffect } from "@/utils/misc";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { startTransition, useContext, useEffect, useMemo } from "react";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { TreeStateContext } from "../common/TreeStateContext";
+import { info as logInfo } from "@tauri-apps/plugin-log";
 
 function EvalListener() {
   const [engines] = useAtom(enginesAtom);
@@ -70,6 +73,16 @@ function EvalListener() {
     [fen, moves, threat, finalFen],
   );
 
+  // Ensure last move is kept in sync with the current move list
+  const setLastMoved = useSetAtom(lastMovedAtom);
+  useEffect(() => {
+    const last = searchingMoves.length > 0 ? searchingMoves[searchingMoves.length - 1] : null;
+    setLastMoved((prev) => (prev !== last ? last : prev));
+    if (last) {
+      logInfo(`lastMovedAtom set to ${last}`).catch(() => {});
+    }
+  }, [searchingMoves, setLastMoved]);
+
   return engines.map((e) => (
     <EngineListener
       key={e.name}
@@ -110,6 +123,8 @@ function EngineListener({
   const store = useContext(TreeStateContext)!;
   const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
+  const lastMove = useAtomValue(lastMovedAtom);
+  const setLastMoveEvaluation = useSetAtom(lastMoveEvaluationFamily(engine.name));
 
   const [, setProgress] = useAtom(
     engineProgressFamily({ engine: engine.name, tab: activeTab! }),
@@ -181,6 +196,70 @@ function EngineListener({
         .exhaustive(),
     [engine.type, engine],
   );
+
+  useEffect(() => {
+    if (!lastMove || !settings.enabled || engine.type !== "local") return;
+
+    const lastMoveTabId = `${activeTab}_lastmove`;
+
+    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
+      if (
+        payload.tab === lastMoveTabId &&
+        payload.engine === engine.name &&
+        payload.progress === 100
+      ) {
+        logInfo(
+          `Received last move evaluation payload: tab=${payload.tab} progress=${payload.progress} lines=${payload.bestLines.length}`,
+        ).catch(() => {});
+        if (payload.bestLines.length > 0) {
+          setLastMoveEvaluation(payload.bestLines[0]);
+        }
+      }
+    });
+
+    const options =
+      settings.settings?.map((s) => ({
+        name: s.name,
+        value: s.value?.toString() || "",
+      })) ?? [];
+    if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
+      options.push({ name: "UCI_Chess960", value: "true" });
+    }
+
+    const lastMoveGoMode: GoMode =
+      settings.go.t === "Infinite" ? { t: "Depth", c: 15 } : settings.go;
+
+    // capture current search inputs to avoid effect re-running churn
+    const capturedFen = searchingFen;
+    const capturedMoves = searchingMoves;
+
+    logInfo(
+      `Requesting last move evaluation tab=${lastMoveTabId} move=${lastMove} go=${JSON.stringify(
+        lastMoveGoMode,
+      )} fen=${capturedFen} moves=${capturedMoves.join(",")}`,
+    ).catch(() => {});
+
+    getBestMoves(
+      lastMoveTabId,
+      {
+        t: "SearchMoves",
+        c: {
+          mode: lastMoveGoMode,
+          moves: [lastMove],
+        },
+      },
+      {
+        moves: capturedMoves,
+        fen: capturedFen,
+        extraOptions: options,
+      },
+    );
+
+    return () => {
+      unlisten.then((f) => f());
+      stopEngine(engine as LocalEngine, lastMoveTabId);
+    };
+  }, [lastMove, settings.enabled, engine.name, activeTab, settings.go, chess960]);
 
   useThrottledEffect(
     () => {

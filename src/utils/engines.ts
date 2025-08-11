@@ -1,18 +1,18 @@
 import {
   type BestMoves,
+  type EngineOption,
   type EngineOptions,
   type GoMode,
-  type EngineOption,
   commands,
 } from "@/bindings";
+import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
+import { info, warn } from "@tauri-apps/plugin-log";
 import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { unwrap } from "./unwrap";
-import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { info, warn } from "@tauri-apps/plugin-log";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 

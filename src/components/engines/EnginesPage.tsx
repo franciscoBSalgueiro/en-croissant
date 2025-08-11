@@ -33,12 +33,12 @@ import {
   IconPhotoPlus,
   IconPlus,
 } from "@tabler/icons-react";
+import { info } from "@tauri-apps/plugin-log";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddEngine from "./AddEngine";
-import { info } from "@tauri-apps/plugin-log";
 
 import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
@@ -77,7 +77,9 @@ export default function EnginesPage() {
   }, [engines]);
 
   useEffect(() => {
-    info(`EnginesPage: selected=${String(selected)} selectedEngine=${selectedEngine?.name ?? "none"}`);
+    info(
+      `EnginesPage: selected=${String(selected)} selectedEngine=${selectedEngine?.name ?? "none"}`,
+    );
   }, [selected, selectedEngine]);
 
   return (

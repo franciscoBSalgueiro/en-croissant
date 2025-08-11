@@ -86,6 +86,9 @@ pub enum Error {
 
     #[error("Players aren't the same. They have played against each other")]
     NotDistinctPlayers,
+
+    #[error("Invalid go mode")]
+    InvalidGoMode,
 }
 
 impl serde::Serialize for Error {

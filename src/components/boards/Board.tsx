@@ -1,5 +1,6 @@
 import { Chessground } from "@/chessground/Chessground";
 import {
+  arrowColorModeAtom,
   autoPromoteAtom,
   autoSaveAtom,
   bestMovesFamily,
@@ -90,6 +91,37 @@ const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
 const SMALL_BRUSH = 4;
 
+// Memoized color calculation for performance
+const qualityColorCache = new Map<string, string>();
+
+function getQualityColor(winChance: number, isMainLine: boolean): string {
+  const cacheKey = `${Math.round(winChance * 10) / 10}-${isMainLine}`;
+  if (qualityColorCache.has(cacheKey)) {
+    return qualityColorCache.get(cacheKey)!;
+  }
+
+  // Convert win chance to color gradient
+  // 50% = neutral, >50% = green (good), <50% = red (bad)
+  const deviation = winChance - 50;
+  const intensity = Math.min(Math.abs(deviation) / 50, 1); // 0-1 scale
+
+  let color: string;
+
+  if (Math.abs(deviation) < 2.5) {
+    // Near-neutral positions (±2.5% from 50%)
+    color = "yellow"; // Use yellow for all neutral moves
+  } else if (deviation > 0) {
+    // Good moves - green spectrum
+    color = isMainLine ? "green" : "paleGreen";
+  } else {
+    // Bad moves - red spectrum
+    color = isMainLine ? "red" : "paleRed";
+  }
+
+  qualityColorCache.set(cacheKey, color);
+  return color;
+}
+
 interface ChessboardProps {
   dirty: boolean;
   editingMode: boolean;
@@ -157,6 +189,7 @@ function Board({
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
+  const arrowColorMode = useAtomValue(arrowColorModeAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
@@ -264,6 +297,10 @@ function Board({
 
   let shapes: DrawShape[] = [];
   if (showArrows && evalOpen && arrows.size > 0 && pos) {
+    // Clear color cache periodically to prevent memory leaks
+    if (arrowColorMode === "quality" && qualityColorCache.size > 100) {
+      qualityColorCache.clear();
+    }
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
     for (const [i, moves] of entries) {
       if (i < 4) {
@@ -300,10 +337,17 @@ function Board({
                 !shapes.find((s) => s.orig === from && s.dest === to) &&
                 prevSquare === from
               ) {
+                const brushColor = match(arrowColorMode)
+                  .with("engine", () =>
+                    j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
+                  )
+                  .with("quality", () => getQualityColor(winChance, j === 0))
+                  .exhaustive();
+
                 shapes.push({
                   orig: from,
                   dest: to,
-                  brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
+                  brush: brushColor,
                   modifiers: {
                     lineWidth: brushSize,
                   },

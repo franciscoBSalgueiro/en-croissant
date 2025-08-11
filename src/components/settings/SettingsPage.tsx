@@ -1,4 +1,5 @@
 import {
+  arrowColorModeAtom,
   autoPromoteAtom,
   autoSaveAtom,
   enableBoardScrollAtom,
@@ -76,6 +77,7 @@ export default function Page() {
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
+  const [arrowColorMode, setArrowColorMode] = useAtom(arrowColorModeAtom);
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -142,6 +144,36 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showArrowsAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>{t("Settings.ArrowColorMode")}</Text>
+                  <Text size="xs" c="dimmed">
+                    {t("Settings.ArrowColorMode.Desc")}
+                  </Text>
+                </div>
+                <Select
+                  data={[
+                    {
+                      label: t("Settings.ArrowColorMode.Engine"),
+                      value: "engine",
+                    },
+                    {
+                      label: t("Settings.ArrowColorMode.Quality"),
+                      value: "quality",
+                    },
+                  ]}
+                  allowDeselect={false}
+                  value={arrowColorMode}
+                  onChange={(val) =>
+                    setArrowColorMode(val as "engine" | "quality")
+                  }
+                />
               </Group>
               <Group
                 justify="space-between"

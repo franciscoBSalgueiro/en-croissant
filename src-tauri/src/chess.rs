@@ -191,7 +191,31 @@ impl EngineProcess {
                 )
             }
             GoMode::Infinite => "go infinite\n".to_string(),
+            GoMode::SearchMoves { mode, moves } => {
+                let mode_str = match **mode {
+                    GoMode::Depth(depth) => format!("depth {}", depth),
+                    GoMode::Time(time) => format!("movetime {}", time),
+                    GoMode::Nodes(nodes) => format!("nodes {}", nodes),
+                    GoMode::PlayersTime(PlayersTime {
+                        white,
+                        black,
+                        winc,
+                        binc,
+                    }) => {
+                        format!(
+                            "wtime {} btime {} winc {} binc {}",
+                            white, black, winc, binc
+                        )
+                    }
+                    GoMode::Infinite => "infinite".to_string(),
+                    GoMode::SearchMoves { .. } => {
+                        return Err(Error::InvalidGoMode);
+                    }
+                };
+                format!("go {} searchmoves {}\n", mode_str, moves.join(" "))
+            }
         };
+        info!("Sending UCI command: {}", msg);
         self.stdin.write_all(msg.as_bytes()).await?;
         self.logs.push(EngineLog::Gui(msg));
         self.running = true;
@@ -376,6 +400,10 @@ pub enum GoMode {
     Time(u32),
     Nodes(u32),
     Infinite,
+    SearchMoves {
+        mode: Box<GoMode>,
+        moves: Vec<String>,
+    },
 }
 
 #[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
@@ -530,6 +558,7 @@ pub async fn get_best_moves(
                                     }
                                     GoMode::PlayersTime(_) => 99.99,
                                     GoMode::Infinite => 99.99,
+                                    GoMode::SearchMoves { .. } => 99.99,
                                 };
                                 BestMovesPayload {
                                     best_lines: proc.best_moves.clone(),

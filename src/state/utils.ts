@@ -11,10 +11,10 @@ import type {
   SyncStringStorage,
 } from "jotai/vanilla/utils/atomWithStorage";
 
-import { warn } from "@tauri-apps/plugin-log";
-import type { z } from "zod";
-import { info } from "@tauri-apps/plugin-log";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { warn } from "@tauri-apps/plugin-log";
+import { info } from "@tauri-apps/plugin-log";
+import type { z } from "zod";
 
 const options = { baseDir: BaseDirectory.AppData };
 

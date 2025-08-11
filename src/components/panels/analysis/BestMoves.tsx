@@ -5,6 +5,7 @@ import {
   engineMovesFamily,
   engineProgressFamily,
   enginesAtom,
+  lastMoveEvaluationFamily,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
@@ -104,15 +105,15 @@ function BestMovesComponent({
     (fn: (prev: Settings) => Settings) => {
       const newSettings = fn(settings);
       setSettings2(newSettings);
-              if (newSettings.synced) {
-          setEngines((prev) =>
-            prev.map((o) =>
-              o.name === engine.name
-                ? { ...o, settings: newSettings.settings, go: newSettings.go }
-                : o,
-            ),
-          );
-        }
+      if (newSettings.synced) {
+        setEngines((prev) =>
+          prev.map((o) =>
+            o.name === engine.name
+              ? { ...o, settings: newSettings.settings, go: newSettings.go }
+              : o,
+          ),
+        );
+      }
     },
     [engine, settings, setSettings2, setEngines],
   );
@@ -337,6 +338,7 @@ function EngineTop({
   progress: number;
   error: any;
 }) {
+  const lastEval = useAtomValue(lastMoveEvaluationFamily(name));
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
@@ -389,6 +391,21 @@ function EngineTop({
                 {depth}
               </Text>
             </Stack>
+            {lastEval && (
+              <Stack align="center" gap={0}>
+                <Text
+                  size="0.7rem"
+                  tt="uppercase"
+                  fw={700}
+                  className={classes.subtitle}
+                >
+                  Last
+                </Text>
+                <Text fw="bold" fz="md">
+                  {formatScore(lastEval.score.value, 1) ?? 0}
+                </Text>
+              </Stack>
+            )}
           </>
         )}
       </Group>

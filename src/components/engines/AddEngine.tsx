@@ -1,5 +1,9 @@
 import { events, commands } from "@/bindings";
-import { enginesAtom, loadableEnginesAtom, persistEnginesAtom } from "@/state/atoms";
+import {
+  enginesAtom,
+  loadableEnginesAtom,
+  persistEnginesAtom,
+} from "@/state/atoms";
 import {
   type Engine,
   type LocalEngine,
@@ -27,13 +31,13 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
+import { info } from "@tauri-apps/plugin-log";
 import { useAtom, useAtomValue } from "jotai";
 import { useSetAtom } from "jotai/react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
-import { info } from "@tauri-apps/plugin-log";
 
 function AddEngine({
   opened,
@@ -49,14 +53,12 @@ function AddEngine({
   const persist = useSetAtom(persistEnginesAtom);
   const engines =
     allEngines.state === "hasData"
-      ? allEngines.data.filter((e: Engine): e is LocalEngine => e.type === "local")
+      ? allEngines.data.filter(
+          (e: Engine): e is LocalEngine => e.type === "local",
+        )
       : [];
 
-  const {
-    os,
-    arch,
-    isLoading: platformLoading,
-  } = usePlatform();
+  const { os, arch, isLoading: platformLoading } = usePlatform();
 
   const getStockfishEngine = (): LocalEngine | null => {
     if (!os || !arch) return null;
@@ -222,7 +224,11 @@ function EngineCard({
         "engines",
         `${url.slice(url.lastIndexOf("/") + 1)}`,
       );
-      if (url.endsWith(".zip") || url.endsWith(".tar") || url.endsWith(".zst")) {
+      if (
+        url.endsWith(".zip") ||
+        url.endsWith(".tar") ||
+        url.endsWith(".zst")
+      ) {
         path = await resolve(await appDataDir(), "engines");
       }
       await info(`AddEngine.download: destination=${path}`);

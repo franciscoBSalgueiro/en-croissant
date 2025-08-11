@@ -12,9 +12,9 @@ import {
 } from "@mantine/core";
 import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { info } from "@tauri-apps/plugin-log";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
-import { info } from "@tauri-apps/plugin-log";
 
 function EngineBox({
   engine,
@@ -94,4 +94,4 @@ function EngineSelection() {
   );
 }
 
-export default memo(EngineSelection); 
+export default memo(EngineSelection);

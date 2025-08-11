@@ -40,6 +40,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
+import LastMoveScore from "./LastMoveScore";
 import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
@@ -319,13 +320,16 @@ function EngineSummary({
         >
           {engine.name}
         </Text>
-        {score ? (
-          <ScoreBubble size="sm" score={score} />
-        ) : (
-          <Text fz="sm" c="dimmed">
-            ???
-          </Text>
-        )}
+        <Group>
+          {score ? (
+            <ScoreBubble size="sm" score={score} />
+          ) : (
+            <Text fz="sm" c="dimmed">
+              ???
+            </Text>
+          )}
+          <LastMoveScore />
+        </Group>
       </Stack>
     </Card>
   );

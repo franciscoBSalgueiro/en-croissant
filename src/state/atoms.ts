@@ -19,7 +19,9 @@ import type { MantineColor } from "@mantine/core";
 import type { OpponentSettings } from "@/components/boards/BoardGame";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
+import { saveEngines } from "@/utils/engines";
 import { getWinChance, normalizeScore } from "@/utils/score";
+import { info, warn } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
@@ -36,8 +38,10 @@ import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
 import { createZodStorage } from "./utils";
-import { saveEngines } from "@/utils/engines";
-import { info, warn } from "@tauri-apps/plugin-log";
+
+export const lastMovedAtom = atom<string | null>(null);
+export const lastMoveEvaluationAtom = atom<BestMoves | null>(null);
+export const lastMoveEvaluationFamily = atomFamily((engine: string) => atom<BestMoves | null>(null));
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;
@@ -60,15 +64,18 @@ export const enginesAtom = atomWithStorage<Engine[]>(
 export const loadableEnginesAtom = loadable(enginesAtom);
 
 // Write-through persistence: ensure disk file is updated whenever enginesAtom changes
-export const persistEnginesAtom = atom(null, async (get, set, _update: Engine[]) => {
-  const engines = await get(enginesAtom);
-  try {
-    await saveEngines(engines);
-    await info(`persistEnginesAtom: saved ${engines.length} engine(s)`);
-  } catch (e) {
-    warn(`persistEnginesAtom: failed to save engines: ${e}`);
-  }
-});
+export const persistEnginesAtom = atom(
+  null,
+  async (get, set, _update: Engine[]) => {
+    const engines = await get(enginesAtom);
+    try {
+      await saveEngines(engines);
+      await info(`persistEnginesAtom: saved ${engines.length} engine(s)`);
+    } catch (e) {
+      warn(`persistEnginesAtom: failed to save engines: ${e}`);
+    }
+  },
+);
 
 // Tabs
 
@@ -144,6 +151,11 @@ export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
   "show-consecutive-arrows",
   false,
+);
+export const arrowColorModeAtom = atomWithStorage<"engine" | "quality">(
+  "arrow-color-mode",
+  "engine",
+  createZodStorage(z.enum(["engine", "quality"]), localStorage),
 );
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
   "erase-drawables-on-click",
