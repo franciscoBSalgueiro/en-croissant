@@ -332,31 +332,32 @@ function Puzzles({ id }: { id: string }) {
           >
             View Solution
           </Button>
+
+          <Divider my="sm" />
+          <Stack h="calc(100% - 16rem)" gap="xs">
+            <Paper withBorder p="md" mih="5rem">
+              <ScrollArea h="100%" offsetScrollbars>
+                <ChallengeHistory
+                  challenges={puzzles.map((p) => ({
+                    ...p,
+                    label: p.rating.toString(),
+                  }))}
+                  current={currentPuzzle}
+                  select={(i) => {
+                    setCurrentPuzzle(i);
+                    setPuzzle(puzzles[i]);
+                  }}
+                />
+              </ScrollArea>
+            </Paper>
+            <Stack flex={1} gap="xs">
+              <GameNotation />
+              <MoveControls readOnly />
+            </Stack>
+          </Stack>
         </Paper>
       </Portal>
-      <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Stack h="100%" gap="xs">
-          <Paper withBorder p="md" mih="5rem">
-            <ScrollArea h="100%" offsetScrollbars>
-              <ChallengeHistory
-                challenges={puzzles.map((p) => ({
-                  ...p,
-                  label: p.rating.toString(),
-                }))}
-                current={currentPuzzle}
-                select={(i) => {
-                  setCurrentPuzzle(i);
-                  setPuzzle(puzzles[i]);
-                }}
-              />
-            </ScrollArea>
-          </Paper>
-          <Stack flex={1} gap="xs">
-            <GameNotation />
-            <MoveControls readOnly />
-          </Stack>
-        </Stack>
-      </Portal>
+      
     </>
   );
 }

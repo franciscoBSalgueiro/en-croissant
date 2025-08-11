@@ -7,6 +7,8 @@ import {
   enginesAtom,
   lastMovedAtom,
   tabsAtom,
+  allEnabledAtom,
+  enableAllAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -35,20 +37,14 @@ import {
   IconPlayerPlay,
   IconPlayerStop,
   IconPlus,
-  IconZoomCheck,
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import {
-  Suspense,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { atomWithStorage } from "jotai/utils";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import GameInfo from "../common/GameInfo";
@@ -58,6 +54,13 @@ import TimeInput from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
+import AnalysisPanel from "../panels/analysis/AnalysisPanel";
+import DatabasePanel from "../panels/database/DatabasePanel";
+import AnnotationPanel from "../panels/annotation/AnnotationPanel";
+import InfoPanel from "../panels/info/InfoPanel";
+import EvalListener from "./EvalListener";
+import "react-mosaic-component/react-mosaic-component.css";
+import "@/styles/react-mosaic.css";
 
 function EnginesSelect({
   engine,
@@ -281,6 +284,41 @@ const DEFAULT_TIME_CONTROL: TimeControlField = {
   increment: 2_000,
 };
 
+// Unified sidebar layout state
+type SidebarViewId =
+  | "gameInfo"
+  | "analysis"
+  | "database"
+  | "moves"
+  | "annotation"
+  | "info";
+interface SidebarState {
+  currentNode: MosaicNode<SidebarViewId> | null;
+}
+const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarState", {
+  currentNode: {
+    direction: "column",
+    first: "gameInfo",
+    second: {
+      direction: "column",
+      first: "analysis",
+      second: {
+        direction: "column",
+        first: "database",
+        second: {
+          direction: "column",
+          first: "moves",
+          second: {
+            direction: "column",
+            first: "annotation",
+            second: "info",
+          },
+        },
+      },
+    },
+  },
+});
+
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
 
@@ -333,13 +371,7 @@ function BoardGame() {
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
 
-  function changeToAnalysisMode() {
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab,
-      ),
-    );
-  }
+  // Unified mode: no switching to a separate analysis tab type
   const mainLine = Array.from(treeIteratorMainLine(root));
   const lastNode = mainLine[mainLine.length - 1].node;
   const moves = useMemo(
@@ -605,6 +637,7 @@ function BoardGame() {
 
   return (
     <>
+      <EvalListener />
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           dirty={false}
@@ -680,56 +713,113 @@ function BoardGame() {
             </ScrollArea>
           )}
           {(gameState === "playing" || gameState === "gameOver") && (
-            <Stack h="100%">
-              <Group grow>
-                {onePlayerIsEngine && (
-                  <Button
-                    onClick={() => setEnginePaused((prev) => !prev)}
-                    leftSection={
-                      enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />
-                    }
-                  >
-                    {enginePaused ? "Play" : "Stop"}
-                  </Button>
-                )}
-                <Button
-                  onClick={() => {
-                    setGameState("settingUp");
-                    setWhiteTime(null);
-                    setBlackTime(null);
-                    setFen(INITIAL_FEN);
-                    setHeaders({
-                      ...headers,
-                      result: "*",
-                    });
-                  }}
-                  leftSection={<IconPlus />}
-                >
-                  New Game
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => changeToAnalysisMode()}
-                  leftSection={<IconZoomCheck />}
-                >
-                  Analyze
-                </Button>
-              </Group>
-              <Box flex={1}>
-                <GameInfo headers={headers} />
-              </Box>
-            </Stack>
+            <UnifiedSidebar headers={headers} onePlayerIsEngine={onePlayerIsEngine} enginePaused={enginePaused} setEnginePaused={setEnginePaused} onNewGame={() => {
+              setGameState("settingUp");
+              setWhiteTime(null);
+              setBlackTime(null);
+              setFen(INITIAL_FEN);
+              setHeaders({
+                ...headers,
+                result: "*",
+              });
+            }} />
           )}
         </Paper>
       </Portal>
-      <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Stack h="100%" gap="xs">
-          <GameNotation topBar />
-          <MoveControls />
-        </Stack>
-      </Portal>
+      
     </>
   );
 }
 
 export default BoardGame;
+
+// Unified sidebar section and layout
+function UnifiedSidebar({
+  headers,
+  onePlayerIsEngine,
+  enginePaused,
+  setEnginePaused,
+  onNewGame,
+}: {
+  headers: GameHeaders;
+  onePlayerIsEngine: boolean;
+  enginePaused: boolean;
+  setEnginePaused: (fn: (prev: boolean) => boolean) => void;
+  onNewGame: () => void;
+}) {
+  const [sidebarState, setSidebarState] = useAtom(sidebarStateAtom);
+  const [, enable] = useAtom(enableAllAtom);
+  const allEnabledLoader = useAtomValue(allEnabledAtom);
+  const allEnabled = allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+
+  const sidebarLayout: { [viewId in SidebarViewId]: JSX.Element } = {
+    gameInfo: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
+          <GameInfo headers={headers} />
+        </ScrollArea>
+      </Paper>
+    ),
+    analysis: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
+          <Suspense>
+            <AnalysisPanel />
+          </Suspense>
+        </ScrollArea>
+      </Paper>
+    ),
+    database: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
+          <DatabasePanel />
+        </ScrollArea>
+      </Paper>
+    ),
+    moves: (
+      <Stack h="100%" gap="xs">
+        <GameNotation topBar />
+        <MoveControls />
+      </Stack>
+    ),
+    annotation: (
+      <Paper withBorder p="xs" h="100%">
+        <AnnotationPanel />
+      </Paper>
+    ),
+    info: (
+      <Paper withBorder p="xs" h="100%">
+        <InfoPanel />
+      </Paper>
+    ),
+  };
+
+  return (
+    <Stack h="100%" gap="xs">
+      <Group grow>
+        {onePlayerIsEngine && (
+          <Button
+            onClick={() => setEnginePaused((prev) => !prev)}
+            leftSection={enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />}
+          >
+            {enginePaused ? "Play" : "Stop"}
+          </Button>
+        )}
+        <Button
+          variant={allEnabled ? "filled" : "default"}
+          onClick={() => enable(!allEnabled)}
+        >
+          {allEnabled ? "Stop Analysis" : "Start Analysis"}
+        </Button>
+      </Group>
+      <Box style={{ flexGrow: 1 }}>
+        <Mosaic<SidebarViewId>
+          renderTile={(id) => sidebarLayout[id]}
+          value={sidebarState.currentNode}
+          onChange={(currentNode) => setSidebarState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 10 }}
+        />
+      </Box>
+    </Stack>
+  );
+}

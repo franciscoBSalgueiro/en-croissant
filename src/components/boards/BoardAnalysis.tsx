@@ -188,6 +188,8 @@ function BoardAnalysis() {
   );
   const [pos] = positionFromFen(lastNode.fen);
 
+  // Keep analysis engines separate from game players to preserve original setup
+
   const newGame = useCallback(() => {
     setGameState("settingUp");
     setFen(INITIAL_FEN);
@@ -330,21 +332,13 @@ function BoardAnalysis() {
               >
                 {enginePaused ? "Play" : "Stop"}
               </Button>
-              <Button leftSection={<IconPlus />} onClick={newGame}>
-                New Game
-              </Button>
               <Button
-                variant="default"
-                onClick={() =>
-                  setCurrentTab((prev) => ({
-                    ...prev,
-                    type: "play",
-                  }))
-                }
-                leftSection={<IconZoomCheck />}
+                variant={allEnabled ? "filled" : "default"}
+                onClick={() => enable(!allEnabled)}
               >
-                Analyze
+                {allEnabled ? "Stop Analysis" : "Start Analysis"}
               </Button>
+              
             </Group>
             <Box style={{ flexGrow: 1 }}>
               <Mosaic<SidebarViewId>

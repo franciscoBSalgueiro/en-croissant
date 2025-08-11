@@ -374,14 +374,7 @@ function Board({
     headers.white_time_control !== undefined ||
     headers.black_time_control !== undefined;
 
-  function changeTabType() {
-    setCurrentTab((t) => {
-      return {
-        ...t,
-        type: t.type === "analysis" ? "play" : "analysis",
-      };
-    });
-  }
+  // Removed analyze/play toggle in pursuit of a unified experience
 
   const controls = useMemo(
     () => (
@@ -424,21 +417,6 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip
-          label={t(
-            currentTab?.type === "analysis"
-              ? "Board.Action.PlayFromHere"
-              : "Board.AnalyzeGame",
-          )}
-        >
-          <ActionIcon variant="default" size="lg" onClick={changeTabType}>
-            {currentTab?.type === "analysis" ? (
-              <IconTarget size="1.3rem" />
-            ) : (
-              <IconZoomCheck size="1.3rem" />
-            )}
-          </ActionIcon>
-        </Tooltip>
         {!eraseDrawablesOnClick && (
           <Tooltip label={t("Board.Action.ClearDrawings")}>
             <ActionIcon
@@ -505,7 +483,6 @@ function Board({
       autoSave,
       dirty,
       keyMap,
-      currentTab,
       disableVariations,
       saveFile,
       canTakeBack,

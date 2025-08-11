@@ -12,7 +12,6 @@ import { useCallback, useEffect, useTransition } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
-import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
 import { TreeStateProvider } from "../common/TreeStateContext";
 import Puzzles from "../puzzles/Puzzles";
@@ -270,15 +269,17 @@ interface WindowsState {
   currentNode: MosaicNode<ViewId> | null;
 }
 
+const DEFAULT_LAYOUT: MosaicNode<ViewId> = {
+  direction: "row",
+  first: "left",
+  second: "topRight",
+};
+
 const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
   currentNode: {
     direction: "row",
     first: "left",
-    second: {
-      direction: "column",
-      first: "topRight",
-      second: "bottomRight",
-    },
+    second: "topRight",
   },
 });
 
@@ -297,6 +298,30 @@ function TabSwitch({
 }) {
   const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
 
+  // Remove any legacy bottomRight leaf from persisted layouts
+  function pruneBottomRight(
+    node: MosaicNode<ViewId> | null,
+  ): MosaicNode<ViewId> | null {
+    if (!node) return null;
+    if (typeof node === "string") {
+      return node === "bottomRight" ? null : node;
+    }
+    const first = pruneBottomRight(node.first);
+    const second = pruneBottomRight(node.second);
+    if (!first && !second) return null;
+    if (!first) return second;
+    if (!second) return first;
+    return { ...node, first, second };
+  }
+
+  useEffect(() => {
+    const pruned = pruneBottomRight(windowsState.currentNode);
+    const normalized = pruned ?? DEFAULT_LAYOUT;
+    if (JSON.stringify(normalized) !== JSON.stringify(windowsState.currentNode)) {
+      setWindowsState({ currentNode: normalized });
+    }
+  }, [windowsState.currentNode, setWindowsState]);
+
   return match(tab.type)
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
@@ -308,6 +333,11 @@ function TabSwitch({
           resize={{ minimumPaneSizePercentage: 0 }}
         />
         <BoardGame />
+        <ConfirmChangesModal
+          opened={saveModalOpened}
+          toggle={toggleSaveModal}
+          closeTab={() => closeTab(activeTab, true)}
+        />
       </TreeStateProvider>
     ))
     .with("analysis", () => (
@@ -318,7 +348,7 @@ function TabSwitch({
           onChange={(currentNode) => setWindowsState({ currentNode })}
           resize={{ minimumPaneSizePercentage: 0 }}
         />
-        <BoardAnalysis />
+        <BoardGame />
         <ConfirmChangesModal
           opened={saveModalOpened}
           toggle={toggleSaveModal}
