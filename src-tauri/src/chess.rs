@@ -545,6 +545,8 @@ pub struct EngineOptions {
     pub fen: String,
     pub moves: Vec<String>,
     pub extra_options: Vec<EngineOption>,
+    #[derivative(Default(value = "false"))]
+    pub use_cache: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq, Hash)]
@@ -663,8 +665,8 @@ pub async fn get_best_moves(
         go_mode: go_mode.clone(),
     };
 
-    // Check cache first for completed analysis (but only for non-infinite modes)
-    if !matches!(go_mode, GoMode::Infinite) {
+    // Check cache first for completed analysis (but only for non-infinite modes and if cache is enabled)
+    if options.use_cache && !matches!(go_mode, GoMode::Infinite) {
         if let Ok(Some(cached_result)) = get_cached_analysis(&cache_key, &app).await {
             info!("Cache hit for engine analysis: {}", cache_key.to_hash_string());
             return Ok(Some((100.0, cached_result.to_best_moves())));
@@ -768,8 +770,8 @@ pub async fn get_best_moves(
                 .emit(&app)?;
                 proc.last_progress = 100.0;
                 
-                // Store completed analysis in cache (but not for infinite mode)
-                if !matches!(go_mode, GoMode::Infinite) && !proc.last_best_moves.is_empty() {
+                // Store completed analysis in cache (but not for infinite mode and only if cache is enabled)
+                if options.use_cache && !matches!(go_mode, GoMode::Infinite) && !proc.last_best_moves.is_empty() {
                     let cached_result = CachedAnalysisResult::new(proc.last_best_moves.clone());
                     if let Err(e) = store_analysis_in_cache(&cache_key, &cached_result, &app).await {
                         info!("Failed to store analysis in cache: {:?}", e);
@@ -869,8 +871,8 @@ pub async fn score_all_moves(
         go_mode: go_mode.clone(),
     };
 
-    // Check cache first (but only for non-infinite modes)
-    if !matches!(go_mode, GoMode::Infinite) {
+    // Check cache first (but only for non-infinite modes and if cache is enabled)
+    if options.use_cache && !matches!(go_mode, GoMode::Infinite) {
         if let Ok(Some(cached_result)) = get_cached_analysis(&cache_key, &app).await {
             info!("Cache hit for score_all_moves: {}", cache_key.to_hash_string());
             // Convert cached BestMoves to MoveScore format
@@ -908,8 +910,8 @@ pub async fn score_all_moves(
                 }
             }
             UciMessage::BestMove { .. } => {
-                // Store analysis in cache before exiting (but not for infinite mode)
-                if !matches!(go_mode, GoMode::Infinite) && !scores.is_empty() {
+                // Store analysis in cache before exiting (but not for infinite mode and only if cache is enabled)
+                if options.use_cache && !matches!(go_mode, GoMode::Infinite) && !scores.is_empty() {
                     // Convert scores to BestMoves format for caching
                     let best_moves: Vec<BestMoves> = scores.iter().map(|(uci, score)| {
                         BestMoves {
@@ -1017,6 +1019,7 @@ pub async fn analyze_game(
             fen: options.fen.clone(),
             moves: moves.clone(),
             extra_options,
+            use_cache: true, // analyze_game doesn't use cache anyway, but we need to provide a value
         })
         .await?;
 

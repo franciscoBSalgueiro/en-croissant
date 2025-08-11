@@ -265,8 +265,26 @@ function EngineSettings({
             (option) => option.value.name === field,
           );
           if (option) {
-            // @ts-ignore
-            settings.push({ name: field, value: option.value.default });
+            // Custom defaults for analysis engines
+            // @ts-ignore - option type is complex union, but we know it has default
+            let defaultValue = option.value.default;
+            
+            // Set custom defaults for Stockfish analysis
+            if (engine.name.toLowerCase().includes('stockfish')) {
+              switch (field) {
+                case 'MultiPV':
+                  defaultValue = 3; // Show 3 lines by default instead of 1
+                  break;
+                case 'Threads':
+                  defaultValue = Math.min(4, navigator.hardwareConcurrency || 2); // Use up to 4 threads
+                  break;
+                case 'Hash':
+                  defaultValue = 256; // 256 MB hash by default
+                  break;
+              }
+            }
+            
+            settings.push({ name: field, value: defaultValue });
           }
         }
       }

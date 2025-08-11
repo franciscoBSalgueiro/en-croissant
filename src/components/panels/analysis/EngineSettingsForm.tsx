@@ -26,6 +26,7 @@ export type Settings = {
   settings: EngineSettings;
   synced: boolean;
   allMoves: boolean;
+  useCache: boolean;
 };
 
 interface EngineSettingsProps {
@@ -149,6 +150,13 @@ function EngineSettingsForm({
             checked={settings.allMoves}
             onChange={(e) =>
               setSettings((prev) => ({ ...prev, allMoves: e.currentTarget.checked }))
+            }
+          />
+          <Checkbox
+            label={t("Engines.Settings.UseCache", "Use analysis cache")}
+            checked={settings.useCache}
+            onChange={(e) =>
+              setSettings((prev) => ({ ...prev, useCache: e.currentTarget.checked }))
             }
           />
           <ActionIcon.Group>

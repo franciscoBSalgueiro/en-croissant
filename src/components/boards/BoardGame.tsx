@@ -254,6 +254,7 @@ function OpponentForm({
                 enabled: true,
                 synced: false,
                 allMoves: false,
+                useCache: false,
               }}
               setSettings={(fn) =>
                 setOpponent((prev) => {
@@ -266,6 +267,7 @@ function OpponentForm({
                     enabled: true,
                     synced: false,
                     allMoves: false,
+                    useCache: false,
                   });
                   return { ...prev, ...newSettings };
                 })
@@ -425,6 +427,7 @@ function BoardGame() {
                 ...s,
                 value: s.value?.toString() ?? "",
               })),
+            useCache: false,
           },
         );
       }

@@ -216,6 +216,7 @@ function BoardAnalysis() {
           extraOptions: (player.engine.settings || [])
             .filter((s) => s.name !== "MultiPV")
             .map((s) => ({ ...s, value: s.value?.toString() ?? "" })),
+          useCache: false,
         },
       );
     }

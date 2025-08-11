@@ -254,6 +254,7 @@ function EngineListener({
         moves: capturedMoves,
         fen: capturedFen,
         extraOptions: options,
+        useCache: settings.useCache,
       },
     );
 
@@ -284,6 +285,7 @@ function EngineListener({
             moves: searchingMoves,
             fen: searchingFen,
             extraOptions: options,
+            useCache: settings.useCache,
           }).then((moves) => {
             if (moves) {
               const [progress, bestMoves] = moves;
@@ -306,6 +308,7 @@ function EngineListener({
               moves: searchingMoves,
               fen: searchingFen,
               extraOptions: options,
+              useCache: settings.useCache,
             }).then((scores) => {
               if (!scores) return;
               const [baseStart] = positionFromFen(searchingFen);
