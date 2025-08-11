@@ -225,6 +225,9 @@ function EngineListener({
         name: s.name,
         value: s.value?.toString() || "",
       })) ?? [];
+    if (!options.find((o) => o.name === "UCI_ShowWDL")) {
+      options.push({ name: "UCI_ShowWDL", value: "true" });
+    }
     if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
       options.push({ name: "UCI_Chess960", value: "true" });
     }
@@ -278,6 +281,9 @@ function EngineListener({
               name: s.name,
               value: s.value?.toString() || "",
             })) ?? [];
+          if (!options.find((o) => o.name === "UCI_ShowWDL")) {
+            options.push({ name: "UCI_ShowWDL", value: "true" });
+          }
           if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
             options.push({ name: "UCI_Chess960", value: "true" });
           }

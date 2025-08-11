@@ -164,9 +164,10 @@ export default function BoardsPage() {
           flexDirection: "column",
           height: "100%",
           width: "100%",
+          overflow: "hidden",
         }}
       >
-        <ScrollArea h="3.75rem" px="md" pt="sm" scrollbarSize={8}>
+        <ScrollArea h="3.75rem" px="md" pt="sm" scrollbarSize={8} style={{ position: "sticky", top: 0, zIndex: 10, background: "inherit" }}>
           <DragDropContext
             onDragEnd={({ destination, source }) =>
               destination?.index !== undefined &&
@@ -238,7 +239,7 @@ export default function BoardsPage() {
           <Tabs.Panel
             key={tab.value}
             value={tab.value}
-            h="100%"
+            h="calc(100% - 3.75rem)"
             w="100%"
             pb="sm"
             px="sm"

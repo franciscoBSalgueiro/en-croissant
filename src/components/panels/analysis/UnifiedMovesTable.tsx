@@ -6,6 +6,7 @@ import {
   currentDbTypeAtom,
   currentLocalOptionsAtom,
   currentTabAtom,
+  currentAnalysisTabAtom,
   engineMovesFamily,
   enginesAtom,
   lichessOptionsAtom,
@@ -141,6 +142,7 @@ interface UnifiedMove {
   // Engine analysis
   score?: any;
   winChance?: number;
+  winDelta?: number;
   depth?: number;
   nodes?: number;
   engineName?: string;
@@ -148,6 +150,12 @@ interface UnifiedMove {
   sanMoves?: string[];
   // Annotation
   annotation?: Annotation;
+  // Extra flags
+  isSacrifice?: boolean;
+  isOnlyMove?: boolean;
+  punishesMistake?: boolean;
+  // Mark best move in current ordering
+  isBest?: boolean;
   // Combined ranking
   rank: number;
   source: "database" | "engine" | "both";
@@ -234,6 +242,24 @@ function WinChanceCellRenderer(props: any) {
   );
 }
 
+// Custom cell renderer for Win Likelihood delta
+function WinDeltaCellRenderer(props: any) {
+  const { data } = props;
+  const value: number | undefined = data.winDelta;
+  const color = value !== undefined ? (value > 0.1 ? "green" : value < -0.1 ? "red" : "gray") : undefined;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {value !== undefined ? (
+        <Badge size="sm" color={color} variant="light">
+          {(value > 0 ? "+" : "") + value.toFixed(2)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
 // Custom cell renderer for evaluation score
 function ScoreCellRenderer(props: any) {
   const { data } = props;
@@ -249,12 +275,26 @@ function ScoreCellRenderer(props: any) {
   );
 }
 
+// Generic boolean badge renderer
+function BooleanCellRenderer(props: any) {
+  const { value } = props;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {value ? (
+        <Badge size="sm" color="teal" variant="light">Yes</Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
 // Custom cell renderer for annotation
 function AnnotationCellRenderer(props: any) {
   const { data } = props;
   // ANNOTATION_INFO imported at top
 
-  if (!data.annotation) {
+  if (!data?.annotation && !data?.isBest && !data?.isOnlyMove && !data?.punishesMistake && !data?.isSacrifice) {
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Text size="xs" c="dimmed">-</Text>
@@ -262,12 +302,47 @@ function AnnotationCellRenderer(props: any) {
     );
   }
 
-  const info = ANNOTATION_INFO[data.annotation as Annotation];
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Badge size="sm" color={info?.color || 'gray'} variant="light">
+  const badges: JSX.Element[] = [];
+  if (data.isBest && (data.winChance !== undefined || data.score)) {
+    badges.push(
+      <Badge key="best" size="sm" color="blue" variant="light">
+        Best
+      </Badge>
+    );
+  }
+  if (data.annotation) {
+    const info = ANNOTATION_INFO[data.annotation as Annotation];
+    badges.push(
+      <Badge key="ann" size="sm" color={info?.color || 'gray'} variant="light">
         {info?.name || data.annotation}
       </Badge>
+    );
+  }
+  if (data.isOnlyMove) {
+    badges.push(
+      <Badge key="only" size="sm" color="cyan" variant="light">
+        Only
+      </Badge>
+    );
+  }
+  if (data.punishesMistake) {
+    badges.push(
+      <Badge key="punish" size="sm" color="teal" variant="light">
+        Punish
+      </Badge>
+    );
+  }
+  if (data.isSacrifice) {
+    badges.push(
+      <Badge key="sac" size="sm" color="orange" variant="light">
+        Sac
+      </Badge>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      {badges}
     </div>
   );
 }
@@ -631,6 +706,7 @@ function UnifiedMovesTable() {
 
   const activeTab = useAtomValue(activeTabAtom);
   const tab = useAtomValue(currentTabAtom);
+  const currentAnalysisTab = useAtomValue(currentAnalysisTabAtom);
 
   useEffect(() => {
     if (db === "local") {
@@ -740,14 +816,17 @@ function UnifiedMovesTable() {
 
     // Determine primary engine multipv list for annotation decisions (only-move etc.)
     let primaryEngineMoves: BestMoves[] | undefined;
+    let primaryEngineName: string | undefined;
     if (allEngineMoves.size > 0) {
       const preferredName = loadedEngines[0]?.name;
       if (preferredName && allEngineMoves.has(preferredName)) {
         primaryEngineMoves = allEngineMoves.get(preferredName) as any;
+        primaryEngineName = preferredName;
       } else {
         // fallback to any engine's data
-        const first = Array.from(allEngineMoves.values())[0];
-        primaryEngineMoves = first as any;
+        const firstEntry = Array.from(allEngineMoves.entries())[0];
+        primaryEngineName = firstEntry?.[0];
+        primaryEngineMoves = firstEntry?.[1] as any;
       }
     }
 
@@ -755,6 +834,59 @@ function UnifiedMovesTable() {
     const prevScoreValue: ScoreValue | undefined = primaryEngineMoves && primaryEngineMoves.length > 0
       ? primaryEngineMoves[0].score.value
       : undefined;
+
+    // Compute prevprev evaluation (position before opponent's last move) from the primary engine, if available
+    let prevprevScoreValue: ScoreValue | undefined = undefined;
+    if (primaryEngineName && moves.length > 0) {
+      const prevKey = `${rootFen}:${moves.slice(0, -1).join(",")}`;
+      const engineMapsByIndex = [engineMoves1, engineMoves2, engineMoves3, engineMoves4];
+      const primaryIndex = loadedEngines.findIndex((e) => e.name === primaryEngineName);
+      const engineMap = primaryIndex >= 0 ? engineMapsByIndex[primaryIndex] : undefined;
+      const prevBestMoves = engineMap?.get(prevKey);
+      if (prevBestMoves && prevBestMoves.length > 0) {
+        prevprevScoreValue = prevBestMoves[0].score.value;
+      }
+    }
+
+    // Baseline Win Likelihood for current position (before making any move)
+    let baseWinChance: number | undefined = undefined;
+    if (primaryEngineMoves && primaryEngineMoves.length > 0 && pos) {
+      const baseScore = primaryEngineMoves[0].score;
+      const wdl = baseScore?.wdl as [number, number, number] | null | undefined;
+      if (wdl) {
+        const [w, d, l] = wdl;
+        const total = w + d + l;
+        if (total > 0) {
+          baseWinChance = (pos.turn === "white" ? (w / total) : (l / total)) * 100;
+        }
+      }
+      if (baseWinChance === undefined && prevScoreValue) {
+        baseWinChance = getWinChance(normalizeScore(prevScoreValue, pos.turn));
+      }
+    }
+
+    // Compute "only move" and "punishes mistake" flags for the top line
+    let topMoveSan: string | undefined;
+    let isOnlyMoveTop: boolean = false;
+    let punishesMistakeTop: boolean = false;
+    if (primaryEngineMoves && primaryEngineMoves.length > 0 && pos) {
+      topMoveSan = primaryEngineMoves[0]?.sanMoves?.[0];
+      // Only-move: top vs second best win% gap > 10
+      if (primaryEngineMoves.length > 1) {
+        const a = primaryEngineMoves[0].score.value;
+        const b = primaryEngineMoves[1].score.value;
+        const aCP = normalizeScore(a, pos.turn);
+        const bCP = normalizeScore(b, pos.turn);
+        const gap = getWinChance(aCP) - getWinChance(bCP);
+        isOnlyMoveTop = gap > 10;
+      }
+      // Punishes mistake: if prevprev available and top line improves > 5 win%
+      if (prevprevScoreValue) {
+        const aCP = normalizeScore(primaryEngineMoves[0].score.value, pos.turn);
+        const prevPrevCP = normalizeScore(prevprevScoreValue, pos.turn);
+        punishesMistakeTop = getWinChance(aCP) - getWinChance(prevPrevCP) > 5;
+      }
+    }
 
     // Add engine moves from actual engine data
     if (allEngineMoves.size > 0 && pos) {
@@ -774,9 +906,21 @@ function UnifiedMovesTable() {
         for (const moveData of movesData) {
           if (moveData.sanMoves && moveData.sanMoves.length > 0) {
             const firstMove = moveData.sanMoves[0];
-            const winChance = moveData.score ? getWinChance(
-              normalizeScore(moveData.score.value, pos.turn)
-            ) : 50;
+            let winChance = 50;
+            if (moveData.score) {
+              const wdl = moveData.score.wdl as [number, number, number] | null | undefined;
+              if (wdl) {
+                const [w, d, l] = wdl;
+                const total = w + d + l;
+                if (total > 0) {
+                  winChance = (pos.turn === "white" ? (w / total) : (l / total)) * 100;
+                }
+              } else {
+                winChance = getWinChance(
+                  normalizeScore(moveData.score.value, pos.turn)
+                );
+              }
+            }
             
             allEngineLines.push({
               move: firstMove,
@@ -811,7 +955,7 @@ function UnifiedMovesTable() {
           const nextCP = normalizeScore(data.score.value, currentTurn);
           const isSacrifice = nextCP < prevCP; // worse eval than before move
           annotation = getAnnotation(
-            null,
+            prevprevScoreValue ?? null,
             prevScoreValue,
             data.score.value,
             currentTurn,
@@ -820,17 +964,71 @@ function UnifiedMovesTable() {
             move,
           );
         }
+        const winDelta = baseWinChance !== undefined && data.winChance !== undefined
+          ? data.winChance - baseWinChance
+          : undefined;
+        const isSacrificeFlag = (() => {
+          if (!pos || !data.sanMoves || data.sanMoves.length === 0) return false;
+          if (baseWinChance === undefined || data.winChance === undefined) return false;
+          // sacrifice requires win chance to increase
+          if (data.winChance <= baseWinChance) return false;
+
+          // Track the moved piece and check if it's captured within next 5 plies of the PV
+          const [startPos] = positionFromFen(fen);
+          if (!startPos) return false;
+          const first = parseSan(startPos, data.sanMoves[0]);
+          if (!first || !('from' in (first as any)) || !('to' in (first as any))) return false;
+          let pieceSquare: any = (first as any).to;
+          const movedFrom: any = (first as any).from;
+          // Validate we moved an actual piece
+          const movedPieceBefore = startPos.board.get(movedFrom);
+          if (!movedPieceBefore) return false;
+          startPos.play(first as any);
+
+          const maxPlies = Math.min(5, data.sanMoves.length - 1);
+          for (let i = 1; i <= maxPlies; i++) {
+            const san = data.sanMoves[i];
+            const move = parseSan(startPos, san);
+            if (!move) break;
+            // If opponent to move and captures on our piece square
+            const sideToMove = startPos.turn; // before playing 'move'
+            if (pieceSquare !== undefined && sideToMove !== movedPieceBefore.color) {
+              // If destination equals our piece square and there is our piece on that square before playing
+              const toSq: any = (move as any).to;
+              if (toSq !== undefined && toSq === pieceSquare) {
+                // our moved piece got captured
+                return true;
+              }
+            }
+            // If we are moving our piece again, update its square
+            if (pieceSquare !== undefined && sideToMove === movedPieceBefore.color) {
+              const fromSq: any = (move as any).from;
+              const toSq: any = (move as any).to;
+              if (fromSq !== undefined && toSq !== undefined && fromSq === pieceSquare) {
+                pieceSquare = toSq;
+              }
+            }
+            startPos.play(move as any);
+          }
+          return false;
+        })();
+        const isOnlyMoveFlag = move === topMoveSan ? isOnlyMoveTop : false;
+        const punishesFlag = move === topMoveSan ? punishesMistakeTop : false;
 
         if (existing) {
           // Merge with database data
           existing.score = data.score;
           existing.winChance = data.winChance;
+          existing.winDelta = winDelta;
           existing.engineName = data.engineName;
           existing.sanMoves = data.sanMoves;
           existing.depth = data.depth;
           existing.nodes = data.nodes;
           existing.source = "both";
           existing.annotation = annotation;
+          existing.isSacrifice = isSacrificeFlag;
+          existing.isOnlyMove = isOnlyMoveFlag;
+          existing.punishesMistake = punishesFlag;
         } else {
           // Add as engine-only move
           moveMap.set(move, {
@@ -838,11 +1036,15 @@ function UnifiedMovesTable() {
             san: move,
             score: data.score,
             winChance: data.winChance,
+            winDelta,
             engineName: data.engineName,
             sanMoves: data.sanMoves,
             depth: data.depth,
             nodes: data.nodes,
             annotation,
+            isSacrifice: isSacrificeFlag,
+            isOnlyMove: isOnlyMoveFlag,
+            punishesMistake: punishesFlag,
             rank: rank++,
             source: "engine",
           });
@@ -851,12 +1053,10 @@ function UnifiedMovesTable() {
     }
 
     // Sort by engine analysis first, then by database frequency
-    return Array.from(moveMap.values()).sort((a, b) => {
-      // Engine analysis first (ascending for black, descending for white)
+    const sorted = Array.from(moveMap.values()).sort((a, b) => {
+      // Engine analysis first: Win Likelihood descending regardless of side to move
       if (a.winChance !== undefined && b.winChance !== undefined) {
-        return currentTurn === "black" 
-          ? a.winChance - b.winChance  // ascending for black (worse for white = better for black)
-          : b.winChance - a.winChance; // descending for white (higher win chance first)
+        return b.winChance - a.winChance;
       }
       if (a.winChance !== undefined) return -1; // engine moves before non-engine moves
       if (b.winChance !== undefined) return 1;
@@ -870,24 +1070,65 @@ function UnifiedMovesTable() {
       
       return 0;
     });
-  }, [openingData, allEngineMoves, pos, currentTurn, loadedEngines]);
+
+    const bestIdx = sorted.findIndex((m) => m.winChance !== undefined || m.score);
+    if (bestIdx >= 0) {
+      sorted[bestIdx] = { ...sorted[bestIdx], isBest: true };
+    }
+    return sorted;
+  }, [openingData, allEngineMoves, pos, currentTurn, loadedEngines, engineMoves1, engineMoves2, engineMoves3, engineMoves4, rootFen, moves]);
 
 
 
-  // AG Grid options with automatic sorting based on turn
+  // AG Grid options with automatic sorting based on mode
   const gridOptions: GridOptions<UnifiedMove> = {
     theme: darkTheme,
     animateRows: true,
+    suppressScrollOnNewData: true,
+    suppressRowVirtualisation: false, // keep virtualization for performance
     pagination: false,
     paginationPageSize: 10,
     paginationPageSizeSelector: [10, 20, 50],
-    suppressHorizontalScroll: false,
+    suppressHorizontalScroll: true,
     suppressMovableColumns: false,
+    getRowId: (params) => params.data?.san || params.data?.move,
     defaultColDef: {
       sortable: true,
       resizable: true,
     },
+    // Default sorting behavior: when in Analysis tab (engines), sort by Win Likelihood desc;
+    // otherwise (database mode), sort by DB %Win desc.
+    // We'll set column sorts dynamically via initial sort on grid ready.
+    onGridReady: (params) => {
+      const colApi = (params as any).columnApi ?? (params.api as any).setColumnState;
+      if (colApi && typeof (params.api as any).applyColumnState === 'function') {
+        // AG Grid v28+ API
+        if (currentAnalysisTab === 'engines') {
+          (params.api as any).applyColumnState({
+            defaultState: { sort: null },
+            state: [
+              { colId: 'winChance', sort: 'desc', sortIndex: 0 },
+            ],
+          });
+        } else {
+          (params.api as any).applyColumnState({
+            defaultState: { sort: null },
+            state: [
+              { colId: 'whitePercentage', sort: 'desc', sortIndex: 0 },
+            ],
+          });
+        }
+      } else if (typeof (params.api as any).setSortModel === 'function') {
+        // Fallback
+        if (currentAnalysisTab === 'engines') {
+          (params.api as any).setSortModel([{ colId: 'winChance', sort: 'desc' }]);
+        } else {
+          (params.api as any).setSortModel([{ colId: 'whitePercentage', sort: 'desc' }]);
+        }
+      }
+    },
     columnDefs: [
+
       {
         headerName: "Move",
         field: "san",
@@ -899,7 +1140,7 @@ function UnifiedMovesTable() {
       {
         headerName: "Annotation",
         field: "annotation",
-        width: 120,
+        width: 125,
         cellRenderer: AnnotationCellRenderer,
         sortable: false,
       },
@@ -911,46 +1152,59 @@ function UnifiedMovesTable() {
         sortable: true,
       },
       {
+        headerName: "Win Likelihood",
+        field: "winChance",
+        width: 120,
+        cellRenderer: WinChanceCellRenderer,
+        sortable: true,
+      },
+      {
+        headerName: "ΔWin%",
+        field: "winDelta",
+        width: 90,
+        cellRenderer: WinDeltaCellRenderer,
+        sortable: true,
+      },
+      {
         headerName: "Line",
         field: "pv",
-        width: 200,
+        flex: 1,
+        minWidth: 150,
         cellRenderer: LineCellRenderer,
         sortable: false,
       },
       {
-        headerName: "Count in DB",
+        headerName: "#",
         field: "total",
-        width: 100,
+        width: 80,
         cellRenderer: CountCellRenderer,
         sortable: true,
       },
       {
-        headerName: "% in DB",
+        headerName: "%",
         field: "percentage",
         width: 80,
         cellRenderer: PercentageCellRenderer,
         sortable: true,
       },
       {
-        headerName: "%Win",
+        headerName: "%W",
         field: "whitePercentage",
-        width: 70,
+        width: 100,
         cellRenderer: WinPercentageCellRenderer,
         sortable: true,
-        sort: currentTurn === "white" ? "desc" : "asc", // Auto-sort based on turn
-        sortIndex: 0, // Make this the primary sort
       },
       {
-        headerName: "%Draw",
+        headerName: "%D",
         field: "drawPercentage",
-        width: 70,
+        width: 100,
         cellRenderer: DrawPercentageCellRenderer,
         sortable: true,
       },
       {
-        headerName: "%Loss",
+        headerName: "%B",
         field: "blackPercentage",
-        width: 70,
+        width: 100,
         cellRenderer: LossPercentageCellRenderer,
         sortable: true,
       },
@@ -973,10 +1227,15 @@ function UnifiedMovesTable() {
         Unified Moves ({unifiedMoves.length} moves)
       </Text>
       
-      <div style={{ height: 400, width: '100%' }}>
+      <div style={{ height: '50vh', width: '100%', flex: 1 }}>
         <AgGridReact<UnifiedMove>
           rowData={unifiedMoves}
           gridOptions={gridOptions}
+          domLayout="autoHeight"
+          suppressHorizontalScroll={true}
+          suppressDragLeaveHidesColumns={true}
+          suppressScrollOnNewData={true}
+          suppressRowVirtualisation={true}
         />
       </div>
     </Stack>

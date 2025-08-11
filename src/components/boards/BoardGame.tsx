@@ -727,7 +727,7 @@ function BoardGame() {
     <>
       <EvalListener />
       {/* Resizable board/sidebar layout */}
-      <Box style={{ height: "100vh", padding: "8px" }}>
+      <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>
         <Mosaic<BoardViewId>
           renderTile={(id) => boardLayout[id]}
           value={boardLayoutState.currentNode}
