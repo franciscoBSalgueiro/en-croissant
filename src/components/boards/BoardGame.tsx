@@ -675,9 +675,6 @@ function BoardGame() {
           )}
           {(gameState === "playing" || gameState === "gameOver") && (
             <Stack h="100%">
-              <Box flex={1}>
-                <GameInfo headers={headers} />
-              </Box>
               <Group grow>
                 {onePlayerIsEngine && (
                   <Button
@@ -712,6 +709,9 @@ function BoardGame() {
                   Analyze
                 </Button>
               </Group>
+              <Box flex={1}>
+                <GameInfo headers={headers} />
+              </Box>
             </Stack>
           )}
         </Paper>

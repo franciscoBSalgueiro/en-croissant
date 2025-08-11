@@ -1,5 +1,4 @@
 import { commands } from "@/bindings";
-import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
 import { currentTabAtom, missingMovesAtom } from "@/state/atoms";
@@ -25,7 +24,6 @@ function InfoPanel() {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
-  const headers = useStore(store, (s) => s.headers);
   const currentNode = getNodeAtPath(root, position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
@@ -41,17 +39,6 @@ function InfoPanel() {
       <ScrollArea offsetScrollbars>
         <FileInfo setGames={setGames} />
         <Stack>
-          <GameInfo
-            headers={headers}
-            simplified={isReportoire}
-            changeTitle={(title: string) => {
-              setGames((prev) => {
-                const newGames = new Map(prev);
-                newGames.set(currentTab?.gameNumber || 0, title);
-                return newGames;
-              });
-            }}
-          />
           <FenSearch currentFen={currentNode.fen} />
           <PgnInput />
 

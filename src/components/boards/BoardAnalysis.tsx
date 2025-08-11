@@ -19,18 +19,9 @@ import { positionFromFen } from "@/utils/chessops";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN, getVariationLine } from "@/utils/chess";
 import { saveToFile } from "@/utils/tabs";
-import { Button, Group, Paper, Portal, Stack, Tabs } from "@mantine/core";
+import { Button, Group, Paper, Portal, Stack, Accordion, ScrollArea } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import {
-  IconDatabase,
-  IconInfoCircle,
-  IconNotes,
-  IconTargetArrow,
-  IconZoomCheck,
-  IconPlayerPlay,
-  IconPlayerStop,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconPlayerPlay, IconPlayerStop, IconPlus, IconZoomCheck } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtom, useAtomValue } from "jotai";
@@ -52,6 +43,7 @@ import EvalListener from "./EvalListener";
 import { match } from "ts-pattern";
 import GameInfo from "../common/GameInfo";
 import { INITIAL_FEN } from "chessops/fen";
+import { useState } from "react";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -119,13 +111,40 @@ function BoardAnalysis() {
     [
       keyMap.PRACTICE_TAB.keys,
       () => {
-        isRepertoire && setCurrentTabSelected("practice");
+        if (isRepertoire) {
+          setAccordionValues(["practice"]);
+          setCurrentTabSelected("practice");
+        }
       },
     ],
-    [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
-    [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
-    [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
-    [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
+    [
+      keyMap.ANALYSIS_TAB.keys,
+      () => {
+        setAccordionValues(["analysis"]);
+        setCurrentTabSelected("analysis");
+      },
+    ],
+    [
+      keyMap.DATABASE_TAB.keys,
+      () => {
+        setAccordionValues(["database"]);
+        setCurrentTabSelected("database");
+      },
+    ],
+    [
+      keyMap.ANNOTATE_TAB.keys,
+      () => {
+        setAccordionValues(["annotate"]);
+        setCurrentTabSelected("annotate");
+      },
+    ],
+    [
+      keyMap.INFO_TAB.keys,
+      () => {
+        setAccordionValues(["info"]);
+        setCurrentTabSelected("info");
+      },
+    ],
     [
       keyMap.TOGGLE_ALL_ENGINES.keys,
       (e) => {
@@ -144,6 +163,9 @@ function BoardAnalysis() {
     currentTabSelected === "practice" && practiceTabSelected === "train";
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
   const activeTab = useAtomValue(activeTabAtom);
+  const [accordionValues, setAccordionValues] = useState<string[]>([
+    currentTabSelected || "analysis",
+  ]);
 
   // Background game engine runner to continue play while viewing Analysis
   const root = useStore(store, (s) => s.root);
@@ -261,95 +283,76 @@ function BoardAnalysis() {
               <Button leftSection={<IconPlus />} onClick={newGame}>
                 New Game
               </Button>
+              <Button
+                variant="default"
+                onClick={() =>
+                  setCurrentTab((prev) => ({
+                    ...prev,
+                    type: "play",
+                  }))
+                }
+                leftSection={<IconZoomCheck />}
+              >
+                Analyze
+              </Button>
             </Group>
-            <Tabs
-              w="100%"
-              h="100%"
-              value={currentTabSelected}
-              onChange={(v) => setCurrentTabSelected(v || "info")}
-              keepMounted={false}
-              activateTabWithKeyboard={false}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-            <Tabs.List grow mb="1rem">
-              <Tabs.Tab value="game" leftSection={<IconZoomCheck size="1rem" />}>
-                Game
-              </Tabs.Tab>
-              {isRepertoire && (
-                <Tabs.Tab
-                  value="practice"
-                  leftSection={<IconTargetArrow size="1rem" />}
-                >
-                  {t("Board.Tabs.Practice")}
-                </Tabs.Tab>
-              )}
-              <Tabs.Tab
-                value="analysis"
-                leftSection={<IconZoomCheck size="1rem" />}
+            <ScrollArea h="100%" offsetScrollbars>
+              <Accordion
+                multiple
+                value={accordionValues}
+                onChange={(values) => {
+                  setAccordionValues(values);
+                  if (values.length > 0) {
+                    setCurrentTabSelected(values[values.length - 1] as any);
+                  }
+                }}
               >
-                {t("Board.Tabs.Analysis")}
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="database"
-                leftSection={<IconDatabase size="1rem" />}
-              >
-                {t("Board.Tabs.Database")}
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="annotate"
-                leftSection={<IconNotes size="1rem" />}
-              >
-                {t("Board.Tabs.Annotate")}
-              </Tabs.Tab>
-              <Tabs.Tab
-                value="info"
-                leftSection={<IconInfoCircle size="1rem" />}
-              >
-                {t("Board.Tabs.Info")}
-              </Tabs.Tab>
-            </Tabs.List>
-            <Tabs.Panel value="game" flex={1} style={{ overflowY: "hidden" }}>
-              <Stack h="100%">
-                <GameInfo headers={headers} />
-              </Stack>
-            </Tabs.Panel>
-            {isRepertoire && (
-              <Tabs.Panel
-                value="practice"
-                flex={1}
-                style={{ overflowY: "hidden" }}
-              >
-                <Suspense>
-                  <PracticePanel />
-                </Suspense>
-              </Tabs.Panel>
-            )}
-            <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
-              <InfoPanel />
-            </Tabs.Panel>
-            <Tabs.Panel
-              value="database"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
-              <DatabasePanel />
-            </Tabs.Panel>
-            <Tabs.Panel
-              value="annotate"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
-              <AnnotationPanel />
-            </Tabs.Panel>
-            <Tabs.Panel value="analysis" flex={1} style={{ overflowY: "hidden" }}>
-              <Suspense>
-                <AnalysisPanel />
-              </Suspense>
-            </Tabs.Panel>
-                      </Tabs>
+                <Accordion.Item value="game">
+                  <Accordion.Control>Game</Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack>
+                      <GameInfo headers={headers} />
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+                {isRepertoire && (
+                  <Accordion.Item value="practice">
+                    <Accordion.Control>{t("Board.Tabs.Practice")}</Accordion.Control>
+                    <Accordion.Panel>
+                      <Suspense>
+                        <PracticePanel />
+                      </Suspense>
+                    </Accordion.Panel>
+                  </Accordion.Item>
+                )}
+                <Accordion.Item value="analysis">
+                  <Accordion.Control>{t("Board.Tabs.Analysis")}</Accordion.Control>
+                  <Accordion.Panel>
+                    <Suspense>
+                      <AnalysisPanel />
+                    </Suspense>
+                  </Accordion.Panel>
+                </Accordion.Item>
+                <Accordion.Item value="database">
+                  <Accordion.Control>{t("Board.Tabs.Database")}</Accordion.Control>
+                  <Accordion.Panel>
+                    <DatabasePanel />
+                  </Accordion.Panel>
+                </Accordion.Item>
+                <Accordion.Item value="annotate">
+                  <Accordion.Control>{t("Board.Tabs.Annotate")}</Accordion.Control>
+                  <Accordion.Panel>
+                    <AnnotationPanel />
+                  </Accordion.Panel>
+                </Accordion.Item>
+                <Accordion.Item value="info">
+                  <Accordion.Control>{t("Board.Tabs.Info")}</Accordion.Control>
+                  <Accordion.Panel>
+                    <InfoPanel />
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
+            </ScrollArea>
           </Stack>
           </Paper>
       </Portal>
