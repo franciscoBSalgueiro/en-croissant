@@ -153,10 +153,30 @@ function BestMovesComponent({
   );
 
   const engineVariations = useDeferredValue(
-    useMemo(
-      () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
-      [ev, searchingFen, searchingMoves],
-    ),
+    useMemo(() => {
+      const topNMoves = ev.get(`${searchingFen}:${searchingMoves.join(",")}`);
+      const allMoves = ev.get(`${searchingFen}:${searchingMoves.join(",")}_allmoves`);
+      
+      // If we have all-moves data, merge it with top-n moves
+      if (allMoves && topNMoves) {
+        // Create a map of UCI moves from top-n for easy lookup
+        const topNByUci = new Map<string, BestMoves>();
+        for (const move of topNMoves) {
+          if (move.uciMoves.length > 0) {
+            topNByUci.set(move.uciMoves[0], move);
+          }
+        }
+        
+        // For each move in all-moves, use top-n score if available, otherwise use all-moves score
+        return allMoves.map(move => {
+          const topNMove = topNByUci.get(move.uciMoves[0]);
+          return topNMove || move;
+        });
+      }
+      
+      // Fall back to top-n moves only
+      return topNMoves;
+    }, [ev, searchingFen, searchingMoves]),
   );
 
   return (

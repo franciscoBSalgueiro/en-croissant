@@ -279,6 +279,27 @@ function EngineListener({
           if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
             options.push({ name: "UCI_Chess960", value: "true" });
           }
+          // Run top-n analysis first (for arrows and best moves)
+          getBestMoves(activeTab!, settings.go, {
+            moves: searchingMoves,
+            fen: searchingFen,
+            extraOptions: options,
+          }).then((moves) => {
+            if (moves) {
+              const [progress, bestMoves] = moves;
+              setEngineVariation((prev) => {
+                const newMap = new Map(prev);
+                newMap.set(
+                  `${searchingFen}:${searchingMoves.join(",")}`,
+                  bestMoves,
+                );
+                return newMap;
+              });
+              setProgress(progress);
+            }
+          });
+
+          // If allMoves is enabled, also run score-all-moves analysis
           if (engine.type === "local" && settings.allMoves) {
             const impliedDepth = settings.go.t === "Depth" ? settings.go.c : 0;
             localScoreAllMoves(engine as LocalEngine, settings.go, {
@@ -299,11 +320,7 @@ function EngineListener({
                 return p;
               })();
               const isBlackToMove = basePos?.turn === "black";
-              // Get MultiPV setting to limit arrows
-              const multiPvSetting = Number.parseInt(
-                options.find((o) => o.name === "MultiPV")?.value ?? "5"
-              );
-              const bestMoves = scores
+              const allMoveScores = scores
                 .map((s) => {
                   let san: string | null = null;
                   if (basePos) {
@@ -331,36 +348,17 @@ function EngineListener({
                   // Sort by raw engine score: higher is better for white, lower is better for black
                   return isBlackToMove ? av - bv : bv - av;
                 })
-                .slice(0, multiPvSetting) // Limit to top N moves for arrows
                 .map((x, i) => ({ ...x, multipv: i + 1 }));
-              if (bestMoves.length === 0) return;
+              if (allMoveScores.length === 0) return;
+              
+              // Store all-moves scores with a different key suffix
               setEngineVariation((prev) => {
                 const newMap = new Map(prev);
-                newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, bestMoves);
+                newMap.set(`${searchingFen}:${searchingMoves.join(",")}_allmoves`, allMoveScores);
                 return newMap;
               });
-              setProgress(100);
             });
-            return;
           }
-          getBestMoves(activeTab!, settings.go, {
-            moves: searchingMoves,
-            fen: searchingFen,
-            extraOptions: options,
-          }).then((moves) => {
-            if (moves) {
-              const [progress, bestMoves] = moves;
-              setEngineVariation((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(
-                  `${searchingFen}:${searchingMoves.join(",")}`,
-                  bestMoves,
-                );
-                return newMap;
-              });
-              setProgress(progress);
-            }
-          });
         }
       } else {
         if (engine.type === "local") {

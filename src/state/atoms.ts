@@ -462,6 +462,18 @@ export const bestMovesFamily = atomFamily(
         const engineMoves = get(
           engineMovesFamily({ tab, engine: engine.name }),
         );
+        // Get engine settings to find MultiPV
+        const engineSettings = get(
+          tabEngineSettingsFamily({
+            tab,
+            engineName: engine.name,
+            defaultSettings: engine.settings ?? undefined,
+            defaultGo: engine.go ?? undefined,
+          }),
+        );
+        const multiPvLimit = Number.parseInt(
+          engineSettings.settings.find((s) => s.name === "MultiPV")?.value?.toString() ?? "5"
+        );
         const [pos] = positionFromFen(fen);
         let finalFen = INITIAL_FEN;
         if (pos) {
@@ -471,6 +483,7 @@ export const bestMovesFamily = atomFamily(
           }
           finalFen = makeFen(pos.toSetup());
         }
+        // Always use top-n moves for arrows (never all-legal-moves data)
         const moves =
           engineMoves.get(`${swapMove(finalFen)}:`) ||
           engineMoves.get(`${fen}:${gameMoves.join(",")}`);
@@ -478,9 +491,11 @@ export const bestMovesFamily = atomFamily(
           const bestWinChange = getWinChance(
             normalizeScore(moves[0].score.value, pos?.turn || "white"),
           );
+          // Use all moves up to MultiPV limit for arrows
+          const effectiveMoves = moves.slice(0, Math.min(moves.length, multiPvLimit));
           bestMoves.set(
             n,
-            moves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
+            effectiveMoves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
               const winChance = getWinChance(
                 normalizeScore(m.score.value, pos?.turn || "white"),
               );
