@@ -881,7 +881,7 @@ pub async fn score_all_moves(
                 .filter_map(|bm| {
                     bm.uci_moves.first().map(|uci| MoveScore {
                         uci: uci.clone(),
-                        score: bm.score,
+                        score: bm.score.clone(),
                     })
                 })
                 .collect();
@@ -948,6 +948,8 @@ pub async fn score_all_moves(
 
     Ok(result)
 }
+
+
 
 #[tauri::command]
 #[specta::specta]

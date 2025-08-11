@@ -131,6 +131,8 @@ export function scoreAllMoves(
   return commands.scoreAllMoves(engine.path, goMode, options).then((r) => unwrap(r));
 }
 
+
+
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
   const { data, error, isLoading } = useSWR(
     opened ? os : null,

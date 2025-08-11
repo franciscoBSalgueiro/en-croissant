@@ -780,9 +780,9 @@ function SimplifiedSidebar({
       </Group>
 
       {/* Tabbed content */}
-      <Tabs defaultValue="gameInfo" style={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+      <Tabs defaultValue="analysis" style={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Tabs.List>
-          <Tabs.Tab value="gameInfo">Game</Tabs.Tab>
+          {/* <Tabs.Tab value="gameInfo">Game</Tabs.Tab> */}
           <Tabs.Tab value="analysis">Analysis</Tabs.Tab>
           <Tabs.Tab value="moves">Moves</Tabs.Tab>
           <Tabs.Tab value="annotation">Notes</Tabs.Tab>
@@ -790,12 +790,6 @@ function SimplifiedSidebar({
         </Tabs.List>
 
         <Box style={{ flexGrow: 1, overflow: "hidden" }}>
-          <Tabs.Panel value="gameInfo" h="100%">
-            <ScrollArea h="100%">
-              <GameInfo headers={headers} />
-            </ScrollArea>
-          </Tabs.Panel>
-
           <Tabs.Panel value="analysis" h="100%">
             <Suspense fallback={<Text>Loading analysis...</Text>}>
               <AnalysisPanel />
@@ -814,6 +808,7 @@ function SimplifiedSidebar({
           </Tabs.Panel>
 
           <Tabs.Panel value="info" h="100%">
+              <GameInfo headers={headers} />
             <InfoPanel />
           </Tabs.Panel>
         </Box>

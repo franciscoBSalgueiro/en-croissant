@@ -536,7 +536,7 @@ export const tabEngineSettingsFamily = atomFamily(
       settings: defaultSettings || [],
       go: defaultGo || { t: "Infinite" },
       synced: true,
-      allMoves: false,
+      allMoves: true,
       useCache: false,
     });
   },

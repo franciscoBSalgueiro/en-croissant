@@ -102,7 +102,7 @@ function AnalysisPanel() {
           )}
 
         {/* Engine summary section */}
-        {loadedEngines.length > 0 && (
+        {/* {loadedEngines.length > 0 && (
           <Paper withBorder p="xs">
             <Group w="100%">
               <Stack w="6rem" gap="xs">
@@ -137,7 +137,7 @@ function AnalysisPanel() {
               </Group>
             </Group>
           </Paper>
-        )}
+        )} */}
 
         {/* Individual engine configuration */}
         {loadedEngines.length > 0 && (
@@ -217,7 +217,7 @@ function AnalysisPanel() {
         )}
 
         {/* Engine controls */}
-        <Paper withBorder p="xs">
+        {/* <Paper withBorder p="xs">
           <Group justify="space-between">
             <Text fw="bold" size="sm">Move Analysis</Text>
             <Group gap="xs">
@@ -259,7 +259,7 @@ function AnalysisPanel() {
               </Popover>
             </Group>
           </Group>
-        </Paper>
+        </Paper> */}
 
         {/* Unified moves table */}
         <Paper withBorder p="xs" style={{ minHeight: "300px" }}>

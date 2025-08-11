@@ -48,6 +48,8 @@
     "@tiptap/starter-kit": "2.2.4",
     "@types/dom-to-image": "^2.6.7",
     "@vitejs/plugin-react-swc": "^3.7.0",
+    "ag-grid-community": "^34.1.1",
+    "ag-grid-react": "^34.1.1",
     "chessground": "^9.0.4",
     "chessops": "^0.14.0",
     "clsx": "^2.0.0",

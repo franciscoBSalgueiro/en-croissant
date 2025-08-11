@@ -68,7 +68,7 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
 // Define the sidebar panel layout
-type SidebarViewId = "gameInfo" | "analysis" | "moves";
+type SidebarViewId = "analysis" | "moves" | "gameInfo";
 
 interface SidebarState {
   currentNode: MosaicNode<SidebarViewId> | null;
@@ -77,11 +77,11 @@ interface SidebarState {
 const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarStateV2", {
   currentNode: {
     direction: "column",
-    first: "gameInfo",
+    first: "analysis",
     second: {
       direction: "column", 
-      first: "analysis",
-      second: "moves",
+      first: "moves",
+      second: "gameInfo",
     },
   },
 });

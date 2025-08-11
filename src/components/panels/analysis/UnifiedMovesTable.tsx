@@ -2,7 +2,6 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import MoveCell from "@/components/common/MoveCell";
 import {
   activeTabAtom,
-  bestMovesFamily,
   currentDbTabAtom,
   currentDbTypeAtom,
   currentLocalOptionsAtom,
@@ -20,8 +19,8 @@ import { positionFromFen } from "@/utils/chessops";
 import { parseUci } from "chessops";
 import { makeSan, parseSan } from "chessops/san";
 import { makeFen } from "chessops/fen";
-import type { Opening } from "@/utils/db";
-import { searchPosition } from "@/utils/db";
+import { normalizeScore, getWinChance } from "@/utils/score";
+import { type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import {
   convertToNormalized,
@@ -32,25 +31,18 @@ import type {
   LichessGamesOptions,
   MasterGamesOptions,
 } from "@/utils/lichess/explorer";
-import { normalizeScore, getWinChance, formatScore } from "@/utils/score";
 import {
   Badge,
   Group,
-  Progress,
   Text,
   Stack,
-  Tabs,
-  ScrollArea,
-  SegmentedControl,
   Box,
   Flex,
   ActionIcon,
-  Table,
 } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
+import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom, useAtomValue } from "jotai";
-import { DataTable } from "mantine-datatable";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
@@ -59,6 +51,15 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import ScoreBubble from "./ScoreBubble";
 
+// AG Grid imports
+import { AgGridReact } from 'ag-grid-react';
+import { AllCommunityModule, ModuleRegistry, themeQuartz, colorSchemeDark } from 'ag-grid-community';
+import type { ColDef, GridOptions } from 'ag-grid-community';
+
+// Register AG Grid modules
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+// Database types from DatabasePanel
 type DBType =
   | { type: "local"; options: LocalOptions }
   | { type: "lch_all"; options: LichessGamesOptions; fen: string }
@@ -73,29 +74,6 @@ export type LocalOptions = {
   start_date?: string;
   end_date?: string;
 };
-
-// Enhanced unified move data combining database stats and engine analysis
-interface UnifiedMove {
-  move: string;
-  san: string;
-  // Database stats (when available)
-  white?: number;
-  black?: number;
-  draw?: number;
-  total?: number;
-  percentage?: number;
-  // Engine analysis (when available)
-  score?: any;
-  winChance?: number;
-  depth?: number;
-  nodes?: number;
-  engineName?: string;
-  pv?: string[];
-  sanMoves?: string[];
-  // Combined ranking
-  rank: number;
-  source: "database" | "engine" | "both";
-}
 
 function sortOpenings(openings: Opening[]) {
   return openings.sort(
@@ -144,6 +122,353 @@ async function fetchOpening(db: DBType, tab: string) {
     .exhaustive();
 }
 
+// Enhanced unified move data combining database stats and engine analysis
+interface UnifiedMove {
+  move: string;
+  san: string;
+  // Database stats (when available)
+  white?: number;
+  black?: number;
+  draw?: number;
+  total?: number;
+  percentage?: number;
+  whitePercentage?: number;
+  drawPercentage?: number;
+  blackPercentage?: number;
+  // Engine analysis
+  score?: any;
+  winChance?: number;
+  depth?: number;
+  nodes?: number;
+  engineName?: string;
+  pv?: string[];
+  sanMoves?: string[];
+  // Combined ranking
+  rank: number;
+  source: "database" | "engine" | "both";
+}
+
+// Custom cell renderer for move notation
+function MoveCellRenderer(props: any) {
+  const { value, data } = props;
+  const [moveNotationType] = useAtom(moveNotationTypeAtom);
+  
+  const store = useContext(TreeStateContext);
+  const makeMove = useStore(store!, (s) => s.makeMove);
+  const fen = useStore(store!, (s) => s.currentNode().fen);
+
+  const handleClick = () => {
+    if (!fen || !data?.san) return;
+    const [pos] = positionFromFen(fen);
+    if (pos) {
+      const parsedMove = parseSan(pos, data.san);
+      if (parsedMove) {
+        makeMove({ payload: parsedMove });
+      }
+    }
+  };
+
+  const displayValue = value || data?.san || '';
+  const moveText = moveNotationType === "symbols" ? addPieceSymbol(displayValue) : displayValue;
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+      <MoveCell
+        move={moveText}
+        isCurrentVariation={false}
+        annotations={[]}
+        onContextMenu={() => undefined}
+        isStart={false}
+        onClick={handleClick}
+      />
+    </div>
+  );
+}
+
+// Custom cell renderer for engine analysis
+function AnalysisCellRenderer(props: any) {
+  const { data } = props;
+  const store = useContext(TreeStateContext);
+  const rootFen = useStore(store!, (s) => s.root.fen);
+  const moves = useStore(store!, useShallow((s) => getVariationLine(s.root, s.position, false)));
+  const halfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+      {data.sanMoves && data.sanMoves.length > 0 ? (
+        <EngineVariationMoves
+          moves={data.sanMoves}
+          rootFen={rootFen}
+          currentMoves={moves}
+          score={data.score}
+          halfMoves={halfMoves}
+        />
+      ) : data.score ? (
+        <ScoreBubble size="sm" score={data.score} />
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for win chance
+function WinChanceCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.winChance !== undefined ? (
+        <Badge size="sm" color={data.winChance > 60 ? "green" : data.winChance > 40 ? "yellow" : "red"} variant="light">
+          {data.winChance.toFixed(1)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for evaluation score
+function ScoreCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.score ? (
+        <ScoreBubble size="sm" score={data.score} />
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Component for displaying move line with hover functionality (based on AnalysisRow)
+function MoveLineDisplay({
+  moves,
+  fen,
+  halfMoves,
+}: {
+  moves: string[];
+  fen: string;
+  halfMoves: number;
+}) {
+  const [open, setOpen] = useState<boolean>(false);
+  const store = useContext(TreeStateContext)!;
+  const makeMoves = useStore(store, (s) => s.makeMoves);
+
+  if (!open) {
+    moves = moves.slice(0, 8);
+  }
+  
+  const [pos] = positionFromFen(fen);
+  const moveInfo = [];
+  
+  if (pos) {
+    for (const san of moves) {
+      const move = parseSan(pos, san);
+      if (!move) break;
+      pos.play(move);
+      const newFen = makeFen(pos.toSetup());
+      const isCheck = pos.isCheck();
+      moveInfo.push({ fen: newFen, san, isCheck });
+    }
+  }
+
+  return (
+    <Flex
+      direction="row"
+      wrap="wrap"
+      style={{
+        height: open ? "100%" : 35,
+        overflow: "hidden",
+        alignItems: "center",
+      }}
+      gap="xs"
+    >
+      {moveInfo.map(({ san }, index) => {
+        const total_moves = halfMoves + index + 1;
+        const is_white = total_moves % 2 === 1;
+        const move_number = Math.ceil(total_moves / 2);
+        
+        return (
+          <Box key={index} style={{ display: "flex", alignItems: "center" }}>
+            {(index === 0 || is_white) && (
+              <Text size="sm" c="dimmed" mr={2}>
+                {`${move_number}${is_white ? "." : "..."}`}
+              </Text>
+            )}
+            <MoveCell
+              move={san}
+              isCurrentVariation={false}
+              annotations={[]}
+              onContextMenu={() => undefined}
+              isStart={false}
+              onClick={() => {
+                // Play moves up to this point
+                const moveSequence = moves.slice(0, index + 1);
+                makeMoves({ payload: moveSequence });
+              }}
+            />
+          </Box>
+        );
+      })}
+      {moves.length > 8 && (
+        <ActionIcon
+          size="sm"
+          variant="subtle"
+          onClick={() => setOpen(!open)}
+          style={{
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform 200ms ease",
+          }}
+        >
+          <IconChevronDown size={12} />
+        </ActionIcon>
+      )}
+    </Flex>
+  );
+}
+
+// Custom cell renderer for move line (principal variation)
+function LineCellRenderer(props: any) {
+  const { data } = props;
+  const store = useContext(TreeStateContext);
+  const fen = useStore(store!, (s) => s.currentNode().fen);
+  const halfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
+
+  // Use the PV (principal variation) from the engine analysis
+  const moves = data.pv || data.sanMoves || [];
+  
+  if (!moves || moves.length === 0) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+        <Text size="xs" c="dimmed">-</Text>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+      <MoveLineDisplay
+        moves={moves}
+        fen={fen}
+        halfMoves={halfMoves}
+      />
+    </div>
+  );
+}
+
+// Custom cell renderer for database count
+function CountCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.total ? (
+        <Text size="sm" fw={500}>
+          {data.total.toLocaleString()}
+        </Text>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for database percentage
+function PercentageCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.percentage !== undefined ? (
+        <Text size="sm">
+          {data.percentage.toFixed(1)}%
+        </Text>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for win percentage
+function WinPercentageCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.whitePercentage !== undefined ? (
+        <Badge size="sm" color="gray" variant="light">
+          {data.whitePercentage.toFixed(1)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for draw percentage
+function DrawPercentageCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.drawPercentage !== undefined ? (
+        <Badge size="sm" color="yellow" variant="light">
+          {data.drawPercentage.toFixed(1)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for loss percentage
+function LossPercentageCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {data.blackPercentage !== undefined ? (
+        <Badge size="sm" color="red" variant="light">
+          {data.blackPercentage.toFixed(1)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Custom cell renderer for engine info
+function EngineInfoCellRenderer(props: any) {
+  const { data } = props;
+  
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+      {data.engineName ? (
+        <Group gap="xs">
+          <Text size="sm" fw={500}>
+            {data.engineName}
+          </Text>
+          {data.depth && (
+            <Text size="xs" c="dimmed">
+              d{data.depth}
+            </Text>
+          )}
+        </Group>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
 // Component for displaying engine variation moves
 function EngineVariationMoves({
   moves,
@@ -158,31 +483,34 @@ function EngineVariationMoves({
   score: any;
   halfMoves: number;
 }) {
-  const [open, setOpen] = useState<boolean>(false);
-  const [pos] = positionFromFen(rootFen);
+  const [open, setOpen] = useState(false);
   const store = useContext(TreeStateContext)!;
   const makeMoves = useStore(store, (s) => s.makeMoves);
-  
-  if (!pos) return null;
 
-  const displayMoves = open ? moves : moves.slice(0, 6);
-  const moveInfo = [];
-  const currentPos = pos.clone();
-  
-  // First play the current moves to get to the current position
-  for (const uci of currentMoves) {
+  const moveInfo: Array<{ fen: string; san: string; isCheck: boolean }> = [];
+
+  let currentPos = (() => {
+    const [pos] = positionFromFen(rootFen);
+    if (!pos) return null;
+    for (const uci of currentMoves) {
+      const move = parseUci(uci);
+      if (!move) return null;
+      pos.play(move);
+    }
+    return pos;
+  })();
+
+  if (!currentPos) return null;
+
+  for (const uci of moves) {
     const move = parseUci(uci);
     if (!move) break;
-    currentPos.play(move);
-  }
-  
-  // Then calculate the engine variation moves from current position
-  for (const san of displayMoves) {
-    const move = parseSan(currentPos, san);
-    if (!move) break;
+    
+    const san = makeSan(currentPos, move);
     currentPos.play(move);
     const newFen = makeFen(currentPos.toSetup());
     const isCheck = currentPos.isCheck();
+
     moveInfo.push({ fen: newFen, san, isCheck });
   }
 
@@ -194,7 +522,6 @@ function EngineVariationMoves({
         overflow: "hidden" 
       }}>
         {moveInfo.map(({ san }, index) => {
-          // Calculate move number based on current position + engine variation index
           const total_moves = halfMoves + currentMoves.length + index + 1;
           const is_white = total_moves % 2 === 1;
           const move_number = Math.ceil(total_moves / 2);
@@ -213,7 +540,6 @@ function EngineVariationMoves({
                 onContextMenu={() => undefined}
                 isStart={false}
                 onClick={() => {
-                  // Make moves from root: current moves + engine moves up to this point
                   const fullMoveSequence = [...currentMoves, ...moves.slice(0, index + 1)];
                   makeMoves({ payload: fullMoveSequence });
                 }}
@@ -242,37 +568,41 @@ function EngineVariationMoves({
 function UnifiedMovesTable() {
   const { t } = useTranslation();
 
+  // Create dark theme using AG Grid's new theming system
+  const darkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+    backgroundColor: 'var(--mantine-color-dark-7)',
+    foregroundColor: 'var(--mantine-color-gray-1)',
+    accentColor: 'var(--mantine-color-blue-6)',
+    borderColor: 'var(--mantine-color-dark-4)',
+    chromeBackgroundColor: 'var(--mantine-color-dark-6)',
+    headerBackgroundColor: 'var(--mantine-color-dark-6)',
+    oddRowBackgroundColor: 'var(--mantine-color-dark-8)',
+    rowHoverColor: 'var(--mantine-color-dark-6)',
+  });
+
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
   const rootFen = useStore(store, (s) => s.root.fen);
   const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
-  const halfMoves = useStore(store, (s) => s.currentNode().halfMoves);
   const moves = useStore(
     store,
     useShallow((s) => getVariationLine(s.root, s.position, is960)),
   );
-  const makeMove = useStore(store, (s) => s.makeMove);
 
+  // Get current position to determine turn
+  const [pos] = positionFromFen(fen);
+  const currentTurn = pos?.turn || "white";
+
+  // Database integration
   const referenceDatabase = useAtomValue(referenceDbAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
   const [lichessOptions, setLichessOptions] = useAtom(lichessOptionsAtom);
   const [masterOptions, setMasterOptions] = useAtom(masterOptionsAtom);
   const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
   const [db, setDb] = useAtom(currentDbTypeAtom);
-  const [moveNotationType] = useAtom(moveNotationTypeAtom);
 
   const activeTab = useAtomValue(activeTabAtom);
-  const engines = useAtomValue(enginesAtom);
-  const loadedEngines = useMemo(
-    () => engines.filter((e) => e.loaded),
-    [engines],
-  );
-
-  // Get engine moves for each loaded engine (always call hooks)
-  const engineMoves1 = useAtomValue(loadedEngines.length > 0 ? engineMovesFamily({ engine: loadedEngines[0]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
-  const engineMoves2 = useAtomValue(loadedEngines.length > 1 ? engineMovesFamily({ engine: loadedEngines[1]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
-  const engineMoves3 = useAtomValue(loadedEngines.length > 2 ? engineMovesFamily({ engine: loadedEngines[2]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
-  const engineMoves4 = useAtomValue(loadedEngines.length > 3 ? engineMovesFamily({ engine: loadedEngines[3]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
+  const tab = useAtomValue(currentTabAtom);
 
   useEffect(() => {
     if (db === "local") {
@@ -303,18 +633,26 @@ function UnifiedMovesTable() {
     }))
     .exhaustive();
 
-  const tab = useAtomValue(currentTabAtom);
-
-  // Get database openings data
   const {
     data: openingData,
-    isLoading: dbLoading,
-    error: dbError,
+    isLoading,
+    error,
   } = useSWR(dbType, async (dbType: DBType) => {
     return fetchOpening(dbType, tab?.value || "");
   });
+  const engines = useAtomValue(enginesAtom);
+  const loadedEngines = useMemo(
+    () => engines.filter((e) => e.loaded),
+    [engines],
+  );
 
-  // Combine all engine moves data
+  // Get engine moves for each loaded engine
+  const engineMoves1 = useAtomValue(loadedEngines.length > 0 ? engineMovesFamily({ engine: loadedEngines[0]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
+  const engineMoves2 = useAtomValue(loadedEngines.length > 1 ? engineMovesFamily({ engine: loadedEngines[1]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
+  const engineMoves3 = useAtomValue(loadedEngines.length > 2 ? engineMovesFamily({ engine: loadedEngines[2]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
+  const engineMoves4 = useAtomValue(loadedEngines.length > 3 ? engineMovesFamily({ engine: loadedEngines[3]?.name || 'none', tab: activeTab! }) : engineMovesFamily({ engine: 'none', tab: activeTab! }));
+
+  // Combine engine moves from all loaded engines
   const allEngineMoves = useMemo(() => {
     const engineMovesList = [engineMoves1, engineMoves2, engineMoves3, engineMoves4];
     const combined = new Map<string, any[]>();
@@ -322,7 +660,6 @@ function UnifiedMovesTable() {
     engineMovesList.forEach((engineMoves, index) => {
       if (index < loadedEngines.length && engineMoves.size > 0) {
         const engine = loadedEngines[index];
-        // Use the same key format as EvalListener: root FEN + moves to current position
         const key = `${rootFen}:${moves.join(",")}`;
         const movesData = engineMoves.get(key);
         
@@ -335,11 +672,10 @@ function UnifiedMovesTable() {
     return combined;
   }, [engineMoves1, engineMoves2, engineMoves3, engineMoves4, loadedEngines, rootFen, moves]);
 
-  // Combine database and engine data
+  // Process engine data and database data into unified moves
   const unifiedMoves = useMemo((): UnifiedMove[] => {
     const moveMap = new Map<string, UnifiedMove>();
     let rank = 1;
-    const [pos] = positionFromFen(fen);
 
     // Add database moves
     if (openingData?.openings) {
@@ -353,6 +689,9 @@ function UnifiedMovesTable() {
         
         const total = opening.white + opening.black + opening.draw;
         const percentage = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
+        const whitePercentage = total > 0 ? (opening.white / total) * 100 : 0;
+        const drawPercentage = total > 0 ? (opening.draw / total) * 100 : 0;
+        const blackPercentage = total > 0 ? (opening.black / total) * 100 : 0;
         
         moveMap.set(opening.move, {
           move: opening.move,
@@ -362,6 +701,9 @@ function UnifiedMovesTable() {
           draw: opening.draw,
           total,
           percentage,
+          whitePercentage,
+          drawPercentage,
+          blackPercentage,
           rank: rank++,
           source: "database",
         });
@@ -426,7 +768,7 @@ function UnifiedMovesTable() {
           existing.nodes = data.nodes;
           existing.source = "both";
         } else {
-          // Engine-only move
+          // Add as engine-only move
           moveMap.set(move, {
             move,
             san: move,
@@ -443,147 +785,128 @@ function UnifiedMovesTable() {
       }
     }
 
-    // Sort by database frequency first, then by engine evaluation
+    // Sort by engine analysis first, then by database frequency
     return Array.from(moveMap.values()).sort((a, b) => {
-      // Database moves first (by total games)
+      // Engine analysis first (ascending for black, descending for white)
+      if (a.winChance !== undefined && b.winChance !== undefined) {
+        return currentTurn === "black" 
+          ? a.winChance - b.winChance  // ascending for black (worse for white = better for black)
+          : b.winChance - a.winChance; // descending for white (higher win chance first)
+      }
+      if (a.winChance !== undefined) return -1; // engine moves before non-engine moves
+      if (b.winChance !== undefined) return 1;
+      
+      // Then by database frequency (most played first)
       if (a.total && b.total) {
         return b.total - a.total;
       }
       if (a.total && !b.total) return -1;
       if (!a.total && b.total) return 1;
       
-      // Then by engine evaluation (win chance)
-      if (a.winChance !== undefined && b.winChance !== undefined) {
-        return b.winChance - a.winChance;
-      }
-      if (a.winChance !== undefined) return -1;
-      if (b.winChance !== undefined) return 1;
-      
       return 0;
     });
-  }, [openingData, allEngineMoves, fen, loadedEngines]);
+  }, [openingData, allEngineMoves, pos, currentTurn]);
 
-  const grandTotal = openingData?.openings?.reduce(
-    (acc, curr) => acc + curr.black + curr.white + curr.draw,
-    0,
-  ) || 0;
+
+
+  // AG Grid options with automatic sorting based on turn
+  const gridOptions: GridOptions<UnifiedMove> = {
+    theme: darkTheme,
+    animateRows: true,
+    pagination: false,
+    paginationPageSize: 10,
+    paginationPageSizeSelector: [10, 20, 50],
+    suppressHorizontalScroll: false,
+    suppressMovableColumns: false,
+    defaultColDef: {
+      sortable: true,
+      resizable: true,
+    },
+    columnDefs: [
+      {
+        headerName: "Move",
+        field: "san",
+        width: 80,
+        cellRenderer: MoveCellRenderer,
+        pinned: 'left',
+        valueGetter: (params) => params.data?.san || params.data?.move || '',
+      },
+      {
+        headerName: "Eval Score",
+        field: "score",
+        width: 100,
+        cellRenderer: ScoreCellRenderer,
+        sortable: true,
+      },
+      {
+        headerName: "Line",
+        field: "pv",
+        width: 200,
+        cellRenderer: LineCellRenderer,
+        sortable: false,
+      },
+      {
+        headerName: "Count in DB",
+        field: "total",
+        width: 100,
+        cellRenderer: CountCellRenderer,
+        sortable: true,
+      },
+      {
+        headerName: "% in DB",
+        field: "percentage",
+        width: 80,
+        cellRenderer: PercentageCellRenderer,
+        sortable: true,
+      },
+      {
+        headerName: "%Win",
+        field: "whitePercentage",
+        width: 70,
+        cellRenderer: WinPercentageCellRenderer,
+        sortable: true,
+        sort: currentTurn === "white" ? "desc" : "asc", // Auto-sort based on turn
+        sortIndex: 0, // Make this the primary sort
+      },
+      {
+        headerName: "%Draw",
+        field: "drawPercentage",
+        width: 70,
+        cellRenderer: DrawPercentageCellRenderer,
+        sortable: true,
+      },
+      {
+        headerName: "%Loss",
+        field: "blackPercentage",
+        width: 70,
+        cellRenderer: LossPercentageCellRenderer,
+        sortable: true,
+      },
+      {
+        headerName: "Engine",
+        field: "engineName",
+        width: 100,
+        cellRenderer: EngineInfoCellRenderer,
+        sortable: false,
+      },
+    ],
+    onRowClicked: (event) => {
+      // Row click is handled by the move cell renderer
+    },
+  };
 
   return (
-    <Stack h="100%" gap={0}>
-      {/* Database selection controls */}
-      <Group justify="space-between" p="xs">
-        <SegmentedControl
-          data={[
-            { label: t("Board.Database.Local"), value: "local" },
-            { label: t("Board.Database.LichessAll"), value: "lch_all" },
-            { label: t("Board.Database.LichessMaster"), value: "lch_master" },
-          ]}
-          value={db}
-          onChange={(value: string) =>
-            setDb(value as "local" | "lch_all" | "lch_master")
-          }
-          size="xs"
+    <Stack h="100%" gap="xs">
+      <Text size="sm" fw={500}>
+        Unified Moves ({unifiedMoves.length} moves)
+      </Text>
+      
+      <div style={{ height: 400, width: '100%' }}>
+        <AgGridReact<UnifiedMove>
+          rowData={unifiedMoves}
+          gridOptions={gridOptions}
         />
-        <Text size="xs" c="dimmed">
-          {unifiedMoves.length} moves
-        </Text>
-      </Group>
-
-      {/* Unified moves table */}
-      <ScrollArea flex={1}>
-        <Table highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Move</Table.Th>
-              <Table.Th>Analysis</Table.Th>
-              <Table.Th>Games</Table.Th>
-              <Table.Th>Results</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {unifiedMoves.map((move, index) => (
-              <Table.Tr 
-                key={move.move} 
-                style={{ cursor: "pointer" }}
-                onClick={() => {
-                  const [pos] = positionFromFen(fen);
-                  if (pos) {
-                    const parsedMove = parseSan(pos, move.san);
-                    if (parsedMove) {
-                      makeMove({ payload: parsedMove });
-                    }
-                  }
-                }}
-              >
-                <Table.Td>
-                  <MoveCell
-                    move={moveNotationType === "symbols" ? addPieceSymbol(move.san) : move.san}
-                    isCurrentVariation={false}
-                    annotations={[]}
-                    onContextMenu={() => undefined}
-                    isStart={false}
-                    onClick={() => {}}
-                  />
-                </Table.Td>
-                
-                <Table.Td>
-                  {move.sanMoves && move.sanMoves.length > 0 ? (
-                    <EngineVariationMoves
-                      moves={move.sanMoves}
-                      rootFen={rootFen}
-                      currentMoves={moves}
-                      score={move.score}
-                      halfMoves={halfMoves}
-                    />
-                  ) : (
-                    move.score && <ScoreBubble size="sm" score={move.score} />
-                  )}
-                </Table.Td>
-
-                <Table.Td>
-                  {move.total ? (
-                    <Group gap="xs">
-                      <Text size="sm" fw={500}>
-                        {formatNumber(move.total)}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        ({move.percentage?.toFixed(1)}%)
-                      </Text>
-                    </Group>
-                  ) : (
-                    <Text size="xs" c="dimmed">-</Text>
-                  )}
-                </Table.Td>
-
-                <Table.Td>
-                  {move.total ? (
-                    <Stack gap={2}>
-                      <Group gap="xs">
-                        <Badge size="xs" color="gray" variant="light">
-                          {((move.white! / move.total!) * 100).toFixed(0)}%
-                        </Badge>
-                        <Badge size="xs" color="dark" variant="light">
-                          {((move.draw! / move.total!) * 100).toFixed(0)}%
-                        </Badge>
-                        <Badge size="xs" color="red" variant="light">
-                          {((move.black! / move.total!) * 100).toFixed(0)}%
-                        </Badge>
-                      </Group>
-                      {grandTotal > 0 && (
-                        <Progress
-                          size="xs"
-                          value={(move.total! / grandTotal) * 100}
-                          color="blue"
-                        />
-                      )}
-                    </Stack>
-                  ) : null}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </ScrollArea>
+      </div>
     </Stack>
   );
 }
