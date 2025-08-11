@@ -50,6 +50,9 @@ import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import ScoreBubble from "./ScoreBubble";
+import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
+import { getAnnotation } from "@/utils/score";
+import type { BestMoves, ScoreValue } from "@/bindings";
 
 // AG Grid imports
 import { AgGridReact } from 'ag-grid-react';
@@ -143,6 +146,8 @@ interface UnifiedMove {
   engineName?: string;
   pv?: string[];
   sanMoves?: string[];
+  // Annotation
+  annotation?: Annotation;
   // Combined ranking
   rank: number;
   source: "database" | "engine" | "both";
@@ -240,6 +245,29 @@ function ScoreCellRenderer(props: any) {
       ) : (
         <Text size="xs" c="dimmed">-</Text>
       )}
+    </div>
+  );
+}
+
+// Custom cell renderer for annotation
+function AnnotationCellRenderer(props: any) {
+  const { data } = props;
+  // ANNOTATION_INFO imported at top
+
+  if (!data.annotation) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Text size="xs" c="dimmed">-</Text>
+      </div>
+    );
+  }
+
+  const info = ANNOTATION_INFO[data.annotation as Annotation];
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Badge size="sm" color={info?.color || 'gray'} variant="light">
+        {info?.name || data.annotation}
+      </Badge>
     </div>
   );
 }
@@ -710,6 +738,24 @@ function UnifiedMovesTable() {
       }
     }
 
+    // Determine primary engine multipv list for annotation decisions (only-move etc.)
+    let primaryEngineMoves: BestMoves[] | undefined;
+    if (allEngineMoves.size > 0) {
+      const preferredName = loadedEngines[0]?.name;
+      if (preferredName && allEngineMoves.has(preferredName)) {
+        primaryEngineMoves = allEngineMoves.get(preferredName) as any;
+      } else {
+        // fallback to any engine's data
+        const first = Array.from(allEngineMoves.values())[0];
+        primaryEngineMoves = first as any;
+      }
+    }
+
+    // Compute prev evaluation score for current position using primary engine (top line)
+    const prevScoreValue: ScoreValue | undefined = primaryEngineMoves && primaryEngineMoves.length > 0
+      ? primaryEngineMoves[0].score.value
+      : undefined;
+
     // Add engine moves from actual engine data
     if (allEngineMoves.size > 0 && pos) {
       const allEngineLines: Array<{
@@ -758,6 +804,23 @@ function UnifiedMovesTable() {
       // Add engine moves to unified data
       for (const [move, data] of engineMoveMap.entries()) {
         const existing = moveMap.get(move);
+        // Compute annotation if possible
+        let annotation: Annotation | undefined = undefined;
+        if (prevScoreValue && data.score) {
+          const prevCP = normalizeScore(prevScoreValue, currentTurn);
+          const nextCP = normalizeScore(data.score.value, currentTurn);
+          const isSacrifice = nextCP < prevCP; // worse eval than before move
+          annotation = getAnnotation(
+            null,
+            prevScoreValue,
+            data.score.value,
+            currentTurn,
+            (primaryEngineMoves || []) as BestMoves[],
+            isSacrifice,
+            move,
+          );
+        }
+
         if (existing) {
           // Merge with database data
           existing.score = data.score;
@@ -767,6 +830,7 @@ function UnifiedMovesTable() {
           existing.depth = data.depth;
           existing.nodes = data.nodes;
           existing.source = "both";
+          existing.annotation = annotation;
         } else {
           // Add as engine-only move
           moveMap.set(move, {
@@ -778,6 +842,7 @@ function UnifiedMovesTable() {
             sanMoves: data.sanMoves,
             depth: data.depth,
             nodes: data.nodes,
+            annotation,
             rank: rank++,
             source: "engine",
           });
@@ -805,7 +870,7 @@ function UnifiedMovesTable() {
       
       return 0;
     });
-  }, [openingData, allEngineMoves, pos, currentTurn]);
+  }, [openingData, allEngineMoves, pos, currentTurn, loadedEngines]);
 
 
 
@@ -830,6 +895,13 @@ function UnifiedMovesTable() {
         cellRenderer: MoveCellRenderer,
         pinned: 'left',
         valueGetter: (params) => params.data?.san || params.data?.move || '',
+      },
+      {
+        headerName: "Annotation",
+        field: "annotation",
+        width: 120,
+        cellRenderer: AnnotationCellRenderer,
+        sortable: false,
       },
       {
         headerName: "Eval Score",
