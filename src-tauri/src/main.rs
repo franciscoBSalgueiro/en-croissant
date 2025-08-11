@@ -32,8 +32,8 @@ use tauri::{Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
 use crate::chess::{
-    analyze_game, get_engine_config, get_engine_logs, kill_engine, kill_engines, stop_engine,
-    score_all_moves,
+    analyze_game, clear_engine_cache, get_cache_stats, get_engine_config, get_engine_logs, 
+    kill_engine, kill_engines, stop_engine, score_all_moves,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
@@ -154,7 +154,9 @@ fn main() {
             get_games,
             search_position,
             get_players,
-            get_puzzle_db_info
+            get_puzzle_db_info,
+            clear_engine_cache,
+            get_cache_stats
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,

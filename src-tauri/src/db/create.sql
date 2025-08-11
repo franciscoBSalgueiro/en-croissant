@@ -45,6 +45,26 @@ CREATE TABLE Games (
     FOREIGN KEY(BlackID) REFERENCES Players
 );
 
+-- New table for caching UCI engine analysis results
+CREATE TABLE EngineCache (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    CacheKey TEXT UNIQUE NOT NULL,  -- Hash of position + engine + options
+    FEN TEXT NOT NULL,
+    Moves TEXT NOT NULL,           -- JSON array of moves leading to position
+    EnginePath TEXT NOT NULL,
+    EngineOptions TEXT NOT NULL,   -- JSON serialized engine options
+    GoMode TEXT NOT NULL,          -- JSON serialized go mode
+    BestMoves TEXT NOT NULL,       -- JSON serialized analysis results
+    Depth INTEGER NOT NULL,
+    Nodes INTEGER NOT NULL,
+    CreatedAt INTEGER NOT NULL,    -- Unix timestamp
+    LastAccessed INTEGER NOT NULL  -- Unix timestamp for LRU cleanup
+);
+
+-- Index for fast cache lookups
+CREATE INDEX idx_engine_cache_key ON EngineCache(CacheKey);
+CREATE INDEX idx_engine_cache_accessed ON EngineCache(LastAccessed);
+
 INSERT INTO Players (ID, Name, Elo) VALUES (0, 'Unknown', NULL);
 INSERT INTO Events (ID, Name) VALUES (0, 'Unknown');
 INSERT INTO Sites (ID, Name) VALUES (0, 'Unknown');

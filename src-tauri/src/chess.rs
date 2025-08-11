@@ -1,5 +1,8 @@
 use std::{fmt::Display, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
 
+use diesel::connection::SimpleConnection;
+use tauri::Manager;
+
 use derivative::Derivative;
 use governor::{Quota, RateLimiter};
 use log::{error, info};
@@ -27,6 +30,164 @@ use crate::{
     error::Error,
     AppState,
 };
+
+// Serializable wrapper for ScoreValue
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SerializableScoreValue {
+    Cp(i32),
+    Mate(i32),
+}
+
+impl From<ScoreValue> for SerializableScoreValue {
+    fn from(value: ScoreValue) -> Self {
+        match value {
+            ScoreValue::Cp(cp) => SerializableScoreValue::Cp(cp),
+            ScoreValue::Mate(mate) => SerializableScoreValue::Mate(mate),
+        }
+    }
+}
+
+impl From<SerializableScoreValue> for ScoreValue {
+    fn from(value: SerializableScoreValue) -> Self {
+        match value {
+            SerializableScoreValue::Cp(cp) => ScoreValue::Cp(cp),
+            SerializableScoreValue::Mate(mate) => ScoreValue::Mate(mate),
+        }
+    }
+}
+
+// Serializable wrapper for Score
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializableScore {
+    pub value: SerializableScoreValue,
+    pub wdl: Option<(i32, i32, i32)>,
+    pub lower_bound: Option<bool>,
+    pub upper_bound: Option<bool>,
+}
+
+impl From<Score> for SerializableScore {
+    fn from(score: Score) -> Self {
+        Self {
+            value: score.value.into(),
+            wdl: score.wdl,
+            lower_bound: score.lower_bound,
+            upper_bound: score.upper_bound,
+        }
+    }
+}
+
+impl From<SerializableScore> for Score {
+    fn from(score: SerializableScore) -> Self {
+        Self {
+            value: score.value.into(),
+            wdl: score.wdl,
+            lower_bound: score.lower_bound,
+            upper_bound: score.upper_bound,
+        }
+    }
+}
+
+// Cache-related structures
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct EngineCacheKey {
+    pub fen: String,
+    pub moves: Vec<String>,
+    pub engine_path: String,
+    pub engine_options: Vec<EngineOption>,
+    pub go_mode: GoMode,
+}
+
+impl EngineCacheKey {
+    pub fn to_hash_string(&self) -> String {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        format!("{:x}", hasher.finish())
+    }
+}
+
+// Serializable version of BestMoves for caching
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SerializableBestMoves {
+    pub nodes: u32,
+    pub depth: u32,
+    pub score: SerializableScore,
+    pub uci_moves: Vec<String>,
+    pub san_moves: Vec<String>,
+    pub multipv: u16,
+    pub nps: u32,
+}
+
+impl From<BestMoves> for SerializableBestMoves {
+    fn from(bm: BestMoves) -> Self {
+        Self {
+            nodes: bm.nodes,
+            depth: bm.depth,
+            score: bm.score.into(),
+            uci_moves: bm.uci_moves,
+            san_moves: bm.san_moves,
+            multipv: bm.multipv,
+            nps: bm.nps,
+        }
+    }
+}
+
+impl From<SerializableBestMoves> for BestMoves {
+    fn from(sbm: SerializableBestMoves) -> Self {
+        Self {
+            nodes: sbm.nodes,
+            depth: sbm.depth,
+            score: sbm.score.into(),
+            uci_moves: sbm.uci_moves,
+            san_moves: sbm.san_moves,
+            multipv: sbm.multipv,
+            nps: sbm.nps,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedAnalysisResult {
+    pub best_moves: Vec<SerializableBestMoves>,
+    pub depth: u32,
+    pub nodes: u32,
+    pub created_at: i64,
+    pub last_accessed: i64,
+}
+
+impl CachedAnalysisResult {
+    pub fn new(best_moves: Vec<BestMoves>) -> Self {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        
+        let depth = best_moves.iter().map(|bm| bm.depth).max().unwrap_or(0);
+        let nodes = best_moves.iter().map(|bm| bm.nodes).max().unwrap_or(0);
+        let serializable_moves: Vec<SerializableBestMoves> = best_moves.into_iter().map(|bm| bm.into()).collect();
+        
+        Self {
+            best_moves: serializable_moves,
+            depth,
+            nodes,
+            created_at: now,
+            last_accessed: now,
+        }
+    }
+    
+    pub fn to_best_moves(&self) -> Vec<BestMoves> {
+        self.best_moves.iter().cloned().map(|sbm| sbm.into()).collect()
+    }
+    
+    pub fn touch(&mut self) {
+        self.last_accessed = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "type", content = "value", rename_all = "camelCase")]
@@ -386,13 +547,13 @@ pub struct EngineOptions {
     pub extra_options: Vec<EngineOption>,
 }
 
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq, Hash)]
 pub struct EngineOption {
     name: String,
     value: String,
 }
 
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq, Hash)]
 #[serde(tag = "t", content = "c")]
 pub enum GoMode {
     PlayersTime(PlayersTime),
@@ -406,7 +567,7 @@ pub enum GoMode {
     },
 }
 
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq, Hash)]
 pub struct PlayersTime {
     white: u32,
     black: u32,
@@ -492,6 +653,23 @@ pub async fn get_best_moves(
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<(f32, Vec<BestMoves>)>, Error> {
     let path = PathBuf::from(&engine);
+
+    // Create cache key for this analysis request
+    let cache_key = EngineCacheKey {
+        fen: options.fen.clone(),
+        moves: options.moves.clone(),
+        engine_path: engine.clone(),
+        engine_options: options.extra_options.clone(),
+        go_mode: go_mode.clone(),
+    };
+
+    // Check cache first for completed analysis (but only for non-infinite modes)
+    if !matches!(go_mode, GoMode::Infinite) {
+        if let Ok(Some(cached_result)) = get_cached_analysis(&cache_key, &app).await {
+            info!("Cache hit for engine analysis: {}", cache_key.to_hash_string());
+            return Ok(Some((100.0, cached_result.to_best_moves())));
+        }
+    }
 
     let key = (tab.clone(), engine.clone());
 
@@ -589,6 +767,21 @@ pub async fn get_best_moves(
                 }
                 .emit(&app)?;
                 proc.last_progress = 100.0;
+                
+                // Store completed analysis in cache (but not for infinite mode)
+                if !matches!(go_mode, GoMode::Infinite) && !proc.last_best_moves.is_empty() {
+                    let cached_result = CachedAnalysisResult::new(proc.last_best_moves.clone());
+                    if let Err(e) = store_analysis_in_cache(&cache_key, &cached_result, &app).await {
+                        info!("Failed to store analysis in cache: {:?}", e);
+                    } else {
+                        info!("Stored analysis in cache: {}", cache_key.to_hash_string());
+                        
+                        // Cleanup old entries to prevent cache from growing too large
+                        if let Err(e) = cleanup_old_cache_entries(&app, 10000).await {
+                            info!("Failed to cleanup old cache entries: {:?}", e);
+                        }
+                    }
+                }
             }
             _ => {}
         }
@@ -635,8 +828,36 @@ pub async fn score_all_moves(
     engine: String,
     go_mode: GoMode,
     options: EngineOptions,
+    app: tauri::AppHandle,
 ) -> Result<Vec<MoveScore>, Error> {
     use std::collections::HashMap;
+
+    // Create cache key for this analysis request
+    let mut cache_key = EngineCacheKey {
+        fen: options.fen.clone(),
+        moves: options.moves.clone(),
+        engine_path: engine.clone(),
+        engine_options: options.extra_options.clone(),
+        go_mode: go_mode.clone(),
+    };
+
+    // Check cache first (but only for non-infinite modes)
+    if !matches!(go_mode, GoMode::Infinite) {
+        if let Ok(Some(cached_result)) = get_cached_analysis(&cache_key, &app).await {
+            info!("Cache hit for score_all_moves: {}", cache_key.to_hash_string());
+            // Convert cached BestMoves to MoveScore format
+            let result: Vec<MoveScore> = cached_result.to_best_moves()
+                .into_iter()
+                .filter_map(|bm| {
+                    bm.uci_moves.first().map(|uci| MoveScore {
+                        uci: uci.clone(),
+                        score: bm.score,
+                    })
+                })
+                .collect();
+            return Ok(result);
+        }
+    }
 
     // Prepare engine process
     let path = PathBuf::from(&engine);
@@ -670,6 +891,9 @@ pub async fn score_all_moves(
         });
     }
 
+    // Update cache key with adjusted options
+    cache_key.engine_options = adjusted.extra_options.clone();
+
     process.set_options(adjusted.clone()).await?;
     process.go(&go_mode).await?;
 
@@ -687,6 +911,29 @@ pub async fn score_all_moves(
                 }
             }
             UciMessage::BestMove { .. } => {
+                // Store analysis in cache before exiting (but not for infinite mode)
+                if !matches!(go_mode, GoMode::Infinite) && !scores.is_empty() {
+                    // Convert scores to BestMoves format for caching
+                    let best_moves: Vec<BestMoves> = scores.iter().map(|(uci, score)| {
+                        BestMoves {
+                            nodes: 0, // We don't have this data in score_all_moves
+                            depth: 1, // Placeholder depth
+                            score: score.clone(),
+                            uci_moves: vec![uci.clone()],
+                            san_moves: vec![], // We don't have SAN moves here
+                            multipv: 1,
+                            nps: 0,
+                        }
+                    }).collect();
+                    
+                    let cached_result = CachedAnalysisResult::new(best_moves);
+                    if let Err(e) = store_analysis_in_cache(&cache_key, &cached_result, &app).await {
+                        info!("Failed to store score_all_moves in cache: {:?}", e);
+                    } else {
+                        info!("Stored score_all_moves in cache: {}", cache_key.to_hash_string());
+                    }
+                }
+                
                 // Ensure engine process exits to avoid leaks
                 let _ = process.kill().await;
                 break;
@@ -1024,4 +1271,236 @@ pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
     }
     println!("{:?}", config);
     Ok(config)
+}
+
+// Cache query result structs
+#[derive(diesel::QueryableByName)]
+struct CacheQueryResult {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    best_moves: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    go_mode: String,
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    created_at: i32,
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    last_accessed: i32,
+}
+
+#[derive(diesel::QueryableByName)]
+struct CountQueryResult {
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    count: i32,
+}
+
+// Cache management functions
+async fn get_cache_db_path(app: &tauri::AppHandle) -> Result<PathBuf, Error> {
+    let app_data_dir = app.path().app_data_dir()
+        .map_err(|_| Error::CacheError)?;
+    Ok(app_data_dir.join("cache").join("engine_cache.db"))
+}
+
+async fn ensure_cache_db_exists(app: &tauri::AppHandle) -> Result<(), Error> {
+    use diesel::prelude::*;
+
+    use diesel::SqliteConnection;
+    
+    let cache_path = get_cache_db_path(app).await?;
+    
+    // Create cache directory if it doesn't exist
+    if let Some(parent) = cache_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    
+    // Create database if it doesn't exist
+    if !cache_path.exists() {
+        let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+        
+        connection.batch_execute(
+            "CREATE TABLE EngineCache (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                CacheKey TEXT UNIQUE NOT NULL,
+                FEN TEXT NOT NULL,
+                Moves TEXT NOT NULL,
+                EnginePath TEXT NOT NULL,
+                EngineOptions TEXT NOT NULL,
+                GoMode TEXT NOT NULL,
+                BestMoves TEXT NOT NULL,
+                Depth INTEGER NOT NULL,
+                Nodes INTEGER NOT NULL,
+                CreatedAt INTEGER NOT NULL,
+                LastAccessed INTEGER NOT NULL
+            );
+            CREATE INDEX idx_engine_cache_key ON EngineCache(CacheKey);
+            CREATE INDEX idx_engine_cache_accessed ON EngineCache(LastAccessed);"
+        )?;
+    }
+    
+    Ok(())
+}
+
+async fn get_cached_analysis(
+    cache_key: &EngineCacheKey,
+    app: &tauri::AppHandle,
+) -> Result<Option<CachedAnalysisResult>, Error> {
+    use diesel::prelude::*;
+    use diesel::SqliteConnection;
+    
+    ensure_cache_db_exists(app).await?;
+    let cache_path = get_cache_db_path(app).await?;
+    
+    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+    
+    let key_hash = cache_key.to_hash_string();
+    
+    let result: Option<CacheQueryResult> = diesel::sql_query(
+        "SELECT BestMoves as best_moves, GoMode as go_mode, CreatedAt as created_at, LastAccessed as last_accessed FROM EngineCache WHERE CacheKey = ?1"
+    )
+    .bind::<diesel::sql_types::Text, _>(&key_hash)
+    .get_result::<CacheQueryResult>(&mut connection)
+    .optional()?;
+    
+    if let Some(cache_result) = result {
+        let serializable_best_moves: Vec<SerializableBestMoves> = serde_json::from_str(&cache_result.best_moves)
+            .map_err(|_| Error::CacheError)?;
+        let stored_go_mode: GoMode = serde_json::from_str(&cache_result.go_mode)
+            .map_err(|_| Error::CacheError)?;
+        
+        // Verify the go mode matches (important for cache validity)
+        if stored_go_mode == cache_key.go_mode {
+            // Update last accessed time
+            diesel::sql_query("UPDATE EngineCache SET LastAccessed = ?1 WHERE CacheKey = ?2")
+                .bind::<diesel::sql_types::Integer, _>(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs() as i32
+                )
+                .bind::<diesel::sql_types::Text, _>(&key_hash)
+                .execute(&mut connection)?;
+            
+            let mut cached_result = CachedAnalysisResult {
+                best_moves: serializable_best_moves,
+                depth: 0, // Will be calculated
+                nodes: 0, // Will be calculated
+                created_at: cache_result.created_at as i64,
+                last_accessed: cache_result.last_accessed as i64,
+            };
+            cached_result.touch();
+            
+            return Ok(Some(cached_result));
+        }
+    }
+    
+    Ok(None)
+}
+
+async fn store_analysis_in_cache(
+    cache_key: &EngineCacheKey,
+    result: &CachedAnalysisResult,
+    app: &tauri::AppHandle,
+) -> Result<(), Error> {
+    use diesel::prelude::*;
+    use diesel::SqliteConnection;
+    
+    ensure_cache_db_exists(app).await?;
+    let cache_path = get_cache_db_path(app).await?;
+    
+    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+    
+    let key_hash = cache_key.to_hash_string();
+    let moves_json = serde_json::to_string(&cache_key.moves)
+        .map_err(|_| Error::CacheError)?;
+    let options_json = serde_json::to_string(&cache_key.engine_options)
+        .map_err(|_| Error::CacheError)?;
+    let go_mode_json = serde_json::to_string(&cache_key.go_mode)
+        .map_err(|_| Error::CacheError)?;
+    let best_moves_json = serde_json::to_string(&result.best_moves)
+        .map_err(|_| Error::CacheError)?;
+    
+    diesel::sql_query(
+        "INSERT OR REPLACE INTO EngineCache 
+         (CacheKey, FEN, Moves, EnginePath, EngineOptions, GoMode, BestMoves, Depth, Nodes, CreatedAt, LastAccessed)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
+    )
+    .bind::<diesel::sql_types::Text, _>(&key_hash)
+    .bind::<diesel::sql_types::Text, _>(&cache_key.fen)
+    .bind::<diesel::sql_types::Text, _>(&moves_json)
+    .bind::<diesel::sql_types::Text, _>(&cache_key.engine_path)
+    .bind::<diesel::sql_types::Text, _>(&options_json)
+    .bind::<diesel::sql_types::Text, _>(&go_mode_json)
+    .bind::<diesel::sql_types::Text, _>(&best_moves_json)
+    .bind::<diesel::sql_types::Integer, _>(result.depth as i32)
+    .bind::<diesel::sql_types::Integer, _>(result.nodes as i32)
+    .bind::<diesel::sql_types::Integer, _>(result.created_at as i32)
+    .bind::<diesel::sql_types::Integer, _>(result.last_accessed as i32)
+    .execute(&mut connection)?;
+    
+    Ok(())
+}
+
+async fn cleanup_old_cache_entries(app: &tauri::AppHandle, max_entries: i32) -> Result<(), Error> {
+    use diesel::prelude::*;
+    use diesel::SqliteConnection;
+    
+    let cache_path = get_cache_db_path(app).await?;
+    if !cache_path.exists() {
+        return Ok(());
+    }
+    
+    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+    
+    // Delete oldest entries if we exceed max_entries
+    diesel::sql_query(
+        "DELETE FROM EngineCache WHERE ID IN (
+            SELECT ID FROM EngineCache 
+            ORDER BY LastAccessed DESC 
+            LIMIT -1 OFFSET ?1
+         )"
+    )
+    .bind::<diesel::sql_types::Integer, _>(max_entries)
+    .execute(&mut connection)?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn clear_engine_cache(app: tauri::AppHandle) -> Result<(), Error> {
+    use diesel::prelude::*;
+    use diesel::SqliteConnection;
+    
+    let cache_path = get_cache_db_path(&app).await?;
+    if !cache_path.exists() {
+        return Ok(());
+    }
+    
+    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+    
+    diesel::sql_query("DELETE FROM EngineCache")
+        .execute(&mut connection)?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_cache_stats(app: tauri::AppHandle) -> Result<(i32, i64), Error> {
+    use diesel::prelude::*;
+    use diesel::SqliteConnection;
+    
+    let cache_path = get_cache_db_path(&app).await?;
+    if !cache_path.exists() {
+        return Ok((0, 0));
+    }
+    
+    let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
+    
+    let count_result: CountQueryResult = diesel::sql_query("SELECT COUNT(*) as count FROM EngineCache")
+        .get_result::<CountQueryResult>(&mut connection)?;
+    let count = count_result.count;
+    
+    let size = std::fs::metadata(&cache_path)?
+        .len();
+    
+    Ok((count, size as i64))
 }

@@ -357,6 +357,22 @@ async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo, string>
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async clearEngineCache() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clear_engine_cache") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getCacheStats() : Promise<Result<[number, bigint], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_cache_stats") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

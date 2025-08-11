@@ -7,7 +7,6 @@ import {
   currentPlayersAtom,
   currentPracticeTabAtom,
   currentTabAtom,
-  currentTabSelectedAtom,
   enableAllAtom,
   lastMovedAtom,
 } from "@/state/atoms";
@@ -19,13 +18,13 @@ import { positionFromFen } from "@/utils/chessops";
 import { saveToFile } from "@/utils/tabs";
 import { treeIteratorMainLine } from "@/utils/treeReducer";
 import {
-  Accordion,
   Button,
   Group,
   Paper,
   Portal,
   ScrollArea,
   Stack,
+  Box,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
@@ -48,11 +47,11 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
+import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { atomWithStorage } from "jotai/utils";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -65,6 +64,32 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
+
+import "react-mosaic-component/react-mosaic-component.css";
+import "@/styles/react-mosaic.css";
+
+// Define the sidebar panel layout
+type SidebarViewId = "gameInfo" | "analysis" | "database" | "moves";
+
+interface SidebarState {
+  currentNode: MosaicNode<SidebarViewId> | null;
+}
+
+const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarState", {
+  currentNode: {
+    direction: "column",
+    first: "gameInfo",
+    second: {
+      direction: "column", 
+      first: "analysis",
+      second: {
+        direction: "column",
+        first: "database",
+        second: "moves",
+      },
+    },
+  },
+});
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -93,6 +118,7 @@ function BoardAnalysis() {
       store,
     });
   }, [setCurrentTab, currentTab, documentDir, store]);
+  
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
@@ -130,43 +156,6 @@ function BoardAnalysis() {
     [keyMap.ANNOTATION_MISTAKE.keys, () => setAnnotation("?")],
     [keyMap.ANNOTATION_BLUNDER.keys, () => setAnnotation("??")],
     [
-      keyMap.PRACTICE_TAB.keys,
-      () => {
-        if (isRepertoire) {
-          setAccordionValues(["practice"]);
-          setCurrentTabSelected("practice");
-        }
-      },
-    ],
-    [
-      keyMap.ANALYSIS_TAB.keys,
-      () => {
-        setAccordionValues(["analysis"]);
-        setCurrentTabSelected("analysis");
-      },
-    ],
-    [
-      keyMap.DATABASE_TAB.keys,
-      () => {
-        setAccordionValues(["database"]);
-        setCurrentTabSelected("database");
-      },
-    ],
-    [
-      keyMap.ANNOTATE_TAB.keys,
-      () => {
-        setAccordionValues(["annotate"]);
-        setCurrentTabSelected("annotate");
-      },
-    ],
-    [
-      keyMap.INFO_TAB.keys,
-      () => {
-        setAccordionValues(["info"]);
-        setCurrentTabSelected("info");
-      },
-    ],
-    [
       keyMap.TOGGLE_ALL_ENGINES.keys,
       (e) => {
         enable(!allEnabled);
@@ -175,18 +164,13 @@ function BoardAnalysis() {
     ],
   ]);
 
-  const [currentTabSelected, setCurrentTabSelected] = useAtom(
-    currentTabSelectedAtom,
-  );
   const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
   const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
   const practicing =
-    currentTabSelected === "practice" && practiceTabSelected === "train";
+    practiceTabSelected === "train";
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
   const activeTab = useAtomValue(activeTabAtom);
-  const [accordionValues, setAccordionValues] = useState<string[]>([
-    currentTabSelected || "analysis",
-  ]);
+  const [sidebarState, setSidebarState] = useAtom(sidebarStateAtom);
 
   // Background game engine runner to continue play while viewing Analysis
   const root = useStore(store, (s) => s.root);
@@ -277,6 +261,39 @@ function BoardAnalysis() {
           .otherwise(() => "none" as const)
       : "turn";
 
+  // Define the sidebar panel components
+  const sidebarLayout: { [viewId in SidebarViewId]: JSX.Element } = {
+    gameInfo: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
+          <GameInfo headers={headers} />
+        </ScrollArea>
+      </Paper>
+    ),
+    analysis: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
+          <Suspense>
+            <AnalysisPanel />
+          </Suspense>
+        </ScrollArea>
+      </Paper>
+    ),
+    database: (
+      <Paper withBorder p="xs" h="100%">
+        <ScrollArea h="100%">
+          <DatabasePanel />
+        </ScrollArea>
+      </Paper>
+    ),
+    moves: (
+      <Stack h="100%" gap="xs">
+        <GameNotation topBar />
+        <MoveControls />
+      </Stack>
+    ),
+  };
+
   return (
     <>
       <EvalListener />
@@ -329,71 +346,14 @@ function BoardAnalysis() {
                 Analyze
               </Button>
             </Group>
-            <ScrollArea h="100%" offsetScrollbars>
-              <Accordion
-                multiple
-                value={accordionValues}
-                onChange={(values) => {
-                  setAccordionValues(values);
-                  if (values.length > 0) {
-                    setCurrentTabSelected(values[values.length - 1] as any);
-                  }
-                }}
-              >
-                <Accordion.Item value="game">
-                  <Accordion.Control>Game</Accordion.Control>
-                  <Accordion.Panel>
-                    <Stack>
-                      <GameInfo headers={headers} />
-                    </Stack>
-                  </Accordion.Panel>
-                </Accordion.Item>
-                {isRepertoire && (
-                  <Accordion.Item value="practice">
-                    <Accordion.Control>
-                      {t("Board.Tabs.Practice")}
-                    </Accordion.Control>
-                    <Accordion.Panel>
-                      <Suspense>
-                        <PracticePanel />
-                      </Suspense>
-                    </Accordion.Panel>
-                  </Accordion.Item>
-                )}
-                <Accordion.Item value="analysis">
-                  <Accordion.Control>
-                    {t("Board.Tabs.Analysis")}
-                  </Accordion.Control>
-                  <Accordion.Panel>
-                    <Suspense>
-                      <AnalysisPanel />
-                    </Suspense>
-                  </Accordion.Panel>
-                </Accordion.Item>
-                <Accordion.Item value="database">
-                  <Accordion.Control>
-                    {t("Board.Tabs.Database")}
-                  </Accordion.Control>
-                  <Accordion.Panel>
-                    <DatabasePanel />
-                  </Accordion.Panel>
-                </Accordion.Item>
-                <Accordion.Item value="annotate">
-                  <Accordion.Control>
-                    {t("Board.Tabs.Annotate")}
-                  </Accordion.Control>
-                  <Accordion.Panel>
-                    <AnnotationPanel />
-                  </Accordion.Panel>
-                </Accordion.Item>
-                <Accordion.Item value="info">
-                  <Accordion.Control>{t("Board.Tabs.Info")}</Accordion.Control>
-                  <Accordion.Panel>
-                    <InfoPanel />
-                  </Accordion.Panel>
-                </Accordion.Item>
-              </Accordion>
-            </ScrollArea>
+            <Box style={{ flexGrow: 1 }}>
+              <Mosaic<SidebarViewId>
+                renderTile={(id) => sidebarLayout[id]}
+                value={sidebarState.currentNode}
+                onChange={(currentNode) => setSidebarState({ currentNode })}
+                resize={{ minimumPaneSizePercentage: 10 }}
+              />
+            </Box>
           </Stack>
         </Paper>
       </Portal>
@@ -402,8 +362,19 @@ function BoardAnalysis() {
           <EditingCard boardRef={boardRef} setEditingMode={toggleEditingMode} />
         ) : (
           <Stack h="100%" gap="xs">
-            <GameNotation topBar />
-            <MoveControls />
+            {isRepertoire && (
+              <Paper withBorder p="xs">
+                <Suspense>
+                  <PracticePanel />
+                </Suspense>
+              </Paper>
+            )}
+            <Paper withBorder p="xs">
+              <AnnotationPanel />
+            </Paper>
+            <Paper withBorder p="xs">
+              <InfoPanel />
+            </Paper>
           </Stack>
         )}
       </Portal>

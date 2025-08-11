@@ -305,8 +305,7 @@ export const currentEvalOpenAtom = tabValue(evalOpenFamily);
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
-const tabFamily = atomFamily((tab: string) => atom("info"));
-export const currentTabSelectedAtom = tabValue(tabFamily);
+
 
 const localOptionsFamily = atomFamily((tab: string) =>
   atom<LocalOptions>({

@@ -52,6 +52,9 @@ pub enum Error {
     Diesel(#[from] diesel::result::Error),
 
     #[error(transparent)]
+    DieselConnection(#[from] diesel::ConnectionError),
+
+    #[error(transparent)]
     R2d2(#[from] diesel::r2d2::PoolError),
 
     #[error(transparent)]
@@ -89,6 +92,9 @@ pub enum Error {
 
     #[error("Invalid go mode")]
     InvalidGoMode,
+
+    #[error("Cache error")]
+    CacheError,
 }
 
 impl serde::Serialize for Error {
