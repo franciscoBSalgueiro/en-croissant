@@ -3,91 +3,60 @@ import {
   activeTabAtom,
   allEnabledAtom,
   currentExpandedEnginesAtom,
+  currentThreatAtom,
   enableAllAtom,
   engineMovesFamily,
+  engineProgressFamily,
   enginesAtom,
+  tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
-import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
+import { chessopsError, getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
   ActionIcon,
   Button,
   Card,
+  Code,
+  Collapse,
   Group,
   Paper,
   Popover,
+  Progress,
   ScrollArea,
-  Space,
   Stack,
-  Tabs,
   Text,
+  Tooltip,
+  useMantineTheme,
+  Box,
 } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import {
-  IconChevronsRight,
+  IconGripVertical,
   IconPlayerPause,
-  IconSelector,
+  IconPlayerPlay,
+  IconChevronsRight,
   IconSettings,
+  IconSelector,
+  IconTargetArrow,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useDeferredValue, useMemo } from "react";
+import { memo, useCallback, useContext, useDeferredValue, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
-import { Mosaic, type MosaicNode } from "react-mosaic-component";
-import { atomWithStorage } from "jotai/utils";
-import BestMoves, { arrowColors } from "./BestMoves";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
+import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
 import LastMoveScore from "./LastMoveScore";
-import LogsPanel from "./LogsPanel";
-import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 import UnifiedMovesTable from "./UnifiedMovesTable";
-
-import "react-mosaic-component/react-mosaic-component.css";
-import "@/styles/react-mosaic.css";
-
-// Analysis panel mosaic layout
-type AnalysisViewId = "engines" | "moves" | "report" | "logs";
-
-interface AnalysisMosaicState {
-  currentNode: MosaicNode<AnalysisViewId> | null;
-}
-
-const analysisMosaicStateAtom = atomWithStorage<AnalysisMosaicState>("analysisMosaicState", {
-  currentNode: {
-    direction: "column",
-    first: "engines",
-    second: {
-      direction: "column", 
-      first: "moves",
-      second: {
-        direction: "column",
-        first: "report",
-        second: "logs",
-      },
-    },
-  },
-});
-
-// Provide a fallback layout in case the stored mosaic state is empty or null
-const defaultAnalysisLayout: MosaicNode<AnalysisViewId> = {
-  direction: "column",
-  first: "engines",
-  second: {
-    direction: "column",
-    first: "moves",
-    second: {
-      direction: "column",
-      first: "report",
-      second: "logs",
-    },
-  },
-};
+import { formatNodes } from "@/utils/format";
+import { lastMoveEvaluationFamily } from "@/state/atoms";
 
 function AnalysisPanel() {
   const { t } = useTranslation();
@@ -104,10 +73,6 @@ function AnalysisPanel() {
     store,
     useShallow((s) => getVariationLine(s.root, s.position, is960)),
   );
-  const currentNodeHalfMoves = useStore(
-    store,
-    useShallow((s) => s.currentNode().halfMoves),
-  );
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const loadedEngines = useMemo(
@@ -121,62 +86,63 @@ function AnalysisPanel() {
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
-  const [mosaicState, setMosaicState] = useAtom(analysisMosaicStateAtom);
-
-  // Ensure we always have a valid layout to display
-  const currentNode = mosaicState.currentNode ?? defaultAnalysisLayout;
-
   const [pos] = positionFromFen(currentNodeFen);
   const navigate = useNavigate();
 
-  // Define the analysis panel components
-  const analysisLayout: { [viewId in AnalysisViewId]: JSX.Element } = {
-    engines: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%" offsetScrollbars>
-          <Stack gap="sm">
-            {pos &&
-              (getPiecesCount(pos) <= 7 ||
-                (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
-                <>
-                  <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
-                </>
-              )}
-            {loadedEngines.length > 1 && (
-              <Paper withBorder p="xs">
-                <Group w="100%">
-                  <Stack w="6rem" gap="xs">
-                    <Text ta="center" fw="bold">
-                      {t("Board.Analysis.Summary")}
-                    </Text>
-                    <Button
-                      rightSection={
-                        allEnabled ? (
-                          <IconPlayerPause size="1.2rem" />
-                        ) : (
-                          <IconChevronsRight size="1.2rem" />
-                        )
-                      }
-                      variant={allEnabled ? "filled" : "default"}
-                      onClick={() => enable(!allEnabled)}
-                    >
-                      {allEnabled ? t("Common.Stop") : t("Common.Run")}
-                    </Button>
-                  </Stack>
-                  <Group grow flex={1}>
-                    {loadedEngines.map((engine, i) => (
-                      <EngineSummary
-                        key={engine.name}
-                        engine={engine}
-                        fen={rootFen}
-                        moves={moves}
-                        i={i}
-                      />
-                    ))}
-                  </Group>
-                </Group>
-              </Paper>
-            )}
+  return (
+    <ScrollArea h="100%">
+      <Stack gap="xs">
+        {/* Tablebase info for endgames */}
+        {pos &&
+          (getPiecesCount(pos) <= 7 ||
+            (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
+            <Paper withBorder p="xs">
+              <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
+            </Paper>
+          )}
+
+        {/* Engine summary section */}
+        {loadedEngines.length > 0 && (
+          <Paper withBorder p="xs">
+            <Group w="100%">
+              <Stack w="6rem" gap="xs">
+                <Text ta="center" fw="bold" size="sm">
+                  {t("Board.Analysis.Summary")}
+                </Text>
+                <Button
+                  size="xs"
+                  rightSection={
+                    allEnabled ? (
+                      <IconPlayerPause size="1rem" />
+                    ) : (
+                      <IconChevronsRight size="1rem" />
+                    )
+                  }
+                  variant={allEnabled ? "filled" : "default"}
+                  onClick={() => enable(!allEnabled)}
+                >
+                  {allEnabled ? t("Common.Stop") : t("Common.Run")}
+                </Button>
+              </Stack>
+              <Group grow flex={1}>
+                {loadedEngines.map((engine, i) => (
+                  <EngineSummary
+                    key={engine.name}
+                    engine={engine}
+                    fen={rootFen}
+                    moves={moves}
+                    i={i}
+                  />
+                ))}
+              </Group>
+            </Group>
+          </Paper>
+        )}
+
+        {/* Individual engine configuration */}
+        {loadedEngines.length > 0 && (
+          <Paper withBorder p="xs">
+            <Text fw="bold" size="sm" mb="xs">Engine Configuration</Text>
             <Accordion
               variant="separated"
               multiple
@@ -190,7 +156,7 @@ function AnalysisPanel() {
                   paddingBottom: 0,
                 },
                 content: {
-                  padding: "0.3rem",
+                  padding: "0.5rem",
                 },
               }}
             >
@@ -228,16 +194,12 @@ function AnalysisPanel() {
                                 {...provided.draggableProps}
                               >
                                 <Accordion.Item value={engine.name}>
-                                  <BestMoves
+                                  <EngineConfig
                                     id={i}
                                     engine={engine}
                                     fen={rootFen}
                                     moves={moves}
-                                    halfMoves={currentNodeHalfMoves}
                                     dragHandleProps={provided.dragHandleProps}
-                                    orientation={
-                                      headers.orientation || "white"
-                                    }
                                   />
                                 </Accordion.Item>
                               </div>
@@ -245,16 +207,38 @@ function AnalysisPanel() {
                           </Draggable>
                         ))}
                       </Stack>
-
                       {provided.placeholder}
                     </div>
                   )}
                 </Droppable>
               </DragDropContext>
             </Accordion>
+          </Paper>
+        )}
+
+        {/* Engine controls */}
+        <Paper withBorder p="xs">
+          <Group justify="space-between">
+            <Text fw="bold" size="sm">Move Analysis</Text>
             <Group gap="xs">
+              {loadedEngines.length === 0 && (
+                <Button
+                  size="xs"
+                  rightSection={
+                    allEnabled ? (
+                      <IconPlayerPause size="1rem" />
+                    ) : (
+                      <IconChevronsRight size="1rem" />
+                    )
+                  }
+                  variant={allEnabled ? "filled" : "default"}
+                  onClick={() => enable(!allEnabled)}
+                >
+                  {allEnabled ? t("Common.Stop") : t("Common.Run")}
+                </Button>
+              )}
               <Button
-                flex={1}
+                size="xs"
                 variant="default"
                 onClick={() => {
                   navigate({ to: "/engines" });
@@ -263,53 +247,27 @@ function AnalysisPanel() {
               >
                 Manage Engines
               </Button>
-                              <Popover width={250} position="top-end" shadow="md" withinPortal>
+              <Popover width={250} position="bottom-end" shadow="md" withinPortal>
                 <Popover.Target>
-                  <ActionIcon variant="default" size="lg">
+                  <ActionIcon variant="default" size="md">
                     <IconSelector />
                   </ActionIcon>
                 </Popover.Target>
-
                 <Popover.Dropdown>
                   <EngineSelection />
                 </Popover.Dropdown>
               </Popover>
             </Group>
-          </Stack>
-        </ScrollArea>
-      </Paper>
-    ),
-    moves: (
-      <Paper withBorder p="xs" h="100%">
-        <UnifiedMovesTable />
-      </Paper>
-    ),
-    report: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <ReportPanel />
-        </ScrollArea>
-      </Paper>
-    ),
-    logs: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <LogsPanel />
-        </ScrollArea>
-      </Paper>
-    ),
-  };
+          </Group>
+        </Paper>
 
-  return (
-    <Stack h="100%">
-      <Mosaic<AnalysisViewId>
-        renderTile={(id) => analysisLayout[id]}
-        value={currentNode}
-        onChange={(currentNode) => setMosaicState({ currentNode })}
-                 resize={{ minimumPaneSizePercentage: 10 }}
-       />
-     </Stack>
-   );
+        {/* Unified moves table */}
+        <Paper withBorder p="xs" style={{ minHeight: "300px" }}>
+          <UnifiedMovesTable />
+        </Paper>
+      </Stack>
+    </ScrollArea>
+  );
 }
 
 function EngineSummary({
@@ -355,6 +313,178 @@ function EngineSummary({
         </Group>
       </Stack>
     </Card>
+  );
+}
+
+function EngineConfig({
+  id,
+  engine,
+  fen,
+  moves,
+  dragHandleProps,
+}: {
+  id: number;
+  engine: Engine;
+  fen: string;
+  moves: string[];
+  dragHandleProps: any;
+}) {
+  const activeTab = useAtomValue(activeTabAtom);
+  const theme = useMantineTheme();
+  const [threat, setThreat] = useAtom(currentThreatAtom);
+  const [settingsOn, toggleSettingsOn] = useToggle();
+
+  const [engines, setEngines] = useAtom(enginesAtom);
+  const [settings, setSettings2] = useAtom(
+    tabEngineSettingsFamily({
+      engineName: engine.name,
+      defaultSettings: engine.settings ?? undefined,
+      defaultGo: engine.go ?? undefined,
+      tab: activeTab!,
+    }),
+  );
+
+  const [ev] = useAtom(
+    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+  );
+  const progress = useAtomValue(
+    engineProgressFamily({ engine: engine.name, tab: activeTab! }),
+  );
+
+  const setSettings = useCallback(
+    (fn: (prev: Settings) => Settings) => {
+      const newSettings = fn(settings);
+      setSettings2(newSettings);
+      if (newSettings.synced) {
+        setEngines((prev) =>
+          prev.map((o) =>
+            o.name === engine.name
+              ? { ...o, settings: newSettings.settings, go: newSettings.go }
+              : o,
+          ),
+        );
+      }
+    },
+    [engine, settings, setSettings2, setEngines],
+  );
+
+  const engineVariations = useDeferredValue(
+    useMemo(() => ev.get(`${fen}:${moves.join(",")}`), [ev, fen, moves]),
+  );
+
+  const lastEval = useAtomValue(lastMoveEvaluationFamily(engine.name));
+  const isComputed = engineVariations && engineVariations.length > 0;
+  const depth = isComputed ? engineVariations[0].depth : 0;
+  const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
+  const [pos, error] = positionFromFen(fen);
+  const isGameOver = pos?.isEnd() ?? false;
+
+  return (
+    <>
+      <Box style={{ display: "flex" }}>
+        <Stack gap={0} py="1rem">
+          <ActionIcon
+            size="lg"
+            variant={settings.enabled ? "filled" : "transparent"}
+            color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
+            onClick={() => {
+              setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
+            }}
+            ml={12}
+          >
+            {settings.enabled ? (
+              <IconPlayerPause size="1rem" />
+            ) : (
+              <IconPlayerPlay size="1rem" />
+            )}
+          </ActionIcon>
+        </Stack>
+        <Accordion.Control>
+          <Group justify="space-between">
+            <Group align="center">
+              <Text fw="bold" fz="lg">
+                {engine.name}
+              </Text>
+              {settings.enabled && !isGameOver && !error && !engineVariations && (
+                <Code fz="xs">Loading...</Code>
+              )}
+              {progress < 100 &&
+                settings.enabled &&
+                !isGameOver &&
+                engineVariations &&
+                engineVariations.length > 0 && (
+                  <Tooltip label={"How fast the engine is running"}>
+                    <Code fz="xs">{nps}/s</Code>
+                  </Tooltip>
+                )}
+              {isComputed && (
+                <Tooltip label="Search depth">
+                  <Code fz="xs">d{depth}</Code>
+                </Tooltip>
+              )}
+            </Group>
+            <Group>
+              {isComputed && (
+                <ScoreBubble size="md" score={engineVariations[0].score} />
+              )}
+              {lastEval && <LastMoveScore />}
+            </Group>
+          </Group>
+        </Accordion.Control>
+        <ActionIcon.Group>
+          <Tooltip label="Check the opponent's threat">
+            <ActionIcon
+              size="lg"
+              onClick={() => setThreat(!threat)}
+              disabled={!settings.enabled}
+              variant="transparent"
+              mt="auto"
+              mb="auto"
+            >
+              <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
+            </ActionIcon>
+          </Tooltip>
+          <ActionIcon
+            size="lg"
+            onClick={() => toggleSettingsOn()}
+            mt="auto"
+            mb="auto"
+          >
+            <IconSettings size="1rem" />
+          </ActionIcon>
+          <ActionIcon
+            size="lg"
+            mr={8}
+            mt="auto"
+            mb="auto"
+            style={{
+              cursor: "grab",
+            }}
+            {...dragHandleProps}
+          >
+            <IconGripVertical size="1rem" />
+          </ActionIcon>
+        </ActionIcon.Group>
+      </Box>
+      
+      <Collapse in={settingsOn} px={30} pb={15}>
+        <EngineSettingsForm
+          engine={engine}
+          settings={settings}
+          setSettings={setSettings}
+          color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
+          remote={engine.type !== "local"}
+        />
+      </Collapse>
+
+      <Progress
+        value={isGameOver ? 0 : progress}
+        animated={progress < 100 && settings.enabled && !isGameOver}
+        size="xs"
+        striped={progress < 100 && !settings.enabled}
+        color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
+      />
+    </>
   );
 }
 

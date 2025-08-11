@@ -537,7 +537,7 @@ export const tabEngineSettingsFamily = atomFamily(
       go: defaultGo || { t: "Infinite" },
       synced: true,
       allMoves: false,
-      useCache: true,
+      useCache: false,
     });
   },
   (a, b) => a.tab === b.tab && a.engineName === b.engineName,

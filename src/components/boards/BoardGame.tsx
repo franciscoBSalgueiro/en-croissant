@@ -25,13 +25,13 @@ import {
   Group,
   InputWrapper,
   Paper,
-  Portal,
   ScrollArea,
   SegmentedControl,
   Select,
   Stack,
   Text,
   TextInput,
+  Tabs,
 } from "@mantine/core";
 import {
   IconArrowsExchange,
@@ -286,33 +286,19 @@ const DEFAULT_TIME_CONTROL: TimeControlField = {
   increment: 2_000,
 };
 
-// Unified sidebar layout state
-type SidebarViewId =
-  | "gameInfo"
-  | "analysis"
-  | "moves"
-  | "annotation"
-  | "info";
-interface SidebarState {
-  currentNode: MosaicNode<SidebarViewId> | null;
+// Board/Sidebar layout state
+type BoardViewId = "board" | "sidebar";
+
+interface BoardLayoutState {
+  currentNode: MosaicNode<BoardViewId> | null;
 }
-const sidebarStateAtom = atomWithStorage<SidebarState>("sidebarStateV2", {
+
+const boardLayoutStateAtom = atomWithStorage<BoardLayoutState>("boardLayoutState", {
   currentNode: {
-    direction: "column",
-    first: "gameInfo",
-    second: {
-      direction: "column",
-      first: "analysis",
-      second: {
-        direction: "column",
-        first: "moves",
-        second: {
-          direction: "column",
-          first: "annotation",
-          second: "info",
-        },
-      },
-    },
+    direction: "row",
+    first: "board",
+    second: "sidebar",
+    splitPercentage: 65, // Board takes 65% of width by default
   },
 });
 
@@ -635,10 +621,12 @@ function BoardGame() {
     (players.white.type === "engine" || players.black.type === "engine") &&
     players.white.type !== players.black.type;
 
-  return (
-    <>
-      <EvalListener />
-      <Portal target="#left" style={{ height: "100%" }}>
+  const [boardLayoutState, setBoardLayoutState] = useAtom(boardLayoutStateAtom);
+
+  // Define the board/sidebar layout
+  const boardLayout: { [viewId in BoardViewId]: JSX.Element } = {
+    board: (
+      <Paper withBorder shadow="sm" p="md" h="100%">
         <Board
           dirty={false}
           editingMode={false}
@@ -655,65 +643,71 @@ function BoardGame() {
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
         />
-      </Portal>
-      <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
-        <Paper withBorder shadow="sm" p="md" h="100%">
-          {gameState === "settingUp" && !isAnalysisTab && (
-            <ScrollArea h="100%" offsetScrollbars>
-              <Stack>
-                <Group>
-                  <Text flex={1} ta="center" fz="lg" fw="bold">
-                    {match(inputColor)
-                      .with("white", () => "White")
-                      .with("random", () => "Random")
-                      .with("black", () => "Black")
-                      .exhaustive()}
-                  </Text>
-                  <ActionIcon onClick={cycleColor}>
-                    <IconArrowsExchange />
-                  </ActionIcon>
-                  <Text flex={1} ta="center" fz="lg" fw="bold">
-                    {match(inputColor)
-                      .with("white", () => "Black")
-                      .with("random", () => "Random")
-                      .with("black", () => "White")
-                      .exhaustive()}
-                  </Text>
+      </Paper>
+    ),
+    sidebar: (
+      <Paper withBorder shadow="sm" p="md" h="100%" style={{ overflow: "hidden" }}>
+        {gameState === "settingUp" && !isAnalysisTab && (
+          <ScrollArea h="100%" offsetScrollbars>
+            <Stack>
+              <Group>
+                <Text flex={1} ta="center" fz="lg" fw="bold">
+                  {match(inputColor)
+                    .with("white", () => "White")
+                    .with("random", () => "Random")
+                    .with("black", () => "Black")
+                    .exhaustive()}
+                </Text>
+                <ActionIcon onClick={cycleColor}>
+                  <IconArrowsExchange />
+                </ActionIcon>
+                <Text flex={1} ta="center" fz="lg" fw="bold">
+                  {match(inputColor)
+                    .with("white", () => "Black")
+                    .with("random", () => "Random")
+                    .with("black", () => "White")
+                    .exhaustive()}
+                </Text>
+              </Group>
+              <Box flex={1}>
+                <Group style={{ alignItems: "start" }}>
+                  <OpponentForm
+                    sameTimeControl={sameTimeControl}
+                    opponent={player1Settings}
+                    setOpponent={setPlayer1Settings}
+                    setOtherOpponent={setPlayer2Settings}
+                  />
+                  <Divider orientation="vertical" />
+                  <OpponentForm
+                    sameTimeControl={sameTimeControl}
+                    opponent={player2Settings}
+                    setOpponent={setPlayer2Settings}
+                    setOtherOpponent={setPlayer1Settings}
+                  />
                 </Group>
-                <Box flex={1}>
-                  <Group style={{ alignItems: "start" }}>
-                    <OpponentForm
-                      sameTimeControl={sameTimeControl}
-                      opponent={player1Settings}
-                      setOpponent={setPlayer1Settings}
-                      setOtherOpponent={setPlayer2Settings}
-                    />
-                    <Divider orientation="vertical" />
-                    <OpponentForm
-                      sameTimeControl={sameTimeControl}
-                      opponent={player2Settings}
-                      setOpponent={setPlayer2Settings}
-                      setOtherOpponent={setPlayer1Settings}
-                    />
-                  </Group>
-                </Box>
+              </Box>
 
-                <Checkbox
-                  label="Same time control"
-                  checked={sameTimeControl}
-                  onChange={(e) => setSameTimeControl(e.target.checked)}
-                />
+              <Checkbox
+                label="Same time control"
+                checked={sameTimeControl}
+                onChange={(e) => setSameTimeControl(e.target.checked)}
+              />
 
-                <Group>
-                  <Button onClick={startGame} disabled={error !== null}>
-                    Start game
-                  </Button>
-                </Group>
-              </Stack>
-            </ScrollArea>
-          )}
-          {(gameState === "playing" || gameState === "gameOver" || isAnalysisTab) && (
-            <UnifiedSidebar headers={headers} onePlayerIsEngine={onePlayerIsEngine} enginePaused={enginePaused} setEnginePaused={setEnginePaused} onNewGame={() => {
+              <Group>
+                <Button onClick={startGame} disabled={error !== null}>
+                  Start game
+                </Button>
+              </Group>
+            </Stack>
+          </ScrollArea>
+        )}
+        {(gameState === "playing" || gameState === "gameOver" || isAnalysisTab) && (
+          <SimplifiedSidebar 
+            headers={headers} 
+            onePlayerIsEngine={onePlayerIsEngine} 
+            enginePaused={enginePaused} 
+            setEnginePaused={setEnginePaused} 
+            onNewGame={() => {
               setGameState("settingUp");
               setWhiteTime(null);
               setBlackTime(null);
@@ -722,19 +716,33 @@ function BoardGame() {
                 ...headers,
                 result: "*",
               });
-            }} />
-          )}
-        </Paper>
-      </Portal>
-      
+            }} 
+          />
+        )}
+      </Paper>
+    ),
+  };
+
+  return (
+    <>
+      <EvalListener />
+      {/* Resizable board/sidebar layout */}
+      <Box style={{ height: "100vh", padding: "8px" }}>
+        <Mosaic<BoardViewId>
+          renderTile={(id) => boardLayout[id]}
+          value={boardLayoutState.currentNode}
+          onChange={(currentNode) => setBoardLayoutState({ currentNode })}
+          resize={{ minimumPaneSizePercentage: 20 }}
+        />
+      </Box>
     </>
   );
 }
 
 export default BoardGame;
 
-// Unified sidebar section and layout
-function UnifiedSidebar({
+// Simplified sidebar with tabs instead of complex Mosaic
+function SimplifiedSidebar({
   headers,
   onePlayerIsEngine,
   enginePaused,
@@ -747,46 +755,13 @@ function UnifiedSidebar({
   setEnginePaused: (fn: (prev: boolean) => boolean) => void;
   onNewGame: () => void;
 }) {
-  const [sidebarState, setSidebarState] = useAtom(sidebarStateAtom);
   const [, enable] = useAtom(enableAllAtom);
   const allEnabledLoader = useAtomValue(allEnabledAtom);
   const allEnabled = allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
-  const sidebarLayout: { [viewId in SidebarViewId]: JSX.Element } = {
-    gameInfo: (
-      <Paper withBorder p="xs" h="100%">
-        <ScrollArea h="100%">
-          <GameInfo headers={headers} />
-        </ScrollArea>
-      </Paper>
-    ),
-    analysis: (
-      <Paper withBorder p="xs" h="100%" style={{ display: "flex" }}>
-        <Suspense>
-          <AnalysisPanel />
-        </Suspense>
-      </Paper>
-    ),
-    moves: (
-      <Stack h="100%" gap="xs">
-        <GameNotation topBar />
-        <MoveControls />
-      </Stack>
-    ),
-    annotation: (
-      <Paper withBorder p="xs" h="100%">
-        <AnnotationPanel />
-      </Paper>
-    ),
-    info: (
-      <Paper withBorder p="xs" h="100%">
-        <InfoPanel />
-      </Paper>
-    ),
-  };
-
   return (
     <Stack h="100%" gap="xs">
+      {/* Control buttons */}
       <Group grow>
         {onePlayerIsEngine && (
           <Button
@@ -803,14 +778,46 @@ function UnifiedSidebar({
           {allEnabled ? "Stop Analysis" : "Start Analysis"}
         </Button>
       </Group>
-      <Box style={{ flexGrow: 1 }}>
-        <Mosaic<SidebarViewId>
-          renderTile={(id) => sidebarLayout[id]}
-          value={sidebarState.currentNode}
-          onChange={(currentNode) => setSidebarState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 10 }}
-        />
-      </Box>
+
+      {/* Tabbed content */}
+      <Tabs defaultValue="gameInfo" style={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <Tabs.List>
+          <Tabs.Tab value="gameInfo">Game</Tabs.Tab>
+          <Tabs.Tab value="analysis">Analysis</Tabs.Tab>
+          <Tabs.Tab value="moves">Moves</Tabs.Tab>
+          <Tabs.Tab value="annotation">Notes</Tabs.Tab>
+          <Tabs.Tab value="info">Info</Tabs.Tab>
+        </Tabs.List>
+
+        <Box style={{ flexGrow: 1, overflow: "hidden" }}>
+          <Tabs.Panel value="gameInfo" h="100%">
+            <ScrollArea h="100%">
+              <GameInfo headers={headers} />
+            </ScrollArea>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="analysis" h="100%">
+            <Suspense fallback={<Text>Loading analysis...</Text>}>
+              <AnalysisPanel />
+            </Suspense>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="moves" h="100%">
+            <Stack h="100%" gap="xs">
+              <GameNotation topBar />
+              <MoveControls />
+            </Stack>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="annotation" h="100%">
+            <AnnotationPanel />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="info" h="100%">
+            <InfoPanel />
+          </Tabs.Panel>
+        </Box>
+      </Tabs>
     </Stack>
   );
 }

@@ -326,12 +326,6 @@ function TabSwitch({
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
         <BoardGame />
         <ConfirmChangesModal
           opened={saveModalOpened}
@@ -342,12 +336,6 @@ function TabSwitch({
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
         <BoardGame />
         <ConfirmChangesModal
           opened={saveModalOpened}
