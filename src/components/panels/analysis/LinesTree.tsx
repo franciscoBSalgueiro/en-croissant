@@ -8,6 +8,7 @@ import { getVariationLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { parseUci } from "chessops";
 import { makeSan } from "chessops/san";
+import { makeFen } from "chessops/fen";
 import { activeTabAtom } from "@/state/atoms";
 import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import { loadable } from "jotai/utils";
@@ -115,6 +116,30 @@ function LinesTree() {
     store,
     useShallow((s) => getVariationLine(s.root, s.position, is960)),
   );
+  const activeTab = useAtomValue(activeTabAtom)!;
+
+  // Previous position (parent of current) unified moves to enrich last path link
+  const prevMoves = useMemo(() => currentMoves.slice(0, -1), [currentMoves]);
+  const prevFen = useMemo(() => {
+    const [p0] = positionFromFen(rootFen);
+    if (!p0) return rootFen;
+    for (const u of prevMoves) {
+      const mm = parseUci(u);
+      if (!mm) break;
+      p0.play(mm);
+    }
+    try {
+      return makeFen(p0.toSetup());
+    } catch {
+      return rootFen;
+    }
+  }, [rootFen, prevMoves]);
+  const prevUnifiedAtom = useMemo(
+    () => loadable(unifiedMovesFamily({ rootFen, fen: prevFen, moves: prevMoves, tab: activeTab })),
+    [rootFen, prevFen, prevMoves, activeTab]
+  );
+  const prevUnifiedLoadable = useAtomValue(prevUnifiedAtom);
+  const prevUnifiedMoves = prevUnifiedLoadable.state === "hasData" ? prevUnifiedLoadable.data : [];
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -174,10 +199,25 @@ function LinesTree() {
         const id = `${pathSans.length}:${san}`;
         if (!p.nodes.has(id)) p.nodes.set(id, { id, label: san });
         const key = `${prevId}->${id}`;
-        if (!p.links.has(key)) {
-          const color = p.firstColor.get(san);
-          p.links.set(key, { source: prevId, target: id, color });
-        }
+        // Merge or create path link with best-known meta so it's fully styled and placed
+        const existing = p.links.get(key) as any;
+        const meta = (firstSanMeta as any)[san] as any;
+        const color = (firstSanColor as any)[san] || p.firstColor.get(san);
+        const winChance = meta?.winChance ?? p.firstEval.get(san);
+        const confidence = meta?.confidence ?? p.firstConfidence.get(san);
+        const nextLink = {
+          source: prevId,
+          target: id,
+          color: existing?.color ?? color,
+          // enrich metrics so edge color/label and y-positioning work even if it wasn't in Top-N
+          winChance: existing?.winChance ?? winChance,
+          score: existing?.score ?? meta?.score,
+          engineName: existing?.engineName ?? meta?.engineName,
+          annotation: existing?.annotation ?? meta?.annotation,
+          confidence: existing?.confidence ?? confidence,
+          pctBest: existing?.pctBest ?? meta?.pctBest,
+        } as any;
+        p.links.set(key, nextLink);
         pos0.play(m);
         prevId = id;
       }
@@ -234,8 +274,32 @@ function LinesTree() {
       } as any);
     }
 
+    // Enrich the last path link using unified moves from the previous position (parent of current)
+    if (pathSans.length > 0) {
+      const lastSan = pathSans[pathSans.length - 1];
+      const lastDepth = pathSans.length;
+      const lastTarget = `${lastDepth}:${lastSan}`;
+      const lastSource = lastDepth === 1 ? rootId : `${lastDepth - 1}:${pathSans[lastDepth - 2]}`;
+      const lastKey = `${lastSource}->${lastTarget}`;
+      const link = p.links.get(lastKey) as any;
+      if (link) {
+        const u = prevUnifiedMoves.find((m: any) => (m.san ?? m.move) === lastSan);
+        if (u) {
+          if (link.score == null && u.score) link.score = u.score;
+          if (link.winChance == null && typeof u.winChance === 'number') link.winChance = u.winChance;
+          if (link.confidence == null && typeof u.confidence === 'number') link.confidence = u.confidence;
+          if (link.pctBest == null && typeof u.pctBest === 'number') link.pctBest = u.pctBest;
+          if (link.engineName == null && u.engineName) link.engineName = u.engineName;
+        }
+        // Fallbacks from persistent maps if still missing
+        if (link.confidence == null) link.confidence = p.firstConfidence.get(lastSan);
+        if (link.color == null) link.color = p.firstColor.get(lastSan);
+        if (link.winChance == null) link.winChance = p.firstEval.get(lastSan);
+      }
+    }
+
     setVersion((v) => v + 1);
-  }, [pvLines, currentMoves, rootFen, firstSanColor, firstSanEval, rankedFirstSANs, topN, firstSanMeta]);
+  }, [pvLines, currentMoves, rootFen, firstSanColor, firstSanEval, rankedFirstSANs, topN, firstSanMeta, prevUnifiedMoves]);
 
   useEffect(() => {
     const el = containerRef.current;

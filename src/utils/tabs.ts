@@ -10,7 +10,7 @@ import type { GameHeaders } from "./treeReducer";
 export const tabSchema = z.object({
   name: z.string(),
   value: z.string(),
-  type: z.enum(["new", "play", "analysis", "puzzles"]),
+  type: z.enum(["play", "analysis", "puzzles"]),
   gameNumber: z.number().nullish(),
   file: fileMetadataSchema.nullish(),
 });

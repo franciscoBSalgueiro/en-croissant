@@ -17,13 +17,13 @@ import { TreeStateProvider } from "../common/TreeStateContext";
 import Puzzles from "../puzzles/Puzzles";
 import { BoardTab } from "./BoardTab";
 import ConfirmChangesModal from "./ConfirmChangesModal";
-import NewTabHome from "./NewTabHome";
 
 import "react-mosaic-component/react-mosaic-component.css";
 
 import "@/styles/react-mosaic.css";
 import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
+import NewTabHome from "./NewTabHome";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
@@ -35,7 +35,7 @@ export default function BoardsPage() {
   useEffect(() => {
     if (tabs.length === 0) {
       createTab({
-        tab: { name: t("Tab.NewTab"), type: "new" },
+        tab: { name: "New Game", type: "play" },
         setTabs,
         setActiveTab,
       });
@@ -216,8 +216,8 @@ export default function BoardsPage() {
                     onClick={() =>
                       createTab({
                         tab: {
-                          name: t("Tab.NewTab"),
-                          type: "new",
+                          name: "New Game",
+                          type: "play",
                         },
                         setTabs,
                         setActiveTab,
@@ -324,7 +324,16 @@ function TabSwitch({
   }, [windowsState.currentNode, setWindowsState]);
 
   return match(tab.type)
-    .with("new", () => <NewTabHome id={tab.value} />)
+    .with("new", () => (
+      <TreeStateProvider id={tab.value}>
+        <BoardGame />
+        <ConfirmChangesModal
+          opened={saveModalOpened}
+          toggle={toggleSaveModal}
+          closeTab={() => closeTab(activeTab, true)}
+        />
+      </TreeStateProvider>
+    ))
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
         <BoardGame />
