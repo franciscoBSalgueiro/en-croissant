@@ -51,12 +51,10 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
-import LastMoveScore from "./LastMoveScore";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 import UnifiedMovesTable from "./UnifiedMovesTable";
 import { formatNodes } from "@/utils/format";
-import { lastMoveEvaluationFamily } from "@/state/atoms";
 import LinesTree from "./LinesTree";
 
 function AnalysisPanel() {
@@ -315,7 +313,6 @@ function EngineSummary({
               ???
             </Text>
           )}
-          <LastMoveScore />
         </Group>
       </Stack>
     </Card>
@@ -378,7 +375,6 @@ function EngineConfig({
     useMemo(() => ev.get(`${fen}:${moves.join(",")}`), [ev, fen, moves]),
   );
 
-  const lastEval = useAtomValue(lastMoveEvaluationFamily(engine.name));
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
@@ -433,7 +429,6 @@ function EngineConfig({
               {isComputed && (
                 <ScoreBubble size="md" score={engineVariations[0].score} />
               )}
-              {lastEval && <LastMoveScore />}
             </Group>
           </Group>
         </Accordion.Control>

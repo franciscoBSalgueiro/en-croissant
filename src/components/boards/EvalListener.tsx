@@ -6,7 +6,6 @@ import {
   engineProgressFamily,
   enginesAtom,
   lastMovedAtom,
-  lastMoveEvaluationFamily,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
@@ -126,8 +125,6 @@ function EngineListener({
   const store = useContext(TreeStateContext)!;
   const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
-  const lastMove = useAtomValue(lastMovedAtom);
-  const setLastMoveEvaluation = useSetAtom(lastMoveEvaluationFamily(engine.name));
 
   const [, setProgress] = useAtom(
     engineProgressFamily({ engine: engine.name, tab: activeTab! }),
@@ -199,74 +196,6 @@ function EngineListener({
         .exhaustive(),
     [engine.type, engine],
   );
-
-  useEffect(() => {
-    if (!lastMove || !settings.enabled || engine.type !== "local") return;
-
-    const lastMoveTabId = `${activeTab}_lastmove`;
-
-    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      if (
-        payload.tab === lastMoveTabId &&
-        payload.engine === engine.name &&
-        payload.progress === 100
-      ) {
-        logInfo(
-          `Received last move evaluation payload: tab=${payload.tab} progress=${payload.progress} lines=${payload.bestLines.length}`,
-        ).catch(() => {});
-        if (payload.bestLines.length > 0) {
-          setLastMoveEvaluation(payload.bestLines[0]);
-        }
-      }
-    });
-
-    const options =
-      settings.settings?.map((s) => ({
-        name: s.name,
-        value: s.value?.toString() || "",
-      })) ?? [];
-    if (!options.find((o) => o.name === "UCI_ShowWDL")) {
-      options.push({ name: "UCI_ShowWDL", value: "true" });
-    }
-    if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
-      options.push({ name: "UCI_Chess960", value: "true" });
-    }
-
-    const lastMoveGoMode: GoMode =
-      settings.go.t === "Infinite" ? { t: "Depth", c: 15 } : settings.go;
-
-    // capture current search inputs to avoid effect re-running churn
-    const capturedFen = searchingFen;
-    const capturedMoves = searchingMoves;
-
-    logInfo(
-      `Requesting last move evaluation tab=${lastMoveTabId} move=${lastMove} go=${JSON.stringify(
-        lastMoveGoMode,
-      )} fen=${capturedFen} moves=${capturedMoves.join(",")}`,
-    ).catch(() => {});
-
-    getBestMoves(
-      lastMoveTabId,
-      {
-        t: "SearchMoves",
-        c: {
-          mode: lastMoveGoMode,
-          moves: [lastMove],
-        },
-      },
-      {
-        moves: capturedMoves,
-        fen: capturedFen,
-        extraOptions: options,
-        useCache: settings.useCache,
-      },
-    );
-
-    return () => {
-      unlisten.then((f) => f());
-      stopEngine(engine as LocalEngine, lastMoveTabId);
-    };
-  }, [lastMove, settings.enabled, engine.name, activeTab, settings.go, chess960]);
 
   useThrottledEffect(
     () => {

@@ -1,4 +1,4 @@
-import type { BestMoves, DatabaseInfo, GoMode } from "@/bindings";
+import type { DatabaseInfo, GoMode } from "@/bindings";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import {
@@ -38,10 +38,9 @@ import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
 import { createZodStorage } from "./utils";
+import type { BestMoves } from "@/bindings";
 
 export const lastMovedAtom = atom<string | null>(null);
-export const lastMoveEvaluationAtom = atom<BestMoves | null>(null);
-export const lastMoveEvaluationFamily = atomFamily((engine: string) => atom<BestMoves | null>(null));
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;

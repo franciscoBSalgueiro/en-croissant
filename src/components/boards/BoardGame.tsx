@@ -141,8 +141,8 @@ function OpponentForm({
         type: "engine",
         engine: null,
         go: {
-          t: "Depth",
-          c: 10,
+          t: "Time",
+          c: 1000,
         },
         timeControl: undefined,
       }));
