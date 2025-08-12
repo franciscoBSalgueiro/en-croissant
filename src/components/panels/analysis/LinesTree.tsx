@@ -5,73 +5,18 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getVariationLine } from "@/utils/chess";
-import { positionFromFen } from "@/utils/chessops";
-import { parseUci, type Move } from "chessops";
-import { parseSan } from "chessops/san";
 import { activeTabAtom } from "@/state/atoms";
-import { hierarchy, tree as d3tree, type HierarchyPointNode, type HierarchyPointLink } from "d3-hierarchy";
 import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import { loadable } from "jotai/utils";
+import { Graph } from "react-d3-graph";
+import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 
-// Types compatible with d3-hierarchy data model
-interface TreeNode {
-  name: string;
-  children?: TreeNode[];
-}
-
-function countLeaves(node: TreeNode | null | undefined): number {
-  if (!node) return 0;
-  if (!node.children || node.children.length === 0) return 1;
-  return node.children.reduce((acc, c) => acc + countLeaves(c), 0);
-}
-
-// Build a merged tree from multiple engine PV lines (SAN from current position)
-function buildMergedTree(
-  rootFen: string,
-  currentMoves: string[],
-  pvSets: string[],
-): TreeNode {
-  const [rootPos] = positionFromFen(rootFen);
-  if (rootPos) {
-    for (const uci of currentMoves) {
-      const m = parseUci(uci);
-      if (!m) break;
-      rootPos.play(m);
-    }
-  }
-
-  const root: TreeNode = { name: "(root)", children: [] };
-
-  for (const san of pvSets) {
-    let cursor = root;
-    let pos = rootPos?.clone() ?? null;
-
-    if (!pos) break;
-    const moveObj = parseSan(pos, san);
-    if (!moveObj) continue;
-    pos.play(moveObj);
-
-    if (!cursor.children) cursor.children = [];
-    let child = cursor.children.find((c) => c.name === san);
-    if (!child) {
-      child = { name: san, children: [] };
-      cursor.children.push(child);
-    }
-    cursor = child;
-  }
-
-  if (!root.children || root.children.length === 0) {
-    return { name: "(no lines)", children: [] };
-  }
-
-  return root;
-}
-
+// Build a merged graph from multiple engine PV lines (SAN from current position)
 function useUnifiedPVs(): {
-  rootFen: string;
-  currentMoves: string[];
-  pvSets: string[];
-  rankedFirstUCIs: string[];
+  pvLines: string[][];
+  rankedFirstSANs: string[];
+  firstSanColor: Record<string, string>;
+  firstSanEval: Record<string, number>;
   loading: boolean;
 } {
   const store = useContext(TreeStateContext)!;
@@ -93,40 +38,59 @@ function useUnifiedPVs(): {
   const loading = unifiedLoadable.state === "loading";
   const unifiedMoves = unifiedLoadable.state === "hasData" ? unifiedLoadable.data : [];
 
-  const { pvSets, rankedFirstUCIs } = useMemo(() => {
-    const pv: string[] = [];
+  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval } = useMemo(() => {
+    const lines: string[][] = [];
     const firstMoveToWin: Map<string, number> = new Map();
+    const firstSanColor: Record<string, string> = {};
+    const firstSanEval: Record<string, number> = {};
+
+    let bestFirstSan: string | undefined = undefined;
 
     for (const m of unifiedMoves) {
-      const san0 = m.sanMoves?.[0] || m.san || m.move;
-      if (!san0) continue;
-      pv.push(san0);
+      const sanMoves = (m.sanMoves && m.sanMoves.length > 0)
+        ? m.sanMoves
+        : (m.san ? [m.san] : (m.move ? [m.move] : []));
+      if (sanMoves.length === 0) continue;
+      lines.push(sanMoves);
+
+      const first = sanMoves[0];
+      if (m.isBest) {
+        bestFirstSan = first;
+      }
       if (m.winChance !== undefined) {
-        const prev = firstMoveToWin.get(san0);
-        if (prev === undefined || m.winChance > prev) firstMoveToWin.set(san0, m.winChance);
+        const prev = firstMoveToWin.get(first);
+        if (prev === undefined || m.winChance > prev) firstMoveToWin.set(first, m.winChance);
+        // Track evaluation value per first SAN (use best seen)
+        if (firstSanEval[first] === undefined || m.winChance > firstSanEval[first]) {
+          firstSanEval[first] = m.winChance;
+        }
+      }
+      if (m.annotation) {
+        const info = ANNOTATION_INFO[m.annotation as Annotation];
+        if (info?.color) firstSanColor[first] = info.color as string;
       }
     }
 
-    const rankedFirstUCIs = Array.from(firstMoveToWin.entries())
+    // Ensure BEST move is colored blue in the graph
+    if (bestFirstSan) {
+      firstSanColor[bestFirstSan] = "var(--mantine-color-blue-6)";
+    }
+
+    const rankedFirstSANs = Array.from(firstMoveToWin.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([san]) => san);
 
-    return { pvSets: pv, rankedFirstUCIs };
+    return { pvLines: lines, rankedFirstSANs, firstSanColor, firstSanEval };
   }, [unifiedMoves]);
 
-  return { rootFen, currentMoves, pvSets, rankedFirstUCIs, loading };
+  return { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, loading };
 }
 
 function LinesTree() {
-  const { rootFen, currentMoves, pvSets, rankedFirstUCIs, loading } = useUnifiedPVs();
+  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, loading } = useUnifiedPVs();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
-  const maxTop = Math.max(1, rankedFirstUCIs.length || 1);
-  const [topN, setTopN] = useState<number>(Math.min(3, maxTop));
-
-  useEffect(() => {
-    setTopN((n) => Math.min(Math.max(1, n), maxTop));
-  }, [maxTop]);
+  const [topN, setTopN] = useState<number>(5);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -139,161 +103,202 @@ function LinesTree() {
     return () => ro.disconnect();
   }, []);
 
-  const filteredPVs = useMemo(() => {
-    if (rankedFirstUCIs.length === 0) return pvSets;
-    const allowed = new Set(rankedFirstUCIs.slice(0, topN));
-    return pvSets.filter((san) => san && allowed.has(san));
-  }, [pvSets, rankedFirstUCIs, topN]);
+  const filteredPvLines = useMemo(() => {
+    if (rankedFirstSANs.length === 0) return pvLines;
+    const allowed = new Set(rankedFirstSANs.slice(0, topN));
+    return pvLines.filter((line) => line.length > 0 && allowed.has(line[0]));
+  }, [pvLines, rankedFirstSANs, topN]);
 
-  const data = useMemo(
-    () => buildMergedTree(rootFen, currentMoves, filteredPVs),
-    [rootFen, currentMoves, filteredPVs],
-  );
+  // Build DAG: node key is unique by (ply index starting at 1, SAN)
+  const graphData = useMemo(() => {
+    type Node = { id: string; label?: string; x?: number; y?: number; fx?: number; fy?: number };
+    type Link = { source: string; target: string; color?: string; highlightColor?: string };
 
-  // Layout with d3-hierarchy: Y from tidy tree, X from ply (depth)
-  const nodeRect = { width: 60, height: 18 };
-  const vGap = 8; // vertical padding between nodes
-  const nodeYSpacing = nodeRect.height + vGap;
-  const margin = { top: 12, right: 12, bottom: 12, left: 40 };
+    const width = dimensions?.width ?? 600;
+    const height = dimensions?.height ?? 300;
+    const leftPad = 40;
+    const rightPad = 20;
+    const topPad = 20;
+    const bottomPad = 20;
 
-  const layout = useMemo(() => {
-    const root = hierarchy<TreeNode>(data);
-    const t = d3tree<TreeNode>()
-      .separation((a: HierarchyPointNode<TreeNode>, b: HierarchyPointNode<TreeNode>) => (a.parent === b.parent ? 1.2 : 1.5))
-      .nodeSize([nodeYSpacing, 1]); // x in px (vertical), y = depth units
-    t(root as any);
-    return root as HierarchyPointNode<TreeNode>;
-  }, [data, nodeYSpacing]);
+    const maxPly = filteredPvLines.reduce((m, l) => Math.max(m, l.length), 0);
+    const steps = Math.max(1, maxPly);
+    const xStep = (Math.max(1, width - leftPad - rightPad)) / steps;
 
-  const { nodes, links, maxDepth, extent } = useMemo(() => {
-    const nodes = (layout as HierarchyPointNode<TreeNode>).descendants();
-    const links = (layout as HierarchyPointNode<TreeNode>).links();
-    const maxDepth = nodes.reduce((m: number, n: HierarchyPointNode<TreeNode>) => Math.max(m, n.depth), 0);
-    const minX = Math.min(...nodes.map((n) => n.depth));
-    const maxX = Math.max(...nodes.map((n) => n.depth));
-    const minY = Math.min(...nodes.map((n) => n.x));
-    const maxY = Math.max(...nodes.map((n) => n.x));
-    return { nodes, links, maxDepth, extent: { minX, maxX, minY, maxY } } as {
-      nodes: HierarchyPointNode<TreeNode>[];
-      links: HierarchyPointLink<TreeNode>[];
-      maxDepth: number;
-      extent: { minX: number; maxX: number; minY: number; maxY: number };
+    // Helper: parse depth from id format "d:SAN"
+    const getDepth = (id: string) => {
+      const idx = id.indexOf(":");
+      if (idx <= 0) return 0;
+      const d = Number.parseInt(id.slice(0, idx), 10);
+      return Number.isFinite(d) ? d : 0;
     };
-  }, [layout]);
 
-  // Pan/zoom state
-  const [scale, setScale] = useState<number>(1);
-  const [tx, setTx] = useState<number>(0);
-  const [ty, setTy] = useState<number>(0);
-  const [interacted, setInteracted] = useState<boolean>(false);
+    // Compute y positions for first-ply SANs based on evaluation range
+    const firstSansInUse = new Set<string>();
+    for (const line of filteredPvLines) {
+      if (line.length > 0) firstSansInUse.add(line[0]);
+    }
+    const values: number[] = [];
+    for (const san of firstSansInUse) {
+      const v = firstSanEval[san];
+      if (typeof v === "number") values.push(v);
+    }
+    const minEval = values.length > 0 ? Math.min(...values) : 50;
+    const maxEval = values.length > 0 ? Math.max(...values) : 50;
+    const innerH = Math.max(1, height - topPad - bottomPad);
+    const scaleY = (val: number) => {
+      if (maxEval === minEval) return topPad + innerH / 2;
+      const t = (val - minEval) / (maxEval - minEval); // 0..1
+      return topPad + (1 - t) * innerH; // higher eval -> higher (towards top)
+    };
 
-  // Compute auto-fit transform (centered) when data or size changes, unless user interacted
-  useEffect(() => {
-    if (!dimensions) return;
-    if (!nodes || nodes.length === 0) return;
-    if (interacted) return;
+    // Separation utility to avoid overlaps while preserving order
+    const separateLayer = (ids: string[], yGetter: (id: string) => number, minGap: number) => {
+      if (ids.length === 0) return new Map<string, number>();
+      const pairs = ids.map((id) => [id, yGetter(id)] as [string, number]).sort((a, b) => a[1] - b[1]);
+      // forward pass
+      for (let i = 0; i < pairs.length; i++) {
+        const minAllowed = i === 0 ? topPad : pairs[i - 1][1] + minGap;
+        pairs[i][1] = Math.max(pairs[i][1], minAllowed);
+      }
+      // backward pass
+      for (let i = pairs.length - 1; i >= 0; i--) {
+        const maxAllowed = i === pairs.length - 1 ? height - bottomPad : pairs[i + 1][1] - minGap;
+        pairs[i][1] = Math.min(pairs[i][1], maxAllowed);
+      }
+      return new Map<string, number>(pairs);
+    };
 
-    const innerW = Math.max(0, dimensions.width - margin.left - margin.right);
-    const innerH = Math.max(0, dimensions.height - margin.top - margin.bottom);
-    const xStep = maxDepth > 0 ? innerW / maxDepth : innerW;
+    const nodeMap = new Map<string, Node>();
+    const parentsOf = new Map<string, Set<string>>();
+    const links: Link[] = [];
+    const linkSet = new Set<string>();
 
-    const minPlotX = extent.minX * xStep - nodeRect.width / 2;
-    const maxPlotX = extent.maxX * xStep + nodeRect.width / 2;
-    const minPlotY = extent.minY - nodeRect.height / 2;
-    const maxPlotY = extent.maxY + nodeRect.height / 2;
+    // Root node at depth 0
+    const rootId = "(root)";
+    const rootX = leftPad + 0 * xStep;
+    nodeMap.set(rootId, { id: rootId, label: "(root)", x: rootX, y: height / 2, fx: rootX });
 
-    const plotW = Math.max(1, maxPlotX - minPlotX);
-    const plotH = Math.max(1, maxPlotY - minPlotY);
+    // Create nodes (with fixed x by ply) and record parent relationships
+    for (const line of filteredPvLines) {
+      let prevId = rootId;
+      for (let i = 0; i < line.length; i++) {
+        const san = line[i];
+        const id = `${i + 1}:${san}`;
+        if (!nodeMap.has(id)) {
+          const x = leftPad + (i + 1) * xStep;
+          nodeMap.set(id, { id, label: san, x, fx: x });
+        }
+        // parent relation
+        if (!parentsOf.has(id)) parentsOf.set(id, new Set());
+        parentsOf.get(id)!.add(prevId);
+        // links (with first-ply color)
+        const linkKey = `${prevId}->${id}`;
+        if (!linkSet.has(linkKey)) {
+          linkSet.add(linkKey);
+          const color = i === 0 ? (firstSanColor[san] || "var(--mantine-color-dark-3)") : undefined;
+          links.push({ source: prevId, target: id, color, highlightColor: color });
+        }
+        prevId = id;
+      }
+    }
 
-    const fitPadding = 16;
-    const sx = (innerW - fitPadding * 2) / plotW;
-    const sy = (innerH - fitPadding * 2) / plotH;
-    const s = Math.min(1, Math.max(0.3, Math.min(sx, sy)));
+    // Lay out by depth: first-ply anchored by evaluation (with separation), deeper plies initialized by parent average (with separation)
+    const depthToIds = new Map<number, string[]>();
+    for (const id of nodeMap.keys()) {
+      const d = getDepth(id);
+      if (!depthToIds.has(d)) depthToIds.set(d, []);
+      depthToIds.get(d)!.push(id);
+    }
 
-    const centerX = (innerW - s * (minPlotX + maxPlotX)) / 2;
-    const centerY = (innerH - s * (minPlotY + maxPlotY)) / 2;
+    const nodeHeight = 22; // approximate visual height
 
-    setScale(s);
-    setTx(centerX);
-    setTy(centerY);
-  }, [dimensions, nodes, maxDepth, extent, interacted]);
+    // Depth 1: set y from evaluation mapping, anchor with fy; apply separation
+    const depth1 = depthToIds.get(1) || [];
+    const depth1Separated = separateLayer(
+      depth1,
+      (id) => {
+        const san = id.slice(id.indexOf(":") + 1);
+        const evalVal = typeof firstSanEval[san] === "number" ? firstSanEval[san] : 50;
+        return scaleY(evalVal);
+      },
+      nodeHeight,
+    );
+    for (const [id, y] of depth1Separated.entries()) {
+      const n = nodeMap.get(id)!;
+      n.y = y;
+      n.fy = y;
+    }
 
-  // Pan/zoom handlers
-  const minScale = 0.3;
-  const maxScale = 3;
-  const isDraggingRef = useRef(false);
-  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+    // Depth >= 2: average of parent y, separated; no fy (allow force to adjust)
+    const maxDepth = Math.max(...Array.from(depthToIds.keys()));
+    for (let d = 2; d <= maxDepth; d++) {
+      const ids = depthToIds.get(d) || [];
+      const separated = separateLayer(
+        ids,
+        (id) => {
+          const parents = Array.from(parentsOf.get(id) || []);
+          const parentYs = parents.map((pid) => nodeMap.get(pid)?.y).filter((v): v is number => typeof v === "number");
+          const avg = parentYs.length > 0 ? parentYs.reduce((a, b) => a + b, 0) / parentYs.length : height / 2;
+          return avg;
+        },
+        nodeHeight,
+      );
+      for (const [id, y] of separated.entries()) {
+        const n = nodeMap.get(id)!;
+        n.y = y;
+      }
+    }
 
-  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    if (!dimensions) return;
-    e.preventDefault();
-    setInteracted(true);
-    const delta = -e.deltaY;
-    const factor = delta > 0 ? 1.1 : 0.9;
-    const newScale = Math.min(maxScale, Math.max(minScale, scale * factor));
+    return { nodes: Array.from(nodeMap.values()), links } as { nodes: Node[]; links: Link[] };
+  }, [filteredPvLines, dimensions, firstSanColor, firstSanEval]);
 
-    // zoom towards mouse position
-    const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
-    const px = e.clientX - rect.left - margin.left;
-    const py = e.clientY - rect.top - margin.top;
+  const config = useMemo(() => {
+    return {
+      directed: true,
+      collapsible: false,
+      height: dimensions?.height ?? 300,
+      width: dimensions?.width ?? 600,
+      panAndZoom: true,
+      nodeHighlightBehavior: true,
+      linkHighlightBehavior: true,
+      staticGraph: false,
+      d3: {
+        gravity: -250,
+        linkLength: 90,
+        linkStrength: 1,
+        alphaTarget: 0.15,
+      },
+      node: {
+        color: "#343a40",
+        size: 300,
+        highlightStrokeColor: "#4dabf7",
+        fontColor: "var(--mantine-color-gray-2)",
+        labelProperty: "label",
+      },
+      link: {
+        color: "var(--mantine-color-dark-3)",
+        highlightColor: "#4dabf7",
+      },
+    } as any;
+  }, [dimensions]);
 
-    const dx = (px - tx) / scale;
-    const dy = (py - ty) / scale;
-
-    setScale(newScale);
-    setTx(px - dx * newScale);
-    setTy(py - dy * newScale);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    setInteracted(true);
-    isDraggingRef.current = true;
-    const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
-    lastPosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDraggingRef.current || !lastPosRef.current) return;
-    const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const dx = x - lastPosRef.current.x;
-    const dy = y - lastPosRef.current.y;
-    lastPosRef.current = { x, y };
-    setTx((v) => v + dx);
-    setTy((v) => v + dy);
-  };
-  const endDrag = () => {
-    isDraggingRef.current = false;
-    lastPosRef.current = null;
-  };
-  const handleDoubleClick = () => {
-    setInteracted(false); // triggers auto-fit in effect
-  };
-
-  // Curved link path for smoother look
-  const linkPath = (
-    sx: number,
-    sy: number,
-    txp: number,
-    typ: number,
-  ) => {
-    const mx = (sx + txp) / 2;
-    return `M${sx},${sy} C${mx},${sy} ${mx},${typ} ${txp},${typ}`;
-  };
+  const sliderMax = Math.max(1, rankedFirstSANs.length || 1);
+  const sliderValue = Math.min(topN, sliderMax);
 
   return (
     <Box style={{ width: "100%" }}>
       <Group justify="space-between" mb="xs">
-        <Text size="sm" fw={500}>PV Lines Tree</Text>
+        <Text size="sm" fw={500}>PV Lines Graph</Text>
         <Group gap="sm" align="center" style={{ minWidth: 220 }}>
           <Text size="xs" c="dimmed">Top moves:</Text>
           <Slider
-            value={topN}
+            value={sliderValue}
             onChange={setTopN}
             min={1}
-            max={Math.max(1, rankedFirstUCIs.length || 1)}
+            max={sliderMax}
             step={1}
-            marks={[{ value: 1 }, { value: Math.max(1, rankedFirstUCIs.length || 1) }]}
+            marks={[{ value: 1 }, { value: sliderMax }]}
             style={{ width: 160 }}
           />
           <Text size="xs" c="dimmed">{topN}</Text>
@@ -305,72 +310,12 @@ function LinesTree() {
           <Box w="100%" h="100%" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Loader size="sm" />
           </Box>
-        ) : filteredPVs.length === 0 || !dimensions ? (
+        ) : filteredPvLines.length === 0 || !dimensions ? (
           <Box w="100%" h="100%" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Text size="sm" c="dimmed">No engine lines yet</Text>
           </Box>
         ) : (
-          <svg
-            width={dimensions.width}
-            height={dimensions.height}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={endDrag}
-            onMouseLeave={endDrag}
-            onDoubleClick={handleDoubleClick}
-            style={{ cursor: isDraggingRef.current ? "grabbing" : "grab" }}
-          >
-            <g transform={`translate(${margin.left},${margin.top})`}>
-              {(() => {
-                const innerW = Math.max(0, dimensions.width - margin.left - margin.right);
-                const innerH = Math.max(0, dimensions.height - margin.top - margin.bottom);
-                const xStep = maxDepth > 0 ? innerW / maxDepth : innerW;
-
-                return (
-                  <g transform={`translate(${tx},${ty}) scale(${scale})`}>
-                    {/* Links */}
-                    {links.map((l: HierarchyPointLink<TreeNode>, i: number) => {
-                      const sx = (l.source as HierarchyPointNode<TreeNode>).depth * xStep;
-                      const sy = (l.source as HierarchyPointNode<TreeNode>).x;
-                      const txp = (l.target as HierarchyPointNode<TreeNode>).depth * xStep;
-                      const typ = (l.target as HierarchyPointNode<TreeNode>).x;
-                      return (
-                        <path
-                          key={`link-${i}`}
-                          d={linkPath(sx, sy, txp, typ)}
-                          fill="none"
-                          stroke="var(--mantine-color-dark-3)"
-                          strokeWidth={1}
-                        />
-                      );
-                    })}
-                    {/* Nodes */}
-                    {nodes.map((n: HierarchyPointNode<TreeNode>, i: number) => {
-                      const nx = n.depth * xStep;
-                      const ny = n.x;
-                      return (
-                        <g key={`node-${i}`} transform={`translate(${nx},${ny})`}>
-                          <rect
-                            rx={4}
-                            width={nodeRect.width}
-                            height={nodeRect.height}
-                            x={-nodeRect.width / 2}
-                            y={-nodeRect.height / 2}
-                            fill="var(--mantine-color-dark-6)"
-                            stroke="var(--mantine-color-dark-3)"
-                          />
-                          <text dy={4} textAnchor="middle" fontSize={11} fill="var(--mantine-color-gray-2)">
-                            {n.data.name}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </g>
-                );
-              })()}
-            </g>
-          </svg>
+          <Graph id="pv-lines-graph" data={graphData as any} config={config} />
         )}
       </Box>
     </Box>
