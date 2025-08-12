@@ -57,6 +57,7 @@ import TablebaseInfo from "./TablebaseInfo";
 import UnifiedMovesTable from "./UnifiedMovesTable";
 import { formatNodes } from "@/utils/format";
 import { lastMoveEvaluationFamily } from "@/state/atoms";
+import LinesTree from "./LinesTree";
 
 function AnalysisPanel() {
   const { t } = useTranslation();
@@ -264,6 +265,11 @@ function AnalysisPanel() {
         {/* Unified moves table */}
         <Paper withBorder p="xs" style={{ minHeight: "300px" }}>
           <UnifiedMovesTable />
+        </Paper>
+
+        {/* PV Lines tree visualization */}
+        <Paper withBorder p="xs">
+          <LinesTree />
         </Paper>
       </Stack>
     </ScrollArea>
