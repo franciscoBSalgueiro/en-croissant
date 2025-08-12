@@ -179,6 +179,24 @@ export interface PlayerGameInfo {
   black_openings: [string, Results][];
 }
 
+function sanitizeFenForSearch(fen: string): string {
+  try {
+    const parts = fen.trim().split(/\s+/);
+    if (parts.length >= 4) {
+      // Always drop en-passant target to avoid INVALID_EP_SQUARE in backend
+      parts[3] = "-";
+      // Ensure standard 6 fields if missing
+      if (parts.length === 4) {
+        parts.push("0", "1");
+      }
+      return parts.join(" ");
+    }
+    return fen;
+  } catch {
+    return fen;
+  }
+}
+
 export async function searchPosition(options: LocalOptions, tab: string) {
   const res = await commands.searchPosition(
     options.path!,
@@ -186,7 +204,7 @@ export async function searchPosition(options: LocalOptions, tab: string) {
       player1: options.color === "white" ? options.player : undefined,
       player2: options.color === "black" ? options.player : undefined,
       position: {
-        fen: options.fen,
+        fen: sanitizeFenForSearch(options.fen),
         type_: options.type,
       },
       start_date: options.start_date,

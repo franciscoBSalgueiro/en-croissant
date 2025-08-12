@@ -117,12 +117,10 @@ export type OpponentSettings =
     };
 
 function OpponentForm({
-  sameTimeControl,
   opponent,
   setOpponent,
   setOtherOpponent,
 }: {
-  sameTimeControl: boolean;
   opponent: OpponentSettings;
   setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
   setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
@@ -132,7 +130,10 @@ function OpponentForm({
       setOpponent((prev) => ({
         ...prev,
         type: "human",
+        // fixed name for humans
         name: "Player",
+        // time settings removed; unlimited by default
+        timeControl: undefined,
       }));
     } else {
       setOpponent((prev) => ({
@@ -141,8 +142,9 @@ function OpponentForm({
         engine: null,
         go: {
           t: "Depth",
-          c: 24,
+          c: 10,
         },
+        timeControl: undefined,
       }));
     }
   }
@@ -158,16 +160,6 @@ function OpponentForm({
         onChange={(v) => updateType(v as "human" | "engine")}
       />
 
-      {opponent.type === "human" && (
-        <TextInput
-          label="Name"
-          value={opponent.name ?? ""}
-          onChange={(e) =>
-            setOpponent((prev) => ({ ...prev, name: e.target.value }))
-          }
-        />
-      )}
-
       {opponent.type === "engine" && (
         <EnginesSelect
           engine={opponent.engine}
@@ -175,77 +167,7 @@ function OpponentForm({
         />
       )}
 
-      <Divider variant="dashed" label="Time Settings" />
-      <SegmentedControl
-        data={["Time", "Unlimited"]}
-        value={opponent.timeControl ? "Time" : "Unlimited"}
-        onChange={(v) => {
-          setOpponent((prev) => ({
-            ...prev,
-            timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
-          }));
-          if (sameTimeControl) {
-            setOtherOpponent((prev) => ({
-              ...prev,
-              timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
-            }));
-          }
-        }}
-      />
-      <Group grow wrap="nowrap">
-        {opponent.timeControl && (
-          <>
-            <InputWrapper label="Time">
-              <TimeInput
-                defaultType="m"
-                value={opponent.timeControl.seconds}
-                setValue={(v) => {
-                  setOpponent((prev) => ({
-                    ...prev,
-                    timeControl: {
-                      seconds: v.t === "Time" ? v.c : 0,
-                      increment: prev.timeControl?.increment ?? 0,
-                    },
-                  }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({
-                      ...prev,
-                      timeControl: {
-                        seconds: v.t === "Time" ? v.c : 0,
-                        increment: prev.timeControl?.increment ?? 0,
-                      },
-                    }));
-                  }
-                }}
-              />
-            </InputWrapper>
-            <InputWrapper label="Increment">
-              <TimeInput
-                defaultType="s"
-                value={opponent.timeControl.increment ?? 0}
-                setValue={(v) => {
-                  setOpponent((prev) => ({
-                    ...prev,
-                    timeControl: {
-                      seconds: prev.timeControl?.seconds ?? 0,
-                      increment: v.t === "Time" ? v.c : 0,
-                    },
-                  }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({
-                      ...prev,
-                      timeControl: {
-                        seconds: prev.timeControl?.seconds ?? 0,
-                        increment: v.t === "Time" ? v.c : 0,
-                      },
-                    }));
-                  }
-                }}
-              />
-            </InputWrapper>
-          </>
-        )}
-      </Group>
+      {/* Time Settings removed to simplify to running clock */}
 
       {opponent.type === "engine" && (
         <Stack>
@@ -324,25 +246,15 @@ interface PlayingLayoutState {
 
 const playingLayoutAtom = atomWithStorage<PlayingLayoutState>("playingLayoutState", {
   currentNode: {
-    direction: "column",
-    first: {
-      direction: "row",
-      first: "leftPlayer",
-      second: {
-        direction: "row",
-        first: "centerBoard",
-        second: "rightPlayer",
-        splitPercentage: 72,
-      },
-      splitPercentage: 22,
-    },
+    direction: "row",
+    first: "leftPlayer",
     second: {
       direction: "row",
-      first: "linesTree",
-      second: "unifiedMoves",
-      splitPercentage: 58,
+      first: "centerBoard",
+      second: "rightPlayer",
+      splitPercentage: 72,
     },
-    splitPercentage: 76,
+    splitPercentage: 22,
   },
 });
 
@@ -367,12 +279,12 @@ function BoardGame() {
   const [player1Settings, setPlayer1Settings] = useState<OpponentSettings>({
     type: "human",
     name: "Player",
-    timeControl: DEFAULT_TIME_CONTROL,
+    timeControl: undefined,
   });
   const [player2Settings, setPlayer2Settings] = useState<OpponentSettings>({
     type: "human",
     name: "Player",
-    timeControl: DEFAULT_TIME_CONTROL,
+    timeControl: undefined,
   });
 
   function getPlayers() {
@@ -436,17 +348,7 @@ function BoardGame() {
           currentTurn,
           player.engine.path,
           activeTab + currentTurn,
-          player.timeControl
-            ? {
-                t: "PlayersTime",
-                c: {
-                  white: whiteTime ?? 0,
-                  black: blackTime ?? 0,
-                  winc: player.timeControl.increment ?? 0,
-                  binc: player.timeControl.increment ?? 0,
-                },
-              }
-            : player.go,
+          player.go,
           {
             fen: root.fen,
             moves: moves,
@@ -513,13 +415,29 @@ function BoardGame() {
     return "none";
   }, [players]);
 
-  const [sameTimeControl, setSameTimeControl] = useState(true);
+  // Removed same time control option entirely
   const [enableAnalysisOnStart, setEnableAnalysisOnStart] = useState(autoStartAnalysis);
 
   // Update local state when global setting changes
   useEffect(() => {
     setEnableAnalysisOnStart(autoStartAnalysis);
   }, [autoStartAnalysis]);
+
+  // Auto-start with default Human vs Human, unlimited time on new or play tabs
+  useEffect(() => {
+    if (gameState !== "settingUp") return;
+    if (currentTab?.type === "new") {
+      startGame();
+      // Flip tab type to play so subsequent logic treats it as a playing tab
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.value === activeTab ? { ...tab, type: "play" } : tab,
+        ),
+      );
+    } else if (currentTab?.type === "play") {
+      startGame();
+    }
+  }, [currentTab?.type, gameState, setTabs, activeTab]);
 
   const [intervalId, setIntervalId] = useState<ReturnType<
     typeof setInterval
@@ -532,35 +450,33 @@ function BoardGame() {
     }
   }, [pos?.turn]);
 
-  useEffect(() => {
-    if (gameState === "playing" && whiteTime !== null && whiteTime <= 0) {
-      setGameState("gameOver");
-      setResult("0-1");
-    }
-  }, [gameState, whiteTime, setGameState, setResult]);
+  // Removed game-over by timeout checks; clocks now count up
 
   useEffect(() => {
-    if (gameState !== "playing") {
+    if (gameState !== "playing") return;
+    // Wait until both players are initialized to avoid placeholder header thrash
+    if (!players?.white?.type || !players?.black?.type) return;
+    const whiteName = players.white.type === "human" ? "Player" : (players.white as any).engine?.name ?? "?";
+    const blackName = players.black.type === "human" ? "Player" : (players.black as any).engine?.name ?? "?";
+    if (headers.white === whiteName && headers.black === blackName) return;
+    setHeaders({ ...headers, white: whiteName, black: blackName });
+  }, [players, headers, gameState]);
+
+  useEffect(() => {
+    if (gameState !== "playing" || enginePaused) {
       if (intervalId) {
         clearInterval(intervalId);
         setIntervalId(null);
       }
     }
-  }, [gameState, intervalId]);
-
-  useEffect(() => {
-    if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
-      setGameState("gameOver");
-      setResult("1-0");
-    }
-  }, [gameState, blackTime, setGameState, setResult]);
+  }, [gameState, enginePaused, intervalId]);
 
   function decrementTime() {
     if (gameState === "playing") {
       if (pos?.turn === "white" && whiteTime !== null) {
-        setWhiteTime((prev) => prev! - 100);
+        setWhiteTime((prev) => prev! + 100);
       } else if (pos?.turn === "black" && blackTime !== null) {
-        setBlackTime((prev) => prev! - 100);
+        setBlackTime((prev) => prev! + 100);
       }
     }
   }
@@ -570,55 +486,19 @@ function BoardGame() {
 
     const players = getPlayers();
 
-    if (players.white.timeControl) {
-      setWhiteTime(players.white.timeControl.seconds);
-    }
-
-    if (players.black.timeControl) {
-      setBlackTime(players.black.timeControl.seconds);
-    }
+    // Initialize clocks to 0 (count-up)
+    setWhiteTime(0);
+    setBlackTime(0);
 
     setPlayers(players);
 
     const newHeaders: Partial<GameHeaders> = {
-      white:
-        (players.white.type === "human"
-          ? players.white.name
-          : players.white.engine?.name) ?? "?",
-      black:
-        (players.black.type === "human"
-          ? players.black.name
-          : players.black.engine?.name) ?? "?",
+      white: players.white.type === "human" ? "Player" : players.white.engine?.name ?? "?",
+      black: players.black.type === "human" ? "Player" : players.black.engine?.name ?? "?",
       time_control: undefined,
     };
 
-    if (players.white.timeControl || players.black.timeControl) {
-      if (sameTimeControl && players.white.timeControl) {
-        newHeaders.time_control = `${players.white.timeControl.seconds / 1000}`;
-        if (players.white.timeControl.increment) {
-          newHeaders.time_control += `+${
-            players.white.timeControl.increment / 1000
-          }`;
-        }
-      } else {
-        if (players.white.timeControl) {
-          newHeaders.white_time_control = `${players.white.timeControl.seconds / 1000}`;
-          if (players.white.timeControl.increment) {
-            newHeaders.white_time_control += `+${
-              players.white.timeControl.increment / 1000
-            }`;
-          }
-        }
-        if (players.black.timeControl) {
-          newHeaders.black_time_control = `${players.black.timeControl.seconds / 1000}`;
-          if (players.black.timeControl.increment) {
-            newHeaders.black_time_control += `+${
-              players.black.timeControl.increment / 1000
-            }`;
-          }
-        }
-      }
-    }
+    // Remove time control headers; unlimited by default
 
     setHeaders({
       ...headers,
@@ -654,25 +534,11 @@ function BoardGame() {
   }
 
   useEffect(() => {
-    if (gameState === "playing" && !intervalId) {
+    if (gameState === "playing" && !enginePaused && !intervalId) {
       const intervalId = setInterval(decrementTime, 100);
-      if (pos?.turn === "black" && whiteTime !== null) {
-        setWhiteTime(
-          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
-        );
-      }
-      if (pos?.turn === "white" && blackTime !== null) {
-        setBlackTime((prev) => {
-          if (pos?.fullmoves === 1) {
-            return prev!;
-          }
-
-          return prev! + (players.black.timeControl?.increment ?? 0);
-        });
-      }
       setIntervalId(intervalId);
     }
-  }, [gameState, intervalId, pos?.turn]);
+  }, [gameState, enginePaused, intervalId, pos?.turn]);
 
   const onePlayerIsEngine =
     (players.white.type === "engine" || players.black.type === "engine") &&
@@ -707,84 +573,22 @@ function BoardGame() {
     ),
     sidebar: (
       <Paper withBorder shadow="sm" p="md" h="100%" style={{ overflow: "hidden" }}>
-        {gameState === "settingUp" && !isAnalysisTab && (
-          <ScrollArea h="100%" offsetScrollbars>
-            <Stack>
-              <Group>
-                <Text flex={1} ta="center" fz="lg" fw="bold">
-                  {match(inputColor)
-                    .with("white", () => "White")
-                    .with("random", () => "Random")
-                    .with("black", () => "Black")
-                    .exhaustive()}
-                </Text>
-                <ActionIcon onClick={cycleColor}>
-                  <IconArrowsExchange />
-                </ActionIcon>
-                <Text flex={1} ta="center" fz="lg" fw="bold">
-                  {match(inputColor)
-                    .with("white", () => "Black")
-                    .with("random", () => "Random")
-                    .with("black", () => "White")
-                    .exhaustive()}
-                </Text>
-              </Group>
-              <Box flex={1}>
-                <Group style={{ alignItems: "start" }}>
-                  <OpponentForm
-                    sameTimeControl={sameTimeControl}
-                    opponent={player1Settings}
-                    setOpponent={setPlayer1Settings}
-                    setOtherOpponent={setPlayer2Settings}
-                  />
-                  <Divider orientation="vertical" />
-                  <OpponentForm
-                    sameTimeControl={sameTimeControl}
-                    opponent={player2Settings}
-                    setOpponent={setPlayer2Settings}
-                    setOtherOpponent={setPlayer1Settings}
-                  />
-                </Group>
-              </Box>
-
-              <Checkbox
-                label="Same time control"
-                checked={sameTimeControl}
-                onChange={(e) => setSameTimeControl(e.target.checked)}
-              />
-
-              <Checkbox
-                label="Enable analysis engines on start"
-                checked={enableAnalysisOnStart}
-                onChange={(e) => setEnableAnalysisOnStart(e.target.checked)}
-              />
-
-              <Group>
-                <Button onClick={startGame} disabled={error !== null}>
-                  Start game
-                </Button>
-              </Group>
-            </Stack>
-          </ScrollArea>
-        )}
-        {(gameState === "playing" || gameState === "gameOver" || isAnalysisTab) && (
-          <SimplifiedSidebar 
-            headers={headers} 
-            onePlayerIsEngine={onePlayerIsEngine} 
-            enginePaused={enginePaused} 
-            setEnginePaused={setEnginePaused} 
-            onNewGame={() => {
-              setGameState("settingUp");
-              setWhiteTime(null);
-              setBlackTime(null);
-              setFen(INITIAL_FEN);
-              setHeaders({
-                ...headers,
-                result: "*",
-              });
-            }} 
-          />
-        )}
+        <SimplifiedSidebar 
+          headers={headers} 
+          onePlayerIsEngine={onePlayerIsEngine} 
+          enginePaused={enginePaused} 
+          setEnginePaused={setEnginePaused} 
+          onNewGame={() => {
+            setGameState("settingUp");
+            setWhiteTime(null);
+            setBlackTime(null);
+            setFen(INITIAL_FEN);
+            setHeaders({
+              ...headers,
+              result: "*",
+            });
+          }} 
+        />
       </Paper>
     ),
   };
@@ -794,13 +598,38 @@ function BoardGame() {
     leftPlayer: (
       <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: "hidden" }}>
         <Stack gap="xs">
-          <Text size="sm" fw={600}>White</Text>
-          <Text fw={500}>{headers.white || "White"}</Text>
+          {/* <Text size="sm" fw={600}>White</Text> */}
+          {/* <Text fw={500}>{headers.white || "White"}</Text> */}
+          <Group h="2.125rem" justify="flex-end">
           <Clock
             color="white"
             turn={pos?.turn || "white"}
             whiteTime={whiteTime ?? undefined}
             blackTime={blackTime ?? undefined}
+          />
+          </Group>
+          {/* Live-edit White player settings */}
+          {/* <Divider variant="dashed" label="White Settings" /> */}
+          <OpponentForm
+            opponent={players.white}
+            setOpponent={(updater) =>
+              setPlayers((prev) => {
+                const next =
+                  typeof updater === "function"
+                    ? { ...prev, white: (updater as any)(prev.white) }
+                    : { ...prev, white: updater };
+                return next;
+              })
+            }
+            setOtherOpponent={(updater) =>
+              setPlayers((prev) => {
+                const nextOther =
+                  typeof updater === "function"
+                    ? (updater as any)(prev.black)
+                    : updater;
+                return { ...prev, black: nextOther } as any;
+              })
+            }
           />
         </Stack>
       </Paper>
@@ -824,18 +653,53 @@ function BoardGame() {
             />
           </Box>
         </Box>
+        {/* Global controls affecting both players */}
+        <Group mt="sm" gap="sm">
+          <Button
+            onClick={() => setEnginePaused((prev) => !prev)}
+            leftSection={enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />}
+            variant="default"
+          >
+            {enginePaused ? "Play" : "Pause"}
+          </Button>
+        </Group>
       </Paper>
     ),
     rightPlayer: (
       <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: "hidden" }}>
         <Stack gap="xs">
-          <Text size="sm" fw={600}>Black</Text>
-          <Text fw={500}>{headers.black || "Black"}</Text>
+          {/* <Text size="sm" fw={600}>Black</Text> */}
+          {/* <Text fw={500}>{headers.black || "Black"}</Text> */}
+          <Group h="2.125rem">
           <Clock
             color="black"
             turn={pos?.turn || "white"}
             whiteTime={whiteTime ?? undefined}
             blackTime={blackTime ?? undefined}
+          />
+          </Group>
+          {/* Live-edit Black player settings */}
+          {/* <Divider variant="dashed" label="Black Settings" /> */}
+          <OpponentForm
+            opponent={players.black}
+            setOpponent={(updater) =>
+              setPlayers((prev) => {
+                const next =
+                  typeof updater === "function"
+                    ? { ...prev, black: (updater as any)(prev.black) }
+                    : { ...prev, black: updater };
+                return next;
+              })
+            }
+            setOtherOpponent={(updater) =>
+              setPlayers((prev) => {
+                const nextOther =
+                  typeof updater === "function"
+                    ? (updater as any)(prev.white)
+                    : updater;
+                return { ...prev, white: nextOther } as any;
+              })
+            }
           />
         </Stack>
       </Paper>

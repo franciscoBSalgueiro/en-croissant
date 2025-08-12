@@ -610,14 +610,14 @@ function Board({
         >
           {materialDiff && (
             <Group ml="2.5rem" h="2.125rem">
-              {hasClock && (
+              {/* {hasClock && (
                 <Clock
                   color={orientation === "black" ? "white" : "black"}
                   turn={turn}
                   whiteTime={whiteTime}
                   blackTime={blackTime}
                 />
-              )}
+              )} */}
               <ShowMaterial
                 diff={materialDiff.diff}
                 pieces={materialDiff.pieces}
@@ -801,14 +801,14 @@ function Board({
           <Group justify="space-between" h="2.125rem">
             {materialDiff && (
               <Group ml="2.5rem">
-                {hasClock && (
+                {/* {hasClock && (
                   <Clock
                     color={orientation}
                     turn={turn}
                     whiteTime={whiteTime}
                     blackTime={blackTime}
                   />
-                )}
+                )} */}
                 <ShowMaterial
                   diff={materialDiff.diff}
                   pieces={materialDiff.pieces}

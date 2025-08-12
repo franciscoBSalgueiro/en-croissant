@@ -359,7 +359,7 @@ function LinesTree() {
     const startTurn = startPos?.turn ?? "white";
     const nodeColorForDepth = (depth: number) => {
       const isWhiteToMove = startTurn === "white" ? depth % 2 === 0 : depth % 2 !== 0;
-      return isWhiteToMove ? "var(--mantine-color-dark-2)" : "var(--mantine-color-dark-6)";
+      return isWhiteToMove ? "var(--mantine-color-dark-6)" : "var(--mantine-color-dark-2)";
     };
 
     const getDepth = (id: string) => {

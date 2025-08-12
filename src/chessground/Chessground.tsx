@@ -15,55 +15,56 @@ export function Chessground(
 
   const moveMethod = useAtomValue(moveMethodAtom);
 
+  // Initialize once with events; do not rebind on every render
   useEffect(() => {
-    if (ref?.current == null) return;
-    if (api) {
-      api.set({
-        ...props,
-        events: {
-          change: () => {
-            if (props.setBoardFen && api) {
-              props.setBoardFen(api.getFen());
-            }
-          },
-        },
-      });
-    } else {
-      const chessgroundApi = NativeChessground(ref.current, {
-        ...props,
-        addDimensionsCssVarsTo: ref.current,
-        events: {
-          change: () => {
-            if (props.setBoardFen && chessgroundApi) {
-              props.setBoardFen(chessgroundApi.getFen());
-            }
-          },
-        },
-        draggable: {
-          ...props.draggable,
-          enabled: moveMethod !== "select",
-        },
-        selectable: {
-          ...props.selectable,
-          enabled: moveMethod !== "drag",
-        },
-      });
-      setApi(chessgroundApi);
-    }
-  }, [api, props, ref]);
-
-  useEffect(() => {
-    api?.set({
+    if (!ref.current || api) return;
+    const chessgroundApi = NativeChessground(ref.current, {
       ...props,
+      addDimensionsCssVarsTo: ref.current,
       events: {
         change: () => {
-          if (props.setBoardFen && api) {
-            props.setBoardFen(api.getFen());
+          if (props.setBoardFen) {
+            props.setBoardFen(chessgroundApi.getFen());
           }
         },
       },
+      draggable: {
+        ...props.draggable,
+        enabled: moveMethod !== "select",
+      },
+      selectable: {
+        ...props.selectable,
+        enabled: moveMethod !== "drag",
+      },
     });
-  }, [api, props]);
+    setApi(chessgroundApi);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, ref, moveMethod]);
+
+  // Update dynamic config WITHOUT rebinding events to avoid triggering change loops
+  useEffect(() => {
+    if (!api) return;
+    const { setBoardFen, events: _ignored, ...rest } = props as any;
+    api.set({
+      ...rest,
+      // do not include events here; keep the original event handlers
+    } as Config);
+  }, [api, props.fen, props.orientation, props.turnColor, props.check, props.lastMove, props.movable, props.premovable, props.draggable, props.drawable, props.coordinates, props.animation]);
+
+  // Keep drag/select toggles in sync with move method
+  useEffect(() => {
+    if (!api) return;
+    api.set({
+      draggable: {
+        ...props.draggable,
+        enabled: moveMethod !== "select",
+      },
+      selectable: {
+        ...props.selectable,
+        enabled: moveMethod !== "drag",
+      },
+    } as Config);
+  }, [api, moveMethod, props.draggable, props.selectable]);
 
   const boardImage = useAtomValue(boardImageAtom);
 
