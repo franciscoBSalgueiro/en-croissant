@@ -121,7 +121,9 @@ function LinesTree() {
   const [topN, setTopN] = useState<number>(3);
   // Horizontal panning state (x-only)
   const [panX, setPanX] = useState<number>(0);
-  const [yMode, setYMode] = useState<'cp' | 'pctBest' | 'confidence'>('confidence');
+  const [yMode, setYMode] = useState<'cp' | 'pctBest' | 'confidence'>('cp');
+  const [colorMode, setColorMode] = useState<'cp' | 'pctBest' | 'confidence'>('pctBest');
+  const [labelMode, setLabelMode] = useState<'cp' | 'pctBest' | 'confidence'>('cp');
   const dragRef = useRef<{ dragging: boolean; startX: number }>({ dragging: false, startX: 0 });
 
   // Persistent graph across moves
@@ -546,16 +548,17 @@ function LinesTree() {
       );
     }
 
-    // Helper: map confidence (0..100) to red->yellow->green
-    const confidenceToColor = (c?: number) => {
-      if (typeof c !== "number") return "var(--mantine-color-dark-3)";
-      const hue = Math.max(0, Math.min(120, (c / 100) * 120)); // 0=red, 60=yellow, 120=green
-      return `hsl(${hue}, 85%, 50%)`;
-    };
-
-    const pctBestToColor = (p?: number) => {
-      if (typeof p !== "number") return "var(--mantine-color-dark-3)";
-      const hue = Math.max(0, Math.min(120, (p / 100) * 120));
+    const valueToColor = (val: number | undefined, mode: 'confidence' | 'pctBest' | 'cp') => {
+      if (mode === 'cp') {
+        if (typeof val !== 'number' || !Number.isFinite(val)) return "var(--mantine-color-dark-3)";
+        const cp = Math.max(-10, Math.min(10, val)); // pawns
+        const t = (cp + 10) / 20; // 0..1
+        const hue = Math.max(0, Math.min(120, t * 120));
+        return `hsl(${hue}, 85%, 50%)`;
+      }
+      if (typeof val !== 'number' || !Number.isFinite(val)) return "var(--mantine-color-dark-3)";
+      const t = Math.max(0, Math.min(100, val)) / 100;
+      const hue = Math.max(0, Math.min(120, t * 120));
       return `hsl(${hue}, 85%, 50%)`;
     };
 
@@ -568,13 +571,34 @@ function LinesTree() {
       const onPath = pathLinkKeys.has(key);
       const conf = typeof link.confidence === "number" ? link.confidence : undefined;
       const pctBest = typeof link.pctBest === "number" ? link.pctBest : undefined;
-      const edgeColor = pctBestToColor(pctBest);
+      // compute cp in pawns if needed
+      let cpPawns: number | undefined = undefined;
+      if (colorMode === 'cp' && link.score?.value) {
+        const [startPos] = positionFromFen(rootFen);
+        const turn = startPos?.turn ?? 'white';
+        cpPawns = normalizeScore(link.score.value, turn) / 100;
+      }
+      const edgeColor = valueToColor(
+        colorMode === 'confidence' ? conf : (colorMode === 'pctBest' ? pctBest : cpPawns),
+        colorMode,
+      );
       const maxWidth = 3;
       const strokeWidth = onPath
         ? maxWidth
         : (conf !== undefined ? Math.max(1, 0.5 + (conf / 100) * 4) : 1);
       const scoreText = link.score && link.score.value ? formatScore(link.score.value, 2) : undefined;
-      const label = `${scoreText ?? "-"} | ${conf !== undefined ? `${conf.toFixed(0)}%` : "-"} | ${pctBest !== undefined ? `${pctBest.toFixed(0)}%` : "-"}`;
+      // compute cp for label if needed (pawns)
+      let labelCpPawns: number | undefined;
+      if (labelMode === 'cp' && link.score?.value) {
+        const [startPos] = positionFromFen(rootFen);
+        const turn = startPos?.turn ?? 'white';
+        labelCpPawns = normalizeScore(link.score.value, turn) / 100;
+      }
+      const label = (() => {
+        if (labelMode === 'confidence') return conf !== undefined ? `${conf.toFixed(0)}%` : "-";
+        if (labelMode === 'pctBest') return pctBest !== undefined ? `${pctBest.toFixed(0)}%` : "-";
+        return scoreText ?? (labelCpPawns !== undefined ? `${labelCpPawns.toFixed(2)}` : "-");
+      })();
       links.push({
         source,
         target,
@@ -588,7 +612,7 @@ function LinesTree() {
     }
 
     return { nodes: Array.from(nodeMap.values()), links } as { nodes: Node[]; links: Link[] };
-  }, [dimensions?.width, dimensions?.height, version, rootFen, currentMoves.length, rankedFirstSANs.join("|"), topN, panX, yMode]);
+  }, [dimensions?.width, dimensions?.height, version, rootFen, currentMoves.length, rankedFirstSANs.join("|"), topN, panX, yMode, colorMode, labelMode]);
 
   const config = useMemo(() => {
     return {
@@ -656,12 +680,36 @@ function LinesTree() {
     <Box style={{ width: "100%" }}>
       <Group justify="space-between" mb="xs">
         <Text size="sm" fw={500}>PV Lines Graph</Text>
-        <Group gap="sm" align="center" style={{ minWidth: 420 }}>
+        <Group gap="sm" align="center" style={{ minWidth: 940 }}>
           <Text size="xs" c="dimmed">Y-axis:</Text>
           <Select
             size="xs"
             value={yMode}
             onChange={(v) => setYMode((v as any) ?? 'confidence')}
+            data={[
+              { value: 'cp', label: 'Centipawn score (-10..+10)' },
+              { value: 'pctBest', label: '%Best (0..100%)' },
+              { value: 'confidence', label: 'Move Confidence (0..100%)' },
+            ]}
+            style={{ width: 240 }}
+          />
+          <Text size="xs" c="dimmed">Edge color:</Text>
+          <Select
+            size="xs"
+            value={colorMode}
+            onChange={(v) => setColorMode((v as any) ?? 'pctBest')}
+            data={[
+              { value: 'cp', label: 'Centipawn score (-10..+10)' },
+              { value: 'pctBest', label: '%Best (0..100%)' },
+              { value: 'confidence', label: 'Move Confidence (0..100%)' },
+            ]}
+            style={{ width: 240 }}
+          />
+          <Text size="xs" c="dimmed">Edge label:</Text>
+          <Select
+            size="xs"
+            value={labelMode}
+            onChange={(v) => setLabelMode((v as any) ?? 'confidence')}
             data={[
               { value: 'cp', label: 'Centipawn score (-10..+10)' },
               { value: 'pctBest', label: '%Best (0..100%)' },
