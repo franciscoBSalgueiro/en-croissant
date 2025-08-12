@@ -70,7 +70,8 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useState, useRef, useLayoutEffect } from "react";
+import * as React from "react";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -143,6 +144,8 @@ interface ChessboardProps {
   whiteTime?: number;
   blackTime?: number;
   practicing?: boolean;
+  // NEW: if true, size strictly by container (do not cap by viewport height)
+  fitContainer?: boolean;
 }
 
 function Board({
@@ -159,6 +162,7 @@ function Board({
   whiteTime,
   blackTime,
   practicing,
+  fitContainer = false,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -562,6 +566,24 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
+  const boardContainerRef = useRef<HTMLDivElement | null>(null);
+  const [boardSize, setBoardSize] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const el = boardContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      // compute square size: min(paneHeight, paneWidth)
+      const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
+      setBoardSize(size);
+    });
+    ro.observe(el);
+    // initial
+    const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
+    setBoardSize(size);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <>
       {viewPawnStructure && (
@@ -579,7 +601,9 @@ function Board({
             gap: "0.5rem",
             flexWrap: "nowrap",
             overflow: "hidden",
-            maxWidth:
+            maxWidth: fitContainer
+              ? "100%"
+              :
               //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
               "calc(100vh - 2.5rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
           }}
@@ -605,6 +629,8 @@ function Board({
             style={{
               position: "relative",
               flexWrap: "nowrap",
+              flex: 1,
+              minHeight: 0,
             }}
             gap="sm"
           >
@@ -643,117 +669,133 @@ function Board({
                 </Box>
               )}
             </Box>
-            <Box
-              style={
-                isBasicAnnotation(currentNode.annotations[0])
-                  ? {
-                      "--light-color": lightColor,
-                      "--dark-color": darkColor,
-                    }
-                  : undefined
-              }
-              className={chessboard}
-              ref={boardRef}
-              onClick={() => {
-                eraseDrawablesOnClick && clearShapes();
-              }}
-              onWheel={(e) => {
-                if (enableBoardScroll) {
-                  if (e.deltaY > 0) {
-                    goToNext();
-                  } else {
-                    goToPrevious();
-                  }
-                }
-              }}
-            >
-              <PromotionModal
-                pendingMove={pendingMove}
-                cancelMove={() => setPendingMove(null)}
-                confirmMove={(p) => {
-                  if (pendingMove) {
-                    makeMove({
-                      from: pendingMove.from,
-                      to: pendingMove.to,
-                      promotion: p,
-                    });
-                  }
+            <Box style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Box
+                ref={boardContainerRef}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-                turn={turn}
-                orientation={orientation}
-              />
-
-              <Chessground
-                setBoardFen={setBoardFen}
-                orientation={orientation}
-                fen={currentNode.fen}
-                animation={{ enabled: !editingMode }}
-                coordinates={showCoordinates}
-                movable={{
-                  free: editingMode,
-                  color: movableColor,
-                  dests:
-                    editingMode || viewOnly
-                      ? undefined
-                      : disableVariations && currentNode.children.length > 0
-                        ? undefined
-                        : dests,
-                  showDests,
-                  events: {
-                    after(orig, dest, metadata) {
-                      if (!editingMode) {
-                        const from = parseSquare(orig)!;
-                        const to = parseSquare(dest)!;
-
-                        if (pos) {
-                          if (
-                            pos.board.get(from)?.role === "pawn" &&
-                            ((dest[1] === "8" && turn === "white") ||
-                              (dest[1] === "1" && turn === "black"))
-                          ) {
-                            if (autoPromote && !metadata.ctrlKey) {
-                              makeMove({
-                                from,
-                                to,
-                                promotion: "queen",
-                              });
-                            } else {
-                              setPendingMove({
-                                from,
-                                to,
-                              });
-                            }
-                          } else {
-                            makeMove({
-                              from,
-                              to,
-                            });
-                          }
-                        }
+              >
+                <Box
+                  className={chessboard}
+                  ref={boardRef}
+                  onClick={() => {
+                    eraseDrawablesOnClick && clearShapes();
+                  }}
+                  onWheel={(e) => {
+                    if (enableBoardScroll) {
+                      if (e.deltaY > 0) {
+                        goToNext();
+                      } else {
+                        goToPrevious();
                       }
-                    },
-                  },
-                }}
-                turnColor={turn}
-                check={pos?.isCheck()}
-                lastMove={editingMode ? undefined : lastMove}
-                premovable={{
-                  enabled: false,
-                }}
-                draggable={{
-                  enabled: !viewPawnStructure,
-                  deleteOnDropOff: editingMode,
-                }}
-                drawable={{
-                  enabled: true,
-                  visible: true,
-                  defaultSnapToValidMove: snapArrows,
-                  autoShapes: shapes,
-                  onChange: (shapes) => {
-                    setShapes(shapes);
-                  },
-                }}
-              />
+                    }
+                  }}
+                  style={{
+                    width: boardSize ? `${boardSize}px` : undefined,
+                    height: boardSize ? `${boardSize}px` : undefined,
+                    ...(isBasicAnnotation(currentNode.annotations[0])
+                      ? {
+                          "--light-color": lightColor,
+                          "--dark-color": darkColor,
+                        } as React.CSSProperties
+                      : {}),
+                  }}
+                >
+                  <PromotionModal
+                    pendingMove={pendingMove}
+                    cancelMove={() => setPendingMove(null)}
+                    confirmMove={(p) => {
+                      if (pendingMove) {
+                        makeMove({
+                          from: pendingMove.from,
+                          to: pendingMove.to,
+                          promotion: p,
+                        });
+                      }
+                    }}
+                    turn={turn}
+                    orientation={orientation}
+                  />
+
+                  <Chessground
+                    key={boardSize ?? 0}
+                    setBoardFen={setBoardFen}
+                    orientation={orientation}
+                    fen={currentNode.fen}
+                    animation={{ enabled: !editingMode }}
+                    coordinates={showCoordinates}
+                    movable={{
+                      free: editingMode,
+                      color: movableColor,
+                      dests:
+                        editingMode || viewOnly
+                          ? undefined
+                          : disableVariations && currentNode.children.length > 0
+                            ? undefined
+                            : dests,
+                      showDests,
+                      events: {
+                        after(orig, dest, metadata) {
+                          if (!editingMode) {
+                            const from = parseSquare(orig)!;
+                            const to = parseSquare(dest)!;
+
+                            if (pos) {
+                              if (
+                                pos.board.get(from)?.role === "pawn" &&
+                                ((dest[1] === "8" && turn === "white") ||
+                                  (dest[1] === "1" && turn === "black"))
+                              ) {
+                                if (autoPromote && !metadata.ctrlKey) {
+                                  makeMove({
+                                    from,
+                                    to,
+                                    promotion: "queen",
+                                  });
+                                } else {
+                                  setPendingMove({
+                                    from,
+                                    to,
+                                  });
+                                }
+                              } else {
+                                makeMove({
+                                  from,
+                                  to,
+                                });
+                              }
+                            }
+                          }
+                        },
+                      },
+                    }}
+                    turnColor={turn}
+                    check={pos?.isCheck()}
+                    lastMove={editingMode ? undefined : lastMove}
+                    premovable={{
+                      enabled: false,
+                    }}
+                    draggable={{
+                      enabled: !viewPawnStructure,
+                      deleteOnDropOff: editingMode,
+                    }}
+                    drawable={{
+                      enabled: true,
+                      visible: true,
+                      defaultSnapToValidMove: snapArrows,
+                      autoShapes: shapes,
+                      onChange: (shapes) => {
+                        setShapes(shapes);
+                      },
+                    }}
+                  />
+                </Box>
+              </Box>
             </Box>
           </Group>
           <Group justify="space-between" h="2.125rem">

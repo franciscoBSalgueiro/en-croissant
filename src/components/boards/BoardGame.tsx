@@ -63,6 +63,11 @@ import EvalListener from "./EvalListener";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
+// NEW imports for nested mosaic playing layout
+import Clock from "./Clock";
+import LinesTree from "../panels/analysis/LinesTree";
+import UnifiedMovesTable from "../panels/analysis/UnifiedMovesTable";
+
 function EnginesSelect({
   engine,
   setEngine,
@@ -300,6 +305,44 @@ const boardLayoutStateAtom = atomWithStorage<BoardLayoutState>("boardLayoutState
     first: "board",
     second: "sidebar",
     splitPercentage: 65, // Board takes 65% of width by default
+  },
+});
+
+// NEW: Nested mosaic state for playing layout
+type PlayingViewId =
+  | "top"
+  | "bottom"
+  | "leftPlayer"
+  | "centerBoard"
+  | "rightPlayer"
+  | "linesTree"
+  | "unifiedMoves";
+
+interface PlayingLayoutState {
+  currentNode: MosaicNode<PlayingViewId> | null;
+}
+
+const playingLayoutAtom = atomWithStorage<PlayingLayoutState>("playingLayoutState", {
+  currentNode: {
+    direction: "column",
+    first: {
+      direction: "row",
+      first: "leftPlayer",
+      second: {
+        direction: "row",
+        first: "centerBoard",
+        second: "rightPlayer",
+        splitPercentage: 72,
+      },
+      splitPercentage: 22,
+    },
+    second: {
+      direction: "row",
+      first: "linesTree",
+      second: "unifiedMoves",
+      splitPercentage: 58,
+    },
+    splitPercentage: 76,
   },
 });
 
@@ -637,6 +680,9 @@ function BoardGame() {
 
   const [boardLayoutState, setBoardLayoutState] = useAtom(boardLayoutStateAtom);
 
+  // NEW: nested mosaic state for playing
+  const [playingLayoutState, setPlayingLayoutState] = useAtom(playingLayoutAtom);
+
   // Define the board/sidebar layout
   const boardLayout: { [viewId in BoardViewId]: JSX.Element } = {
     board: (
@@ -743,18 +789,99 @@ function BoardGame() {
     ),
   };
 
+  // NEW: Define nested mosaic tile renderers for playing view
+  const playingTiles: { [viewId in PlayingViewId]: JSX.Element } = {
+    leftPlayer: (
+      <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: "hidden" }}>
+        <Stack gap="xs">
+          <Text size="sm" fw={600}>White</Text>
+          <Text fw={500}>{headers.white || "White"}</Text>
+          <Clock
+            color="white"
+            turn={pos?.turn || "white"}
+            whiteTime={whiteTime ?? undefined}
+            blackTime={blackTime ?? undefined}
+          />
+        </Stack>
+      </Paper>
+    ),
+    centerBoard: (
+      <Paper withBorder shadow="sm" p="md" h="100%" style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+        <Box style={{ width: "100%", flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Box style={{ height: "100%", maxWidth: "100%", aspectRatio: "1 / 1", display: "flex" }}>
+            <Board
+              dirty={false}
+              editingMode={false}
+              toggleEditingMode={() => undefined}
+              viewOnly={gameState !== "playing"}
+              disableVariations
+              boardRef={boardRef}
+              canTakeBack={onePlayerIsEngine}
+              movable={movable}
+              whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
+              blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
+              fitContainer
+            />
+          </Box>
+        </Box>
+      </Paper>
+    ),
+    rightPlayer: (
+      <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: "hidden" }}>
+        <Stack gap="xs">
+          <Text size="sm" fw={600}>Black</Text>
+          <Text fw={500}>{headers.black || "Black"}</Text>
+          <Clock
+            color="black"
+            turn={pos?.turn || "white"}
+            whiteTime={whiteTime ?? undefined}
+            blackTime={blackTime ?? undefined}
+          />
+        </Stack>
+      </Paper>
+    ),
+    linesTree: (
+      <Paper withBorder shadow="sm" p="xs" h="100%" style={{ minHeight: 300, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <Box style={{ flex: 1, minHeight: 0 }}>
+          <LinesTree />
+        </Box>
+      </Paper>
+    ),
+    unifiedMoves: (
+      <Paper withBorder shadow="sm" p="xs" h="100%" style={{ minHeight: 300, minWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <Box style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <UnifiedMovesTable />
+        </Box>
+      </Paper>
+    ),
+    // These are placeholders to satisfy the type; not used directly as root children
+    top: <Box h="100%" />,
+    bottom: <Box h="100%" />,
+  };
+
   return (
     <>
       <EvalListener />
-      {/* Resizable board/sidebar layout */}
-      <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>
-        <Mosaic<BoardViewId>
-          renderTile={(id) => boardLayout[id]}
-          value={boardLayoutState.currentNode}
-          onChange={(currentNode) => setBoardLayoutState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 20 }}
-        />
-      </Box>
+      {/* Resizable layouts */}
+      {gameState === "playing" || gameState === "gameOver" ? (
+        <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>
+          <Mosaic<PlayingViewId>
+            renderTile={(id) => playingTiles[id]}
+            value={playingLayoutState.currentNode}
+            onChange={(currentNode) => setPlayingLayoutState({ currentNode })}
+            resize={{ minimumPaneSizePercentage: 10 }}
+          />
+        </Box>
+      ) : (
+        <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>
+          <Mosaic<BoardViewId>
+            renderTile={(id) => boardLayout[id]}
+            value={boardLayoutState.currentNode}
+            onChange={(currentNode) => setBoardLayoutState({ currentNode })}
+            resize={{ minimumPaneSizePercentage: 20 }}
+          />
+        </Box>
+      )}
     </>
   );
 }

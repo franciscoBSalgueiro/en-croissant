@@ -772,12 +772,12 @@ function UnifiedMovesTable() {
   };
 
   return (
-    <Stack h="100%" gap="xs">
+    <Stack h="100%" gap="xs" style={{ minHeight: 0 }}>
       <Text size="sm" fw={500}>
         Unified Moves ({unifiedMoves.length} moves)
       </Text>
       
-      <div style={{ minHeight: 300, height: 400, width: '100%', flex: 1 }}>
+      <div style={{ height: '100%', width: '100%', flex: 1, minHeight: 300 }}>
         <AgGridReact<UnifiedMove>
           rowData={unifiedMoves}
           gridOptions={gridOptions}

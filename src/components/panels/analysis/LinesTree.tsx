@@ -741,7 +741,7 @@ function LinesTree() {
   };
 
   return (
-    <Box style={{ width: "100%" }}>
+    <Box style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
       <Group justify="space-between" mb="xs">
         <Text size="sm" fw={500}>PV Lines Graph</Text>
         <Group gap="sm" align="center" style={{ minWidth: 940 }}>
@@ -801,7 +801,7 @@ function LinesTree() {
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerLeave={endDrag}
-        style={{ width: "100%", height: "30vh", borderRadius: 8, border: "1px solid var(--mantine-color-dark-4)", position: "relative", touchAction: "pan-x", cursor: "grab" }}
+        style={{ width: "100%", flex: 1, minHeight: 0, borderRadius: 8, border: "1px solid var(--mantine-color-dark-4)", position: "relative", touchAction: "pan-x", cursor: "grab" }}
       >
         {!dimensions ? (
           <Box w="100%" h="100%" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
