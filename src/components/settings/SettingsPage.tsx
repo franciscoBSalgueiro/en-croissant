@@ -2,6 +2,7 @@ import {
   arrowColorModeAtom,
   autoPromoteAtom,
   autoSaveAtom,
+  autoStartAnalysisAtom,
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
@@ -157,23 +158,27 @@ export default function Page() {
                     {t("Settings.ArrowColorMode.Desc")}
                   </Text>
                 </div>
-                <Select
-                  data={[
-                    {
-                      label: t("Settings.ArrowColorMode.Engine"),
-                      value: "engine",
-                    },
-                    {
-                      label: t("Settings.ArrowColorMode.Quality"),
-                      value: "quality",
-                    },
-                  ]}
-                  allowDeselect={false}
-                  value={arrowColorMode}
-                  onChange={(val) =>
-                    setArrowColorMode(val as "engine" | "quality")
-                  }
-                />
+                                  <Select
+                    data={[
+                      {
+                        label: t("Settings.ArrowColorMode.Engine"),
+                        value: "engine",
+                      },
+                      {
+                        label: t("Settings.ArrowColorMode.Quality"),
+                        value: "quality",
+                      },
+                      {
+                        label: "PctBest",
+                        value: "pctBest",
+                      },
+                    ]}
+                    allowDeselect={false}
+                    value={arrowColorMode}
+                    onChange={(val) =>
+                      setArrowColorMode(val as "engine" | "quality" | "pctBest")
+                    }
+                  />
               </Group>
               <Group
                 justify="space-between"
@@ -375,6 +380,20 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={spellCheckAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>Auto-start analysis engines</Text>
+                  <Text size="xs" c="dimmed">
+                    Automatically enable analysis engines when starting a new game
+                  </Text>
+                </div>
+                <SettingsSwitch atom={autoStartAnalysisAtom} />
               </Group>
             </Tabs.Panel>
             <Tabs.Panel value="report">

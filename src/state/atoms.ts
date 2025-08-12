@@ -152,10 +152,10 @@ export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
   "show-consecutive-arrows",
   false,
 );
-export const arrowColorModeAtom = atomWithStorage<"engine" | "quality">(
+export const arrowColorModeAtom = atomWithStorage<"engine" | "quality" | "pctBest">(
   "arrow-color-mode",
   "engine",
-  createZodStorage(z.enum(["engine", "quality"]), localStorage),
+  createZodStorage(z.enum(["engine", "quality", "pctBest"]), localStorage),
 );
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
   "erase-drawables-on-click",
@@ -163,6 +163,7 @@ export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
 );
 export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
+export const autoStartAnalysisAtom = atomWithStorage<boolean>("auto-start-analysis", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>(
   "preview-board-on-hover",
   true,

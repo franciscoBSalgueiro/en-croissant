@@ -1,6 +1,7 @@
 import { events, type GoMode, commands } from "@/bindings";
 import {
   activeTabAtom,
+  autoStartAnalysisAtom,
   currentEnginePausedAtom,
   currentGameStateAtom,
   currentPlayersAtom,
@@ -355,6 +356,8 @@ function BoardGame() {
   const boardRef = useRef(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
+  const autoStartAnalysis = useAtomValue(autoStartAnalysisAtom);
+  const [, enableAnalysisEngines] = useAtom(enableAllAtom);
 
   // Unified mode: no switching to a separate analysis tab type
   const mainLine = Array.from(treeIteratorMainLine(root));
@@ -468,6 +471,12 @@ function BoardGame() {
   }, [players]);
 
   const [sameTimeControl, setSameTimeControl] = useState(true);
+  const [enableAnalysisOnStart, setEnableAnalysisOnStart] = useState(autoStartAnalysis);
+
+  // Update local state when global setting changes
+  useEffect(() => {
+    setEnableAnalysisOnStart(autoStartAnalysis);
+  }, [autoStartAnalysis]);
 
   const [intervalId, setIntervalId] = useState<ReturnType<
     typeof setInterval
@@ -594,6 +603,11 @@ function BoardGame() {
           : tab;
       }),
     );
+
+    // Auto-start analysis engines if setting is enabled
+    if (enableAnalysisOnStart) {
+      enableAnalysisEngines(true);
+    }
   }
 
   useEffect(() => {
@@ -691,6 +705,12 @@ function BoardGame() {
                 label="Same time control"
                 checked={sameTimeControl}
                 onChange={(e) => setSameTimeControl(e.target.checked)}
+              />
+
+              <Checkbox
+                label="Enable analysis engines on start"
+                checked={enableAnalysisOnStart}
+                onChange={(e) => setEnableAnalysisOnStart(e.target.checked)}
               />
 
               <Group>

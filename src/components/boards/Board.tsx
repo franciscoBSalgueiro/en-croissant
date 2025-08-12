@@ -3,7 +3,6 @@ import {
   arrowColorModeAtom,
   autoPromoteAtom,
   autoSaveAtom,
-  bestMovesFamily,
   currentEvalOpenAtom,
   currentTabAtom,
   deckAtomFamily,
@@ -17,6 +16,7 @@ import {
   showDestsAtom,
   snapArrowsAtom,
 } from "@/state/atoms";
+import { unifiedBoardArrowsFamily } from "@/state/unifiedMoves";
 import { keyMapAtom } from "@/state/keybinds";
 import { chessboard } from "@/styles/Chessboard.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
@@ -94,6 +94,13 @@ const SMALL_BRUSH = 4;
 // Memoized color calculation for performance
 const qualityColorCache = new Map<string, string>();
 
+function pctBestToColor(pctBest: number, isMainLine: boolean): string {
+  const v = Math.max(0, Math.min(100, pctBest));
+  if (v >= 66) return isMainLine ? "green" : "paleGreen";
+  if (v >= 33) return "yellow";
+  return isMainLine ? "red" : "paleRed";
+}
+
 function getQualityColor(winChance: number, isMainLine: boolean): string {
   const cacheKey = `${Math.round(winChance * 10) / 10}-${isMainLine}`;
   if (qualityColorCache.has(cacheKey)) {
@@ -168,11 +175,13 @@ function Board({
   const currentNode = useStore(store, (s) => s.currentNode());
 
   const arrows = useAtomValue(
-    bestMovesFamily({
+    unifiedBoardArrowsFamily({
       fen: rootFen,
       gameMoves: moves,
     }),
   );
+  // Type guard for Map iteration
+  const arrowsMap: Map<number, { pv: string[]; winChance: number }[]> = arrows as any;
 
   const goToNext = useStore(store, (s) => s.goToNext);
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
@@ -296,15 +305,22 @@ function Board({
   }
 
   let shapes: DrawShape[] = [];
-  if (showArrows && evalOpen && arrows.size > 0 && pos) {
+  if (showArrows && evalOpen && arrowsMap.size > 0 && pos) {
     // Clear color cache periodically to prevent memory leaks
     if (arrowColorMode === "quality" && qualityColorCache.size > 100) {
       qualityColorCache.clear();
     }
-    const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
+    const entries = Array.from(arrowsMap.entries()).sort((a, b) => a[0] - b[0]);
     for (const [i, moves] of entries) {
       if (i < 4) {
         const bestWinChance = moves[0].winChance;
+        // Compute pctBest for this engine's list using dynamic spread instead of fixed +/-10
+        const minWinChance = moves.reduce((acc, m) => (m.winChance < acc ? m.winChance : acc), bestWinChance);
+        const range = Math.max(1e-3, bestWinChance - minWinChance);
+        const pctBestForMove = (w: number, isMain: boolean) => {
+          if (range < 1e-2) return isMain ? 100 : 40; // avoid all-green when lines are nearly identical
+          return 100 * Math.max(0, Math.min(1, (w - minWinChance) / range));
+        };
         for (const [j, { pv, winChance }] of moves.entries()) {
           const posClone = pos.clone();
           let prevSquare = null;
@@ -337,12 +353,11 @@ function Board({
                 !shapes.find((s) => s.orig === from && s.dest === to) &&
                 prevSquare === from
               ) {
-                const brushColor = match(arrowColorMode)
-                  .with("engine", () =>
-                    j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
-                  )
-                  .with("quality", () => getQualityColor(winChance, j === 0))
-                  .exhaustive();
+                const brushColor = arrowColorMode === "engine"
+                  ? (j === 0 ? arrowColors[i].strong : arrowColors[i].pale)
+                  : arrowColorMode === "quality"
+                    ? getQualityColor(winChance, j === 0)
+                    : pctBestToColor(pctBestForMove(winChance, j === 0), j === 0);
 
                 shapes.push({
                   orig: from,

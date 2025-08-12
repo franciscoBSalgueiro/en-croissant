@@ -1,5 +1,5 @@
 import { memo, useContext, useMemo, useRef, useState, useEffect } from "react";
-import { Box, Loader, Text, Group, Slider } from "@mantine/core";
+import { Box, Loader, Text, Group, Slider, Select } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -13,6 +13,7 @@ import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import { loadable } from "jotai/utils";
 import { Graph } from "react-d3-graph";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
+import { formatScore, normalizeScore } from "@/utils/score";
 
 // Build a merged graph from multiple engine PV lines (SAN from current position)
 function useUnifiedPVs(): {
@@ -20,6 +21,7 @@ function useUnifiedPVs(): {
   rankedFirstSANs: string[];
   firstSanColor: Record<string, string>;
   firstSanEval: Record<string, number>;
+  firstSanMeta: Record<string, { winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number }>;
   loading: boolean;
 } {
   const store = useContext(TreeStateContext)!;
@@ -41,11 +43,12 @@ function useUnifiedPVs(): {
   const loading = unifiedLoadable.state === "loading";
   const unifiedMoves = unifiedLoadable.state === "hasData" ? unifiedLoadable.data : [];
 
-  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval } = useMemo(() => {
+  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta } = useMemo(() => {
     const lines: string[][] = [];
     const firstMoveToWin: Map<string, number> = new Map();
     const firstSanColor: Record<string, string> = {};
     const firstSanEval: Record<string, number> = {};
+    const firstSanMeta: Record<string, { winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number }> = {};
 
     let bestFirstSan: string | undefined = undefined;
 
@@ -66,11 +69,25 @@ function useUnifiedPVs(): {
         // Track evaluation value per first SAN (use best seen)
         if (firstSanEval[first] === undefined || m.winChance > firstSanEval[first]) {
           firstSanEval[first] = m.winChance;
+        }
       }
-    }
       if (m.annotation) {
         const info = ANNOTATION_INFO[m.annotation as Annotation];
         if (info?.color) firstSanColor[first] = info.color as string;
+      }
+      // store meta for first move, include confidence
+      const prevMeta = firstSanMeta[first];
+      const prevConf = prevMeta?.confidence ?? -1;
+      const curConf = m.confidence ?? -1;
+             if (!prevMeta || curConf > prevConf) {
+        firstSanMeta[first] = {
+          winChance: m.winChance,
+          score: m.score,
+          engineName: m.engineName,
+          annotation: m.annotation,
+          confidence: m.confidence,
+          pctBest: (m as any).pctBest,
+        };
       }
     }
 
@@ -83,14 +100,14 @@ function useUnifiedPVs(): {
       .sort((a, b) => b[1] - a[1])
       .map(([san]) => san);
 
-    return { pvLines: lines, rankedFirstSANs, firstSanColor, firstSanEval };
+    return { pvLines: lines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta };
   }, [unifiedMoves]);
 
-  return { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, loading };
+  return { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta, loading };
 }
 
 function LinesTree() {
-  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, loading } = useUnifiedPVs();
+  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta, loading } = useUnifiedPVs();
   const store = useContext(TreeStateContext)!;
   const rootFen = useStore(store, (s) => s.root.fen);
   const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
@@ -101,17 +118,22 @@ function LinesTree() {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [topN, setTopN] = useState<number>(5);
+  const [topN, setTopN] = useState<number>(3);
+  // Horizontal panning state (x-only)
+  const [panX, setPanX] = useState<number>(0);
+  const [yMode, setYMode] = useState<'cp' | 'pctBest' | 'confidence'>('confidence');
+  const dragRef = useRef<{ dragging: boolean; startX: number }>({ dragging: false, startX: 0 });
 
   // Persistent graph across moves
   type PersistNode = { id: string; label: string; x?: number; y?: number; fx?: number; fy?: number };
-  type PersistLink = { source: string; target: string; color?: string };
+  type PersistLink = { source: string; target: string; color?: string; winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number };
   const persistentRef = useRef<{
     nodes: Map<string, PersistNode>;
     links: Map<string, PersistLink>;
     firstEval: Map<string, number>;
     firstColor: Map<string, string>;
-  }>({ nodes: new Map(), links: new Map(), firstEval: new Map(), firstColor: new Map() });
+    firstConfidence: Map<string, number>;
+  }>({ nodes: new Map(), links: new Map(), firstEval: new Map(), firstColor: new Map(), firstConfidence: new Map() });
   const [version, setVersion] = useState(0);
 
   // Merge current suggestions and path into persistent graph
@@ -128,60 +150,90 @@ function LinesTree() {
       const prev = p.firstEval.get(san);
       if (prev === undefined || v > prev) p.firstEval.set(san, v);
     }
+    // Update persistent first SAN confidence (keep max)
+    for (const [san, meta] of Object.entries(firstSanMeta)) {
+      const conf = meta.confidence;
+      if (typeof conf === "number") {
+        const prev = p.firstConfidence.get(san);
+        if (prev === undefined || conf > prev) p.firstConfidence.set(san, conf);
+      }
+    }
 
     // Compute SAN path from root for the actual moves played
     const pathSans: string[] = [];
     const [pos0] = positionFromFen(rootFen);
     if (pos0) {
+      let prevId = rootId;
       for (const uci of currentMoves) {
         const m = parseUci(uci);
         if (!m) break;
         const san = makeSan(pos0, m);
         pathSans.push(san);
+        const id = `${pathSans.length}:${san}`;
+        if (!p.nodes.has(id)) p.nodes.set(id, { id, label: san });
+        const key = `${prevId}->${id}`;
+        if (!p.links.has(key)) {
+          const color = p.firstColor.get(san);
+          p.links.set(key, { source: prevId, target: id, color });
+        }
         pos0.play(m);
+        prevId = id;
       }
     }
 
     // Add path nodes and links up to current ply
-    let prevId = rootId;
-    for (let i = 0; i < pathSans.length; i++) {
-      const san = pathSans[i];
-      const id = `${i + 1}:${san}`;
-      if (!p.nodes.has(id)) p.nodes.set(id, { id, label: san });
-      const key = `${prevId}->${id}`;
-      if (!p.links.has(key)) p.links.set(key, { source: prevId, target: id });
-      prevId = id;
-    }
+    // Already handled while building path above
 
-    // Offset depth for current suggestions and merge
     const baseDepth = pathSans.length; // absolute ply offset from root
     const parentForFirst = baseDepth === 0 ? rootId : `${baseDepth}:${pathSans[baseDepth - 1]}`;
 
-    // Respect Top-N for immediate next moves at current node
+    // Respect Top-N for immediate next moves at current node when merging (still persist only allowed first moves to reduce noise)
     const allowedFirstSet = new Set(rankedFirstSANs.slice(0, topN));
 
-    for (const line of pvLines) {
-      let parent = parentForFirst;
-      for (let i = 0; i < line.length; i++) {
-        const san = line[i];
-        if (i === 0 && allowedFirstSet.size > 0 && !allowedFirstSet.has(san)) {
-          // Skip entire branch if first move not allowed this render
-          break;
-        }
-        const depth = baseDepth + i + 1;
-        const id = `${depth}:${san}`;
-        if (!p.nodes.has(id)) p.nodes.set(id, { id, label: san });
-        const key = `${parent}->${id}`;
-        if (!p.links.has(key)) {
-          const color = i === 0 ? (firstSanColor[san] || p.firstColor.get(san)) : undefined;
-          p.links.set(key, { source: parent, target: id, color });
-        }
-        parent = id;
+    // Remove and replace only the minimal set: outgoing links from the current node to depth n+1
+    const toDelete: string[] = [];
+    for (const [key, link] of p.links.entries()) {
+      const idx = link.target.indexOf(":");
+      const targetDepth = idx > 0 ? Number.parseInt(link.target.slice(0, idx), 10) : 0;
+      if (link.source === parentForFirst && targetDepth === baseDepth + 1) {
+        toDelete.push(key);
       }
+    }
+    for (const key of toDelete) p.links.delete(key);
+
+    // Recalculate immediate future links (n+1) from current top lines; do not add deeper links here
+    const seenFirst = new Set<string>();
+    for (const line of pvLines) {
+      const san = line[0];
+      if (!san) continue;
+      if (allowedFirstSet.size > 0 && !allowedFirstSet.has(san)) continue;
+      if (seenFirst.has(san)) continue;
+      seenFirst.add(san);
+
+      const depth = baseDepth + 1;
+      const id = `${depth}:${san}`;
+      if (!p.nodes.has(id)) p.nodes.set(id, { id, label: san });
+
+      const key = `${parentForFirst}->${id}`;
+      const color = firstSanColor[san] || p.firstColor.get(san);
+      const meta = firstSanMeta[san];
+
+      p.links.set(key, {
+        source: parentForFirst,
+        target: id,
+        color,
+        winChance: meta?.winChance,
+        score: meta?.score,
+        engineName: meta?.engineName,
+        annotation: meta?.annotation,
+        // attach confidence and pctBest for sizing/labeling and color
+        confidence: meta?.confidence,
+        pctBest: meta?.pctBest,
+      } as any);
     }
 
     setVersion((v) => v + 1);
-  }, [pvLines, currentMoves, rootFen, firstSanColor, firstSanEval, rankedFirstSANs, topN]);
+  }, [pvLines, currentMoves, rootFen, firstSanColor, firstSanEval, rankedFirstSANs, topN, firstSanMeta]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -194,16 +246,55 @@ function LinesTree() {
     return () => ro.disconnect();
   }, []);
 
+  // Add CSS to prevent D3 graph dragging while allowing clicks
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Add CSS to prevent dragging on SVG elements
+    const style = document.createElement('style');
+    style.textContent = `
+      #pv-lines-graph svg {
+        pointer-events: auto !important;
+      }
+      #pv-lines-graph svg * {
+        pointer-events: none !important;
+      }
+      #pv-lines-graph svg .node {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+      }
+      #pv-lines-graph svg .link {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const graphData = useMemo(() => {
-    type Node = { id: string; label?: string; x?: number; y?: number; fx?: number; fy?: number };
-    type Link = { source: string; target: string; color?: string; highlightColor?: string; strokeWidth?: number };
+    type Node = { id: string; label?: string; x?: number; y?: number; fx?: number; fy?: number; color?: string };
+    type Link = { source: string; target: string; color?: string; highlightColor?: string; strokeWidth?: number; opacity?: number; strokeDasharray?: string; label?: string };
 
     const width = dimensions?.width ?? 600;
     const height = dimensions?.height ?? 300;
-    const leftPad = 40;
-    const rightPad = 20;
+    let leftPad = 40;
+    const rightPad = 150;
     const topPad = 20;
     const bottomPad = 20;
+    // Fixed spacing between plies
+
+    // Determine starting side to move from root FEN
+    const [startPos] = positionFromFen(rootFen);
+    const startTurn = startPos?.turn ?? "white";
+    const nodeColorForDepth = (depth: number) => {
+      const isWhiteToMove = startTurn === "white" ? depth % 2 === 0 : depth % 2 !== 0;
+      return isWhiteToMove ? "var(--mantine-color-dark-2)" : "var(--mantine-color-dark-6)";
+    };
 
     const getDepth = (id: string) => {
       const idx = id.indexOf(":");
@@ -241,10 +332,14 @@ function LinesTree() {
     };
 
     // Build adjacency by source
-    const bySource = new Map<string, Array<{ key: string; target: string; color?: string }>>();
-    for (const [key, { source, target, color }] of p.links.entries()) {
+    const bySource = new Map<string, Array<{ key: string; target: string; color?: string; winChance?: number; confidence?: number }>>();
+    for (const [key, link] of p.links.entries()) {
+      const { source, target, color } = link as any;
+      const winChance = (link as any).winChance as number | undefined;
+      const confidence = (link as any).confidence as number | undefined;
+      const pctBest = (link as any).pctBest as number | undefined;
       if (!bySource.has(source)) bySource.set(source, []);
-      bySource.get(source)!.push({ key, target, color });
+      bySource.get(source)!.push({ key, target, color, winChance, confidence, pctBest } as any);
     }
 
     // Construct SAN path and link keys for current position
@@ -274,63 +369,49 @@ function LinesTree() {
       const prevId = pathSans.length === 1 ? "(root)" : `${pathSans.length - 1}:${pathSans[pathSans.length - 2]}`;
       return `${prevId}->${lastId}`;
     })();
+    const baseDepth = pathSans.length;
 
-    // Allowed first moves for the current node
-    const allowedFirstSet = new Set(rankedFirstSANs.slice(0, topN));
-    const currentParentId = pathSans.length === 0 ? "(root)" : `${pathSans.length}:${pathSans[pathSans.length - 1]}`;
+    // Select links: always include path; for each source, keep Top-N by confidence (fallback to winChance)
+    const selectedLinkKeys = new Set<string>();
+    for (const key of pathLinkKeys) if (p.links.has(key)) selectedLinkKeys.add(key);
+    for (const [source, outs] of bySource.entries()) {
+      const sorted = outs.slice().sort((a, b) => {
+        const ac = (a as any).pctBest ?? a.confidence ?? a.winChance ?? -Infinity;
+        const bc = (b as any).pctBest ?? b.confidence ?? b.winChance ?? -Infinity;
+        return bc - ac;
+      });
+      const keep = sorted.slice(0, topN);
+      for (const l of keep) selectedLinkKeys.add(l.key);
+    }
 
-    // Build visible subgraph: include traversed path, and BFS from currentParentId respecting Top-N for depth+1
-    const includeLinkKeys = new Set<string>();
+    // Nodes visible are endpoints of selected links plus root and path nodes
     const includeNodes = new Set<string>();
-    for (const key of pathLinkKeys) { if (p.links.has(key)) includeLinkKeys.add(key); }
+    includeNodes.add("(root)");
     for (const id of pathNodes) includeNodes.add(id);
-
-    const queue: string[] = [currentParentId];
-    const visitedSources = new Set<string>();
-    while (queue.length > 0) {
-      const src = queue.shift()!;
-      if (visitedSources.has(src)) continue;
-      visitedSources.add(src);
-      const outs = bySource.get(src) || [];
-      for (const { key, target, color } of outs) {
-        const onPath = pathLinkKeys.has(key);
-        if (src === currentParentId) {
-          const targetSan = target.slice(target.indexOf(":") + 1);
-          if (!allowedFirstSet.has(targetSan) && !onPath) continue; // enforce Top-N at current frontier
-        }
-        includeLinkKeys.add(key);
-        if (!includeNodes.has(target)) {
-          includeNodes.add(target);
-          queue.push(target);
-        }
-        // also ensure the source node is included
-        includeNodes.add(src);
-      }
+    for (const key of selectedLinkKeys) {
+      const link = p.links.get(key);
+      if (!link) continue;
+      includeNodes.add(link.source);
+      includeNodes.add(link.target);
     }
 
     // Compute first-ply eval scaling among included nodes
-    const firstIds = Array.from(includeNodes).filter((id) => getDepth(id) === 1);
-    const firstSans = firstIds.map((id) => id.slice(id.indexOf(":") + 1));
-    const evalValues: number[] = firstSans
-      .map((san) => p.firstEval.get(san))
-      .filter((v): v is number => typeof v === "number");
-    const minEval = evalValues.length > 0 ? Math.min(...evalValues) : 50;
-    const maxEval = evalValues.length > 0 ? Math.max(...evalValues) : 50;
-    const innerH = Math.max(1, height - topPad - bottomPad);
-    const scaleY = (val: number) => {
-      if (maxEval === minEval) return topPad + innerH / 2;
-      const t = (val - minEval) / (maxEval - minEval);
-      return topPad + (1 - t) * innerH;
-    };
     const clampY = (y: number) => Math.max(topPad, Math.min(height - bottomPad, y));
+    const innerH = Math.max(1, height - topPad - bottomPad);
 
     // Determine max depth among included nodes for iterating plies
     const maxDepth = Math.max(0, ...Array.from(includeNodes).map((id) => getDepth(id)));
-    const plyWidth = 100; // px per ply (fixed spacing)
+
+    // Use fixed ply width and left-align, but ensure maxDepth nodes are visible
+    const plyWidth = 150;
+    const maxDepthX = leftPad + maxDepth * plyWidth + rightPad;
+    const minPanToShowMax = width - maxDepthX;
+    const adjustedPanX = Math.min(panX, minPanToShowMax);
+    leftPad = leftPad + adjustedPanX;
 
     // Prepare parents map from included links
     const parentsOf = new Map<string, Set<string>>();
-    for (const key of includeLinkKeys) {
+    for (const key of selectedLinkKeys) {
       const link = p.links.get(key);
       if (!link) continue;
       if (!parentsOf.has(link.target)) parentsOf.set(link.target, new Set());
@@ -352,96 +433,162 @@ function LinesTree() {
     {
       const id = "(root)";
       const pn = ensure(id);
-      if (pn && pn.y === undefined) {
-        pn.x = leftPad; pn.fx = leftPad;
+      // Always update X to follow panning; keep Y stable
+      pn.x = leftPad; pn.fx = leftPad;
+      if (pn.y === undefined) {
         pn.y = clampY(height / 2); pn.fy = pn.y;
       }
-      nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy });
+      const color = nodeColorForDepth(0);
+      nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy, color });
     }
 
-    // Depth 1: compute y from eval for missing only, apply separation on missing set
-    const d1Ids = (byDepth.get(1) || []);
-    const missingD1 = d1Ids.filter((id) => (p.nodes.get(id)?.y === undefined));
-    if (missingD1.length > 0) {
-      const separated = separateLayer(
-        missingD1,
+    // Helper: position nodes by selected metric mapped to graph height, then separate to avoid overlaps
+    const assignByMetric = (
+      ids: string[],
+      getConfidence: (id: string) => number,
+      getPctBest: (id: string) => number,
+      getCP: (id: string) => number,
+    ) => {
+      if (ids.length === 0) return;
+      const yMap = separateLayer(
+        ids,
         (id) => {
-          const san = id.slice(id.indexOf(":") + 1);
-          const v = p.firstEval.get(san) ?? 50;
-          return scaleY(v);
+          if (yMode === 'confidence') {
+            const raw = getConfidence(id);
+            const v = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
+            return clampY(topPad + innerH * (1 - v / 100));
+          }
+          if (yMode === 'pctBest') {
+            const raw = getPctBest(id);
+            const v = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
+            return clampY(topPad + innerH * (1 - v / 100));
+          }
+          // cp mode: map -10..+10 to 0..1 (clamped)
+          const rawCp = getCP(id);
+          const cp = Number.isFinite(rawCp) ? Math.max(-10, Math.min(10, rawCp)) : 0;
+          const t = (cp + 10) / 20; // 0..1
+          const yDesired = topPad + innerH * (1 - t);
+          return clampY(yDesired);
         },
-        nodeHeight,
+        nodeHeight + 8,
       );
-      for (const [id, y] of separated) {
+      ids.forEach((id) => {
         const pn = ensure(id);
-        const depth = 1;
-        const x = leftPad + depth * plyWidth;
+        const d = getDepth(id);
+        const x = leftPad + d * plyWidth;
         pn.x = x; pn.fx = x;
-        const cy = clampY(y);
-        pn.y = cy; pn.fy = cy;
-      }
-    }
-    // Fill nodeMap for depth 1 (use existing coords if present)
-    for (const id of d1Ids) {
-      const pn = ensure(id);
-      if (pn.x === undefined) { const x = leftPad + 1 * plyWidth; pn.x = x; pn.fx = x; }
-      if (pn.y === undefined) { pn.y = clampY(height / 2); pn.fy = pn.y; }
-      nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy });
-    }
+        const y = yMap.get(id) ?? clampY(topPad + innerH / 2);
+        pn.y = y; pn.fy = y;
+        const color = nodeColorForDepth(d);
+        nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy, color });
+      });
+    };
 
-    // Depth >= 2: for missing only, y = avg(parent y); fill nodeMap
+    // Depth 1: map by selected metric
+    const d1Ids = (byDepth.get(1) || []);
+    assignByMetric(
+      d1Ids,
+      (id) => {
+        const san = id.slice(id.indexOf(":") + 1);
+        return p.firstConfidence.get(san) ?? 0;
+      },
+      (id) => {
+        // pctBest for first layer links
+        const san = id.slice(id.indexOf(":") + 1);
+        const key = `(root)->1:${san}`;
+        const link = p.links.get(key) as any;
+        return typeof link?.pctBest === 'number' ? link.pctBest : 0;
+      },
+      (id) => {
+        // cp score from link score.value (centipawns -> /100)
+        const san = id.slice(id.indexOf(":") + 1);
+        const key = `(root)->1:${san}`;
+        const link = p.links.get(key) as any;
+        const sv = link?.score?.value;
+        if (!sv) return 0;
+        // Normalize to current side to move from root
+        const [startPos] = positionFromFen(rootFen);
+        const turn = startPos?.turn ?? 'white';
+        const cp = normalizeScore(sv, turn) / 100; // convert to pawn units
+        return cp;
+      },
+    );
+
+    // Depth >= 2: map by selected metric using max incoming per node
     for (let d = 2; d <= maxDepth; d++) {
       const ids = byDepth.get(d) || [];
-      const missing = ids.filter((id) => (p.nodes.get(id)?.y === undefined));
-      if (missing.length > 0) {
-        const separated = separateLayer(
-          missing,
-          (id) => {
-            const parents = Array.from(parentsOf.get(id) || []);
-            const parentYs = parents.map((pid) => (p.nodes.get(pid)?.y)).filter((v): v is number => typeof v === "number");
-            const avg = parentYs.length > 0 ? parentYs.reduce((a, b) => a + b, 0) / parentYs.length : height / 2;
-            return avg;
-          },
-          nodeHeight,
-        );
-        for (const [id, y] of separated) {
-          const pn = ensure(id);
-          const x = leftPad + d * plyWidth;
-          pn.x = x; pn.fx = x;
-          const cy = clampY(y);
-          pn.y = cy; pn.fy = cy;
+      const confByNode = new Map<string, number>();
+      const pctByNode = new Map<string, number>();
+      const cpByNode = new Map<string, number>();
+      for (const key of selectedLinkKeys) {
+        const link = p.links.get(key) as any;
+        if (!link) continue;
+        const tgt = link.target as string;
+        const tgtDepth = getDepth(tgt);
+        if (tgtDepth !== d) continue;
+        const conf = typeof link.confidence === 'number' ? link.confidence : (typeof link.winChance === 'number' ? link.winChance : 0);
+        confByNode.set(tgt, Math.max(conf, confByNode.get(tgt) ?? -Infinity));
+        const pct = typeof link.pctBest === 'number' ? link.pctBest : 0;
+        pctByNode.set(tgt, Math.max(pct, pctByNode.get(tgt) ?? -Infinity));
+        const sv = link?.score?.value;
+        if (sv) {
+          const [startPos] = positionFromFen(rootFen);
+          const turn = startPos?.turn ?? 'white';
+          const cp = normalizeScore(sv, turn) / 100; // pawns
+          cpByNode.set(tgt, Math.max(cp, cpByNode.get(tgt) ?? -Infinity));
         }
       }
-      for (const id of ids) {
-        const pn = ensure(id);
-        if (pn.x === undefined) { const x = leftPad + d * plyWidth; pn.x = x; pn.fx = x; }
-        if (pn.y === undefined) { pn.y = clampY(height / 2); pn.fy = pn.y; }
-        nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy });
-      }
+      assignByMetric(
+        ids,
+        (id) => confByNode.get(id) ?? 0,
+        (id) => pctByNode.get(id) ?? 0,
+        (id) => cpByNode.get(id) ?? 0,
+      );
     }
 
-    // Ensure any nodes not filled (e.g., only root) are in nodeMap
-    for (const id of includeNodes) {
-      if (!nodeMap.has(id)) {
-        const pn = ensure(id);
-        nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy });
-      }
-    }
+    // Helper: map confidence (0..100) to red->yellow->green
+    const confidenceToColor = (c?: number) => {
+      if (typeof c !== "number") return "var(--mantine-color-dark-3)";
+      const hue = Math.max(0, Math.min(120, (c / 100) * 120)); // 0=red, 60=yellow, 120=green
+      return `hsl(${hue}, 85%, 50%)`;
+    };
 
-    // Build final links from included keys with widths
+    const pctBestToColor = (p?: number) => {
+      if (typeof p !== "number") return "var(--mantine-color-dark-3)";
+      const hue = Math.max(0, Math.min(120, (p / 100) * 120));
+      return `hsl(${hue}, 85%, 50%)`;
+    };
+
+    // Build final links from selected keys with widths and confidence colors
     const links: Link[] = [];
-    for (const key of includeLinkKeys) {
-      const link = p.links.get(key);
+    for (const key of selectedLinkKeys) {
+      const link = p.links.get(key) as any;
       if (!link) continue;
-      const { source, target, color } = link;
+      const { source, target } = link;
       const onPath = pathLinkKeys.has(key);
-      const isLast = lastPathKey === key;
-      const strokeWidth = isLast ? 3 : onPath ? 2 : 1;
-      links.push({ source, target, color, highlightColor: color, strokeWidth });
+      const conf = typeof link.confidence === "number" ? link.confidence : undefined;
+      const pctBest = typeof link.pctBest === "number" ? link.pctBest : undefined;
+      const edgeColor = pctBestToColor(pctBest);
+      const maxWidth = 3;
+      const strokeWidth = onPath
+        ? maxWidth
+        : (conf !== undefined ? Math.max(1, 0.5 + (conf / 100) * 4) : 1);
+      const scoreText = link.score && link.score.value ? formatScore(link.score.value, 2) : undefined;
+      const label = `${scoreText ?? "-"} | ${conf !== undefined ? `${conf.toFixed(0)}%` : "-"} | ${pctBest !== undefined ? `${pctBest.toFixed(0)}%` : "-"}`;
+      links.push({
+        source,
+        target,
+        color: edgeColor,
+        highlightColor: edgeColor,
+        strokeWidth,
+        opacity: onPath ? 1 : 0.25,
+        strokeDasharray: onPath ? undefined : "4,3",
+        label,
+      });
     }
 
     return { nodes: Array.from(nodeMap.values()), links } as { nodes: Node[]; links: Link[] };
-  }, [dimensions, version, rootFen, currentMoves, rankedFirstSANs, topN]);
+  }, [dimensions?.width, dimensions?.height, version, rootFen, currentMoves.length, rankedFirstSANs.join("|"), topN, panX, yMode]);
 
   const config = useMemo(() => {
     return {
@@ -449,15 +596,17 @@ function LinesTree() {
       collapsible: false,
       height: dimensions?.height ?? 300,
       width: dimensions?.width ?? 600,
-      panAndZoom: true,
+      panAndZoom: false, // disable built-in pan/zoom; we implement x-only pan
       nodeHighlightBehavior: true,
       linkHighlightBehavior: true,
-      staticGraph: false,
+      staticGraph: true,
+      staticGraphWithDragAndDrop: false, // disable node dragging
       d3: {
-        gravity: -250,
-        linkLength: 90,
-        linkStrength: 1,
-        alphaTarget: 0.15,
+        gravity: 0,
+        linkLength: 70,
+        linkStrength: 0,
+        alphaTarget: 0,
+        disableLinkForce: true, // disable all forces
       },
       node: {
         color: "#343a40",
@@ -465,11 +614,20 @@ function LinesTree() {
         highlightStrokeColor: "#4dabf7",
         fontColor: "var(--mantine-color-gray-2)",
         labelProperty: "label",
+        fontSize: 14,
+        mouseCursor: "default", // prevent drag cursor
       },
       link: {
         color: "var(--mantine-color-dark-3)",
         highlightColor: "#4dabf7",
         strokeWidth: 1,
+        renderLabel: true,
+        labelProperty: "label",
+        fontColor: "var(--mantine-color-gray-4)",
+        fontSize: 10,
+        labelPosition: "mid", // supported by library to center labels
+        opacity: 0.5,
+        mouseCursor: "default", // prevent drag cursor
       },
     } as any;
   }, [dimensions]);
@@ -477,11 +635,40 @@ function LinesTree() {
   const sliderMax = Math.max(1, rankedFirstSANs.length || 1);
   const sliderValue = Math.min(topN, sliderMax);
 
+  // Pointer handlers for horizontal pan only
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragRef.current.dragging = true;
+    dragRef.current.startX = e.clientX;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current.dragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    dragRef.current.startX = e.clientX;
+    setPanX((x) => x + dx);
+  };
+  const endDrag = (e: React.PointerEvent) => {
+    dragRef.current.dragging = false;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+  };
+
   return (
     <Box style={{ width: "100%" }}>
       <Group justify="space-between" mb="xs">
         <Text size="sm" fw={500}>PV Lines Graph</Text>
-        <Group gap="sm" align="center" style={{ minWidth: 220 }}>
+        <Group gap="sm" align="center" style={{ minWidth: 420 }}>
+          <Text size="xs" c="dimmed">Y-axis:</Text>
+          <Select
+            size="xs"
+            value={yMode}
+            onChange={(v) => setYMode((v as any) ?? 'confidence')}
+            data={[
+              { value: 'cp', label: 'Centipawn score (-10..+10)' },
+              { value: 'pctBest', label: '%Best (0..100%)' },
+              { value: 'confidence', label: 'Move Confidence (0..100%)' },
+            ]}
+            style={{ width: 240 }}
+          />
           <Text size="xs" c="dimmed">Top moves:</Text>
           <Slider
             value={sliderValue}
@@ -496,17 +683,28 @@ function LinesTree() {
         </Group>
       </Group>
 
-      <Box ref={containerRef} style={{ width: "100%", height: "30vh", borderRadius: 8, border: "1px solid var(--mantine-color-dark-4)", position: "relative" }}>
-        {loading ? (
-          <Box w="100%" h="100%" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Loader size="sm" />
-          </Box>
-        ) : !dimensions ? (
+      <Box
+        ref={containerRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerLeave={endDrag}
+        style={{ width: "100%", height: "30vh", borderRadius: 8, border: "1px solid var(--mantine-color-dark-4)", position: "relative", touchAction: "pan-x", cursor: "grab" }}
+      >
+        {!dimensions ? (
           <Box w="100%" h="100%" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Text size="sm" c="dimmed">No engine lines yet</Text>
           </Box>
         ) : (
-          <Graph id="pv-lines-graph" data={graphData as any} config={config} />
+          <>
+            <Graph id="pv-lines-graph" data={graphData as any} config={config} />
+
+            {loading && (
+              <Box style={{ position: "absolute", right: 8, top: 8, pointerEvents: "none" }}>
+                <Loader size="xs" />
+              </Box>
+            )}
+          </>
         )}
       </Box>
     </Box>

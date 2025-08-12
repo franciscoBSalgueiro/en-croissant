@@ -13,6 +13,9 @@ import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { type Opening, searchPosition } from "@/utils/db";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
+import { activeTabAtom, tabEngineSettingsFamily } from "@/state/atoms";
+import { swapMove } from "@/utils/chessops";
+import { INITIAL_FEN } from "chessops/fen";
 
 // Database types
 export type DBType =
@@ -100,6 +103,12 @@ export interface UnifiedMove {
   // Combined ranking
   rank: number;
   source: "database" | "engine" | "both";
+  // Synthetic: overall confidence (0..100)
+  confidence?: number;
+  // New: percentage relative to the best confidence (0..100)
+  pctBest?: number;
+  // Whether this entry was derived from threat search context
+  isThreat?: boolean;
 }
 
 export const unifiedMovesFamily = atomFamily(
@@ -130,13 +139,21 @@ export const unifiedMovesFamily = atomFamily(
 
       // Collect engine moves for this position
       const allEngineMoves = new Map<string, BestMoves[]>();
-      const key = `${rootFen}:${moves.join(",")}`;
+      // Support threat context by preferring threat key when present
+      const [posForFinal] = positionFromFen(fen);
+      const finalFen = posForFinal ? makeFen(posForFinal.toSetup()) : INITIAL_FEN;
+      const normalKey = `${rootFen}:${moves.join(",")}`;
+      const threatKey = `${swapMove(finalFen)}:`;
+      let usedThreat = false;
       for (let i = 0; i < engines.length; i++) {
         const engine = engines[i];
         const map = get(engineMovesFamily({ engine: engine.name, tab }));
-        const movesData = map.get(key);
+        const threatData = map.get(threatKey);
+        const normalData = map.get(normalKey);
+        const movesData = threatData || normalData;
         if (movesData && movesData.length > 0) {
           allEngineMoves.set(engine.name, movesData);
+          if (threatData) usedThreat = true;
         }
       }
 
@@ -175,6 +192,7 @@ export const unifiedMovesFamily = atomFamily(
             blackPercentage,
             rank: rank++,
             source: "database",
+            isThreat: false,
           });
         }
       }
@@ -260,8 +278,10 @@ export const unifiedMovesFamily = atomFamily(
           winChance: number;
           engineName: string;
           sanMoves: string[];
+          pv: string[];
           depth: number;
           nodes: number;
+          isThreat: boolean;
         }> = [];
 
         for (const [engineName, movesData] of allEngineMoves.entries()) {
@@ -291,8 +311,10 @@ export const unifiedMovesFamily = atomFamily(
                 winChance,
                 engineName,
                 sanMoves: moveData.sanMoves || [],
+                pv: moveData.uciMoves || [],
                 depth: moveData.depth || 0,
                 nodes: moveData.nodes || 0,
+                isThreat: usedThreat,
               });
             }
           }
@@ -376,6 +398,7 @@ export const unifiedMovesFamily = atomFamily(
             existing.winDelta = winDelta;
             existing.engineName = data.engineName;
             existing.sanMoves = data.sanMoves;
+            existing.pv = data.pv;
             existing.depth = data.depth;
             existing.nodes = data.nodes;
             existing.source = "both";
@@ -383,6 +406,7 @@ export const unifiedMovesFamily = atomFamily(
             existing.isSacrifice = isSacrificeFlag;
             existing.isOnlyMove = isOnlyMoveFlag;
             existing.punishesMistake = punishesFlag;
+            existing.isThreat = data.isThreat;
           } else {
             moveMap.set(move, {
               move,
@@ -392,6 +416,7 @@ export const unifiedMovesFamily = atomFamily(
               winDelta,
               engineName: data.engineName,
               sanMoves: data.sanMoves,
+              pv: data.pv,
               depth: data.depth,
               nodes: data.nodes,
               annotation,
@@ -400,6 +425,7 @@ export const unifiedMovesFamily = atomFamily(
               punishesMistake: punishesFlag,
               rank: rank++,
               source: "engine",
+              isThreat: data.isThreat,
             });
           }
         }
@@ -420,11 +446,192 @@ export const unifiedMovesFamily = atomFamily(
         return 0;
       });
 
-      const bestIdx = sorted.findIndex((m) => m.winChance !== undefined || m.score);
-      if (bestIdx >= 0) {
-        sorted[bestIdx] = { ...sorted[bestIdx], isBest: true };
+      // Compute synthetic confidence score (0..100) per move
+      // Components:
+      //  - DB frequency % (percentage)
+      //  - Engine absolute quality (winChance)
+      //  - Engine relative advantage based on a softmax over a combined raw quality
+      const movesForConfidence = Array.from(moveMap.values());
+      const hasAnyDbData = movesForConfidence.some((m) => m.percentage !== undefined);
+      const hasAnyEngineData = movesForConfidence.some((m) => m.winChance !== undefined);
+
+      // Normalize positive win deltas relative to the max positive delta in the set
+      const positiveDeltas = movesForConfidence
+        .map((m) => (m.winDelta !== undefined ? m.winDelta : undefined))
+        .filter((v): v is number => typeof v === "number" && v > 0);
+      const maxPositiveDelta = positiveDeltas.length > 0 ? Math.max(...positiveDeltas) : 0;
+
+      // If no data at all, set confidence to 0 for all
+      const haveAnySignals = hasAnyDbData || hasAnyEngineData || maxPositiveDelta > 0;
+      let withConfidence = movesForConfidence.map((m) => ({ ...m, confidence: 0 } as UnifiedMove));
+      if (haveAnySignals) {
+        // Step 1: Build raw quality per move
+        const wWin = hasAnyEngineData ? 0.6 : 0.0;
+        const wDb = hasAnyDbData ? (hasAnyEngineData ? 0.25 : 1.0) : 0.0; // if only DB, rely entirely on DB
+        const wDelta = maxPositiveDelta > 0 ? 0.15 : 0.0;
+        const wSum = Math.max(1e-6, wWin + wDb + wDelta);
+
+        const rawMap = new Map<string, number>();
+        for (const m of movesForConfidence) {
+          const win = m.winChance ?? 0;
+          const db = m.percentage ?? 0;
+          const delta = maxPositiveDelta > 0 ? Math.max(0, m.winDelta ?? 0) / maxPositiveDelta * 100 : 0;
+          const raw = (wWin * win + wDb * db + wDelta * delta) / wSum; // 0..100
+          rawMap.set(m.move, raw);
+        }
+
+        // Step 2: Softmax over raw quality to get relative confidence distribution (0..100)
+        const raws = movesForConfidence.map((m) => rawMap.get(m.move) ?? 0);
+        const maxRaw = Math.max(...raws);
+        const tau = 5; // temperature in percentage points; lower -> sharper
+        const exps = raws.map((r) => Math.exp((r - maxRaw) / Math.max(1e-6, tau)));
+        const denom = exps.reduce((a, b) => a + b, 0) || 1;
+        const softmaxMap = new Map<string, number>();
+        movesForConfidence.forEach((m, i) => {
+          softmaxMap.set(m.move, (exps[i] / denom) * 100);
+        });
+
+        // Step 3: Mix relative confidence with absolute engine quality
+        const lambda = hasAnyEngineData ? 0.75 : 1.0; // if no engine data, rely entirely on softmax(DB)
+        const preliminaryWithConfidence = movesForConfidence.map((m) => {
+          const rel = softmaxMap.get(m.move) ?? 0;
+          const abs = m.winChance ?? 0;
+          const conf = lambda * rel + (1 - lambda) * abs;
+          return { ...m, confidence: Math.max(0, Math.min(100, conf)) } as UnifiedMove;
+        });
+
+        // Step 4: Normalize final confidence so that all moves sum to 100%
+        const sumConfidence = preliminaryWithConfidence.reduce(
+          (acc, m) => acc + (m.confidence ?? 0),
+          0,
+        );
+        const scale = sumConfidence > 1e-6 ? 100 / sumConfidence : 0;
+        withConfidence = preliminaryWithConfidence.map((m) => ({
+          ...m,
+          confidence:
+            sumConfidence > 1e-6
+              ? Math.max(0, Math.min(100, (m.confidence ?? 0) * scale))
+              : 0,
+        }));
       }
-      return sorted;
+
+      // Preserve previous sorting but attach confidence values
+      const withConfidenceSorted = sorted.map((s) => {
+        const found = withConfidence.find((m) => m.move === s.move);
+        return found ? found : s;
+      });
+
+      // Compute PctBest = (confidence / bestConfidence) * 100
+      const bestConfidence = withConfidence.reduce((acc, m) => {
+        const v = m.confidence ?? 0;
+        return v > acc ? v : acc;
+      }, 0);
+      if (bestConfidence > 0) {
+        for (let i = 0; i < withConfidenceSorted.length; i++) {
+          const m = withConfidenceSorted[i];
+          const conf = m.confidence ?? 0;
+          withConfidenceSorted[i] = {
+            ...m,
+            pctBest: Math.max(0, Math.min(100, (conf / bestConfidence) * 100)),
+          } as UnifiedMove;
+        }
+      } else {
+        for (let i = 0; i < withConfidenceSorted.length; i++) {
+          withConfidenceSorted[i] = { ...withConfidenceSorted[i], pctBest: 0 } as UnifiedMove;
+        }
+      }
+
+      const bestIdx = withConfidenceSorted.findIndex((m) => m.winChance !== undefined || m.score);
+      if (bestIdx >= 0) {
+        withConfidenceSorted[bestIdx] = { ...withConfidenceSorted[bestIdx], isBest: true };
+      }
+
+      // Debug logging (DEV only): print unified moves summary
+      if (import.meta.env.DEV) {
+        try {
+          // eslint-disable-next-line no-console
+          console.groupCollapsed(
+            `[UnifiedMoves] fen=${fen} moves=${moves.length} engines=${engines.length} threat=${usedThreat}`,
+          );
+          // eslint-disable-next-line no-console
+          console.table(
+            withConfidenceSorted.map((m) => ({
+              move: m.san || m.move,
+              winChance: typeof m.winChance === "number" ? m.winChance.toFixed(1) : undefined,
+              pctBest: typeof m.pctBest === "number" ? m.pctBest.toFixed(1) : undefined,
+              confidence: typeof m.confidence === "number" ? m.confidence.toFixed(1) : undefined,
+              total: m.total,
+              source: m.source,
+              engine: m.engineName,
+              isBest: !!m.isBest,
+              isThreat: !!m.isThreat,
+              annotation: m.annotation,
+            })),
+          );
+          // eslint-disable-next-line no-console
+          console.groupEnd();
+        } catch {}
+      }
+      return withConfidenceSorted;
     }),
   (a, b) => a.rootFen === b.rootFen && a.fen === b.fen && a.tab === b.tab && a.moves.length === b.moves.length && a.moves.every((m, i) => m === b.moves[i]),
+);
+
+// Derived arrows for board drawing, built from the same engine data (threat-aware)
+export const unifiedBoardArrowsFamily = atomFamily(
+  ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
+    atom<Map<number, { pv: string[]; winChance: number }[]>>((get) => {
+      const tab = get(activeTabAtom);
+      if (!tab) return new Map();
+      const engines = get(enginesAtom).filter((e) => e.loaded);
+
+      const bestMoves = new Map<number, { pv: string[]; winChance: number }[]>();
+      let n = 0;
+      for (const engine of engines) {
+        const engineMoves = get(engineMovesFamily({ tab, engine: engine.name }));
+        const engineSettings = get(
+          tabEngineSettingsFamily({
+            tab,
+            engineName: engine.name,
+            defaultSettings: engine.settings ?? undefined,
+            defaultGo: engine.go ?? undefined,
+          }),
+        );
+        const multiPvLimit = Number.parseInt(
+          engineSettings.settings.find((s) => s.name === "MultiPV")?.value?.toString() ?? "5",
+        );
+
+        const [pos] = positionFromFen(fen);
+        let finalFen = INITIAL_FEN;
+        if (pos) {
+          for (const move of gameMoves) {
+            const m = parseUci(move);
+            if (m) pos.play(m);
+          }
+          finalFen = makeFen(pos.toSetup());
+        }
+        const moves =
+          engineMoves.get(`${swapMove(finalFen)}:`) ||
+          engineMoves.get(`${fen}:${gameMoves.join(",")}`);
+        if (moves && moves.length > 0) {
+          const bestWinChance = getWinChance(
+            normalizeScore(moves[0].score.value, pos?.turn || "white"),
+          );
+          const effectiveMoves = moves.slice(0, Math.min(moves.length, multiPvLimit));
+          const arr = effectiveMoves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
+            const winChance = getWinChance(
+              normalizeScore(m.score.value, pos?.turn || "white"),
+            );
+            if (bestWinChance - winChance < 10) {
+              acc.push({ pv: m.uciMoves, winChance });
+            }
+            return acc;
+          }, []);
+          if (arr.length > 0) bestMoves.set(n, arr);
+        }
+        n++;
+      }
+      return bestMoves;
+    }),
+  (a, b) => a.fen === b.fen && a.gameMoves.length === b.gameMoves.length && a.gameMoves.every((m, i) => m === b.gameMoves[i]),
 ); 

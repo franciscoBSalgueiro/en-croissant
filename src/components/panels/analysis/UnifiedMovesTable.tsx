@@ -123,6 +123,24 @@ function WinChanceCellRenderer(props: any) {
   );
 }
 
+// New: Custom cell renderer for confidence
+function ConfidenceCellRenderer(props: any) {
+  const { data } = props;
+  const value: number | undefined = data.confidence;
+  const color = value !== undefined ? (value >= 80 ? "green" : value >= 50 ? "yellow" : "red") : undefined;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {value !== undefined ? (
+        <Badge size="sm" color={color} variant="light">
+          {value.toFixed(1)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
 // Custom cell renderer for Win Likelihood delta
 function WinDeltaCellRenderer(props: any) {
   const { data } = props;
@@ -429,6 +447,24 @@ function LossPercentageCellRenderer(props: any) {
   );
 }
 
+// Custom cell renderer for PctBest (confidence relative to best)
+function PctBestCellRenderer(props: any) {
+  const { data } = props;
+  const value: number | undefined = data.pctBest;
+  const color = value !== undefined ? (value >= 80 ? "green" : value >= 50 ? "yellow" : "red") : undefined;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {value !== undefined ? (
+        <Badge size="sm" color={color} variant="light">
+          {value.toFixed(1)}%
+        </Badge>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
 // Custom cell renderer for engine info
 function EngineInfoCellRenderer(props: any) {
   const { data } = props;
@@ -608,7 +644,7 @@ function UnifiedMovesTable() {
           (params.api as any).applyColumnState({
             defaultState: { sort: null },
             state: [
-              { colId: 'winChance', sort: 'desc', sortIndex: 0 },
+              { colId: 'confidence', sort: 'desc', sortIndex: 0 },
             ],
           });
         } else {
@@ -621,7 +657,7 @@ function UnifiedMovesTable() {
         }
       } else if (typeof (params.api as any).setSortModel === 'function') {
         if (currentAnalysisTab === 'engines') {
-          (params.api as any).setSortModel([{ colId: 'winChance', sort: 'desc' }]);
+          (params.api as any).setSortModel([{ colId: 'confidence', sort: 'desc' }]);
         } else {
           (params.api as any).setSortModel([{ colId: 'whitePercentage', sort: 'desc' }]);
         }
@@ -642,6 +678,21 @@ function UnifiedMovesTable() {
         width: 125,
         cellRenderer: AnnotationCellRenderer,
         sortable: false,
+      },
+      {
+        headerName: "Confidence",
+        field: "confidence",
+        width: 120,
+        cellRenderer: ConfidenceCellRenderer,
+        sortable: true,
+        sort: 'desc',
+      },
+      {
+        headerName: "PctBest",
+        field: "pctBest",
+        width: 110,
+        cellRenderer: PctBestCellRenderer,
+        sortable: true,
       },
       {
         headerName: "Eval Score",
