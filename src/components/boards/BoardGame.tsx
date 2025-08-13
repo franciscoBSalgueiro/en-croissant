@@ -148,14 +148,12 @@ function OpponentForm({
   const findMatchingBotId = () => {
     if (opponent.type === "human") return "human";
     if (opponent.engine) return undefined;
-    // match by name if present, otherwise by go/pickRank
+    // match by name if present, otherwise by strategy/pickRank
     const bot = bots.find((b) => {
       if (b.name && (opponent as any).name === b.name) return true;
-      const a = b.go as any;
-      const g = opponent.go as any;
       const rank = (opponent as any).strategy?.mode === "rank" ? (opponent as any).strategy.rank : (opponent as any).pickRank;
-      const bRank = (b as any).strategy?.mode === "rank" ? (b as any).strategy.rank : b.pickRank;
-      return a?.t === g?.t && (a?.c ?? null) === (g?.c ?? null) && (rank ?? 1) === (bRank ?? 1);
+      const bRank = (b as any).strategy?.mode === "rank" ? (b as any).strategy.rank : (b as any).pickRank;
+      return (rank ?? 1) === (bRank ?? 1);
     });
     return bot ? bot.id : undefined;
   };
@@ -187,9 +185,11 @@ function OpponentForm({
               prev.type === "engine" && prev.engine
                 ? prev.engine
                 : null,
-            go: bot.go,
             pickRank: bot.pickRank,
             strategy: strategy as any,
+            confThreshold: bot.confThreshold,
+            thinkingDelayMinMs: bot.thinkingDelayMinMs,
+            thinkingDelayMaxMs: bot.thinkingDelayMaxMs,
             timeControl: undefined,
           }));
         }
@@ -303,6 +303,7 @@ function BoardGame() {
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
+  const botTimeoutRef = useRef<number | null>(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
   const autoStartAnalysis = useAtomValue(autoStartAnalysisAtom);
@@ -354,26 +355,59 @@ function BoardGame() {
       const movesList = (unifiedLoadable.data || []) as any[];
       if (!movesList || movesList.length === 0) return;
       const strat = (player as any).strategy as any | undefined;
+      const confThreshold: number | undefined = (player as any).confThreshold;
+
+      // Optionally filter by confidence threshold, but fall back to full list if empty
+      const basePool: any[] = Array.isArray(movesList) ? movesList : [];
+      const filteredByConf =
+        typeof confThreshold === "number"
+          ? basePool.filter((m) => typeof m.confidence === "number" && m.confidence >= confThreshold)
+          : basePool;
+      const candidatePool = filteredByConf.length > 0 ? filteredByConf : basePool;
+
       let choice: any | undefined;
       if (!strat || strat.mode === "rank") {
         const rank = Math.max(1, Math.min(100, strat?.rank ?? (player as any).pickRank ?? 1));
-        choice = movesList[rank - 1] || movesList[0];
+        choice = candidatePool[rank - 1] || candidatePool[0];
+      } else if (strat.mode === "rankSet") {
+        const ranks: number[] = (strat.ranks || []).filter((r: number) => r >= 1 && r <= 100);
+        const available = ranks
+          .map((r) => candidatePool[r - 1])
+          .filter((m) => m != null);
+        choice = available.length > 0
+          ? available[Math.floor(Math.random() * available.length)]
+          : candidatePool[0];
       } else if (strat.mode === "randomTopN") {
         const topN = Math.max(1, Math.min(100, strat.topN));
-        const pool = movesList.slice(0, topN);
-        choice = pool[Math.floor(Math.random() * pool.length)] || movesList[0];
+        const pool = candidatePool.slice(0, topN);
+        choice = pool[Math.floor(Math.random() * pool.length)] || candidatePool[0];
       }
+
       const san = choice?.san || choice?.move;
       const firstUci = choice?.pv?.[0];
       if (!san && !firstUci) return;
-      const [p] = positionFromFen(lastNode.fen);
-      if (!p) return;
-      const uciMove = firstUci ? parseUci(firstUci) : null;
-      const sanMove = !uciMove && san ? parseSan(p, san) : null;
-      const finalMove = (uciMove || sanMove) as any;
-      if (!finalMove) return;
-      appendMove({ payload: finalMove });
-      setLastMove(firstUci || san || "");
+
+      // Thinking delay
+      const minMs: number = Math.max(0, Number((player as any).thinkingDelayMinMs ?? 200));
+      const maxMs: number = Math.max(minMs, Number((player as any).thinkingDelayMaxMs ?? 1200));
+      const delay = minMs + Math.floor(Math.random() * (maxMs - minMs + 1));
+      const makeBotMove = () => {
+        const [p] = positionFromFen(lastNode.fen);
+        if (!p) return;
+        const uciMove = firstUci ? parseUci(firstUci) : null;
+        const sanMove = !uciMove && san ? parseSan(p, san) : null;
+        const finalMove = (uciMove || sanMove) as any;
+        if (!finalMove) return;
+        appendMove({ payload: finalMove });
+        if (firstUci) setLastMove(firstUci);
+        botTimeoutRef.current = null;
+      };
+      if (delay > 0) {
+        if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
+        botTimeoutRef.current = window.setTimeout(makeBotMove, delay);
+      } else {
+        makeBotMove();
+      }
       return;
     }
 
@@ -403,7 +437,19 @@ function BoardGame() {
   const [blackTime, setBlackTime] = useState<number | null>(null);
 
   useEffect(() => {
+    // Clear any pending bot move when position changes
+    if (botTimeoutRef.current) {
+      clearTimeout(botTimeoutRef.current);
+      botTimeoutRef.current = null;
+    }
+  }, [lastNode.fen, pos?.turn]);
+
+  useEffect(() => {
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
+      // Only auto-play from engine events if the current player is an actual engine (not bot)
+      const currentPlayer = pos?.turn === "white" ? players.white : players.black;
+      const allowEngineAutoplay = currentPlayer?.type === "engine" && (currentPlayer as any).engine;
+      if (!allowEngineAutoplay) return;
       const ev = payload.bestLines;
       if (
         payload.progress === 100 &&
@@ -424,7 +470,7 @@ function BoardGame() {
     return () => {
       unlisten.then((f) => f());
     };
-  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
+  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime, players]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {

@@ -7,13 +7,11 @@ import type { Bot } from "@/utils/bots";
 import { Box, Button, Divider, Group, NumberInput, Paper, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
 import * as classes from "@/components/common/GenericCard.css";
 import GenericCard from "@/components/common/GenericCard";
-import AddBot from "./AddBot";
-import GoModeInput from "@/components/common/GoModeInput";
 import ConfirmModal from "@/components/common/ConfirmModal";
+import { genID } from "@/utils/tabs";
 
 export default function BotsPage() {
   const [bots, setBots] = useAtom(botsAtom);
-  const [opened, setOpened] = useState(false);
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
@@ -26,9 +24,21 @@ export default function BotsPage() {
     // noop; placeholder for future logging
   }, [bots, selected]);
 
+  function addDefaultBot() {
+    const newBot: Bot = {
+      id: genID(),
+      name: `Bot ${bots.length + 1}`,
+      strategy: { mode: "rankSet", ranks: [1, 2, 3] } as any,
+      confThreshold: 90,
+      thinkingDelayMinMs: 1000,
+      thinkingDelayMaxMs: 10000,
+    } as Bot;
+    setBots((prev) => [...prev, newBot]);
+    setSelected(bots.length);
+  }
+
   return (
     <Stack h="100%" px="lg" pb="lg">
-      <AddBot opened={opened} setOpened={setOpened} onAdd={(b: Bot) => setBots((prev) => [...prev, b])} />
       <Group align="baseline" py="sm">
         <Title>Bots</Title>
       </Group>
@@ -48,12 +58,10 @@ export default function BotsPage() {
                 />
               );
             })}
-            <Box className={classes.card} component="button" type="button" onClick={() => setOpened(true)}>
+            <Box className={classes.card} component="button" type="button" onClick={addDefaultBot}>
               <Stack gap={0} justify="center" w="100%" h="100%">
                 <Text mb={10}>Add New</Text>
-                <Box>
-                  +
-                </Box>
+                <Box>+</Box>
               </Stack>
             </Box>
           </SimpleGrid>
@@ -75,9 +83,7 @@ function BotHeader({ bot }: { bot: Bot }) {
     <Group wrap="nowrap">
       <Stack gap={0}>
         <Text fw="bold" lineClamp={1}>{bot.name}</Text>
-        <Text size="xs" c="dimmed" lineClamp={1}>
-          {bot.go.t}
-        </Text>
+        <Text size="xs" c="dimmed" lineClamp={1}></Text>
       </Stack>
     </Group>
   );
@@ -103,8 +109,6 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
         <Stack>
           <TextInput label="Name" value={bot.name} onChange={(e) => setBot({ ...bot, name: e.currentTarget.value })} />
         </Stack>
-        <Divider variant="dashed" label="Search Settings" />
-        <GoModeInput goMode={bot.go} setGoMode={(v) => setBot({ ...bot, go: v })} />
         <Divider variant="dashed" label="Move Selection Strategy" />
         <Stack>
           <SegmentedControl
@@ -115,11 +119,14 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
                 strategy:
                   v === "rank"
                     ? { mode: "rank", rank: bot.strategy?.mode === "rank" ? (bot.strategy as any).rank : (bot.pickRank ?? 1) }
+                  : v === "rankSet"
+                    ? { mode: "rankSet", ranks: [1, 2, 3] }
                     : { mode: "randomTopN", topN: bot.strategy?.mode === "randomTopN" ? (bot.strategy as any).topN : 2 },
               })
             }
             data={[
               { value: "rank", label: "Nth best" },
+              { value: "rankSet", label: "Pick from set" },
               { value: "randomTopN", label: "Random top-N" },
             ]}
           />
@@ -137,6 +144,20 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
               }
             />
           )}
+          {bot.strategy?.mode === "rankSet" && (
+            <TextInput
+              label="Pick from ranks (comma-separated)"
+              placeholder="e.g. 1,2,3"
+              value={(bot.strategy as any).ranks?.join(",")}
+              onChange={(e) => {
+                const parts = e.currentTarget.value
+                  .split(",")
+                  .map((s) => Number(s.trim()))
+                  .filter((n) => Number.isFinite(n) && n >= 1 && n <= 100);
+                setBot({ ...bot, strategy: { mode: "rankSet", ranks: parts.length > 0 ? parts : [1] } });
+              }}
+            />
+          )}
           {bot.strategy?.mode === "randomTopN" && (
             <NumberInput
               label="Top-N"
@@ -151,6 +172,32 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
               }
             />
           )}
+          <Divider variant="dashed" label="Confidence override (optional)" />
+          <NumberInput
+            label="Confidence threshold %"
+            min={0}
+            max={100}
+            value={bot.confThreshold ?? undefined}
+            placeholder="Disabled"
+            onChange={(v) => setBot({ ...bot, confThreshold: typeof v === "number" ? v : undefined })}
+          />
+          <Divider variant="dashed" label="Thinking delay (ms)" />
+          <Group grow>
+            <NumberInput
+              label="Min"
+              min={0}
+              max={60000}
+              value={bot.thinkingDelayMinMs ?? 200}
+              onChange={(v) => setBot({ ...bot, thinkingDelayMinMs: typeof v === "number" ? v : 200 })}
+            />
+            <NumberInput
+              label="Max"
+              min={0}
+              max={60000}
+              value={bot.thinkingDelayMaxMs ?? 1200}
+              onChange={(v) => setBot({ ...bot, thinkingDelayMaxMs: typeof v === "number" ? v : 1200 })}
+            />
+          </Group>
         </Stack>
         <Group justify="end">
           <Button color="red" onClick={() => setDeleteModalOpen(true)}>
