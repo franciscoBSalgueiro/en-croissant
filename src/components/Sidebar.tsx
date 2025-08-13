@@ -7,6 +7,7 @@ import {
   IconFiles,
   IconSettings,
   IconUser,
+  IconRobot,
 } from "@tabler/icons-react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import cx from "clsx";
@@ -46,6 +47,7 @@ const linksdata = [
     url: "/databases",
   },
   { icon: IconCpu, label: "Engines", url: "/engines" },
+  { icon: IconRobot, label: "Bots", url: "/bots" },
 ];
 
 export function SideBar() {

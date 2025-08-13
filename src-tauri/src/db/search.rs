@@ -269,7 +269,7 @@ pub async fn search_position(
             processed.fetch_add(1, Ordering::Relaxed);
             let index = processed.load(Ordering::Relaxed);
             if (index + 1) % 10000 == 0 {
-                info!("{} games processed: {:?}", index + 1, start.elapsed());
+                // info!("{} games processed: {:?}", index + 1, start.elapsed());
                 app.emit(
                     "search_progress",
                     ProgressPayload {

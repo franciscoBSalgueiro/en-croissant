@@ -446,72 +446,26 @@ export const unifiedMovesFamily = atomFamily(
         return 0;
       });
 
-      // Compute synthetic confidence score (0..100) per move
-      // Components:
-      //  - DB frequency % (percentage)
-      //  - Engine absolute quality (winChance)
-      //  - Engine relative advantage based on a softmax over a combined raw quality
+      // Compute confidence as a distribution derived solely from centipawn scores (0..100%)
       const movesForConfidence = Array.from(moveMap.values());
-      const hasAnyDbData = movesForConfidence.some((m) => m.percentage !== undefined);
-      const hasAnyEngineData = movesForConfidence.some((m) => m.winChance !== undefined);
-
-      // Normalize positive win deltas relative to the max positive delta in the set
-      const positiveDeltas = movesForConfidence
-        .map((m) => (m.winDelta !== undefined ? m.winDelta : undefined))
-        .filter((v): v is number => typeof v === "number" && v > 0);
-      const maxPositiveDelta = positiveDeltas.length > 0 ? Math.max(...positiveDeltas) : 0;
-
-      // If no data at all, set confidence to 0 for all
-      const haveAnySignals = hasAnyDbData || hasAnyEngineData || maxPositiveDelta > 0;
+      // Collect normalized centipawn scores for side to move
+      const cpList = movesForConfidence
+        .map((m) => (m.score ? normalizeScore(m.score.value, currentTurn) : undefined))
+        .filter((v): v is number => typeof v === "number");
       let withConfidence = movesForConfidence.map((m) => ({ ...m, confidence: 0 } as UnifiedMove));
-      if (haveAnySignals) {
-        // Step 1: Build raw quality per move
-        const wWin = hasAnyEngineData ? 0.6 : 0.0;
-        const wDb = hasAnyDbData ? (hasAnyEngineData ? 0.25 : 1.0) : 0.0; // if only DB, rely entirely on DB
-        const wDelta = maxPositiveDelta > 0 ? 0.15 : 0.0;
-        const wSum = Math.max(1e-6, wWin + wDb + wDelta);
 
-        const rawMap = new Map<string, number>();
-        for (const m of movesForConfidence) {
-          const win = m.winChance ?? 0;
-          const db = m.percentage ?? 0;
-          const delta = maxPositiveDelta > 0 ? Math.max(0, m.winDelta ?? 0) / maxPositiveDelta * 100 : 0;
-          const raw = (wWin * win + wDb * db + wDelta * delta) / wSum; // 0..100
-          rawMap.set(m.move, raw);
-        }
-
-        // Step 2: Softmax over raw quality to get relative confidence distribution (0..100)
-        const raws = movesForConfidence.map((m) => rawMap.get(m.move) ?? 0);
-        const maxRaw = Math.max(...raws);
-        const tau = 5; // temperature in percentage points; lower -> sharper
-        const exps = raws.map((r) => Math.exp((r - maxRaw) / Math.max(1e-6, tau)));
+      if (cpList.length > 0) {
+        const maxCp = Math.max(...cpList);
+        const tauCp = 100; // temperature in centipawns; lower -> sharper distribution
+        const exps = movesForConfidence.map((m) => {
+          if (!m.score) return 0;
+          const cp = normalizeScore(m.score.value, currentTurn);
+          return Math.exp((cp - maxCp) / Math.max(1e-6, tauCp));
+        });
         const denom = exps.reduce((a, b) => a + b, 0) || 1;
-        const softmaxMap = new Map<string, number>();
-        movesForConfidence.forEach((m, i) => {
-          softmaxMap.set(m.move, (exps[i] / denom) * 100);
-        });
-
-        // Step 3: Mix relative confidence with absolute engine quality
-        const lambda = hasAnyEngineData ? 0.75 : 1.0; // if no engine data, rely entirely on softmax(DB)
-        const preliminaryWithConfidence = movesForConfidence.map((m) => {
-          const rel = softmaxMap.get(m.move) ?? 0;
-          const abs = m.winChance ?? 0;
-          const conf = lambda * rel + (1 - lambda) * abs;
-          return { ...m, confidence: Math.max(0, Math.min(100, conf)) } as UnifiedMove;
-        });
-
-        // Step 4: Normalize final confidence so that all moves sum to 100%
-        const sumConfidence = preliminaryWithConfidence.reduce(
-          (acc, m) => acc + (m.confidence ?? 0),
-          0,
-        );
-        const scale = sumConfidence > 1e-6 ? 100 / sumConfidence : 0;
-        withConfidence = preliminaryWithConfidence.map((m) => ({
+        withConfidence = movesForConfidence.map((m, i) => ({
           ...m,
-          confidence:
-            sumConfidence > 1e-6
-              ? Math.max(0, Math.min(100, (m.confidence ?? 0) * scale))
-              : 0,
+          confidence: denom > 0 ? (exps[i] / denom) * 100 : 0,
         }));
       }
 

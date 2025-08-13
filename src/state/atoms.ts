@@ -1,4 +1,6 @@
 import type { DatabaseInfo, GoMode } from "@/bindings";
+import type { Bot } from "@/utils/bots";
+import { botSchema } from "@/utils/bots";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import {
@@ -57,6 +59,14 @@ export const enginesAtom = atomWithStorage<Engine[]>(
   "engines",
   [],
   createZodStorage(zodArray(engineSchema), localStorage),
+  { getOnInit: true },
+);
+
+// Bots
+export const botsAtom = atomWithStorage<Bot[]>(
+  "bots",
+  [],
+  createZodStorage(z.array(botSchema), localStorage),
   { getOnInit: true },
 );
 

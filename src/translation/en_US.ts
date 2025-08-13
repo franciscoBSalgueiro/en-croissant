@@ -119,6 +119,14 @@ export const en_US = {
     "SideBar.Databases": "Databases",
     "SideBar.Engines": "Engines",
     "SideBar.Settings": "Settings",
+    "SideBar.Bots": "Bots",
+
+    "Bots.Title": "Your Bots",
+    "Bots.Settings.NoBot": "No bot selected",
+    "Bots.Settings.GeneralSettings": "General settings",
+    "Bots.Settings.SearchSettings": "Search settings",
+    "Bots.Remove.Title": "Remove Bot",
+    "Bots.Remove.Message": "Are you sure you want to remove this bot?",
 
     "Tab.NewTab": "New Tab",
 

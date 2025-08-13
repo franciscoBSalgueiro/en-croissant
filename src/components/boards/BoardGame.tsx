@@ -11,6 +11,7 @@ import {
   allEnabledAtom,
   enableAllAtom,
   currentTabAtom,
+  botsAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -54,7 +55,7 @@ import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import TimeInput from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
-import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
+// import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
 import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
@@ -120,93 +121,71 @@ function OpponentForm({
   opponent,
   setOpponent,
   setOtherOpponent,
+  inline,
 }: {
   opponent: OpponentSettings;
   setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
   setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
+  inline?: boolean;
 }) {
-  function updateType(type: "engine" | "human") {
-    if (type === "human") {
-      setOpponent((prev) => ({
-        ...prev,
-        type: "human",
-        // fixed name for humans
-        name: "Player",
-        // time settings removed; unlimited by default
-        timeControl: undefined,
-      }));
-    } else {
-      setOpponent((prev) => ({
-        ...prev,
-        type: "engine",
-        engine: null,
-        go: {
-          t: "Time",
-          c: 1000,
-        },
-        timeControl: undefined,
-      }));
-    }
-  }
-
-  return (
-    <Stack flex={1}>
-      <SegmentedControl
-        data={[
-          { value: "human", label: "Human" },
-          { value: "engine", label: "Engine" },
-        ]}
-        value={opponent.type}
-        onChange={(v) => updateType(v as "human" | "engine")}
-      />
-
-      {opponent.type === "engine" && (
-        <EnginesSelect
-          engine={opponent.engine}
-          setEngine={(engine) => setOpponent((prev) => ({ ...prev, engine }))}
-        />
-      )}
-
-      {/* Time Settings removed to simplify to running clock */}
-
-      {opponent.type === "engine" && (
-        <Stack>
-          {opponent.engine && !opponent.timeControl && (
-            <EngineSettingsForm
-              engine={opponent.engine}
-              remote={false}
-              gameMode
-              settings={{
-                go: opponent.go,
-                settings: opponent.engine.settings || [],
-                enabled: true,
-                synced: false,
-                allMoves: false,
-                useCache: false,
-              }}
-              setSettings={(fn) =>
-                setOpponent((prev) => {
-                  if (prev.type === "human") {
-                    return prev;
-                  }
-                  const newSettings = fn({
-                    go: prev.go,
-                    settings: prev.engine?.settings || [],
-                    enabled: true,
-                    synced: false,
-                    allMoves: false,
-                    useCache: false,
-                  });
-                  return { ...prev, ...newSettings };
-                })
-              }
-              minimal={true}
-            />
-          )}
-        </Stack>
-      )}
-    </Stack>
+  const bots = useAtomValue(botsAtom);
+  const localEngines = useAtomValue(enginesAtom).filter(
+    (e): e is LocalEngine => (e as any).type === "local",
   );
+
+  const options = [
+    { value: "human", label: "Human" },
+    ...bots.map((b) => ({ value: b.id, label: b.name })),
+  ];
+
+  const findMatchingBotId = () => {
+    if (opponent.type === "human") return "human";
+    const bot = bots.find((b) => {
+      const a = b.go as any;
+      const g = opponent.go as any;
+      return a?.t === g?.t && (a?.c ?? null) === (g?.c ?? null);
+    });
+    return bot ? bot.id : undefined;
+  };
+
+  const currentValue = findMatchingBotId();
+
+  const select = (
+    <Select
+      label={inline ? undefined : "Player"}
+      placeholder="Select player"
+      data={options}
+      value={currentValue}
+      onChange={(val) => {
+        if (!val || val === "human") {
+          setOpponent((prev) => ({
+            ...prev,
+            type: "human",
+            name: "Player",
+            timeControl: undefined,
+          }));
+        } else {
+          const bot = bots.find((b) => b.id === val);
+          if (!bot) return;
+          setOpponent((prev) => ({
+            ...(prev.type === "engine" ? prev : ({} as any)),
+            type: "engine",
+            engine:
+              prev.type === "engine" && prev.engine
+                ? prev.engine
+                : localEngines[0] ?? null,
+            go: bot.go,
+            timeControl: undefined,
+          }));
+        }
+      }}
+      style={{ flex: 1 }}
+    />
+  );
+
+  if (inline) return select;
+
+  return <Stack flex={1}>{select}</Stack>;
 }
 
 const DEFAULT_TIME_CONTROL: TimeControlField = {
@@ -600,37 +579,36 @@ function BoardGame() {
         <Stack gap="xs">
           {/* <Text size="sm" fw={600}>White</Text> */}
           {/* <Text fw={500}>{headers.white || "White"}</Text> */}
-          <Group h="2.125rem" justify="flex-end">
-          <Clock
-            color="white"
-            turn={pos?.turn || "white"}
-            whiteTime={whiteTime ?? undefined}
-            blackTime={blackTime ?? undefined}
-          />
+          <Group align="center" gap="xs">
+            <OpponentForm
+              inline
+              opponent={players.white}
+              setOpponent={(updater) =>
+                setPlayers((prev) => {
+                  const next =
+                    typeof updater === "function"
+                      ? { ...prev, white: (updater as any)(prev.white) }
+                      : { ...prev, white: updater };
+                  return next;
+                })
+              }
+              setOtherOpponent={(updater) =>
+                setPlayers((prev) => {
+                  const nextOther =
+                    typeof updater === "function"
+                      ? (updater as any)(prev.black)
+                      : updater;
+                  return { ...prev, black: nextOther } as any;
+                })
+              }
+            />
+            <Clock
+              color="white"
+              turn={pos?.turn || "white"}
+              whiteTime={whiteTime ?? undefined}
+              blackTime={blackTime ?? undefined}
+            />
           </Group>
-          {/* Live-edit White player settings */}
-          {/* <Divider variant="dashed" label="White Settings" /> */}
-          <OpponentForm
-            opponent={players.white}
-            setOpponent={(updater) =>
-              setPlayers((prev) => {
-                const next =
-                  typeof updater === "function"
-                    ? { ...prev, white: (updater as any)(prev.white) }
-                    : { ...prev, white: updater };
-                return next;
-              })
-            }
-            setOtherOpponent={(updater) =>
-              setPlayers((prev) => {
-                const nextOther =
-                  typeof updater === "function"
-                    ? (updater as any)(prev.black)
-                    : updater;
-                return { ...prev, black: nextOther } as any;
-              })
-            }
-          />
         </Stack>
       </Paper>
     ),
@@ -670,37 +648,36 @@ function BoardGame() {
         <Stack gap="xs">
           {/* <Text size="sm" fw={600}>Black</Text> */}
           {/* <Text fw={500}>{headers.black || "Black"}</Text> */}
-          <Group h="2.125rem">
-          <Clock
-            color="black"
-            turn={pos?.turn || "white"}
-            whiteTime={whiteTime ?? undefined}
-            blackTime={blackTime ?? undefined}
-          />
+          <Group align="center" gap="xs">
+            <Clock
+              color="black"
+              turn={pos?.turn || "white"}
+              whiteTime={whiteTime ?? undefined}
+              blackTime={blackTime ?? undefined}
+            />
+            <OpponentForm
+              inline
+              opponent={players.black}
+              setOpponent={(updater) =>
+                setPlayers((prev) => {
+                  const next =
+                    typeof updater === "function"
+                      ? { ...prev, black: (updater as any)(prev.black) }
+                      : { ...prev, black: updater };
+                  return next;
+                })
+              }
+              setOtherOpponent={(updater) =>
+                setPlayers((prev) => {
+                  const nextOther =
+                    typeof updater === "function"
+                      ? (updater as any)(prev.white)
+                      : updater;
+                  return { ...prev, white: nextOther } as any;
+                })
+              }
+            />
           </Group>
-          {/* Live-edit Black player settings */}
-          {/* <Divider variant="dashed" label="Black Settings" /> */}
-          <OpponentForm
-            opponent={players.black}
-            setOpponent={(updater) =>
-              setPlayers((prev) => {
-                const next =
-                  typeof updater === "function"
-                    ? { ...prev, black: (updater as any)(prev.black) }
-                    : { ...prev, black: updater };
-                return next;
-              })
-            }
-            setOtherOpponent={(updater) =>
-              setPlayers((prev) => {
-                const nextOther =
-                  typeof updater === "function"
-                    ? (updater as any)(prev.white)
-                    : updater;
-                return { ...prev, white: nextOther } as any;
-              })
-            }
-          />
         </Stack>
       </Paper>
     ),
