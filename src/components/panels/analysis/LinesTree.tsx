@@ -143,10 +143,11 @@ function LinesTree() {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [topN, setTopN] = useState<number>(3);
+  const [topN, setTopN] = useState<number>(5);
+  const [depthLimit, setDepthLimit] = useState<number>(5);
   // Horizontal panning state (x-only)
   const [panX, setPanX] = useState<number>(0);
-  const [yMode, setYMode] = useState<'cp' | 'pctBest' | 'confidence'>('cp');
+  const [yMode, setYMode] = useState<'cp' | 'pctBest' | 'confidence'>('pctBest');
   const [colorMode, setColorMode] = useState<'cp' | 'pctBest' | 'confidence'>('pctBest');
   const [labelMode, setLabelMode] = useState<'cp' | 'pctBest' | 'confidence'>('cp');
   const dragRef = useRef<{ dragging: boolean; startX: number }>({ dragging: false, startX: 0 });
@@ -160,7 +161,8 @@ function LinesTree() {
     firstEval: Map<string, number>;
     firstColor: Map<string, string>;
     firstConfidence: Map<string, number>;
-  }>({ nodes: new Map(), links: new Map(), firstEval: new Map(), firstColor: new Map(), firstConfidence: new Map() });
+    pvKeys: Set<string>;
+  }>({ nodes: new Map(), links: new Map(), firstEval: new Map(), firstColor: new Map(), firstConfidence: new Map(), pvKeys: new Set() });
   const [version, setVersion] = useState(0);
 
   // Merge current suggestions and path into persistent graph
@@ -232,18 +234,19 @@ function LinesTree() {
     // Respect Top-N for immediate next moves at current node when merging (still persist only allowed first moves to reduce noise)
     const allowedFirstSet = new Set(rankedFirstSANs.slice(0, topN));
 
-    // Remove and replace only the minimal set: outgoing links from the current node to depth n+1
+    // Remove and replace the set: outgoing links from the current node to any future depths (>= n+1)
     const toDelete: string[] = [];
     for (const [key, link] of p.links.entries()) {
-      const idx = link.target.indexOf(":");
-      const targetDepth = idx > 0 ? Number.parseInt(link.target.slice(0, idx), 10) : 0;
-      if (link.source === parentForFirst && targetDepth === baseDepth + 1) {
+      const idx = link.source.indexOf(":");
+      const sourceDepth = idx > 0 ? Number.parseInt(link.source.slice(0, idx), 10) : (link.source === rootId ? 0 : 0);
+      if (sourceDepth >= baseDepth) {
         toDelete.push(key);
       }
     }
     for (const key of toDelete) p.links.delete(key);
+    p.pvKeys.clear();
 
-    // Recalculate immediate future links (n+1) from current top lines; do not add deeper links here
+    // Recalculate immediate future links (n+1) from current top lines; also add subsequent depths for those PVs
     const seenFirst = new Set<string>();
     for (const line of pvLines) {
       const san = line[0];
@@ -272,6 +275,32 @@ function LinesTree() {
         confidence: meta?.confidence,
         pctBest: meta?.pctBest,
       } as any);
+      p.pvKeys.add(key);
+
+      // Add subsequent depths for this PV line by chaining SAN moves
+      let prevId = id;
+      for (let i = 1; i < Math.min(line.length, depthLimit); i++) {
+        const nextSan = line[i];
+        if (!nextSan) break;
+        const d = baseDepth + 1 + i;
+        const nextId = `${d}:${nextSan}`;
+        if (!p.nodes.has(nextId)) p.nodes.set(nextId, { id: nextId, label: nextSan });
+        const key2 = `${prevId}->${nextId}`;
+        p.links.set(key2, {
+          source: prevId,
+          target: nextId,
+          // propagate styling/meta from first move to keep consistent visuals
+          color,
+          winChance: meta?.winChance,
+          score: meta?.score,
+          engineName: meta?.engineName,
+          annotation: meta?.annotation,
+          confidence: meta?.confidence,
+          pctBest: meta?.pctBest,
+        } as any);
+        p.pvKeys.add(key2);
+        prevId = nextId;
+      }
     }
 
     // Enrich the last path link using unified moves from the previous position (parent of current)
@@ -299,7 +328,7 @@ function LinesTree() {
     }
 
     setVersion((v) => v + 1);
-  }, [pvLines, currentMoves, rootFen, firstSanColor, firstSanEval, rankedFirstSANs, topN, firstSanMeta, prevUnifiedMoves]);
+  }, [pvLines, currentMoves, rootFen, firstSanColor, firstSanEval, rankedFirstSANs, topN, firstSanMeta, prevUnifiedMoves, depthLimit]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -437,18 +466,17 @@ function LinesTree() {
     })();
     const baseDepth = pathSans.length;
 
-    // Select links: always include path; for each source, keep Top-N by confidence (fallback to winChance)
+    // Select links: always include path; include all PV-chained links for current node
     const selectedLinkKeys = new Set<string>();
     for (const key of pathLinkKeys) if (p.links.has(key)) selectedLinkKeys.add(key);
-    for (const [source, outs] of bySource.entries()) {
-      const sorted = outs.slice().sort((a, b) => {
-        const ac = (a as any).pctBest ?? a.confidence ?? a.winChance ?? -Infinity;
-        const bc = (b as any).pctBest ?? b.confidence ?? b.winChance ?? -Infinity;
-        return bc - ac;
-      });
-      const keep = sorted.slice(0, topN);
-      for (const l of keep) selectedLinkKeys.add(l.key);
+    // Preserve historical links up to current ply (target depth <= baseDepth)
+    for (const [hKey, hLink] of p.links.entries()) {
+      const t = (hLink as any).target as string;
+      const idx = t.indexOf(":");
+      const tDepth = idx > 0 ? Number.parseInt(t.slice(0, idx), 10) : 0;
+      if (Number.isFinite(tDepth) && tDepth <= baseDepth) selectedLinkKeys.add(hKey);
     }
+    for (const key of p.pvKeys) if (p.links.has(key)) selectedLinkKeys.add(key);
 
     // Nodes visible are endpoints of selected links plus root and path nodes
     const includeNodes = new Set<string>();
@@ -470,9 +498,15 @@ function LinesTree() {
 
     // Use fixed ply width and left-align, but ensure maxDepth nodes are visible
     const plyWidth = 150;
-    const maxDepthX = leftPad + maxDepth * plyWidth + rightPad;
+    // Predict final max depth to avoid pan "jerk" across the two-phase render (path → PV)
+    const predictedMaxDepth = Math.max(maxDepth, baseDepth + depthLimit);
+    const maxDepthX = leftPad + predictedMaxDepth * plyWidth + rightPad;
     const minPanToShowMax = width - maxDepthX;
-    const adjustedPanX = Math.min(panX, minPanToShowMax);
+
+    // Auto-pan to place the just-played move at the left edge padding (or root at start)
+    const currentDepth = baseDepth;
+    const targetPan = -currentDepth * plyWidth; // align current ply at left padding
+    const adjustedPanX = Math.min(0, Math.max(minPanToShowMax, targetPan));
     leftPad = leftPad + adjustedPanX;
 
     // Prepare parents map from included links
@@ -722,6 +756,7 @@ function LinesTree() {
 
   const sliderMax = Math.max(1, rankedFirstSANs.length || 1);
   const sliderValue = Math.min(topN, sliderMax);
+  // depthLimit represents number of plies to take from PV beyond the current node
 
   // Pointer handlers for horizontal pan only
   const onPointerDown = (e: React.PointerEvent) => {
@@ -781,7 +816,7 @@ function LinesTree() {
             ]}
             style={{ width: 240 }}
           />
-          <Text size="xs" c="dimmed">Top moves:</Text>
+                  <Text size="xs" c="dimmed">Top moves:</Text>
           <Slider
             value={sliderValue}
             onChange={setTopN}
@@ -792,6 +827,17 @@ function LinesTree() {
             style={{ width: 160 }}
           />
           <Text size="xs" c="dimmed">{topN}</Text>
+          <Text size="xs" c="dimmed" ml={12}>Depth:</Text>
+          <Slider
+            value={depthLimit}
+            onChange={setDepthLimit}
+            min={1}
+            max={12}
+            step={1}
+            marks={[{ value: 1 }, { value: 12 }]}
+            style={{ width: 160 }}
+          />
+          <Text size="xs" c="dimmed">{depthLimit}</Text>
         </Group>
       </Group>
 

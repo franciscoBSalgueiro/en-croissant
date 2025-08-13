@@ -89,9 +89,9 @@ function AnalysisCellRenderer(props: any) {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
-      {data.sanMoves && data.sanMoves.length > 0 ? (
+      {data.pv && data.pv.length > 0 ? (
         <EngineVariationMoves
-          moves={data.sanMoves}
+          moves={data.pv}
           rootFen={rootFen}
           currentMoves={moves}
           score={data.score}
@@ -193,7 +193,7 @@ function AnnotationCellRenderer(props: any) {
   const { data } = props;
   // ANNOTATION_INFO imported at top
 
-  if (!data?.annotation && !data?.isBest && !data?.isOnlyMove && !data?.punishesMistake && !data?.isSacrifice) {
+  if (!data?.annotation && !data?.isBest && !data?.isOnlyMove && !data?.punishesMistake && !data?.isSacrifice && !data?.isThreat) {
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Text size="xs" c="dimmed">-</Text>
@@ -235,6 +235,13 @@ function AnnotationCellRenderer(props: any) {
     badges.push(
       <Badge key="sac" size="sm" color="orange" variant="light">
         Sac
+      </Badge>
+    );
+  }
+  if (data.isThreat) {
+    badges.push(
+      <Badge key="threat" size="sm" color="grape" variant="light">
+        Threat
       </Badge>
     );
   }
@@ -340,10 +347,25 @@ function LineCellRenderer(props: any) {
   const fen = useStore(store!, (s) => s.currentNode().fen);
   const halfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
 
-  // Use the PV (principal variation) from the engine analysis
-  const moves = data.pv || data.sanMoves || [];
+  // Prefer SAN moves; if absent, convert PV (UCI) to SAN from current position
+  let sanMoves: string[] = Array.isArray(data?.sanMoves) ? data.sanMoves : [];
+  if ((!sanMoves || sanMoves.length === 0) && Array.isArray(data?.pv) && data.pv.length > 0) {
+    const [pos0] = positionFromFen(fen);
+    if (pos0) {
+      const posCopy = pos0.clone();
+      const converted: string[] = [];
+      for (const uci of data.pv as string[]) {
+        const mv = parseUci(uci);
+        if (!mv) break;
+        const san = makeSan(posCopy, mv);
+        converted.push(san);
+        posCopy.play(mv);
+      }
+      sanMoves = converted;
+    }
+  }
   
-  if (!moves || moves.length === 0) {
+  if (!sanMoves || sanMoves.length === 0) {
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
         <Text size="xs" c="dimmed">-</Text>
@@ -354,7 +376,7 @@ function LineCellRenderer(props: any) {
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
       <MoveLineDisplay
-        moves={moves}
+        moves={sanMoves}
         fen={fen}
         halfMoves={halfMoves}
       />
@@ -372,6 +394,56 @@ function CountCellRenderer(props: any) {
         <Text size="sm" fw={500}>
           {data.total.toLocaleString()}
         </Text>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Generic number renderer (uses value)
+function NumberCellRenderer(props: any) {
+  const { value } = props;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {typeof value === 'number' ? (
+        <Text size="sm" fw={500}>{value.toLocaleString()}</Text>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Nodes renderer with compact formatting
+function NodesCellRenderer(props: any) {
+  const { value } = props;
+  const format = (n: number) => {
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+    return n.toString();
+  };
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {typeof value === 'number' ? (
+        <Text size="sm" fw={500}>{format(value)}</Text>
+      ) : (
+        <Text size="xs" c="dimmed">-</Text>
+      )}
+    </div>
+  );
+}
+
+// Source renderer (database / engine / both)
+function SourceCellRenderer(props: any) {
+  const { value } = props;
+  const label = value === 'both' ? 'Both' : value === 'engine' ? 'Engine' : value === 'database' ? 'Database' : undefined;
+  const color = value === 'both' ? 'green' : value === 'engine' ? 'pink' : value === 'database' ? 'gray' : undefined;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {label ? (
+        <Badge size="sm" color={color} variant="light">{label}</Badge>
       ) : (
         <Text size="xs" c="dimmed">-</Text>
       )}
@@ -638,29 +710,16 @@ function UnifiedMovesTable() {
       resizable: true,
     },
     onGridReady: (params) => {
-      const colApi = (params as any).columnApi ?? (params.api as any).setColumnState;
-      if (colApi && typeof (params.api as any).applyColumnState === 'function') {
-        if (currentAnalysisTab === 'engines') {
-          (params.api as any).applyColumnState({
-            defaultState: { sort: null },
-            state: [
-              { colId: 'confidence', sort: 'desc', sortIndex: 0 },
-            ],
-          });
-        } else {
-          (params.api as any).applyColumnState({
-            defaultState: { sort: null },
-            state: [
-              { colId: 'whitePercentage', sort: 'desc', sortIndex: 0 },
-            ],
-          });
-        }
-      } else if (typeof (params.api as any).setSortModel === 'function') {
-        if (currentAnalysisTab === 'engines') {
-          (params.api as any).setSortModel([{ colId: 'confidence', sort: 'desc' }]);
-        } else {
-          (params.api as any).setSortModel([{ colId: 'whitePercentage', sort: 'desc' }]);
-        }
+      const apiAny = params.api as any;
+      if (typeof apiAny.applyColumnState === 'function') {
+        apiAny.applyColumnState({
+          defaultState: { sort: null },
+          state: [
+            { colId: 'rank', sort: 'asc', sortIndex: 0 },
+          ],
+        });
+      } else if (typeof apiAny.setSortModel === 'function') {
+        apiAny.setSortModel([{ colId: 'rank', sort: 'asc' }]);
       }
     },
     columnDefs: [
@@ -673,9 +732,24 @@ function UnifiedMovesTable() {
         valueGetter: (params) => params.data?.san || params.data?.move || '',
       },
       {
+        headerName: "Rank",
+        field: "rank",
+        width: 90,
+        cellRenderer: NumberCellRenderer,
+        sortable: true,
+        sort: 'asc',
+      },
+      {
+        headerName: "Eval Score",
+        field: "score",
+        width: 100,
+        cellRenderer: ScoreCellRenderer,
+        sortable: true,
+      },
+      {
         headerName: "Annotation",
         field: "annotation",
-        width: 125,
+        width: 160,
         cellRenderer: AnnotationCellRenderer,
         sortable: false,
       },
@@ -685,20 +759,12 @@ function UnifiedMovesTable() {
         width: 120,
         cellRenderer: ConfidenceCellRenderer,
         sortable: true,
-        sort: 'desc',
       },
       {
         headerName: "PctBest",
         field: "pctBest",
         width: 110,
         cellRenderer: PctBestCellRenderer,
-        sortable: true,
-      },
-      {
-        headerName: "Eval Score",
-        field: "score",
-        width: 100,
-        cellRenderer: ScoreCellRenderer,
         sortable: true,
       },
       {
@@ -757,13 +823,6 @@ function UnifiedMovesTable() {
         width: 100,
         cellRenderer: LossPercentageCellRenderer,
         sortable: true,
-      },
-      {
-        headerName: "Engine",
-        field: "engineName",
-        width: 100,
-        cellRenderer: EngineInfoCellRenderer,
-        sortable: false,
       },
     ],
     onRowClicked: (event) => {

@@ -500,6 +500,23 @@ export const unifiedMovesFamily = atomFamily(
         withConfidenceSorted[bestIdx] = { ...withConfidenceSorted[bestIdx], isBest: true };
       }
 
+      // Recompute Rank: strictly by Eval Score (normalized CP for side to move)
+      // Moves without an engine score are ranked after those with scores
+      const rankedByEval = [...withConfidenceSorted].sort((a, b) => {
+        const aCp = a.score ? normalizeScore(a.score.value, currentTurn) : Number.NEGATIVE_INFINITY;
+        const bCp = b.score ? normalizeScore(b.score.value, currentTurn) : Number.NEGATIVE_INFINITY;
+        return bCp - aCp;
+      });
+      const rankByMove = new Map<string, number>();
+      let nextRank = 1;
+      for (const m of rankedByEval) {
+        rankByMove.set(m.move, nextRank++);
+      }
+      const withEvalRank = withConfidenceSorted.map((m) => ({
+        ...m,
+        rank: rankByMove.get(m.move) ?? nextRank++,
+      }));
+
       // Debug logging (DEV only): print unified moves summary
       if (import.meta.env.DEV) {
         try {
@@ -509,7 +526,7 @@ export const unifiedMovesFamily = atomFamily(
           );
           // eslint-disable-next-line no-console
           console.table(
-            withConfidenceSorted.map((m) => ({
+            withEvalRank.map((m) => ({
               move: m.san || m.move,
               winChance: typeof m.winChance === "number" ? m.winChance.toFixed(1) : undefined,
               pctBest: typeof m.pctBest === "number" ? m.pctBest.toFixed(1) : undefined,
@@ -520,13 +537,14 @@ export const unifiedMovesFamily = atomFamily(
               isBest: !!m.isBest,
               isThreat: !!m.isThreat,
               annotation: m.annotation,
+              rank: m.rank,
             })),
           );
           // eslint-disable-next-line no-console
           console.groupEnd();
         } catch {}
       }
-      return withConfidenceSorted;
+      return withEvalRank;
     }),
   (a, b) => a.rootFen === b.rootFen && a.fen === b.fen && a.tab === b.tab && a.moves.length === b.moves.length && a.moves.every((m, i) => m === b.moves[i]),
 );

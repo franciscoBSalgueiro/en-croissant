@@ -62,6 +62,12 @@ import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
 import VolumeSlider from "./VolumeSlider";
+import { Checkbox } from "@mantine/core";
+import { IconCpu } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
+import { activeTabAtom, enginesAtom, tabEngineSettingsFamily } from "@/state/atoms";
+import EngineSelection from "@/components/panels/analysis/EngineSelection";
+import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
 
 export default function Page() {
   const { t, i18n } = useTranslation();
@@ -79,6 +85,8 @@ export default function Page() {
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [arrowColorMode, setArrowColorMode] = useAtom(arrowColorModeAtom);
+  const activeTab = useAtomValue(activeTabAtom);
+  const engines = useAtomValue(enginesAtom);
 
   return (
     <Tabs defaultValue="board" orientation="vertical" h="100%">
@@ -106,6 +114,9 @@ export default function Page() {
         </Tabs.Tab>
         <Tabs.Tab value="directories" leftSection={<IconFolder size="1rem" />}>
           {t("Settings.Directories")}
+        </Tabs.Tab>
+        <Tabs.Tab value="analysis" leftSection={<IconCpu size="1rem" />}>
+          Analysis
         </Tabs.Tab>
       </Tabs.List>
       <Stack flex={1} px="md" pt="md">
@@ -739,6 +750,57 @@ export default function Page() {
                   filename={filesDirectory || null}
                 />
               </Group>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="analysis">
+              <Text size="lg" fw={500} className={classes.title}>
+                Analysis Engines
+              </Text>
+              <Text size="xs" c="dimmed" mt={3} mb="lg">
+                Configure which engines run and their settings for Unified Moves.
+              </Text>
+              <Group justify="space-between" wrap="nowrap" gap="xl" className={classes.item}>
+                <div>
+                  <Text>Enabled Engines</Text>
+                  <Text size="xs" c="dimmed">Toggle engines available for analysis</Text>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <EngineSelection />
+                </div>
+              </Group>
+
+              <Stack gap="md">
+                {engines.map((engine) => {
+                  const atom = tabEngineSettingsFamily({
+                    tab: activeTab!,
+                    engineName: engine.name,
+                    defaultSettings: engine.type === "local" ? engine.settings || [] : undefined,
+                    defaultGo: engine.go ?? undefined,
+                  });
+                  const [settings, setSettings] = useAtom(atom);
+                  return (
+                    <Card withBorder p="md" key={engine.name}>
+                      <Group justify="space-between" mb="sm">
+                        <Text fw={600}>{engine.name}</Text>
+                        <Checkbox
+                          label="Enabled for Unified Moves"
+                          checked={settings.enabled}
+                          onChange={(e) => setSettings({ ...settings, enabled: e.currentTarget.checked })}
+                        />
+                      </Group>
+                      <EngineSettingsForm
+                        engine={engine as any}
+                        settings={settings as any}
+                        setSettings={(fn) => setSettings(fn(settings as any) as any)}
+                        remote={engine.type !== "local"}
+                      />
+                    </Card>
+                  );
+                })}
+                {engines.length === 0 && (
+                  <Text size="sm" c="dimmed">No engines installed. Add one in the Engines page.</Text>
+                )}
+              </Stack>
             </Tabs.Panel>
           </Card>
         </ScrollArea>

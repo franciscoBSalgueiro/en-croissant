@@ -364,23 +364,29 @@ function BoardGame() {
           ? basePool.filter((m) => typeof m.confidence === "number" && m.confidence >= confThreshold)
           : basePool;
       const candidatePool = filteredByConf.length > 0 ? filteredByConf : basePool;
+      // Ensure selection uses Rank semantics: sort by rank asc and pick by rank property
+      const sortedByRank: any[] = [...candidatePool].sort((a, b) => {
+        const ar = typeof a?.rank === 'number' ? a.rank : Number.POSITIVE_INFINITY;
+        const br = typeof b?.rank === 'number' ? b.rank : Number.POSITIVE_INFINITY;
+        return ar - br;
+      });
 
       let choice: any | undefined;
       if (!strat || strat.mode === "rank") {
         const rank = Math.max(1, Math.min(100, strat?.rank ?? (player as any).pickRank ?? 1));
-        choice = candidatePool[rank - 1] || candidatePool[0];
+        choice = sortedByRank.find((m) => m?.rank === rank) || sortedByRank[0];
       } else if (strat.mode === "rankSet") {
         const ranks: number[] = (strat.ranks || []).filter((r: number) => r >= 1 && r <= 100);
         const available = ranks
-          .map((r) => candidatePool[r - 1])
+          .map((r) => sortedByRank.find((m) => m?.rank === r))
           .filter((m) => m != null);
         choice = available.length > 0
           ? available[Math.floor(Math.random() * available.length)]
-          : candidatePool[0];
+          : sortedByRank[0];
       } else if (strat.mode === "randomTopN") {
         const topN = Math.max(1, Math.min(100, strat.topN));
-        const pool = candidatePool.slice(0, topN);
-        choice = pool[Math.floor(Math.random() * pool.length)] || candidatePool[0];
+        const pool = sortedByRank.slice(0, topN);
+        choice = pool[Math.floor(Math.random() * pool.length)] || sortedByRank[0];
       }
 
       const san = choice?.san || choice?.move;
