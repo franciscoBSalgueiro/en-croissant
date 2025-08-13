@@ -4,7 +4,7 @@ import { Route } from "@/routes/bots";
 import { useNavigate } from "@tanstack/react-router";
 import { botsAtom } from "@/state/atoms";
 import type { Bot } from "@/utils/bots";
-import { Box, Button, Divider, Group, NumberInput, Paper, ScrollArea, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Divider, Group, NumberInput, Paper, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
 import * as classes from "@/components/common/GenericCard.css";
 import GenericCard from "@/components/common/GenericCard";
 import AddBot from "./AddBot";
@@ -105,8 +105,57 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
         </Stack>
         <Divider variant="dashed" label="Search Settings" />
         <GoModeInput goMode={bot.go} setGoMode={(v) => setBot({ ...bot, go: v })} />
+        <Divider variant="dashed" label="Move Selection Strategy" />
+        <Stack>
+          <SegmentedControl
+            value={bot.strategy?.mode || "rank"}
+            onChange={(v) =>
+              setBot({
+                ...bot,
+                strategy:
+                  v === "rank"
+                    ? { mode: "rank", rank: bot.strategy?.mode === "rank" ? (bot.strategy as any).rank : (bot.pickRank ?? 1) }
+                    : { mode: "randomTopN", topN: bot.strategy?.mode === "randomTopN" ? (bot.strategy as any).topN : 2 },
+              })
+            }
+            data={[
+              { value: "rank", label: "Nth best" },
+              { value: "randomTopN", label: "Random top-N" },
+            ]}
+          />
+          {(!bot.strategy || bot.strategy.mode === "rank") && (
+            <NumberInput
+              label="Pick nth best move"
+              min={1}
+              max={100}
+              value={bot.strategy?.mode === "rank" ? (bot.strategy as any).rank : (bot.pickRank ?? 1)}
+              onChange={(v) =>
+                setBot({
+                  ...bot,
+                  strategy: { mode: "rank", rank: typeof v === "number" ? v : 1 },
+                })
+              }
+            />
+          )}
+          {bot.strategy?.mode === "randomTopN" && (
+            <NumberInput
+              label="Top-N"
+              min={1}
+              max={100}
+              value={(bot.strategy as any).topN}
+              onChange={(v) =>
+                setBot({
+                  ...bot,
+                  strategy: { mode: "randomTopN", topN: typeof v === "number" ? v : 2 },
+                })
+              }
+            />
+          )}
+        </Stack>
         <Group justify="end">
-          <Button color="red" onClick={() => setDeleteModalOpen(true)}>Remove</Button>
+          <Button color="red" onClick={() => setDeleteModalOpen(true)}>
+            Remove
+          </Button>
         </Group>
         <ConfirmModal
           title="Remove Bot"

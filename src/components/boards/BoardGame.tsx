@@ -42,6 +42,7 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
+import { parseSan } from "chessops/san";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -68,6 +69,9 @@ import "@/styles/react-mosaic.css";
 import Clock from "./Clock";
 import LinesTree from "../panels/analysis/LinesTree";
 import UnifiedMovesTable from "../panels/analysis/UnifiedMovesTable";
+import { loadable } from "jotai/utils";
+import { unifiedMovesFamily } from "@/state/unifiedMoves";
+import { activeTabAtom as activeTabForUnified } from "@/state/atoms";
 
 function EnginesSelect({
   engine,
@@ -113,8 +117,11 @@ export type OpponentSettings =
   | {
       type: "engine";
       timeControl?: TimeControlField;
-      engine: LocalEngine | null;
+      engine: LocalEngine | null; // null means Bot mode
       go: GoMode;
+      // Bot-specific fields (when engine is null)
+      pickRank?: number;
+      strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number };
     };
 
 function OpponentForm({
@@ -140,10 +147,15 @@ function OpponentForm({
 
   const findMatchingBotId = () => {
     if (opponent.type === "human") return "human";
+    if (opponent.engine) return undefined;
+    // match by name if present, otherwise by go/pickRank
     const bot = bots.find((b) => {
+      if (b.name && (opponent as any).name === b.name) return true;
       const a = b.go as any;
       const g = opponent.go as any;
-      return a?.t === g?.t && (a?.c ?? null) === (g?.c ?? null);
+      const rank = (opponent as any).strategy?.mode === "rank" ? (opponent as any).strategy.rank : (opponent as any).pickRank;
+      const bRank = (b as any).strategy?.mode === "rank" ? (b as any).strategy.rank : b.pickRank;
+      return a?.t === g?.t && (a?.c ?? null) === (g?.c ?? null) && (rank ?? 1) === (bRank ?? 1);
     });
     return bot ? bot.id : undefined;
   };
@@ -167,14 +179,17 @@ function OpponentForm({
         } else {
           const bot = bots.find((b) => b.id === val);
           if (!bot) return;
+          const strategy = bot.strategy || { mode: "rank", rank: bot.pickRank ?? 1 };
           setOpponent((prev) => ({
             ...(prev.type === "engine" ? prev : ({} as any)),
             type: "engine",
             engine:
               prev.type === "engine" && prev.engine
                 ? prev.engine
-                : localEngines[0] ?? null,
+                : null,
             go: bot.go,
+            pickRank: bot.pickRank,
+            strategy: strategy as any,
             timeControl: undefined,
           }));
         }
@@ -305,54 +320,84 @@ function BoardGame() {
     return positionFromFen(lastNode.fen);
   }, [lastNode.fen]);
 
-  useEffect(() => {
-    if (pos?.isEnd()) {
-      setGameState("gameOver");
-    }
-  }, [pos, setGameState]);
-
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
-  useEffect(() => {
-    if (pos && gameState === "playing" && !enginePaused) {
-      if (headers.result !== "*") {
-        setGameState("gameOver");
-        return;
-      }
-      const currentTurn = pos.turn;
-      const player = currentTurn === "white" ? players.white : players.black;
+  const activeTabForBot = useAtomValue(activeTabForUnified);
+  const isBotTurn = useMemo(() => {
+    if (!pos) return false;
+    const p = pos.turn === "white" ? players.white : players.black;
+    return p.type === "engine" && p.engine == null; // our Bot (no separate engine)
+  }, [pos, players]);
 
-      if (player.type === "engine" && player.engine) {
-        commands.getBestMoves(
-          currentTurn,
-          player.engine.path,
-          activeTab + currentTurn,
-          player.go,
-          {
-            fen: root.fen,
-            moves: moves,
-            extraOptions: (player.engine.settings || [])
-              .filter((s) => s.name !== "MultiPV")
-              .map((s) => ({
-                ...s,
-                value: s.value?.toString() ?? "",
-              })),
-            useCache: false,
-          },
-        );
+  const unifiedAtomForBot = useMemo(() => {
+    if (!pos) return null;
+    const is960 = headers.variant === "Chess960";
+    const currentMoves = getMainLine(root, is960);
+    return loadable(
+      unifiedMovesFamily({ rootFen: root.fen, fen: lastNode.fen, moves: currentMoves, tab: activeTabForBot! })
+    );
+  }, [pos, headers.variant, root, lastNode.fen, activeTabForBot]);
+  const unifiedLoadable = unifiedAtomForBot ? useAtomValue(unifiedAtomForBot) : { state: "loading" } as any;
+
+  useEffect(() => {
+    if (!pos) return;
+    if (gameState !== "playing") return;
+    if (enginePaused) return;
+    if (headers.result !== "*") return;
+
+    const currentTurn = pos.turn;
+    const player = currentTurn === "white" ? players.white : players.black;
+
+    // Bot logic: pick from unified moves if engine is null
+    if (player.type === "engine" && player.engine == null) {
+      if (unifiedLoadable.state !== "hasData") return;
+      const movesList = (unifiedLoadable.data || []) as any[];
+      if (!movesList || movesList.length === 0) return;
+      const strat = (player as any).strategy as any | undefined;
+      let choice: any | undefined;
+      if (!strat || strat.mode === "rank") {
+        const rank = Math.max(1, Math.min(100, strat?.rank ?? (player as any).pickRank ?? 1));
+        choice = movesList[rank - 1] || movesList[0];
+      } else if (strat.mode === "randomTopN") {
+        const topN = Math.max(1, Math.min(100, strat.topN));
+        const pool = movesList.slice(0, topN);
+        choice = pool[Math.floor(Math.random() * pool.length)] || movesList[0];
       }
+      const san = choice?.san || choice?.move;
+      const firstUci = choice?.pv?.[0];
+      if (!san && !firstUci) return;
+      const [p] = positionFromFen(lastNode.fen);
+      if (!p) return;
+      const uciMove = firstUci ? parseUci(firstUci) : null;
+      const sanMove = !uciMove && san ? parseSan(p, san) : null;
+      const finalMove = (uciMove || sanMove) as any;
+      if (!finalMove) return;
+      appendMove({ payload: finalMove });
+      setLastMove(firstUci || san || "");
+      return;
     }
-  }, [
-    gameState,
-    pos,
-    players,
-    headers.result,
-    setGameState,
-    activeTab,
-    root.fen,
-    moves,
-    enginePaused,
-  ]);
+
+    // Existing engine path
+    if (player.type === "engine" && player.engine) {
+      commands.getBestMoves(
+        currentTurn,
+        player.engine.path,
+        activeTab + currentTurn,
+        player.go,
+        {
+          fen: root.fen,
+          moves: moves,
+          extraOptions: (player.engine.settings || [])
+            .filter((s) => s.name !== "MultiPV")
+            .map((s) => ({
+              ...s,
+              value: s.value?.toString() ?? "",
+            })),
+          useCache: false,
+        },
+      );
+    }
+  }, [pos, gameState, enginePaused, headers.result, players, unifiedLoadable, lastNode.fen, root.fen, moves, activeTab]);
 
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
