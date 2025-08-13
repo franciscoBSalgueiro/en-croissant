@@ -12,6 +12,8 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import PersonalPlayerCard from "./PersonalCard";
+import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
+import { activeDatabaseViewStore } from "@/state/store/database";
 
 type DatabaseInfo = PlainDatabaseInfo & {
   username?: string;
@@ -169,15 +171,17 @@ function Databases() {
             </Text>
           </>
         ) : (
-          <PersonalPlayerCard
-            name={name}
-            setName={setName}
-            info={{
-              site_stats_data: personalInfo.flatMap(
-                (i) => i.info.site_stats_data,
-              ),
-            }}
-          />
+          <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
+            <PersonalPlayerCard
+              name={name}
+              setName={setName}
+              info={{
+                site_stats_data: personalInfo.flatMap(
+                  (i) => i.info.site_stats_data,
+                ),
+              }}
+            />
+          </DatabaseViewStateContext.Provider>
         ))}
     </>
   );
