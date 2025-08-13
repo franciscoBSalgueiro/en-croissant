@@ -20,7 +20,7 @@ import { unifiedBoardArrowsFamily } from "@/state/unifiedMoves";
 import { keyMapAtom } from "@/state/keybinds";
 import { chessboard } from "@/styles/Chessboard.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
-import { getMaterialDiff, getVariationLine } from "@/utils/chess";
+import { getMaterialDiff, getVariationLine, type PiecesCount } from "@/utils/chess";
 import {
   chessopsError,
   forceEnPassant,
@@ -70,7 +70,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState, useRef, useLayoutEffect } from "react";
+import { memo, useCallback, useContext, useMemo, useState, useRef, useLayoutEffect, useEffect } from "react";
 import * as React from "react";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -146,6 +146,10 @@ interface ChessboardProps {
   practicing?: boolean;
   // NEW: if true, size strictly by container (do not cap by viewport height)
   fitContainer?: boolean;
+  // NEW: notify parent about captured pieces per side
+  onCapturedChange?: (captured: { white: PiecesCount; black: PiecesCount }) => void;
+  // NEW: notify parent about material diff (white minus black)
+  onMaterialDiffChange?: (diff: number) => void;
 }
 
 function Board({
@@ -163,6 +167,8 @@ function Board({
   blackTime,
   practicing,
   fitContainer = false,
+  onCapturedChange,
+  onMaterialDiffChange,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -177,6 +183,59 @@ function Board({
   const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
   const currentNode = useStore(store, (s) => s.currentNode());
+
+  // Compute captured pieces from root fen by simulating current moves
+  const captured = useMemo(() => {
+    const zero: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+    const result = { white: { ...zero }, black: { ...zero } } as {
+      white: PiecesCount;
+      black: PiecesCount;
+    };
+    const [start] = positionFromFen(rootFen);
+    if (!start) return result;
+
+    const countByRole = (pos: any) => ({
+      white: {
+        p: pos.board.white.intersect(pos.board.pawn).size(),
+        n: pos.board.white.intersect(pos.board.knight).size(),
+        b: pos.board.white.intersect(pos.board.bishop).size(),
+        r: pos.board.white.intersect(pos.board.rook).size(),
+        q: pos.board.white.intersect(pos.board.queen).size(),
+      },
+      black: {
+        p: pos.board.black.intersect(pos.board.pawn).size(),
+        n: pos.board.black.intersect(pos.board.knight).size(),
+        b: pos.board.black.intersect(pos.board.bishop).size(),
+        r: pos.board.black.intersect(pos.board.rook).size(),
+        q: pos.board.black.intersect(pos.board.queen).size(),
+      },
+    });
+
+    let pos = start.clone();
+    let pre = countByRole(pos);
+    for (const uci of moves) {
+      const mover = pos.turn; // color before move
+      const move = parseUci(uci);
+      if (!move) break;
+      pos.play(move as NormalMove);
+      const post = countByRole(pos);
+      const takenFrom = mover === "white" ? "black" : "white";
+      const addTo = mover === "white" ? "white" : "black";
+      const roles: (keyof PiecesCount)[] = ["p", "n", "b", "r", "q"];
+      for (const r of roles) {
+        const delta = pre[takenFrom][r] - post[takenFrom][r];
+        if (delta > 0) {
+          (result[addTo][r] as number) += delta;
+        }
+      }
+      pre = post;
+    }
+    return result;
+  }, [rootFen, moves]);
+
+  useEffect(() => {
+    if (onCapturedChange) onCapturedChange(captured);
+  }, [captured, onCapturedChange]);
 
   const arrows = useAtomValue(
     unifiedBoardArrowsFamily({
@@ -208,6 +267,14 @@ function Board({
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
   const autoSave = useAtomValue(autoSaveAtom);
+
+  // Notify parent about material diff
+  const materialDiff = getMaterialDiff(currentNode.fen);
+  useEffect(() => {
+    if (onMaterialDiffChange && materialDiff) {
+      onMaterialDiffChange(materialDiff.diff);
+    }
+  }, [onMaterialDiffChange, materialDiff?.diff]);
 
   let dests: Map<SquareName, SquareName[]> = pos
     ? chessgroundDests(pos)
@@ -510,7 +577,6 @@ function Board({
       addGame,
     ],
   );
-  const materialDiff = getMaterialDiff(currentNode.fen);
   const practiceLock =
     !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 

@@ -2,7 +2,7 @@ import { currentDbTypeAtom, currentLocalOptionsAtom, enginesAtom, engineMovesFam
 import type { Annotation } from "@/utils/annotation";
 import { getAnnotation, getWinChance, normalizeScore } from "@/utils/score";
 import { positionFromFen } from "@/utils/chessops";
-import { parseUci } from "chessops";
+import { parseUci, squareFile, squareRank } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { atom } from "jotai";
@@ -92,6 +92,12 @@ export interface UnifiedMove {
   engineName?: string;
   pv?: string[];
   sanMoves?: string[];
+  // Piece metadata for first move of line
+  pieceLetter?: string; // e.g. p, n, b, r, q, k
+  pieceColor?: "white" | "black";
+  pieceSquareColor?: "light" | "dark";
+  // Icon filename for rendering the piece on its starting square
+  iconFilename?: string; // e.g. "Chess_qll45.svg"
   // Annotation
   annotation?: Annotation;
   // Extra flags
@@ -282,6 +288,10 @@ export const unifiedMovesFamily = atomFamily(
           depth: number;
           nodes: number;
           isThreat: boolean;
+          pieceLetter: string;
+          pieceColor: "white" | "black";
+          pieceSquareColor: "light" | "dark";
+          iconFilename?: string;
         }> = [];
 
         for (const [engineName, movesData] of allEngineMoves.entries()) {
@@ -304,6 +314,100 @@ export const unifiedMovesFamily = atomFamily(
                 }
               }
 
+              // Derive piece metadata for the moving piece on the first SAN move
+              let pieceLetter: string = "";
+              let pieceColor: "white" | "black" = pos.turn;
+              let pieceSquareColor: "light" | "dark" = "light";
+              try {
+                const parsed = parseSan(pos, firstMove);
+                if (parsed && ("from" in (parsed as any))) {
+                  const fromSq: any = (parsed as any).from;
+                  const piece = pos.board.get(fromSq);
+                  if (piece) {
+                    pieceColor = piece.color;
+                    switch (piece.role) {
+                      case "pawn":
+                        pieceLetter = "p";
+                        break;
+                      case "knight":
+                        pieceLetter = "n";
+                        break;
+                      case "bishop":
+                        pieceLetter = "b";
+                        break;
+                      case "rook":
+                        pieceLetter = "r";
+                        break;
+                      case "queen":
+                        pieceLetter = "q";
+                        break;
+                      case "king":
+                        pieceLetter = "k";
+                        break;
+                      default:
+                        pieceLetter = "";
+                    }
+                  }
+                  if (typeof fromSq === "number") {
+                    const f = squareFile(fromSq);
+                    const r = squareRank(fromSq);
+                    pieceSquareColor = ((f + r) % 2 === 0) ? "dark" : "light";
+                  }
+                } else {
+                  // Fallback using UCI pv if from square not present (e.g., edge cases)
+                  const firstUci = moveData.uciMoves?.[0];
+                  if (firstUci) {
+                    const uciMove = parseUci(firstUci);
+                    if (uciMove && ("from" in (uciMove as any))) {
+                      const fromSq: any = (uciMove as any).from;
+                      const piece = pos.board.get(fromSq);
+                      if (piece) {
+                        pieceColor = piece.color;
+                        switch (piece.role) {
+                          case "pawn":
+                            pieceLetter = "p";
+                            break;
+                          case "knight":
+                            pieceLetter = "n";
+                            break;
+                          case "bishop":
+                            pieceLetter = "b";
+                            break;
+                          case "rook":
+                            pieceLetter = "r";
+                            break;
+                          case "queen":
+                            pieceLetter = "q";
+                            break;
+                          case "king":
+                            pieceLetter = "k";
+                            break;
+                          default:
+                            pieceLetter = "";
+                        }
+                      }
+                      if (typeof fromSq === "number") {
+                        const f = squareFile(fromSq);
+                        const r = squareRank(fromSq);
+                        pieceSquareColor = ((f + r) % 2 === 0) ? "dark" : "light";
+                      }
+                    }
+                  }
+                }
+                // Explicit castling handling if letter not resolved
+                if (!pieceLetter && /^O-O/.test(firstMove)) {
+                  pieceLetter = "k";
+                }
+              } catch {}
+
+              // Compute icon filename if we have all metadata
+              let iconFilename: string | undefined = undefined;
+              if (pieceLetter) {
+                const pc = pieceColor === "white" ? "l" : "d";
+                const sc = pieceSquareColor === "light" ? "l" : "d";
+                iconFilename = `Chess_${pieceLetter}${pc}${sc}45.svg`;
+              }
+
               allEngineLines.push({
                 move: firstMove,
                 san: firstMove,
@@ -315,6 +419,10 @@ export const unifiedMovesFamily = atomFamily(
                 depth: moveData.depth || 0,
                 nodes: moveData.nodes || 0,
                 isThreat: usedThreat,
+                pieceLetter,
+                pieceColor,
+                pieceSquareColor,
+                iconFilename,
               });
             }
           }
@@ -407,6 +515,10 @@ export const unifiedMovesFamily = atomFamily(
             existing.isOnlyMove = isOnlyMoveFlag;
             existing.punishesMistake = punishesFlag;
             existing.isThreat = data.isThreat;
+            existing.pieceLetter = data.pieceLetter;
+            existing.pieceColor = data.pieceColor;
+            existing.pieceSquareColor = data.pieceSquareColor;
+            existing.iconFilename = data.iconFilename;
           } else {
             moveMap.set(move, {
               move,
@@ -426,6 +538,10 @@ export const unifiedMovesFamily = atomFamily(
               rank: rank++,
               source: "engine",
               isThreat: data.isThreat,
+              pieceLetter: data.pieceLetter,
+              pieceColor: data.pieceColor,
+              pieceSquareColor: data.pieceSquareColor,
+              iconFilename: data.iconFilename,
             });
           }
         }
@@ -538,6 +654,7 @@ export const unifiedMovesFamily = atomFamily(
               isThreat: !!m.isThreat,
               annotation: m.annotation,
               rank: m.rank,
+              icon: m.iconFilename,
             })),
           );
           // eslint-disable-next-line no-console

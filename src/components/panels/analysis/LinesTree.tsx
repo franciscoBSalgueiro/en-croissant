@@ -22,7 +22,7 @@ function useUnifiedPVs(): {
   rankedFirstSANs: string[];
   firstSanColor: Record<string, string>;
   firstSanEval: Record<string, number>;
-  firstSanMeta: Record<string, { winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number }>;
+  firstSanMeta: Record<string, { winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number; iconFilename?: string }>;
   loading: boolean;
 } {
   const store = useContext(TreeStateContext)!;
@@ -49,7 +49,7 @@ function useUnifiedPVs(): {
     const firstMoveToWin: Map<string, number> = new Map();
     const firstSanColor: Record<string, string> = {};
     const firstSanEval: Record<string, number> = {};
-    const firstSanMeta: Record<string, { winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number }> = {};
+    const firstSanMeta: Record<string, { winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number; iconFilename?: string }> = {};
 
     let bestFirstSan: string | undefined = undefined;
 
@@ -76,11 +76,11 @@ function useUnifiedPVs(): {
         const info = ANNOTATION_INFO[m.annotation as Annotation];
         if (info?.color) firstSanColor[first] = info.color as string;
       }
-      // store meta for first move, include confidence
+      // store meta for first move, include confidence and icon
       const prevMeta = firstSanMeta[first];
       const prevConf = prevMeta?.confidence ?? -1;
       const curConf = m.confidence ?? -1;
-             if (!prevMeta || curConf > prevConf) {
+      if (!prevMeta || curConf > prevConf) {
         firstSanMeta[first] = {
           winChance: m.winChance,
           score: m.score,
@@ -88,6 +88,7 @@ function useUnifiedPVs(): {
           annotation: m.annotation,
           confidence: m.confidence,
           pctBest: (m as any).pctBest,
+          iconFilename: (m as any).iconFilename,
         };
       }
     }
@@ -154,15 +155,16 @@ function LinesTree() {
 
   // Persistent graph across moves
   type PersistNode = { id: string; label: string; x?: number; y?: number; fx?: number; fy?: number };
-  type PersistLink = { source: string; target: string; color?: string; winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number };
+  type PersistLink = { source: string; target: string; color?: string; winChance?: number; score?: any; engineName?: string; annotation?: string; confidence?: number; pctBest?: number; iconFilename?: string };
   const persistentRef = useRef<{
     nodes: Map<string, PersistNode>;
     links: Map<string, PersistLink>;
     firstEval: Map<string, number>;
     firstColor: Map<string, string>;
     firstConfidence: Map<string, number>;
+    firstIcon: Map<string, string>;
     pvKeys: Set<string>;
-  }>({ nodes: new Map(), links: new Map(), firstEval: new Map(), firstColor: new Map(), firstConfidence: new Map(), pvKeys: new Set() });
+  }>({ nodes: new Map(), links: new Map(), firstEval: new Map(), firstColor: new Map(), firstConfidence: new Map(), firstIcon: new Map(), pvKeys: new Set() });
   const [version, setVersion] = useState(0);
 
   // Merge current suggestions and path into persistent graph
@@ -187,6 +189,11 @@ function LinesTree() {
         if (prev === undefined || conf > prev) p.firstConfidence.set(san, conf);
       }
     }
+    // Update persistent first SAN icon (first seen)
+    for (const [san, meta] of Object.entries(firstSanMeta)) {
+      const icon = meta.iconFilename;
+      if (icon && !p.firstIcon.has(san)) p.firstIcon.set(san, icon);
+    }
 
     // Compute SAN path from root for the actual moves played
     const pathSans: string[] = [];
@@ -207,6 +214,7 @@ function LinesTree() {
         const color = (firstSanColor as any)[san] || p.firstColor.get(san);
         const winChance = meta?.winChance ?? p.firstEval.get(san);
         const confidence = meta?.confidence ?? p.firstConfidence.get(san);
+        const iconFilename = meta?.iconFilename ?? p.firstIcon.get(san);
         const nextLink = {
           source: prevId,
           target: id,
@@ -218,6 +226,7 @@ function LinesTree() {
           annotation: existing?.annotation ?? meta?.annotation,
           confidence: existing?.confidence ?? confidence,
           pctBest: existing?.pctBest ?? meta?.pctBest,
+          iconFilename: existing?.iconFilename ?? iconFilename,
         } as any;
         p.links.set(key, nextLink);
         pos0.play(m);
@@ -274,6 +283,7 @@ function LinesTree() {
         // attach confidence and pctBest for sizing/labeling and color
         confidence: meta?.confidence,
         pctBest: meta?.pctBest,
+        iconFilename: meta?.iconFilename,
       } as any);
       p.pvKeys.add(key);
 
@@ -297,6 +307,7 @@ function LinesTree() {
           annotation: meta?.annotation,
           confidence: meta?.confidence,
           pctBest: meta?.pctBest,
+          iconFilename: meta?.iconFilename,
         } as any);
         p.pvKeys.add(key2);
         prevId = nextId;
@@ -319,11 +330,16 @@ function LinesTree() {
           if (link.confidence == null && typeof u.confidence === 'number') link.confidence = u.confidence;
           if (link.pctBest == null && typeof u.pctBest === 'number') link.pctBest = u.pctBest;
           if (link.engineName == null && u.engineName) link.engineName = u.engineName;
+          if (link.iconFilename == null && u.iconFilename) link.iconFilename = u.iconFilename;
         }
         // Fallbacks from persistent maps if still missing
         if (link.confidence == null) link.confidence = p.firstConfidence.get(lastSan);
         if (link.color == null) link.color = p.firstColor.get(lastSan);
         if (link.winChance == null) link.winChance = p.firstEval.get(lastSan);
+        if (link.iconFilename == null) {
+          const first = p.firstIcon.get(lastSan);
+          if (first) link.iconFilename = first;
+        }
       }
     }
 
@@ -372,7 +388,7 @@ function LinesTree() {
   }, []);
 
   const graphData = useMemo(() => {
-    type Node = { id: string; label?: string; x?: number; y?: number; fx?: number; fy?: number; color?: string };
+    type Node = { id: string; label?: string; x?: number; y?: number; fx?: number; fy?: number; color?: string; svg?: string };
     type Link = { source: string; target: string; color?: string; highlightColor?: string; strokeWidth?: number; opacity?: number; strokeDasharray?: string; label?: string };
 
     const width = dimensions?.width ?? 600;
@@ -580,7 +596,35 @@ function LinesTree() {
         const y = yMap.get(id) ?? clampY(topPad + innerH / 2);
         pn.y = y; pn.fy = y;
         const color = nodeColorForDepth(d);
-        nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy, color });
+        // derive svg icon from incoming link meta or firstIcon fallback; then adjust piece color by ply
+        let svg: string | undefined = undefined;
+        if (id !== "(root)") {
+          const parentSet = parentsOf.get(id);
+          let iconFilename: string | undefined;
+          if (parentSet && parentSet.size > 0) {
+            const firstParent = Array.from(parentSet)[0];
+            const key = `${firstParent}->${id}`;
+            const link = p.links.get(key) as any;
+            iconFilename = link?.iconFilename;
+          }
+          if (!iconFilename) {
+            const san = id.slice(id.indexOf(":") + 1);
+            iconFilename = p.firstIcon.get(san);
+          }
+          if (iconFilename) {
+            // adjust piece color per ply so it alternates white/black
+            const moverIsWhite = startTurn === 'white' ? (d % 2 === 1) : (d % 2 === 0);
+            const desiredPc = moverIsWhite ? 'l' : 'd';
+            const m = /^Chess_([kqrbnp])([ld])([ld])45\.svg$/i.exec(iconFilename);
+            if (m) {
+              const letter = m[1].toLowerCase();
+              const sc = m[3];
+              iconFilename = `Chess_${letter}${desiredPc}${sc}45.svg`;
+            }
+            svg = `/svg/${iconFilename}`;
+          }
+        }
+        nodeMap.set(id, { id, label: pn.label, x: pn.x, y: pn.y, fx: pn.fx, fy: pn.fy, color, svg });
       });
     };
 
@@ -816,7 +860,7 @@ function LinesTree() {
             ]}
             style={{ width: 240 }}
           />
-                  <Text size="xs" c="dimmed">Top moves:</Text>
+          <Text size="xs" c="dimmed">Top moves:</Text>
           <Slider
             value={sliderValue}
             onChange={setTopN}

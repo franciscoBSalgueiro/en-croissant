@@ -20,6 +20,7 @@ import {
   Box,
   Flex,
   ActionIcon,
+  Image,
 } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
@@ -75,6 +76,25 @@ function MoveCellRenderer(props: any) {
         isStart={false}
         onClick={handleClick}
       />
+    </div>
+  );
+}
+
+// Icon cell renderer: renders the /public/svg/{iconFilename}
+function IconCellRenderer(props: any) {
+  const { data } = props;
+  const filename: string | undefined = data?.iconFilename;
+  if (!filename) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Text size="xs" c="dimmed">-</Text>
+      </div>
+    );
+  }
+  const src = `/svg/${filename}`;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img src={src} alt={filename} style={{ width: 24, height: 24 }} />
     </div>
   );
 }
@@ -730,6 +750,13 @@ function UnifiedMovesTable() {
         cellRenderer: MoveCellRenderer,
         pinned: 'left',
         valueGetter: (params) => params.data?.san || params.data?.move || '',
+      },
+      {
+        headerName: "Icon",
+        field: "iconFilename",
+        width: 70,
+        cellRenderer: IconCellRenderer,
+        sortable: false,
       },
       {
         headerName: "Rank",

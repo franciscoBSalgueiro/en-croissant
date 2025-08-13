@@ -72,6 +72,7 @@ import UnifiedMovesTable from "../panels/analysis/UnifiedMovesTable";
 import { loadable } from "jotai/utils";
 import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import { activeTabAtom as activeTabForUnified } from "@/state/atoms";
+import type { PiecesCount } from "@/utils/chess";
 
 function EnginesSelect({
   engine,
@@ -122,6 +123,7 @@ export type OpponentSettings =
       // Bot-specific fields (when engine is null)
       pickRank?: number;
       strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number };
+      botId?: string;
     };
 
 function OpponentForm({
@@ -147,6 +149,7 @@ function OpponentForm({
 
   const findMatchingBotId = () => {
     if (opponent.type === "human") return "human";
+    if ((opponent as any).botId) return (opponent as any).botId as string;
     if (opponent.engine) return undefined;
     // match by name if present, otherwise by strategy/pickRank
     const bot = bots.find((b) => {
@@ -173,6 +176,7 @@ function OpponentForm({
             type: "human",
             name: "Player",
             timeControl: undefined,
+            botId: undefined,
           }));
         } else {
           const bot = bots.find((b) => b.id === val);
@@ -191,6 +195,7 @@ function OpponentForm({
             thinkingDelayMinMs: bot.thinkingDelayMinMs,
             thinkingDelayMaxMs: bot.thinkingDelayMaxMs,
             timeControl: undefined,
+            botId: bot.id,
           }));
         }
       }}
@@ -201,6 +206,79 @@ function OpponentForm({
   if (inline) return select;
 
   return <Stack flex={1}>{select}</Stack>;
+}
+
+function PlayerPanel({
+  color,
+  opponent,
+  setOpponent,
+  setOtherOpponent,
+  whiteTime,
+  blackTime,
+  turn,
+  captured,
+  materialDiff,
+}: {
+  color: "white" | "black";
+  opponent: OpponentSettings;
+  setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
+  setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
+  whiteTime: number | null;
+  blackTime: number | null;
+  turn: "white" | "black" | undefined;
+  captured: PiecesCount;
+  materialDiff: number;
+}) {
+  const capturedSize = 25;
+  const pieceColorChar = color === "white" ? "d" : "l"; // show black icons for white, white icons for black
+  const srcFor = (role: keyof PiecesCount) => `/svg/Chess_${role}${pieceColorChar}l45.svg`;
+  const renderCaptured = (c: PiecesCount) => {
+    const items: JSX.Element[] = [];
+    for (let i = 0; i < c.p; i++) items.push(<img key={`p${i}`} src={srcFor("p")} width={capturedSize} height={capturedSize} alt="pawn" />);
+    for (let i = 0; i < c.n; i++) items.push(<img key={`n${i}`} src={srcFor("n")} width={capturedSize} height={capturedSize} alt="knight" />);
+    for (let i = 0; i < c.b; i++) items.push(<img key={`b${i}`} src={srcFor("b")} width={capturedSize} height={capturedSize} alt="bishop" />);
+    for (let i = 0; i < c.r; i++) items.push(<img key={`r${i}`} src={srcFor("r")} width={capturedSize} height={capturedSize} alt="rook" />);
+    for (let i = 0; i < c.q; i++) items.push(<img key={`q${i}`} src={srcFor("q")} width={capturedSize} height={capturedSize} alt="queen" />);
+    return <Group gap={0}>{items}</Group>;
+  };
+
+  const sideDiff = color === "white" ? materialDiff : -materialDiff;
+  const diffLabel = sideDiff > 0 ? `+${sideDiff}` : sideDiff < 0 ? `${sideDiff}` : undefined;
+
+  return (
+    <Paper
+      withBorder
+      shadow="sm"
+      p="md"
+      h="100%"
+      style={{
+        minHeight: 300,
+        overflow: "hidden",
+        // backgroundColor: color === "white" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.8)",
+        color: color === "white" ? "inherit" : "white",
+      }}
+    >
+      <Stack gap="xs">
+        <Group align="center" gap="xs">
+          {color === "white" ? (
+            <>
+              <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
+              <Clock color={color} turn={turn || "white"} whiteTime={whiteTime ?? undefined} blackTime={blackTime ?? undefined} />
+            </>
+          ) : (
+            <>
+              <Clock color={color} turn={turn || "white"} whiteTime={whiteTime ?? undefined} blackTime={blackTime ?? undefined} />
+              <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
+            </>
+          )}
+        </Group>
+        <Group justify="space-between" w="100%">
+          {renderCaptured(captured)}
+          {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
+        </Group>
+      </Stack>
+    </Paper>
+  );
 }
 
 const DEFAULT_TIME_CONTROL: TimeControlField = {
@@ -519,6 +597,21 @@ function BoardGame() {
     typeof setInterval
   > | null>(null);
 
+  // Track captured pieces per side from Board
+  const [captured, setCaptured] = useState<{ white: PiecesCount; black: PiecesCount}>({
+    white: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+    black: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+  });
+  const [materialDiff, setMaterialDiff] = useState(0);
+
+  useEffect(() => {
+    // reset captured when resetting game
+    if (gameState === "settingUp") {
+      setCaptured({ white: { p: 0, n: 0, b: 0, r: 0, q: 0 }, black: { p: 0, n: 0, b: 0, r: 0, q: 0 } });
+      setMaterialDiff(0);
+    }
+  }, [gameState]);
+
   useEffect(() => {
     if (intervalId) {
       clearInterval(intervalId);
@@ -644,6 +737,7 @@ function BoardGame() {
           blackTime={
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
+          onCapturedChange={setCaptured}
         />
       </Paper>
     ),
@@ -672,42 +766,31 @@ function BoardGame() {
   // NEW: Define nested mosaic tile renderers for playing view
   const playingTiles: { [viewId in PlayingViewId]: JSX.Element } = {
     leftPlayer: (
-      <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: "hidden" }}>
-        <Stack gap="xs">
-          {/* <Text size="sm" fw={600}>White</Text> */}
-          {/* <Text fw={500}>{headers.white || "White"}</Text> */}
-          <Group align="center" gap="xs">
-            <OpponentForm
-              inline
-              opponent={players.white}
-              setOpponent={(updater) =>
-                setPlayers((prev) => {
-                  const next =
-                    typeof updater === "function"
-                      ? { ...prev, white: (updater as any)(prev.white) }
-                      : { ...prev, white: updater };
-                  return next;
-                })
-              }
-              setOtherOpponent={(updater) =>
-                setPlayers((prev) => {
-                  const nextOther =
-                    typeof updater === "function"
-                      ? (updater as any)(prev.black)
-                      : updater;
-                  return { ...prev, black: nextOther } as any;
-                })
-              }
-            />
-            <Clock
-              color="white"
-              turn={pos?.turn || "white"}
-              whiteTime={whiteTime ?? undefined}
-              blackTime={blackTime ?? undefined}
-            />
-          </Group>
-        </Stack>
-      </Paper>
+      <PlayerPanel
+        color="white"
+        opponent={players.white}
+        setOpponent={(updater) =>
+          setPlayers((prev) => {
+            const next =
+              typeof updater === "function"
+                ? { ...prev, white: (updater as any)(prev.white) }
+                : { ...prev, white: updater };
+            return next;
+          })
+        }
+        setOtherOpponent={(updater) =>
+          setPlayers((prev) => {
+            const nextOther =
+              typeof updater === "function" ? (updater as any)(prev.black) : updater;
+            return { ...prev, black: nextOther } as any;
+          })
+        }
+        whiteTime={whiteTime}
+        blackTime={blackTime}
+        turn={pos?.turn}
+        captured={captured.white}
+        materialDiff={materialDiff}
+      />
     ),
     centerBoard: (
       <Paper withBorder shadow="sm" p="md" h="100%" style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
@@ -725,6 +808,8 @@ function BoardGame() {
               whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
               blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
               fitContainer
+              onCapturedChange={setCaptured}
+              onMaterialDiffChange={setMaterialDiff}
             />
           </Box>
         </Box>
@@ -741,42 +826,31 @@ function BoardGame() {
       </Paper>
     ),
     rightPlayer: (
-      <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: "hidden" }}>
-        <Stack gap="xs">
-          {/* <Text size="sm" fw={600}>Black</Text> */}
-          {/* <Text fw={500}>{headers.black || "Black"}</Text> */}
-          <Group align="center" gap="xs">
-            <Clock
-              color="black"
-              turn={pos?.turn || "white"}
-              whiteTime={whiteTime ?? undefined}
-              blackTime={blackTime ?? undefined}
-            />
-            <OpponentForm
-              inline
-              opponent={players.black}
-              setOpponent={(updater) =>
-                setPlayers((prev) => {
-                  const next =
-                    typeof updater === "function"
-                      ? { ...prev, black: (updater as any)(prev.black) }
-                      : { ...prev, black: updater };
-                  return next;
-                })
-              }
-              setOtherOpponent={(updater) =>
-                setPlayers((prev) => {
-                  const nextOther =
-                    typeof updater === "function"
-                      ? (updater as any)(prev.white)
-                      : updater;
-                  return { ...prev, white: nextOther } as any;
-                })
-              }
-            />
-          </Group>
-        </Stack>
-      </Paper>
+      <PlayerPanel
+        color="black"
+        opponent={players.black}
+        setOpponent={(updater) =>
+          setPlayers((prev) => {
+            const next =
+              typeof updater === "function"
+                ? { ...prev, black: (updater as any)(prev.black) }
+                : { ...prev, black: updater };
+            return next;
+          })
+        }
+        setOtherOpponent={(updater) =>
+          setPlayers((prev) => {
+            const nextOther =
+              typeof updater === "function" ? (updater as any)(prev.white) : updater;
+            return { ...prev, white: nextOther } as any;
+          })
+        }
+        whiteTime={whiteTime}
+        blackTime={blackTime}
+        turn={pos?.turn}
+        captured={captured.black}
+        materialDiff={materialDiff}
+      />
     ),
     linesTree: (
       <Paper withBorder shadow="sm" p="xs" h="100%" style={{ minHeight: 300, overflow: "hidden", display: "flex", flexDirection: "column" }}>
