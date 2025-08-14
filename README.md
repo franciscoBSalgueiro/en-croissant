@@ -9,14 +9,14 @@
   <p align="center">
     The Ultimate Chess Toolkit
     <br />
-    <a href="https://www.encroissant.org"><strong>encroissant.org</strong></a>
+    <a href="https://www.botvinnik.org"><strong>botvinnik.org</strong></a>
     <br />
     <br />
     <a href="https://discord.gg/tdYzfDbSSW">Discord Server</a>
     ·
-    <a href="https://www.encroissant.org/download">Download</a>
+    <a href="https://www.botvinnik.org/download">Download</a>
     .
-    <a href="https://www.encroissant.org/docs">Explore the docs</a>
+    <a href="https://www.botvinnik.org/docs">Explore the docs</a>
   </p>
 </div>
 
@@ -50,7 +50,7 @@ The built app can be found at `src-tauri/target/release`
 
 ## Donate
 
-If you wish to support the development of this GUI, you can do so [here](https://encroissant.org/support). All donations are greatly appreciated!
+If you wish to support the development of this GUI, you can do so [here](https://botvinnik.org/support). All donations are greatly appreciated!
 
 ## Contributing
 

@@ -150,6 +150,8 @@ interface ChessboardProps {
   onCapturedChange?: (captured: { white: PiecesCount; black: PiecesCount }) => void;
   // NEW: notify parent about material diff (white minus black)
   onMaterialDiffChange?: (diff: number) => void;
+  // NEW: notify parent when a move is made (SAN and color)
+  onMoveMade?: (info: { san: string; color: "white" | "black" }) => void;
 }
 
 function Board({
@@ -169,6 +171,7 @@ function Board({
   fitContainer = false,
   onCapturedChange,
   onMaterialDiffChange,
+  onMoveMade,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -362,6 +365,7 @@ function Board({
         storeMakeMove({
           payload: move,
         });
+        onMoveMade?.({ san, color: pos.turn });
         setPendingMove(null);
       }
 
@@ -371,6 +375,7 @@ function Board({
         payload: move,
         clock: pos.turn === "white" ? whiteTime : blackTime,
       });
+      onMoveMade?.({ san, color: pos.turn });
       setPendingMove(null);
     }
   }

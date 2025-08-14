@@ -176,7 +176,7 @@ function RootLayout() {
           {
             label: t("Menu.Help.Documentation"),
             id: "documentation",
-            action: () => shellOpen("https://encroissant.org/docs/"),
+            action: () => shellOpen("https://botvinnik.org/docs/"),
           },
           {
             label: t("Menu.Help.ClearSavedData"),

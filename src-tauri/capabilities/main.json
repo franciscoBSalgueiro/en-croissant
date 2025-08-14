@@ -33,7 +33,7 @@
         {
             "identifier": "http:default",
             "allow": [
-                "https://www.encroissant.org/**",
+                "https://www.botvinnik.org/**",
                 "https://api.chess.com/**",
                 "https://www.chess.com/**",
                 "https://lichess.org/**",

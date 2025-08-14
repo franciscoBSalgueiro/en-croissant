@@ -66,13 +66,16 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
 // NEW imports for nested mosaic playing layout
-import Clock from "./Clock";
 import LinesTree from "../panels/analysis/LinesTree";
 import UnifiedMovesTable from "../panels/analysis/UnifiedMovesTable";
 import { loadable } from "jotai/utils";
 import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import { activeTabAtom as activeTabForUnified } from "@/state/atoms";
 import type { PiecesCount } from "@/utils/chess";
+import PlayerPanel from "./PlayerPanel";
+import { playedMovesFamily } from "@/state/playedMoves";
+import type { UnifiedMove } from "@/state/unifiedMoves";
+ 
 
 function EnginesSelect({
   engine,
@@ -122,8 +125,12 @@ export type OpponentSettings =
       go: GoMode;
       // Bot-specific fields (when engine is null)
       pickRank?: number;
-      strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number };
+      strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number } | { mode: "rankSet"; ranks: number[] };
       botId?: string;
+      confThreshold?: number;
+      thinkingDelayMinMs?: number;
+      thinkingDelayMaxMs?: number;
+      name?: string;
     };
 
 function OpponentForm({
@@ -208,78 +215,7 @@ function OpponentForm({
   return <Stack flex={1}>{select}</Stack>;
 }
 
-function PlayerPanel({
-  color,
-  opponent,
-  setOpponent,
-  setOtherOpponent,
-  whiteTime,
-  blackTime,
-  turn,
-  captured,
-  materialDiff,
-}: {
-  color: "white" | "black";
-  opponent: OpponentSettings;
-  setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-  setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-  whiteTime: number | null;
-  blackTime: number | null;
-  turn: "white" | "black" | undefined;
-  captured: PiecesCount;
-  materialDiff: number;
-}) {
-  const capturedSize = 25;
-  const pieceColorChar = color === "white" ? "d" : "l"; // show black icons for white, white icons for black
-  const srcFor = (role: keyof PiecesCount) => `/svg/Chess_${role}${pieceColorChar}l45.svg`;
-  const renderCaptured = (c: PiecesCount) => {
-    const items: JSX.Element[] = [];
-    for (let i = 0; i < c.p; i++) items.push(<img key={`p${i}`} src={srcFor("p")} width={capturedSize} height={capturedSize} alt="pawn" />);
-    for (let i = 0; i < c.n; i++) items.push(<img key={`n${i}`} src={srcFor("n")} width={capturedSize} height={capturedSize} alt="knight" />);
-    for (let i = 0; i < c.b; i++) items.push(<img key={`b${i}`} src={srcFor("b")} width={capturedSize} height={capturedSize} alt="bishop" />);
-    for (let i = 0; i < c.r; i++) items.push(<img key={`r${i}`} src={srcFor("r")} width={capturedSize} height={capturedSize} alt="rook" />);
-    for (let i = 0; i < c.q; i++) items.push(<img key={`q${i}`} src={srcFor("q")} width={capturedSize} height={capturedSize} alt="queen" />);
-    return <Group gap={0}>{items}</Group>;
-  };
-
-  const sideDiff = color === "white" ? materialDiff : -materialDiff;
-  const diffLabel = sideDiff > 0 ? `+${sideDiff}` : sideDiff < 0 ? `${sideDiff}` : undefined;
-
-  return (
-    <Paper
-      withBorder
-      shadow="sm"
-      p="md"
-      h="100%"
-      style={{
-        minHeight: 300,
-        overflow: "hidden",
-        // backgroundColor: color === "white" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.8)",
-        color: color === "white" ? "inherit" : "white",
-      }}
-    >
-      <Stack gap="xs">
-        <Group align="center" gap="xs">
-          {color === "white" ? (
-            <>
-              <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
-              <Clock color={color} turn={turn || "white"} whiteTime={whiteTime ?? undefined} blackTime={blackTime ?? undefined} />
-            </>
-          ) : (
-            <>
-              <Clock color={color} turn={turn || "white"} whiteTime={whiteTime ?? undefined} blackTime={blackTime ?? undefined} />
-              <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
-            </>
-          )}
-        </Group>
-        <Group justify="space-between" w="100%">
-          {renderCaptured(captured)}
-          {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
-        </Group>
-      </Stack>
-    </Paper>
-  );
-}
+// PlayerPanel moved to separate file
 
 const DEFAULT_TIME_CONTROL: TimeControlField = {
   seconds: 180_000,
@@ -379,6 +315,8 @@ function BoardGame() {
 
   const setLastMove = useSetAtom(lastMovedAtom);
   const [, setTabs] = useAtom(tabsAtom);
+  const setWhitePlayed = useSetAtom(playedMovesFamily({ tab: activeTab!, color: "white" }));
+  const setBlackPlayed = useSetAtom(playedMovesFamily({ tab: activeTab!, color: "black" }));
 
   const boardRef = useRef(null);
   const botTimeoutRef = useRef<number | null>(null);
@@ -417,6 +355,19 @@ function BoardGame() {
     );
   }, [pos, headers.variant, root, lastNode.fen, activeTabForBot]);
   const unifiedLoadable = unifiedAtomForBot ? useAtomValue(unifiedAtomForBot) : { state: "loading" } as any;
+
+  const appendPlayedMove = (san: string, color: "white" | "black") => {
+    try {
+      const list: UnifiedMove[] = unifiedLoadable.state === 'hasData' ? (unifiedLoadable.data as UnifiedMove[]) : [];
+      const found = list.find((m) => (m.san || m.move) === san);
+      const setter = color === "white" ? setWhitePlayed : setBlackPlayed;
+      if (found) {
+        setter((prev) => [...prev, found]);
+      } else {
+        setter((prev) => [...prev, { move: san, san, rank: (prev.length + 1), source: 'database' } as any]);
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     if (!pos) return;
@@ -506,8 +457,8 @@ function BoardGame() {
           fen: root.fen,
           moves: moves,
           extraOptions: (player.engine.settings || [])
-            .filter((s) => s.name !== "MultiPV")
-            .map((s) => ({
+            .filter((s: { name: string }) => s.name !== "MultiPV")
+            .map((s: { name: string; value?: unknown }) => ({
               ...s,
               value: s.value?.toString() ?? "",
             })),
@@ -722,7 +673,7 @@ function BoardGame() {
   const boardLayout: { [viewId in BoardViewId]: JSX.Element } = {
     board: (
       <Paper withBorder shadow="sm" p="md" h="100%">
-        <Board
+          <Board
           dirty={false}
           editingMode={false}
           toggleEditingMode={() => undefined}
@@ -738,6 +689,7 @@ function BoardGame() {
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           onCapturedChange={setCaptured}
+          onMoveMade={({ san, color }) => appendPlayedMove(san, color)}
         />
       </Paper>
     ),
@@ -808,8 +760,9 @@ function BoardGame() {
               whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
               blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
               fitContainer
-              onCapturedChange={setCaptured}
-              onMaterialDiffChange={setMaterialDiff}
+            onCapturedChange={setCaptured}
+            onMaterialDiffChange={setMaterialDiff}
+            onMoveMade={({ san, color }) => appendPlayedMove(san, color)}
             />
           </Box>
         </Box>

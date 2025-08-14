@@ -139,7 +139,7 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     async (os: Platform) => {
       const bmi2: boolean = await commands.isBmi2Compatible();
       const data = await fetch(
-        `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
+        `https://www.botvinnik.org/engines?os=${os}&bmi2=${bmi2}`,
         {
           method: "GET",
         },

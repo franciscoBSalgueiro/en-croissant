@@ -45,11 +45,11 @@ function AboutModal({
       <br />
 
       <Anchor
-        href="https://www.encroissant.org"
+        href="https://www.botvinnik.org"
         target="_blank"
         rel="noreferrer"
       >
-        www.encroissant.org
+        www.botvinnik.org
       </Anchor>
     </Modal>
   );
