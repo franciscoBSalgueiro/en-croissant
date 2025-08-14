@@ -125,7 +125,7 @@ function PlayerPanel({
     for (const m of playedMoves) {
       if (m.score && m.score.value !== undefined) {
         try {
-          const cp = normalizeScore(m.score.value as any, color);
+          const cp = normalizeScore(m.score.value as any, "white");
           if (Number.isFinite(cp)) {
             cpSum += cp;
             cpCount++;
@@ -188,7 +188,7 @@ function PlayerPanel({
             <>
               <Group gap="md">
                 <Text size="xs" c="dimmed">Eval</Text>
-                <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(1)} cp` : "-"}</Text>
+                <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(2)} cp` : "-"}</Text>
                 <Text size="xs" c="dimmed">% Best</Text>
                 <Text size="sm" fw={600}>{summary.avgPctBest !== undefined ? `${summary.avgPctBest.toFixed(1)}%` : "-"}</Text>
                 <Text size="xs" c="dimmed">% Played</Text>

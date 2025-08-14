@@ -46,7 +46,7 @@ import { parseUci } from "chessops";
 import { makeSan, parseSan } from "chessops/san";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom, atom } from "jotai";
 import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { atomWithStorage } from "jotai/utils";
@@ -318,6 +318,8 @@ function BoardGame() {
   const [, setTabs] = useAtom(tabsAtom);
   const setWhitePlayed = useSetAtom(playedMovesFamily({ tab: activeTab!, color: "white" }));
   const setBlackPlayed = useSetAtom(playedMovesFamily({ tab: activeTab!, color: "black" }));
+  const whitePlayed = useAtomValue(playedMovesFamily({ tab: activeTab!, color: "white" }));
+  const blackPlayed = useAtomValue(playedMovesFamily({ tab: activeTab!, color: "black" }));
 
   const boardRef = useRef(null);
   const botTimeoutRef = useRef<number | null>(null);
@@ -349,29 +351,28 @@ function BoardGame() {
   }, [pos, players]);
 
   const unifiedAtomForBot = useMemo(() => {
-    if (!pos) return null;
     const is960 = headers.variant === "Chess960";
     const currentMoves = getMainLine(root, is960);
-    return loadable(
-      unifiedMovesFamily({ rootFen: root.fen, fen: lastNode.fen, moves: currentMoves, tab: activeTabForBot! })
-    );
+    const base = pos
+      ? unifiedMovesFamily({ rootFen: root.fen, fen: lastNode.fen, moves: currentMoves, tab: activeTabForBot! })
+      : atom<UnifiedMove[]>([]);
+    return loadable(base as any);
   }, [pos, headers.variant, root, lastNode.fen, activeTabForBot]);
-  const unifiedLoadable = unifiedAtomForBot ? useAtomValue(unifiedAtomForBot) : { state: "loading" } as any;
+  const unifiedLoadable = useAtomValue(unifiedAtomForBot);
 
-  const appendPlayedMove = (san: string, color: "white" | "black") => {
-    try {
-      const list: UnifiedMove[] = unifiedLoadable.state === 'hasData' ? (unifiedLoadable.data as UnifiedMove[]) : [];
-      const found = list.find((m) => (m.san || m.move) === san);
-      const setter = color === "white" ? setWhitePlayed : setBlackPlayed;
-      const currentHalfMoves = lastNode.halfMoves; // half-move count before this move
-      const moveNumber = Math.ceil((currentHalfMoves + 1) / 2);
-      if (found) {
-        setter((prev) => [...prev, { ...found, moveNumber }]);
-      } else {
-        setter((prev) => [...prev, { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber } as any]);
-      }
-    } catch {}
-  };
+  // Unified moves for the previous position (before the last move)
+  const prevNode = mainLine.length > 1 ? mainLine[mainLine.length - 2].node : null;
+  const unifiedPrevAtom = useMemo(() => {
+    const is960 = headers.variant === "Chess960";
+    const currentMoves = getMainLine(root, is960).slice(0, -1);
+    const base = prevNode
+      ? unifiedMovesFamily({ rootFen: root.fen, fen: prevNode.fen, moves: currentMoves, tab: activeTabForBot! })
+      : atom<UnifiedMove[]>([]);
+    return loadable(base as any);
+  }, [prevNode?.fen, headers.variant, root, activeTabForBot]);
+  const unifiedPrevLoadable = useAtomValue(unifiedPrevAtom);
+
+  // Removed direct append helper; use the lastNode-change effect instead
 
   useEffect(() => {
     if (!pos) return;
@@ -437,11 +438,6 @@ function BoardGame() {
         const sanMove = !uciMove && san ? parseSan(p, san) : null;
         const finalMove = (uciMove || sanMove) as any;
         if (!finalMove) return;
-        // Record played move for bot
-        try {
-          const sanStr = san || (uciMove && makeSan(p, uciMove as any));
-          if (sanStr) appendPlayedMove(sanStr as string, currentTurn);
-        } catch {}
         appendMove({ payload: finalMove });
         if (firstUci) setLastMove(firstUci);
         botTimeoutRef.current = null;
@@ -477,6 +473,29 @@ function BoardGame() {
     }
   }, [pos, gameState, enginePaused, headers.result, players, unifiedLoadable, lastNode.fen, root.fen, moves, activeTab]);
 
+  // Ensure any move made via external UI (e.g., UnifiedMovesTable click) is reflected in Played Moves
+  useEffect(() => {
+    if (gameState !== "playing") return;
+    const san = (lastNode as any)?.san as string | undefined;
+    const half = (lastNode as any)?.halfMoves as number | undefined;
+    if (!san || typeof half !== 'number' || half <= 0) return;
+    const color: "white" | "black" = (half % 2 === 1) ? "white" : "black";
+    const moveNumber = Math.ceil(half / 2);
+    const list = color === "white" ? whitePlayed : blackPlayed;
+    const exists = list.some((m: any) => (m.san || m.move) === san && m.moveNumber === moveNumber);
+    if (exists) return;
+    try {
+      const unifiedList: UnifiedMove[] = unifiedPrevLoadable.state === 'hasData' ? (unifiedPrevLoadable.data as UnifiedMove[]) : [];
+      const found = unifiedList.find((m) => (m.san || m.move) === san);
+      const setter = color === "white" ? setWhitePlayed : setBlackPlayed;
+      if (found) {
+        setter((prev) => [...prev, { ...found, moveNumber }]);
+      } else {
+        setter((prev) => [...prev, { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber } as any]);
+      }
+    } catch {}
+  }, [gameState, lastNode?.san, lastNode?.halfMoves, whitePlayed, blackPlayed, unifiedPrevLoadable, setWhitePlayed, setBlackPlayed]);
+
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
 
@@ -508,13 +527,6 @@ function BoardGame() {
           payload: move,
           clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
-        // Record played move for engine
-        try {
-          if (pos) {
-            const sanStr = makeSan(pos, move as any);
-            appendPlayedMove(sanStr, pos.turn);
-          }
-        } catch {}
         setLastMove(ev[0].uciMoves[0]);
       }
     });
@@ -705,7 +717,6 @@ function BoardGame() {
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           onCapturedChange={setCaptured}
-          onMoveMade={({ san, color }) => appendPlayedMove(san, color)}
         />
       </Paper>
     ),
@@ -778,7 +789,6 @@ function BoardGame() {
               fitContainer
             onCapturedChange={setCaptured}
             onMaterialDiffChange={setMaterialDiff}
-            onMoveMade={({ san, color }) => appendPlayedMove(san, color)}
             />
           </Box>
         </Box>
