@@ -12,6 +12,7 @@ import {
   enableAllAtom,
   currentTabAtom,
   botsAtom,
+  showArrowsAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
@@ -42,7 +43,7 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
-import { parseSan } from "chessops/san";
+import { makeSan, parseSan } from "chessops/san";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -322,6 +323,7 @@ function BoardGame() {
   const botTimeoutRef = useRef<number | null>(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
+  const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
   const autoStartAnalysis = useAtomValue(autoStartAnalysisAtom);
   const [, enableAnalysisEngines] = useAtom(enableAllAtom);
 
@@ -435,6 +437,11 @@ function BoardGame() {
         const sanMove = !uciMove && san ? parseSan(p, san) : null;
         const finalMove = (uciMove || sanMove) as any;
         if (!finalMove) return;
+        // Record played move for bot
+        try {
+          const sanStr = san || (uciMove && makeSan(p, uciMove as any));
+          if (sanStr) appendPlayedMove(sanStr as string, currentTurn);
+        } catch {}
         appendMove({ payload: finalMove });
         if (firstUci) setLastMove(firstUci);
         botTimeoutRef.current = null;
@@ -501,6 +508,13 @@ function BoardGame() {
           payload: move,
           clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
+        // Record played move for engine
+        try {
+          if (pos) {
+            const sanStr = makeSan(pos, move as any);
+            appendPlayedMove(sanStr, pos.turn);
+          }
+        } catch {}
         setLastMove(ev[0].uciMoves[0]);
       }
     });
@@ -777,6 +791,12 @@ function BoardGame() {
           >
             {enginePaused ? "Play" : "Pause"}
           </Button>
+          <Button
+            onClick={() => setShowArrows((prev) => !prev)}
+            variant={showArrows ? "filled" : "default"}
+          >
+            {showArrows ? "Arrows On" : "Arrows Off"}
+          </Button>
         </Group>
       </Paper>
     ),
@@ -872,6 +892,7 @@ function SimplifiedSidebar({
   const [, enable] = useAtom(enableAllAtom);
   const allEnabledLoader = useAtomValue(allEnabledAtom);
   const allEnabled = allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+  const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
 
   return (
     <Stack h="100%" gap="xs">
@@ -885,6 +906,12 @@ function SimplifiedSidebar({
             {enginePaused ? "Play" : "Stop"}
           </Button>
         )}
+        <Button
+          variant={showArrows ? "filled" : "default"}
+          onClick={() => setShowArrows((prev) => !prev)}
+        >
+          {showArrows ? "Arrows On" : "Arrows Off"}
+        </Button>
         <Button
           variant={allEnabled ? "filled" : "default"}
           onClick={() => enable(!allEnabled)}

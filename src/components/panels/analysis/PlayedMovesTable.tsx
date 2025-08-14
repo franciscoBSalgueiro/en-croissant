@@ -127,7 +127,9 @@ function WinChanceCellRenderer(props: any) {
 
 function ConfidenceCellRenderer(props: any) {
   const { data } = props;
-  const value: number | undefined = data.confidence;
+  const kind: 'confidence' | 'pctBest' = (props?.colDef?.cellRendererParams?.type === 'pctBest') ? 'pctBest' : 'confidence';
+  const raw: number | undefined = kind === 'pctBest' ? data?.pctBest : data?.confidence;
+  const value: number | undefined = typeof raw === 'number' ? raw : undefined;
   const color = value !== undefined ? (value >= 80 ? "green" : value >= 50 ? "yellow" : "red") : undefined;
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -322,7 +324,12 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
     pagination: false,
     suppressHorizontalScroll: true,
     suppressMovableColumns: false,
-    getRowId: (params) => params.data?.san || params.data?.move,
+    getRowId: (params) => {
+      const d: any = params.data as any;
+      const idMove = d?.san || d?.move || "";
+      const idNum = d?.moveNumber ?? "";
+      return `${idNum}:${idMove}`;
+    },
     defaultColDef: { sortable: true, resizable: true },
     columnDefs: [
       { headerName: '#', field: 'moveNumber', width: 70, cellRenderer: NumberCellRenderer, pinned: 'left', sortable: true, sort: 'asc', valueGetter: (p: any) => p.data?.moveNumber },
