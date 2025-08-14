@@ -80,21 +80,38 @@ function MoveCellRenderer(props: any) {
   );
 }
 
-// Icon cell renderer: renders the /public/svg/{iconFilename}
-function IconCellRenderer(props: any) {
-  const { data } = props;
+// Combined icon + move renderer
+function CombinedMoveCellRenderer(props: any) {
+  const { value, data } = props;
+  const [moveNotationType] = useAtom(moveNotationTypeAtom);
+  const store = useContext(TreeStateContext);
+  const makeMove = useStore(store!, (s) => s.makeMove);
+  const fen = useStore(store!, (s) => s.currentNode().fen);
+  const handleClick = () => {
+    if (!fen || !data?.san) return;
+    const [pos] = positionFromFen(fen);
+    if (pos) {
+      const parsedMove = parseSan(pos, data.san);
+      if (parsedMove) {
+        makeMove({ payload: parsedMove });
+      }
+    }
+  };
+  const displayValue = value || data?.san || '';
+  const moveText = moveNotationType === "symbols" ? addPieceSymbol(displayValue) : displayValue;
   const filename: string | undefined = data?.iconFilename;
-  if (!filename) {
-    return (
-      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Text size="xs" c="dimmed">-</Text>
-      </div>
-    );
-  }
-  const src = `/svg/${filename}`;
+  const src = filename ? `/svg/${filename}` : null;
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <img src={src} alt={filename} style={{ width: 24, height: 24 }} />
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 6 }}>
+      {src && <img src={src} alt={filename || ''} style={{ width: 20, height: 20 }} />}
+      <MoveCell
+        move={moveText}
+        isCurrentVariation={false}
+        annotations={[]}
+        onContextMenu={() => undefined}
+        isStart={false}
+        onClick={handleClick}
+      />
     </div>
   );
 }
@@ -746,17 +763,10 @@ function UnifiedMovesTable() {
       {
         headerName: "Move",
         field: "san",
-        width: 80,
-        cellRenderer: MoveCellRenderer,
+        width: 120,
+        cellRenderer: CombinedMoveCellRenderer,
         pinned: 'left',
         valueGetter: (params) => params.data?.san || params.data?.move || '',
-      },
-      {
-        headerName: "Icon",
-        field: "iconFilename",
-        width: 70,
-        cellRenderer: IconCellRenderer,
-        sortable: false,
       },
       {
         headerName: "Rank",

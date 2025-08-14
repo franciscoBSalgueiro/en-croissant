@@ -361,10 +361,12 @@ function BoardGame() {
       const list: UnifiedMove[] = unifiedLoadable.state === 'hasData' ? (unifiedLoadable.data as UnifiedMove[]) : [];
       const found = list.find((m) => (m.san || m.move) === san);
       const setter = color === "white" ? setWhitePlayed : setBlackPlayed;
+      const currentHalfMoves = lastNode.halfMoves; // half-move count before this move
+      const moveNumber = Math.ceil((currentHalfMoves + 1) / 2);
       if (found) {
-        setter((prev) => [...prev, found]);
+        setter((prev) => [...prev, { ...found, moveNumber }]);
       } else {
-        setter((prev) => [...prev, { move: san, san, rank: (prev.length + 1), source: 'database' } as any]);
+        setter((prev) => [...prev, { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber } as any]);
       }
     } catch {}
   };

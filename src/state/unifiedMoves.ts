@@ -74,6 +74,8 @@ async function fetchOpening(db: DBType, tab: string) {
 export interface UnifiedMove {
   move: string;
   san: string;
+  // Optional: full move number in game when this move was played
+  moveNumber?: number;
   // Database stats
   white?: number;
   black?: number;
@@ -634,33 +636,33 @@ export const unifiedMovesFamily = atomFamily(
       }));
 
       // Debug logging (DEV only): print unified moves summary
-      if (import.meta.env.DEV) {
-        try {
-          // eslint-disable-next-line no-console
-          console.groupCollapsed(
-            `[UnifiedMoves] fen=${fen} moves=${moves.length} engines=${engines.length} threat=${usedThreat}`,
-          );
-          // eslint-disable-next-line no-console
-          console.table(
-            withEvalRank.map((m) => ({
-              move: m.san || m.move,
-              winChance: typeof m.winChance === "number" ? m.winChance.toFixed(1) : undefined,
-              pctBest: typeof m.pctBest === "number" ? m.pctBest.toFixed(1) : undefined,
-              confidence: typeof m.confidence === "number" ? m.confidence.toFixed(1) : undefined,
-              total: m.total,
-              source: m.source,
-              engine: m.engineName,
-              isBest: !!m.isBest,
-              isThreat: !!m.isThreat,
-              annotation: m.annotation,
-              rank: m.rank,
-              icon: m.iconFilename,
-            })),
-          );
-          // eslint-disable-next-line no-console
-          console.groupEnd();
-        } catch {}
-      }
+      // if (import.meta.env.DEV) {
+      //   try {
+      //     // eslint-disable-next-line no-console
+      //     console.groupCollapsed(
+      //       `[UnifiedMoves] fen=${fen} moves=${moves.length} engines=${engines.length} threat=${usedThreat}`,
+      //     );
+      //     // eslint-disable-next-line no-console
+      //     console.table(
+      //       withEvalRank.map((m) => ({
+      //         move: m.san || m.move,
+      //         winChance: typeof m.winChance === "number" ? m.winChance.toFixed(1) : undefined,
+      //         pctBest: typeof m.pctBest === "number" ? m.pctBest.toFixed(1) : undefined,
+      //         confidence: typeof m.confidence === "number" ? m.confidence.toFixed(1) : undefined,
+      //         total: m.total,
+      //         source: m.source,
+      //         engine: m.engineName,
+      //         isBest: !!m.isBest,
+      //         isThreat: !!m.isThreat,
+      //         annotation: m.annotation,
+      //         rank: m.rank,
+      //         icon: m.iconFilename,
+      //       })),
+      //     );
+      //     // eslint-disable-next-line no-console
+      //     console.groupEnd();
+      //   } catch {}
+      // }
       return withEvalRank;
     }),
   (a, b) => a.rootFen === b.rootFen && a.fen === b.fen && a.tab === b.tab && a.moves.length === b.moves.length && a.moves.every((m, i) => m === b.moves[i]),

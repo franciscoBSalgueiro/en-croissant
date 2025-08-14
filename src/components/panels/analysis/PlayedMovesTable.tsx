@@ -65,6 +65,35 @@ function IconCellRenderer(props: any) {
   );
 }
 
+// Combined icon + move renderer
+function CombinedMoveCellRenderer(props: any) {
+  const { value, data } = props;
+  const moveNotationType = useAtomValue(moveNotationTypeAtom);
+  const store = useContext(TreeStateContext);
+  const makeMove = useStore(store!, (s) => s.makeMove);
+  const fen = useStore(store!, (s) => s.currentNode().fen);
+  const handleClick = () => {
+    if (!fen || !data?.san) return;
+    const [pos] = positionFromFen(fen);
+    if (pos) {
+      const parsedMove = parseSan(pos, data.san);
+      if (parsedMove) {
+        makeMove({ payload: parsedMove });
+      }
+    }
+  };
+  const displayValue = value || data?.san || '';
+  const moveText = moveNotationType === "symbols" ? addPieceSymbol(displayValue) : displayValue;
+  const filename: string | undefined = data?.iconFilename;
+  const src = filename ? `/svg/${filename}` : null;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 6 }}>
+      {src && <img src={src} alt={filename || ''} style={{ width: 20, height: 20 }} />}
+      <MoveCell move={moveText} isCurrentVariation={false} annotations={[]} onContextMenu={() => undefined} isStart={false} onClick={handleClick} />
+    </div>
+  );
+}
+
 function ScoreCellRenderer(props: any) {
   const { data } = props;
   return (
@@ -296,9 +325,9 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
     getRowId: (params) => params.data?.san || params.data?.move,
     defaultColDef: { sortable: true, resizable: true },
     columnDefs: [
-      { headerName: 'Move', field: 'san', width: 80, cellRenderer: MoveCellRenderer, pinned: 'left', valueGetter: (p: any) => p.data?.san || p.data?.move || '' },
-      { headerName: 'Icon', field: 'iconFilename', width: 70, cellRenderer: IconCellRenderer, sortable: false },
-      { headerName: 'Rank', field: 'rank', width: 90, cellRenderer: NumberCellRenderer, sortable: true, sort: 'asc' },
+      { headerName: '#', field: 'moveNumber', width: 70, cellRenderer: NumberCellRenderer, pinned: 'left', sortable: true, sort: 'asc', valueGetter: (p: any) => p.data?.moveNumber },
+      { headerName: 'Move', field: 'san', width: 120, cellRenderer: CombinedMoveCellRenderer, pinned: 'left', valueGetter: (p: any) => p.data?.san || p.data?.move || '' },
+      { headerName: 'Rank', field: 'rank', width: 90, cellRenderer: NumberCellRenderer, sortable: true },
       { headerName: 'Eval Score', field: 'score', width: 100, cellRenderer: ScoreCellRenderer, sortable: true },
       { headerName: 'Annotation', field: 'annotation', width: 160, cellRenderer: AnnotationCellRenderer, sortable: false },
       { headerName: 'Confidence', field: 'confidence', width: 120, cellRenderer: ConfidenceCellRenderer, sortable: true },
