@@ -351,6 +351,13 @@ function BoardGame() {
     }
   }
 
+  // Auto-start Human vs Human game (and timers) on new/play tabs
+  useEffect(() => {
+    if ((currentTab?.type === "play" || currentTab?.type === "new") && gameState === "settingUp") {
+      startGame();
+    }
+  }, [currentTab?.type, gameState]);
+
   useEffect(() => {
     if (gameState === "playing" && !enginePaused && !intervalId) {
       const intervalId = setInterval(decrementTime, 100);
