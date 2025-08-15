@@ -123,6 +123,7 @@ function AnalysisCellRenderer(props: any) {
   const rootFen = useStore(store!, (s) => s.root.fen);
   const moves = useStore(store!, useShallow((s) => getVariationLine(s.root, s.position, false)));
   const halfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
+  const sanMeta = Array.isArray(data?.sanMeta) ? data.sanMeta : undefined;
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
@@ -133,6 +134,7 @@ function AnalysisCellRenderer(props: any) {
           currentMoves={moves}
           score={data.score}
           halfMoves={halfMoves}
+          sanMeta={sanMeta}
         />
       ) : data.score ? (
         <ScoreBubble size="sm" score={data.score} />
@@ -295,10 +297,23 @@ function MoveLineDisplay({
   moves,
   fen,
   halfMoves,
+  meta,
 }: {
   moves: string[];
   fen: string;
   halfMoves: number;
+  meta?: {
+    san: string;
+    pieceLetter: string;
+    pieceColor: "white" | "black";
+    fromSquare?: string;
+    toSquare?: string;
+    fromSquareColor?: "light" | "dark";
+    toSquareColor?: "light" | "dark";
+    iconFilename?: string;
+    isCapture?: boolean;
+    promotion?: "q" | "r" | "b" | "n";
+  }[];
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const store = useContext(TreeStateContext)!;
@@ -334,12 +349,19 @@ function MoveLineDisplay({
       gap="xs"
     >
       {moveInfo.map(({ san }, index) => {
+        const m = Array.isArray(meta) ? meta[index] : undefined;
+        const pieceName = m?.pieceLetter ? m.pieceLetter.toUpperCase() : undefined;
+        const squares = m?.fromSquare && m?.toSquare ? `${m.fromSquare} → ${m.toSquare}` : undefined;
+        const colors = m?.fromSquareColor && m?.toSquareColor ? `(${m.fromSquareColor} → ${m.toSquareColor})` : undefined;
+        const cap = m?.isCapture ? " capture" : "";
+        const promo = m?.promotion ? ` =${m.promotion.toUpperCase()}` : "";
+        const title = [pieceName, squares, colors].filter(Boolean).join(" ") + cap + promo;
         const total_moves = halfMoves + index + 1;
         const is_white = total_moves % 2 === 1;
         const move_number = Math.ceil(total_moves / 2);
         
         return (
-          <Box key={index} style={{ display: "flex", alignItems: "center" }}>
+          <Box key={index} style={{ display: "flex", alignItems: "center" }} title={title}>
             {(index === 0 || is_white) && (
               <Text size="sm" c="dimmed" mr={2}>
                 {`${move_number}${is_white ? "." : "..."}`}
@@ -383,6 +405,7 @@ function LineCellRenderer(props: any) {
   const store = useContext(TreeStateContext);
   const fen = useStore(store!, (s) => s.currentNode().fen);
   const halfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
+  const sanMeta = Array.isArray(data?.sanMeta) ? data.sanMeta : undefined;
 
   // Prefer SAN moves; if absent, convert PV (UCI) to SAN from current position
   let sanMoves: string[] = Array.isArray(data?.sanMoves) ? data.sanMoves : [];
@@ -416,6 +439,7 @@ function LineCellRenderer(props: any) {
         moves={sanMoves}
         fen={fen}
         halfMoves={halfMoves}
+        meta={sanMeta}
       />
     </div>
   );
@@ -605,12 +629,25 @@ function EngineVariationMoves({
   currentMoves,
   score,
   halfMoves,
+  sanMeta,
 }: {
   moves: string[];
   rootFen: string;
   currentMoves: string[];
   score: any;
   halfMoves: number;
+  sanMeta?: {
+    san: string;
+    pieceLetter: string;
+    pieceColor: "white" | "black";
+    fromSquare?: string;
+    toSquare?: string;
+    fromSquareColor?: "light" | "dark";
+    toSquareColor?: "light" | "dark";
+    iconFilename?: string;
+    isCapture?: boolean;
+    promotion?: "q" | "r" | "b" | "n";
+  }[];
 }) {
   const [open, setOpen] = useState(false);
   const store = useContext(TreeStateContext)!;
@@ -656,7 +693,11 @@ function EngineVariationMoves({
           const move_number = Math.ceil(total_moves / 2);
           
           return (
-            <Box key={index} style={{ display: "flex", alignItems: "center" }}>
+            <Box key={index} style={{ display: "flex", alignItems: "center" }} title={(Array.isArray(sanMeta) && sanMeta[index]) ? [
+                sanMeta[index].pieceLetter ? sanMeta[index].pieceLetter.toUpperCase() : undefined,
+                sanMeta[index].fromSquare && sanMeta[index].toSquare ? `${sanMeta[index].fromSquare} → ${sanMeta[index].toSquare}` : undefined,
+                sanMeta[index].fromSquareColor && sanMeta[index].toSquareColor ? `(${sanMeta[index].fromSquareColor} → ${sanMeta[index].toSquareColor})` : undefined,
+              ].filter(Boolean).join(" ") + (sanMeta[index].isCapture ? " capture" : "") + (sanMeta[index].promotion ? ` =${sanMeta[index].promotion.toUpperCase()}` : "") : undefined}>
               {(index === 0 || is_white) && (
                 <Text size="sm" c="dimmed" mr={2}>
                   {`${move_number}${is_white ? "." : "..."}`}
@@ -817,6 +858,64 @@ function UnifiedMovesTable() {
         width: 90,
         cellRenderer: WinDeltaCellRenderer,
         sortable: true,
+      },
+      {
+        headerName: "Mat Δ",
+        field: "materialDelta",
+        width: 90,
+        cellRenderer: function MaterialDeltaCellRenderer(props: any) {
+          const { data } = props;
+          const value: number | undefined = data.materialDelta;
+          const color = value !== undefined ? (value > 0 ? "green" : value < 0 ? "red" : "gray") : undefined;
+          return (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {value !== undefined ? (
+                <Badge size="sm" color={color} variant="light">
+                  {(value > 0 ? "+" : "") + value}
+                </Badge>
+              ) : (
+                <Text size="xs" c="dimmed">-</Text>
+              )}
+            </div>
+          );
+        },
+        sortable: true,
+      },
+      {
+        headerName: "Gained",
+        field: "materialGained",
+        width: 100,
+        cellRenderer: function MaterialStringCellRenderer(props: any) {
+          const { value } = props;
+          return (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {typeof value === 'string' && value.length > 0 ? (
+                <Text size="sm" fw={500}>{value}</Text>
+              ) : (
+                <Text size="xs" c="dimmed">-</Text>
+              )}
+            </div>
+          );
+        },
+        sortable: false,
+      },
+      {
+        headerName: "Lost",
+        field: "materialLost",
+        width: 100,
+        cellRenderer: function MaterialStringCellRenderer(props: any) {
+          const { value } = props;
+          return (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {typeof value === 'string' && value.length > 0 ? (
+                <Text size="sm" fw={500}>{value}</Text>
+              ) : (
+                <Text size="xs" c="dimmed">-</Text>
+              )}
+            </div>
+          );
+        },
+        sortable: false,
       },
       {
         headerName: "Line",

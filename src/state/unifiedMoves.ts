@@ -2,7 +2,7 @@ import { currentDbTypeAtom, currentLocalOptionsAtom, enginesAtom, engineMovesFam
 import type { Annotation } from "@/utils/annotation";
 import { getAnnotation, getWinChance, normalizeScore } from "@/utils/score";
 import { positionFromFen } from "@/utils/chessops";
-import { parseUci, squareFile, squareRank } from "chessops";
+import { parseUci, squareFile, squareRank, type Role } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { atom } from "jotai";
@@ -16,6 +16,7 @@ import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/ex
 import { activeTabAtom, tabEngineSettingsFamily } from "@/state/atoms";
 import { swapMove } from "@/utils/chessops";
 import { INITIAL_FEN } from "chessops/fen";
+import { getMaterialDiff } from "@/utils/chess";
 
 // Database types
 export type DBType =
@@ -94,6 +95,25 @@ export interface UnifiedMove {
   engineName?: string;
   pv?: string[];
   sanMoves?: string[];
+  // Per-move metadata for SAN in PV line (from current position)
+  sanMeta?: {
+    san: string;
+    pieceLetter: string; // p, n, b, r, q, k
+    pieceColor: "white" | "black";
+    fromSquare?: string; // e.g. e2
+    toSquare?: string; // e.g. e4
+    fromSquareColor?: "light" | "dark";
+    toSquareColor?: "light" | "dark";
+    iconFilename?: string; // piece icon for the moving piece on its from square
+    isCapture?: boolean;
+    promotion?: "q" | "r" | "b" | "n";
+  }[];
+  // Material delta after playing the entire PV line from this position (white minus black)
+  materialDelta?: number;
+  // Material gained/lost by the side-to-move after playing the entire PV
+  // Encoded as repeated letters: "pp" for 2 pawns, "pq" for pawn+queen
+  materialGained?: string;
+  materialLost?: string;
   // Piece metadata for first move of line
   pieceLetter?: string; // e.g. p, n, b, r, q, k
   pieceColor?: "white" | "black";
@@ -294,12 +314,46 @@ export const unifiedMovesFamily = atomFamily(
           pieceColor: "white" | "black";
           pieceSquareColor: "light" | "dark";
           iconFilename?: string;
+          sanMeta?: {
+            san: string;
+            pieceLetter: string;
+            pieceColor: "white" | "black";
+            fromSquare?: string;
+            toSquare?: string;
+            fromSquareColor?: "light" | "dark";
+            toSquareColor?: "light" | "dark";
+            iconFilename?: string;
+            isCapture?: boolean;
+            promotion?: "q" | "r" | "b" | "n";
+          }[];
+          materialDelta?: number;
+          materialGained?: string;
+          materialLost?: string;
         }> = [];
 
         for (const [engineName, movesData] of allEngineMoves.entries()) {
           for (const moveData of movesData) {
-            if (moveData.sanMoves && moveData.sanMoves.length > 0) {
-              const firstMove = moveData.sanMoves[0];
+            if ((moveData.sanMoves && moveData.sanMoves.length > 0) || (moveData.uciMoves && moveData.uciMoves.length > 0)) {
+              // Build SAN list from current position if needed
+              let sanList: string[] = [];
+              if (moveData.sanMoves && moveData.sanMoves.length > 0) {
+                sanList = [...moveData.sanMoves];
+              } else if (Array.isArray(moveData.uciMoves) && moveData.uciMoves.length > 0) {
+                const posForSan = pos.clone();
+                const converted: string[] = [];
+                for (const uci of moveData.uciMoves) {
+                  const mv = parseUci(uci);
+                  if (!mv) break;
+                  const san = makeSan(posForSan, mv);
+                  converted.push(san);
+                  posForSan.play(mv);
+                }
+                sanList = converted;
+              }
+
+              if (sanList.length === 0) continue;
+
+              const firstMove = sanList[0];
               let winChance = 50;
               if (moveData.score) {
                 const wdl = moveData.score.wdl as [number, number, number] | null | undefined;
@@ -316,93 +370,113 @@ export const unifiedMovesFamily = atomFamily(
                 }
               }
 
-              // Derive piece metadata for the moving piece on the first SAN move
+              // Helpers
+              const fileToChar = (f: number) => String.fromCharCode("a".charCodeAt(0) + f);
+              const rankToChar = (r: number) => String(r + 1);
+              const squareToName = (sq: number | undefined) => {
+                if (typeof sq !== "number") return undefined;
+                const f = squareFile(sq);
+                const r = squareRank(sq);
+                return `${fileToChar(f)}${rankToChar(r)}`;
+              };
+
+              // Build sanMeta list and compute piece info for first move
+              const posForMeta = pos.clone();
+              const metaList: {
+                san: string;
+                pieceLetter: string;
+                pieceColor: "white" | "black";
+                fromSquare?: string;
+                toSquare?: string;
+                fromSquareColor?: "light" | "dark";
+                toSquareColor?: "light" | "dark";
+                iconFilename?: string;
+                isCapture?: boolean;
+                promotion?: "q" | "r" | "b" | "n";
+              }[] = [];
+
               let pieceLetter: string = "";
               let pieceColor: "white" | "black" = pos.turn;
               let pieceSquareColor: "light" | "dark" = "light";
-              try {
-                const parsed = parseSan(pos, firstMove);
-                if (parsed && ("from" in (parsed as any))) {
-                  const fromSq: any = (parsed as any).from;
-                  const piece = pos.board.get(fromSq);
-                  if (piece) {
-                    pieceColor = piece.color;
-                    switch (piece.role) {
-                      case "pawn":
-                        pieceLetter = "p";
-                        break;
-                      case "knight":
-                        pieceLetter = "n";
-                        break;
-                      case "bishop":
-                        pieceLetter = "b";
-                        break;
-                      case "rook":
-                        pieceLetter = "r";
-                        break;
-                      case "queen":
-                        pieceLetter = "q";
-                        break;
-                      case "king":
-                        pieceLetter = "k";
-                        break;
-                      default:
-                        pieceLetter = "";
-                    }
-                  }
-                  if (typeof fromSq === "number") {
-                    const f = squareFile(fromSq);
-                    const r = squareRank(fromSq);
-                    pieceSquareColor = ((f + r) % 2 === 0) ? "dark" : "light";
-                  }
-                } else {
-                  // Fallback using UCI pv if from square not present (e.g., edge cases)
-                  const firstUci = moveData.uciMoves?.[0];
-                  if (firstUci) {
-                    const uciMove = parseUci(firstUci);
-                    if (uciMove && ("from" in (uciMove as any))) {
-                      const fromSq: any = (uciMove as any).from;
-                      const piece = pos.board.get(fromSq);
-                      if (piece) {
-                        pieceColor = piece.color;
-                        switch (piece.role) {
-                          case "pawn":
-                            pieceLetter = "p";
-                            break;
-                          case "knight":
-                            pieceLetter = "n";
-                            break;
-                          case "bishop":
-                            pieceLetter = "b";
-                            break;
-                          case "rook":
-                            pieceLetter = "r";
-                            break;
-                          case "queen":
-                            pieceLetter = "q";
-                            break;
-                          case "king":
-                            pieceLetter = "k";
-                            break;
-                          default:
-                            pieceLetter = "";
-                        }
-                      }
-                      if (typeof fromSq === "number") {
-                        const f = squareFile(fromSq);
-                        const r = squareRank(fromSq);
-                        pieceSquareColor = ((f + r) % 2 === 0) ? "dark" : "light";
-                      }
-                    }
-                  }
-                }
-                // Explicit castling handling if letter not resolved
-                if (!pieceLetter && /^O-O/.test(firstMove)) {
-                  pieceLetter = "k";
-                }
-              } catch {}
 
-              // Compute icon filename if we have all metadata
+              for (const san of sanList) {
+                const mv = parseSan(posForMeta, san) as any;
+                if (!mv) break;
+                const fromSq: any = mv.from;
+                const toSq: any = mv.to;
+                const piece = typeof fromSq === "number" ? posForMeta.board.get(fromSq) : null;
+                let letter = "";
+                let color: "white" | "black" = posForMeta.turn;
+                let fromColor: "light" | "dark" | undefined = undefined;
+                let toColor: "light" | "dark" | undefined = undefined;
+                if (piece) {
+                  color = piece.color;
+                  switch (piece.role) {
+                    case "pawn": letter = "p"; break;
+                    case "knight": letter = "n"; break;
+                    case "bishop": letter = "b"; break;
+                    case "rook": letter = "r"; break;
+                    case "queen": letter = "q"; break;
+                    case "king": letter = "k"; break;
+                    default: letter = "";
+                  }
+                }
+                if (typeof fromSq === "number") {
+                  const f = squareFile(fromSq);
+                  const r = squareRank(fromSq);
+                  fromColor = ((f + r) % 2 === 0) ? "dark" : "light";
+                }
+                if (typeof toSq === "number") {
+                  const f = squareFile(toSq);
+                  const r = squareRank(toSq);
+                  toColor = ((f + r) % 2 === 0) ? "dark" : "light";
+                }
+                let icon: string | undefined = undefined;
+                if (letter) {
+                  const pc = color === "white" ? "l" : "d";
+                  const sc = fromColor === "light" ? "l" : "d";
+                  icon = `Chess_${letter}${pc}${sc}45.svg`;
+                }
+                const isCapture = san.includes("x");
+                let promotion: "q" | "r" | "b" | "n" | undefined = undefined;
+                if ((mv as any).promotion && (mv as any).promotion.role) {
+                  const role = (mv as any).promotion.role as string;
+                  if (role === "queen") promotion = "q";
+                  else if (role === "rook") promotion = "r";
+                  else if (role === "bishop") promotion = "b";
+                  else if (role === "knight") promotion = "n";
+                } else if (san.includes("=")) {
+                  const ch = san.split("=")[1]?.[0]?.toLowerCase();
+                  if (ch === "q" || ch === "r" || ch === "b" || ch === "n") promotion = ch as any;
+                }
+
+                metaList.push({
+                  san,
+                  pieceLetter: letter,
+                  pieceColor: color,
+                  fromSquare: squareToName(fromSq),
+                  toSquare: squareToName(toSq),
+                  fromSquareColor: fromColor,
+                  toSquareColor: toColor,
+                  iconFilename: icon,
+                  isCapture,
+                  promotion,
+                });
+
+                if (!pieceLetter && letter) {
+                  pieceLetter = letter;
+                  pieceColor = color;
+                  pieceSquareColor = fromColor ?? "light";
+                }
+                posForMeta.play(mv);
+              }
+
+              // Explicit castling handling if letter not resolved from SAN
+              if (!pieceLetter && /^O-O/.test(firstMove)) {
+                pieceLetter = "k";
+              }
+
+              // Compute first-move icon filename if we have all metadata
               let iconFilename: string | undefined = undefined;
               if (pieceLetter) {
                 const pc = pieceColor === "white" ? "l" : "d";
@@ -410,13 +484,52 @@ export const unifiedMovesFamily = atomFamily(
                 iconFilename = `Chess_${pieceLetter}${pc}${sc}45.svg`;
               }
 
-              allEngineLines.push({
+              // Compute material delta after playing the entire PV
+              const startDiff = getMaterialDiff(fen)?.diff ?? 0;
+              const posForEnd = pos.clone();
+              for (const san of sanList) {
+                const mv = parseSan(posForEnd, san);
+                if (!mv) break;
+                posForEnd.play(mv as any);
+              }
+              const endFen = makeFen(posForEnd.toSetup());
+              const endDiff = getMaterialDiff(endFen)?.diff ?? startDiff;
+              const materialDelta = endDiff - startDiff;
+
+              // Compute material gained/lost by side-to-move at start over the PV
+              const countPieces = (c: typeof pos) => {
+                const counts: Record<"white" | "black", Record<Role, number>> = {
+                  white: { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0, king: 0 },
+                  black: { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0, king: 0 },
+                };
+                for (let sq = 0; sq < 64; sq++) {
+                  const piece = c.board.get(sq as any);
+                  if (piece) counts[piece.color][piece.role]++;
+                }
+                return counts;
+              };
+              const startCounts = countPieces(pos);
+              const endCounts = countPieces(posForEnd);
+              const startSide: "white" | "black" = pos.turn;
+              const oppSide: "white" | "black" = startSide === "white" ? "black" : "white";
+              const order: Role[] = ["pawn", "knight", "bishop", "rook", "queen"]; // exclude king
+              const roleToLetter = (r: Role): string => (r === "pawn" ? "p" : r === "knight" ? "n" : r === "bishop" ? "b" : r === "rook" ? "r" : r === "queen" ? "q" : "k");
+              let materialGained = "";
+              let materialLost = "";
+              for (const r of order) {
+                const gainedCount = Math.max(0, startCounts[oppSide][r] - endCounts[oppSide][r]);
+                const lostCount = Math.max(0, startCounts[startSide][r] - endCounts[startSide][r]);
+                if (gainedCount > 0) materialGained += roleToLetter(r).repeat(gainedCount);
+                if (lostCount > 0) materialLost += roleToLetter(r).repeat(lostCount);
+              }
+
+              const allEngineLinesData = {
                 move: firstMove,
                 san: firstMove,
                 score: moveData.score,
                 winChance,
                 engineName,
-                sanMoves: moveData.sanMoves || [],
+                sanMoves: sanList,
                 pv: moveData.uciMoves || [],
                 depth: moveData.depth || 0,
                 nodes: moveData.nodes || 0,
@@ -425,7 +538,14 @@ export const unifiedMovesFamily = atomFamily(
                 pieceColor,
                 pieceSquareColor,
                 iconFilename,
-              });
+                sanMeta: metaList,
+                materialDelta,
+                materialGained,
+                materialLost,
+              }
+              console.info('allEngineLinesData', allEngineLinesData);
+
+              allEngineLines.push(allEngineLinesData);
             }
           }
         }
@@ -521,6 +641,10 @@ export const unifiedMovesFamily = atomFamily(
             existing.pieceColor = data.pieceColor;
             existing.pieceSquareColor = data.pieceSquareColor;
             existing.iconFilename = data.iconFilename;
+            existing.sanMeta = data.sanMeta;
+            existing.materialDelta = data.materialDelta;
+            existing.materialGained = data.materialGained;
+            existing.materialLost = data.materialLost;
           } else {
             moveMap.set(move, {
               move,
@@ -544,6 +668,10 @@ export const unifiedMovesFamily = atomFamily(
               pieceColor: data.pieceColor,
               pieceSquareColor: data.pieceSquareColor,
               iconFilename: data.iconFilename,
+              sanMeta: data.sanMeta,
+              materialDelta: data.materialDelta,
+              materialGained: data.materialGained,
+              materialLost: data.materialLost,
             });
           }
         }
