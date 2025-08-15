@@ -29,7 +29,7 @@ import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom, atom } from "jotai";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { MosaicWithoutDragDropContext as Mosaic, type MosaicNode } from "react-mosaic-component";
 import { atomWithStorage } from "jotai/utils";
 import { useStore } from "zustand";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -415,7 +415,7 @@ function BoardGame() {
     centerBoard: (
       <Paper withBorder shadow="sm" p="md" h="100%" style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         <Box style={{ width: "100%", flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Box style={{ height: "100%", maxWidth: "100%", aspectRatio: "1 / 1", display: "flex" }}>
+          <Box style={{ height: "100%", maxWidth: "100%", aspectRatio: "1 / 1", display: "flex", minWidth: 0, minHeight: 0 }}>
             <Board
               dirty={false}
               editingMode={false}

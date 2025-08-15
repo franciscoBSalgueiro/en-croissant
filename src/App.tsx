@@ -51,6 +51,8 @@ const colorSchemeManager = localStorageColorSchemeManager({
 import ErrorComponent from "@/components/ErrorComponent";
 import { documentDir, resolve } from "@tauri-apps/api/path";
 import { routeTree } from "./routeTree.gen";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 export type Dirs = {
   documentDir: string;
@@ -166,10 +168,12 @@ export default function App() {
           },
         }}
       >
-        <ContextMenuProvider>
-          <Notifications />
-          <RouterProvider router={router} />
-        </ContextMenuProvider>
+        <DndProvider backend={HTML5Backend}>
+          <ContextMenuProvider>
+            <Notifications />
+            <RouterProvider router={router} />
+          </ContextMenuProvider>
+        </DndProvider>
       </MantineProvider>
     </>
   );

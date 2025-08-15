@@ -678,6 +678,7 @@ function Board({
 
   const boardContainerRef = useRef<HTMLDivElement | null>(null);
   const [boardSize, setBoardSize] = useState<number | null>(null);
+  const [boardRenderKey, setBoardRenderKey] = useState<number>(0);
 
   useLayoutEffect(() => {
     const el = boardContainerRef.current;
@@ -686,11 +687,14 @@ function Board({
       // compute square size: min(paneHeight, paneWidth)
       const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
       setBoardSize(size);
+      // Force a full remount of Chessground so it recalculates bounds
+      setBoardRenderKey((k) => k + 1);
     });
     ro.observe(el);
     // initial
     const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
     setBoardSize(size);
+    setBoardRenderKey((k) => k + 1);
     return () => ro.disconnect();
   }, []);
 
@@ -833,7 +837,7 @@ function Board({
                   />
 
                   <Chessground
-                    key={boardSize ?? 0}
+                    key={boardRenderKey}
                     setBoardFen={setBoardFen}
                     orientation={orientation}
                     fen={currentNode.fen}

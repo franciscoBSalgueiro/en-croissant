@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { Box, Paper } from "@mantine/core";
 import UnifiedMovesTable from "./UnifiedMovesTable";
 import LinesTree from "./LinesTree";
-import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { MosaicWithoutDragDropContext as Mosaic, type MosaicNode } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 

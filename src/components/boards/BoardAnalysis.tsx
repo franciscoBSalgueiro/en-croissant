@@ -50,7 +50,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { MosaicWithoutDragDropContext as Mosaic, type MosaicNode } from "react-mosaic-component";
+import type { EngineSettings } from "@/utils/engines";
 import { atomWithStorage } from "jotai/utils";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
@@ -208,9 +209,9 @@ function BoardAnalysis() {
         {
           fen: root.fen,
           moves: movesFromRoot,
-          extraOptions: (player.engine.settings || [])
-            .filter((s) => s.name !== "MultiPV")
-            .map((s) => ({ ...s, value: s.value?.toString() ?? "" })),
+          extraOptions: ((player.engine.settings as EngineSettings | undefined) || [])
+            .filter((setting) => setting.name !== "MultiPV")
+            .map((setting) => ({ ...setting, value: setting.value?.toString() ?? "" })),
           useCache: false,
         },
       );

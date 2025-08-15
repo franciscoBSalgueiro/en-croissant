@@ -10,7 +10,7 @@ import { IconPlus } from "@tabler/icons-react";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect, useTransition } from "react";
 import { useTranslation } from "react-i18next";
-import { Mosaic, type MosaicNode } from "react-mosaic-component";
+import { MosaicWithoutDragDropContext as Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import BoardGame from "../boards/BoardGame";
 import { TreeStateProvider } from "../common/TreeStateContext";
