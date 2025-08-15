@@ -7,7 +7,8 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getVariationLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { parseUci } from "chessops";
-import { makeSan } from "chessops/san";
+import { makeSan, parseSan } from "chessops/san";
+import { squareFile, squareRank } from "chessops";
 import { makeFen } from "chessops/fen";
 import { activeTabAtom } from "@/state/atoms";
 import { unifiedMovesFamily } from "@/state/unifiedMoves";
@@ -19,6 +20,18 @@ import { formatScore, normalizeScore } from "@/utils/score";
 // Build a merged graph from multiple engine PV lines (SAN from current position)
 function useUnifiedPVs(): {
   pvLines: string[][];
+  pvMetaLines: ({
+    san: string;
+    pieceLetter?: string;
+    pieceColor?: "white" | "black";
+    fromSquare?: string;
+    toSquare?: string;
+    fromSquareColor?: "light" | "dark";
+    toSquareColor?: "light" | "dark";
+    iconFilename?: string;
+    isCapture?: boolean;
+    promotion?: "q" | "r" | "b" | "n";
+  }[] | undefined)[];
   rankedFirstSANs: string[];
   firstSanColor: Record<string, string>;
   firstSanEval: Record<string, number>;
@@ -44,8 +57,20 @@ function useUnifiedPVs(): {
   const loading = unifiedLoadable.state === "loading";
   const unifiedMoves = unifiedLoadable.state === "hasData" ? unifiedLoadable.data : [];
 
-  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta } = useMemo(() => {
+  const { pvLines, pvMetaLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta } = useMemo(() => {
     const lines: string[][] = [];
+    const metaLines: ({
+      san: string;
+      pieceLetter?: string;
+      pieceColor?: "white" | "black";
+      fromSquare?: string;
+      toSquare?: string;
+      fromSquareColor?: "light" | "dark";
+      toSquareColor?: "light" | "dark";
+      iconFilename?: string;
+      isCapture?: boolean;
+      promotion?: "q" | "r" | "b" | "n";
+    }[] | undefined)[] = [];
     const firstMoveToWin: Map<string, number> = new Map();
     const firstSanColor: Record<string, string> = {};
     const firstSanEval: Record<string, number> = {};
@@ -59,6 +84,9 @@ function useUnifiedPVs(): {
         : (m.san ? [m.san] : (m.move ? [m.move] : []));
       if (sanMoves.length === 0) continue;
       lines.push(sanMoves);
+      // Track per-move meta (if available) aligned with sanMoves
+      const meta = Array.isArray((m as any).sanMeta) ? ((m as any).sanMeta as any[]) : undefined;
+      metaLines.push(meta);
 
       const first = sanMoves[0];
       if (m.isBest) {
@@ -102,14 +130,14 @@ function useUnifiedPVs(): {
       .sort((a, b) => b[1] - a[1])
       .map(([san]) => san);
 
-    return { pvLines: lines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta };
+    return { pvLines: lines, pvMetaLines: metaLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta };
   }, [unifiedMoves]);
 
-  return { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta, loading };
+  return { pvLines, pvMetaLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta, loading };
 }
 
 function LinesTree() {
-  const { pvLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta, loading } = useUnifiedPVs();
+  const { pvLines, pvMetaLines, rankedFirstSANs, firstSanColor, firstSanEval, firstSanMeta, loading } = useUnifiedPVs();
   const store = useContext(TreeStateContext)!;
   const rootFen = useStore(store, (s) => s.root.fen);
   const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
@@ -255,9 +283,41 @@ function LinesTree() {
     for (const key of toDelete) p.links.delete(key);
     p.pvKeys.clear();
 
+    // Helper to compute an icon from SAN and a given position
+    const toIconFromSan = (posFor: any, sanMove: string): string | undefined => {
+      try {
+        const mv: any = (parseSan as any)(posFor, sanMove);
+        if (!mv || typeof mv.from !== 'number') return undefined;
+        const fromSq = mv.from as number;
+        const piece = posFor.board.get(fromSq);
+        if (!piece) return undefined;
+        const role = piece.role as 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
+        const letter = role === 'pawn' ? 'p' : role === 'knight' ? 'n' : role === 'bishop' ? 'b' : role === 'rook' ? 'r' : role === 'queen' ? 'q' : 'k';
+        const pc = piece.color === 'white' ? 'l' : 'd';
+        const f = (squareFile as any)(fromSq);
+        const r = (squareRank as any)(fromSq);
+        const sc = ((f + r) % 2 === 0) ? 'd' : 'l';
+        return `Chess_${letter}${pc}${sc}45.svg`;
+      } catch {
+        return undefined;
+      }
+    };
+
+    // Build a base position representing the current node (root + currentMoves)
+    const [pvStart] = positionFromFen(rootFen);
+    if (pvStart) {
+      for (const u of currentMoves) {
+        const mm = parseUci(u);
+        if (!mm) break;
+        pvStart.play(mm);
+      }
+    }
+
     // Recalculate immediate future links (n+1) from current top lines; also add subsequent depths for those PVs
     const seenFirst = new Set<string>();
-    for (const line of pvLines) {
+    for (let lineIndex = 0; lineIndex < pvLines.length; lineIndex++) {
+      const line = pvLines[lineIndex];
+      const lineMeta = pvMetaLines[lineIndex];
       const san = line[0];
       if (!san) continue;
       if (allowedFirstSet.size > 0 && !allowedFirstSet.has(san)) continue;
@@ -272,6 +332,13 @@ function LinesTree() {
       const color = firstSanColor[san] || p.firstColor.get(san);
       const meta = firstSanMeta[san];
 
+      // Choose icon for first move of this PV using computed SAN meta (most reliable), fallback to stored meta
+      let firstIcon: string | undefined = undefined;
+      if (pvStart) {
+        const cur = pvStart.clone();
+        firstIcon = toIconFromSan(cur, san) || undefined;
+      }
+      if (!firstIcon) firstIcon = (lineMeta && lineMeta[0] && lineMeta[0].iconFilename) || meta?.iconFilename;
       p.links.set(key, {
         source: parentForFirst,
         target: id,
@@ -283,7 +350,7 @@ function LinesTree() {
         // attach confidence and pctBest for sizing/labeling and color
         confidence: meta?.confidence,
         pctBest: meta?.pctBest,
-        iconFilename: meta?.iconFilename,
+        iconFilename: firstIcon,
       } as any);
       p.pvKeys.add(key);
 
@@ -296,6 +363,24 @@ function LinesTree() {
         const nextId = `${d}:${nextSan}`;
         if (!p.nodes.has(nextId)) p.nodes.set(nextId, { id: nextId, label: nextSan });
         const key2 = `${prevId}->${nextId}`;
+        // Prefer computed per-move icon from SAN for this PV step; fallback to provided sanMeta/icon
+        let stepIcon: string | undefined = undefined;
+        if (pvStart) {
+          const cur = pvStart.clone();
+          // play previous moves of this PV line to reach the correct state before parsing nextSan
+          for (let j = 0; j < i; j++) {
+            const prevSan = line[j];
+            try {
+              const mv: any = (parseSan as any)(cur, prevSan);
+              if (!mv) break;
+              cur.play(mv);
+            } catch {
+              break;
+            }
+          }
+          stepIcon = toIconFromSan(cur, nextSan) || undefined;
+        }
+        if (!stepIcon) stepIcon = (lineMeta && lineMeta[i] && lineMeta[i].iconFilename) || meta?.iconFilename;
         p.links.set(key2, {
           source: prevId,
           target: nextId,
@@ -307,7 +392,7 @@ function LinesTree() {
           annotation: meta?.annotation,
           confidence: meta?.confidence,
           pctBest: meta?.pctBest,
-          iconFilename: meta?.iconFilename,
+          iconFilename: stepIcon,
         } as any);
         p.pvKeys.add(key2);
         prevId = nextId;
