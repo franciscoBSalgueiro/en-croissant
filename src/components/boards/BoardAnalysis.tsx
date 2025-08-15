@@ -56,7 +56,7 @@ import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
-import AnalysisPanel from "../panels/analysis/AnalysisPanel";
+import AnalysisBar from "../panels/analysis/AnalysisBar";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import PracticePanel from "../panels/practice/PracticePanel";
@@ -269,11 +269,7 @@ function BoardAnalysis() {
       </Paper>
     ),
     analysis: (
-      <Paper withBorder p="xs" h="100%" style={{ display: "flex" }}>
-        <Suspense>
-          <AnalysisPanel />
-        </Suspense>
-      </Paper>
+      <AnalysisBar height={"100%"} />
     ),
     moves: (
       <Stack h="100%" gap="xs">

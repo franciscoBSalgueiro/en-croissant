@@ -1,247 +1,55 @@
-import { events, type GoMode, commands } from "@/bindings";
+import { events } from "@/bindings";
 import {
   activeTabAtom,
   autoStartAnalysisAtom,
   currentEnginePausedAtom,
   currentGameStateAtom,
   currentPlayersAtom,
-  enginesAtom,
   lastMovedAtom,
   tabsAtom,
   allEnabledAtom,
   enableAllAtom,
   currentTabAtom,
-  botsAtom,
   showArrowsAtom,
 } from "@/state/atoms";
 import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import type { TimeControlField } from "@/utils/clock";
-import type { LocalEngine } from "@/utils/engines";
 import { type GameHeaders, treeIteratorMainLine } from "@/utils/treeReducer";
 import {
-  ActionIcon,
   Box,
   Button,
-  Checkbox,
-  Divider,
   Group,
-  InputWrapper,
   Paper,
-  ScrollArea,
-  SegmentedControl,
-  Select,
   Stack,
-  Text,
-  TextInput,
-  Tabs,
+  Collapse,
 } from "@mantine/core";
-import {
-  IconArrowsExchange,
-  IconPlayerPlay,
-  IconPlayerStop,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconPlayerPlay, IconPlayerStop } from "@tabler/icons-react";
 import { parseUci } from "chessops";
-import { makeSan, parseSan } from "chessops/san";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom, atom } from "jotai";
-import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { atomWithStorage } from "jotai/utils";
-import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import GameInfo from "../common/GameInfo";
-import GameNotation from "../common/GameNotation";
-import MoveControls from "../common/MoveControls";
-import TimeInput from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
 // import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
-import AnalysisPanel from "../panels/analysis/AnalysisPanel";
-import AnnotationPanel from "../panels/annotation/AnnotationPanel";
-import InfoPanel from "../panels/info/InfoPanel";
 import EvalListener from "./EvalListener";
 import BotService from "./BotService";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
 // NEW imports for nested mosaic playing layout
-import LinesTree from "../panels/analysis/LinesTree";
-import UnifiedMovesTable from "../panels/analysis/UnifiedMovesTable";
+import AnalysisBar from "../panels/analysis/AnalysisBar";
 import { loadable } from "jotai/utils";
 import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import { activeTabAtom as activeTabForUnified } from "@/state/atoms";
 import type { PiecesCount } from "@/utils/chess";
 import PlayerPanel from "./PlayerPanel";
 import { playedMovesFamily } from "@/state/playedMoves";
-import { selectUnifiedMove, computeBotDelay } from "@/utils/bots";
 import type { UnifiedMove } from "@/state/unifiedMoves";
- 
-
-function EnginesSelect({
-  engine,
-  setEngine,
-}: {
-  engine: LocalEngine | null;
-  setEngine: (engine: LocalEngine | null) => void;
-}) {
-  const engines = useAtomValue(enginesAtom).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
-
-  useEffect(() => {
-    if (engines.length > 0 && engine === null) {
-      setEngine(engines[0]);
-    }
-  }, [engine, engines[0], setEngine]);
-
-  return (
-    <Suspense>
-      <Select
-        label="Engine"
-        allowDeselect={false}
-        data={engines?.map((engine) => ({
-          label: engine.name,
-          value: engine.path,
-        }))}
-        value={engine?.path ?? ""}
-        onChange={(e) => {
-          setEngine(engines.find((engine) => engine.path === e) ?? null);
-        }}
-      />
-    </Suspense>
-  );
-}
-
-export type OpponentSettings =
-  | {
-      type: "human";
-      timeControl?: TimeControlField;
-      name?: string;
-    }
-  | {
-      type: "engine";
-      timeControl?: TimeControlField;
-      engine: LocalEngine | null; // null means Bot mode
-      go: GoMode;
-      // Bot-specific fields (when engine is null)
-      pickRank?: number;
-      strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number } | { mode: "rankSet"; ranks: number[] };
-      elo?: number;
-      botId?: string;
-      confThreshold?: number;
-      thinkingDelayMinMs?: number;
-      thinkingDelayMaxMs?: number;
-      name?: string;
-    };
-
-function OpponentForm({
-  opponent,
-  setOpponent,
-  setOtherOpponent,
-  inline,
-}: {
-  opponent: OpponentSettings;
-  setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-  setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-  inline?: boolean;
-}) {
-  const bots = useAtomValue(botsAtom);
-  const localEngines = useAtomValue(enginesAtom).filter(
-    (e): e is LocalEngine => (e as any).type === "local",
-  );
-
-  const options = [
-    { value: "human", label: "Human" },
-    ...bots.map((b) => ({ value: b.id, label: b.name })),
-  ];
-
-  const findMatchingBotId = () => {
-    if (opponent.type === "human") return "human";
-    if ((opponent as any).botId) return (opponent as any).botId as string;
-    if (opponent.engine) return undefined;
-    // match by name if present, otherwise by strategy/pickRank
-    const bot = bots.find((b) => {
-      if (b.name && (opponent as any).name === b.name) return true;
-      const rank = (opponent as any).strategy?.mode === "rank" ? (opponent as any).strategy.rank : (opponent as any).pickRank;
-      const bRank = (b as any).strategy?.mode === "rank" ? (b as any).strategy.rank : (b as any).pickRank;
-      return (rank ?? 1) === (bRank ?? 1);
-    });
-    return bot ? bot.id : undefined;
-  };
-
-  const currentValue = findMatchingBotId();
-
-  const select = (
-    <Select
-      label={inline ? undefined : "Player"}
-      placeholder="Select player"
-      data={options}
-      value={currentValue}
-      onChange={(val) => {
-        if (!val || val === "human") {
-          setOpponent((prev) => ({
-            ...prev,
-            type: "human",
-            name: "Player",
-            timeControl: undefined,
-            botId: undefined,
-          }));
-        } else {
-          const bot = bots.find((b) => b.id === val);
-          if (!bot) return;
-          const strategy = bot.strategy || { mode: "rank", rank: bot.pickRank ?? 1 };
-          setOpponent((prev) => ({
-            ...(prev.type === "engine" ? prev : ({} as any)),
-            type: "engine",
-            engine:
-              prev.type === "engine" && prev.engine
-                ? prev.engine
-                : null,
-            pickRank: bot.pickRank,
-            strategy: strategy as any,
-            elo: bot.elo,
-            confThreshold: bot.confThreshold,
-            thinkingDelayMinMs: bot.thinkingDelayMinMs,
-            thinkingDelayMaxMs: bot.thinkingDelayMaxMs,
-            timeControl: undefined,
-            botId: bot.id,
-          }));
-        }
-      }}
-      style={{ flex: 1 }}
-    />
-  );
-
-  if (inline) return select;
-
-  return <Stack flex={1}>{select}</Stack>;
-}
-
-// PlayerPanel moved to separate file
-
-const DEFAULT_TIME_CONTROL: TimeControlField = {
-  seconds: 180_000,
-  increment: 2_000,
-};
-
-// Board/Sidebar layout state
-type BoardViewId = "board" | "sidebar";
-
-interface BoardLayoutState {
-  currentNode: MosaicNode<BoardViewId> | null;
-}
-
-const boardLayoutStateAtom = atomWithStorage<BoardLayoutState>("boardLayoutState", {
-  currentNode: {
-    direction: "row",
-    first: "board",
-    second: "sidebar",
-    splitPercentage: 65, // Board takes 65% of width by default
-  },
-});
+import type { OpponentSettings } from "./types";
 
 // NEW: Nested mosaic state for playing layout
 type PlayingViewId =
@@ -257,58 +65,29 @@ interface PlayingLayoutState {
   currentNode: MosaicNode<PlayingViewId> | null;
 }
 
-const playingLayoutAtom = atomWithStorage<PlayingLayoutState>("playingLayoutState", {
-  currentNode: {
+const DEFAULT_PLAYING_LAYOUT: MosaicNode<PlayingViewId> = {
+  direction: "row",
+  first: "leftPlayer",
+  second: {
     direction: "row",
-    first: "leftPlayer",
-    second: {
-      direction: "row",
-      first: "centerBoard",
-      second: "rightPlayer",
-      splitPercentage: 72,
-    },
-    splitPercentage: 22,
+    first: "centerBoard",
+    second: "rightPlayer",
+    splitPercentage: 72,
   },
+  splitPercentage: 22,
+};
+
+const playingLayoutAtom = atomWithStorage<PlayingLayoutState>("playingLayoutState", {
+  currentNode: DEFAULT_PLAYING_LAYOUT,
 });
+
+// Persisted toggle for bottom AnalysisBar visibility
+const analysisBarOpenAtom = atomWithStorage<boolean>("analysisBarOpen", true);
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
   const currentTab = useAtomValue(currentTabAtom);
   const isAnalysisTab = currentTab?.type === "analysis";
-
-  const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
-    "white",
-  );
-  function cycleColor() {
-    setInputColor((prev) =>
-      match(prev)
-        .with("white", () => "black" as const)
-        .with("black", () => "random" as const)
-        .with("random", () => "white" as const)
-        .exhaustive(),
-    );
-  }
-
-  const [player1Settings, setPlayer1Settings] = useState<OpponentSettings>({
-    type: "human",
-    name: "Player",
-    timeControl: undefined,
-  });
-  const [player2Settings, setPlayer2Settings] = useState<OpponentSettings>({
-    type: "human",
-    name: "Player",
-    timeControl: undefined,
-  });
-
-  function getPlayers() {
-    let white = inputColor === "white" ? player1Settings : player2Settings;
-    let black = inputColor === "black" ? player1Settings : player2Settings;
-    if (inputColor === "random") {
-      white = Math.random() > 0.5 ? player1Settings : player2Settings;
-      black = white === player1Settings ? player2Settings : player1Settings;
-    }
-    return { white, black };
-  }
 
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
@@ -375,10 +154,6 @@ function BoardGame() {
     return loadable(base as any);
   }, [prevNode?.fen, headers.variant, root, activeTabForBot]);
   const unifiedPrevLoadable = useAtomValue(unifiedPrevAtom);
-
-  // Removed direct append helper; use the lastNode-change effect instead
-
-  // Bot logic moved into BotService for separation of concerns
 
   // Ensure any move made via external UI (e.g., UnifiedMovesTable click) is reflected in Played Moves
   useEffect(() => {
@@ -455,29 +230,27 @@ function BoardGame() {
     return "none";
   }, [players]);
 
-  // Removed same time control option entirely
   const [enableAnalysisOnStart, setEnableAnalysisOnStart] = useState(autoStartAnalysis);
 
-  // Update local state when global setting changes
   useEffect(() => {
     setEnableAnalysisOnStart(autoStartAnalysis);
   }, [autoStartAnalysis]);
 
-  // Auto-start with default Human vs Human, unlimited time on new or play tabs
+  // Ensure engines are enabled during setup if auto-start is on, so arrows appear immediately
+  useEffect(() => {
+    if (enableAnalysisOnStart) {
+      enableAnalysisEngines(true);
+    }
+  }, [enableAnalysisOnStart]);
+
+  // Start only after first move is made: detect first move from tree
   useEffect(() => {
     if (gameState !== "settingUp") return;
-    if (currentTab?.type === "new") {
-      startGame();
-      // Flip tab type to play so subsequent logic treats it as a playing tab
-      setTabs((prev) =>
-        prev.map((tab) =>
-          tab.value === activeTab ? { ...tab, type: "play" } : tab,
-        ),
-      );
-    } else if (currentTab?.type === "play") {
+    const half = (lastNode as any)?.halfMoves as number | undefined;
+    if (typeof half === "number" && half > 0) {
       startGame();
     }
-  }, [currentTab?.type, gameState, setTabs, activeTab]);
+  }, [gameState, lastNode?.halfMoves]);
 
   const [intervalId, setIntervalId] = useState<ReturnType<
     typeof setInterval
@@ -507,8 +280,6 @@ function BoardGame() {
       setIntervalId(null);
     }
   }, [pos?.turn]);
-
-  // Removed game-over by timeout checks; clocks now count up
 
   useEffect(() => {
     if (gameState !== "playing") return;
@@ -542,21 +313,21 @@ function BoardGame() {
   function startGame() {
     setGameState("playing");
 
-    const players = getPlayers();
-
     // Initialize clocks to 0 (count-up)
     setWhiteTime(0);
     setBlackTime(0);
 
-    setPlayers(players);
+    const defaultPlayers: { white: OpponentSettings; black: OpponentSettings } = {
+      white: { type: "human", name: "Player", timeControl: undefined },
+      black: { type: "human", name: "Player", timeControl: undefined },
+    };
+    setPlayers(defaultPlayers);
 
     const newHeaders: Partial<GameHeaders> = {
-      white: players.white.type === "human" ? "Player" : players.white.engine?.name ?? "?",
-      black: players.black.type === "human" ? "Player" : players.black.engine?.name ?? "?",
+      white: "Player",
+      black: "Player",
       time_control: undefined,
     };
-
-    // Remove time control headers; unlimited by default
 
     setHeaders({
       ...headers,
@@ -566,26 +337,15 @@ function BoardGame() {
 
     setTabs((prev) =>
       prev.map((tab) => {
-        const whiteName =
-          players.white.type === "human"
-            ? players.white.name
-            : (players.white.engine?.name ?? "?");
-
-        const blackName =
-          players.black.type === "human"
-            ? players.black.name
-            : (players.black.engine?.name ?? "?");
-
         return tab.value === activeTab
           ? {
               ...tab,
-              name: `${whiteName} vs. ${blackName}`,
+              name: `Player vs. Player`,
             }
           : tab;
       }),
     );
 
-    // Auto-start analysis engines if setting is enabled
     if (enableAnalysisOnStart) {
       enableAnalysisEngines(true);
     }
@@ -602,57 +362,28 @@ function BoardGame() {
     (players.white.type === "engine" || players.black.type === "engine") &&
     players.white.type !== players.black.type;
 
-  const [boardLayoutState, setBoardLayoutState] = useAtom(boardLayoutStateAtom);
-
   // NEW: nested mosaic state for playing
   const [playingLayoutState, setPlayingLayoutState] = useAtom(playingLayoutAtom);
+  const [analysisOpen, setAnalysisOpen] = useAtom(analysisBarOpenAtom);
 
-  // Define the board/sidebar layout
-  const boardLayout: { [viewId in BoardViewId]: JSX.Element } = {
-    board: (
-      <Paper withBorder shadow="sm" p="md" h="100%">
-          <Board
-          dirty={false}
-          editingMode={false}
-          toggleEditingMode={() => undefined}
-          viewOnly={gameState !== "playing"}
-          disableVariations
-          boardRef={boardRef}
-          canTakeBack={true}
-          movable={movable}
-          whiteTime={
-            gameState === "playing" ? (whiteTime ?? undefined) : undefined
-          }
-          blackTime={
-            gameState === "playing" ? (blackTime ?? undefined) : undefined
-          }
-          onCapturedChange={setCaptured}
-        />
-      </Paper>
-    ),
-    sidebar: (
-      <Paper withBorder shadow="sm" p="md" h="100%" style={{ overflow: "hidden" }}>
-        <SimplifiedSidebar 
-          headers={headers} 
-          onePlayerIsEngine={onePlayerIsEngine} 
-          enginePaused={enginePaused} 
-          setEnginePaused={setEnginePaused} 
-          onNewGame={() => {
-            setGameState("settingUp");
-            setWhiteTime(null);
-            setBlackTime(null);
-            setFen(INITIAL_FEN);
-            setHeaders({
-              ...headers,
-              result: "*",
-            });
-          }} 
-        />
-      </Paper>
-    ),
-  };
+  // Remove deprecated views (linesTree/unifiedMoves) from any persisted layout to avoid empty panes
+  const pruneLayout = useMemo(() => {
+    const prune = (node: MosaicNode<PlayingViewId> | null): MosaicNode<PlayingViewId> | null => {
+      if (!node) return null;
+      if (typeof node === "string") {
+        return node === "linesTree" || node === "unifiedMoves" ? null : node;
+      }
+      const first = prune(node.first as any);
+      const second = prune(node.second as any);
+      if (first && second) return { ...(node as any), first, second };
+      if (first) return first;
+      if (second) return second;
+      return null;
+    };
+    return prune(playingLayoutState.currentNode) ?? DEFAULT_PLAYING_LAYOUT;
+  }, [playingLayoutState.currentNode]);
 
-  // NEW: Define nested mosaic tile renderers for playing view
+  // NEW: Define nested mosaic tile renderers for unified playing view
   const playingTiles: { [viewId in PlayingViewId]: JSX.Element } = {
     leftPlayer: (
       <PlayerPanel
@@ -689,11 +420,11 @@ function BoardGame() {
               dirty={false}
               editingMode={false}
               toggleEditingMode={() => undefined}
-              viewOnly={gameState !== "playing"}
+              viewOnly={false}
               disableVariations
               boardRef={boardRef}
               canTakeBack={true}
-              movable={movable}
+              movable={gameState === "settingUp" ? "turn" : movable}
               whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
               blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
               fitContainer
@@ -756,20 +487,9 @@ function BoardGame() {
         materialDiff={materialDiff}
       />
     ),
-    linesTree: (
-      <Paper withBorder shadow="sm" p="xs" h="100%" style={{ minHeight: 300, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <Box style={{ flex: 1, minHeight: 0 }}>
-          <LinesTree />
-        </Box>
-      </Paper>
-    ),
-    unifiedMoves: (
-      <Paper withBorder shadow="sm" p="xs" h="100%" style={{ minHeight: 300, minWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <Box style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-          <UnifiedMovesTable />
-        </Box>
-      </Paper>
-    ),
+    // Keep placeholders for backward-compatible persisted layouts; do not render analysis widgets here
+    linesTree: (<Box h="100%" />),
+    unifiedMoves: (<Box h="100%" />),
     // These are placeholders to satisfy the type; not used directly as root children
     top: <Box h="100%" />,
     bottom: <Box h="100%" />,
@@ -779,111 +499,36 @@ function BoardGame() {
     <>
       <EvalListener />
       <BotService />
-      {/* Resizable layouts */}
-      {gameState === "playing" || gameState === "gameOver" ? (
-        <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>
+      <Box style={{ height: "100%", padding: "8px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           <Mosaic<PlayingViewId>
             renderTile={(id) => playingTiles[id]}
-            value={playingLayoutState.currentNode}
-            onChange={(currentNode) => setPlayingLayoutState({ currentNode })}
+            value={pruneLayout}
+            onChange={(currentNode) =>
+              setPlayingLayoutState({ currentNode: (currentNode as any) ?? DEFAULT_PLAYING_LAYOUT })
+            }
             resize={{ minimumPaneSizePercentage: 10 }}
           />
         </Box>
-      ) : (
-        <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>
-          <Mosaic<BoardViewId>
-            renderTile={(id) => boardLayout[id]}
-            value={boardLayoutState.currentNode}
-            onChange={(currentNode) => setBoardLayoutState({ currentNode })}
-            resize={{ minimumPaneSizePercentage: 20 }}
-          />
-        </Box>
-      )}
+
+        <Group justify="space-between" mt="xs">
+          <Button
+            onClick={() => setAnalysisOpen((prev) => !prev)}
+            variant="default"
+            size="xs"
+          >
+            {analysisOpen ? "Hide Analysis" : "Show Analysis"}
+          </Button>
+        </Group>
+
+        <Collapse in={analysisOpen}>
+          <Box mt="xs">
+            <AnalysisBar height={380} />
+          </Box>
+        </Collapse>
+      </Box>
     </>
   );
 }
 
 export default BoardGame;
-
-// Simplified sidebar with tabs instead of complex Mosaic
-function SimplifiedSidebar({
-  headers,
-  onePlayerIsEngine,
-  enginePaused,
-  setEnginePaused,
-  onNewGame,
-}: {
-  headers: GameHeaders;
-  onePlayerIsEngine: boolean;
-  enginePaused: boolean;
-  setEnginePaused: (fn: (prev: boolean) => boolean) => void;
-  onNewGame: () => void;
-}) {
-  const [, enable] = useAtom(enableAllAtom);
-  const allEnabledLoader = useAtomValue(allEnabledAtom);
-  const allEnabled = allEnabledLoader.state === "hasData" && allEnabledLoader.data;
-  const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
-
-  return (
-    <Stack h="100%" gap="xs">
-      {/* Control buttons */}
-      <Group grow>
-        {onePlayerIsEngine && (
-          <Button
-            onClick={() => setEnginePaused((prev) => !prev)}
-            leftSection={enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />}
-          >
-            {enginePaused ? "Play" : "Stop"}
-          </Button>
-        )}
-        <Button
-          variant={showArrows ? "filled" : "default"}
-          onClick={() => setShowArrows((prev) => !prev)}
-        >
-          {showArrows ? "Arrows On" : "Arrows Off"}
-        </Button>
-        <Button
-          variant={allEnabled ? "filled" : "default"}
-          onClick={() => enable(!allEnabled)}
-        >
-          {allEnabled ? "Stop Analysis" : "Start Analysis"}
-        </Button>
-      </Group>
-
-      {/* Tabbed content */}
-      <Tabs defaultValue="analysis" style={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        <Tabs.List>
-          {/* <Tabs.Tab value="gameInfo">Game</Tabs.Tab> */}
-          <Tabs.Tab value="analysis">Analysis</Tabs.Tab>
-          <Tabs.Tab value="moves">Moves</Tabs.Tab>
-          <Tabs.Tab value="annotation">Notes</Tabs.Tab>
-          <Tabs.Tab value="info">Info</Tabs.Tab>
-        </Tabs.List>
-
-        <Box style={{ flexGrow: 1, overflow: "hidden" }}>
-          <Tabs.Panel value="analysis" h="100%">
-            <Suspense fallback={<Text>Loading analysis...</Text>}>
-              <AnalysisPanel />
-            </Suspense>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="moves" h="100%">
-            <Stack h="100%" gap="xs">
-              <GameNotation topBar />
-              <MoveControls />
-            </Stack>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="annotation" h="100%">
-            <AnnotationPanel />
-          </Tabs.Panel>
-
-          <Tabs.Panel value="info" h="100%">
-              <GameInfo headers={headers} />
-            <InfoPanel />
-          </Tabs.Panel>
-        </Box>
-      </Tabs>
-    </Stack>
-  );
-}
