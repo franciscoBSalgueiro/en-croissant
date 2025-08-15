@@ -1,23 +1,10 @@
 import { memo, useState } from "react";
-import { Box, Paper } from "@mantine/core";
+import { Box, Paper, Tabs } from "@mantine/core";
 import UnifiedMovesTable from "./UnifiedMovesTable";
 import LinesTree from "./LinesTree";
-import { MosaicWithoutDragDropContext as Mosaic, type MosaicNode } from "react-mosaic-component";
-import "react-mosaic-component/react-mosaic-component.css";
-import "@/styles/react-mosaic.css";
 
 function AnalysisBar({ height = 380 }: { height?: number | string }) {
-  type AnalysisBarViewId = "linesTree" | "unifiedMoves";
-
-  const DEFAULT_LAYOUT: MosaicNode<AnalysisBarViewId> = {
-    direction: "row",
-    first: "linesTree",
-    second: "unifiedMoves",
-  };
-
-  const [layout, setLayout] = useState<MosaicNode<AnalysisBarViewId> | null>(
-    DEFAULT_LAYOUT,
-  );
+  const [activeTab, setActiveTab] = useState<string | null>("linesTree");
 
   return (
     <Paper
@@ -26,24 +13,34 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
       h={height}
       style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}
     >
-      <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        <Mosaic<AnalysisBarViewId>
-          renderTile={(id) => (
-            id === "linesTree" ? (
-              <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
-                <LinesTree />
-              </Box>
-            ) : (
-              <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
-                <UnifiedMovesTable />
-              </Box>
-            )
-          )}
-          value={layout}
-          onChange={(currentNode) => setLayout(currentNode)}
-          resize={{ minimumPaneSizePercentage: 10 }}
-        />
-      </Box>
+      <Tabs 
+        value={activeTab} 
+        onChange={setActiveTab}
+        style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
+        <Tabs.List>
+          <Tabs.Tab value="linesTree">Lines Tree</Tabs.Tab>
+          <Tabs.Tab value="unifiedMoves">Unified Moves</Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel 
+          value="linesTree" 
+          style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        >
+          <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
+            <LinesTree />
+          </Box>
+        </Tabs.Panel>
+
+        <Tabs.Panel 
+          value="unifiedMoves" 
+          style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        >
+          <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
+            <UnifiedMovesTable />
+          </Box>
+        </Tabs.Panel>
+      </Tabs>
     </Paper>
   );
 }

@@ -173,7 +173,7 @@ function LinesTree() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [topN, setTopN] = useState<number>(5);
-  const [depthLimit, setDepthLimit] = useState<number>(5);
+  const [depthLimit, setDepthLimit] = useState<number>(12);
   // Horizontal panning state (x-only)
   const [panX, setPanX] = useState<number>(0);
   const [yMode, setYMode] = useState<'cp' | 'pctBest' | 'confidence'>('pctBest');
@@ -604,9 +604,10 @@ function LinesTree() {
     const maxDepthX = leftPad + predictedMaxDepth * plyWidth + rightPad;
     const minPanToShowMax = width - maxDepthX;
 
-    // Auto-pan to place the just-played move at the left edge padding (or root at start)
+    // Auto-pan to place the current move ply at the center of the graph
     const currentDepth = baseDepth;
-    const targetPan = -currentDepth * plyWidth; // align current ply at left padding
+    const centerX = width / 2; // center of the visible area
+    const targetPan = centerX - (leftPad + currentDepth * plyWidth); // align current ply at center
     const adjustedPanX = Math.min(0, Math.max(minPanToShowMax, targetPan));
     leftPad = leftPad + adjustedPanX;
 
@@ -961,9 +962,9 @@ function LinesTree() {
             value={depthLimit}
             onChange={setDepthLimit}
             min={1}
-            max={12}
+            max={20}
             step={1}
-            marks={[{ value: 1 }, { value: 12 }]}
+            marks={[{ value: 1 }, { value: 20 }]}
             style={{ width: 160 }}
           />
           <Text size="xs" c="dimmed">{depthLimit}</Text>
