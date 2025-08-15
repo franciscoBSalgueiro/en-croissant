@@ -209,13 +209,35 @@ pub async fn search_position(
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
+    // Check cache first
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
+        // // info!("Cache hit for search query on database: {}", file.display());
         return Ok(pos.clone());
     }
 
     // start counting the time
     let start = Instant::now();
-    info!("start loading games");
+    
+    // Log search parameters
+    // info!("Starting position search on database: {}", file.display());
+    // info!("Search parameters - Tab ID: {}", tab_id);
+    if let Some(pos) = &query.position {
+        // info!("Position query - FEN: {}, Type: {}", pos.fen, pos.type_);
+    }
+    if let Some(player1) = query.player1 {
+        // info!("Player 1 filter: {}", player1);
+    }
+    if let Some(player2) = query.player2 {
+        // info!("Player 2 filter: {}", player2);
+    }
+    if let Some(start_date) = &query.start_date {
+        // info!("Start date filter: {:?}", start_date);
+    }
+    if let Some(end_date) = &query.end_date {
+        // info!("End date filter: {:?}", end_date);
+    }
+    
+    // info!("Loading games from database...");
 
     let permit = state.new_request.acquire().await.unwrap();
     let mut games = state.db_cache.lock().unwrap();
@@ -236,7 +258,9 @@ pub async fn search_position(
             ))
             .load(db)?;
 
-        info!("got {} games: {:?}", games.len(), start.elapsed());
+        // info!("Loaded {} games from database in {:?}", games.len(), start.elapsed());
+    } else {
+        // info!("Using cached games: {} total", games.len());
     }
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
@@ -244,7 +268,7 @@ pub async fn search_position(
 
     let processed = AtomicUsize::new(0);
 
-    println!("start search on {tab_id}");
+    // info!("Starting parallel search processing for tab: {}", tab_id);
 
     games.par_iter().for_each(
         |(
@@ -269,11 +293,12 @@ pub async fn search_position(
             processed.fetch_add(1, Ordering::Relaxed);
             let index = processed.load(Ordering::Relaxed);
             if (index + 1) % 10000 == 0 {
-                // info!("{} games processed: {:?}", index + 1, start.elapsed());
+                let progress_percent = (index as f64 / games.len() as f64) * 100.0;
+                // info!("Processed {} games ({:.1}%) in {:?}", index + 1, progress_percent, start.elapsed());
                 app.emit(
                     "search_progress",
                     ProgressPayload {
-                        progress: (index as f64 / games.len() as f64) * 100.0,
+                        progress: progress_percent,
                         id: tab_id.clone(),
                         finished: false,
                     },
@@ -310,8 +335,11 @@ pub async fn search_position(
             }
 
             if let Some(position_query) = &query.position {
-                let position_query =
-                    convert_position_query(position_query.clone()).expect("Invalid position query");
+                let position_query = match convert_position_query(position_query.clone()) {
+                    Ok(pq) => pq,
+                    Err(_e) => return,
+                };
+                
                 if position_query.can_reach(&end_material, *end_pawn_home as u16) {
                     if let Ok(Some(m)) = get_move_after_match(game, fen, &position_query) {
                         if sample_games.lock().unwrap().len() < 10 {
@@ -353,13 +381,23 @@ pub async fn search_position(
     let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
     let ids: Vec<i32> = sample_games.lock().unwrap().clone();
 
-    info!("finished search in {:?}", start.elapsed());
+    // Calculate total games matched
+    let total_games_matched: i32 = openings.iter().map(|o| o.white + o.black + o.draw).sum();
+    
+    // info!("Search completed in {:?} - Found {} unique moves from {} total games", 
+        //   start.elapsed(), openings.len(), total_games_matched);
+    if let Some(pos) = &query.position {
+        // info!("Position search results - FEN: {}, Type: {}, Moves found: {}", 
+            //   pos.fen, pos.type_, openings.len());
+    }
+    // info!("Sample games collected: {}", ids.len());
 
     if state.new_request.available_permits() == 0 {
         drop(permit);
         return Err(Error::SearchStopped);
     }
 
+    // info!("Loading detailed game information for {} sample games", ids.len());
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
     let games: Vec<(Game, Player, Player, Event, Site)> = games::table
         .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
@@ -369,10 +407,14 @@ pub async fn search_position(
         .filter(games::id.eq_any(ids))
         .load(db)?;
     let normalized_games = normalize_games(games);
+    
+    // info!("Normalized {} games for detailed view", normalized_games.len());
 
+    // Cache the results
     state
         .line_cache
         .insert((query, file), (openings.clone(), normalized_games.clone()));
+    // info!("Results cached for future queries");
 
     Ok((openings, normalized_games))
 }
@@ -384,13 +426,21 @@ pub async fn is_position_in_db(
 ) -> Result<bool, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
+    // Check cache first
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
-        return Ok(!pos.0.is_empty());
+        let exists = !pos.0.is_empty();
+        // info!("Cache hit for position existence check on database: {} - exists: {}", 
+            //   file.display(), exists);
+        return Ok(exists);
     }
 
     // start counting the time
     let start = Instant::now();
-    info!("start loading games");
+    // info!("Starting position existence check on database: {}", file.display());
+    // if let Some(pos) = &query.position {
+        // info!("Checking existence of position - FEN: {}, Type: {}", pos.fen, pos.type_);
+    // }
+    // info!("Loading games for existence check...");
 
     let permit = state.new_request.acquire().await.unwrap();
     let mut games = state.db_cache.lock().unwrap();
@@ -411,9 +461,12 @@ pub async fn is_position_in_db(
             ))
             .load(db)?;
 
-        info!("got {} games: {:?}", games.len(), start.elapsed());
+        // info!("Loaded {} games from database in {:?}", games.len(), start.elapsed());
+    } else {
+        // info!("Using cached games for existence check: {} total", games.len());
     }
 
+    // info!("Starting parallel existence check...");
     let exists = games.par_iter().any(
         |(
             _id,
@@ -435,8 +488,10 @@ pub async fn is_position_in_db(
                 black: *black_material as u8,
             };
             if let Some(position_query) = &query.position {
-                let position_query =
-                    convert_position_query(position_query.clone()).expect("Invalid position query");
+                let position_query = match convert_position_query(position_query.clone()) {
+                    Ok(pq) => pq,
+                    Err(_e) => return false,
+                };
                 position_query.can_reach(&end_material, *end_pawn_home as u16)
                     && get_move_after_match(game, fen, &position_query)
                         .unwrap_or(None)
@@ -446,13 +501,20 @@ pub async fn is_position_in_db(
             }
         },
     );
-    info!("finished search in {:?}", start.elapsed());
+    
+    // info!("Position existence check completed in {:?} - exists: {}", start.elapsed(), exists);
+    // if let Some(pos) = &query.position {
+        // info!("Position existence result - FEN: {}, Type: {}, Found: {}", 
+            //   pos.fen, pos.type_, exists);
+    // }
+    
     if state.new_request.available_permits() == 0 {
         drop(permit);
         return Err(Error::SearchStopped);
     }
 
     if !exists {
+        // info!("Caching negative result for position existence");
         state.line_cache.insert((query, file), (vec![], vec![]));
     }
 

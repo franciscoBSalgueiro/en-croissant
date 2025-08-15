@@ -17,6 +17,7 @@ import {
   snapArrowsAtom,
 } from "@/state/atoms";
 import { unifiedBoardArrowsFamily } from "@/state/unifiedMoves";
+import { currentBotSuggestionAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { chessboard } from "@/styles/Chessboard.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
@@ -152,6 +153,10 @@ interface ChessboardProps {
   onMaterialDiffChange?: (diff: number) => void;
   // NEW: notify parent when a move is made (SAN and color)
   onMoveMade?: (info: { san: string; color: "white" | "black" }) => void;
+  // NEW: if true, render controls externally (caller is responsible for rendering them)
+  externalControls?: boolean;
+  // NEW: callback to provide controls JSX element to parent
+  onControlsReady?: (controls: JSX.Element) => void;
 }
 
 function Board({
@@ -172,6 +177,8 @@ function Board({
   onCapturedChange,
   onMaterialDiffChange,
   onMoveMade,
+  externalControls = false,
+  onControlsReady,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -246,6 +253,7 @@ function Board({
       gameMoves: moves,
     }),
   );
+  const botSuggestion = useAtomValue(currentBotSuggestionAtom);
   // Type guard for Map iteration
   const arrowsMap: Map<number, { pv: string[]; winChance: number }[]> = arrows as any;
 
@@ -454,6 +462,25 @@ function Board({
     }
   }
 
+  // Add bot suggestion arrow (semi-transparent black), if present
+  if (botSuggestion) {
+    try {
+      const from = parseSquare(botSuggestion.from)!;
+      const to = parseSquare(botSuggestion.to)!;
+      // Highlight from and to squares with circles instead of drawing an arrow
+      shapes.push({
+        orig: makeSquare(from)!,
+        brush: "blue",
+        modifiers: { lineWidth: LARGE_BRUSH },
+      });
+      shapes.push({
+        orig: makeSquare(to)!,
+        brush: "paleBlue",
+        modifiers: { lineWidth: LARGE_BRUSH },
+      });
+    } catch {}
+  }
+
   if (currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);
   }
@@ -580,8 +607,20 @@ function Board({
       toggleEditingMode,
       toggleOrientation,
       addGame,
+      viewPawnStructure,
+      t,
+      eraseDrawablesOnClick,
+      editingMode,
+      currentTab?.file,
     ],
   );
+
+  // Pass controls to parent if external controls are requested
+  useEffect(() => {
+    if (onControlsReady) {
+      onControlsReady(controls);
+    }
+  }, [onControlsReady, controls]);
   const practiceLock =
     !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 
@@ -896,7 +935,7 @@ function Board({
 
             {moveInput && <MoveInput currentNode={currentNode} />}
 
-            {controls}
+            {!externalControls && controls}
           </Group>
         </Box>
       </Box>

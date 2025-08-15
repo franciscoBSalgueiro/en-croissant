@@ -213,6 +213,7 @@ pub struct EngineProcess {
 
 impl EngineProcess {
     async fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
+        info!("Starting new engine process: {}", path.display());
         let mut command = Command::new(&path);
         command.current_dir(path.parent().unwrap());
         command
@@ -255,6 +256,7 @@ impl EngineProcess {
             }
         }
 
+        info!("Engine process initialized successfully: {}", path.display());
         Ok((
             Self {
                 stdin,
@@ -385,6 +387,7 @@ impl EngineProcess {
     }
 
     async fn stop(&mut self) -> Result<(), Error> {
+        info!("Stopping engine process");
         self.stdin.write_all(b"stop\n").await?;
         self.logs.push(EngineLog::Gui("stop\n".to_string()));
         self.running = false;
@@ -392,6 +395,7 @@ impl EngineProcess {
     }
 
     async fn kill(&mut self) -> Result<(), Error> {
+        info!("Terminating engine process");
         self.stdin.write_all(b"quit\n").await?;
         self.logs.push(EngineLog::Gui("quit\n".to_string()));
         self.running = false;
@@ -580,11 +584,13 @@ pub struct PlayersTime {
 #[tauri::command]
 #[specta::specta]
 pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+    info!("Killing all engines for tab: {}", tab);
     let keys: Vec<_> = state
         .engine_processes
         .iter()
         .map(|x| x.key().clone())
         .collect();
+    let mut killed_count = 0;
     for key in keys.clone() {
         if key.0.starts_with(&tab) {
             {
@@ -593,8 +599,10 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
                 process.kill().await?;
             }
             state.engine_processes.remove(&key);
+            killed_count += 1;
         }
     }
+    info!("Killed {} engines for tab: {}", killed_count, tab);
     Ok(())
 }
 
@@ -605,6 +613,7 @@ pub async fn kill_engine(
     tab: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    info!("Killing engine: {} for tab: {}", engine, tab);
     let key = (tab, engine);
     if let Some(process) = state.engine_processes.get(&key) {
         let mut process = process.lock().await;
@@ -619,6 +628,7 @@ pub async fn stop_engine(
     tab: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    info!("Stopping engine: {} for tab: {}", engine, tab);
     let key = (tab, engine);
     if let Some(process) = state.engine_processes.get(&key) {
         let mut process = process.lock().await;
@@ -668,23 +678,28 @@ pub async fn get_best_moves(
     // Check cache first for completed analysis (but only for non-infinite modes and if cache is enabled)
     if options.use_cache && !matches!(go_mode, GoMode::Infinite) {
         if let Ok(Some(cached_result)) = get_cached_analysis(&cache_key, &app).await {
-            info!("Cache hit for engine analysis: {}", cache_key.to_hash_string());
+            info!("Cache hit for engine analysis - engine: {}, tab: {}", engine, tab);
             return Ok(Some((100.0, cached_result.to_best_moves())));
         }
+        info!("Cache miss for engine analysis - starting fresh analysis");
     }
 
     let key = (tab.clone(), engine.clone());
+
+    info!("Starting engine analysis - engine: {}, tab: {}, mode: {:?}", engine, tab, go_mode);
 
     if state.engine_processes.contains_key(&key) {
         {
             let process = state.engine_processes.get_mut(&key).unwrap();
             let mut process = process.lock().await;
             if options == process.options && go_mode == process.go_mode && process.running {
+                info!("Engine already running with same options - returning current progress");
                 return Ok(Some((
                     process.last_progress,
                     process.last_best_moves.clone(),
                 )));
             }
+            info!("Stopping existing engine process to start new analysis");
             process.stop().await?;
         }
         // give time for engine to stop and process previous lines
@@ -776,7 +791,7 @@ pub async fn get_best_moves(
                     if let Err(e) = store_analysis_in_cache(&cache_key, &cached_result, &app).await {
                         info!("Failed to store analysis in cache: {:?}", e);
                     } else {
-                        info!("Stored analysis in cache: {}", cache_key.to_hash_string());
+                        info!("Stored engine analysis in cache - engine: {}, tab: {}", id, tab);
                         
                         // Cleanup old entries to prevent cache from growing too large
                         if let Err(e) = cleanup_old_cache_entries(&app, 10000).await {
@@ -871,10 +886,12 @@ pub async fn score_all_moves(
         go_mode: go_mode.clone(),
     };
 
+    info!("Starting score_all_moves analysis - engine: {}, legal moves: {}", engine, legal_count);
+
     // Check cache first (but only for non-infinite modes and if cache is enabled)
     if options.use_cache && !matches!(go_mode, GoMode::Infinite) {
         if let Ok(Some(cached_result)) = get_cached_analysis(&cache_key, &app).await {
-            info!("Cache hit for score_all_moves: {}", cache_key.to_hash_string());
+            info!("Cache hit for score_all_moves - engine: {}", engine);
             // Convert cached BestMoves to MoveScore format
             let result: Vec<MoveScore> = cached_result.to_best_moves()
                 .into_iter()
@@ -887,6 +904,7 @@ pub async fn score_all_moves(
                 .collect();
             return Ok(result);
         }
+        info!("Cache miss for score_all_moves - starting fresh analysis");
     }
 
     // Prepare engine process
@@ -929,7 +947,7 @@ pub async fn score_all_moves(
                     if let Err(e) = store_analysis_in_cache(&cache_key, &cached_result, &app).await {
                         info!("Failed to store score_all_moves in cache: {:?}", e);
                     } else {
-                        info!("Stored score_all_moves in cache: {}", cache_key.to_hash_string());
+                        info!("Stored score_all_moves in cache - engine: {}, moves scored: {}", engine, scores.len());
                     }
                 }
                 
@@ -946,6 +964,7 @@ pub async fn score_all_moves(
         .map(|(uci, score)| MoveScore { uci, score })
         .collect();
 
+    info!("Completed score_all_moves analysis - engine: {}, scored {} moves", engine, result.len());
     Ok(result)
 }
 
@@ -962,6 +981,8 @@ pub async fn analyze_game(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, Error> {
+    info!("Starting game analysis - engine: {}, moves: {}, novelties: {}", 
+          engine, options.moves.len(), options.annotate_novelties);
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
@@ -1096,6 +1117,8 @@ pub async fn analyze_game(
         finished: true,
     }
     .emit(&app)?;
+    
+    info!("Completed game analysis - engine: {}, analyzed {} positions", engine, analysis.len());
     Ok(analysis)
 }
 
@@ -1247,7 +1270,8 @@ pub struct EngineConfig {
 #[tauri::command]
 #[specta::specta]
 pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
-    let mut child = start_engine(path)?;
+    info!("Getting engine configuration: {}", path.display());
+    let mut child = start_engine(path.clone())?;
     let (mut stdin, mut stdout) = get_handles(&mut child)?;
 
     send_command(&mut stdin, "uci\n").await;
@@ -1271,7 +1295,7 @@ pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
             }
         }
     }
-    println!("{:?}", config);
+    info!("Retrieved engine configuration - name: {}, options: {}", config.name, config.options.len());
     Ok(config)
 }
 
@@ -1530,16 +1554,19 @@ pub async fn clear_engine_cache(app: tauri::AppHandle) -> Result<(), Error> {
     use diesel::prelude::*;
     use diesel::SqliteConnection;
     
+    info!("Clearing engine cache");
     let cache_path = get_cache_db_path(&app).await?;
     if !cache_path.exists() {
+        info!("No cache file found to clear");
         return Ok(());
     }
     
     let mut connection = SqliteConnection::establish(cache_path.to_str().unwrap())?;
     
-    diesel::sql_query("DELETE FROM EngineCache")
+    let deleted_count = diesel::sql_query("DELETE FROM EngineCache")
         .execute(&mut connection)?;
     
+    info!("Cleared {} entries from engine cache", deleted_count);
     Ok(())
 }
 
@@ -1551,6 +1578,7 @@ pub async fn get_cache_stats(app: tauri::AppHandle) -> Result<(i32, i64), Error>
     
     let cache_path = get_cache_db_path(&app).await?;
     if !cache_path.exists() {
+        info!("No cache file found for stats");
         return Ok((0, 0));
     }
     
@@ -1563,5 +1591,6 @@ pub async fn get_cache_stats(app: tauri::AppHandle) -> Result<(i32, i64), Error>
     let size = std::fs::metadata(&cache_path)?
         .len();
     
+    info!("Engine cache stats - entries: {}, size: {} bytes", count, size);
     Ok((count, size as i64))
 }

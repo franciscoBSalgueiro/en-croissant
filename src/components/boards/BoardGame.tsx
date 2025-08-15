@@ -63,6 +63,7 @@ import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import EvalListener from "./EvalListener";
+import BotService from "./BotService";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
@@ -75,6 +76,7 @@ import { activeTabAtom as activeTabForUnified } from "@/state/atoms";
 import type { PiecesCount } from "@/utils/chess";
 import PlayerPanel from "./PlayerPanel";
 import { playedMovesFamily } from "@/state/playedMoves";
+import { selectUnifiedMove, computeBotDelay } from "@/utils/bots";
 import type { UnifiedMove } from "@/state/unifiedMoves";
  
 
@@ -127,6 +129,7 @@ export type OpponentSettings =
       // Bot-specific fields (when engine is null)
       pickRank?: number;
       strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number } | { mode: "rankSet"; ranks: number[] };
+      elo?: number;
       botId?: string;
       confThreshold?: number;
       thinkingDelayMinMs?: number;
@@ -199,6 +202,7 @@ function OpponentForm({
                 : null,
             pickRank: bot.pickRank,
             strategy: strategy as any,
+            elo: bot.elo,
             confThreshold: bot.confThreshold,
             thinkingDelayMinMs: bot.thinkingDelayMinMs,
             thinkingDelayMaxMs: bot.thinkingDelayMaxMs,
@@ -374,104 +378,7 @@ function BoardGame() {
 
   // Removed direct append helper; use the lastNode-change effect instead
 
-  useEffect(() => {
-    if (!pos) return;
-    if (gameState !== "playing") return;
-    if (enginePaused) return;
-    if (headers.result !== "*") return;
-
-    const currentTurn = pos.turn;
-    const player = currentTurn === "white" ? players.white : players.black;
-
-    // Bot logic: pick from unified moves if engine is null
-    if (player.type === "engine" && player.engine == null) {
-      if (unifiedLoadable.state !== "hasData") return;
-      const movesList = (unifiedLoadable.data || []) as any[];
-      if (!movesList || movesList.length === 0) return;
-      const strat = (player as any).strategy as any | undefined;
-      const confThreshold: number | undefined = (player as any).confThreshold;
-
-      // Optionally filter by confidence threshold, but fall back to full list if empty
-      const basePool: any[] = Array.isArray(movesList) ? movesList : [];
-      const filteredByConf =
-        typeof confThreshold === "number"
-          ? basePool.filter((m) => typeof m.confidence === "number" && m.confidence >= confThreshold)
-          : basePool;
-      const candidatePool = filteredByConf.length > 0 ? filteredByConf : basePool;
-      // Ensure selection uses Rank semantics: sort by rank asc and pick by rank property
-      const sortedByRank: any[] = [...candidatePool].sort((a, b) => {
-        const ar = typeof a?.rank === 'number' ? a.rank : Number.POSITIVE_INFINITY;
-        const br = typeof b?.rank === 'number' ? b.rank : Number.POSITIVE_INFINITY;
-        return ar - br;
-      });
-
-      let choice: any | undefined;
-      if (!strat || strat.mode === "rank") {
-        const rank = Math.max(1, Math.min(100, strat?.rank ?? (player as any).pickRank ?? 1));
-        choice = sortedByRank.find((m) => m?.rank === rank) || sortedByRank[0];
-      } else if (strat.mode === "rankSet") {
-        const ranks: number[] = (strat.ranks || []).filter((r: number) => r >= 1 && r <= 100);
-        const available = ranks
-          .map((r) => sortedByRank.find((m) => m?.rank === r))
-          .filter((m) => m != null);
-        choice = available.length > 0
-          ? available[Math.floor(Math.random() * available.length)]
-          : sortedByRank[0];
-      } else if (strat.mode === "randomTopN") {
-        const topN = Math.max(1, Math.min(100, strat.topN));
-        const pool = sortedByRank.slice(0, topN);
-        choice = pool[Math.floor(Math.random() * pool.length)] || sortedByRank[0];
-      }
-
-      const san = choice?.san || choice?.move;
-      const firstUci = choice?.pv?.[0];
-      if (!san && !firstUci) return;
-
-      // Thinking delay
-      const minMs: number = Math.max(0, Number((player as any).thinkingDelayMinMs ?? 200));
-      const maxMs: number = Math.max(minMs, Number((player as any).thinkingDelayMaxMs ?? 1200));
-      const delay = minMs + Math.floor(Math.random() * (maxMs - minMs + 1));
-      const makeBotMove = () => {
-        const [p] = positionFromFen(lastNode.fen);
-        if (!p) return;
-        const uciMove = firstUci ? parseUci(firstUci) : null;
-        const sanMove = !uciMove && san ? parseSan(p, san) : null;
-        const finalMove = (uciMove || sanMove) as any;
-        if (!finalMove) return;
-        appendMove({ payload: finalMove });
-        if (firstUci) setLastMove(firstUci);
-        botTimeoutRef.current = null;
-      };
-      if (delay > 0) {
-        if (botTimeoutRef.current) clearTimeout(botTimeoutRef.current);
-        botTimeoutRef.current = window.setTimeout(makeBotMove, delay);
-      } else {
-        makeBotMove();
-      }
-      return;
-    }
-
-    // Existing engine path
-    if (player.type === "engine" && player.engine) {
-      commands.getBestMoves(
-        currentTurn,
-        player.engine.path,
-        activeTab + currentTurn,
-        player.go,
-        {
-          fen: root.fen,
-          moves: moves,
-          extraOptions: (player.engine.settings || [])
-            .filter((s: { name: string }) => s.name !== "MultiPV")
-            .map((s: { name: string; value?: unknown }) => ({
-              ...s,
-              value: s.value?.toString() ?? "",
-            })),
-          useCache: false,
-        },
-      );
-    }
-  }, [pos, gameState, enginePaused, headers.result, players, unifiedLoadable, lastNode.fen, root.fen, moves, activeTab]);
+  // Bot logic moved into BotService for separation of concerns
 
   // Ensure any move made via external UI (e.g., UnifiedMovesTable click) is reflected in Played Moves
   useEffect(() => {
@@ -582,6 +489,9 @@ function BoardGame() {
     black: { p: 0, n: 0, b: 0, r: 0, q: 0 },
   });
   const [materialDiff, setMaterialDiff] = useState(0);
+  
+  // Store board controls from Board component
+  const [boardControls, setBoardControls] = useState<JSX.Element | null>(null);
 
   useEffect(() => {
     // reset captured when resetting game
@@ -708,7 +618,7 @@ function BoardGame() {
           viewOnly={gameState !== "playing"}
           disableVariations
           boardRef={boardRef}
-          canTakeBack={onePlayerIsEngine}
+          canTakeBack={true}
           movable={movable}
           whiteTime={
             gameState === "playing" ? (whiteTime ?? undefined) : undefined
@@ -782,31 +692,40 @@ function BoardGame() {
               viewOnly={gameState !== "playing"}
               disableVariations
               boardRef={boardRef}
-              canTakeBack={onePlayerIsEngine}
+              canTakeBack={true}
               movable={movable}
               whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
               blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
               fitContainer
-            onCapturedChange={setCaptured}
-            onMaterialDiffChange={setMaterialDiff}
+              externalControls={true}
+              onControlsReady={setBoardControls}
+              onCapturedChange={setCaptured}
+              onMaterialDiffChange={setMaterialDiff}
             />
           </Box>
         </Box>
         {/* Global controls affecting both players */}
-        <Group mt="sm" gap="sm">
-          <Button
-            onClick={() => setEnginePaused((prev) => !prev)}
-            leftSection={enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />}
-            variant="default"
-          >
-            {enginePaused ? "Play" : "Pause"}
-          </Button>
-          <Button
-            onClick={() => setShowArrows((prev) => !prev)}
-            variant={showArrows ? "filled" : "default"}
-          >
-            {showArrows ? "Arrows On" : "Arrows Off"}
-          </Button>
+        <Group mt="sm" gap="sm" justify="space-between">
+          <Group gap="sm">
+            <Button
+              onClick={() => setEnginePaused((prev) => !prev)}
+              leftSection={enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />}
+              variant="default"
+            >
+              {enginePaused ? "Play" : "Pause"}
+            </Button>
+            <Button
+              onClick={() => setShowArrows((prev) => !prev)}
+              variant={showArrows ? "filled" : "default"}
+            >
+              {showArrows ? "Arrows On" : "Arrows Off"}
+            </Button>
+          </Group>
+          {boardControls && (
+            <Box>
+              {boardControls}
+            </Box>
+          )}
         </Group>
       </Paper>
     ),
@@ -859,6 +778,7 @@ function BoardGame() {
   return (
     <>
       <EvalListener />
+      <BotService />
       {/* Resizable layouts */}
       {gameState === "playing" || gameState === "gameOver" ? (
         <Box style={{ height: "100%", padding: "8px", overflow: "hidden" }}>

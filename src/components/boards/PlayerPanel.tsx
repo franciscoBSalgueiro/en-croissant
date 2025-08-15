@@ -48,6 +48,7 @@ function OpponentForm({
             engine: (prev as any).engine ?? null,
             pickRank: bot.pickRank,
             strategy: strategy as any,
+            elo: (bot as any).elo,
             confThreshold: (bot as any).confThreshold,
             thinkingDelayMinMs: (bot as any).thinkingDelayMinMs,
             thinkingDelayMaxMs: (bot as any).thinkingDelayMaxMs,

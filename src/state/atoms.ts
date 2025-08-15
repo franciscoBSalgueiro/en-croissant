@@ -589,3 +589,8 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
     set(atom, { ...get(atom), enabled: value });
   }
 });
+
+// Bot suggestion: current chosen first move visualization per tab
+type BotSuggestion = { from: string; to: string } | null;
+const botSuggestionFamily = atomFamily((tab: string) => atom<BotSuggestion>(null));
+export const currentBotSuggestionAtom = tabValue(botSuggestionFamily);

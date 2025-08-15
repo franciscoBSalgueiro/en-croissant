@@ -12,6 +12,7 @@ export type OpponentSettings =
       // Bot-specific fields (when engine is null)
       pickRank?: number;
       strategy?: { mode: "rank"; rank: number } | { mode: "randomTopN"; topN: number } | { mode: "rankSet"; ranks: number[] };
+      elo?: number;
       botId?: string;
       confThreshold?: number;
       thinkingDelayMinMs?: number;

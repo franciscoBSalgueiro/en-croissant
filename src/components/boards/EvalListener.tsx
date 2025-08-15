@@ -81,7 +81,7 @@ function EvalListener() {
     const last = searchingMoves.length > 0 ? searchingMoves[searchingMoves.length - 1] : null;
     setLastMoved((prev) => (prev !== last ? last : prev));
     if (last) {
-      logInfo(`lastMovedAtom set to ${last}`).catch(() => {});
+      // logInfo(`lastMovedAtom set to ${last}`).catch(() => {});
     }
   }, [searchingMoves, setLastMoved]);
 
