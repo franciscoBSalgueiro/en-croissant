@@ -32,6 +32,11 @@ cg-board square.check {
     rgba(158, 0, 0, 0) 100%
   );
 }
+
+/* Mini preview last-move highlight (scoped) */
+.mini-cg > .cg-wrap > cg-container > cg-board > square.last-move {
+  background-color: rgba(255, 215, 0, 0.5);
+}
 cg-board square.current-premove {
   background-color: rgba(20, 30, 85, 0.5);
 }

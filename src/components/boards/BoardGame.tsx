@@ -24,8 +24,9 @@ import {
   Collapse,
 } from "@mantine/core";
 import { IconPlayerPlay, IconPlayerStop } from "@tabler/icons-react";
-import { parseUci } from "chessops";
-import { INITIAL_FEN } from "chessops/fen";
+import { parseUci, squareFile, squareRank } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
+import { parseSan } from "chessops/san";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom, atom } from "jotai";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -171,11 +172,43 @@ function BoardGame() {
       const colorPlayed: "white" | "black" = half % 2 === 1 ? "white" : "black";
       const actual = list.find((m) => (m.san || m.move) === san);
       const best = list.find((m) => m.isBest) || list.find((m) => m.score);
+      // helper to convert square index to algebraic name
+      const toSq = (sq: number | undefined) => {
+        if (typeof sq !== "number") return undefined as unknown as string;
+        const f = squareFile(sq);
+        const r = squareRank(sq);
+        return `${String.fromCharCode("a".charCodeAt(0) + f)}${r + 1}`;
+      };
+      // Build tiny preview from previous position and SAN
+      const buildPreview = (prevFen: string, moveSan: string | undefined) => {
+        if (!moveSan) return undefined as unknown as { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
+        const [p0] = positionFromFen(prevFen);
+        if (!p0) return undefined as any;
+        const mv = parseSan(p0, moveSan) as any;
+        if (!mv) return undefined as any;
+        const from: any = mv.from;
+        const to: any = mv.to;
+        p0.play(mv as any);
+        const fenAfter = makeFen(p0.toSetup());
+        const lastMove = [toSq(from), toSq(to)].filter(Boolean) as string[];
+        const isCheck = p0.isCheck();
+        const turnColor: "white" | "black" = p0.turn;
+        try {
+          // eslint-disable-next-line no-console
+          console.info("[PlayerPanel Preview]", { moveSan, lastMove, fenAfter, isCheck, turnColor });
+        } catch {}
+        return { fen: fenAfter, lastMove, isCheck, turnColor };
+      };
+      const prevFen = prevNode?.fen as string | undefined;
+      const actualPreview = prevFen ? buildPreview(prevFen, san) : undefined;
+      const bestPreview = prevFen ? buildPreview(prevFen, best ? (best.san || best.move) : undefined) : undefined;
       return {
         color: colorPlayed,
         playedSan: san,
         actualMoveInfo: actual,
         bestMoveInfo: best,
+        actualPreview,
+        bestPreview,
       } as const;
     } catch {
       return null;
@@ -187,11 +220,15 @@ function BoardGame() {
     playedSan?: string;
     actualMoveInfo?: UnifiedMove;
     bestMoveInfo?: UnifiedMove;
+    actualPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
+    bestPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
   } | undefined>(undefined);
   const [prevInfoBlack, setPrevInfoBlack] = useState<{
     playedSan?: string;
     actualMoveInfo?: UnifiedMove;
     bestMoveInfo?: UnifiedMove;
+    actualPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
+    bestPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
   } | undefined>(undefined);
 
   useEffect(() => {
@@ -201,12 +238,16 @@ function BoardGame() {
         playedSan: prevMoveComparison.playedSan,
         actualMoveInfo: prevMoveComparison.actualMoveInfo as any,
         bestMoveInfo: prevMoveComparison.bestMoveInfo as any,
+        actualPreview: prevMoveComparison.actualPreview as any,
+        bestPreview: prevMoveComparison.bestPreview as any,
       });
     } else {
       setPrevInfoBlack({
         playedSan: prevMoveComparison.playedSan,
         actualMoveInfo: prevMoveComparison.actualMoveInfo as any,
         bestMoveInfo: prevMoveComparison.bestMoveInfo as any,
+        actualPreview: prevMoveComparison.actualPreview as any,
+        bestPreview: prevMoveComparison.bestPreview as any,
       });
     }
   }, [prevMoveComparison]);

@@ -74,6 +74,8 @@ export function Chessground(
         aspectRatio: 1,
         width: "100%",
         "--board-image": `url('/board/${boardImage}')`,
+        "--cg-last-move": "rgba(255, 215, 0, 0.45)",
+        "--cg-check": "rgba(255, 0, 0, 0.45)",
       }}
       ref={ref}
     />
