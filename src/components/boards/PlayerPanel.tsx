@@ -1,6 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeTabAtom, botsAtom, enginesAtom, playersAtom } from "@/state/atoms";
-import { Group, Paper, Select, Stack, Text, Box } from "@mantine/core";
+import { Group, Paper, Select, Stack, Text, Box, useMantineTheme } from "@mantine/core";
 import { memo, useEffect, useMemo } from "react";
 import type { OpponentSettings } from "./types";
 import type { PiecesCount } from "@/utils/chess";
@@ -21,6 +21,7 @@ function OpponentForm({
   setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
   setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
 }) {
+  const theme = useMantineTheme();
   const bots = useAtomValue(botsAtom);
   const players = useAtomValue(playersAtom);
   const engines = useAtomValue(enginesAtom);
@@ -93,6 +94,7 @@ function PlayerPanel({
   turn,
   captured,
   materialDiff,
+  prevMoveInfo,
 }: {
   color: "white" | "black";
   opponent: OpponentSettings;
@@ -103,7 +105,13 @@ function PlayerPanel({
   turn: "white" | "black" | undefined;
   captured: PiecesCount;
   materialDiff: number;
+  prevMoveInfo?: {
+    playedSan?: string;
+    actualMoveInfo?: any; // UnifiedMove
+    bestMoveInfo?: any; // UnifiedMove
+  };
 }) {
+  const theme = useMantineTheme();
   const activeTab = useAtomValue(activeTabAtom)!;
   const setPlayedMoves = useSetAtom(playedMovesFamily({ tab: activeTab, color }));
   const playedMoves = useAtomValue(playedMovesFamily({ tab: activeTab, color }));
@@ -179,6 +187,20 @@ function PlayerPanel({
     };
   }, [playedMoves, color]);
 
+  const prevMoveBoxStyle = useMemo(() => {
+    const ann = (prevMoveInfo?.actualMoveInfo?.annotation ?? "") as Annotation;
+    const colorName = ANNOTATION_INFO[ann]?.color as any;
+    const darkText = (theme.colors as any)?.dark?.[9] ?? '#111';
+    if (colorName) {
+      const bg = (theme.colors as any)[colorName]?.[0] ?? theme.colors.gray[0];
+      const border = (theme.colors as any)[colorName]?.[4] ?? theme.colors.gray[4];
+      return { backgroundColor: bg, border: `1px solid ${border}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
+    }
+    const lightBg = theme.colors.gray[0];
+    const lightBorder = theme.colors.gray[3];
+    return { backgroundColor: lightBg, border: `1px solid ${lightBorder}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
+  }, [prevMoveInfo?.actualMoveInfo?.annotation]);
+
   return (
     <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column' }}>
       <Stack gap="xs" style={{ flex: 1, minHeight: 0 }}>
@@ -206,12 +228,12 @@ function PlayerPanel({
           ) : (
             <>
               <Group gap="md">
-                <Text size="xs" c="dimmed">Eval</Text>
-                <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(2)} cp` : "-"}</Text>
+                <Text size="xs" c="dimmed">Avg Eval</Text>
+                <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(2)}p` : "-"}</Text>
                 <Text size="xs" c="dimmed">% Best</Text>
                 <Text size="sm" fw={600}>{summary.avgPctBest !== undefined ? `${summary.avgPctBest.toFixed(1)}%` : "-"}</Text>
-                <Text size="xs" c="dimmed">% Played</Text>
-                <Text size="sm" fw={600}>{summary.avgPercentage !== undefined ? `${summary.avgPercentage.toFixed(1)}%` : "-"}</Text>
+                {/* <Text size="xs" c="dimmed">% Played</Text> */}
+                {/* <Text size="sm" fw={600}>{summary.avgPercentage !== undefined ? `${summary.avgPercentage.toFixed(1)}%` : "-"}</Text> */}
               </Group>
               <Group gap="xs" mt={4}>
                 {Array.from(summary.tally.entries())
@@ -221,6 +243,39 @@ function PlayerPanel({
                   ))}
               </Group>
             </>
+          )}
+        </Box>
+        
+        {/* Previously played move vs best move info */}
+        <Box style={prevMoveBoxStyle}>
+          {prevMoveInfo && (prevMoveInfo.actualMoveInfo || prevMoveInfo.bestMoveInfo) ? (
+            <>
+              <Text size="xs">
+                {(() => {
+                  const a = prevMoveInfo.actualMoveInfo;
+                  const b = prevMoveInfo.bestMoveInfo;
+                  const aSan = prevMoveInfo.playedSan || a?.san || a?.move;
+                  const aEval = typeof a?.score?.value === 'number' ? (a.score.value / 100).toFixed(2) + 'p' : undefined;
+                  const aPct = typeof a?.pctBest === 'number' ? a.pctBest.toFixed(1) + '%' : undefined;
+                  const bSan = b?.san || b?.move;
+                  const bEval = typeof b?.score?.value === 'number' ? (b.score.value / 100).toFixed(2) + 'p' : undefined;
+                  const engine = b?.engineName || a?.engineName;
+                  const depth = b?.depth ?? a?.depth;
+                  const ann = a?.annotation;
+                  const parts: string[] = [];
+                  if (aSan) parts.push(`You played ${aSan}`);
+                  if (aEval) parts.push(`eval ${aEval}`);
+                  if (aPct) parts.push(`${aPct} of best`);
+                  if (bSan) parts.push(`best ${bSan}`);
+                  if (bEval) parts.push(`eval ${bEval}`);
+                  if (engine) parts.push(`(${engine}${typeof depth === 'number' ? ` d${depth}` : ''})`);
+                  if (ann) parts.push(`[${String(ann)}]`);
+                  return parts.join(', ') + '.';
+                })()}
+              </Text>
+            </>
+          ) : (
+            <Text size="xs" c="dimmed">Make a move to see how it compares to best.</Text>
           )}
         </Box>
         <div style={{ flex: 1, minHeight: 150 }}>

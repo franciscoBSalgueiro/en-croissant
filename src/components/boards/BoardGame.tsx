@@ -52,6 +52,7 @@ import PlayerPanel from "./PlayerPanel";
 import { playedMovesFamily } from "@/state/playedMoves";
 import type { UnifiedMove } from "@/state/unifiedMoves";
 import type { OpponentSettings } from "./types";
+import { normalizeScore } from "@/utils/score";
 
 // NEW: Nested mosaic state for playing layout
 type PlayingViewId =
@@ -158,6 +159,57 @@ function BoardGame() {
     return loadable(base as any);
   }, [prevNode?.fen, headers.variant, root, activeTabForBot]);
   const unifiedPrevLoadable = useAtomValue(unifiedPrevAtom);
+
+  // Compute comparison for previously played move vs best available at that time
+  const prevMoveComparison = useMemo(() => {
+    try {
+      if (unifiedPrevLoadable.state !== "hasData") return null;
+      const list = (unifiedPrevLoadable.data || []) as UnifiedMove[];
+      const san = (lastNode as any)?.san as string | undefined;
+      const half = (lastNode as any)?.halfMoves as number | undefined;
+      if (!san || typeof half !== "number" || half <= 0) return null;
+      const colorPlayed: "white" | "black" = half % 2 === 1 ? "white" : "black";
+      const actual = list.find((m) => (m.san || m.move) === san);
+      const best = list.find((m) => m.isBest) || list.find((m) => m.score);
+      return {
+        color: colorPlayed,
+        playedSan: san,
+        actualMoveInfo: actual,
+        bestMoveInfo: best,
+      } as const;
+    } catch {
+      return null;
+    }
+  }, [unifiedPrevLoadable, lastNode?.san, lastNode?.halfMoves]);
+
+  // Persist last known prev-move info per side to avoid flicker and keep it visible until that side moves again
+  const [prevInfoWhite, setPrevInfoWhite] = useState<{
+    playedSan?: string;
+    actualMoveInfo?: UnifiedMove;
+    bestMoveInfo?: UnifiedMove;
+  } | undefined>(undefined);
+  const [prevInfoBlack, setPrevInfoBlack] = useState<{
+    playedSan?: string;
+    actualMoveInfo?: UnifiedMove;
+    bestMoveInfo?: UnifiedMove;
+  } | undefined>(undefined);
+
+  useEffect(() => {
+    if (!prevMoveComparison) return;
+    if (prevMoveComparison.color === "white") {
+      setPrevInfoWhite({
+        playedSan: prevMoveComparison.playedSan,
+        actualMoveInfo: prevMoveComparison.actualMoveInfo as any,
+        bestMoveInfo: prevMoveComparison.bestMoveInfo as any,
+      });
+    } else {
+      setPrevInfoBlack({
+        playedSan: prevMoveComparison.playedSan,
+        actualMoveInfo: prevMoveComparison.actualMoveInfo as any,
+        bestMoveInfo: prevMoveComparison.bestMoveInfo as any,
+      });
+    }
+  }, [prevMoveComparison]);
 
   // Ensure any move made via external UI (e.g., UnifiedMovesTable click) is reflected in Played Moves
   useEffect(() => {
@@ -487,6 +539,7 @@ function BoardGame() {
         turn={pos?.turn}
         captured={captured.white}
         materialDiff={materialDiff}
+        prevMoveInfo={prevInfoWhite}
       />
     ),
     centerBoard: (
@@ -562,6 +615,7 @@ function BoardGame() {
         turn={pos?.turn}
         captured={captured.black}
         materialDiff={materialDiff}
+        prevMoveInfo={prevInfoBlack}
       />
     ),
     // Keep placeholders for backward-compatible persisted layouts; do not render analysis widgets here
