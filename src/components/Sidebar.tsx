@@ -48,6 +48,7 @@ const linksdata = [
   },
   { icon: IconCpu, label: "Engines", url: "/engines" },
   { icon: IconRobot, label: "Bots", url: "/bots" },
+  { icon: IconUser, label: "Players", url: "/players" },
 ];
 
 export function SideBar() {

@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { activeTabAtom, botsAtom, enginesAtom } from "@/state/atoms";
+import { activeTabAtom, botsAtom, enginesAtom, playersAtom } from "@/state/atoms";
 import { Group, Paper, Select, Stack, Text, Box } from "@mantine/core";
 import { memo, useEffect, useMemo } from "react";
 import type { OpponentSettings } from "./types";
@@ -22,11 +22,13 @@ function OpponentForm({
   setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
 }) {
   const bots = useAtomValue(botsAtom);
+  const players = useAtomValue(playersAtom);
   const engines = useAtomValue(enginesAtom);
 
   const options = [
     { value: "human", label: "Human" },
-    ...bots.map((b) => ({ value: b.id, label: b.name })),
+    ...players.map((p) => ({ value: `player:${p.id}`, label: p.name })),
+    ...bots.map((b) => ({ value: `bot:${b.id}`, label: b.name })),
   ];
 
   const select = (
@@ -34,12 +36,26 @@ function OpponentForm({
       label={inline ? undefined : "Player"}
       placeholder="Select player"
       data={options}
-      value={(opponent as any).botId || (opponent.type === 'human' ? 'human' : undefined)}
+      value={
+        opponent.type === 'human'
+          ? (opponent as any).playerId ? `player:${(opponent as any).playerId}` : 'human'
+          : (opponent as any).botId ? `bot:${(opponent as any).botId}` : undefined
+      }
       onChange={(val) => {
         if (!val || val === "human") {
-          setOpponent((prev) => ({ ...prev, type: "human", name: "Player", timeControl: undefined, botId: undefined }));
-        } else {
-          const bot = bots.find((b) => b.id === val);
+          setOpponent((prev) => ({ ...prev, type: "human", name: "Player", timeControl: undefined, botId: undefined, playerId: undefined }));
+          return;
+        }
+        if (val.startsWith('player:')) {
+          const id = val.slice('player:'.length);
+          const player = players.find((p) => p.id === id);
+          if (!player) return;
+          setOpponent((prev) => ({ ...prev, type: 'human', name: player.name, playerId: player.id, timeControl: undefined, botId: undefined } as any));
+          return;
+        }
+        if (val.startsWith('bot:')) {
+          const id = val.slice('bot:'.length);
+          const bot = bots.find((b) => b.id === id);
           if (!bot) return;
           const strategy = bot.strategy || { mode: "rank", rank: bot.pickRank ?? 1 };
           setOpponent((prev) => ({
@@ -48,13 +64,15 @@ function OpponentForm({
             engine: (prev as any).engine ?? null,
             pickRank: bot.pickRank,
             strategy: strategy as any,
-            elo: (bot as any).elo,
+            elo: (bot as any).earnedELO ?? (bot as any).elo,
             confThreshold: (bot as any).confThreshold,
             thinkingDelayMinMs: (bot as any).thinkingDelayMinMs,
             thinkingDelayMaxMs: (bot as any).thinkingDelayMaxMs,
             timeControl: undefined,
             botId: bot.id,
+            playerId: undefined,
           }));
+          return;
         }
       }}
       style={{ flex: 1 }}

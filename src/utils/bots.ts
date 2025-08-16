@@ -22,6 +22,8 @@ export const botSchema = z.object({
 	strategy: botStrategySchema.optional(),
 	// Bot playing strength (used to shape softmax sampling)
 	elo: z.number().min(400).max(3600).default(1500).optional(),
+	// Earned ELO, adjusted after games. Defaults to elo when absent
+	earnedELO: z.number().min(400).max(3600).optional(),
 	// Confidence override: if set, consider only moves with confidence >= threshold for selection
 	confThreshold: z.number().min(0).max(100).default(90).optional(),
 	// Thinking delay (ms)

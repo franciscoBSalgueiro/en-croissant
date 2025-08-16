@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SettingsImport } from './routes/settings'
+import { Route as PlayersImport } from './routes/players'
 import { Route as FilesImport } from './routes/files'
 import { Route as EnginesImport } from './routes/engines'
 import { Route as BotsImport } from './routes/bots'
@@ -24,6 +25,11 @@ import { Route as DatabasesDatabaseIdImport } from './routes/databases/$database
 
 const SettingsRoute = SettingsImport.update({
   path: '/settings',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const PlayersRoute = PlayersImport.update({
+  path: '/players',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -86,6 +92,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FilesImport
       parentRoute: typeof rootRoute
     }
+    '/players': {
+      preLoaderRoute: typeof PlayersImport
+      parentRoute: typeof rootRoute
+    }
     '/settings': {
       preLoaderRoute: typeof SettingsImport
       parentRoute: typeof rootRoute
@@ -109,6 +119,7 @@ export const routeTree = rootRoute.addChildren([
   BotsRoute,
   EnginesRoute,
   FilesRoute,
+  PlayersRoute,
   SettingsRoute,
   DatabasesDatabaseIdRoute,
   DatabasesIndexRoute,

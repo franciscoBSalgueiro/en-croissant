@@ -30,6 +30,7 @@ export default function BotsPage() {
       name: `Bot ${bots.length + 1}`,
       strategy: { mode: "rankSet", ranks: [1, 2, 3] } as any,
       elo: 1500,
+      earnedELO: 1500,
       confThreshold: 90,
       thinkingDelayMinMs: 1000,
       thinkingDelayMaxMs: 10000,
@@ -118,6 +119,13 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
             max={3600}
             value={(bot as any).elo ?? 1500}
             onChange={(v) => setBot({ ...bot, elo: typeof v === "number" ? v : 1500 } as any)}
+          />
+          <NumberInput
+            label="Earned ELO"
+            min={400}
+            max={3600}
+            value={(bot as any).earnedELO ?? (bot as any).elo ?? 1500}
+            onChange={(v) => setBot({ ...bot, earnedELO: typeof v === "number" ? v : (bot as any).earnedELO } as any)}
           />
           <SegmentedControl
             value={bot.strategy?.mode || "rank"}

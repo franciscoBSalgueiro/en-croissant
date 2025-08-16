@@ -37,6 +37,8 @@ import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
 import EvalListener from "./EvalListener";
 import BotService from "./BotService";
+import { playersAtom as savedPlayersAtom, botsAtom as savedBotsAtom } from "@/state/atoms";
+import type { Player } from "@/utils/players";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 
@@ -125,6 +127,8 @@ function BoardGame() {
   }, [lastNode.fen]);
 
   const [players, setPlayers] = useAtom(currentPlayersAtom);
+  const [savedPlayers, setSavedPlayers] = useAtom(savedPlayersAtom);
+  const [savedBots, setSavedBots] = useAtom(savedBotsAtom);
 
   const activeTabForBot = useAtomValue(activeTabForUnified);
   const isBotTurn = useMemo(() => {
@@ -299,6 +303,72 @@ function BoardGame() {
       }
     }
   }, [gameState, enginePaused, intervalId]);
+
+  // ELO update on game end
+  useEffect(() => {
+    if (!pos) return;
+    if (headers.result === "*") return;
+    if (gameState !== "playing") return;
+
+    // Determine scores: 1 for win, 0 for loss, 0.5 for draw from White's perspective
+    let scoreWhite = 0.5;
+    if (headers.result === "1-0") scoreWhite = 1;
+    else if (headers.result === "0-1") scoreWhite = 0;
+    const scoreBlack = 1 - scoreWhite;
+
+    type Side = "white" | "black";
+    const sides: Side[] = ["white", "black"];
+
+    const getDisplayElo = (side: Side): number => {
+      const opp = players[side];
+      const isBot = opp.type === "engine" && (opp as any).engine == null;
+      if (isBot) {
+        const b = savedBots.find((bb) => bb.id === (opp as any).botId);
+        const base = (opp as any).elo ?? b?.elo ?? 1500;
+        const earned = (b as any)?.earnedELO ?? base;
+        return earned;
+      }
+      // human
+      const pid = (opp as any).playerId as string | undefined;
+      const p = pid ? savedPlayers.find((pp) => pp.id === pid) : undefined;
+      const base = (opp as any).elo ?? p?.elo ?? 1500;
+      const earned = (p as any)?.earnedELO ?? base;
+      return earned;
+    };
+
+    const K_FACTOR = 32;
+    const expectedScore = (ra: number, rb: number) => 1 / (1 + Math.pow(10, (rb - ra) / 400));
+
+    const rWhite = getDisplayElo("white");
+    const rBlack = getDisplayElo("black");
+    const expWhite = expectedScore(rWhite, rBlack);
+    const expBlack = expectedScore(rBlack, rWhite);
+
+    const clamp = (v: number) => Math.max(400, Math.min(3600, v));
+    const newWhite = clamp(Math.round(rWhite + K_FACTOR * (scoreWhite - expWhite)));
+    const newBlack = clamp(Math.round(rBlack + K_FACTOR * (scoreBlack - expBlack)));
+
+    // Persist to saved players/bots if linked
+    const applyFor = (side: Side, newRating: number) => {
+      const opp = players[side];
+      const isBot = opp.type === "engine" && (opp as any).engine == null;
+      if (isBot) {
+        const id = (opp as any).botId as string | undefined;
+        if (!id) return;
+        setSavedBots((prev) => prev.map((b) => (b.id === id ? ({ ...b, earnedELO: newRating } as any) : b)));
+        return;
+      }
+      const pid = (opp as any).playerId as string | undefined;
+      if (!pid) return;
+      setSavedPlayers((prev) => prev.map((p) => (p.id === pid ? ({ ...p, earnedELO: newRating } as Player) : p)));
+    };
+
+    applyFor("white", newWhite);
+    applyFor("black", newBlack);
+
+    // move to game over state once ratings applied
+    setGameState("gameOver");
+  }, [headers.result, gameState]);
 
   function decrementTime() {
     if (gameState === "playing") {

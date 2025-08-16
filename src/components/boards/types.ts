@@ -2,6 +2,7 @@ export type OpponentSettings =
   | {
       type: "human";
       timeControl?: any;
+      playerId?: string;
       name?: string;
     }
   | {

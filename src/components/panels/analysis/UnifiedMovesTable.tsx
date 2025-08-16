@@ -693,11 +693,11 @@ function EngineVariationMoves({
           const move_number = Math.ceil(total_moves / 2);
           
           return (
-            <Box key={index} style={{ display: "flex", alignItems: "center" }} title={(Array.isArray(sanMeta) && sanMeta[index]) ? [
-                sanMeta[index].pieceLetter ? sanMeta[index].pieceLetter.toUpperCase() : undefined,
-                sanMeta[index].fromSquare && sanMeta[index].toSquare ? `${sanMeta[index].fromSquare} → ${sanMeta[index].toSquare}` : undefined,
-                sanMeta[index].fromSquareColor && sanMeta[index].toSquareColor ? `(${sanMeta[index].fromSquareColor} → ${sanMeta[index].toSquareColor})` : undefined,
-              ].filter(Boolean).join(" ") + (sanMeta[index].isCapture ? " capture" : "") + (sanMeta[index].promotion ? ` =${sanMeta[index].promotion.toUpperCase()}` : "") : undefined}>
+            <Box key={index} style={{ display: "flex", alignItems: "center" }} title={(Array.isArray(sanMeta) && sanMeta?.[index]) ? [
+                sanMeta?.[index]?.pieceLetter ? sanMeta?.[index]?.pieceLetter.toUpperCase() : undefined,
+                sanMeta?.[index]?.fromSquare && sanMeta?.[index]?.toSquare ? `${sanMeta?.[index]?.fromSquare} → ${sanMeta?.[index]?.toSquare}` : undefined,
+                sanMeta?.[index]?.fromSquareColor && sanMeta?.[index]?.toSquareColor ? `(${sanMeta?.[index]?.fromSquareColor} → ${sanMeta?.[index]?.toSquareColor})` : undefined,
+              ].filter(Boolean).join(" ") + (sanMeta?.[index]?.isCapture ? " capture" : "") + (sanMeta?.[index]?.promotion ? ` =${sanMeta?.[index]?.promotion?.toUpperCase?.()}` : "") : undefined}>
               {(index === 0 || is_white) && (
                 <Text size="sm" c="dimmed" mr={2}>
                   {`${move_number}${is_white ? "." : "..."}`}

@@ -1,6 +1,8 @@
 import type { DatabaseInfo, GoMode } from "@/bindings";
 import type { Bot } from "@/utils/bots";
 import { botSchema } from "@/utils/bots";
+import type { Player } from "@/utils/players";
+import { playerSchema } from "@/utils/players";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import {
@@ -71,6 +73,14 @@ export const botsAtom = atomWithStorage<Bot[]>(
 );
 
 export const loadableEnginesAtom = loadable(enginesAtom);
+
+// Players
+export const playersAtom = atomWithStorage<Player[]>(
+  "players",
+  [],
+  createZodStorage(z.array(playerSchema), localStorage),
+  { getOnInit: true },
+);
 
 // Write-through persistence: ensure disk file is updated whenever enginesAtom changes
 export const persistEnginesAtom = atom(

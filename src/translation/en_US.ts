@@ -120,6 +120,7 @@ export const en_US = {
     "SideBar.Engines": "Engines",
     "SideBar.Settings": "Settings",
     "SideBar.Bots": "Bots",
+    "SideBar.Players": "Players",
 
     "Bots.Title": "Your Bots",
     "Bots.Settings.NoBot": "No bot selected",
@@ -127,6 +128,11 @@ export const en_US = {
     "Bots.Settings.SearchSettings": "Search settings",
     "Bots.Remove.Title": "Remove Bot",
     "Bots.Remove.Message": "Are you sure you want to remove this bot?",
+
+    "Players.Title": "Your Players",
+    "Players.Settings.NoPlayer": "No player selected",
+    "Players.Remove.Title": "Remove Player",
+    "Players.Remove.Message": "Are you sure you want to remove this player?",
 
     "Tab.NewTab": "New Tab",
 
