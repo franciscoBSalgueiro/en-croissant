@@ -29,7 +29,7 @@ import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom, atom } from "jotai";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { MosaicWithoutDragDropContext as Mosaic, type MosaicNode } from "react-mosaic-component";
 import { atomWithStorage } from "jotai/utils";
 import { useStore } from "zustand";
@@ -536,6 +536,52 @@ function BoardGame() {
   const [playingLayoutState, setPlayingLayoutState] = useAtom(playingLayoutAtom);
   const [analysisOpen, setAnalysisOpen] = useAtom(analysisBarOpenAtom);
 
+  // Track size changes of the center board container and force Board/Chessground remount
+  const centerBoardRef = useRef<HTMLDivElement | null>(null);
+  const [redrawSeq, setRedrawSeq] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = centerBoardRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      try {
+        const rect = el.getBoundingClientRect();
+        // eslint-disable-next-line no-console
+        console.info("[BoardGame] centerBoard ResizeObserver", {
+          w: Math.round(rect.width),
+          h: Math.round(rect.height),
+          top: Math.round(rect.top),
+          left: Math.round(rect.left),
+        });
+      } catch {}
+      setRedrawSeq((s) => s + 1);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Nudge redraw when analysis panel visibility toggles to catch post-transition layout
+  useEffect(() => {
+    let raf1: number | null = null;
+    let raf2: number | null = null;
+    try {
+      const rect = centerBoardRef.current?.getBoundingClientRect();
+      // eslint-disable-next-line no-console
+      console.info("[BoardGame] analysisOpen toggle", analysisOpen, rect ? {
+        w: Math.round(rect.width),
+        h: Math.round(rect.height),
+        top: Math.round(rect.top),
+      } : null);
+    } catch {}
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setRedrawSeq((s) => s + 1));
+    });
+    return () => {
+      if (raf1) cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [analysisOpen]);
+
   // Remove deprecated views (linesTree/unifiedMoves) from any persisted layout to avoid empty panes
   const pruneLayout = useMemo(() => {
     const prune = (node: MosaicNode<PlayingViewId> | null): MosaicNode<PlayingViewId> | null => {
@@ -586,7 +632,7 @@ function BoardGame() {
     centerBoard: (
       <Paper withBorder shadow="sm" p="md" h="100%" style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
         <Box style={{ width: "100%", flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Box style={{ height: "100%", maxWidth: "100%", aspectRatio: "1 / 1", display: "flex", minWidth: 0, minHeight: 0 }}>
+          <Box ref={centerBoardRef} style={{ height: "100%", maxWidth: "100%", aspectRatio: "1 / 1", display: "flex", minWidth: 0, minHeight: 0 }}>
             <Board
               dirty={false}
               editingMode={false}
@@ -603,6 +649,7 @@ function BoardGame() {
               onControlsReady={setBoardControls}
               onCapturedChange={setCaptured}
               onMaterialDiffChange={setMaterialDiff}
+              redrawSeq={redrawSeq}
             />
           </Box>
         </Box>
@@ -676,9 +723,22 @@ function BoardGame() {
           <Mosaic<PlayingViewId>
             renderTile={(id) => playingTiles[id]}
             value={pruneLayout}
-            onChange={(currentNode) =>
-              setPlayingLayoutState({ currentNode: (currentNode as any) ?? DEFAULT_PLAYING_LAYOUT })
-            }
+            onChange={(currentNode) => {
+              setPlayingLayoutState({ currentNode: (currentNode as any) ?? DEFAULT_PLAYING_LAYOUT });
+              // schedule redraw after mosaic panes resize
+              requestAnimationFrame(() => {
+                try {
+                  const rect = centerBoardRef.current?.getBoundingClientRect();
+                  // eslint-disable-next-line no-console
+                  console.info("[BoardGame] Mosaic onChange nudge", rect ? {
+                    w: Math.round(rect.width),
+                    h: Math.round(rect.height),
+                    top: Math.round(rect.top),
+                  } : null);
+                } catch {}
+                setRedrawSeq((s) => s + 1);
+              });
+            }}
             resize={{ minimumPaneSizePercentage: 10 }}
           />
         </Box>

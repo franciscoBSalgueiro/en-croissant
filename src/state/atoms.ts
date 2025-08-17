@@ -194,7 +194,7 @@ export const enableBoardScrollAtom = atomWithStorage<boolean>(
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<boolean>(
   "show-coordinates",
-  false,
+  true,
   undefined,
   {
     getOnInit: true,

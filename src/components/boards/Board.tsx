@@ -157,6 +157,8 @@ interface ChessboardProps {
   externalControls?: boolean;
   // NEW: callback to provide controls JSX element to parent
   onControlsReady?: (controls: JSX.Element) => void;
+  // NEW: when this number changes, force a Chessground remount/redraw
+  redrawSeq?: number;
 }
 
 function Board({
@@ -179,6 +181,7 @@ function Board({
   onMoveMade,
   externalControls = false,
   onControlsReady,
+  redrawSeq,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -686,6 +689,16 @@ function Board({
     const ro = new ResizeObserver(() => {
       // compute square size: min(paneHeight, paneWidth)
       const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
+      try {
+        const rect = el.getBoundingClientRect();
+        // eslint-disable-next-line no-console
+        console.info("[Board] container ResizeObserver", {
+          size,
+          w: Math.round(rect.width),
+          h: Math.round(rect.height),
+          top: Math.round(rect.top),
+        });
+      } catch {}
       setBoardSize(size);
       // Force a full remount of Chessground so it recalculates bounds
       setBoardRenderKey((k) => k + 1);
@@ -697,6 +710,14 @@ function Board({
     setBoardRenderKey((k) => k + 1);
     return () => ro.disconnect();
   }, []);
+
+  // Force a redraw/remount when the parent requests it (e.g., analysis panel toggle or mosaic resize)
+  useEffect(() => {
+    if (redrawSeq === undefined) return;
+    // eslint-disable-next-line no-console
+    try { console.info("[Board] redrawSeq", redrawSeq); } catch {}
+    setBoardRenderKey((k) => k + 1);
+  }, [redrawSeq]);
 
   return (
     <>
@@ -746,6 +767,7 @@ function Board({
               flex: 1,
               minHeight: 0,
             }}
+            align="stretch"
             gap="sm"
           >
             {currentNode.annotations.length > 0 &&
