@@ -22,6 +22,8 @@ export const botSchema = z.object({
 	strategy: botStrategySchema.optional(),
 	// Bot playing strength (used to shape softmax sampling)
 	elo: z.number().min(400).max(3600).default(1500).optional(),
+	// Engine Skill Level (UCI) when running a dedicated engine for this bot (e.g., Stockfish 0..20)
+	skillLevel: z.number().min(0).max(20).optional(),
 	// Earned ELO, adjusted after games. Defaults to elo when absent
 	earnedELO: z.number().min(400).max(3600).optional(),
 	// Confidence override: if set, consider only moves with confidence >= threshold for selection

@@ -160,7 +160,7 @@ export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols">(
 );
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">(
   "move-method",
-  "drag",
+  "both",
 );
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
@@ -173,7 +173,7 @@ export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
 );
 export const arrowColorModeAtom = atomWithStorage<"engine" | "quality" | "pctBest">(
   "arrow-color-mode",
-  "engine",
+  "pctBest",
   createZodStorage(z.enum(["engine", "quality", "pctBest"]), localStorage),
 );
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(

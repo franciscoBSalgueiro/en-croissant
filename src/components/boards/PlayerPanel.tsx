@@ -271,6 +271,7 @@ function OpponentForm({
             pickRank: bot.pickRank,
             strategy: strategy as any,
             elo: (bot as any).earnedELO ?? (bot as any).elo,
+            skillLevel: (bot as any).skillLevel,
             confThreshold: (bot as any).confThreshold,
             thinkingDelayMinMs: (bot as any).thinkingDelayMinMs,
             thinkingDelayMaxMs: (bot as any).thinkingDelayMaxMs,

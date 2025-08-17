@@ -30,6 +30,7 @@ export default function BotsPage() {
       name: `Bot ${bots.length + 1}`,
       strategy: { mode: "rankSet", ranks: [1, 2, 3] } as any,
       elo: 1500,
+      skillLevel: 10,
       earnedELO: 1500,
       confThreshold: 90,
       thinkingDelayMinMs: 1000,
@@ -119,6 +120,14 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
             max={3600}
             value={(bot as any).elo ?? 1500}
             onChange={(v) => setBot({ ...bot, elo: typeof v === "number" ? v : 1500 } as any)}
+          />
+          <NumberInput
+            label="Engine Skill Level"
+            description="Used when running a dedicated engine for this bot"
+            min={0}
+            max={20}
+            value={(bot as any).skillLevel ?? 10}
+            onChange={(v) => setBot({ ...bot, skillLevel: typeof v === "number" ? v : undefined } as any)}
           />
           <NumberInput
             label="Earned ELO"

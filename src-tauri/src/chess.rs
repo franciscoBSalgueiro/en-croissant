@@ -282,6 +282,7 @@ impl EngineProcess {
         let msg = format!("setoption name {} value {}\n", name, value);
         self.stdin.write_all(msg.as_bytes()).await?;
         self.logs.push(EngineLog::Gui(msg));
+        info!("Setting UCI option: {} = {}", name, value);
 
         Ok(())
     }

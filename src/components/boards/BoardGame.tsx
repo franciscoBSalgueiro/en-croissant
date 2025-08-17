@@ -195,7 +195,7 @@ function BoardGame() {
         const turnColor: "white" | "black" = p0.turn;
         try {
           // eslint-disable-next-line no-console
-          console.info("[PlayerPanel Preview]", { moveSan, lastMove, fenAfter, isCheck, turnColor });
+          // console.info("[PlayerPanel Preview]", { moveSan, lastMove, fenAfter, isCheck, turnColor });
         } catch {}
         return { fen: fenAfter, lastMove, isCheck, turnColor };
       };
