@@ -1,9 +1,11 @@
-import { enginesAtom } from "@/state/atoms";
+import { enginesAtom, persistEnginesAtom } from "@/state/atoms";
 import {
   type Engine,
   type LocalEngine,
   engineSchema,
   requiredEngineSettings,
+  getBundledStockfishPath,
+  saveEngines,
 } from "@/utils/engines";
 import {
   ActionIcon,
@@ -35,6 +37,7 @@ import {
 } from "@tabler/icons-react";
 import { info } from "@tauri-apps/plugin-log";
 import { useAtom } from "jotai";
+import { useSetAtom } from "jotai/react";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -59,6 +62,7 @@ export default function EnginesPage() {
   const { t } = useTranslation();
 
   const [engines, setEngines] = useAtom(enginesAtom);
+  const persist = useSetAtom(persistEnginesAtom);
   const [opened, setOpened] = useState(false);
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
@@ -75,6 +79,49 @@ export default function EnginesPage() {
   useEffect(() => {
     info(`EnginesPage: engines changed -> ${engines.length}`);
   }, [engines]);
+  // Auto-detect and install bundled Stockfish if present (no user download)
+  useEffect(() => {
+    (async () => {
+      try {
+        const bundled = await getBundledStockfishPath();
+        if (!bundled) return;
+        // Avoid duplicates
+        if (engines.some((e) => e.type === "local" && (e as LocalEngine).path === bundled)) return;
+        // Ensure executable bit (macOS/Linux)
+        try {
+          await commands.setFileAsExecutable(bundled);
+        } catch (_) {
+          // ignore
+        }
+        const config = unwrap(await commands.getEngineConfig(bundled));
+        const newEngine: LocalEngine = {
+          type: "local",
+          name: "Stockfish",
+          version: "Bundled",
+          path: bundled,
+          image: "",
+          elo: 3635,
+          loaded: true,
+          settings: config.options
+            .filter(
+              (o) => requiredEngineSettings.includes(o.value.name) && "default" in o.value,
+            )
+            .map((o) => ({
+              name: o.value.name,
+              value: (o.value as { default: string | number | boolean | null }).default,
+            })),
+        };
+        const updated = [...engines, newEngine];
+        setEngines(updated);
+        await saveEngines(updated);
+        await persist(updated as any);
+        await info("EnginesPage: bundled Stockfish installed automatically");
+      } catch (e) {
+        // ignore if not present or not executable
+      }
+    })();
+  }, []);
+
 
   useEffect(() => {
     info(

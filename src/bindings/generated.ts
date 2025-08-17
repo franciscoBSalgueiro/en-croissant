@@ -80,6 +80,14 @@ async getEngineLogs(engine: string, tab: string) : Promise<Result<EngineLog[], s
 async memorySize() : Promise<number> {
     return await TAURI_INVOKE("memory_size");
 },
+async getBundledStockfishPath() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_bundled_stockfish_path") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPuzzle(file: string, minRating: number, maxRating: number) : Promise<Result<Puzzle, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating }) };

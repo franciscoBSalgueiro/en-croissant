@@ -34,10 +34,11 @@ import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useAtom, useAtomValue } from "jotai";
 import { useSetAtom } from "jotai/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
+import { getBundledStockfishPath } from "@/utils/engines";
 
 function AddEngine({
   opened,
@@ -114,6 +115,61 @@ function AddEngine({
   };
 
   const stockfishEngine = getStockfishEngine();
+
+  // When opened, try to detect bundled Stockfish and pre-install it.
+  useEffect(() => {
+    if (!opened) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const bundled = await getBundledStockfishPath();
+        if (!bundled) return;
+        if (cancelled) return;
+        if (allEngines.state !== "hasData") return;
+        const already = allEngines.data.find(
+          (e: Engine) => e.type === "local" && (e as LocalEngine).path === bundled,
+        );
+        if (already) return;
+        const config = unwrap(await commands.getEngineConfig(bundled));
+        if (cancelled) return;
+        // Align version label with platform-specific card so the UI shows Installed
+        let version = "Bundled";
+        if (os === "macos") {
+          version = arch === "aarch64" ? "Latest (Apple Silicon)" : "Latest (Intel)";
+        } else if (os === "windows") {
+          version = "Latest (AVX2)";
+        }
+        const newEngine: LocalEngine = {
+          type: "local",
+          name: "Stockfish",
+          version,
+          path: bundled,
+          image: "",
+          elo: 3635,
+          loaded: true,
+          settings: config.options
+            .filter(
+              (o) =>
+                requiredEngineSettings.includes(o.value.name) &&
+                "default" in o.value,
+            )
+            .map((o) => ({
+              name: o.value.name,
+              value: (o.value as { default: string | number | boolean | null }).default,
+            })),
+        };
+        const updated = [...allEngines.data, newEngine];
+        setEngines(updated);
+        await saveEngines(updated);
+        await persist(updated as any);
+      } catch (_) {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [opened, allEngines.state]);
 
   const form = useForm<LocalEngine>({
     initialValues: {

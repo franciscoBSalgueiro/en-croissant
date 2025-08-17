@@ -14,6 +14,7 @@ import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { unwrap } from "./unwrap";
+import { invoke } from "@tauri-apps/api/core";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
@@ -160,4 +161,17 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     error,
     isLoading,
   };
+}
+
+/**
+ * Resolve the absolute path to a bundled Stockfish binary for the current platform.
+ * Returns null if not available (e.g., unsupported OS or resource missing).
+ */
+export async function getBundledStockfishPath(): Promise<string | null> {
+  try {
+    const path = await invoke<string>("get_bundled_stockfish_path");
+    return path || null;
+  } catch {
+    return null;
+  }
 }

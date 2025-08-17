@@ -26,6 +26,12 @@
       ]
     }
   },
+  "bundle": {
+    "resources": [
+      "resources/*",
+      "resources/engines/*"
+    ]
+  },
   "app": {
     "withGlobalTauri": false,
     "windows": [

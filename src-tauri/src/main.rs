@@ -119,6 +119,7 @@ fn main() {
             kill_engines,
             get_engine_logs,
             memory_size,
+            get_bundled_stockfish_path,
             get_puzzle,
             search_opening_name,
             get_opening_from_fen,
@@ -249,4 +250,29 @@ fn is_bmi2_compatible() -> bool {
 fn memory_size() -> u32 {
     let total_bytes = sysinfo::System::new_all().total_memory();
     (total_bytes / 1024 / 1024) as u32
+}
+
+#[tauri::command]
+#[specta::specta]
+fn get_bundled_stockfish_path(app: tauri::AppHandle) -> Result<String, crate::error::Error> {
+    let resource_dir = app.path().resource_dir().map_err(|_| {
+        std::io::Error::new(std::io::ErrorKind::NotFound, "resource_dir not available")
+    })?;
+
+    #[cfg(target_os = "macos")]
+    let relative = {
+        #[cfg(target_arch = "aarch64")]
+        { std::path::Path::new("resources").join("engines").join("stockfish-macos-m1-apple-silicon") }
+        #[cfg(target_arch = "x86_64")]
+        { std::path::Path::new("resources").join("engines").join("stockfish-macos-x86-64-bmi2") }
+    };
+
+    #[cfg(target_os = "windows")]
+    let relative = std::path::Path::new("resources").join("engines").join("stockfish-windows-x86-64-avx2.exe");
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    return Err(crate::error::Error::NoMatchFound);
+
+    let full = resource_dir.join(relative);
+    Ok(full.to_string_lossy().to_string())
 }
