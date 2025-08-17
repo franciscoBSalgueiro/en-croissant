@@ -161,7 +161,14 @@ export const unifiedMovesFamily = atomFamily(
         .with("lch_master", (v) => ({ type: v, options: masterOptions, fen }))
         .exhaustive();
 
-      const { openings } = await fetchOpening(dbType, tab);
+      // Fetch openings non-blockingly; if it fails, continue with engines only
+      let openings: Opening[] = [] as any;
+      try {
+        const res = await fetchOpening(dbType, tab);
+        openings = res.openings || [] as any;
+      } catch {
+        openings = [] as any;
+      }
 
       const engines = get(enginesAtom).filter((e) => e.loaded);
 

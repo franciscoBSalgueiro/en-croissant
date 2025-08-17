@@ -210,6 +210,10 @@ function EngineListener({
               name: s.name,
               value: s.value?.toString() || "",
             })) ?? [];
+          // Ensure MultiPV has a sane default (5) so first-move arrows appear even before user tweaks
+          if (!options.find((o) => o.name === "MultiPV")) {
+            options.push({ name: "MultiPV", value: "5" });
+          }
           if (!options.find((o) => o.name === "UCI_ShowWDL")) {
             options.push({ name: "UCI_ShowWDL", value: "true" });
           }

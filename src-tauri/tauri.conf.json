@@ -36,7 +36,7 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "title": "En Croissant",
+        "title": "Botvinnik",
         "maximized": true,
         "visible": false,
         "decorations": true

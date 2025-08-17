@@ -544,6 +544,26 @@ export const tabEngineSettingsFamily = atomFamily(
     defaultSettings?: EngineSettings;
     defaultGo?: GoMode;
   }) => {
+    const defaultThreads =
+      typeof navigator !== "undefined" && (navigator as any).hardwareConcurrency && (navigator as any).hardwareConcurrency > 1
+        ? 2
+        : 1;
+    // Merge desired defaults over engine-reported defaults
+    const base: EngineSettings = Array.isArray(defaultSettings)
+      ? [...defaultSettings]
+      : [];
+    const ensure = (name: string, minValue: number) => {
+      const idx = base.findIndex((s) => s.name === name);
+      if (idx >= 0) {
+        const v = Number(base[idx].value ?? 0);
+        if (!Number.isFinite(v) || v < minValue) base[idx] = { name, value: minValue } as any;
+      } else {
+        base.push({ name, value: minValue } as any);
+      }
+    };
+    ensure("MultiPV", 5);
+    ensure("Threads", defaultThreads);
+    const mergedDefaultSettings: EngineSettings = base;
     return atom<{
       enabled: boolean;
       settings: EngineSettings;
@@ -553,8 +573,8 @@ export const tabEngineSettingsFamily = atomFamily(
       useCache: boolean;
     }>({
       enabled: false,
-      settings: defaultSettings || [],
-      go: defaultGo || { t: "Infinite" },
+      settings: mergedDefaultSettings,
+      go: defaultGo || ({ t: "Depth", c: 24 } as any),
       synced: true,
       allMoves: true,
       useCache: false,

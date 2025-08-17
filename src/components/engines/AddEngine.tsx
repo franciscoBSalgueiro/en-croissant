@@ -158,6 +158,11 @@ function AddEngine({
               value: (o.value as { default: string | number | boolean | null }).default,
             })),
         };
+        // Ensure MultiPV default to 5 for bundled engine
+        if (!newEngine.settings) newEngine.settings = [];
+        if (!newEngine.settings.find((s) => s.name === "MultiPV")) {
+          newEngine.settings.push({ name: "MultiPV", value: 5 });
+        }
         const updated = [...allEngines.data, newEngine];
         setEngines(updated);
         await saveEngines(updated);

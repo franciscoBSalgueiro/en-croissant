@@ -18,6 +18,8 @@ import { useEffect } from "react";
 import { Helmet } from "react-helmet";
 import {
   activeTabAtom,
+  enginesAtom,
+  persistEnginesAtom,
   fontSizeAtom,
   nativeBarAtom,
   pieceSetAtom,
@@ -42,6 +44,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { commands } from "./bindings";
+import { getBundledStockfishPath, requiredEngineSettings, saveEngines, type LocalEngine } from "@/utils/engines";
 import { openFile } from "./utils/files";
 
 const colorSchemeManager = localStorageColorSchemeManager({
@@ -84,12 +87,48 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
+  const [engines, setEngines] = useAtom(enginesAtom);
+  const persist = getDefaultStore().get(persistEnginesAtom) as any;
 
   useEffect(() => {
     (async () => {
       await commands.closeSplashscreen();
       const detach = await attachConsole();
       info("React app started successfully");
+
+      // Auto-install bundled Stockfish at startup (if present)
+      try {
+        const bundled = await getBundledStockfishPath();
+        if (bundled) {
+          const exists = engines.some(
+            (e: any) => e.type === "local" && (e as LocalEngine).path === bundled,
+          );
+          if (!exists) {
+            try { await commands.setFileAsExecutable(bundled); } catch {}
+            const config = await commands.getEngineConfig(bundled);
+            if (config.status === "ok") {
+              const opts = config.data.options;
+              const newEngine: LocalEngine = {
+                type: "local",
+                name: "Stockfish",
+                version: "Bundled",
+                path: bundled,
+                image: "",
+                elo: 3635,
+                loaded: true,
+                settings: opts
+                  .filter((o: any) => requiredEngineSettings.includes(o.value.name) && "default" in o.value)
+                  .map((o: any) => ({ name: o.value.name, value: (o.value as any).default })),
+              };
+              const updated = [...engines, newEngine];
+              setEngines(updated);
+              await saveEngines(updated as any);
+              try { await (persist as any)(updated as any); } catch {}
+              info("Auto-installed bundled Stockfish engine at startup");
+            }
+          }
+        }
+      } catch {}
 
       const matches = await getMatches();
       if (matches.args.file.occurrences > 0) {

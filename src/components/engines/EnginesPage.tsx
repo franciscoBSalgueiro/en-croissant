@@ -320,7 +320,7 @@ function EngineSettings({
             if (engine.name.toLowerCase().includes('stockfish')) {
               switch (field) {
                 case 'MultiPV':
-                  defaultValue = 3; // Show 3 lines by default instead of 1
+                  defaultValue = 5; // Show 5 lines by default instead of 1
                   break;
                 case 'Threads':
                   defaultValue = Math.min(4, navigator.hardwareConcurrency || 2); // Use up to 4 threads
