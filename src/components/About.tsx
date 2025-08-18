@@ -34,7 +34,7 @@ function AboutModal({
       centered
       opened={opened}
       onClose={() => setOpened(false)}
-      title="En Croissant"
+      title="Botvinnik"
     >
       <Text>Version: {info?.version}</Text>
       <Text>Tauri version: {info?.tauri}</Text>

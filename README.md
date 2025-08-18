@@ -4,7 +4,7 @@
     <img width="115" height="115" src="https://github.com/franciscoBSalgueiro/en-croissant/blob/master/src-tauri/icons/icon.png" alt="Logo">
   </a>
 
-<h3 align="center">En Croissant</h3>
+<h3 align="center">Botvinnik</h3>
 
   <p align="center">
     The Ultimate Chess Toolkit

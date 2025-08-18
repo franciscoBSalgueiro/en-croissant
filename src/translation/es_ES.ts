@@ -219,7 +219,7 @@ export const es_ES = {
       "Haga clic para seleccionar el archivo de imagen (tamaño recomendado: 60x60)",
     "Engines.Remove.Title": "Eliminar motor",
     "Engines.Remove.Message":
-      "¿Está seguro de que desea eliminar este motor de En Croissant?",
+      "¿Está seguro de que desea eliminar este motor de Botvinnik?",
 
     "Databases.Title": "Tus bases de datos",
     "Databases.Card.Games": "Partidas",
@@ -323,9 +323,9 @@ export const es_ES = {
     "Settings.OpeningReport.MinGames.Desc":
       "Número mínimo de partidas en cada posición para que se considere",
     "Settings.Anarchy.Desc": "Opciones divertidas",
-    "Settings.Anarchy.ForcedEnCroissant": "Forzar En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "Forzar Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Forzar a jugar En Croissant, si es un movimiento legal.",
+      "Forzar a jugar Botvinnik, si es un movimiento legal.",
     "Settings.Appearance.Desc": "Personalizar la apariencia de la aplicación",
     "Settings.Appearance.Theme": "Tema",
     "Settings.Appearance.Theme.Desc": "Esquema de color general",

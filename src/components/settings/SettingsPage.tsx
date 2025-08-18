@@ -805,7 +805,7 @@ export default function Page() {
           </Card>
         </ScrollArea>
         <Text size="xs" c="dimmed" ta="right">
-          En Croissant v{version}
+          Botvinnik v{version}
         </Text>
       </Stack>
     </Tabs>

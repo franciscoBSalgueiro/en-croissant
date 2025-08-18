@@ -215,7 +215,7 @@ export const uk_UA = {
       "Натисніть для вибору файлу зображення (рекомендовано: 60x60)",
     "Engines.Remove.Title": "Видалити движок",
     "Engines.Remove.Message":
-      "Ви впевнені, що хочете видалити цей движок із En Croissant?",
+      "Ви впевнені, що хочете видалити цей движок із Botvinnik?",
 
     "Databases.Title": "Бази даних",
     "Databases.Card.Games": "Ігри",
@@ -313,9 +313,9 @@ export const uk_UA = {
     "Settings.OpeningReport.MinGames.Desc":
       "Мінімальна кількість ігор для кожної позиції, щоб бути врахованою",
     "Settings.Anarchy.Desc": "Веселі опції",
-    "Settings.Anarchy.ForcedEnCroissant": "Примусовий En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "Примусовий Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Змушує робити хід En Croissant, якщо це легальний хід.",
+      "Змушує робити хід Botvinnik, якщо це легальний хід.",
     "Settings.Appearance.Desc": "Налаштувати зовнішній вигляд програми",
     "Settings.Appearance.Theme": "Тема",
     "Settings.Appearance.Theme.Desc": "Загальна кольорова схема",

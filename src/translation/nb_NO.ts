@@ -111,7 +111,7 @@ export const nb_NO = {
     "Menu.Help.ClearSavedData": "Fjern lagrede data",
     "Menu.Help.OpenLogs": "Åpne logger",
     "Menu.Help.CheckUpdate": "Se etter oppdateringer",
-    "Menu.Help.About": "Om En Croissant",
+    "Menu.Help.About": "Om Botvinnik",
 
     "SideBar.Board": "Brett",
     "SideBar.User": "Bruker",
@@ -216,7 +216,7 @@ export const nb_NO = {
       "Klikk for å velge bildefilen (anbefalt størrelse: 60x60)",
     "Engines.Remove.Title": "Fjern computer",
     "Engines.Remove.Message":
-      "Er du sikker på at du vil fjerne denne computeren fra En Croissant?",
+      "Er du sikker på at du vil fjerne denne computeren fra Botvinnik?",
 
     "Databases.Title": "Dine databaser",
     "Databases.Card.Games": "Partier",
@@ -312,7 +312,7 @@ export const nb_NO = {
     "Settings.OpeningReport.MinGames.Desc":
       "Minimum antall partier i hver posisjon for at den skal tas med",
     "Settings.Anarchy.Desc": "Morsome valg",
-    "Settings.Anarchy.ForcedEnCroissant": "Forced En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "Forced Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
       "Tvinger deg til å spille en passant, hvis det er ett lovlig trekk.",
     "Settings.Appearance.Desc": "Tilpass hvordan appen ser ut",

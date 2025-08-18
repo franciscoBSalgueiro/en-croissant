@@ -216,7 +216,7 @@ export const tr_TR = {
       "Görsel dosyası seçmek için tıklayın (önerilen boyut: 60x60)",
     "Engines.Remove.Title": "Motor Kaldır",
     "Engines.Remove.Message":
-      "Bu motoru En Croissant'tan kaldırmak istediğinize emin misiniz?",
+      "Bu motoru Botvinnik'tan kaldırmak istediğinize emin misiniz?",
 
     "Databases.Title": "Veritabanlarınız",
     "Databases.Card.Games": "Oyunlar",
@@ -314,9 +314,9 @@ export const tr_TR = {
     "Settings.OpeningReport.MinGames.Desc":
       "Pozisyonun göz önünde bulundurulması için gereken en az oyun",
     "Settings.Anarchy.Desc": "Eğlence ayarları",
-    "Settings.Anarchy.ForcedEnCroissant": "Zorunlu En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "Zorunlu Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Eğer oynayabiliyorsan En Croissant oynamak zorundasın",
+      "Eğer oynayabiliyorsan Botvinnik oynamak zorundasın",
     "Settings.Appearance.Desc": "Uygulamanın görünüşünü düzenleyin",
     "Settings.Appearance.Theme": "Tema",
     "Settings.Appearance.Theme.Desc": "Genel renk şeması",

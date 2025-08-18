@@ -217,7 +217,7 @@ export const de_DE = {
       "Klicke, um die Bilddatei auszuwählen (empfohlene Größe: 60x60)",
     "Engines.Remove.Title": "Engine entfernen",
     "Engines.Remove.Message":
-      "Bist du sicher, dass du diese Engine aus En Croissant entfernen möchtest?",
+      "Bist du sicher, dass du diese Engine aus Botvinnik entfernen möchtest?",
 
     "Databases.Title": "Deine Datenbanken",
     "Databases.Card.Games": "Spiele",
@@ -319,9 +319,9 @@ export const de_DE = {
     "Settings.OpeningReport.MinGames.Desc":
       "Mindestanzahl an Spielen in jeder Position, damit sie berücksichtigt wird",
     "Settings.Anarchy.Desc": "Spaßoptionen",
-    "Settings.Anarchy.ForcedEnCroissant": "Erzwungene En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "Erzwungene Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Erzwingt das Spielen von En Croissant, wenn es ein legaler Zug ist.",
+      "Erzwingt das Spielen von Botvinnik, wenn es ein legaler Zug ist.",
     "Settings.Appearance.Desc": "Passe das Erscheinungsbild der App an",
     "Settings.Appearance.Theme": "Thema",
     "Settings.Appearance.Theme.Desc": "Allgemeine Farbgestaltung",

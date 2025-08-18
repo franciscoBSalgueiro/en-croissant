@@ -216,7 +216,7 @@ export const pl_PL = {
       "Kliknij, aby wybrać plik graficzny (zalecany rozmiar: 60x60)",
     "Engines.Remove.Title": "Usuń silnik",
     "Engines.Remove.Message":
-      "Czy na pewno chcesz usunąć ten silnik z En Croissant?",
+      "Czy na pewno chcesz usunąć ten silnik z Botvinnik?",
 
     "Databases.Title": "Twoje bazy danych",
     "Databases.Card.Games": "Gry",
@@ -314,9 +314,9 @@ export const pl_PL = {
     "Settings.OpeningReport.MinGames.Desc":
       "Minimalna liczba gier w każdej pozycji, aby była brana pod uwagę",
     "Settings.Anarchy.Desc": "Zabawne opcje",
-    "Settings.Anarchy.ForcedEnCroissant": "Wymuszony En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "Wymuszony Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Zmusi cię do zagrania En Croissant, jeśli jest to legalny ruch.",
+      "Zmusi cię do zagrania Botvinnik, jeśli jest to legalny ruch.",
     "Settings.Appearance.Desc": "Dostosuj wygląd aplikacji",
     "Settings.Appearance.Theme": "Motyw",
     "Settings.Appearance.Theme.Desc": "Ogólny schemat kolorów",

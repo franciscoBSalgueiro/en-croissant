@@ -213,7 +213,7 @@ export const zh_CN = {
     "Engines.Add.ImageFile": "图片文件",
     "Engines.Add.ImageFile.Desc": "点击选择图片文件 (推荐尺寸: 60x60)",
     "Engines.Remove.Title": "移除引擎",
-    "Engines.Remove.Message": "你确定要从 En Croissant 中移除这个引擎吗？",
+    "Engines.Remove.Message": "你确定要从 Botvinnik 中移除这个引擎吗？",
 
     "Databases.Title": "数据库管理",
     "Databases.Card.Games": "对局数量",
@@ -307,9 +307,9 @@ export const zh_CN = {
     "Settings.OpeningReport.MinGames": "最小对局数",
     "Settings.OpeningReport.MinGames.Desc": "每个局面中被考虑的最小对局数",
     "Settings.Anarchy.Desc": "有趣的选项",
-    "Settings.Anarchy.ForcedEnCroissant": "强制 En Croissant",
+    "Settings.Anarchy.ForcedEnCroissant": "强制 Botvinnik",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "如果 En Croissant 是合法的着法，强制走出这一着",
+      "如果 Botvinnik 是合法的着法，强制走出这一着",
     "Settings.Appearance.Desc": "自定义应用程序的外观",
     "Settings.Appearance.Theme": "主题",
     "Settings.Appearance.Theme.Desc": "总体的颜色主题",
