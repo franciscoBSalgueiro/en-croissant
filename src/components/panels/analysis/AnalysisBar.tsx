@@ -5,7 +5,7 @@ import LinesTree from "./LinesTree";
 import GameNotation from "@/components/common/GameNotation";
 
 function AnalysisBar({ height = 380 }: { height?: number | string }) {
-  const [activeTab, setActiveTab] = useState<string | null>("linesTree");
+  const [activeTab, setActiveTab] = useState<string | null>("notation");
 
   return (
     <Paper
@@ -20,9 +20,9 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
         style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
       >
         <Tabs.List>
-          <Tabs.Tab value="linesTree">Lines Tree</Tabs.Tab>
+        <Tabs.Tab value="notation">Notation</Tabs.Tab>
+        <Tabs.Tab value="linesTree">Lines Tree</Tabs.Tab>
           <Tabs.Tab value="unifiedMoves">Unified Moves</Tabs.Tab>
-          <Tabs.Tab value="notation">Notation</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel 

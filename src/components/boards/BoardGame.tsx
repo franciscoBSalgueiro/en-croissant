@@ -12,16 +12,15 @@ import {
   currentTabAtom,
   showArrowsAtom,
 } from "@/state/atoms";
-import { getMainLine } from "@/utils/chess";
+import { getMainLine, getVariationLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { type GameHeaders, treeIteratorMainLine } from "@/utils/treeReducer";
+import { type GameHeaders, treeIteratorMainLine, getNodeAtPath } from "@/utils/treeReducer";
 import {
   Box,
   Button,
   Group,
   Paper,
   Stack,
-  Collapse,
 } from "@mantine/core";
 import { IconPlayerPlay, IconPlayerStop } from "@tabler/icons-react";
 import { parseUci, squareFile, squareRank } from "chessops";
@@ -62,6 +61,7 @@ type PlayingViewId =
   | "leftPlayer"
   | "centerBoard"
   | "rightPlayer"
+  | "analysis"
   | "linesTree"
   | "unifiedMoves";
 
@@ -70,23 +70,27 @@ interface PlayingLayoutState {
 }
 
 const DEFAULT_PLAYING_LAYOUT: MosaicNode<PlayingViewId> = {
-  direction: "row",
-  first: "leftPlayer",
-  second: {
+  direction: "column",
+  first: {
     direction: "row",
-    first: "centerBoard",
-    second: "rightPlayer",
-    splitPercentage: 72,
+    first: "leftPlayer",
+    second: {
+      direction: "row",
+      first: "centerBoard",
+      second: "rightPlayer",
+      splitPercentage: 72,
+    },
+    splitPercentage: 22,
   },
-  splitPercentage: 22,
+  second: "analysis",
+  splitPercentage: 70,
 };
 
 const playingLayoutAtom = atomWithStorage<PlayingLayoutState>("playingLayoutState", {
   currentNode: DEFAULT_PLAYING_LAYOUT,
 });
 
-// Persisted toggle for bottom AnalysisBar visibility
-const analysisBarOpenAtom = atomWithStorage<boolean>("analysisBarOpen", true);
+// (Removed) Previously used for show/hide analysis toggle
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
@@ -96,6 +100,8 @@ function BoardGame() {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
+  const position = useStore(store, (s) => s.position);
+  const currentNode = useStore(store, (s) => s.currentNode());
   const setFen = useStore(store, (s) => s.setFen);
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const setResult = useStore(store, (s) => s.setResult);
@@ -149,16 +155,16 @@ function BoardGame() {
   }, [pos, headers.variant, root, lastNode.fen, activeTabForBot]);
   const unifiedLoadable = useAtomValue(unifiedAtomForBot);
 
-  // Unified moves for the previous position (before the last move)
-  const prevNode = mainLine.length > 1 ? mainLine[mainLine.length - 2].node : null;
+  // Unified moves for the previous position (before the current move)
+  const prevNode = position.length > 0 ? getNodeAtPath(root, position.slice(0, -1)) : null;
   const unifiedPrevAtom = useMemo(() => {
     const is960 = headers.variant === "Chess960";
-    const currentMoves = getMainLine(root, is960).slice(0, -1);
+    const currentMoves = getVariationLine(root, position.slice(0, -1), is960, false);
     const base = prevNode
       ? unifiedMovesFamily({ rootFen: root.fen, fen: prevNode.fen, moves: currentMoves, tab: activeTabForBot! })
       : atom<UnifiedMove[]>([]);
     return loadable(base as any);
-  }, [prevNode?.fen, headers.variant, root, activeTabForBot]);
+  }, [prevNode?.fen, headers.variant, root, position, activeTabForBot]);
   const unifiedPrevLoadable = useAtomValue(unifiedPrevAtom);
 
   // Compute comparison for previously played move vs best available at that time
@@ -166,8 +172,8 @@ function BoardGame() {
     try {
       if (unifiedPrevLoadable.state !== "hasData") return null;
       const list = (unifiedPrevLoadable.data || []) as UnifiedMove[];
-      const san = (lastNode as any)?.san as string | undefined;
-      const half = (lastNode as any)?.halfMoves as number | undefined;
+      const san = (currentNode as any)?.san as string | undefined;
+      const half = (currentNode as any)?.halfMoves as number | undefined;
       if (!san || typeof half !== "number" || half <= 0) return null;
       const colorPlayed: "white" | "black" = half % 2 === 1 ? "white" : "black";
       const actual = list.find((m) => (m.san || m.move) === san);
@@ -213,7 +219,7 @@ function BoardGame() {
     } catch {
       return null;
     }
-  }, [unifiedPrevLoadable, lastNode?.san, lastNode?.halfMoves]);
+  }, [unifiedPrevLoadable, currentNode?.san, currentNode?.halfMoves, prevNode?.fen]);
 
   // Persist last known prev-move info per side to avoid flicker and keep it visible until that side moves again
   const [prevInfoWhite, setPrevInfoWhite] = useState<{
@@ -534,7 +540,7 @@ function BoardGame() {
 
   // NEW: nested mosaic state for playing
   const [playingLayoutState, setPlayingLayoutState] = useAtom(playingLayoutAtom);
-  const [analysisOpen, setAnalysisOpen] = useAtom(analysisBarOpenAtom);
+  // (Removed) analysis open/close state
 
   // Track size changes of the center board container and force Board/Chessground remount
   const centerBoardRef = useRef<HTMLDivElement | null>(null);
@@ -560,43 +566,39 @@ function BoardGame() {
     return () => ro.disconnect();
   }, []);
 
-  // Nudge redraw when analysis panel visibility toggles to catch post-transition layout
-  useEffect(() => {
-    let raf1: number | null = null;
-    let raf2: number | null = null;
-    try {
-      const rect = centerBoardRef.current?.getBoundingClientRect();
-      // eslint-disable-next-line no-console
-      console.info("[BoardGame] analysisOpen toggle", analysisOpen, rect ? {
-        w: Math.round(rect.width),
-        h: Math.round(rect.height),
-        top: Math.round(rect.top),
-      } : null);
-    } catch {}
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setRedrawSeq((s) => s + 1));
-    });
-    return () => {
-      if (raf1) cancelAnimationFrame(raf1);
-      if (raf2) cancelAnimationFrame(raf2);
-    };
-  }, [analysisOpen]);
+  // (Removed) analysis open/close redraw nudge
 
-  // Remove deprecated views (linesTree/unifiedMoves) from any persisted layout to avoid empty panes
+  // Normalize any persisted layout: remove deprecated views and ensure an 'analysis' pane exists
   const pruneLayout = useMemo(() => {
-    const prune = (node: MosaicNode<PlayingViewId> | null): MosaicNode<PlayingViewId> | null => {
+    const removeDeprecated = (node: MosaicNode<PlayingViewId> | null): MosaicNode<PlayingViewId> | null => {
       if (!node) return null;
       if (typeof node === "string") {
         return node === "linesTree" || node === "unifiedMoves" ? null : node;
       }
-      const first = prune(node.first as any);
-      const second = prune(node.second as any);
+      const first = removeDeprecated(node.first as any);
+      const second = removeDeprecated(node.second as any);
       if (first && second) return { ...(node as any), first, second };
       if (first) return first;
       if (second) return second;
       return null;
     };
-    return prune(playingLayoutState.currentNode) ?? DEFAULT_PLAYING_LAYOUT;
+
+    const contains = (node: MosaicNode<PlayingViewId> | null, tile: PlayingViewId): boolean => {
+      if (!node) return false;
+      if (typeof node === "string") return node === tile;
+      return contains(node.first as any, tile) || contains(node.second as any, tile);
+    };
+
+    const cleaned = removeDeprecated(playingLayoutState.currentNode);
+    if (!cleaned) return DEFAULT_PLAYING_LAYOUT;
+    if (contains(cleaned, "analysis")) return cleaned;
+    // Inject analysis below existing layout when missing
+    return {
+      direction: "column",
+      first: cleaned,
+      second: "analysis",
+      splitPercentage: 70,
+    } as any;
   }, [playingLayoutState.currentNode]);
 
   // NEW: Define nested mosaic tile renderers for unified playing view
@@ -705,6 +707,11 @@ function BoardGame() {
         prevMoveInfo={prevInfoBlack}
       />
     ),
+    analysis: (
+      <Box h="100%">
+        <AnalysisBar height={"100%"} />
+      </Box>
+    ),
     // Keep placeholders for backward-compatible persisted layouts; do not render analysis widgets here
     linesTree: (<Box h="100%" />),
     unifiedMoves: (<Box h="100%" />),
@@ -741,22 +748,6 @@ function BoardGame() {
             resize={{ minimumPaneSizePercentage: 10 }}
           />
         </Box>
-
-        <Group justify="space-between" mt="xs">
-          <Button
-            onClick={() => setAnalysisOpen((prev) => !prev)}
-            variant="default"
-            size="xs"
-          >
-            {analysisOpen ? "Hide Analysis" : "Show Analysis"}
-          </Button>
-        </Group>
-
-        <Collapse in={analysisOpen}>
-          <Box mt="xs">
-            <AnalysisBar height={380} />
-          </Box>
-        </Collapse>
       </Box>
     </>
   );
