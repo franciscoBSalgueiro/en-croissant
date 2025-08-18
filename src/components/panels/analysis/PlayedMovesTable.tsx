@@ -272,8 +272,11 @@ function MoveLineDisplay({ moves, fen, halfMoves }: { moves: string[]; fen: stri
 function LineCellRenderer(props: any) {
   const { data } = props;
   const store = useContext(TreeStateContext);
-  const fen = useStore(store!, (s) => s.currentNode().fen);
-  const halfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
+  const currentFen = useStore(store!, (s) => s.currentNode().fen);
+  const currentHalfMoves = useStore(store!, (s) => s.currentNode().halfMoves);
+  // Prefer row's context if provided, fallback to current selection
+  const fen = (data?.contextFen as string) || currentFen;
+  const halfMoves = (typeof data?.contextHalfMoves === 'number' ? data.contextHalfMoves : currentHalfMoves) as number;
   let sanMoves: string[] = Array.isArray(data?.sanMoves) ? data.sanMoves : [];
   if ((!sanMoves || sanMoves.length === 0) && Array.isArray(data?.pv) && data.pv.length > 0) {
     const [pos0] = positionFromFen(fen);
@@ -290,6 +293,10 @@ function LineCellRenderer(props: any) {
       sanMoves = converted;
     }
   }
+  try {
+    // eslint-disable-next-line no-console
+    console.info('[PlayedMovesTable.LineCell]', { rowSan: data?.san || data?.move, fenUsed: fen?.slice?.(0, 16), halfMoves, hasSanMoves: sanMoves.length, hasPv: Array.isArray(data?.pv) ? data.pv.length : 0 });
+  } catch {}
   if (!sanMoves || sanMoves.length === 0) {
     return (<div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><Text size="xs" c="dimmed">-</Text></div>);
   }
@@ -319,6 +326,8 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
   const gridOptions: GridOptions<UnifiedMove> = useMemo(() => ({
     theme: darkTheme,
     animateRows: true,
+    // Immutable mode helps ag-grid detect row updates with stable getRowId
+    immutableData: true,
     suppressScrollOnNewData: true,
     suppressRowVirtualisation: false,
     pagination: false,
@@ -326,13 +335,12 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
     suppressMovableColumns: false,
     getRowId: (params) => {
       const d: any = params.data as any;
-      const idMove = d?.san || d?.move || "";
       const idNum = d?.moveNumber ?? "";
-      return `${idNum}:${idMove}`;
+      return String(idNum);
     },
     defaultColDef: { sortable: true, resizable: true },
     columnDefs: [
-      { headerName: '#', field: 'moveNumber', width: 70, cellRenderer: NumberCellRenderer, pinned: 'left', sortable: true, sort: 'asc', valueGetter: (p: any) => p.data?.moveNumber },
+      { headerName: '#', field: 'moveNumber', width: 70, cellRenderer: NumberCellRenderer, pinned: 'left', sortable: true, sort: 'desc', valueGetter: (p: any) => p.data?.moveNumber },
       { headerName: 'Move', field: 'san', width: 120, cellRenderer: CombinedMoveCellRenderer, pinned: 'left', valueGetter: (p: any) => p.data?.san || p.data?.move || '' },
       { headerName: 'Rank', field: 'rank', width: 90, cellRenderer: NumberCellRenderer, sortable: true },
       { headerName: 'Eval Score', field: 'score', width: 100, cellRenderer: ScoreCellRenderer, sortable: true },
@@ -362,6 +370,13 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
           suppressScrollOnNewData={true}
           suppressRowVirtualisation={true}
         />
+        {(() => {
+          try {
+            // eslint-disable-next-line no-console
+            console.info('[PlayedMovesTable] rows', playedMoves.map((m: any) => ({ moveNumber: m.moveNumber, san: m.san || m.move, ctxFen: !!m.contextFen, ctxHalf: m.contextHalfMoves, pvLen: Array.isArray(m.pv) ? m.pv.length : (Array.isArray(m.sanMoves) ? m.sanMoves.length : 0) })));
+          } catch {}
+          return null;
+        })()}
       </div>
     </Stack>
   );

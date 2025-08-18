@@ -26,7 +26,7 @@ import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { startTransition, useContext, useEffect, useMemo } from "react";
+import { startTransition, useContext, useEffect, useMemo, useRef } from "react";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -85,20 +85,24 @@ function EvalListener() {
     }
   }, [searchingMoves, setLastMoved]);
 
-  return engines.map((e) => (
-    <EngineListener
-      key={e.name}
-      engine={e}
-      isGameOver={isGameOver}
-      finalFen={finalFen || ""}
-      searchingFen={searchingFen}
-      searchingMoves={searchingMoves}
-      fen={fen}
-      moves={moves}
-      threat={threat}
-      chess960={is960}
-    />
-  ));
+  return engines.map((e, idx) => {
+    const id = (e as any)?.path || (e as any)?.url || String(idx);
+    const key = `${e.type}:${e.name}:${id}`;
+    return (
+      <EngineListener
+        key={key}
+        engine={e}
+        isGameOver={isGameOver}
+        finalFen={finalFen || ""}
+        searchingFen={searchingFen}
+        searchingMoves={searchingMoves}
+        fen={fen}
+        moves={moves}
+        threat={threat}
+        chess960={is960}
+      />
+    );
+  });
 }
 
 function EngineListener({
@@ -129,6 +133,10 @@ function EngineListener({
   const [, setProgress] = useAtom(
     engineProgressFamily({ engine: engine.name, tab: activeTab! }),
   );
+  // Throttle bursty engine events to reduce React transition churn
+  const lastEventTsRef = useRef<number>(0);
+  const lastSigRef = useRef<string>("");
+  const lastMapUpdateTsRef = useRef<number>(0);
 
   const [, setEngineVariation] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
@@ -153,10 +161,30 @@ function EngineListener({
         settings.enabled &&
         !isGameOver
       ) {
-        startTransition(() => {
+        const now = Date.now();
+        const top = ev?.[0];
+        const sig = `${payload.progress}:${top?.depth || 0}:${top?.nodes || 0}:${top?.uciMoves?.[0] || ""}`;
+
+        // Always report progress, but throttle heavy state writes
+        setProgress(payload.progress);
+
+        const timeSinceLast = now - (lastEventTsRef.current || 0);
+        const sameSig = sig === lastSigRef.current;
+        const shouldUpdateMap = payload.progress === 100 || now - (lastMapUpdateTsRef.current || 0) > 200 || !sameSig;
+
+        if (shouldUpdateMap) {
+          lastMapUpdateTsRef.current = now;
+          // Avoid flooding React with transitions; write synchronously
           setEngineVariation((prev) => {
             const newMap = new Map(prev);
-            newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
+            const key = `${searchingFen}:${searchingMoves.join(",")}`;
+            const prevVal = newMap.get(key);
+            // Shallow compare top line to skip no-op updates
+            const prevTop = prevVal?.[0];
+            const changed = !prevTop || prevTop.depth !== top?.depth || prevTop.nodes !== top?.nodes || prevTop.uciMoves?.[0] !== top?.uciMoves?.[0] || prevVal.length !== ev.length;
+            if (changed) {
+              newMap.set(key, ev);
+            }
             if (threat) {
               newMap.delete(`${fen}:${moves.join(",")}`);
             } else if (finalFen) {
@@ -164,9 +192,13 @@ function EngineListener({
             }
             return newMap;
           });
-          setProgress(payload.progress);
-          setScore(ev[0].score);
-        });
+          // Update score sparingly
+          if (top?.score) setScore(top.score);
+        }
+
+        // Update throttling refs
+        lastEventTsRef.current = now;
+        lastSigRef.current = sig;
       }
     });
     return () => {

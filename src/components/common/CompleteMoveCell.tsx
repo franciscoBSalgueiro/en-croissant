@@ -1,8 +1,10 @@
 import { Comment } from "@/components/common/Comment";
-import { currentTabAtom } from "@/state/atoms";
+import { activeTabAtom, currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { hasMorePriority, stripClock } from "@/utils/chess";
+import { getVariationLine } from "@/utils/chess";
 import { type TreeNode, treeIterator } from "@/utils/treeReducer";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import { ActionIcon, Box, Menu, Portal, Tooltip } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import {
@@ -15,11 +17,13 @@ import {
 } from "@tabler/icons-react";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import { memo, useContext, useState } from "react";
+import { memo, useContext, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
+import { loadable } from "jotai/utils";
+import { unifiedMovesFamily, type UnifiedMove } from "@/state/unifiedMoves";
 
 function getTranspositions(fen: string, position: number[], root: TreeNode) {
   if (position.length === 0 || position.every((v) => v === 0)) return [];
@@ -65,6 +69,7 @@ function CompleteMoveCell({
     equal(s.position, movePath),
   );
   const root = useStore(store, (s) => s.root);
+  const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
   const goToMove = useStore(store, (s) => s.goToMove);
   const deleteMove = useStore(store, (s) => s.deleteMove);
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
@@ -80,9 +85,58 @@ function CompleteMoveCell({
   });
   const [open, setOpen] = useState(false);
   const currentTab = useAtomValue(currentTabAtom);
+  const activeTab = useAtomValue(activeTabAtom);
 
   const transpositions = fen ? getTranspositions(fen, movePath, root) : [];
   const { t } = useTranslation();
+
+  // Parent position and current engine-unified moves for that position
+  const parentPath = useMemo(() => movePath.slice(0, -1), [movePath]);
+  const parentNode = useMemo(() => getNodeAtPath(root, parentPath), [root, parentPath]);
+  const currentMoves = useMemo(
+    () => getVariationLine(root, parentPath, is960, false),
+    [root, parentPath, is960],
+  );
+  const unifiedAtom = useMemo(
+    () =>
+      loadable(
+        unifiedMovesFamily({
+          rootFen: root.fen,
+          fen: parentNode.fen,
+          moves: currentMoves,
+          tab: activeTab!,
+        }) as any,
+      ),
+    [root.fen, parentNode.fen, activeTab, currentMoves],
+  );
+  const unifiedLoadable = useAtomValue(unifiedAtom);
+  // Sticky engine annotation to prevent flicker when loadable transitions through loading states
+  const lastEngineAnnRef = useRef<Annotation | undefined>(undefined);
+  const engineAnnotation: Annotation | undefined = useMemo(() => {
+    try {
+      if (!move) return undefined;
+      if (unifiedLoadable.state === "hasData") {
+        const list = (unifiedLoadable.data || []) as UnifiedMove[];
+        const found = list.find((m) => (m.san || m.move) === move);
+        const ann = found?.annotation && found.annotation !== "" ? found.annotation : undefined;
+        lastEngineAnnRef.current = ann;
+        return ann;
+      }
+      // While loading or error, fall back to last known value to avoid flicker
+      return lastEngineAnnRef.current;
+    } catch {
+      return lastEngineAnnRef.current;
+    }
+  }, [move, unifiedLoadable]);
+
+  const augmentedAnnotations: Annotation[] = useMemo(() => {
+    const ann = engineAnnotation;
+    if (ann && ann !== "") {
+      const rest = annotations.filter((a) => a !== ann);
+      return [ann, ...rest];
+    }
+    return annotations;
+  }, [annotations, engineAnnotation]);
 
   return (
     <>
@@ -102,7 +156,7 @@ function CompleteMoveCell({
               <MoveCell
                 ref={ref}
                 move={move}
-                annotations={annotations}
+                annotations={augmentedAnnotations}
                 isStart={isStart}
                 isCurrentVariation={isCurrentVariation}
                 onClick={() => goToMove(movePath)}
@@ -117,28 +171,28 @@ function CompleteMoveCell({
               <Menu.Dropdown>
                 {currentTab?.file?.metadata.type === "repertoire" && (
                   <Menu.Item
-                    leftSection={<IconFlag size="0.875rem" />}
+                    leftSection={<IconFlag size={14} />}
                     onClick={() => setStart(movePath)}
                   >
                     {t("Menu.MarkAsStart")}
                   </Menu.Item>
                 )}
                 <Menu.Item
-                  leftSection={<IconChevronsUp size="0.875rem" />}
+                  leftSection={<IconChevronsUp size={14} />}
                   onClick={() => promoteToMainline(movePath)}
                 >
                   {t("Menu.PromoteToMainLine")}
                 </Menu.Item>
 
                 <Menu.Item
-                  leftSection={<IconChevronUp size="0.875rem" />}
+                  leftSection={<IconChevronUp size={14} />}
                   onClick={() => promoteVariation(movePath)}
                 >
                   {t("Menu.PromoteVariation")}
                 </Menu.Item>
 
                 <Menu.Item
-                  leftSection={<IconCopy size="0.875rem" />}
+                  leftSection={<IconCopy size={14} />}
                   onClick={() => copyVariationPgn(movePath)}
                 >
                   {t("Menu.CopyVariationPGN")}
@@ -146,7 +200,7 @@ function CompleteMoveCell({
 
                 <Menu.Item
                   color="red"
-                  leftSection={<IconX size="0.875rem" />}
+                  leftSection={<IconX size={14} />}
                   onClick={() => deleteMove(movePath)}
                 >
                   {t("Menu.DeleteMove")}
@@ -158,7 +212,7 @@ function CompleteMoveCell({
         {transpositions.length > 0 && (
           <Tooltip label="Transposition">
             <ActionIcon size="xs" onClick={() => goToMove(transpositions[0])}>
-              <IconArrowsJoin size="0.875rem" />
+              <IconArrowsJoin size={14} />
             </ActionIcon>
           </Tooltip>
         )}

@@ -73,9 +73,10 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
       withBorder
       p="md"
       flex={1}
-      style={{ position: "relative", overflow: "hidden" }}
+      h="100%"
+      style={{ position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}
     >
-      <Stack h="100%" gap={0}>
+      <Stack h="100%" gap={0} style={{ minHeight: 0, flex: 1 }}>
         {topBar && (
           <NotationHeader
             showComments={showComments}
@@ -84,7 +85,7 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
             toggleVariations={toggleVariations}
           />
         )}
-        <ScrollArea flex={1} offsetScrollbars viewportRef={viewport}>
+        <ScrollArea flex={1} offsetScrollbars viewportRef={viewport} style={{ minHeight: 0, flex: 1 }} h="100%">
           <Stack pt="md">
             <Box>
               {invisible && (
@@ -148,24 +149,24 @@ const NotationHeader = memo(function NotationHeader({
         <Group gap="sm">
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
-              {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
+              {invisible ? <IconEyeOff size={16} /> : <IconEye size={16} />}
             </ActionIcon>
           </Tooltip>
           <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
             <ActionIcon onClick={() => toggleComments()}>
               {showComments ? (
-                <IconArticle size="1rem" />
+                <IconArticle size={16} />
               ) : (
-                <IconArticleOff size="1rem" />
+                <IconArticleOff size={16} />
               )}
             </ActionIcon>
           </Tooltip>
           <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
             <ActionIcon onClick={() => toggleVariations()}>
               {showVariations ? (
-                <IconArrowsSplit size="1rem" />
+                <IconArrowsSplit size={16} />
               ) : (
-                <IconArrowRight size="1rem" />
+                <IconArrowRight size={16} />
               )}
             </ActionIcon>
           </Tooltip>
@@ -282,7 +283,7 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   return (
     <Box className={styles.variationBorder}>
       <ActionIcon size="xs" onClick={() => setExpanded((v) => !v)}>
-        {expanded ? <IconMinus size="0.5rem" /> : <IconPlus size="0.5rem" />}
+        {expanded ? <IconMinus size={8} /> : <IconPlus size={8} />}
       </ActionIcon>
       {expanded &&
         moveNodes.map((node, i) => (

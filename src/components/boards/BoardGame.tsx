@@ -258,28 +258,50 @@ function BoardGame() {
     }
   }, [prevMoveComparison]);
 
-  // Ensure any move made via external UI (e.g., UnifiedMovesTable click) is reflected in Played Moves
+  // Ensure any move made via external UI (e.g., GameNotation click) is reflected in Played Moves
   useEffect(() => {
     if (gameState !== "playing") return;
-    const san = (lastNode as any)?.san as string | undefined;
-    const half = (lastNode as any)?.halfMoves as number | undefined;
+    const san = (currentNode as any)?.san as string | undefined;
+    const half = (currentNode as any)?.halfMoves as number | undefined;
     if (!san || typeof half !== 'number' || half <= 0) return;
     const color: "white" | "black" = (half % 2 === 1) ? "white" : "black";
     const moveNumber = Math.ceil(half / 2);
+    const prevFen = prevNode?.fen as string | undefined;
+    const contextHalfMoves = typeof half === 'number' ? Math.max(0, half - 1) : undefined;
     const list = color === "white" ? whitePlayed : blackPlayed;
     const exists = list.some((m: any) => (m.san || m.move) === san && m.moveNumber === moveNumber);
+    try {
+      // eslint-disable-next-line no-console
+      console.info('[PlayedMovesRecord] observe', { gameState, san, half, color, moveNumber, prevFen: !!prevFen, contextHalfMoves, exists, listLen: list.length, source: 'currentNode' });
+    } catch {}
     if (exists) return;
     try {
       const unifiedList: UnifiedMove[] = unifiedPrevLoadable.state === 'hasData' ? (unifiedPrevLoadable.data as UnifiedMove[]) : [];
       const found = unifiedList.find((m) => (m.san || m.move) === san);
       const setter = color === "white" ? setWhitePlayed : setBlackPlayed;
-      if (found) {
-        setter((prev) => [...prev, { ...found, moveNumber }]);
-      } else {
-        setter((prev) => [...prev, { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber } as any]);
-      }
+      setter((prev) => {
+        const replacement: any = found
+          ? { ...found, moveNumber, contextFen: prevFen, contextHalfMoves }
+          : { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber, contextFen: prevFen, contextHalfMoves };
+        const idx = prev.findIndex((m: any) => m.moveNumber === moveNumber);
+        if (idx >= 0) {
+          const keepRank = (prev[idx] as any)?.rank;
+          const next = [...prev];
+          next[idx] = { ...replacement, rank: keepRank ?? replacement.rank } as any;
+          try {
+            // eslint-disable-next-line no-console
+            console.info('[PlayedMovesRecord] replace', { color, moveNumber, old: prev[idx], next: next[idx] });
+          } catch {}
+          return next;
+        }
+        try {
+          // eslint-disable-next-line no-console
+          console.info('[PlayedMovesRecord] append', { color, moveNumber, item: replacement });
+        } catch {}
+        return [...prev, replacement];
+      });
     } catch {}
-  }, [gameState, lastNode?.san, lastNode?.halfMoves, whitePlayed, blackPlayed, unifiedPrevLoadable, setWhitePlayed, setBlackPlayed]);
+  }, [gameState, lastNode?.san, lastNode?.halfMoves, prevNode?.fen, whitePlayed, blackPlayed, unifiedPrevLoadable, setWhitePlayed, setBlackPlayed]);
 
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
@@ -708,7 +730,7 @@ function BoardGame() {
       />
     ),
     analysis: (
-      <Box h="100%">
+      <Box h={300}>
         <AnalysisBar height={"100%"} />
       </Box>
     ),
