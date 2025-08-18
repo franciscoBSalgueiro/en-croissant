@@ -638,7 +638,6 @@ function BoardGame() {
               editingMode={false}
               toggleEditingMode={() => undefined}
               viewOnly={false}
-              disableVariations
               boardRef={boardRef}
               canTakeBack={true}
               movable={gameState === "settingUp" ? "turn" : movable}

@@ -3,14 +3,13 @@ import { loadable } from "jotai/utils";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { TreeStateContext } from "../common/TreeStateContext";
 import { useStore } from "zustand";
-import { getMainLine } from "@/utils/chess";
+import { getVariationLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { parseUci } from "chessops";
 import { parseSan } from "chessops/san";
 import { unifiedMovesFamily, type UnifiedMove } from "@/state/unifiedMoves";
 import { activeTabAtom, currentEnginePausedAtom, currentGameStateAtom, currentPlayersAtom, lastMovedAtom, currentBotSuggestionAtom, enginesAtom } from "@/state/atoms";
 import { selectUnifiedMove, computeBotDelay } from "@/utils/bots";
-import { treeIteratorMainLine } from "@/utils/treeReducer";
 import { commands, events, type EngineOptions, type GoMode } from "@/bindings";
 import type { LocalEngine } from "@/utils/engines";
 import { getBundledStockfishPath } from "@/utils/engines";
@@ -27,21 +26,20 @@ export default function BotService() {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
-  const appendMove = useStore(store, (s) => s.appendMove);
+  const position = useStore(store, (s) => s.position);
+  const makeMove = useStore(store, (s) => s.makeMove);
 
-  const mainLine = useMemo(() => Array.from(treeIteratorMainLine(root)), [root]);
-  const lastNode = mainLine[mainLine.length - 1]?.node ?? root;
-
-  const [pos] = useMemo(() => positionFromFen(lastNode.fen), [lastNode.fen]);
+  const currentNode = useStore(store, (s) => s.currentNode());
+  const [pos] = useMemo(() => positionFromFen(currentNode.fen), [currentNode.fen]);
 
   const unifiedAtom = useMemo(() => {
     const is960 = headers.variant === "Chess960";
-    const currentMoves = getMainLine(root, is960);
+    const currentMoves = getVariationLine(root, position, is960, false);
     const base = pos
-      ? unifiedMovesFamily({ rootFen: root.fen, fen: lastNode.fen, moves: currentMoves, tab: activeTab! })
+      ? unifiedMovesFamily({ rootFen: root.fen, fen: currentNode.fen, moves: currentMoves, tab: activeTab! })
       : atom<UnifiedMove[]>([]);
     return loadable(base as any);
-  }, [pos, headers.variant, root, lastNode.fen, activeTab]);
+  }, [pos, headers.variant, root, position, currentNode.fen, activeTab]);
   const unifiedLoadable = useAtomValue(unifiedAtom);
 
   const timeoutRef = useRef<number | null>(null);
@@ -55,7 +53,7 @@ export default function BotService() {
     }
     // clear current suggestion on fen/turn change
     setBotSuggestion(null as any);
-  }, [lastNode.fen, pos?.turn, setBotSuggestion]);
+  }, [currentNode.fen, pos?.turn, setBotSuggestion]);
 
   // Choose an engine path for bot use: prefer first loaded local engine, else bundled Stockfish
   useEffect(() => {
@@ -93,7 +91,7 @@ export default function BotService() {
     const tabKey = `${activeTab}${currentTurn}:bot`;
     const id = currentTurn; // used by event payload matcher
     const is960 = headers.variant === "Chess960";
-    const movesFromRoot = getMainLine(root, is960);
+    const movesFromRoot = getVariationLine(root, position, is960, false);
 
     // Build engine options with MultiPV=1 and optional Skill Level / UCI_Elo limit
     const extraOptions: EngineOptions["extraOptions"] = [];
@@ -148,7 +146,7 @@ export default function BotService() {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-  }, [pos, gameState, enginePaused, headers.result, players, botEnginePath, lastNode.fen, root.fen, activeTab, headers.variant]);
+  }, [pos, gameState, enginePaused, headers.result, players, botEnginePath, currentNode.fen, root.fen, position, activeTab, headers.variant]);
 
   // Listen to engine best-move events to update suggestion and play move for Bot
   useEffect(() => {
@@ -165,7 +163,7 @@ export default function BotService() {
         if (payload.tab !== tabKey) return;
         if (payload.fen !== root.fen) return;
         const is960 = headers.variant === "Chess960";
-        const movesFromRoot = getMainLine(root, is960);
+        const movesFromRoot = getVariationLine(root, position, is960, false);
         if (JSON.stringify(payload.moves) !== JSON.stringify(movesFromRoot)) return;
         if (pos?.isEnd()) return;
 
@@ -182,7 +180,7 @@ export default function BotService() {
             const cosmeticDelay = computeBotDelay((player as any).thinkingDelayMinMs, (player as any).thinkingDelayMaxMs);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             timeoutRef.current = window.setTimeout(() => {
-              appendMove({ payload: move });
+              makeMove({ payload: move });
               setLastMove(firstUci);
               setBotSuggestion(null as any);
               timeoutRef.current = null;
@@ -194,7 +192,7 @@ export default function BotService() {
     return () => {
       unlisten.then((f) => f());
     };
-  }, [pos, activeTab, players, root.fen, headers.variant, appendMove, setLastMove, setBotSuggestion]);
+  }, [pos, activeTab, players, root.fen, headers.variant, position, makeMove, setLastMove, setBotSuggestion]);
 
   return null;
 }

@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { Box, Paper, Tabs } from "@mantine/core";
 import UnifiedMovesTable from "./UnifiedMovesTable";
 import LinesTree from "./LinesTree";
+import GameNotation from "@/components/common/GameNotation";
 
 function AnalysisBar({ height = 380 }: { height?: number | string }) {
   const [activeTab, setActiveTab] = useState<string | null>("linesTree");
@@ -21,6 +22,7 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
         <Tabs.List>
           <Tabs.Tab value="linesTree">Lines Tree</Tabs.Tab>
           <Tabs.Tab value="unifiedMoves">Unified Moves</Tabs.Tab>
+          <Tabs.Tab value="notation">Notation</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel 
@@ -38,6 +40,15 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
         >
           <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
             <UnifiedMovesTable />
+          </Box>
+        </Tabs.Panel>
+
+        <Tabs.Panel 
+          value="notation" 
+          style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        >
+          <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
+            <GameNotation topBar />
           </Box>
         </Tabs.Panel>
       </Tabs>
