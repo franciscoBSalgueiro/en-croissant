@@ -303,6 +303,41 @@ function BoardGame() {
     } catch {}
   }, [gameState, lastNode?.san, lastNode?.halfMoves, prevNode?.fen, whitePlayed, blackPlayed, unifiedPrevLoadable, setWhitePlayed, setBlackPlayed]);
 
+  // Enrich last played move entry when engine/database data arrives later
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    if (unifiedPrevLoadable.state !== 'hasData') return;
+    const san = (currentNode as any)?.san as string | undefined;
+    const half = (currentNode as any)?.halfMoves as number | undefined;
+    if (!san || typeof half !== 'number' || half <= 0) return;
+    const color: 'white' | 'black' = (half % 2 === 1) ? 'white' : 'black';
+    const moveNumber = Math.ceil(half / 2);
+    const list = color === 'white' ? whitePlayed : blackPlayed;
+    const idx = list.findIndex((m: any) => m.moveNumber === moveNumber);
+    if (idx < 0) return;
+    const foundList: UnifiedMove[] = (unifiedPrevLoadable.data as UnifiedMove[]) || [];
+    const found = foundList.find((m) => (m.san || m.move) === san);
+    if (!found) return;
+    const needsEnrich = (() => {
+      const row: any = list[idx] as any;
+      // If score or pv/sanMoves missing, enrich
+      const hasScore = !!row?.score;
+      const hasLine = (Array.isArray(row?.pv) && row.pv.length > 0) || (Array.isArray(row?.sanMoves) && row.sanMoves.length > 0);
+      return !hasScore || !hasLine || row?.engineName !== found.engineName;
+    })();
+    if (!needsEnrich) return;
+    const setter = color === 'white' ? setWhitePlayed : setBlackPlayed;
+    setter((prev) => {
+      const i = prev.findIndex((m: any) => m.moveNumber === moveNumber);
+      if (i < 0) return prev;
+      const keep = prev[i] as any;
+      const next = [...prev];
+      next[i] = { ...keep, ...found, moveNumber: keep.moveNumber, contextFen: keep.contextFen, contextHalfMoves: keep.contextHalfMoves } as any;
+      try { console.info('[PlayedMovesRecord] enrich', { color, moveNumber, san, engine: found.engineName }); } catch {}
+      return next;
+    });
+  }, [gameState, unifiedPrevLoadable, currentNode?.san, currentNode?.halfMoves, whitePlayed, blackPlayed, setWhitePlayed, setBlackPlayed]);
+
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
 
@@ -507,6 +542,10 @@ function BoardGame() {
     // Initialize clocks to 0 (count-up)
     setWhiteTime(0);
     setBlackTime(0);
+
+    // Reset previous move info panels
+    setPrevInfoWhite(undefined);
+    setPrevInfoBlack(undefined);
 
     const defaultPlayers: { white: OpponentSettings; black: OpponentSettings } = {
       white: { type: "human", name: "Player", timeControl: undefined },

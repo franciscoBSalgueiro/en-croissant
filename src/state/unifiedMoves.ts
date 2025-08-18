@@ -142,6 +142,8 @@ export interface UnifiedMove {
 export const unifiedMovesFamily = atomFamily(
   ({ rootFen, fen, moves, tab }: { rootFen: string; fen: string; moves: string[]; tab: string }) =>
     atom<Promise<UnifiedMove[]>>(async (get) => {
+      // Simple in-memory cache for openings per (dbType, fen) to reduce churn on rapid updates
+      const openingsCache = (globalThis as any).__openingsCache || ((globalThis as any).__openingsCache = new Map<string, any>());
       const db = get(currentDbTypeAtom);
       const referenceDatabase = get(referenceDbAtom);
       const lichessOptions = get(lichessOptionsAtom);
@@ -163,9 +165,15 @@ export const unifiedMovesFamily = atomFamily(
 
       // Fetch openings non-blockingly; if it fails, continue with engines only
       let openings: Opening[] = [] as any;
+      const cacheKey = `${(dbType as any).type}:${fen}:${tab}`;
       try {
-        const res = await fetchOpening(dbType, tab);
-        openings = res.openings || [] as any;
+        if (openingsCache.has(cacheKey)) {
+          openings = openingsCache.get(cacheKey) as Opening[];
+        } else {
+          const res = await fetchOpening(dbType, tab);
+          openings = res.openings || [] as any;
+          openingsCache.set(cacheKey, openings);
+        }
       } catch {
         openings = [] as any;
       }
