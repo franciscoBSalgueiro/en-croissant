@@ -293,10 +293,7 @@ function LineCellRenderer(props: any) {
       sanMoves = converted;
     }
   }
-  try {
-    // eslint-disable-next-line no-console
-    console.info('[PlayedMovesTable.LineCell]', { rowSan: data?.san || data?.move, fenUsed: fen?.slice?.(0, 16), halfMoves, hasSanMoves: sanMoves.length, hasPv: Array.isArray(data?.pv) ? data.pv.length : 0 });
-  } catch {}
+  // debug log removed for performance
   if (!sanMoves || sanMoves.length === 0) {
     return (<div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><Text size="xs" c="dimmed">-</Text></div>);
   }
@@ -370,13 +367,7 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
           suppressScrollOnNewData={true}
           suppressRowVirtualisation={true}
         />
-        {(() => {
-          try {
-            // eslint-disable-next-line no-console
-            console.info('[PlayedMovesTable] rows', playedMoves.map((m: any) => ({ moveNumber: m.moveNumber, san: m.san || m.move, ctxFen: !!m.contextFen, ctxHalf: m.contextHalfMoves, pvLen: Array.isArray(m.pv) ? m.pv.length : (Array.isArray(m.sanMoves) ? m.sanMoves.length : 0) })));
-          } catch {}
-          return null;
-        })()}
+        {/* debug log removed for performance */}
       </div>
     </Stack>
   );

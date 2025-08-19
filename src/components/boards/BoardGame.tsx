@@ -270,10 +270,7 @@ function BoardGame() {
     const contextHalfMoves = typeof half === 'number' ? Math.max(0, half - 1) : undefined;
     const list = color === "white" ? whitePlayed : blackPlayed;
     const exists = list.some((m: any) => (m.san || m.move) === san && m.moveNumber === moveNumber);
-    try {
-      // eslint-disable-next-line no-console
-      console.info('[PlayedMovesRecord] observe', { gameState, san, half, color, moveNumber, prevFen: !!prevFen, contextHalfMoves, exists, listLen: list.length, source: 'currentNode' });
-    } catch {}
+    // debug log removed for performance
     if (exists) return;
     try {
       const unifiedList: UnifiedMove[] = unifiedPrevLoadable.state === 'hasData' ? (unifiedPrevLoadable.data as UnifiedMove[]) : [];
@@ -288,16 +285,10 @@ function BoardGame() {
           const keepRank = (prev[idx] as any)?.rank;
           const next = [...prev];
           next[idx] = { ...replacement, rank: keepRank ?? replacement.rank } as any;
-          try {
-            // eslint-disable-next-line no-console
-            console.info('[PlayedMovesRecord] replace', { color, moveNumber, old: prev[idx], next: next[idx] });
-          } catch {}
+          // debug log removed for performance
           return next;
         }
-        try {
-          // eslint-disable-next-line no-console
-          console.info('[PlayedMovesRecord] append', { color, moveNumber, item: replacement });
-        } catch {}
+        // debug log removed for performance
         return [...prev, replacement];
       });
     } catch {}
@@ -333,7 +324,7 @@ function BoardGame() {
       const keep = prev[i] as any;
       const next = [...prev];
       next[i] = { ...keep, ...found, moveNumber: keep.moveNumber, contextFen: keep.contextFen, contextHalfMoves: keep.contextHalfMoves } as any;
-      try { console.info('[PlayedMovesRecord] enrich', { color, moveNumber, san, engine: found.engineName }); } catch {}
+      // debug log removed for performance
       return next;
     });
   }, [gameState, unifiedPrevLoadable, currentNode?.san, currentNode?.halfMoves, whitePlayed, blackPlayed, setWhitePlayed, setBlackPlayed]);
