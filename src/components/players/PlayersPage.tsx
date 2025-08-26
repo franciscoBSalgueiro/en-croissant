@@ -2,7 +2,7 @@ import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Route } from "@/routes/players";
 import { useNavigate } from "@tanstack/react-router";
-import { playersAtom } from "@/state/atoms";
+import { playersAtom, defaultPlayerIdAtom } from "@/state/atoms";
 import type { Player } from "@/utils/players";
 import { Box, Button, Divider, Group, NumberInput, Paper, ScrollArea, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
 import * as classes from "@/components/common/GenericCard.css";
@@ -12,6 +12,7 @@ import { genID } from "@/utils/tabs";
 
 export default function PlayersPage() {
   const [players, setPlayers] = useAtom(playersAtom);
+  const [defaultPlayerId, setDefaultPlayerId] = useAtom(defaultPlayerIdAtom);
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
@@ -33,6 +34,21 @@ export default function PlayersPage() {
     } as Player;
     setPlayers((prev) => [...prev, newPlayer]);
     setSelected(players.length);
+  }
+
+  function removeSelected() {
+    if (selected == null) return;
+    if (players.length <= 1) return; // prevent fewer than 1
+    setPlayers((prev) => {
+      const next = [...prev];
+      const removed = next.splice(selected, 1)[0];
+      // if we removed the default, reset to first remaining
+      if (removed?.id === defaultPlayerId && next.length > 0) {
+        setDefaultPlayerId(next[0].id);
+      }
+      return next;
+    });
+    setSelected(null);
   }
 
   return (
@@ -68,7 +84,7 @@ export default function PlayersPage() {
           {!selectedPlayer || selected === undefined ? (
             <Text ta="center">Select a player</Text>
           ) : (
-            <PlayerDetails selected={selected} setSelected={setSelected} />
+            <PlayerDetails selected={selected} setSelected={setSelected} defaultPlayerId={defaultPlayerId} setDefaultPlayerId={setDefaultPlayerId} onRemove={removeSelected} />
           )}
         </Paper>
       </Group>
@@ -87,7 +103,7 @@ function PlayerHeader({ player }: { player: Player }) {
   );
 }
 
-function PlayerDetails({ selected, setSelected }: { selected: number; setSelected: (v: number | null) => void }) {
+function PlayerDetails({ selected, setSelected, defaultPlayerId, setDefaultPlayerId, onRemove }: { selected: number; setSelected: (v: number | null) => void; defaultPlayerId: string; setDefaultPlayerId: (id: string) => void; onRemove: () => void }) {
   const [players, setPlayers] = useAtom(playersAtom);
   const player = players[selected];
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -108,6 +124,11 @@ function PlayerDetails({ selected, setSelected }: { selected: number; setSelecte
           <TextInput label="Name" value={player.name} onChange={(e) => setPlayer({ ...player, name: e.currentTarget.value })} />
           <NumberInput label="ELO" min={400} max={3600} value={player.elo ?? 1500} onChange={(v) => setPlayer({ ...player, elo: typeof v === "number" ? v : 1500, earnedELO: typeof v === "number" ? (player.earnedELO ?? v) : player.earnedELO })} />
           <NumberInput label="Earned ELO" min={400} max={3600} value={player.earnedELO ?? player.elo ?? 1500} onChange={(v) => setPlayer({ ...player, earnedELO: typeof v === "number" ? v : player.earnedELO })} />
+          <Group>
+            <Button variant={player.id === defaultPlayerId ? "filled" : "light"} onClick={() => setDefaultPlayerId(player.id)}>
+              {player.id === defaultPlayerId ? "Default User" : "Set Default User"}
+            </Button>
+          </Group>
         </Stack>
         <Divider variant="dashed" label="Accounts" />
         <Stack>
@@ -125,7 +146,7 @@ function PlayerDetails({ selected, setSelected }: { selected: number; setSelecte
           />
         </Stack>
         <Group justify="end">
-          <Button color="red" onClick={() => setDeleteModalOpen(true)}>
+          <Button color="red" onClick={() => setDeleteModalOpen(true)} disabled={players.length <= 1}>
             Remove
           </Button>
         </Group>
@@ -135,12 +156,8 @@ function PlayerDetails({ selected, setSelected }: { selected: number; setSelecte
           opened={deleteModalOpen}
           onClose={() => setDeleteModalOpen(false)}
           onConfirm={() => {
-            setPlayers((prev) => {
-              const copy = [...prev];
-              copy.splice(selected, 1);
-              return copy;
-            });
-            setSelected(null);
+            onRemove();
+            setDeleteModalOpen(false);
           }}
           confirmLabel="Remove"
         />

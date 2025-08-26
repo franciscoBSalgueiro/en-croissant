@@ -114,22 +114,31 @@ export function getClockInfo({
         blackSeconds: undefined,
       };
     });
-  if (position.length <= 1 && timeControl) {
-    if (timeControl.length > 0) {
-      const seconds = timeControl[0].seconds / 1000;
-      if (!whiteSeconds) {
-        whiteSeconds = seconds;
-      }
-      if (!blackSeconds) {
-        blackSeconds = seconds;
-      }
+  if (position.length <= 1 && (timeControl || whiteTc || blackTc)) {
+    const whiteInit = (whiteTc ?? timeControl?.[0])?.seconds;
+    const blackInit = (blackTc ?? timeControl?.[0])?.seconds;
+    if (whiteInit && whiteSeconds == null) whiteSeconds = whiteInit / 1000;
+    if (blackInit && blackSeconds == null) blackSeconds = blackInit / 1000;
+    // If a side has no time control, default visible to 0 so its clock shows dimmed 0:00
+    if (!whiteInit && whiteSeconds == null) whiteSeconds = 0;
+    if (!blackInit && blackSeconds == null) blackSeconds = 0;
+  }
+  // If a side has a specific time control, display remaining time (not elapsed)
+  if (whiteTime !== undefined) {
+    if (whiteTc) {
+      const total = whiteTc.seconds / 1000;
+      whiteSeconds = total - whiteTime / 1000; // allow negative after flag
+    } else {
+      whiteSeconds = whiteTime / 1000; // unlimited: count upward
     }
   }
-  if (whiteTime) {
-    whiteSeconds = whiteTime / 1000;
-  }
-  if (blackTime) {
-    blackSeconds = blackTime / 1000;
+  if (blackTime !== undefined) {
+    if (blackTc) {
+      const total = blackTc.seconds / 1000;
+      blackSeconds = total - blackTime / 1000; // allow negative after flag
+    } else {
+      blackSeconds = blackTime / 1000; // unlimited: count upward
+    }
   }
 
   return {

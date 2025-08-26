@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { activeTabAtom, botsAtom, enginesAtom, playersAtom } from "@/state/atoms";
-import { Group, Paper, Select, Stack, Text, Box, useMantineTheme } from "@mantine/core";
-import { memo, useEffect, useMemo } from "react";
+import { activeTabAtom, botsAtom, enginesAtom, playersAtom, defaultPlayerIdAtom } from "@/state/atoms";
+import { Group, Paper, Select, Stack, Text, Box, useMantineTheme, Button } from "@mantine/core";
+import { memo, useEffect, useMemo, useContext } from "react";
 import type { OpponentSettings } from "./types";
 import type { PiecesCount } from "@/utils/chess";
 import Clock from "./Clock";
@@ -10,6 +10,8 @@ import PlayedMovesTable from "@/components/panels/analysis/PlayedMovesTable";
 import { ANNOTATION_INFO, isBasicAnnotation, type Annotation } from "@/utils/annotation";
 import { normalizeScore } from "@/utils/score";
 import { Chessground } from "@/chessground/Chessground";
+import { TreeStateContext } from "../common/TreeStateContext";
+import { useStore } from "zustand";
 
 // Helper: format centipawn to pawn string
 function formatPawnEval(cp: number | undefined) {
@@ -320,9 +322,15 @@ function PlayerPanel({
   };
 }) {
   const theme = useMantineTheme();
+  const store = useContext(TreeStateContext)!;
+  const setResult = useStore(store, (s) => s.setResult);
+  const headers = useStore(store, (s) => s.headers);
+  const setHeaders = useStore(store, (s) => s.setHeaders);
   const activeTab = useAtomValue(activeTabAtom)!;
+  const defaultPlayerId = useAtomValue(defaultPlayerIdAtom);
   const setPlayedMoves = useSetAtom(playedMovesFamily({ tab: activeTab, color }));
   const playedMoves = useAtomValue(playedMovesFamily({ tab: activeTab, color }));
+  const copiedTimeRef = (globalThis as any).__timeCopiedOnce || ((globalThis as any).__timeCopiedOnce = new Map<string, boolean>());
 
   // reset played moves if component remounts (optional; parent can clear on new game)
   useEffect(() => {
@@ -350,6 +358,8 @@ function PlayerPanel({
     let pctBestCount = 0;
     let percentSum = 0;
     let percentCount = 0;
+    let rankSum = 0;
+    let rankCount = 0;
     const tally = new Map<string, number>();
 
     const inc = (label: string) => {
@@ -375,6 +385,10 @@ function PlayerPanel({
         percentSum += m.percentage;
         percentCount++;
       }
+      if (typeof m.rank === "number") {
+        rankSum += m.rank;
+        rankCount++;
+      }
       if (m.isBest) inc("Best");
       if (m.isOnlyMove) inc("Only");
       if (m.punishesMistake) inc("Punish");
@@ -391,6 +405,7 @@ function PlayerPanel({
       avgCp: cpCount > 0 ? cpSum / cpCount : undefined,
       avgPctBest: pctBestCount > 0 ? pctBestSum / pctBestCount : undefined,
       avgPercentage: percentCount > 0 ? percentSum / percentCount : undefined,
+      avgRank: rankCount > 0 ? rankSum / rankCount : undefined,
       tally,
     };
   }, [playedMoves, color]);
@@ -409,6 +424,12 @@ function PlayerPanel({
     return { backgroundColor: lightBg, border: `1px solid ${lightBorder}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
   }, [prevMoveInfo?.actualMoveInfo?.annotation]);
 
+  function onResign() {
+    if (headers.result && headers.result !== "*") return;
+    const outcome = color === "white" ? "0-1" : "1-0";
+    setResult(outcome as any);
+  }
+
   return (
     <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column' }}>
       <Stack gap="xs" style={{ flex: 1, minHeight: 0 }}>
@@ -416,12 +437,90 @@ function PlayerPanel({
           {color === 'white' ? (
             <>
               <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
+              <Select
+                placeholder="Time"
+                data={["Unlimited", "1|0", "2|1", "5|0", "10|0", "15|10", "30|0", "60|0"].map((v) => ({ value: v, label: v === "Unlimited" ? "Unlimited" : v.replace("|", " | ") }))}
+                value={(opponent as any).timeControl ?? "Unlimited"}
+                onChange={(val) => {
+                  const newVal = val === "Unlimited" ? undefined : val || undefined;
+                  const key = `${activeTab}-tc-copied`;
+                  const firstChange = !copiedTimeRef.get(key);
+
+                  // update opponents panel state
+                  setOpponent((prev) => ({ ...prev, timeControl: newVal } as any));
+                  if (firstChange) {
+                    setOtherOpponent((prev) => ({ ...prev, timeControl: newVal } as any));
+                  }
+
+                  // Update headers so clocks switch mode immediately for one or both sides
+                  const toHeader = (s: string | undefined): string | undefined => {
+                    if (!s) return undefined; // Unlimited
+                    const [mStr, incStr] = s.split("|");
+                    const minutes = Number(mStr || 0);
+                    const inc = Number(incStr || 0);
+                    const seconds = Math.max(0, Math.round(minutes * 60));
+                    return `${seconds}${inc ? "+" + inc : ""}`;
+                  };
+                  const headerVal: any = toHeader(newVal as any);
+                  const payload: any = { ...headers } as any;
+                  (payload as any)['white_time_control'] = headerVal;
+                  if (firstChange) {
+                    (payload as any)['black_time_control'] = headerVal;
+                  }
+                  setHeaders(payload);
+
+                  if (firstChange) copiedTimeRef.set(key, true);
+                }}
+                allowDeselect
+                clearable={false}
+                w={100}
+              />
+              <Button size="xs" variant="light" color="red" onClick={onResign}>Resign</Button>
               <Clock color={color} turn={turn || 'white'} whiteTime={whiteTime ?? undefined} blackTime={blackTime ?? undefined} />
             </>
           ) : (
             <>
               <Clock color={color} turn={turn || 'white'} whiteTime={whiteTime ?? undefined} blackTime={blackTime ?? undefined} />
               <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
+              <Select
+                placeholder="Time"
+                data={["Unlimited", "1|0", "2|1", "5|0", "10|0", "15|10", "30|0", "60|0"].map((v) => ({ value: v, label: v === "Unlimited" ? "Unlimited" : v.replace("|", " | ") }))}
+                value={(opponent as any).timeControl ?? "Unlimited"}
+                onChange={(val) => {
+                  const newVal = val === "Unlimited" ? undefined : val || undefined;
+                  const key = `${activeTab}-tc-copied`;
+                  const firstChange = !copiedTimeRef.get(key);
+
+                  // update opponents panel state
+                  setOpponent((prev) => ({ ...prev, timeControl: newVal } as any));
+                  if (firstChange) {
+                    setOtherOpponent((prev) => ({ ...prev, timeControl: newVal } as any));
+                  }
+
+                  // Update headers so clocks switch mode immediately for one or both sides
+                  const toHeader = (s: string | undefined): string | undefined => {
+                    if (!s) return undefined; // Unlimited
+                    const [mStr, incStr] = s.split("|");
+                    const minutes = Number(mStr || 0);
+                    const inc = Number(incStr || 0);
+                    const seconds = Math.max(0, Math.round(minutes * 60));
+                    return `${seconds}${inc ? "+" + inc : ""}`;
+                  };
+                  const headerVal: any = toHeader(newVal as any);
+                  const payload: any = { ...headers } as any;
+                  (payload as any)['black_time_control'] = headerVal;
+                  if (firstChange) {
+                    (payload as any)['white_time_control'] = headerVal;
+                  }
+                  setHeaders(payload);
+
+                  if (firstChange) copiedTimeRef.set(key, true);
+                }}
+                allowDeselect
+                clearable={false}
+                w={100}
+              />
+              <Button size="xs" variant="light" color="red" onClick={onResign}>Resign</Button>
             </>
           )}
         </Group>
@@ -438,10 +537,10 @@ function PlayerPanel({
               <Group gap="md">
                 <Text size="xs" c="dimmed">Avg Eval</Text>
                 <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(2)}p` : "-"}</Text>
-                <Text size="xs" c="dimmed">% Best</Text>
+                <Text size="xs" c="dimmed">Avg %Best</Text>
                 <Text size="sm" fw={600}>{summary.avgPctBest !== undefined ? `${summary.avgPctBest.toFixed(1)}%` : "-"}</Text>
-                {/* <Text size="xs" c="dimmed">% Played</Text> */}
-                {/* <Text size="sm" fw={600}>{summary.avgPercentage !== undefined ? `${summary.avgPercentage.toFixed(1)}%` : "-"}</Text> */}
+                <Text size="xs" c="dimmed">Avg Rank</Text>
+                <Text size="sm" fw={600}>{summary.avgRank !== undefined ? `${summary.avgRank.toFixed(1)}` : "-"}</Text>
               </Group>
               <Group gap="xs" mt={4}>
                 {Array.from(summary.tally.entries())

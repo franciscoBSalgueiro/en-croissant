@@ -257,7 +257,7 @@ function Board({
   const arrows = useAtomValue(
     unifiedBoardArrowsFamily({
       rootFen,
-      fen: rootFen,
+      fen: currentNode.fen,
       gameMoves: moves,
     }),
   );
@@ -308,6 +308,7 @@ function Board({
 
   const [viewPawnStructure, setViewPawnStructure] = useState(false);
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
+  const [autoFlip, setAutoFlip] = useState(false);
 
   const turn = pos?.turn || "white";
   const orientation = headers.orientation || "white";
@@ -317,6 +318,20 @@ function Board({
       fen: root.fen, // To keep the current board setup
       orientation: orientation === "black" ? "white" : "black",
     });
+
+  // Auto-flip orientation to face the active player when enabled
+  useEffect(() => {
+    if (!autoFlip || !pos) return;
+    const desired: "white" | "black" = pos.turn;
+    if (headers.orientation !== desired) {
+      setHeaders({
+        ...headers,
+        fen: root.fen,
+        orientation: desired,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFlip, pos?.turn]);
 
   const takeSnapshot = async () => {
     const ref = boardRef?.current;
@@ -348,6 +363,13 @@ function Board({
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
+  useHotkeys(keyMap.TAKE_BACK.keys, () => {
+    if (canTakeBack) {
+      goToPrevious();
+    }
+  });
+  useHotkeys(keyMap.PREVIOUS_MOVE.keys, () => goToPrevious());
+  useHotkeys(keyMap.NEXT_MOVE.keys, () => goToNext());
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
@@ -562,11 +584,11 @@ function Board({
           </Menu.Dropdown>
         </Menu>
         {canTakeBack && (
-          <Tooltip label="Take Back">
+          <Tooltip label={`Take Back (${keyMap.TAKE_BACK.keys})`}>
             <ActionIcon
               variant="default"
               size="lg"
-              onClick={() => deleteMove()}
+              onClick={() => goToPrevious()}
             >
               <IconArrowBack />
             </ActionIcon>
@@ -620,14 +642,14 @@ function Board({
           </Tooltip>
         )}
         <Tooltip
-          label={t("Board.Action.FlipBoard", {
-            key: keyMap.SWAP_ORIENTATION.keys,
-          })}
+          label={`${t("Board.Action.FlipBoard", { key: keyMap.SWAP_ORIENTATION.keys })} · ${autoFlip ? "Auto-flip On" : "Auto-flip Off"} (double-click)`}
         >
           <ActionIcon
-            variant="default"
+            variant={autoFlip ? "filled" : "default"}
+            color={autoFlip ? "blue" : undefined}
             size="lg"
             onClick={() => toggleOrientation()}
+            onDoubleClick={() => setAutoFlip((v) => !v)}
           >
             <IconSwitchVertical size="1.3rem" />
           </ActionIcon>

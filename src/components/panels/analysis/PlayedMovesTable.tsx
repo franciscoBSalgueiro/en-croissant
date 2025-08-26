@@ -87,7 +87,7 @@ function CombinedMoveCellRenderer(props: any) {
   const filename: string | undefined = data?.iconFilename;
   const src = filename ? `/svg/${filename}` : null;
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 4 }}>
       {src && <img src={src} alt={filename || ''} style={{ width: 20, height: 20 }} />}
       <MoveCell move={moveText} isCurrentVariation={false} annotations={[]} onContextMenu={() => undefined} isStart={false} onClick={handleClick} />
     </div>
@@ -310,6 +310,15 @@ import { playedMovesFamily, type PlayedColor } from "@/state/playedMoves";
 function PlayedMovesTable({ color }: { color: PlayedColor }) {
   const activeTab = useAtomValue(activeTabAtom)!;
   const playedMoves = useAtomValue(playedMovesFamily({ tab: activeTab, color }));
+  
+  // Check if any moves have database data to conditionally show database columns
+  const hasDatabaseData = playedMoves.some(move => 
+    move.total !== undefined || 
+    move.percentage !== undefined || 
+    move.whitePercentage !== undefined || 
+    move.drawPercentage !== undefined || 
+    move.blackPercentage !== undefined
+  );
   const darkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
     backgroundColor: 'var(--mantine-color-dark-7)',
     foregroundColor: 'var(--mantine-color-gray-1)',
@@ -322,6 +331,8 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
   });
   const gridOptions: GridOptions<UnifiedMove> = useMemo(() => ({
     theme: darkTheme,
+    rowHeight: 28,
+    headerHeight: 30,
     animateRows: true,
     // Immutable mode helps ag-grid detect row updates with stable getRowId
     immutableData: true,
@@ -335,25 +346,26 @@ function PlayedMovesTable({ color }: { color: PlayedColor }) {
       const idNum = d?.moveNumber ?? "";
       return String(idNum);
     },
-    defaultColDef: { sortable: true, resizable: true },
+    defaultColDef: { sortable: true, resizable: true, cellStyle: { padding: '0 6px' } },
     columnDefs: [
-      { headerName: '#', field: 'moveNumber', width: 70, cellRenderer: NumberCellRenderer, pinned: 'left', sortable: true, sort: 'desc', valueGetter: (p: any) => p.data?.moveNumber },
-      { headerName: 'Move', field: 'san', width: 120, cellRenderer: CombinedMoveCellRenderer, pinned: 'left', valueGetter: (p: any) => p.data?.san || p.data?.move || '' },
-      { headerName: 'Rank', field: 'rank', width: 90, cellRenderer: NumberCellRenderer, sortable: true },
-      { headerName: 'Eval Score', field: 'score', width: 100, cellRenderer: ScoreCellRenderer, sortable: true },
-      { headerName: 'Annotation', field: 'annotation', width: 160, cellRenderer: AnnotationCellRenderer, sortable: false },
-      { headerName: 'PctBest', field: 'pctBest', width: 110, cellRenderer: ConfidenceCellRenderer, sortable: true, cellRendererParams: { type: 'pctBest' } },
-      { headerName: 'Confidence', field: 'confidence', width: 120, cellRenderer: ConfidenceCellRenderer, sortable: true },
-      { headerName: 'Win Likelihood', field: 'winChance', width: 120, cellRenderer: WinChanceCellRenderer, sortable: true },
-      { headerName: 'ΔWin%', field: 'winDelta', width: 90, cellRenderer: WinDeltaCellRenderer, sortable: true },
-      { headerName: 'Line', field: 'pv', flex: 1, minWidth: 150, cellRenderer: LineCellRenderer, sortable: false },
-      { headerName: '#', field: 'total', width: 80, cellRenderer: CountCellRenderer, sortable: true },
-      { headerName: '%', field: 'percentage', width: 80, cellRenderer: PercentageCellRenderer, sortable: true },
-      { headerName: '%W', field: 'whitePercentage', width: 100, cellRenderer: WinPercentageCellRenderer, sortable: true },
-      { headerName: '%D', field: 'drawPercentage', width: 100, cellRenderer: DrawPercentageCellRenderer, sortable: true },
-      { headerName: '%B', field: 'blackPercentage', width: 100, cellRenderer: LossPercentageCellRenderer, sortable: true },
+      { headerName: 'Move', field: 'san', width: 90, cellRenderer: CombinedMoveCellRenderer, pinned: 'left', valueGetter: (p: any) => p.data?.san || p.data?.move || '' },
+      { headerName: 'Rank', field: 'rank', width: 60, cellRenderer: NumberCellRenderer, sortable: true },
+      { headerName: 'Eval', field: 'score', width: 80, cellRenderer: ScoreCellRenderer, sortable: true },
+      { headerName: '%Best', field: 'pctBest', width: 80, cellRenderer: ConfidenceCellRenderer, sortable: true, cellRendererParams: { type: 'pctBest' } },
+      { headerName: 'Ann', field: 'annotation', width: 120, cellRenderer: AnnotationCellRenderer, sortable: false },
+      { headerName: 'Conf', field: 'confidence', width: 80, cellRenderer: ConfidenceCellRenderer, sortable: true },
+      { headerName: 'Win%', field: 'winChance', width: 80, cellRenderer: WinChanceCellRenderer, sortable: true },
+      { headerName: 'Δ%', field: 'winDelta', width: 70, cellRenderer: WinDeltaCellRenderer, sortable: true },
+      { headerName: 'Line', field: 'pv', flex: 1, minWidth: 100, cellRenderer: LineCellRenderer, sortable: false },
+      ...(hasDatabaseData ? [
+        { headerName: '#', field: 'total', width: 60, cellRenderer: CountCellRenderer, sortable: true },
+        { headerName: '%', field: 'percentage', width: 60, cellRenderer: PercentageCellRenderer, sortable: true },
+        { headerName: '%W', field: 'whitePercentage', width: 70, cellRenderer: WinPercentageCellRenderer, sortable: true },
+        { headerName: '%D', field: 'drawPercentage', width: 70, cellRenderer: DrawPercentageCellRenderer, sortable: true },
+        { headerName: '%B', field: 'blackPercentage', width: 70, cellRenderer: LossPercentageCellRenderer, sortable: true },
+      ] : []),
     ],
-  }), [darkTheme]);
+  }), [darkTheme, hasDatabaseData]);
   return (
     <Stack h="100%" gap="xs" style={{ minHeight: 0 }}>
       <Text size="sm" fw={500}>Played Moves ({playedMoves.length})</Text>

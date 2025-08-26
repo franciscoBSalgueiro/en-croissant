@@ -44,7 +44,7 @@ import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
 import EvalListener from "./EvalListener";
 import BotService from "./BotService";
-import { playersAtom as savedPlayersAtom, botsAtom as savedBotsAtom } from "@/state/atoms";
+import { playersAtom as savedPlayersAtom, botsAtom as savedBotsAtom, defaultPlayerIdAtom } from "@/state/atoms";
 import type { Player } from "@/utils/players";
 import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
@@ -60,6 +60,8 @@ import { playedMovesFamily } from "@/state/playedMoves";
 import type { UnifiedMove } from "@/state/unifiedMoves";
 import type { OpponentSettings } from "./types";
 import { normalizeScore } from "@/utils/score";
+import { getPGN } from "@/utils/chess";
+import { historyAtom, type HistoryEntry } from "@/state/atoms";
 
 // NEW: Nested mosaic state for playing layout
 type PlayingViewId =
@@ -120,6 +122,7 @@ function BoardGame() {
   const setBlackPlayed = useSetAtom(playedMovesFamily({ tab: activeTab!, color: "black" }));
   const whitePlayed = useAtomValue(playedMovesFamily({ tab: activeTab!, color: "white" }));
   const blackPlayed = useAtomValue(playedMovesFamily({ tab: activeTab!, color: "black" }));
+  const pushHistory = useSetAtom(historyAtom);
 
   const boardRef = useRef(null);
   const botTimeoutRef = useRef<number | null>(null);
@@ -153,6 +156,7 @@ function BoardGame() {
   const [players, setPlayers] = useAtom(currentPlayersAtom);
   const [savedPlayers, setSavedPlayers] = useAtom(savedPlayersAtom);
   const [savedBots, setSavedBots] = useAtom(savedBotsAtom);
+  const defaultPlayerId = useAtomValue(defaultPlayerIdAtom);
 
   const activeTabForBot = useAtomValue(activeTabForUnified);
   const isBotTurn = useMemo(() => {
@@ -292,10 +296,15 @@ function BoardGame() {
       const unifiedList: UnifiedMove[] = unifiedPrevLoadable.state === 'hasData' ? (unifiedPrevLoadable.data as UnifiedMove[]) : [];
       const found = unifiedList.find((m) => (m.san || m.move) === san);
       const setter = color === "white" ? setWhitePlayed : setBlackPlayed;
+      // compute elapsed since previous ply on this side using cumulative timers
+      const elapsedMs = color === 'white'
+        ? Math.max(0, (whiteTime ?? 0) - whiteCumulRef.current)
+        : Math.max(0, (blackTime ?? 0) - blackCumulRef.current);
+      if (color === 'white') whiteCumulRef.current = (whiteTime ?? 0); else blackCumulRef.current = (blackTime ?? 0);
       setter((prev) => {
         const replacement: any = found
-          ? { ...found, moveNumber, contextFen: prevFen, contextHalfMoves }
-          : { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber, contextFen: prevFen, contextHalfMoves };
+          ? { ...found, moveNumber, contextFen: prevFen, contextHalfMoves, elapsedMs }
+          : { move: san, san, rank: (prev.length + 1), source: 'database', moveNumber, contextFen: prevFen, contextHalfMoves, elapsedMs };
         const idx = prev.findIndex((m: any) => m.moveNumber === moveNumber);
         if (idx >= 0) {
           const keepRank = (prev[idx] as any)?.rank;
@@ -347,6 +356,34 @@ function BoardGame() {
 
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
+  const whiteCumulRef = useRef(0);
+  const blackCumulRef = useRef(0);
+
+  // Helper function to generate event name based on time control
+  function getTimeControlEvent(headers: GameHeaders): string {
+    const whiteTC = headers.white_time_control;
+    const blackTC = headers.black_time_control;
+    const generalTC = headers.time_control;
+    
+    // Use white time control if set, fall back to general or black
+    const tc = whiteTC || generalTC || blackTC;
+    
+    if (!tc) return "Unlimited Game";
+    
+    // Parse time control like "300+0" or "900+10"
+    const match = tc.match(/^(\d+)(?:\+(\d+))?$/);
+    if (!match) return `${tc} Game`;
+    
+    const seconds = parseInt(match[1]);
+    const increment = parseInt(match[2] || "0");
+    const minutes = Math.floor(seconds / 60);
+    
+    if (increment > 0) {
+      return `${minutes}+${increment} Game`;
+    } else {
+      return `${minutes} min Game`;
+    }
+  }
 
   useEffect(() => {
     // Clear any pending bot move when position changes
@@ -450,13 +487,64 @@ function BoardGame() {
 
   useEffect(() => {
     if (gameState !== "playing") return;
-    // Wait until both players are initialized to avoid placeholder header thrash
     if (!players?.white?.type || !players?.black?.type) return;
-    const whiteName = players.white.type === "human" ? "Player" : (players.white as any).engine?.name ?? "?";
-    const blackName = players.black.type === "human" ? "Player" : (players.black as any).engine?.name ?? "?";
-    if (headers.white === whiteName && headers.black === blackName) return;
-    setHeaders({ ...headers, white: whiteName, black: blackName });
-  }, [players, headers, gameState]);
+    const resolveHumanName = (side: any) => {
+      if (side.type !== "human") return undefined as string | undefined;
+      const pid = (side as any).playerId as string | undefined;
+      const p = pid ? savedPlayers.find((pp) => pp.id === pid) : undefined;
+      return p?.name || "Human";
+    };
+    const resolveEngineName = (side: any) => {
+      // If this is our built-in Bot (engine type but no external engine), show bot name
+      if (side?.type === "engine" && !(side as any).engine) {
+        const id = (side as any).botId as string | undefined;
+        const b = id ? savedBots.find((bb) => bb.id === id) : undefined;
+        return b?.name || "Bot";
+      }
+      return (side as any).engine?.name ?? "?";
+    };
+    const resolveElo = (side: any): number | undefined => {
+      if (!side) return undefined;
+      if (side.type === "human") {
+        const pid = (side as any).playerId as string | undefined;
+        const p = pid ? savedPlayers.find((pp) => pp.id === pid) : undefined;
+        return (p as any)?.earnedELO ?? p?.elo ?? (side as any)?.elo;
+      }
+      if (side.type === "engine" && !(side as any).engine) {
+        const id = (side as any).botId as string | undefined;
+        const b = id ? savedBots.find((bb) => bb.id === id) : undefined;
+        return (b as any)?.earnedELO ?? (b as any)?.elo ?? (side as any)?.elo;
+      }
+      return (side as any)?.elo;
+    };
+    const whiteName = players.white.type === "human"
+      ? resolveHumanName(players.white)
+      : resolveEngineName(players.white);
+    const blackName = players.black.type === "human"
+      ? resolveHumanName(players.black)
+      : resolveEngineName(players.black);
+    const whiteElo = resolveElo(players.white);
+    const blackElo = resolveElo(players.black);
+    const sameNames = headers.white === whiteName && headers.black === blackName;
+    const sameElos = headers.white_elo === (whiteElo as any) && headers.black_elo === (blackElo as any);
+    if (sameNames && sameElos) return;
+    setHeaders({
+      ...headers,
+      white: whiteName || headers.white,
+      black: blackName || headers.black,
+      white_elo: (whiteElo as any) ?? headers.white_elo,
+      black_elo: (blackElo as any) ?? headers.black_elo,
+    });
+  }, [
+    players,
+    savedPlayers,
+    savedBots,
+    headers.white,
+    headers.black,
+    headers.white_elo,
+    headers.black_elo,
+    gameState,
+  ]);
 
   useEffect(() => {
     if (gameState !== "playing" || enginePaused) {
@@ -531,6 +619,89 @@ function BoardGame() {
 
     // move to game over state once ratings applied
     setGameState("gameOver");
+
+    // Also record to history with accuracy and PGN
+    try {
+      const avg = (arr: any[]) => {
+        const xs = arr.map((m: any) => m?.pctBest).filter((v: any) => typeof v === "number");
+        if (xs.length === 0) return undefined as number | undefined;
+        return xs.reduce((a: number, b: number) => a + b, 0) / xs.length;
+        };
+      const whiteAccuracy = avg(whitePlayed as any);
+      const blackAccuracy = avg(blackPlayed as any);
+      // Build complete PGN with headers and time per move embedded
+      // Use the actual played path, not the tree mainline
+      const actualPath = position; // current position when game ended
+      
+      // Generate custom PGN headers in the requested order
+      const gameDate = headers.date || new Date().toISOString().split('T')[0].replace(/-/g, '.');
+      const eventName = getTimeControlEvent(headers);
+      
+      const pgnHeaders = [
+        `[White "${headers.white || "?"}"]`,
+        `[Black "${headers.black || "?"}"]`,
+        `[Date "${gameDate}"]`,
+        `[Result "${headers.result || "*"}"]`,
+        headers.white_elo ? `[WhiteElo "${headers.white_elo}"]` : null,
+        headers.black_elo ? `[BlackElo "${headers.black_elo}"]` : null,
+        `[Event "${eventName}"]`,
+        `[Site "Botvinnik"]`,
+        `[Round "${headers.round || "?"}"]`,
+      ].filter(Boolean).join('\n');
+      
+      // Build timing-enhanced moves
+      const formatClk = (ms: number | undefined) => {
+        if (!Number.isFinite(ms as any)) return undefined;
+        const s = Math.max(0, Math.floor((ms as number) / 1000));
+        const hh = Math.floor(s / 3600);
+        const mm = Math.floor((s % 3600) / 60);
+        const ss = s % 60;
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${hh}:${pad(mm)}:${pad(ss)}`;
+      };
+      
+      const actualMoves = getVariationLine(root, actualPath, headers.variant === "Chess960");
+      const lines: string[] = [];
+      
+      for (let i = 0; i < actualMoves.length; i += 2) {
+        const moveNum = i / 2 + 1;
+        const whiteSan = (whitePlayed as any[])[i / 2]?.san || (whitePlayed as any[])[i / 2]?.move;
+        const whiteClk = formatClk((whitePlayed as any[])[i / 2]?.elapsedMs);
+        const blackSan = (blackPlayed as any[])[i / 2]?.san || (blackPlayed as any[])[i / 2]?.move;
+        const blackClk = formatClk((blackPlayed as any[])[i / 2]?.elapsedMs);
+        const w = whiteSan ? `${moveNum}. ${whiteSan}${whiteClk ? ` {[%clk ${whiteClk}]}` : ""}` : "";
+        const b = blackSan ? ` ${blackSan}${blackClk ? ` {[%clk ${blackClk}]}` : ""}` : "";
+        lines.push(`${w}${b}`.trim());
+      }
+      
+      const timingBody = lines.join("\n");
+      const resultTag = headers.result || "*";
+      const pgn = `${pgnHeaders}\n\n${timingBody} ${resultTag}`;
+      const movesCount = Math.ceil(((lastNode as any)?.halfMoves || 0) / 2);
+      const unifiedSnapshot = [
+        ...((whitePlayed as any[]) || []),
+        ...((blackPlayed as any[]) || []),
+      ];
+      // capture ISO timestamp in case headers.date/utc_time are not present
+      const isoNow = new Date().toISOString();
+      pushHistory((prev: HistoryEntry[]) => [
+        {
+          white: headers.white || "White",
+          black: headers.black || "Black",
+          whiteElo: headers.white_elo as any,
+          blackElo: headers.black_elo as any,
+          result: headers.result as any,
+          whiteAccuracy,
+          blackAccuracy,
+          moves: Number.isFinite(movesCount) ? movesCount : undefined,
+          date: headers.date ? (headers.date as any) : isoNow,
+          time: (headers as any).utc_time || new Date().toLocaleTimeString(),
+          pgn,
+          unifiedMainline: unifiedSnapshot,
+        },
+        ...prev,
+      ]);
+    } catch {}
   }, [headers.result, gameState]);
 
   function decrementTime() {
@@ -553,16 +724,22 @@ function BoardGame() {
     // Reset previous move info panels
     setPrevInfoWhite(undefined);
     setPrevInfoBlack(undefined);
+    whiteCumulRef.current = 0;
+    blackCumulRef.current = 0;
 
+    const fallback = { id: "human", name: "Human", elo: 1500 } as any;
+    const defaultPlayer = savedPlayers.find((p) => p.id === defaultPlayerId) || fallback;
     const defaultPlayers: { white: OpponentSettings; black: OpponentSettings } = {
-      white: { type: "human", name: "Player", timeControl: undefined },
-      black: { type: "human", name: "Player", timeControl: undefined },
+      white: { type: "human", name: defaultPlayer.name, playerId: defaultPlayer.id, timeControl: undefined } as any,
+      black: { type: "human", name: defaultPlayer.name, playerId: defaultPlayer.id, timeControl: undefined } as any,
     };
     setPlayers(defaultPlayers);
 
     const newHeaders: Partial<GameHeaders> = {
-      white: "Player",
-      black: "Player",
+      white: defaultPlayer.name,
+      black: defaultPlayer.name,
+      white_elo: (defaultPlayer as any).earnedELO ?? defaultPlayer.elo,
+      black_elo: (defaultPlayer as any).earnedELO ?? defaultPlayer.elo,
       time_control: undefined,
     };
 

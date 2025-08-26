@@ -50,18 +50,21 @@ function Clock({
       styles={{
         root: {
           opacity: turn !== color ? 0.5 : 1,
-          visibility: clock ? "visible" : "hidden",
+          visibility: "visible",
           transition: "opacity 0.15s",
+          width: "80px",
+          minWidth: "80px",
+          maxWidth: "80px",
         },
       }}
     >
-      <Text fz="lg" fw="bold" px="xs">
-        {clock ? formatClock(clock) : "0:00"}
-      </Text>
+       <Text fz="lg" fw="bold" px="xs" ta="center">
+         {clock ? formatClock(clock) : "00:00"}
+       </Text>
       <Progress
         size="xs"
         w="100%"
-        value={progress * 100}
+        value={Math.max(0, Math.min(1, progress)) * 100}
         animated={turn === color}
         styles={{
           section: {
@@ -74,21 +77,21 @@ function Clock({
 }
 
 function formatClock(seconds: number) {
-  let s = Math.max(0, seconds);
-  const hours = Math.floor(s / 3600);
-  const minutes = Math.floor((s % 3600) / 60);
-  s = (s % 3600) % 60;
+  const negative = seconds < 0;
+  let sAbs = Math.abs(seconds);
+  const hours = Math.floor(sAbs / 3600);
+  const minutes = Math.floor((sAbs % 3600) / 60);
+  const secs = Math.floor(sAbs % 60);
 
-  let timeString = `${minutes.toString().padStart(2, "0")}`;
+  // Always use mm:ss format for stable width
+  let timeString = `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  
+  // Only show hours if > 0
   if (hours > 0) {
     timeString = `${hours}:${timeString}`;
   }
-  if (seconds < 60) {
-    timeString += `:${s.toFixed(1).padStart(4, "0")}`;
-  } else {
-    timeString += `:${Math.floor(s).toString().padStart(2, "0")}`;
-  }
-  return timeString;
+  
+  return negative ? `-${timeString}` : timeString;
 }
 
 export default Clock;

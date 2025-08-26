@@ -77,9 +77,21 @@ export const loadableEnginesAtom = loadable(enginesAtom);
 // Players
 export const playersAtom = atomWithStorage<Player[]>(
   "players",
-  [],
+  [
+    {
+      id: "human",
+      name: "Human",
+      elo: 1500,
+      earnedELO: 1500,
+    } as Player,
+  ],
   createZodStorage(z.array(playerSchema), localStorage),
   { getOnInit: true },
+);
+
+export const defaultPlayerIdAtom = atomWithStorage<string>(
+  "default-player-id",
+  "human",
 );
 
 // Write-through persistence: ensure disk file is updated whenever enginesAtom changes
@@ -674,3 +686,24 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
 type BotSuggestion = { from: string; to: string } | null;
 const botSuggestionFamily = atomFamily((tab: string) => atom<BotSuggestion>(null));
 export const currentBotSuggestionAtom = tabValue(botSuggestionFamily);
+
+// Game History
+export type HistoryEntry = {
+  white: string;
+  black: string;
+  whiteElo?: number | null;
+  blackElo?: number | null;
+  result?: string;
+  whiteAccuracy?: number;
+  blackAccuracy?: number;
+  moves?: number;
+  date?: string; // ISO timestamp
+  time?: string | null;
+  pgn: string;
+  unifiedMainline?: any[]; // stored snapshot of unified/played move data for later analysis
+};
+
+export const historyAtom = atomWithStorage<HistoryEntry[]>(
+  "history-entries",
+  [],
+);

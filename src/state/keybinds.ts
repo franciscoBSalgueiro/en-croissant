@@ -46,6 +46,7 @@ const keys = {
   TOGGLE_BLUR: { name: "Toggle blur", keys: "ctrl+b" },
   PREVIOUS_GAME: { name: "Previous game", keys: "pageup" },
   NEXT_GAME: { name: "Next game", keys: "pagedown" },
+  TAKE_BACK: { name: "Take back", keys: "t" },
 };
 
 export const keyMapAtom = atomWithStorage(

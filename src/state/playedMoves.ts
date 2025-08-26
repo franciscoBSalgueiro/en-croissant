@@ -6,7 +6,7 @@ export type PlayedColor = "white" | "black";
 
 export const playedMovesFamily = atomFamily(
   ({ tab, color }: { tab: string; color: PlayedColor }) =>
-    atom<UnifiedMove[]>([]),
+    atom<(UnifiedMove & { elapsedMs?: number })[]>([]),
   (a, b) => a.tab === b.tab && a.color === b.color,
 );
 

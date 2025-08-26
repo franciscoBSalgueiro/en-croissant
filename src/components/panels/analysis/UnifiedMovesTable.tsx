@@ -102,7 +102,7 @@ function CombinedMoveCellRenderer(props: any) {
   const filename: string | undefined = data?.iconFilename;
   const src = filename ? `/svg/${filename}` : null;
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 4 }}>
       {src && <img src={src} alt={filename || ''} style={{ width: 20, height: 20 }} />}
       <MoveCell
         move={moveText}
@@ -771,9 +771,20 @@ function UnifiedMovesTable() {
   const unifiedMoves: UnifiedMove[] =
     unifiedLoadable.state === "hasData" ? unifiedLoadable.data : [];
 
+  // Check if any moves have database data to conditionally show database columns
+  const hasDatabaseData = unifiedMoves.some(move => 
+    move.total !== undefined || 
+    move.percentage !== undefined || 
+    move.whitePercentage !== undefined || 
+    move.drawPercentage !== undefined || 
+    move.blackPercentage !== undefined
+  );
+
   // AG Grid options
   const gridOptions: GridOptions<UnifiedMove> = {
     theme: darkTheme,
+    rowHeight: 28,
+    headerHeight: 30,
     animateRows: true,
     suppressScrollOnNewData: true,
     suppressRowVirtualisation: false,
@@ -786,6 +797,7 @@ function UnifiedMovesTable() {
     defaultColDef: {
       sortable: true,
       resizable: true,
+      cellStyle: { padding: '0 6px' },
     },
     onGridReady: (params) => {
       const apiAny = params.api as any;
@@ -825,6 +837,13 @@ function UnifiedMovesTable() {
         sortable: true,
       },
       {
+        headerName: "PctBest",
+        field: "pctBest",
+        width: 110,
+        cellRenderer: PctBestCellRenderer,
+        sortable: true,
+      },
+      {
         headerName: "Annotation",
         field: "annotation",
         width: 160,
@@ -836,13 +855,6 @@ function UnifiedMovesTable() {
         field: "confidence",
         width: 120,
         cellRenderer: ConfidenceCellRenderer,
-        sortable: true,
-      },
-      {
-        headerName: "PctBest",
-        field: "pctBest",
-        width: 110,
-        cellRenderer: PctBestCellRenderer,
         sortable: true,
       },
       {
@@ -925,41 +937,48 @@ function UnifiedMovesTable() {
         cellRenderer: LineCellRenderer,
         sortable: false,
       },
-      {
-        headerName: "#",
-        field: "total",
-        width: 80,
-        cellRenderer: CountCellRenderer,
-        sortable: true,
-      },
-      {
-        headerName: "%",
-        field: "percentage",
-        width: 80,
-        cellRenderer: PercentageCellRenderer,
-        sortable: true,
-      },
-      {
-        headerName: "%W",
-        field: "whitePercentage",
-        width: 100,
-        cellRenderer: WinPercentageCellRenderer,
-        sortable: true,
-      },
-      {
-        headerName: "%D",
-        field: "drawPercentage",
-        width: 100,
-        cellRenderer: DrawPercentageCellRenderer,
-        sortable: true,
-      },
-      {
-        headerName: "%B",
-        field: "blackPercentage",
-        width: 100,
-        cellRenderer: LossPercentageCellRenderer,
-        sortable: true,
-      },
+      ...(hasDatabaseData ? [
+        {
+          headerName: "#",
+          colId: "total",
+          valueGetter: (p: any) => p.data?.total,
+          width: 80,
+          cellRenderer: CountCellRenderer,
+          sortable: true,
+        },
+        {
+          headerName: "%",
+          colId: "percentage",
+          valueGetter: (p: any) => p.data?.percentage,
+          width: 80,
+          cellRenderer: PercentageCellRenderer,
+          sortable: true,
+        },
+        {
+          headerName: "%W",
+          colId: "whitePercentage",
+          valueGetter: (p: any) => p.data?.whitePercentage,
+          width: 100,
+          cellRenderer: WinPercentageCellRenderer,
+          sortable: true,
+        },
+        {
+          headerName: "%D",
+          colId: "drawPercentage",
+          valueGetter: (p: any) => p.data?.drawPercentage,
+          width: 100,
+          cellRenderer: DrawPercentageCellRenderer,
+          sortable: true,
+        },
+        {
+          headerName: "%B",
+          colId: "blackPercentage",
+          valueGetter: (p: any) => p.data?.blackPercentage,
+          width: 100,
+          cellRenderer: LossPercentageCellRenderer,
+          sortable: true,
+        },
+      ] : []),
     ],
     onRowClicked: (event) => {
       // Row click is handled by the move cell renderer

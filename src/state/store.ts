@@ -27,6 +27,7 @@ export interface TreeStoreState {
   headers: GameHeaders;
   position: number[];
   dirty: boolean;
+  forwardPath: number[] | null;
 
   currentNode: () => TreeNode;
 
@@ -98,6 +99,7 @@ export type TreeStore = ReturnType<typeof createTreeStore>;
 export const createTreeStore = (id?: string, initialTree?: TreeState) => {
   const stateCreator: StateCreator<TreeStoreState> = (set, get) => ({
     ...(initialTree ?? defaultTree()),
+    forwardPath: null,
 
     currentNode: () => getNodeAtPath(get().root, get().position),
 
@@ -127,22 +129,48 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       ),
 
     goToNext: () =>
-      set((state) => {
-        const node = getNodeAtPath(state.root, state.position);
-        const [pos] = positionFromFen(node.fen);
-        if (!pos || !node.children[0]?.move) return state;
-        const san = makeSan(pos, node.children[0].move);
-        playSound(san.includes("x"), san.includes("+"));
-        if (node && node.children.length > 0) {
-          return {
-            ...state,
-            position: [...state.position, 0],
-          };
-        }
-        return state;
-      }),
+      set(
+        produce((state) => {
+          const node = getNodeAtPath(state.root, state.position);
+          const [pos] = positionFromFen(node.fen);
+          if (!pos) return state;
+
+          // Determine next child index: follow saved forwardPath if present
+          let nextIndex = 0;
+          if (
+            state.forwardPath &&
+            state.position.length < state.forwardPath.length
+          ) {
+            const idx = state.forwardPath[state.position.length];
+            if (typeof idx === "number") nextIndex = idx;
+          }
+
+          const child = node.children[nextIndex];
+          if (!child?.move) return state;
+
+          const san = makeSan(pos, child.move);
+          playSound(san.includes("x"), san.includes("+"));
+          state.position.push(nextIndex);
+
+          // Clear forwardPath once we reach the saved target
+          if (
+            state.forwardPath &&
+            state.position.length >= state.forwardPath.length
+          ) {
+            state.forwardPath = null;
+          }
+        }),
+      ),
     goToPrevious: () =>
-      set((state) => ({ ...state, position: state.position.slice(0, -1) })),
+      set(
+        produce((state) => {
+          // On first backward step in a sequence, remember current position as forward target
+          if (!state.forwardPath) {
+            state.forwardPath = [...state.position];
+          }
+          state.position = state.position.slice(0, -1);
+        }),
+      ),
 
     goToAnnotation: (annotation, color) =>
       set(

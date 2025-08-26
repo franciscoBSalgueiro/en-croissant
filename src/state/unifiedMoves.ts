@@ -831,20 +831,23 @@ export const unifiedBoardArrowsFamily = atomFamily(
       if ((unifiedLoadable as any).state !== "hasData") return new Map();
       const unified = (unifiedLoadable as any).data as UnifiedMove[];
 
-      // Prefer moves that have engine PV (uciMoves) so arrows can be drawn
-      const withPv = unified
-        .filter((m) => Array.isArray(m.pv) && m.pv.length > 0 && typeof m.winChance === "number")
-        .sort((a, b) => (b.winChance ?? 0) - (a.winChance ?? 0));
-      if (withPv.length === 0) return new Map();
-
-      const best = withPv[0];
-      const bestWin = best.winChance ?? 0;
-
-      const filtered = policy === "alwaysTopN"
-        ? withPv.slice(0, 5)
-        : withPv.filter((m) => (bestWin - (m.winChance ?? 0)) < threshold);
-      // Ensure the best move is present even if policy would filter it
-      const ensured = filtered.some((m) => m.move === best.move) ? filtered : [best, ...filtered].slice(0, 5);
+      // Build selection: if user wants strictly top-N, follow table ranking (rank asc)
+      // Otherwise, follow winChance threshold policy as before
+      let ensured: UnifiedMove[] = [] as any;
+      if (policy === "alwaysTopN") {
+        const byRank = [...unified].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
+        ensured = byRank.slice(0, 5);
+      } else {
+        // Prefer moves that have engine PV so arrows can be drawn; rank by win chance
+        const withPv = unified
+          .filter((m) => (Array.isArray(m.pv) && m.pv.length > 0) || (Array.isArray(m.sanMoves) && m.sanMoves.length > 0))
+          .sort((a, b) => (b.winChance ?? 0) - (a.winChance ?? 0));
+        if (withPv.length === 0) return new Map();
+        const best = withPv[0];
+        const bestWin = best.winChance ?? 0;
+        const filtered = withPv.filter((m) => (bestWin - (m.winChance ?? 0)) < threshold);
+        ensured = filtered.some((m) => m.move === best.move) ? filtered : [best, ...filtered].slice(0, 5);
+      }
 
       // Fallback: if PV is missing, synthesize a single-move PV from SAN
       const [pos0] = positionFromFen(fen);
@@ -878,12 +881,22 @@ export const unifiedBoardArrowsFamily = atomFamily(
 
       const arr = ensured.map((m) => {
         const hasPv = Array.isArray(m.pv) && m.pv.length > 0;
-        if (hasPv) return { pv: m.pv as string[], winChance: m.winChance as number };
+        // compute win chance fallback from score if missing
+        let wc: number = 50;
+        if (typeof m.winChance === "number") wc = m.winChance as number;
+        else {
+          const [pp] = positionFromFen(fen);
+          const turn = pp?.turn || "white";
+          if (m.score && m.score.value !== undefined) {
+            wc = getWinChance(normalizeScore(m.score.value, turn));
+          }
+        }
+        if (hasPv) return { pv: m.pv as string[], winChance: wc };
         // synthesize from first SAN move
         const san = Array.isArray(m.sanMoves) && m.sanMoves.length > 0 ? m.sanMoves[0] : (m.san || m.move);
         const p = pos0 ? pos0.clone() : null;
         const uci = p ? toUciFromSan(p, san) : undefined;
-        return { pv: uci ? [uci] : [], winChance: m.winChance as number };
+        return { pv: uci ? [uci] : [], winChance: wc };
       }).filter((e) => e.pv.length > 0);
       const res = new Map<number, { pv: string[]; winChance: number }[]>();
       if (arr.length > 0) res.set(0, arr);
