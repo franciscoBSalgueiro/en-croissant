@@ -1,6 +1,10 @@
 import { Chessground } from "@/chessground/Chessground";
 import {
-  arrowColorModeAtom,
+  arrowColorMeaningAtom,
+  arrowOpacityMeaningAtom,
+  arrowSizeMeaningAtom,
+  arrowOpacityAtom,
+  arrowSizeScaleAtom,
   autoPromoteAtom,
   autoSaveAtom,
   currentEvalOpenAtom,
@@ -89,9 +93,9 @@ import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
 
-const LARGE_BRUSH = 11;
-const MEDIUM_BRUSH = 7.5;
-const SMALL_BRUSH = 4;
+const BASE_LARGE_BRUSH = 11;
+const BASE_MEDIUM_BRUSH = 7.5;
+const BASE_SMALL_BRUSH = 4;
 
 // Memoized color calculation for performance
 const qualityColorCache = new Map<string, string>();
@@ -252,6 +256,7 @@ function Board({
 
   const arrows = useAtomValue(
     unifiedBoardArrowsFamily({
+      rootFen,
       fen: rootFen,
       gameMoves: moves,
     }),
@@ -275,7 +280,11 @@ function Board({
   const showDests = useAtomValue(showDestsAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
-  const arrowColorMode = useAtomValue(arrowColorModeAtom);
+  const arrowColorMeaning = useAtomValue(arrowColorMeaningAtom);
+  const arrowOpacityMeaning = useAtomValue(arrowOpacityMeaningAtom);
+  const arrowSizeMeaning = useAtomValue(arrowSizeMeaningAtom);
+  const arrowOpacity = useAtomValue(arrowOpacityAtom);
+  const arrowSizeScale = useAtomValue(arrowSizeScaleAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
@@ -394,7 +403,7 @@ function Board({
   let shapes: DrawShape[] = [];
   if (showArrows && evalOpen && arrowsMap.size > 0 && pos) {
     // Clear color cache periodically to prevent memory leaks
-    if (arrowColorMode === "quality" && qualityColorCache.size > 100) {
+    if (arrowColorMeaning === "score" && qualityColorCache.size > 100) {
       qualityColorCache.clear();
     }
     const entries = Array.from(arrowsMap.entries()).sort((a, b) => a[0] - b[0]);
@@ -420,16 +429,31 @@ function Board({
             if (prevSquare === null) {
               prevSquare = from;
             }
-            const brushSize = match(bestWinChance - winChance)
-              .when(
-                (d) => d < 2.5,
-                () => LARGE_BRUSH,
-              )
-              .when(
-                (d) => d < 5,
-                () => MEDIUM_BRUSH,
-              )
-              .otherwise(() => SMALL_BRUSH);
+            // Determine size base according to size meaning
+            const sizeFromRank = match(bestWinChance - winChance)
+              .when((d) => d < 2.5, () => BASE_LARGE_BRUSH)
+              .when((d) => d < 5, () => BASE_MEDIUM_BRUSH)
+              .otherwise(() => BASE_SMALL_BRUSH);
+            const sizeFromScore = (() => {
+              // Map winChance to brush: >55 large, >50 medium, else small
+              if (winChance > 55) return BASE_LARGE_BRUSH;
+              if (winChance > 50) return BASE_MEDIUM_BRUSH;
+              return BASE_SMALL_BRUSH;
+            })();
+            const sizeFromPctBest = (() => {
+              const p = pctBestForMove(winChance, true);
+              if (p >= 66) return BASE_LARGE_BRUSH;
+              if (p >= 33) return BASE_MEDIUM_BRUSH;
+              return BASE_SMALL_BRUSH;
+            })();
+            const brushSizeBase = arrowSizeMeaning === "uniform"
+              ? BASE_MEDIUM_BRUSH
+              : arrowSizeMeaning === "rank"
+                ? sizeFromRank
+                : arrowSizeMeaning === "score"
+                  ? sizeFromScore
+                  : sizeFromPctBest;
+            const brushSize = Math.max(1, Math.round(brushSizeBase * Math.max(0.5, Math.min(2, arrowSizeScale))));
 
             if (
               ii === 0 ||
@@ -440,11 +464,21 @@ function Board({
                 !shapes.find((s) => s.orig === from && s.dest === to) &&
                 prevSquare === from
               ) {
-                const brushColor = arrowColorMode === "engine"
-                  ? (j === 0 ? arrowColors[i].strong : arrowColors[i].pale)
-                  : arrowColorMode === "quality"
-                    ? getQualityColor(winChance, j === 0)
-                    : pctBestToColor(pctBestForMove(winChance, j === 0), j === 0);
+                const brushColor = (() => {
+                  // Color meaning: rank | score | pctBest | uniform
+                  if (arrowColorMeaning === "uniform") {
+                    return arrowColors[i].strong;
+                  }
+                  if (arrowColorMeaning === "rank") {
+                    return j === 0 ? arrowColors[i].strong : arrowColors[i].pale;
+                  }
+                  if (arrowColorMeaning === "score") {
+                    // Use quality coloring based on winChance
+                    return getQualityColor(winChance, true);
+                  }
+                  // pctBest
+                  return pctBestToColor(pctBestForMove(winChance, true), true);
+                })();
 
                 shapes.push({
                   orig: from,
@@ -474,12 +508,12 @@ function Board({
       shapes.push({
         orig: makeSquare(from)!,
         brush: "blue",
-        modifiers: { lineWidth: LARGE_BRUSH },
+        modifiers: { lineWidth: Math.max(1, Math.round(BASE_LARGE_BRUSH * Math.max(0.5, Math.min(2, arrowSizeScale)))) },
       });
       shapes.push({
         orig: makeSquare(to)!,
         brush: "paleBlue",
-        modifiers: { lineWidth: LARGE_BRUSH },
+        modifiers: { lineWidth: Math.max(1, Math.round(BASE_LARGE_BRUSH * Math.max(0.5, Math.min(2, arrowSizeScale)))) },
       });
     } catch {}
   }
@@ -834,6 +868,8 @@ function Board({
                   style={{
                     width: boardSize ? `${boardSize}px` : undefined,
                     height: boardSize ? `${boardSize}px` : undefined,
+                    // Allow live control of arrow opacity via CSS var consumed in chessgroundBaseOverride.css
+                    ["--arrow-opacity" as any]: String(Math.max(0, Math.min(1, arrowOpacity))),
                     ...(isBasicAnnotation(currentNode.annotations[0])
                       ? {
                           "--light-color": lightColor,

@@ -176,6 +176,48 @@ export const arrowColorModeAtom = atomWithStorage<"engine" | "quality" | "pctBes
   "pctBest",
   createZodStorage(z.enum(["engine", "quality", "pctBest"]), localStorage),
 );
+export const arrowEmphasisModeAtom = atomWithStorage<"rank" | "uniform">(
+  "arrow-emphasis-mode",
+  "rank",
+  createZodStorage(z.enum(["rank", "uniform"]), localStorage),
+);
+export const arrowColorMeaningAtom = atomWithStorage<"rank" | "score" | "pctBest" | "uniform">(
+  "arrow-color-meaning",
+  "pctBest",
+  createZodStorage(z.enum(["rank", "score", "pctBest", "uniform"]), localStorage),
+);
+export const arrowOpacityMeaningAtom = atomWithStorage<"rank" | "score" | "pctBest" | "uniform">(
+  "arrow-opacity-meaning",
+  "rank",
+  createZodStorage(z.enum(["rank", "score", "pctBest", "uniform"]), localStorage),
+);
+export const arrowSizeMeaningAtom = atomWithStorage<"rank" | "score" | "pctBest" | "uniform">(
+  "arrow-size-meaning",
+  "rank",
+  createZodStorage(z.enum(["rank", "score", "pctBest", "uniform"]), localStorage),
+);
+export const arrowCountPolicyAtom = atomWithStorage<"alwaysTopN" | "threshold">(
+  "arrow-count-policy",
+  "threshold",
+  createZodStorage(z.enum(["alwaysTopN", "threshold"]), localStorage),
+);
+export const arrowBestThresholdAtom = atomWithStorage<number>(
+  "arrow-best-threshold",
+  10,
+);
+// Arrow rendering customization
+export const arrowOpacityAtom = atomWithStorage<number>(
+  "arrow-opacity",
+  0.6,
+  undefined,
+  { getOnInit: true },
+);
+export const arrowSizeScaleAtom = atomWithStorage<number>(
+  "arrow-size-scale",
+  1,
+  undefined,
+  { getOnInit: true },
+);
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
   "erase-drawables-on-click",
   false,
@@ -472,6 +514,8 @@ export const bestMovesFamily = atomFamily(
       if (!tab) return new Map();
       const engines = get(loadableEnginesAtom);
       if (!(engines.state === "hasData")) return new Map();
+      const policy = get(arrowCountPolicyAtom);
+      const threshold = get(arrowBestThresholdAtom);
       const bestMoves = new Map<
         number,
         { pv: string[]; winChance: number }[]
@@ -510,17 +554,23 @@ export const bestMovesFamily = atomFamily(
           const bestWinChange = getWinChance(
             normalizeScore(moves[0].score.value, pos?.turn || "white"),
           );
-          // Use all moves up to MultiPV limit for arrows
-          const effectiveMoves = moves.slice(0, Math.min(moves.length, multiPvLimit));
+          // Use all moves up to MultiPV limit for arrows (filtered by policy)
+          const truncated = moves.slice(0, Math.min(moves.length, multiPvLimit));
+          const effectiveMoves = policy === "alwaysTopN"
+            ? truncated
+            : truncated.filter((m) => {
+                const w = getWinChance(
+                  normalizeScore(m.score.value, pos?.turn || "white"),
+                );
+                return (bestWinChange - w) < threshold;
+              });
           bestMoves.set(
             n,
             effectiveMoves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
               const winChance = getWinChance(
                 normalizeScore(m.score.value, pos?.turn || "white"),
               );
-              if (bestWinChange - winChance < 10) {
-                acc.push({ pv: m.uciMoves, winChance });
-              }
+              acc.push({ pv: m.uciMoves, winChance });
               return acc;
             }, []),
           );

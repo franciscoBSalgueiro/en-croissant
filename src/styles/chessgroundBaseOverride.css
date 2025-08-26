@@ -109,7 +109,7 @@ piece.fading {
 
 .cg-wrap .cg-shapes {
   overflow: hidden;
-  opacity: 0.6;
+  opacity: var(--arrow-opacity, 0.6);
   z-index: 2;
 }
 

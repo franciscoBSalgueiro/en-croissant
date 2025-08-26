@@ -13,10 +13,11 @@ import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { type Opening, searchPosition } from "@/utils/db";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
-import { activeTabAtom, tabEngineSettingsFamily } from "@/state/atoms";
+import { activeTabAtom, tabEngineSettingsFamily, arrowBestThresholdAtom, arrowCountPolicyAtom } from "@/state/atoms";
 import { swapMove } from "@/utils/chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { getMaterialDiff } from "@/utils/chess";
+import { loadable } from "jotai/utils";
 
 // Database types
 export type DBType =
@@ -813,59 +814,80 @@ export const unifiedMovesFamily = atomFamily(
 
 // Derived arrows for board drawing, built from the same engine data (threat-aware)
 export const unifiedBoardArrowsFamily = atomFamily(
-  ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
+  ({ rootFen, fen, gameMoves }: { rootFen: string; fen: string; gameMoves: string[] }) =>
     atom<Map<number, { pv: string[]; winChance: number }[]>>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return new Map();
-      const engines = get(enginesAtom).filter((e) => e.loaded);
 
-      const bestMoves = new Map<number, { pv: string[]; winChance: number }[]>();
-      let n = 0;
-      for (const engine of engines) {
-        const engineMoves = get(engineMovesFamily({ tab, engine: engine.name }));
-        const engineSettings = get(
-          tabEngineSettingsFamily({
-            tab,
-            engineName: engine.name,
-            defaultSettings: engine.settings ?? undefined,
-            defaultGo: engine.go ?? undefined,
-          }),
-        );
-        const multiPvLimit = Number.parseInt(
-          engineSettings.settings.find((s) => s.name === "MultiPV")?.value?.toString() ?? "5",
-        );
+      const policy = get(arrowCountPolicyAtom);
+      const threshold = get(arrowBestThresholdAtom);
 
-        const [pos] = positionFromFen(fen);
-        let finalFen = INITIAL_FEN;
-        if (pos) {
-          for (const move of gameMoves) {
-            const m = parseUci(move);
-            if (m) pos.play(m);
-          }
-          finalFen = makeFen(pos.toSetup());
+      // Use the same unified aggregator used by tables/graphs
+      const unifiedLoadable = get(
+        loadable(
+          unifiedMovesFamily({ rootFen, fen, moves: gameMoves, tab }) as any,
+        ),
+      );
+      if ((unifiedLoadable as any).state !== "hasData") return new Map();
+      const unified = (unifiedLoadable as any).data as UnifiedMove[];
+
+      // Prefer moves that have engine PV (uciMoves) so arrows can be drawn
+      const withPv = unified
+        .filter((m) => Array.isArray(m.pv) && m.pv.length > 0 && typeof m.winChance === "number")
+        .sort((a, b) => (b.winChance ?? 0) - (a.winChance ?? 0));
+      if (withPv.length === 0) return new Map();
+
+      const best = withPv[0];
+      const bestWin = best.winChance ?? 0;
+
+      const filtered = policy === "alwaysTopN"
+        ? withPv.slice(0, 5)
+        : withPv.filter((m) => (bestWin - (m.winChance ?? 0)) < threshold);
+      // Ensure the best move is present even if policy would filter it
+      const ensured = filtered.some((m) => m.move === best.move) ? filtered : [best, ...filtered].slice(0, 5);
+
+      // Fallback: if PV is missing, synthesize a single-move PV from SAN
+      const [pos0] = positionFromFen(fen);
+      if (pos0) {
+        for (const u of gameMoves) {
+          const mv = parseUci(u);
+          if (!mv) break;
+          pos0.play(mv);
         }
-        const moves =
-          engineMoves.get(`${swapMove(finalFen)}:`) ||
-          engineMoves.get(`${fen}:${gameMoves.join(",")}`);
-        if (moves && moves.length > 0) {
-          const bestWinChance = getWinChance(
-            normalizeScore(moves[0].score.value, pos?.turn || "white"),
-          );
-          const effectiveMoves = moves.slice(0, Math.min(moves.length, multiPvLimit));
-          const arr = effectiveMoves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
-            const winChance = getWinChance(
-              normalizeScore(m.score.value, pos?.turn || "white"),
-            );
-            if (bestWinChance - winChance < 10) {
-              acc.push({ pv: m.uciMoves, winChance });
-            }
-            return acc;
-          }, []);
-          if (arr.length > 0) bestMoves.set(n, arr);
-        }
-        n++;
       }
-      return bestMoves;
+      const toUciFromSan = (p: any, san: string | undefined): string | undefined => {
+        if (!p || !san) return undefined;
+        try {
+          const mv: any = parseSan(p, san);
+          if (!mv) return undefined;
+          const fileToChar = (f: number) => String.fromCharCode("a".charCodeAt(0) + f);
+          const rankToChar = (r: number) => String(r + 1);
+          const from = mv.from as number | undefined;
+          const to = mv.to as number | undefined;
+          if (from === undefined || to === undefined) return undefined;
+          const ffile = squareFile(from);
+          const frank = squareRank(from);
+          const tfile = squareFile(to);
+          const trank = squareRank(to);
+          const promo = (mv.promotion && typeof mv.promotion === "string") ? (mv.promotion as string).charAt(0) : undefined;
+          return `${fileToChar(ffile)}${rankToChar(frank)}${fileToChar(tfile)}${rankToChar(trank)}${promo ? promo : ""}`;
+        } catch {
+          return undefined;
+        }
+      };
+
+      const arr = ensured.map((m) => {
+        const hasPv = Array.isArray(m.pv) && m.pv.length > 0;
+        if (hasPv) return { pv: m.pv as string[], winChance: m.winChance as number };
+        // synthesize from first SAN move
+        const san = Array.isArray(m.sanMoves) && m.sanMoves.length > 0 ? m.sanMoves[0] : (m.san || m.move);
+        const p = pos0 ? pos0.clone() : null;
+        const uci = p ? toUciFromSan(p, san) : undefined;
+        return { pv: uci ? [uci] : [], winChance: m.winChance as number };
+      }).filter((e) => e.pv.length > 0);
+      const res = new Map<number, { pv: string[]; winChance: number }[]>();
+      if (arr.length > 0) res.set(0, arr);
+      return res;
     }),
-  (a, b) => a.fen === b.fen && a.gameMoves.length === b.gameMoves.length && a.gameMoves.every((m, i) => m === b.gameMoves[i]),
-); 
+  (a, b) => a.rootFen === b.rootFen && a.fen === b.fen && a.gameMoves.length === b.gameMoves.length && a.gameMoves.every((m, i) => m === b.gameMoves[i]),
+);
