@@ -36,9 +36,9 @@ use crate::chess::{
     kill_engine, kill_engines, stop_engine, score_all_moves,
 };
 use crate::db::{
-    clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
-    delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    search_position,
+    append_game, clear_games, convert_pgn, create_indexes, delete_database, delete_db_game,
+    delete_empty_games, delete_indexes, export_to_pgn, get_player, get_players_game_info,
+    get_tournaments, search_position,
 };
 use crate::fide::{download_fide_db, find_fide_player};
 use crate::fs::{set_file_as_executable, DownloadProgress};
@@ -143,6 +143,7 @@ fn main() {
             delete_indexes,
             create_indexes,
             edit_db_info,
+            append_game,
             delete_db_game,
             delete_database,
             export_to_pgn,

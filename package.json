@@ -82,6 +82,8 @@
     "recharts": "^2.14.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
+    "stockfish": "^17.1.0",
+    "stockfish.wasm": "^0.10.0",
     "swr": "^2.2.5",
     "tiptap-markdown": "^0.8.9",
     "ts-fsrs": "^3.5.1",

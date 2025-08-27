@@ -7,6 +7,8 @@ import type {
 } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { query_games } from "@/utils/db";
+import { useAtomValue } from "jotai";
+import { historyAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
@@ -62,12 +64,38 @@ function GameTable({ database }: { database: DatabaseInfo }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
-  const { data, isLoading, mutate } = useSWR(["games", query], () =>
-    query_games(file, query),
+  const isHistory = file === "history:botvinnik";
+  const history = useAtomValue(historyAtom);
+  const { data, isLoading, mutate } = useSWR(
+    isHistory ? null : ["games", query],
+    () => query_games(file, query),
   );
 
-  const games = data?.data ?? [];
-  const count = data?.count;
+  const games = isHistory
+    ? ((history || []).map((h, i) => ({
+        id: i,
+        fen: "",
+        event: "Botvinnik",
+        event_id: 0 as any,
+        site: "",
+        site_id: 0 as any,
+        date: h.date || undefined,
+        time: h.time || undefined,
+        round: null as any,
+        white: h.white,
+        white_id: 0 as any,
+        white_elo: (h.whiteElo as any) ?? null,
+        black: h.black,
+        black_id: 0 as any,
+        black_elo: (h.blackElo as any) ?? null,
+        result: (h.result as any) || "*",
+        time_control: null as any,
+        eco: null as any,
+        ply_count: (h.moves as any) ?? null,
+        moves: h.pgn,
+      })) as any as NormalizedGame[])
+    : (data?.data ?? []);
+  const count = isHistory ? games.length : data?.count;
 
   useHotkeys([
     [
@@ -334,7 +362,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
         }
         preview={
           selectedGame !== null && games[selectedGame] ? (
-            <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
+            <GameCard game={games[selectedGame]} file={file} mutate={mutate ?? (() => {})} />
           ) : (
             <Center h="100%">
               <Text>No game selected</Text>

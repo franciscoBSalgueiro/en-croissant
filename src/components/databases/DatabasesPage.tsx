@@ -1,7 +1,9 @@
 import { commands } from "@/bindings";
 import type { DatabaseInfo } from "@/bindings";
 import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
-import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
+import { type SuccessDatabaseInfo, getDatabases, getBotvinnikDbPath } from "@/utils/db";
+import { useAtomValue } from "jotai";
+import { historyAtom } from "@/state/atoms";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import {
@@ -42,11 +44,31 @@ export default function DatabasesPage() {
   const { t } = useTranslation();
 
   const {
-    data: databases,
+    data: databasesRaw,
     error,
     isLoading,
     mutate,
   } = useSWR("databases", () => getDatabases());
+
+  // Inject synthetic, undeletable "Botvinnik" database at top, backed by history
+  const history = useAtomValue(historyAtom);
+  const databases = useMemo(() => {
+    const list = databasesRaw ?? [];
+    const synthetic = {
+      type: "success" as const,
+      title: "Botvinnik",
+      description: "Games played in Botvinnik app",
+      player_count: 0,
+      event_count: 0,
+      game_count: (history?.length ?? 0) as any,
+      storage_size: 0 as any,
+      filename: "botvinnik",
+      indexed: false,
+      file: "history:botvinnik",
+    } as any as SuccessDatabaseInfo & { file: string };
+    // put at the top
+    return [synthetic, ...list];
+  }, [databasesRaw, history]);
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -185,6 +207,7 @@ export default function DatabasesPage() {
                   ]}
                 />
               ))}
+            {/* Hide convert button when Botvinnik synthetic is selected */}
             <ConvertButton setOpen={setOpen} loading={convertLoading} />
           </SimpleGrid>
         </ScrollArea>
@@ -218,11 +241,13 @@ export default function DatabasesPage() {
                       variant="dashed"
                       label={t("Common.GeneralSettings")}
                     />
-                    <GeneralSettings
-                      key={selectedDatabase.filename}
-                      selectedDatabase={selectedDatabase}
-                      mutate={mutate}
-                    />
+                    {selectedDatabase.filename !== "botvinnik" && (
+                      <GeneralSettings
+                        key={selectedDatabase.filename}
+                        selectedDatabase={selectedDatabase}
+                        mutate={mutate}
+                      />
+                    )}
                     <Checkbox
                       label={t("Databases.Settings.ReferenceDatabase")}
                       checked={isReference}
@@ -230,11 +255,13 @@ export default function DatabasesPage() {
                         changeReferenceDatabase(selectedDatabase.file);
                       }}
                     />
-                    <IndexInput
-                      indexed={selectedDatabase.indexed}
-                      file={selectedDatabase.file}
-                      setDatabases={mutate}
-                    />
+                    {selectedDatabase.filename !== "botvinnik" && (
+                      <IndexInput
+                        indexed={selectedDatabase.indexed}
+                        file={selectedDatabase.file}
+                        setDatabases={mutate}
+                      />
+                    )}
 
                     <Divider variant="dashed" label={t("Common.Data")} />
                     <Group grow>
@@ -288,7 +315,7 @@ export default function DatabasesPage() {
                   label={t("Databases.Settings.AdvancedTools")}
                 />
 
-                {selectedDatabase.type === "success" && (
+                {selectedDatabase.type === "success" && selectedDatabase.filename !== "botvinnik" && (
                   <AdvancedSettings
                     selectedDatabase={selectedDatabase}
                     reload={mutate}
@@ -300,7 +327,7 @@ export default function DatabasesPage() {
                   label={t("Databases.Settings.Actions")}
                 />
                 <Group justify="space-between">
-                  {selectedDatabase.type === "success" && (
+                  {selectedDatabase.type === "success" && selectedDatabase.filename !== "botvinnik" && (
                     <Group>
                       <Button
                         variant="default"
@@ -345,9 +372,11 @@ export default function DatabasesPage() {
                       </Button>
                     </Group>
                   )}
-                  <Button onClick={() => toggleDeleteModal()} color="red">
-                    {t("Common.Delete")}
-                  </Button>
+                  {selectedDatabase.filename !== "botvinnik" && (
+                    <Button onClick={() => toggleDeleteModal()} color="red">
+                      {t("Common.Delete")}
+                    </Button>
+                  )}
                 </Group>
               </Stack>
             </ScrollArea>

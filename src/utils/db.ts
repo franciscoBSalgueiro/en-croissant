@@ -118,6 +118,12 @@ async function getDatabase(name: string): Promise<DatabaseInfo> {
   };
 }
 
+export async function getBotvinnikDbPath(): Promise<string> {
+  const base = await appDataDir();
+  // keep a stable name; ensure .db3 to be discovered by getDatabases
+  return await resolve(base, "db", "botvinnik.db3");
+}
+
 export function useDefaultDatabases(opened: boolean) {
   const { data, error, isLoading } = useSWR(
     opened ? "default-dbs" : null,

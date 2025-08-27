@@ -12,6 +12,11 @@ export default defineConfig({
   plugins: [react(), vanillaExtractPlugin(), TanStackRouterVite()],
   server: {
     port: 1420,
+    headers: {
+      // Needed for wasm threads used by stockfish.wasm
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   build: {
     minify: isDebug ? false : "esbuild",
@@ -25,7 +30,11 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: [{ find: "@", replacement: resolve(__dirname, "./src") }],
+    alias: [
+      { find: "@", replacement: resolve(__dirname, "./src") },
+      // In pure web mode, optionally alias engines to the WASM-backed shim by setting WEB=1
+      ...(process.env.WEB ? [{ find: "@/utils/engines", replacement: resolve(__dirname, "./src/utils/engines.web.ts") }] : []),
+    ],
   },
   test: {
     environment: "jsdom",

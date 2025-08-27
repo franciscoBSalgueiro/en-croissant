@@ -361,6 +361,11 @@ export async function getOpening(
   if (tree === null) {
     return "";
   }
+  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+  if (!isTauri) {
+    // No backend in web mode; skip opening lookup
+    return "";
+  }
   const res = await commands.getOpeningFromFen(tree.fen);
   if (res.status === "error") {
     if (position.length === 0) {

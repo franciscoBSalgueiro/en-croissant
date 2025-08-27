@@ -3,7 +3,8 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import * as classes from "./TopBar.css";
 
 import { useColorScheme } from "@mantine/hooks";
-const appWindow = getCurrentWebviewWindow();
+const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+const appWindow = isTauri ? getCurrentWebviewWindow() : null as any;
 
 function IconMinimize() {
   return (
@@ -130,7 +131,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
             <Center
               h={35}
               w={45}
-              onClick={() => appWindow.minimize()}
+              onClick={() => appWindow?.minimize?.()}
               className={classes.icon}
             >
               <IconMinimize />
@@ -138,7 +139,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
             <Center
               h={35}
               w={45}
-              onClick={() => appWindow.toggleMaximize()}
+              onClick={() => appWindow?.toggleMaximize?.()}
               className={classes.icon}
             >
               <IconMaximize />
@@ -146,7 +147,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
             <Center
               h={35}
               w={45}
-              onClick={() => appWindow.close()}
+              onClick={() => appWindow?.close?.()}
               className={classes.close}
             >
               <IconX />

@@ -9,7 +9,6 @@ import {
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getMatches } from "@tauri-apps/plugin-cli";
 import { attachConsole, info } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
@@ -67,9 +66,10 @@ const router = createRouter({
   context: {
     loadDirs: async () => {
       const store = getDefaultStore();
-      const doc =
-        store.get(storedDocumentDirAtom) ||
-        (await resolve(await documentDir(), "EnCroissant"));
+      const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+      const doc = store.get(storedDocumentDirAtom) || (
+        isTauri ? await resolve(await documentDir(), "EnCroissant") : "EnCroissant"
+      );
       const dirs: Dirs = { documentDir: doc };
       return dirs;
     },
@@ -92,55 +92,91 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      await commands.closeSplashscreen();
-      const detach = await attachConsole();
-      info("React app started successfully");
+      const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+      let detach: () => void = () => {};
+      if (isTauri) {
+        try { await commands.closeSplashscreen(); } catch {}
+        try { detach = await attachConsole(); } catch {}
+        try { info("React app started successfully"); } catch {}
+      }
 
       // Auto-install bundled Stockfish at startup (if present)
-      try {
-        const bundled = await getBundledStockfishPath();
-        if (bundled) {
-          const exists = engines.some(
-            (e: any) => e.type === "local" && (e as LocalEngine).path === bundled,
-          );
-          if (!exists) {
-            try { await commands.setFileAsExecutable(bundled); } catch {}
-            const config = await commands.getEngineConfig(bundled);
-            if (config.status === "ok") {
-              const opts = config.data.options;
-              const newEngine: LocalEngine = {
-                type: "local",
-                name: "Stockfish",
-                version: "Bundled",
-                path: bundled,
-                image: "",
-                elo: 3635,
-                loaded: true,
-                settings: opts
-                  .filter((o: any) => requiredEngineSettings.includes(o.value.name) && "default" in o.value)
-                  .map((o: any) => ({ name: o.value.name, value: (o.value as any).default })),
-              };
-              const updated = [...engines, newEngine];
-              setEngines(updated);
-              await saveEngines(updated as any);
-              try { await (persist as any)(updated as any); } catch {}
-              info("Auto-installed bundled Stockfish engine at startup");
+      if (isTauri) {
+        try {
+          const bundled = await getBundledStockfishPath();
+          if (bundled) {
+            const exists = engines.some(
+              (e: any) => e.type === "local" && (e as LocalEngine).path === bundled,
+            );
+            if (!exists) {
+              try { await commands.setFileAsExecutable(bundled); } catch {}
+              const config = await commands.getEngineConfig(bundled);
+              if (config.status === "ok") {
+                const opts = config.data.options;
+                const newEngine: LocalEngine = {
+                  type: "local",
+                  name: "Stockfish",
+                  version: "Bundled",
+                  path: bundled,
+                  image: "",
+                  elo: 3635,
+                  loaded: true,
+                  settings: opts
+                    .filter((o: any) => requiredEngineSettings.includes(o.value.name) && "default" in o.value)
+                    .map((o: any) => ({ name: o.value.name, value: (o.value as any).default })),
+                };
+                const updated = [...engines, newEngine];
+                setEngines(updated);
+                await saveEngines(updated as any);
+                try { await (persist as any)(updated as any); } catch {}
+                try { info("Auto-installed bundled Stockfish engine at startup"); } catch {}
+              }
             }
           }
-        }
-      } catch {}
+        } catch {}
+      } else {
+        // Web mode: ensure a default WASM engine is present
+        try {
+          const hasWasm = engines.some(
+            (e: any) => e.type === "local" && ((e as any).path?.startsWith?.("wasm:") || e.name.includes("WASM")),
+          );
+          if (!hasWasm) {
+            const newEngine: LocalEngine = {
+              type: "local",
+              name: "Stockfish (WASM)",
+              version: "17.1",
+              path: "wasm:stockfish-17.1",
+              image: "",
+              elo: 3500,
+              loaded: true,
+              settings: [
+                { name: "MultiPV", value: 5 },
+                { name: "Threads", value: 1 },
+                { name: "Hash", value: 16 },
+              ],
+            } as any;
+            const updated = [...engines, newEngine];
+            setEngines(updated);
+            try { await (persist as any)(updated as any); } catch {}
+          }
+        } catch {}
+      }
 
-      const matches = await getMatches();
-      if (matches.args.file.occurrences > 0) {
-        info(`Opening file from command line: ${matches.args.file.value}`);
-        if (typeof matches.args.file.value === "string") {
-          const file = matches.args.file.value;
-          openFile(file, setTabs, setActiveTab);
-        }
+      if (isTauri) {
+        try {
+          const matches = await getMatches();
+          if (matches.args.file.occurrences > 0) {
+            try { info(`Opening file from command line: ${matches.args.file.value}`); } catch {}
+            if (typeof matches.args.file.value === "string") {
+              const file = matches.args.file.value;
+              openFile(file, setTabs, setActiveTab);
+            }
+          }
+        } catch {}
       }
 
       return () => {
-        detach();
+        try { detach(); } catch {}
       };
     })();
   }, []);

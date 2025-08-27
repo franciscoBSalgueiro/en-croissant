@@ -51,6 +51,7 @@ use tauri_specta::Event as _;
 use self::encoding::encode_move;
 
 pub use self::models::NormalizedGame;
+use self::models::{NewGame, Game as DbGame};
 pub use self::models::Puzzle;
 pub use self::schema::puzzles;
 pub use self::search::{
@@ -516,6 +517,50 @@ fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
     let query = sql_query("SELECT name FROM pragma_index_list('Games');");
     let indexes: Vec<IndexInfo> = query.load(conn)?;
     Ok(!indexes.is_empty())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn append_game(
+    file: PathBuf,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<i32, Error> {
+    use pgn_reader::BufferedReader;
+
+    let path_str = file.to_str().unwrap();
+    let existed = std::path::Path::new(path_str).exists();
+    let db = &mut get_db_or_create(&state, path_str, ConnectionOptions::default())?;
+
+    if !existed {
+        // Initialize schema and default info
+        db.batch_execute(CREATE_TABLES_SQL)?;
+        db.batch_execute(
+            format!(
+                "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
+                INSERT INTO Info (Name, Value) VALUES (\"Title\", \"Botvinnik\");
+                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"Games played in Botvinnik app\");"
+            )
+            .as_str(),
+        )?;
+    }
+
+    // Parse a single PGN game and insert
+    let mut importer = Importer::new(None);
+    let mut first: Option<TempGame> = None;
+    for game in BufferedReader::new(pgn.as_bytes()).into_iter(&mut importer).flatten().flatten() {
+        first = Some(game);
+        break;
+    }
+    let Some(game) = first else { return Err(Error::NoMatchFound); };
+
+    let inserted = db.transaction::<DbGame, diesel::result::Error, _>(|db| {
+        game.insert_to_db(db)?;
+        // fetch last inserted game id
+        use crate::db::schema::games::dsl::*;
+        games.order(id.desc()).first::<DbGame>(db)
+    })?;
+    Ok(inserted.id)
 }
 
 #[tauri::command]

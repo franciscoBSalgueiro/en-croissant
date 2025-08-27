@@ -1,4 +1,4 @@
-import { events } from "@/bindings";
+import { events, commands } from "@/bindings";
 import {
   activeTabAtom,
   autoStartAnalysisAtom,
@@ -58,6 +58,7 @@ import type { PiecesCount } from "@/utils/chess";
 import PlayerPanel from "./PlayerPanel";
 import { playedMovesFamily } from "@/state/playedMoves";
 import type { UnifiedMove } from "@/state/unifiedMoves";
+import { getBotvinnikDbPath } from "@/utils/db";
 import type { OpponentSettings } from "./types";
 import { normalizeScore } from "@/utils/score";
 import { getPGN } from "@/utils/chess";
@@ -394,6 +395,8 @@ function BoardGame() {
   }, [lastNode.fen, pos?.turn]);
 
   useEffect(() => {
+    const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+    if (!isTauri) return;
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       // Only auto-play from engine events if the current player is an actual engine (not bot)
       const currentPlayer = pos?.turn === "white" ? players.white : players.black;
@@ -417,7 +420,8 @@ function BoardGame() {
       }
     });
     return () => {
-      unlisten.then((f) => f());
+      // unlisten is a promise resolving to a function in tauri-specta bindings
+      (unlisten as any)?.then?.((f: any) => f?.());
     };
   }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime, players]);
 
@@ -684,6 +688,14 @@ function BoardGame() {
       ];
       // capture ISO timestamp in case headers.date/utc_time are not present
       const isoNow = new Date().toISOString();
+      // Persist PGN to Botvinnik DB (SQLite) via append_game
+      (async () => {
+        try {
+          const botvinnikPath = await getBotvinnikDbPath();
+          await (commands as any).appendGame(botvinnikPath, pgn);
+        } catch {}
+      })();
+
       pushHistory((prev: HistoryEntry[]) => [
         {
           white: headers.white || "White",

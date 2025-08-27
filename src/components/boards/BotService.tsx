@@ -79,6 +79,8 @@ export default function BotService() {
     if (enginePaused) return;
     if (headers.result !== "*") return;
     if (!botEnginePath) return;
+    const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+    if (!isTauri) return;
 
     const currentTurn = pos.turn;
     const player = currentTurn === "white" ? players.white : players.black;
@@ -150,6 +152,8 @@ export default function BotService() {
 
   // Listen to engine best-move events to update suggestion and play move for Bot
   useEffect(() => {
+    const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+    if (!isTauri) return;
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       try {
         const isOurTurn = pos?.turn;
@@ -190,7 +194,7 @@ export default function BotService() {
       } catch {}
     });
     return () => {
-      unlisten.then((f) => f());
+      (unlisten as any)?.then?.((f: any) => f?.());
     };
   }, [pos, activeTab, players, root.fen, headers.variant, position, makeMove, setLastMove, setBotSuggestion]);
 

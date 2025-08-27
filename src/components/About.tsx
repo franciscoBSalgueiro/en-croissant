@@ -20,11 +20,26 @@ function AboutModal({
 
   useEffect(() => {
     async function load() {
-      const os = await type();
-      const version = await getVersion();
-      const tauri = await getTauriVersion();
-      const architecture = await arch();
-      const osVersion = await OSVersion();
+      const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+      if (isTauri) {
+        try {
+          const os = await type();
+          const version = await getVersion();
+          const tauri = await getTauriVersion();
+          const architecture = await arch();
+          const osVersion = await OSVersion();
+          setInfo({ version, tauri, os, architecture, osVersion });
+          return;
+        } catch (_) {
+          // fallback to web path below
+        }
+      }
+      const ua = (navigator as any).userAgentData;
+      const os = (ua?.platform || navigator.platform || "web") as string;
+      const architecture = (ua?.architecture || "unknown") as string;
+      const version = "web";
+      const tauri = "web";
+      const osVersion = "";
       setInfo({ version, tauri, os, architecture, osVersion });
     }
     load();

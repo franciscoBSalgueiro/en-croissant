@@ -15,6 +15,13 @@ import useSWR from "swr";
 import { z } from "zod";
 import { unwrap } from "./unwrap";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  getBestMoves as webGetBestMoves,
+  scoreAllMoves as webScoreAllMoves,
+  stopEngine as webStopEngine,
+  killEngine as webKillEngine,
+  type MoveScore as WebMoveScore,
+} from "@/utils/engines.web";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
@@ -100,15 +107,15 @@ export async function saveEngines(engines: Engine[]): Promise<void> {
 }
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
-  return commands.stopEngine(engine.path, tab).then((r) => {
-    unwrap(r);
-  });
+  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+  if (!isTauri) return webStopEngine();
+  return commands.stopEngine(engine.path, tab).then((r) => { unwrap(r); });
 }
 
 export function killEngine(engine: LocalEngine, tab: string): Promise<void> {
-  return commands.killEngine(engine.path, tab).then((r) => {
-    unwrap(r);
-  });
+  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+  if (!isTauri) return webKillEngine();
+  return commands.killEngine(engine.path, tab).then((r) => { unwrap(r); });
 }
 
 export function getBestMoves(
@@ -117,9 +124,9 @@ export function getBestMoves(
   goMode: GoMode,
   options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
-  return commands
-    .getBestMoves(engine.name, engine.path, tab, goMode, options)
-    .then((r) => unwrap(r));
+  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+  if (!isTauri) return webGetBestMoves(engine.name, tab, goMode, options) as any;
+  return commands.getBestMoves(engine.name, engine.path, tab, goMode, options).then((r) => unwrap(r));
 }
 
 export type MoveScore = { uci: string; score: Score };
@@ -129,6 +136,8 @@ export function scoreAllMoves(
   goMode: GoMode,
   options: EngineOptions,
 ): Promise<MoveScore[]> {
+  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+  if (!isTauri) return webScoreAllMoves(engine.name, goMode, options) as any;
   return commands.scoreAllMoves(engine.path, goMode, options).then((r) => unwrap(r));
 }
 

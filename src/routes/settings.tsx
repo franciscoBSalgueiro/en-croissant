@@ -6,6 +6,6 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
   loader: async ({ context: { loadDirs } }) => ({
     dirs: await loadDirs(),
-    version: await getVersion(),
+    version: (typeof (globalThis as any).__TAURI__ !== "undefined") ? await getVersion() : "web",
   }),
 });

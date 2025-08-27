@@ -32,6 +32,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { TreeStateContext } from "../common/TreeStateContext";
 import { info as logInfo } from "@tauri-apps/plugin-log";
+import { buildAnalysisCacheKey, getCachedAnalysis, storeAnalysis } from "@/utils/analysisCache";
 
 function EvalListener() {
   const [engines] = useAtom(enginesAtom);
@@ -150,7 +151,9 @@ function EngineListener({
     }),
   );
   useEffect(() => {
+    const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
     if (!settings.enabled) return;
+    if (!isTauri) return;
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       const ev = payload.bestLines;
       if (
@@ -213,6 +216,71 @@ function EngineListener({
     JSON.stringify(searchingMoves),
     engine.name,
     setEngineVariation,
+  ]);
+
+  // Web-mode streaming: listen for partial WASM updates and mirror the tauri event flow
+  useEffect(() => {
+    const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
+    if (!settings.enabled) return;
+    if (isTauri) return;
+    // Dynamically import to avoid bundling in tauri
+    let off: (() => void) | undefined;
+    import("@/utils/webEvents").then(({ listenBestMoves }) => {
+      off = listenBestMoves(({ engine: evEngine, tab: evTab, fen: evFen, moves: evMoves, bestLines, progress }) => {
+        if (
+          evEngine === engine.name &&
+          evTab === activeTab &&
+          evFen === searchingFen &&
+          JSON.stringify(evMoves) === JSON.stringify(searchingMoves) &&
+          settings.enabled &&
+          !isGameOver
+        ) {
+          const now = Date.now();
+          const top = bestLines?.[0];
+          const sig = `${progress}:${top?.depth || 0}:${top?.nodes || 0}:${top?.uciMoves?.[0] || ""}`;
+          setProgress(progress);
+          const timeSinceLast = now - (lastEventTsRef.current || 0);
+          const sameSig = sig === lastSigRef.current;
+          const shouldUpdateMap = progress === 100 || now - (lastMapUpdateTsRef.current || 0) > 200 || !sameSig;
+          if (shouldUpdateMap) {
+            lastMapUpdateTsRef.current = now;
+            setEngineVariation((prev) => {
+              const newMap = new Map(prev);
+              const key = `${searchingFen}:${searchingMoves.join(",")}`;
+              const prevVal = newMap.get(key);
+              const prevTop = prevVal?.[0];
+              const changed = !prevTop || prevTop.depth !== top?.depth || prevTop.nodes !== top?.nodes || prevTop.uciMoves?.[0] !== top?.uciMoves?.[0] || prevVal.length !== bestLines.length;
+              if (changed) {
+                newMap.set(key, bestLines);
+              }
+              if (threat) {
+                newMap.delete(`${fen}:${moves.join(",")}`);
+              } else if (finalFen) {
+                newMap.delete(`${swapMove(finalFen)}:`);
+              }
+              return newMap;
+            });
+            if (top?.score) setScore(top.score);
+          }
+          lastEventTsRef.current = now;
+          lastSigRef.current = sig;
+        }
+      });
+    });
+    return () => { try { off?.(); } catch {} };
+  }, [
+    activeTab,
+    setScore,
+    settings.enabled,
+    isGameOver,
+    searchingFen,
+    JSON.stringify(searchingMoves),
+    engine.name,
+    setEngineVariation,
+    threat,
+    fen,
+    moves,
+    finalFen,
   ]);
 
   const getBestMoves = useMemo(
@@ -285,38 +353,106 @@ function EngineListener({
             }
           }
 
-          // Run analysis with adjusted MultiPV
-          getBestMoves(activeTab!, settings.go, {
-            moves: searchingMoves,
-            fen: searchingFen,
-            extraOptions: adjustedOptions,
-            useCache: settings.useCache,
-          }).then((moves) => {
-            if (moves) {
-              const [progress, bestMoves] = moves;
-              
-              // Store all moves (for unified table access)
-              setEngineVariation((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(
-                  `${searchingFen}:${searchingMoves.join(",")}`,
-                  bestMoves,
-                );
-                
-                // If allMoves is enabled, also store limited moves for display
-                if (engine.type === "local" && settings.allMoves) {
-                  const limitedMoves = bestMoves.slice(0, originalMultiPV);
-                  newMap.set(
-                    `${searchingFen}:${searchingMoves.join(",")}_display`,
-                    limitedMoves,
-                  );
+          // Try IndexedDB cache first (only for finite modes or always if enabled)
+          (async () => {
+            try {
+              if (settings.useCache) {
+                const engineId = (engine as any).path || (engine as any).url || engine.name;
+                const key = await buildAnalysisCacheKey({
+                  fen: searchingFen,
+                  moves: searchingMoves,
+                  engineId,
+                  goMode: settings.go as any,
+                  options: adjustedOptions,
+                });
+                const cached = await getCachedAnalysis(key);
+                if (cached) {
+                  // eslint-disable-next-line no-console
+                  console.info("[CACHE] hit", { key, depth: cached.depth, nodes: cached.nodes });
+                  const mode = settings.go as any;
+                  const accept =
+                    mode?.t === "Depth" ? (cached.depth || 0) >= (mode?.c || 0) : mode?.t !== "Infinite";
+                  if (accept) {
+                    setEngineVariation((prev) => {
+                      const newMap = new Map(prev);
+                      newMap.set(
+                        `${searchingFen}:${searchingMoves.join(",")}`,
+                        cached.bestMoves,
+                      );
+                      if (engine.type === "local" && settings.allMoves) {
+                        const limited = cached.bestMoves.slice(0, originalMultiPV);
+                        newMap.set(
+                          `${searchingFen}:${searchingMoves.join(",")}_display`,
+                          limited,
+                        );
+                      }
+                      return newMap;
+                    });
+                    setProgress(100);
+                    return; // do not start engine
+                  }
                 }
-                
-                return newMap;
-              });
-              setProgress(progress);
+              }
+            } catch (_) {
+              // ignore cache errors
             }
-          });
+
+            // Run analysis with adjusted MultiPV
+            // eslint-disable-next-line no-console
+            console.info("[ANALYZE] start", { engine: engine.name, go: settings.go, options: adjustedOptions });
+            getBestMoves(activeTab!, settings.go, {
+              moves: searchingMoves,
+              fen: searchingFen,
+              extraOptions: adjustedOptions,
+              useCache: settings.useCache,
+            }).then(async (moves) => {
+              if (moves) {
+                const [progress, bestMoves] = moves;
+                
+                // Store all moves (for unified table access)
+                setEngineVariation((prev) => {
+                  const newMap = new Map(prev);
+                  newMap.set(
+                    `${searchingFen}:${searchingMoves.join(",")}`,
+                    bestMoves,
+                  );
+                  
+                  // If allMoves is enabled, also store limited moves for display
+                  if (engine.type === "local" && settings.allMoves) {
+                    const limitedMoves = bestMoves.slice(0, originalMultiPV);
+                    newMap.set(
+                      `${searchingFen}:${searchingMoves.join(",")}_display`,
+                      limitedMoves,
+                    );
+                  }
+                  
+                  return newMap;
+                });
+                setProgress(progress);
+
+                // Persist to IndexedDB cache on completion
+                try {
+                  if (settings.useCache && progress === 100) {
+                    const engineId = (engine as any).path || (engine as any).url || engine.name;
+                    const key = await buildAnalysisCacheKey({
+                      fen: searchingFen,
+                      moves: searchingMoves,
+                      engineId,
+                      goMode: settings.go as any,
+                      options: adjustedOptions,
+                    });
+                    const depth = bestMoves.reduce((m, b) => Math.max(m, b.depth || 0), 0);
+                    const nodes = bestMoves.reduce((m, b) => Math.max(m, b.nodes || 0), 0);
+                    await storeAnalysis(key, { bestMoves, depth, nodes });
+                    // eslint-disable-next-line no-console
+                    console.info("[CACHE] store", { key, depth, nodes, count: bestMoves.length });
+                  }
+                } catch (_) {
+                  // ignore cache errors
+                }
+              }
+            });
+          })();
         }
       } else {
         if (engine.type === "local") {

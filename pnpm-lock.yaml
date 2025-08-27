@@ -181,7 +181,7 @@ importers:
         version: 4.4.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-force-graph:
         specifier: ^1.48.0
-        version: 1.48.0(aframe@1.7.1)(react@18.3.1)(three@0.179.1)
+        version: 1.48.0(aframe@1.7.1)(react@18.3.1)(three@0.164.1)
       react-helmet:
         specifier: ^6.1.0
         version: 6.1.0(react@18.3.1)
@@ -206,6 +206,12 @@ importers:
       remark-gfm:
         specifier: ^4.0.0
         version: 4.0.0
+      stockfish:
+        specifier: ^17.1.0
+        version: 17.1.0
+      stockfish.wasm:
+        specifier: ^0.10.0
+        version: 0.10.0
       swr:
         specifier: ^2.2.5
         version: 2.2.5(react@18.3.1)
@@ -3099,6 +3105,13 @@ packages:
   std-env@3.7.0:
     resolution: {integrity: sha512-JPbdCEQLj1w5GilpiHAx3qJvFndqybBysA3qUOnznweH4QbNYUsW/ea8QzSrnh0vNsezMMw5bcVool8lM0gwzg==}
 
+  stockfish.wasm@0.10.0:
+    resolution: {integrity: sha512-OTvOlz0ijCSmIb/YvOZ1Dn6vwZVS4Ge3N+RcV0d2b6LXUtCJ9UwmBHypRW3DZ+VXf8WNm7E3P+6jMTVvb3QaBg==}
+
+  stockfish@17.1.0:
+    resolution: {integrity: sha512-LvxdOzngaMjwdDKkZML4riABX9EWUkIE2ZJUsNvR2yFnM4WLiM6ggEXcBY8v53dK7uAfbxdJFcBiKTIQyGg6Zg==}
+    hasBin: true
+
   stringify-entities@4.0.3:
     resolution: {integrity: sha512-BP9nNHMhhfcMbiuQKCqMjhDP5yBCAxsPu4pHFFzJ6Alo9dZgY4VLDPutXqIjpRiMoKdp7Av85Gr73Q5uH9k7+g==}
 
@@ -3529,20 +3542,20 @@ packages:
 
 snapshots:
 
-  3d-force-graph-ar@1.10.0(aframe@1.7.1)(three@0.179.1):
+  3d-force-graph-ar@1.10.0(aframe@1.7.1)(three@0.164.1):
     dependencies:
-      aframe-forcegraph-component: 3.3.0(aframe@1.7.1)(three@0.179.1)
+      aframe-forcegraph-component: 3.3.0(aframe@1.7.1)(three@0.164.1)
       kapsule: 1.16.3
     transitivePeerDependencies:
       - aframe
       - three
 
-  3d-force-graph-vr@3.1.1(aframe@1.7.1)(three@0.179.1):
+  3d-force-graph-vr@3.1.1(aframe@1.7.1)(three@0.164.1):
     dependencies:
       accessor-fn: 1.5.3
       aframe: 1.7.1
       aframe-extras: 7.6.0
-      aframe-forcegraph-component: 3.3.0(aframe@1.7.1)(three@0.179.1)
+      aframe-forcegraph-component: 3.3.0(aframe@1.7.1)(three@0.164.1)
       kapsule: 1.16.3
       polished: 4.3.1
     transitivePeerDependencies:
@@ -4681,10 +4694,10 @@ snapshots:
       three: 0.164.1
       three-pathfinding: 1.3.0(three@0.164.1)
 
-  aframe-forcegraph-component@3.3.0(aframe@1.7.1)(three@0.179.1):
+  aframe-forcegraph-component@3.3.0(aframe@1.7.1)(three@0.164.1):
     dependencies:
       aframe: 1.7.1
-      three-forcegraph: 1.43.0(three@0.179.1)
+      three-forcegraph: 1.43.0(three@0.164.1)
     transitivePeerDependencies:
       - three
 
@@ -6393,11 +6406,11 @@ snapshots:
 
   react-fast-compare@3.2.2: {}
 
-  react-force-graph@1.48.0(aframe@1.7.1)(react@18.3.1)(three@0.179.1):
+  react-force-graph@1.48.0(aframe@1.7.1)(react@18.3.1)(three@0.164.1):
     dependencies:
       3d-force-graph: 1.78.4
-      3d-force-graph-ar: 1.10.0(aframe@1.7.1)(three@0.179.1)
-      3d-force-graph-vr: 3.1.1(aframe@1.7.1)(three@0.179.1)
+      3d-force-graph-ar: 1.10.0(aframe@1.7.1)(three@0.164.1)
+      3d-force-graph-vr: 3.1.1(aframe@1.7.1)(three@0.164.1)
       force-graph: 1.50.1
       prop-types: 15.8.1
       react: 18.3.1
@@ -6684,6 +6697,10 @@ snapshots:
 
   std-env@3.7.0: {}
 
+  stockfish.wasm@0.10.0: {}
+
+  stockfish@17.1.0: {}
+
   stringify-entities@4.0.3:
     dependencies:
       character-entities-html4: 2.1.0
@@ -6721,6 +6738,20 @@ snapshots:
       layout-bmfont-text: 1.3.4
       nice-color-palettes: 3.0.0
       quad-indices: 2.0.1
+
+  three-forcegraph@1.43.0(three@0.164.1):
+    dependencies:
+      accessor-fn: 1.5.3
+      d3-array: 3.2.4
+      d3-force-3d: 3.0.6
+      d3-scale: 4.0.2
+      d3-scale-chromatic: 3.1.0
+      data-bind-mapper: 1.0.3
+      kapsule: 1.16.3
+      ngraph.forcelayout: 3.3.1
+      ngraph.graph: 20.0.1
+      three: 0.164.1
+      tinycolor2: 1.6.0
 
   three-forcegraph@1.43.0(three@0.179.1):
     dependencies:
