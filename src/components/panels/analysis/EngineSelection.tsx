@@ -11,7 +11,6 @@ import {
   Text,
 } from "@mantine/core";
 import { IconCloud, IconCpu } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
 import { info } from "@tauri-apps/plugin-log";
 import { useAtom, useAtomValue } from "jotai";
 import { useSetAtom } from "jotai/react";
@@ -68,10 +67,7 @@ function EngineSelection() {
     <>
       {engines.length === 0 && (
         <Center>
-          <Text>
-            No engines installed. Please{" "}
-            <Link to="/engines">Add an engine</Link> first.
-          </Text>
+          <Text>Using built-in Stockfish (WASM) engine.</Text>
         </Center>
       )}
 

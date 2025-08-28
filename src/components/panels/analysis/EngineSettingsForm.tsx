@@ -11,8 +11,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
+import { IconPlayerStopFilled } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import React, { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -225,28 +224,7 @@ function SyncSettings({
 }
 
 function AdvancedSettings({ engineName }: { engineName: string }) {
-  const { t } = useTranslation();
-
-  const navigate = useNavigate();
-  const engines = useAtomValue(enginesAtom);
-
-  return (
-    <Tooltip label={t("Engines.Settings.AdvancedSettings")}>
-      <ActionIcon
-        variant="default"
-        onClick={() =>
-          navigate({
-            to: "/engines",
-            search: {
-              selected: engines.findIndex((o) => o.name === engineName),
-            },
-          })
-        }
-      >
-        <IconSettings size="1rem" />
-      </ActionIcon>
-    </Tooltip>
-  );
+  return null;
 }
 
 export default memo(EngineSettingsForm);

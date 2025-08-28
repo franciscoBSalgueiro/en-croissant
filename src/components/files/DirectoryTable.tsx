@@ -203,15 +203,19 @@ function Table({
 
   const openFile = useCallback(
     async (record: FileMetadata) => {
-      const pgn = unwrap(await commands.readGames(record.path, 0, 0));
+      let content = "";
+      try {
+        const k = `files:${record.path}`;
+        content = localStorage.getItem(k) || "";
+      } catch {
+        const pgn = unwrap(await commands.readGames(record.path, 0, 0));
+        content = pgn[0] || "";
+      }
       createTab({
-        tab: {
-          name: record?.name || "Untitled",
-          type: "analysis",
-        },
+        tab: { name: record?.name || "Untitled", type: "analysis" },
         setTabs,
         setActiveTab,
-        pgn: pgn[0] || "",
+        pgn: content,
         fileInfo: record,
         gameNumber: 0,
       });
@@ -333,12 +337,18 @@ function Table({
             title: "Delete",
             color: "red",
             onClick: async () => {
-              if (record.type === "directory") {
-                await remove(record.path, { recursive: true });
-              } else {
-                await remove(record.path);
+              try {
+                const k = `files:${record.path}`;
+                localStorage.removeItem(k);
+                localStorage.removeItem(k.replace('.pgn', '.info'));
+              } catch {
+                if (record.type === "directory") {
+                  await remove(record.path, { recursive: true });
+                } else {
+                  await remove(record.path);
+                }
               }
-              setFiles(files?.filter((f) => record.path.includes(f.path)));
+              setFiles(files?.filter((f) => record.path !== f.path));
             },
           },
         ])(event);

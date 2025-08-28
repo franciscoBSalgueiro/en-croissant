@@ -795,8 +795,8 @@ function Board({
             maxWidth: fitContainer
               ? "100%"
               :
-              //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              "calc(100vh - 2.5rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
+              //            bottompadding                tabs                                  bottomb   evalbar                                gaps    ???
+              "calc(100vh - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
           }}
         >
           {materialDiff && (

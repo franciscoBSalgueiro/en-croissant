@@ -43,7 +43,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { commands } from "./bindings";
-import { getBundledStockfishPath, requiredEngineSettings, saveEngines, type LocalEngine } from "@/utils/engines";
+import { requiredEngineSettings, saveEngines, type LocalEngine } from "@/utils/engines";
 import { openFile } from "./utils/files";
 
 const colorSchemeManager = localStorageColorSchemeManager({
@@ -100,67 +100,31 @@ export default function App() {
         try { info("React app started successfully"); } catch {}
       }
 
-      // Auto-install bundled Stockfish at startup (if present)
-      if (isTauri) {
-        try {
-          const bundled = await getBundledStockfishPath();
-          if (bundled) {
-            const exists = engines.some(
-              (e: any) => e.type === "local" && (e as LocalEngine).path === bundled,
-            );
-            if (!exists) {
-              try { await commands.setFileAsExecutable(bundled); } catch {}
-              const config = await commands.getEngineConfig(bundled);
-              if (config.status === "ok") {
-                const opts = config.data.options;
-                const newEngine: LocalEngine = {
-                  type: "local",
-                  name: "Stockfish",
-                  version: "Bundled",
-                  path: bundled,
-                  image: "",
-                  elo: 3635,
-                  loaded: true,
-                  settings: opts
-                    .filter((o: any) => requiredEngineSettings.includes(o.value.name) && "default" in o.value)
-                    .map((o: any) => ({ name: o.value.name, value: (o.value as any).default })),
-                };
-                const updated = [...engines, newEngine];
-                setEngines(updated);
-                await saveEngines(updated as any);
-                try { await (persist as any)(updated as any); } catch {}
-                try { info("Auto-installed bundled Stockfish engine at startup"); } catch {}
-              }
-            }
-          }
-        } catch {}
-      } else {
-        // Web mode: ensure a default WASM engine is present
-        try {
-          const hasWasm = engines.some(
-            (e: any) => e.type === "local" && ((e as any).path?.startsWith?.("wasm:") || e.name.includes("WASM")),
-          );
-          if (!hasWasm) {
-            const newEngine: LocalEngine = {
-              type: "local",
-              name: "Stockfish (WASM)",
-              version: "17.1",
-              path: "wasm:stockfish-17.1",
-              image: "",
-              elo: 3500,
-              loaded: true,
-              settings: [
-                { name: "MultiPV", value: 5 },
-                { name: "Threads", value: 1 },
-                { name: "Hash", value: 16 },
-              ],
-            } as any;
-            const updated = [...engines, newEngine];
-            setEngines(updated);
-            try { await (persist as any)(updated as any); } catch {}
-          }
-        } catch {}
-      }
+      // Ensure a default WASM engine is present in all environments
+      try {
+        const hasWasm = engines.some(
+          (e: any) => e.type === "local" && ((e as any).path?.startsWith?.("wasm:") || e.name.includes("WASM")),
+        );
+        if (!hasWasm) {
+          const newEngine: LocalEngine = {
+            type: "local",
+            name: "Stockfish (WASM)",
+            version: "17.1",
+            path: "wasm:stockfish-17.1",
+            image: "",
+            elo: 3500,
+            loaded: true,
+            settings: [
+              { name: "MultiPV", value: 5 },
+              { name: "Threads", value: 1 },
+              { name: "Hash", value: 16 },
+            ],
+          } as any;
+          const updated = [...engines, newEngine];
+          setEngines(updated);
+          try { await (persist as any)(updated as any); } catch {}
+        }
+      } catch {}
 
       if (isTauri) {
         try {

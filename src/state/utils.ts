@@ -12,8 +12,13 @@ import type {
 } from "jotai/vanilla/utils/atomWithStorage";
 
 import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { warn } from "@tauri-apps/plugin-log";
-import { info } from "@tauri-apps/plugin-log";
+// Web-first: replace tauri log calls with safe console fallbacks
+const info = async (...args: any[]) => {
+  try { /* eslint-disable no-console */ console.info(...args); } catch {}
+};
+const warn = (...args: any[]) => {
+  try { /* eslint-disable no-console */ console.warn(...args); } catch {}
+};
 import type { z } from "zod";
 
 const options = { baseDir: BaseDirectory.AppData };
@@ -147,3 +152,57 @@ export function createAsyncZodStorage<Value>(
     },
   };
 }
+
+// DataStore (IndexedDB) async storage backend
+async function loadDataStoreGlobal(): Promise<any> {
+  if (typeof window === "undefined") return null;
+  const g: any = window as any;
+  if (g.DataStore) return g.DataStore;
+  // Load global UMD build from CDN
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/@blakewatson/datastore/dist/datastore.global.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load DataStore"));
+    document.head.appendChild(script);
+  });
+  return (window as any).DataStore || null;
+}
+
+let dataStoreSingleton: Promise<any> | null = null;
+async function getDataStoreInstance() {
+  if (dataStoreSingleton) return dataStoreSingleton;
+  dataStoreSingleton = (async () => {
+    const DS: any = await loadDataStoreGlobal();
+    if (!DS) throw new Error("DataStore not available");
+    // UMD may export the class directly, or as .default or .DataStore
+    const Ctor = (DS && (DS.DataStore || DS.default || DS));
+    if (typeof Ctor !== "function") throw new Error("Invalid DataStore export");
+    // Single database with a single KV store
+    const store = new Ctor("Botvinnik", "app");
+    return store;
+  })();
+  return dataStoreSingleton;
+}
+
+export const dataStoreStorage: AsyncStringStorage = {
+  async getItem(key) {
+    try {
+      const store = await getDataStoreInstance();
+      const value = await store.getItem(key);
+      if (value === undefined || value === null) return null;
+      return typeof value === "string" ? value : JSON.stringify(value);
+    } catch {
+      return null;
+    }
+  },
+  async setItem(key, newValue) {
+    const store = await getDataStoreInstance();
+    await store.setItem(key, newValue);
+  },
+  async removeItem(key) {
+    const store = await getDataStoreInstance();
+    await store.removeItem(key);
+  },
+};

@@ -12,13 +12,7 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
-import {
-  BaseDirectory,
-  type DirEntry,
-  type FileInfo,
-  readDir,
-  remove,
-} from "@tauri-apps/plugin-fs";
+import { remove } from "@tauri-apps/plugin-fs";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
@@ -45,19 +39,31 @@ const useFileDirectory = (dir: string) => {
   const { data, error, isLoading, mutate } = useSWR(
     "file-directory",
     async () => {
-      const entries = await readDir(dir);
-      const allEntries = processEntriesRecursively(dir, entries);
-
-      return allEntries;
+      // Web-first: reconstruct from localStorage namespace
+      const prefix = `files:${dir}`;
+      const entries: { name: string; content: string; meta?: any }[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)!;
+        if (k.startsWith(prefix) && k.endsWith('.pgn')) {
+          const content = localStorage.getItem(k) || "";
+          const meta = (() => {
+            try { return JSON.parse(localStorage.getItem(k.replace('.pgn', '.info')) || '{}'); } catch { return {}; }
+          })();
+          entries.push({ name: k.split('/').pop()!.replace('.pgn',''), content, meta });
+        }
+      }
+      const allEntries = entries.map((e) => ({
+        type: 'file' as const,
+        name: e.name,
+        path: `${dir}/${e.name}.pgn`,
+        numGames: 1,
+        metadata: { type: e.meta?.type || 'other', tags: e.meta?.tags || [] },
+        lastModified: Math.floor(Date.now() / 1000),
+      }));
+      return allEntries as any;
     },
   );
-  console.log(error);
-  return {
-    files: data,
-    isLoading,
-    error,
-    mutate,
-  };
+  return { files: data, isLoading, error, mutate };
 };
 
 function FilesPage() {
@@ -162,6 +168,7 @@ function FilesPage() {
 
         {selected ? (
           <>
+            {/* Web-first: localStorage deletion fallback */}
             <ConfirmModal
               title={t("Files.Delete.Title")}
               description={t("Files.Delete.Message", {
@@ -170,8 +177,11 @@ function FilesPage() {
               opened={deleteModal}
               onClose={toggleDeleteModal}
               onConfirm={async () => {
-                await remove(selected.path);
-                await remove(selected.path.replace(".pgn", ".info"));
+                try {
+                  const k = `files:${documentDir}/${selected.name}.pgn`;
+                  localStorage.removeItem(k);
+                  localStorage.removeItem(k.replace('.pgn', '.info'));
+                } catch {}
                 mutate(files?.filter((file) => file.name !== selected.name));
                 toggleDeleteModal();
                 setSelected(null);

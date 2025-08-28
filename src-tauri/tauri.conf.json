@@ -29,7 +29,7 @@
   "bundle": {
     "resources": [
       "resources/*",
-      "resources/engines/*"
+      
     ]
   },
   "app": {

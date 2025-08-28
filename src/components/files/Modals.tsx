@@ -140,39 +140,35 @@ export function EditModal({
   const [error, setError] = useState("");
 
   async function editFile() {
-    const metadataPath = metadata.path.replace(".pgn", ".info");
-    const newMetadata = {
-      type: filetype,
-      tags: [],
-    };
-    await writeTextFile(metadataPath, JSON.stringify(newMetadata));
-
-    const newPGNPath = metadata.path.replace(
-      `${metadata.name}.pgn`,
-      `${filename}.pgn`,
-    );
-
-    await rename(metadata.path, newPGNPath);
-    await rename(
-      metadataPath.replace(".pgn", ".info"),
-      newPGNPath.replace(".pgn", ".info"),
-    );
-
-    mutate();
-    setSelected((selected) =>
-      selected?.path === metadata.path
-        ? {
-            ...metadata,
-            name: filename,
-            path: newPGNPath,
-            numGames: metadata.numGames,
-            metadata: newMetadata,
-          }
-        : selected,
-    );
-
-    setError("");
-    setOpened(false);
+    try {
+      const oldKey = `files:${metadata.path}`;
+      const oldMetaKey = oldKey.replace('.pgn', '.info');
+      const content = localStorage.getItem(oldKey) || '';
+      const newPath = metadata.path.replace(`${metadata.name}.pgn`, `${filename}.pgn`);
+      const newKey = `files:${newPath}`;
+      const newMetaKey = newKey.replace('.pgn', '.info');
+      const newMetadata = { type: filetype, tags: [] } as const;
+      localStorage.setItem(newKey, content);
+      localStorage.setItem(newMetaKey, JSON.stringify(newMetadata));
+      localStorage.removeItem(oldKey);
+      localStorage.removeItem(oldMetaKey);
+      mutate();
+      setSelected((selected) =>
+        selected?.path === metadata.path
+          ? {
+              ...metadata,
+              name: filename,
+              path: newPath,
+              numGames: metadata.numGames,
+              metadata: newMetadata as any,
+            }
+          : selected,
+      );
+      setError("");
+      setOpened(false);
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   return (

@@ -32,8 +32,6 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: "@", replacement: resolve(__dirname, "./src") },
-      // In pure web mode, optionally alias engines to the WASM-backed shim by setting WEB=1
-      ...(process.env.WEB ? [{ find: "@/utils/engines", replacement: resolve(__dirname, "./src/utils/engines.web.ts") }] : []),
     ],
   },
   test: {

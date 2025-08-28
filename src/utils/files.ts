@@ -2,8 +2,6 @@ import { commands } from "@/bindings";
 import type { FileMetadata } from "@/components/files/file";
 import { unwrap } from "@/utils/unwrap";
 import { Result } from "@badrap/result";
-import { resolve } from "@tauri-apps/api/path";
-import { exists, writeTextFile } from "@tauri-apps/plugin-fs";
 import { arch, platform } from "@tauri-apps/plugin-os";
 import { defaultGame, makePgn } from "chessops/pgn";
 import useSWR from "swr";
@@ -60,22 +58,26 @@ export async function createFile({
   pgn?: string;
   dir: string;
 }): Promise<Result<FileMetadata>> {
-  const file = await resolve(dir, `${filename}.pgn`);
-  if (await exists(file)) {
-    return Result.err(Error("File already exists"));
+  // Web-first storage: persist under localStorage namespace
+  try {
+    const key = `files:${dir}:${filename}.pgn`;
+    const metaKey = key.replace('.pgn', '.info');
+    if (localStorage.getItem(key) != null) {
+      return Result.err(Error("File already exists"));
+    }
+    const metadata = { type: filetype, tags: [] } as const;
+    const content = pgn || makePgn(defaultGame());
+    localStorage.setItem(key, content);
+    localStorage.setItem(metaKey, JSON.stringify(metadata));
+    return Result.ok({
+      type: "file",
+      name: filename,
+      path: `${dir}/${filename}.pgn`,
+      numGames: 1,
+      metadata: metadata as any,
+      lastModified: Math.floor(Date.now() / 1000),
+    });
+  } catch (e) {
+    return Result.err(Error(String(e)));
   }
-  const metadata = {
-    type: filetype,
-    tags: [],
-  };
-  await writeTextFile(file, pgn || makePgn(defaultGame()));
-  await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
-  return Result.ok({
-    type: "file",
-    name: filename,
-    path: file,
-    numGames: 1,
-    metadata,
-    lastModified: new Date().getUTCSeconds(),
-  });
 }

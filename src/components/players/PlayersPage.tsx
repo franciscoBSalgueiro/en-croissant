@@ -32,14 +32,16 @@ export default function PlayersPage() {
       elo: 1500,
       earnedELO: 1500,
     } as Player;
-    setPlayers((prev) => [...prev, newPlayer]);
+    // Avoid functional update to prevent issues if storage hydration returns non-iterable
+    setPlayers([...(Array.isArray(players) ? players : []), newPlayer]);
     setSelected(players.length);
   }
 
   function removeSelected() {
     if (selected == null) return;
     if (players.length <= 1) return; // prevent fewer than 1
-    setPlayers((prev) => {
+    setPlayers(() => {
+      const prev = Array.isArray(players) ? players : [];
       const next = [...prev];
       const removed = next.splice(selected, 1)[0];
       // if we removed the default, reset to first remaining
@@ -109,7 +111,8 @@ function PlayerDetails({ selected, setSelected, defaultPlayerId, setDefaultPlaye
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   function setPlayer(newPlayer: Player) {
-    setPlayers((prev) => {
+    setPlayers(() => {
+      const prev = Array.isArray(players) ? players : [];
       const copy = [...prev];
       copy[selected] = newPlayer;
       return copy;

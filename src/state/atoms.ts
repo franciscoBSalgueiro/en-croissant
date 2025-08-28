@@ -41,7 +41,7 @@ import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
-import { createZodStorage } from "./utils";
+import { createZodStorage, createAsyncZodStorage, dataStoreStorage } from "./utils";
 import type { BestMoves } from "@/bindings";
 
 export const lastMovedAtom = atom<string | null>(null);
@@ -60,16 +60,14 @@ const zodArray = <S>(itemSchema: z.ZodType<S>) => {
 export const enginesAtom = atomWithStorage<Engine[]>(
   "engines",
   [],
-  createZodStorage(zodArray(engineSchema), localStorage),
-  { getOnInit: true },
+  createAsyncZodStorage(zodArray(engineSchema), dataStoreStorage),
 );
 
 // Bots
 export const botsAtom = atomWithStorage<Bot[]>(
   "bots",
   [],
-  createZodStorage(z.array(botSchema), localStorage),
-  { getOnInit: true },
+  createAsyncZodStorage(z.array(botSchema), dataStoreStorage),
 );
 
 export const loadableEnginesAtom = loadable(enginesAtom);
@@ -78,20 +76,15 @@ export const loadableEnginesAtom = loadable(enginesAtom);
 export const playersAtom = atomWithStorage<Player[]>(
   "players",
   [
-    {
-      id: "human",
-      name: "Human",
-      elo: 1500,
-      earnedELO: 1500,
-    } as Player,
+    { id: "human", name: "Human", elo: 1500, earnedELO: 1500 } as Player,
   ],
-  createZodStorage(z.array(playerSchema), localStorage),
-  { getOnInit: true },
+  createAsyncZodStorage(z.array(playerSchema), dataStoreStorage),
 );
 
 export const defaultPlayerIdAtom = atomWithStorage<string>(
   "default-player-id",
   "human",
+  createAsyncZodStorage(z.string(), dataStoreStorage),
 );
 
 // Write-through persistence: ensure disk file is updated whenever enginesAtom changes
@@ -498,10 +491,10 @@ export const deckAtomFamily = atomFamily(
         positions: [],
         logs: [],
       },
-      createZodStorage(
+      createAsyncZodStorage(
         practiceDataSchema,
-        localStorage,
-      ) as any as SyncStorage<PracticeData>, // TODO: fix types
+        dataStoreStorage,
+      ) as any as SyncStorage<PracticeData>,
     ),
 
   (a, b) => a.file === b.file && a.game === b.game,
@@ -706,4 +699,5 @@ export type HistoryEntry = {
 export const historyAtom = atomWithStorage<HistoryEntry[]>(
   "history-entries",
   [],
+  createAsyncZodStorage(z.array(z.any()), dataStoreStorage) as any,
 );

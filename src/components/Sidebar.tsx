@@ -41,14 +41,13 @@ function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
 const linksdata = [
   { icon: IconChess, label: "Board", url: "/" },
   // History removed; consolidated in Databases via Botvinnik
-  { icon: IconUser, label: "User", url: "/accounts" },
+  // Accounts removed in web-first
   { icon: IconFiles, label: "Files", url: "/files" },
   {
     icon: IconDatabase,
     label: "Databases",
     url: "/databases",
   },
-  { icon: IconCpu, label: "Engines", url: "/engines" },
   { icon: IconRobot, label: "Bots", url: "/bots" },
   { icon: IconUser, label: "Players", url: "/players" },
 ];

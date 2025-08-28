@@ -1,27 +1,8 @@
-import {
-  type BestMoves,
-  type EngineOption,
-  type EngineOptions,
-  type GoMode,
-  commands,
-  type Score,
-} from "@/bindings";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { fetch } from "@tauri-apps/plugin-http";
-import { info, warn } from "@tauri-apps/plugin-log";
-import type { Platform } from "@tauri-apps/plugin-os";
+import { type BestMoves, type EngineOptions, type GoMode, type Score } from "@/bindings";
+import type { Platform } from "@/bindings";
 import useSWR from "swr";
 import { z } from "zod";
-import { unwrap } from "./unwrap";
-import { invoke } from "@tauri-apps/api/core";
-import {
-  getBestMoves as webGetBestMoves,
-  scoreAllMoves as webScoreAllMoves,
-  stopEngine as webStopEngine,
-  killEngine as webKillEngine,
-  type MoveScore as WebMoveScore,
-} from "@/utils/engines.web";
+import { getBestMoves as webGetBestMoves, scoreAllMoves as webScoreAllMoves, stopEngine as webStopEngine, killEngine as webKillEngine } from "@/utils/engines.web";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
@@ -85,38 +66,11 @@ export type RemoteEngine = z.infer<typeof remoteEngineSchema>;
 export const engineSchema = z.union([localEngineSchema, remoteEngineSchema]);
 export type Engine = z.infer<typeof engineSchema>;
 
-export async function saveEngines(engines: Engine[]): Promise<void> {
-  try {
-    const dir = await appDataDir();
-    const fullPath = await resolve(dir, "engines", "engines.json");
-    await info(
-      `saveEngines: writing ${engines.length} engine(s) to ${fullPath}`,
-    );
-    await writeTextFile(fullPath as any, JSON.stringify(engines, null, 4));
-    const raw: any = await readTextFile(fullPath as any);
-    const contents = typeof raw === "string" ? raw : String(raw);
-    await info(
-      `saveEngines: verify read ${contents ? contents.length : 0} bytes`,
-    );
-    if (!contents || contents.length === 0) {
-      await warn("saveEngines: file is empty after write");
-    }
-  } catch (e) {
-    await warn(`saveEngines: write failed: ${e}`);
-  }
-}
+export async function saveEngines(_engines: Engine[]): Promise<void> { /* no-op in web-first */ }
 
-export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
-  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
-  if (!isTauri) return webStopEngine();
-  return commands.stopEngine(engine.path, tab).then((r) => { unwrap(r); });
-}
+export function stopEngine(_engine: LocalEngine, _tab: string): Promise<void> { return webStopEngine(); }
 
-export function killEngine(engine: LocalEngine, tab: string): Promise<void> {
-  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
-  if (!isTauri) return webKillEngine();
-  return commands.killEngine(engine.path, tab).then((r) => { unwrap(r); });
-}
+export function killEngine(_engine: LocalEngine, _tab: string): Promise<void> { return webKillEngine(); }
 
 export function getBestMoves(
   engine: LocalEngine,
@@ -124,9 +78,7 @@ export function getBestMoves(
   goMode: GoMode,
   options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
-  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
-  if (!isTauri) return webGetBestMoves(engine.name, tab, goMode, options) as any;
-  return commands.getBestMoves(engine.name, engine.path, tab, goMode, options).then((r) => unwrap(r));
+  return webGetBestMoves(engine.name, tab, goMode, options) as any;
 }
 
 export type MoveScore = { uci: string; score: Score };
@@ -136,51 +88,18 @@ export function scoreAllMoves(
   goMode: GoMode,
   options: EngineOptions,
 ): Promise<MoveScore[]> {
-  const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
-  if (!isTauri) return webScoreAllMoves(engine.name, goMode, options) as any;
-  return commands.scoreAllMoves(engine.path, goMode, options).then((r) => unwrap(r));
+  return webScoreAllMoves(engine.name, goMode, options) as any;
 }
 
 
 
-export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
-  const { data, error, isLoading } = useSWR(
-    opened ? os : null,
-    async (os: Platform) => {
-      const bmi2: boolean = await commands.isBmi2Compatible();
-      const data = await fetch(
-        `https://www.botvinnik.org/engines?os=${os}&bmi2=${bmi2}`,
-        {
-          method: "GET",
-        },
-      );
-      if (!data.ok) {
-        throw new Error("Failed to fetch engines");
-      }
-      return (await data.json()).filter(
-        (e: {
-          os: Platform;
-          bmi2: boolean;
-        }) => e.os === os && e.bmi2 === bmi2,
-      );
-    },
-  );
-  return {
-    defaultEngines: data as LocalEngine[],
-    error,
-    isLoading,
-  };
+export function useDefaultEngines(_os: Platform | undefined, opened: boolean) {
+  const data = opened ? [] : [];
+  return { defaultEngines: data as unknown as LocalEngine[], error: undefined, isLoading: false };
 }
 
 /**
  * Resolve the absolute path to a bundled Stockfish binary for the current platform.
  * Returns null if not available (e.g., unsupported OS or resource missing).
  */
-export async function getBundledStockfishPath(): Promise<string | null> {
-  try {
-    const path = await invoke<string>("get_bundled_stockfish_path");
-    return path || null;
-  } catch {
-    return null;
-  }
-}
+export async function getBundledStockfishPath(): Promise<string | null> { return null; }
