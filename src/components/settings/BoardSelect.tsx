@@ -1,4 +1,4 @@
-import { boardImageAtom } from "@/state/atoms";
+import { boardImageAtom, gboardThemeAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,
@@ -10,6 +10,7 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
+import { Group as MantineGroup, Select as MantineSelect, Text as MantineText, Box as MantineBox } from "@mantine/core";
 
 const boardImages: string[] = [
   "purple.svg",
@@ -70,6 +71,7 @@ export default function BoardSelect() {
   });
 
   const [board, setBoard] = useAtom(boardImageAtom);
+  const [gboardTheme, setGboardTheme] = useAtom(gboardThemeAtom);
 
   const options = boardImages.map((item) => (
     <Combobox.Option value={item} key={item}>
@@ -80,6 +82,7 @@ export default function BoardSelect() {
   const selected = boardImages.find((p) => p === board);
 
   return (
+    <>
     <Combobox
       store={combobox}
       withinPortal={false}
@@ -113,5 +116,25 @@ export default function BoardSelect() {
         </Combobox.Options>
       </Combobox.Dropdown>
     </Combobox>
+    {/* gchessboard theme selector */}
+    <MantineBox mt="sm">
+      <MantineText size="sm" c="dimmed" mb={4}>gchessboard Theme</MantineText>
+      <MantineSelect
+        data={[
+          { value: "wikipedia", label: "Wikipedia" },
+          { value: "chess24", label: "Chess24" },
+          { value: "metro", label: "Metro" },
+          { value: "leipzig", label: "Leipzig" },
+          { value: "dilena", label: "Dilena" },
+          { value: "uscf", label: "USCF" },
+          { value: "symbol", label: "Symbol" },
+          { value: "auto", label: "Auto (theme-based)" },
+        ]}
+        value={gboardTheme}
+        onChange={(v) => setGboardTheme(v || "auto")}
+        searchable={false}
+      />
+    </MantineBox>
+    </>
   );
 }

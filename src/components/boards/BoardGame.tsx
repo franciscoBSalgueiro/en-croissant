@@ -610,12 +610,14 @@ function BoardGame() {
       if (isBot) {
         const id = (opp as any).botId as string | undefined;
         if (!id) return;
-        setSavedBots((prev) => prev.map((b) => (b.id === id ? ({ ...b, earnedELO: newRating } as any) : b)));
+        const list = Array.isArray(savedBots) ? savedBots : [];
+        setSavedBots(list.map((b: any) => (b.id === id ? ({ ...b, earnedELO: newRating } as any) : b)) as any);
         return;
       }
       const pid = (opp as any).playerId as string | undefined;
       if (!pid) return;
-      setSavedPlayers((prev) => prev.map((p) => (p.id === pid ? ({ ...p, earnedELO: newRating } as Player) : p)));
+      const list = Array.isArray(savedPlayers) ? savedPlayers : [];
+      setSavedPlayers(list.map((p: any) => (p.id === pid ? ({ ...p, earnedELO: newRating } as Player) : p)) as any);
     };
 
     applyFor("white", newWhite);
@@ -696,7 +698,7 @@ function BoardGame() {
         } catch {}
       })();
 
-      pushHistory((prev: HistoryEntry[]) => [
+      pushHistory((prev: any) => [
         {
           white: headers.white || "White",
           black: headers.black || "Black",
@@ -711,7 +713,7 @@ function BoardGame() {
           pgn,
           unifiedMainline: unifiedSnapshot,
         },
-        ...prev,
+        ...((Array.isArray(prev) ? prev : []) as any[]),
       ]);
     } catch {}
   }, [headers.result, gameState]);

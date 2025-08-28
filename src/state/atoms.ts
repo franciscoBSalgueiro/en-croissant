@@ -270,6 +270,11 @@ export const boardImageAtom = atomWithStorage<string>(
   "board-image",
   "gray.svg",
 );
+// gchessboard theme (square colors). Use key of predefined theme map or 'auto'
+export const gboardThemeAtom = atomWithStorage<string>(
+  "gboard-theme",
+  "wikipedia",
+);
 export const primaryColorAtom = atomWithStorage<MantineColor>(
   "mantine-primary-color",
   "blue",

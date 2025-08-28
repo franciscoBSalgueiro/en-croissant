@@ -489,7 +489,7 @@ function Board({
                 const brushColor = (() => {
                   // Color meaning: rank | score | pctBest | uniform
                   if (arrowColorMeaning === "uniform") {
-                    return arrowColors[i].strong;
+                    return "green";
                   }
                   if (arrowColorMeaning === "rank") {
                     return j === 0 ? arrowColors[i].strong : arrowColors[i].pale;
