@@ -1,7 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { activeTabAtom, botsAtom, enginesAtom, playersAtom, defaultPlayerIdAtom } from "@/state/atoms";
 import { Group, Paper, Select, Stack, Text, Box, useMantineTheme, Button } from "@mantine/core";
-import { memo, useEffect, useMemo, useContext } from "react";
+import { memo, useEffect, useMemo, useContext, useRef } from "react";
 import type { OpponentSettings } from "./types";
 import type { PiecesCount } from "@/utils/chess";
 import Clock from "./Clock";
@@ -12,6 +12,7 @@ import { normalizeScore } from "@/utils/score";
 import { Chessground } from "@/chessground/Chessground";
 import { TreeStateContext } from "../common/TreeStateContext";
 import { useStore } from "zustand";
+import Board from "./Board";
 
 // Helper: format centipawn to pawn string
 function formatPawnEval(cp: number | undefined) {
@@ -303,6 +304,9 @@ function PlayerPanel({
   captured,
   materialDiff,
   prevMoveInfo,
+  movable,
+  onCapturedChange,
+  onMaterialDiffChange,
 }: {
   color: "white" | "black";
   opponent: OpponentSettings;
@@ -320,6 +324,9 @@ function PlayerPanel({
     actualPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
     bestPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
   };
+  movable: "both" | "white" | "black" | "turn" | "none";
+  onCapturedChange?: (captured: { white: PiecesCount; black: PiecesCount }) => void;
+  onMaterialDiffChange?: (diff: number) => void;
 }) {
   const theme = useMantineTheme();
   const store = useContext(TreeStateContext)!;
@@ -430,10 +437,17 @@ function PlayerPanel({
     setResult(outcome as any);
   }
 
+  const boardRef = useRef<HTMLDivElement | null>(null);
+
+  const topRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const movesRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column' }}>
       <Stack gap="xs" style={{ flex: 1, minHeight: 0 }}>
-        <Group align="center" gap="xs">
+        <Box ref={topRef}>
+          <Group align="center" gap="xs">
           {color === 'white' ? (
             <>
               <OpponentForm inline opponent={opponent} setOpponent={setOpponent} setOtherOpponent={setOtherOpponent} />
@@ -523,122 +537,63 @@ function PlayerPanel({
               <Button size="xs" variant="light" color="red" onClick={onResign}>Resign</Button>
             </>
           )}
-        </Group>
-        <Group justify="space-between" w="100%">
+          </Group>
+          <Group justify="space-between" w="100%">
           <Group gap={0}>{items}</Group>
           {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
-        </Group>
-        {/* Summary stats for player's played moves */}
-        <Box>
-          {playedMoves.length === 0 ? (
-            <Text size="xs" c="dimmed">No moves yet</Text>
-          ) : (
-            <>
-              <Group gap="md">
-                <Text size="xs" c="dimmed">Avg Eval</Text>
-                <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(2)}p` : "-"}</Text>
-                <Text size="xs" c="dimmed">Avg %Best</Text>
-                <Text size="sm" fw={600}>{summary.avgPctBest !== undefined ? `${summary.avgPctBest.toFixed(1)}%` : "-"}</Text>
-                <Text size="xs" c="dimmed">Avg Rank</Text>
-                <Text size="sm" fw={600}>{summary.avgRank !== undefined ? `${summary.avgRank.toFixed(1)}` : "-"}</Text>
-              </Group>
-              <Group gap="xs" mt={4}>
-                {Array.from(summary.tally.entries())
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([label, count]) => (
-                    <Text key={label} size="xs" fw={600}>{label.toUpperCase()}: {count}</Text>
-                  ))}
-              </Group>
-            </>
-          )}
-        </Box>
-        
-        {/* Previously played move vs best move info */}
-        <Group grow align="stretch" gap="xs">
-          <Box style={styleFromMove(theme, prevMoveInfo?.actualMoveInfo)}>
-            <Text size="xs" fw={700} mb={4}>Your move</Text>
-            {prevMoveInfo?.actualPreview && (
-              <Box w={140} h={140} className="mini-cg" style={{ float: 'left', marginRight: 6 }}>
-                <Chessground
-                  fen={prevMoveInfo.actualPreview.fen}
-                  coordinates={false}
-                  viewOnly
-                  orientation={color}
-                  lastMove={prevMoveInfo.actualPreview.lastMove as any}
-                  turnColor={prevMoveInfo.actualPreview.turnColor}
-                  check={prevMoveInfo.actualPreview.isCheck}
-                  highlight={{ lastMove: true, check: true }}
-                  drawable={{ enabled: false, visible: true }}
-                />
-              </Box>
-            )}
-            {prevMoveInfo?.actualMoveInfo ? (
-              (() => {
-                const lines = describeMove(prevMoveInfo.actualMoveInfo, { color, labelForFirstSentence: 'You played', compareTo: prevMoveInfo.bestMoveInfo, includeAnnotationPrefix: true });
-                return (
-                  <Text size="xs">
-                    {lines.map((line, i) => (
-                      <span key={i}>
-                        {line}
-                        {i < lines.length - 1 ? ' ' : ''}
-                      </span>
-                    ))}
-                  </Text>
-                );
-              })()
+          </Group>
+          {/* Summary stats for player's played moves */}
+          <Box>
+            {playedMoves.length === 0 ? (
+              <Text size="xs" c="dimmed">No moves yet</Text>
             ) : (
-              <Text size="xs" c="dimmed">No move yet.</Text>
+              <>
+                <Group gap="md">
+                  <Text size="xs" c="dimmed">Avg Eval</Text>
+                  <Text size="sm" fw={600}>{summary.avgCp !== undefined ? `${(summary.avgCp / 100).toFixed(2)}p` : "-"}</Text>
+                  <Text size="xs" c="dimmed">Avg %Best</Text>
+                  <Text size="sm" fw={600}>{summary.avgPctBest !== undefined ? `${summary.avgPctBest.toFixed(1)}%` : "-"}</Text>
+                  <Text size="xs" c="dimmed">Avg Rank</Text>
+                  <Text size="sm" fw={600}>{summary.avgRank !== undefined ? `${summary.avgRank.toFixed(1)}` : "-"}</Text>
+                </Group>
+                <Group gap="xs" mt={4}>
+                  {Array.from(summary.tally.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([label, count]) => (
+                      <Text key={label} size="xs" fw={600}>{label.toUpperCase()}: {count}</Text>
+                    ))}
+                </Group>
+              </>
             )}
           </Box>
-          {(() => {
-            const a = prevMoveInfo?.actualMoveInfo;
-            const b = prevMoveInfo?.bestMoveInfo;
-            const aSan = prevMoveInfo?.playedSan || a?.san || a?.move;
-            const bSan = b?.san || b?.move;
-            const isBestPlayed = !!a && ((a.isBest === true) || (aSan && bSan && aSan === bSan));
-            if (isBestPlayed) return null;
-            return (
-              <Box style={styleFromMove(theme, b)}>
-                <Text size="xs" fw={700} mb={4}>Best move</Text>
-                {prevMoveInfo?.bestPreview && (
-                  <Box w={140} h={140} className="mini-cg" style={{ float: 'left', marginRight: 6 }}>
-                    <Chessground
-                      fen={prevMoveInfo.bestPreview.fen}
-                      coordinates={false}
-                      viewOnly
-                      orientation={color}
-                      lastMove={prevMoveInfo.bestPreview.lastMove as any}
-                      turnColor={prevMoveInfo.bestPreview.turnColor}
-                      check={prevMoveInfo.bestPreview.isCheck}
-                      highlight={{ lastMove: true, check: true }}
-                      drawable={{ enabled: false, visible: true }}
-                    />
-                  </Box>
-                )}
-                {b ? (
-                  (() => {
-                    const lines = describeMove(b, { color, labelForFirstSentence: 'Best move is', includeAnnotationPrefix: false });
-                    return (
-                      <Text size="xs">
-                        {lines.map((line, i) => (
-                          <span key={i}>
-                            {line}
-                            {i < lines.length - 1 ? ' ' : ''}
-                          </span>
-                        ))}
-                      </Text>
-                    );
-                  })()
-                ) : (
-                  <Text size="xs" c="dimmed">No best move available.</Text>
-                )}
-              </Box>
-            );
-          })()}
-        </Group>
-        <div style={{ flex: 1, minHeight: 150 }}>
-          <PlayedMovesTable color={color} />
-        </div>
+        </Box>
+
+        {/* Embedded board from this player's perspective */}
+        <Box style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <Box style={{ height: '100%', width: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>
+            <Board
+              dirty={false}
+              editingMode={false}
+              toggleEditingMode={() => undefined}
+              viewOnly={false}
+              boardRef={boardRef}
+              canTakeBack={true}
+              movable={movable}
+              whiteTime={whiteTime ?? undefined}
+              blackTime={blackTime ?? undefined}
+              fitContainer
+              compact
+              forcedOrientation={color}
+              onCapturedChange={onCapturedChange}
+              onMaterialDiffChange={onMaterialDiffChange}
+            />
+          </Box>
+        </Box>
+        
+        {/* Insights moved into AnalysisBar; keep a minimal spacer for measurement */}
+        <Group ref={bottomRef as any} gap="xs" />
+        {/* Played moves moved to AnalysisBar 'Played Moves' tab */}
+        <div ref={movesRef as any} style={{ flex: 0, minHeight: 0 }} />
       </Stack>
     </Paper>
   );

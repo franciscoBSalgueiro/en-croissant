@@ -20,12 +20,12 @@ export class WasmEngineProvider {
     const wasmSupported = typeof WebAssembly === "object" && typeof WebAssembly.validate === "function" && WebAssembly.validate(new Uint8Array([0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]));
     const scriptUrl = wasmSupported ? "/wasm/stockfish.wasm.js" : "/wasm/stockfish.js";
     // eslint-disable-next-line no-console
-    console.info("[WASM] starting worker", { scriptUrl });
+    // console.info("[WASM] starting worker", { scriptUrl });
     this.worker = new Worker(scriptUrl, { type: "classic" });
     this.worker.onmessage = (e: MessageEvent<any>) => {
       const line = String(e.data ?? "");
       // eslint-disable-next-line no-console
-      if (line.startsWith("info ") || line.startsWith("bestmove")) console.debug("[WASM<-]", line);
+      // if (line.startsWith("info ") || line.startsWith("bestmove")) console.debug("[WASM<-]", line);
       for (const h of this.handlers) h(line);
     };
   }
@@ -33,7 +33,7 @@ export class WasmEngineProvider {
   async send(cmd: string) {
     await this.ensureReady();
     // eslint-disable-next-line no-console
-    console.debug("[WASM->]", cmd);
+    // console.debug("[WASM->]", cmd);
     this.worker!.postMessage(cmd);
   }
 
@@ -81,7 +81,7 @@ export async function getBestMovesWasm(
 ): Promise<[number, BestMoves[]] | null> {
   const MAX_WEB_DEPTH = 20;
   // eslint-disable-next-line no-console
-  console.info("[WASM] getBestMoves start", { goMode, options });
+  // console.info("[WASM] getBestMoves start", { goMode, options });
   // Cancel any in-flight search and start fresh
   stopWasmEngine();
   const engine = new WasmEngineProvider();
@@ -171,7 +171,7 @@ export async function getBestMovesWasm(
         detach();
         engine.dispose();
         // eslint-disable-next-line no-console
-        console.info("[WASM] getBestMoves done", { count: bestMoves.length });
+        // console.info("[WASM] getBestMoves done", { count: bestMoves.length });
         resolve([100, bestMoves]);
       }
     });

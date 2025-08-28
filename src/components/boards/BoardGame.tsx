@@ -10,26 +10,11 @@ import {
   allEnabledAtom,
   enableAllAtom,
   currentTabAtom,
-  showArrowsAtom,
 } from "@/state/atoms";
 import { getMainLine, getVariationLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { type GameHeaders, treeIteratorMainLine, getNodeAtPath } from "@/utils/treeReducer";
-import {
-  Box,
-  Button,
-  Group,
-  Paper,
-  Stack,
-  Menu,
-  ActionIcon,
-  Slider,
-  SegmentedControl,
-  Switch,
-  Text,
-} from "@mantine/core";
-import { IconPlayerPlay, IconPlayerStop, IconChevronDown } from "@tabler/icons-react";
-import { arrowColorMeaningAtom, arrowOpacityMeaningAtom, arrowSizeMeaningAtom, arrowCountPolicyAtom, arrowBestThresholdAtom, arrowOpacityAtom, arrowSizeScaleAtom, showConsecutiveArrowsAtom, snapArrowsAtom } from "@/state/atoms";
+import { Box } from "@mantine/core";
 import { parseUci, squareFile, squareRank } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
@@ -63,13 +48,13 @@ import type { OpponentSettings } from "./types";
 import { normalizeScore } from "@/utils/score";
 import { getPGN } from "@/utils/chess";
 import { historyAtom, type HistoryEntry } from "@/state/atoms";
+import BoardControls from "@/components/boards/BoardControls";
 
 // NEW: Nested mosaic state for playing layout
 type PlayingViewId =
   | "top"
   | "bottom"
   | "leftPlayer"
-  | "centerBoard"
   | "rightPlayer"
   | "analysis"
   | "linesTree"
@@ -84,13 +69,8 @@ const DEFAULT_PLAYING_LAYOUT: MosaicNode<PlayingViewId> = {
   first: {
     direction: "row",
     first: "leftPlayer",
-    second: {
-      direction: "row",
-      first: "centerBoard",
-      second: "rightPlayer",
-      splitPercentage: 72,
-    },
-    splitPercentage: 22,
+    second: "rightPlayer",
+    splitPercentage: 50,
   },
   second: "analysis",
   splitPercentage: 70,
@@ -129,16 +109,6 @@ function BoardGame() {
   const botTimeoutRef = useRef<number | null>(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [enginePaused, setEnginePaused] = useAtom(currentEnginePausedAtom);
-  const [showArrows, setShowArrows] = useAtom(showArrowsAtom);
-  const [arrowColorMeaning, setArrowColorMeaning] = useAtom(arrowColorMeaningAtom);
-  const [arrowOpacityMeaning, setArrowOpacityMeaning] = useAtom(arrowOpacityMeaningAtom);
-  const [arrowSizeMeaning, setArrowSizeMeaning] = useAtom(arrowSizeMeaningAtom);
-  const [arrowOpacity, setArrowOpacity] = useAtom(arrowOpacityAtom);
-  const [arrowSizeScale, setArrowSizeScale] = useAtom(arrowSizeScaleAtom);
-  const [arrowCountPolicy, setArrowCountPolicy] = useAtom(arrowCountPolicyAtom);
-  const [arrowBestThreshold, setArrowBestThreshold] = useAtom(arrowBestThresholdAtom);
-  const [snapArrows, setSnapArrows] = useAtom(snapArrowsAtom);
-  const [showConsecutiveArrows, setShowConsecutiveArrows] = useAtom(showConsecutiveArrowsAtom);
   const autoStartAnalysis = useAtomValue(autoStartAnalysisAtom);
   const [, enableAnalysisEngines] = useAtom(enableAllAtom);
 
@@ -801,29 +771,7 @@ function BoardGame() {
   const [playingLayoutState, setPlayingLayoutState] = useAtom(playingLayoutAtom);
   // (Removed) analysis open/close state
 
-  // Track size changes of the center board container and force Board/Chessground remount
-  const centerBoardRef = useRef<HTMLDivElement | null>(null);
-  const [redrawSeq, setRedrawSeq] = useState(0);
-
-  useLayoutEffect(() => {
-    const el = centerBoardRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      try {
-        const rect = el.getBoundingClientRect();
-        // eslint-disable-next-line no-console
-        console.info("[BoardGame] centerBoard ResizeObserver", {
-          w: Math.round(rect.width),
-          h: Math.round(rect.height),
-          top: Math.round(rect.top),
-          left: Math.round(rect.left),
-        });
-      } catch {}
-      setRedrawSeq((s) => s + 1);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // Removed center board ResizeObserver; boards live inside each PlayerPanel
 
   // (Removed) analysis open/close redraw nudge
 
@@ -888,159 +836,12 @@ function BoardGame() {
         captured={captured.white}
         materialDiff={materialDiff}
         prevMoveInfo={prevInfoWhite}
+        movable={gameState === "settingUp" ? "turn" : movable}
+        onCapturedChange={setCaptured}
+        onMaterialDiffChange={setMaterialDiff}
       />
     ),
-    centerBoard: (
-      <Paper withBorder shadow="sm" p="md" h="100%" style={{ display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
-        <Box style={{ width: "100%", flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Box ref={centerBoardRef} style={{ height: "100%", maxWidth: "100%", aspectRatio: "1 / 1", display: "flex", minWidth: 0, minHeight: 0 }}>
-            <Board
-              dirty={false}
-              editingMode={false}
-              toggleEditingMode={() => undefined}
-              viewOnly={false}
-              boardRef={boardRef}
-              canTakeBack={true}
-              movable={gameState === "settingUp" ? "turn" : movable}
-              whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
-              blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
-              fitContainer
-              externalControls={true}
-              onControlsReady={setBoardControls}
-              onCapturedChange={setCaptured}
-              onMaterialDiffChange={setMaterialDiff}
-              redrawSeq={redrawSeq}
-            />
-          </Box>
-        </Box>
-        {/* Global controls affecting both players */}
-        <Group mt="sm" gap="sm" justify="space-between">
-          <Group gap="sm">
-            <Button
-              onClick={() => setEnginePaused((prev) => !prev)}
-              leftSection={enginePaused ? <IconPlayerPlay /> : <IconPlayerStop />}
-              variant="default"
-            >
-              {enginePaused ? "Play" : "Pause"}
-            </Button>
-            <Group gap={4}>
-              <Button
-                onClick={() => setShowArrows((prev) => !prev)}
-                variant={showArrows ? "filled" : "default"}
-              >
-                {showArrows ? "Arrows On" : "Arrows Off"}
-              </Button>
-              <Menu position="bottom-start" shadow="md" width={280}>
-                <Menu.Target>
-                  <ActionIcon variant={showArrows ? "filled" : "default"} aria-label="Arrow settings">
-                    <IconChevronDown size={18} />
-                  </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Box p="sm">
-                    <Text size="sm" fw={500} mb={4}>Color</Text>
-                    <SegmentedControl
-                      fullWidth
-                      value={arrowColorMeaning}
-                      onChange={(v) => setArrowColorMeaning(v as any)}
-                      data={[
-                        { label: "Rank", value: "rank" },
-                        { label: "Score", value: "score" },
-                        { label: "%Best", value: "pctBest" },
-                        { label: "None", value: "uniform" },
-                      ]}
-                    />
-                    <Box mt="sm">
-                      <Text size="sm" fw={500} mb={4}>Opacity</Text>
-                      <SegmentedControl
-                        fullWidth
-                        value={arrowOpacityMeaning}
-                        onChange={(v) => setArrowOpacityMeaning(v as any)}
-                        data={[
-                          { label: "Rank", value: "rank" },
-                          { label: "Score", value: "score" },
-                          { label: "%Best", value: "pctBest" },
-                          { label: "None", value: "uniform" },
-                        ]}
-                      />
-                    </Box>
-                    <Box mt="sm">
-                      <Text size="sm" fw={500} mb={4}>Size</Text>
-                      <SegmentedControl
-                        fullWidth
-                        value={arrowSizeMeaning}
-                        onChange={(v) => setArrowSizeMeaning(v as any)}
-                        data={[
-                          { label: "Rank", value: "rank" },
-                          { label: "Score", value: "score" },
-                          { label: "%Best", value: "pctBest" },
-                          { label: "None", value: "uniform" },
-                        ]}
-                      />
-                    </Box>
-                    <Box mt="md">
-                      <Text size="sm" fw={500} mb={4}>Opacity ({Math.round(arrowOpacity * 100)}%)</Text>
-                      <Slider
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={arrowOpacity}
-                        onChange={setArrowOpacity}
-                      />
-                    </Box>
-                    <Box mt="md">
-                      <Text size="sm" fw={500} mb={4}>Which arrows</Text>
-                      <SegmentedControl
-                        fullWidth
-                        value={arrowCountPolicy}
-                        onChange={(v) => setArrowCountPolicy(v as any)}
-                        data={[
-                          { label: "Top N", value: "alwaysTopN" },
-                          { label: "Within Δ", value: "threshold" },
-                        ]}
-                      />
-                      {arrowCountPolicy === "threshold" && (
-                        <Box mt="xs">
-                          <Text size="xs" c="dimmed" mb={4}>Max gap from best (WDL %)</Text>
-                          <Slider min={1} max={50} step={1} value={arrowBestThreshold} onChange={setArrowBestThreshold} />
-                        </Box>
-                      )}
-                    </Box>
-                    <Box mt="md">
-                      <Text size="sm" fw={500} mb={4}>Size scale ({arrowSizeScale.toFixed(2)}x)</Text>
-                      <Slider
-                        min={0.5}
-                        max={2}
-                        step={0.05}
-                        value={arrowSizeScale}
-                        onChange={setArrowSizeScale}
-                      />
-                    </Box>
-                    <Box mt="md">
-                      <Group justify="space-between">
-                        <Text size="sm">Snap arrows to valid moves</Text>
-                        <Switch checked={snapArrows} onChange={(e) => setSnapArrows(e.currentTarget.checked)} />
-                      </Group>
-                    </Box>
-                    <Box mt="sm">
-                      <Group justify="space-between">
-                        <Text size="sm">Consecutive arrows</Text>
-                        <Switch checked={showConsecutiveArrows} onChange={(e) => setShowConsecutiveArrows(e.currentTarget.checked)} />
-                      </Group>
-                    </Box>
-                  </Box>
-                </Menu.Dropdown>
-              </Menu>
-            </Group>
-          </Group>
-          {boardControls && (
-            <Box>
-              {boardControls}
-            </Box>
-          )}
-        </Group>
-      </Paper>
-    ),
+    // centerBoard removed in favor of embedded boards in each PlayerPanel
     rightPlayer: (
       <PlayerPanel
         color="black"
@@ -1067,6 +868,9 @@ function BoardGame() {
         captured={captured.black}
         materialDiff={materialDiff}
         prevMoveInfo={prevInfoBlack}
+        movable={gameState === "settingUp" ? "turn" : movable}
+        onCapturedChange={setCaptured}
+        onMaterialDiffChange={setMaterialDiff}
       />
     ),
     analysis: (
@@ -1087,25 +891,15 @@ function BoardGame() {
       <EvalListener />
       <BotService />
       <Box style={{ height: "100%", padding: "8px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Box style={{ marginBottom: 8 }}>
+          <BoardControls />
+        </Box>
         <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           <Mosaic<PlayingViewId>
             renderTile={(id) => playingTiles[id]}
             value={pruneLayout}
             onChange={(currentNode) => {
               setPlayingLayoutState({ currentNode: (currentNode as any) ?? DEFAULT_PLAYING_LAYOUT });
-              // schedule redraw after mosaic panes resize
-              requestAnimationFrame(() => {
-                try {
-                  const rect = centerBoardRef.current?.getBoundingClientRect();
-                  // eslint-disable-next-line no-console
-                  console.info("[BoardGame] Mosaic onChange nudge", rect ? {
-                    w: Math.round(rect.width),
-                    h: Math.round(rect.height),
-                    top: Math.round(rect.top),
-                  } : null);
-                } catch {}
-                setRedrawSeq((s) => s + 1);
-              });
             }}
             resize={{ minimumPaneSizePercentage: 10 }}
           />

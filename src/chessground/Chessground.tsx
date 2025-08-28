@@ -15,10 +15,14 @@ export function Chessground(
     fen?: string;
     orientation?: "white" | "black";
     coordinates?: boolean;
+    viewOnly?: boolean;
     turnColor?: "white" | "black";
     check?: boolean;
     lastMove?: any[];
+    highlight?: { lastMove?: boolean; check?: boolean };
     animation?: { enabled?: boolean };
+    // explicit pixel size for width/height. If provided, overrides 100% sizing
+    pixelSize?: number;
     movable?: {
       free?: boolean;
       color?: "white" | "black" | "both" | undefined;
@@ -48,6 +52,7 @@ export function Chessground(
 
   // Compute whether the board should be interactive
   const interactive = useMemo(() => {
+    if (props.viewOnly) return false;
     const dragAllowed = moveMethod !== "select";
     const selectAllowed = moveMethod !== "drag";
     const movable = props.movable;
@@ -116,6 +121,11 @@ export function Chessground(
     el.interactive = interactive;
     // turn: hint to keyboard users which side moves; not critical
     if (props.turnColor) el.turn = props.turnColor;
+    // highlight controls
+    el.highlight = {
+      lastMove: props.highlight?.lastMove ?? true,
+      check: props.highlight?.check ?? true,
+    } as any;
   }, [props.orientation, props.coordinates, props.fen, props.turnColor, interactive]);
 
   // Map arrows and inject brush styles (color + opacity). Weight maps to size.
@@ -201,9 +211,9 @@ export function Chessground(
       <g-chess-board
         ref={ref}
         style={{
-          width: "100%",
-          height: "100%",
-          aspectRatio: 1,
+          width: (typeof props.pixelSize === "number" && Number.isFinite(props.pixelSize)) ? `${props.pixelSize}px` : "100%",
+          height: (typeof props.pixelSize === "number" && Number.isFinite(props.pixelSize)) ? `${props.pixelSize}px` : "100%",
+          aspectRatio: (typeof props.pixelSize === "number" && Number.isFinite(props.pixelSize)) ? undefined : 1,
           // Square theme from Settings (gboardThemeAtom)
           ...(themeKey === "chess24" ? {
             ["--square-color-dark" as any]: "#633526",

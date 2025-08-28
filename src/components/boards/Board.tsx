@@ -163,6 +163,10 @@ interface ChessboardProps {
   onControlsReady?: (controls: JSX.Element) => void;
   // NEW: when this number changes, force a Chessground remount/redraw
   redrawSeq?: number;
+  // NEW: force orientation for this instance (useful for per-player views)
+  forcedOrientation?: "white" | "black";
+  // NEW: compact mode hides top/bottom chrome (material, move input, footer controls)
+  compact?: boolean;
 }
 
 function Board({
@@ -186,6 +190,8 @@ function Board({
   externalControls = false,
   onControlsReady,
   redrawSeq,
+  forcedOrientation,
+  compact = false,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -311,13 +317,15 @@ function Board({
   const [autoFlip, setAutoFlip] = useState(false);
 
   const turn = pos?.turn || "white";
-  const orientation = headers.orientation || "white";
-  const toggleOrientation = () =>
+  const orientation = (forcedOrientation ?? headers.orientation) || "white";
+  const toggleOrientation = () => {
+    if (forcedOrientation) return;
     setHeaders({
       ...headers,
       fen: root.fen, // To keep the current board setup
       orientation: orientation === "black" ? "white" : "black",
     });
+  };
 
   // Auto-flip orientation to face the active player when enabled
   useEffect(() => {
@@ -362,7 +370,9 @@ function Board({
   };
 
   const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
+  if (!forcedOrientation) {
+    useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
+  }
   useHotkeys(keyMap.TAKE_BACK.keys, () => {
     if (canTakeBack) {
       goToPrevious();
@@ -641,19 +651,21 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip
-          label={`${t("Board.Action.FlipBoard", { key: keyMap.SWAP_ORIENTATION.keys })} · ${autoFlip ? "Auto-flip On" : "Auto-flip Off"} (double-click)`}
-        >
-          <ActionIcon
-            variant={autoFlip ? "filled" : "default"}
-            color={autoFlip ? "blue" : undefined}
-            size="lg"
-            onClick={() => toggleOrientation()}
-            onDoubleClick={() => setAutoFlip((v) => !v)}
+        {!forcedOrientation && (
+          <Tooltip
+            label={`${t("Board.Action.FlipBoard", { key: keyMap.SWAP_ORIENTATION.keys })} · ${autoFlip ? "Auto-flip On" : "Auto-flip Off"} (double-click)`}
           >
-            <IconSwitchVertical size="1.3rem" />
-          </ActionIcon>
-        </Tooltip>
+            <ActionIcon
+              variant={autoFlip ? "filled" : "default"}
+              color={autoFlip ? "blue" : undefined}
+              size="lg"
+              onClick={() => toggleOrientation()}
+              onDoubleClick={() => setAutoFlip((v) => !v)}
+            >
+              <IconSwitchVertical size="1.3rem" />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </ActionIcon.Group>
     ),
     [
@@ -671,6 +683,7 @@ function Board({
       eraseDrawablesOnClick,
       editingMode,
       currentTab?.file,
+      forcedOrientation,
     ],
   );
 
@@ -743,8 +756,9 @@ function Board({
     const el = boardContainerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      // compute square size: min(paneHeight, paneWidth)
-      const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
+      // compute square size: min(paneHeight, paneWidth) with no artificial floor
+      const minPx = 0;
+      const size = Math.max(minPx, Math.min(el.clientWidth, el.clientHeight));
       try {
         const rect = el.getBoundingClientRect();
         // eslint-disable-next-line no-console
@@ -761,11 +775,12 @@ function Board({
     });
     ro.observe(el);
     // initial
-    const size = Math.max(0, Math.min(el.clientWidth, el.clientHeight));
+    const minPx = 0;
+    const size = Math.max(minPx, Math.min(el.clientWidth, el.clientHeight));
     setBoardSize(size);
     setBoardRenderKey((k) => k + 1);
     return () => ro.disconnect();
-  }, []);
+  }, [fitContainer]);
 
   // Force a redraw/remount when the parent requests it (e.g., analysis panel toggle or mosaic resize)
   useEffect(() => {
@@ -799,7 +814,7 @@ function Board({
               "calc(100vh - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
           }}
         >
-          {materialDiff && (
+          {materialDiff && !compact && (
             <Group ml="2.5rem" h="2.125rem">
               {/* {hasClock && (
                 <Clock
@@ -888,8 +903,9 @@ function Board({
                     }
                   }}
                   style={{
-                    width: boardSize ? `${boardSize}px` : undefined,
-                    height: boardSize ? `${boardSize}px` : undefined,
+                    ...(boardSize
+                      ? { width: `${boardSize}px`, height: `${boardSize}px` }
+                      : { width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%" }),
                     // Allow live control of arrow opacity via CSS var consumed in chessgroundBaseOverride.css
                     ["--arrow-opacity" as any]: String(Math.max(0, Math.min(1, arrowOpacity))),
                     ...(isBasicAnnotation(currentNode.annotations[0])
@@ -921,6 +937,7 @@ function Board({
                     setBoardFen={setBoardFen}
                     orientation={orientation}
                     fen={currentNode.fen}
+                    pixelSize={boardSize ?? undefined}
                     animation={{ enabled: !editingMode }}
                     coordinates={showCoordinates}
                     movable={{
@@ -992,6 +1009,7 @@ function Board({
               </Box>
             </Box>
           </Group>
+          {!compact && (
           <Group justify="space-between" h="2.125rem">
             {materialDiff && (
               <Group ml="2.5rem">
@@ -1021,6 +1039,7 @@ function Board({
 
             {!externalControls && controls}
           </Group>
+          )}
         </Box>
       </Box>
     </>
