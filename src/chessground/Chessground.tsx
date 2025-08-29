@@ -42,6 +42,9 @@ export function Chessground(
       defaultSnapToValidMove?: boolean;
     };
     selectable?: { enabled?: boolean };
+    // Optional: force arrow opacity (0..1). If omitted, falls back to CSS var --arrow-opacity or default 0.6
+    arrowOpacity?: number;
+    children?: React.ReactNode;
   },
 ) {
   const ref = useRef<any>(null);
@@ -133,16 +136,20 @@ export function Chessground(
     const el = ref.current as any;
     if (!el) return;
     const shapes = props.drawable?.autoShapes || [];
-    // compute global opacity from CSS var if present
+    // compute global opacity from prop or CSS var if present
     let globalOpacity = 0.6;
-    try {
-      const cs = getComputedStyle((el as HTMLElement));
-      const v = cs.getPropertyValue("--arrow-opacity").trim();
-      if (v) {
-        const num = Number.parseFloat(v);
-        if (Number.isFinite(num)) globalOpacity = Math.max(0, Math.min(1, num));
-      }
-    } catch {}
+    if (typeof props.arrowOpacity === "number" && Number.isFinite(props.arrowOpacity)) {
+      globalOpacity = Math.max(0, Math.min(1, props.arrowOpacity));
+    } else {
+      try {
+        const cs = getComputedStyle((el as HTMLElement));
+        const v = cs.getPropertyValue("--arrow-opacity").trim();
+        if (v) {
+          const num = Number.parseFloat(v);
+          if (Number.isFinite(num)) globalOpacity = Math.max(0, Math.min(1, num));
+        }
+      } catch {}
+    }
 
     const colorMap: Record<string, string> = {
       green: "hsl(140deg 70% 45%)",
@@ -196,7 +203,7 @@ export function Chessground(
       (el.parentElement || el).appendChild(styleHost);
       styleRef.current = styleHost;
     }
-  }, [props.drawable?.autoShapes]);
+  }, [props.drawable?.autoShapes, props.arrowOpacity]);
 
   return (
     <Box
@@ -260,7 +267,9 @@ export function Chessground(
           ["--arrow-color-secondary" as any]: "color-mix(in srgb, var(--mantine-primary-color-6, #339af0) 70%, transparent)",
         } as any}
         id={elementId as any}
-      />
+      >
+        {props.children}
+      </g-chess-board>
     </Box>
   );
 }

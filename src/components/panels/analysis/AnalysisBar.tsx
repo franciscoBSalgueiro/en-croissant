@@ -1,4 +1,4 @@
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useContext, useMemo, useState, useEffect } from "react";
 import { Box, Group, Paper, Progress, Text, Tabs, useMantineTheme } from "@mantine/core";
 import UnifiedMovesTable from "./UnifiedMovesTable";
 import LinesTree from "./LinesTree";
@@ -21,6 +21,7 @@ import { unifiedMovesFamily } from "@/state/unifiedMoves";
 import type { UnifiedMove } from "@/state/unifiedMoves";
 import { Chessground } from "@/chessground/Chessground";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
+import { normalizeScore } from "@/utils/score";
 import PlayedMovesTable from "@/components/panels/analysis/PlayedMovesTable";
 
 function AnalysisBar({ height = 380 }: { height?: number | string }) {
@@ -143,6 +144,64 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
     return { backgroundColor: lightBg, border: `1px solid ${lightBorder}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
   };
 
+  const describeMove = (move: any, opts: { color: 'white' | 'black'; labelForFirstSentence?: string; compareTo?: any; includeAnnotationPrefix?: boolean; }): Array<React.ReactNode> => {
+    if (!move) return ["No data."];
+    const sentences: Array<React.ReactNode> = [];
+    const san = move?.san || move?.move;
+    const hasScore = move?.score && (move.score as any).value !== undefined;
+    const cp = hasScore ? normalizeScore((move.score as any).value, 'white') : undefined;
+    const evalStr = typeof cp === 'number' ? `${(cp/100).toFixed(2)}p` : undefined;
+    const engine = move?.engineName;
+    const depth = move?.depth;
+    const firstLabel = opts.labelForFirstSentence || 'Move';
+    const engineDepth = engine ? `${engine}${typeof depth === 'number' ? ` (d${depth})` : ''}` : '';
+    let isSameAsBest = false;
+    if (opts.compareTo) {
+      const best = opts.compareTo;
+      const bestSan = best?.san || best?.move;
+      if (san && bestSan && san === bestSan) isSameAsBest = true;
+    }
+    if (opts.includeAnnotationPrefix !== false && !isSameAsBest) {
+      const ann = (move?.annotation ?? '') as string;
+      const label = ann && ANNOTATION_INFO[ann as Annotation]?.name ? (ANNOTATION_INFO[ann as Annotation]?.name || '').trim() : '';
+      if (label) sentences.push(`${label}.`);
+    }
+    if (san) sentences.push(<>{firstLabel + ' '}<Text span fw={700}>{san}</Text>{`, evaluated by ${engineDepth || 'Engine'} at ${evalStr || 'unknown'}.`}</>);
+    if (opts.compareTo) {
+      const best = opts.compareTo;
+      const bestSan = best?.san || best?.move;
+      const bestHasScore = best?.score && (best.score as any).value !== undefined;
+      const bestCp = bestHasScore ? normalizeScore((best.score as any).value, 'white') : undefined;
+      const bestEvalStr = typeof bestCp === 'number' ? `${(bestCp/100).toFixed(2)}p` : undefined;
+      const pctBest = typeof move?.pctBest === 'number' ? move.pctBest.toFixed(1) : undefined;
+      const isSame = san && bestSan && san === bestSan;
+      if (isSame) sentences.push('This is the best move.');
+      else if (pctBest) sentences.push(<>{`This is `}<Text span td="underline">{pctBest}%</Text>{` as good as the best move, `}{bestSan ? <><Text span fw={700}>{bestSan}</Text>{bestEvalStr ? ` (${bestEvalStr})` : ''}</> : null}{`.`}</>);
+      else if (bestSan) sentences.push(<>{`Compared to the best move, `}<Text span fw={700}>{bestSan}</Text>{bestEvalStr ? ` (${bestEvalStr})` : ''}{`.`}</>);
+    }
+    const tags: string[] = [];
+    if (move?.isOnlyMove) tags.push('This was the only move.');
+    if (move?.punishesMistake) tags.push("It punishes the opponent's mistake.");
+    if (move?.isSacrifice) tags.push('It is a sacrifice.');
+    if (move?.isThreat) tags.push('Evaluated in a threat context.');
+    if (tags.length > 0) sentences.push(tags.join(' '));
+    let md = typeof move?.materialDelta === 'number' ? move.materialDelta : 0;
+    if (opts.color === 'black') md = -md;
+    const parts: string[] = [];
+    if (md !== 0) parts.push(`Over the principal variation, material changes by ${(md > 0 ? '+' : '') + md}`);
+    if (parts.length > 0) sentences.push(parts.join('; ') + '.');
+    return sentences;
+  };
+
+  // Persist last known insights per side so they remain visible until that side moves again
+  const [insightWhite, setInsightWhite] = useState<any | null>(null);
+  const [insightBlack, setInsightBlack] = useState<any | null>(null);
+  useEffect(() => {
+    if (!prevMoveInsight) return;
+    if (prevMoveInsight.color === 'white') setInsightWhite(prevMoveInsight as any);
+    else setInsightBlack(prevMoveInsight as any);
+  }, [prevMoveInsight?.color, prevMoveInsight?.san, prevMoveInsight?.actual, prevMoveInsight?.best]);
+
   return (
     <Paper
       withBorder
@@ -175,8 +234,17 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
           value="played" 
           style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
         >
-          <Box style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
-            <Group grow align="stretch" gap="sm" style={{ height: "100%" }}>
+          <Box style={{ height: "100%", minHeight: 0, overflow: "hidden", display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Group gap="md">
+              <Text size="sm" c="dimmed">Avg Eval</Text>
+              {/* These aggregates are computed in PlayerPanel; for now, leave placeholders or compute later */}
+              <Text size="sm" fw={600}>—</Text>
+              <Text size="sm" c="dimmed">Avg %Best</Text>
+              <Text size="sm" fw={600}>—</Text>
+              <Text size="sm" c="dimmed">Avg Rank</Text>
+              <Text size="sm" fw={600}>—</Text>
+            </Group>
+            <Group grow align="stretch" gap="sm" style={{ flex: 1, minHeight: 0 }}>
               <Box style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 <Text size="sm" fw={600} mb={4}>White</Text>
                 <PlayedMovesTable color="white" />
@@ -211,60 +279,114 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
           value="insights" 
           style={{ flex: 1, minHeight: 0, overflow: "auto" }}
         >
-          {prevMoveInsight ? (
-            <Group align="stretch" gap="xs" grow>
-              <Box style={styleFromMove(prevMoveInsight.actual)}>
-                <Text size="xs" fw={700} mb={4}>Your move</Text>
-                {prevMoveInsight.actualPreview && (
-                  <Box w={140} h={140} className="mini-cg" style={{ float: 'left', marginRight: 6 }}>
-                    <Chessground
-                      fen={prevMoveInsight.actualPreview.fen}
-                      coordinates={false}
-                      viewOnly
-                      orientation={prevMoveInsight.color}
-                      lastMove={prevMoveInsight.actualPreview.lastMove as any}
-                      turnColor={prevMoveInsight.actualPreview.turnColor}
-                      check={prevMoveInsight.actualPreview.isCheck}
-                      highlight={{ lastMove: true, check: true }}
-                      drawable={{ enabled: false, visible: true }}
-                    />
-                  </Box>
-                )}
-                <Text size="xs">{prevMoveInsight.san}</Text>
-              </Box>
-              {(() => {
-                const a = prevMoveInsight.actual;
-                const b = prevMoveInsight.best;
-                const aSan = prevMoveInsight.san || (a as any)?.san || (a as any)?.move;
-                const bSan = (b as any)?.san || (b as any)?.move;
-                const isBestPlayed = !!a && (a as any)?.isBest === true || (aSan && bSan && aSan === bSan);
-                if (isBestPlayed) return null;
-                return (
-                  <Box style={styleFromMove(prevMoveInsight.best)}>
-                    <Text size="xs" fw={700} mb={4}>Best move</Text>
-                    {prevMoveInsight.bestPreview && (
-                      <Box w={140} h={140} className="mini-cg" style={{ float: 'left', marginRight: 6 }}>
+          <Group align="stretch" gap="sm" grow>
+            <Box style={{ flex: 1, minHeight: 0 }}>
+              <Text size="sm" fw={600} mb={4}>White</Text>
+              {insightWhite ? (
+                <Box style={styleFromMove((insightWhite as any).actual)}>
+                  <Text size="xs" fw={700} mb={4}>Your move</Text>
+                  <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>
+                    {(insightWhite as any).actualPreview && (
+                      <Box w={140} h={140} className="mini-cg" style={{ flexShrink: 0 }}>
                         <Chessground
-                          fen={prevMoveInsight.bestPreview.fen}
+                          fen={(insightWhite as any).actualPreview.fen}
                           coordinates={false}
                           viewOnly
-                          orientation={prevMoveInsight.color}
-                          lastMove={prevMoveInsight.bestPreview.lastMove as any}
-                          turnColor={prevMoveInsight.bestPreview.turnColor}
-                          check={prevMoveInsight.bestPreview.isCheck}
+                          orientation={(insightWhite as any).color}
+                          lastMove={(insightWhite as any).actualPreview.lastMove as any}
+                          turnColor={(insightWhite as any).actualPreview.turnColor}
+                          check={(insightWhite as any).actualPreview.isCheck}
                           highlight={{ lastMove: true, check: true }}
-                          drawable={{ enabled: false, visible: true }}
-                        />
+                        >
+                          {(insightWhite as any).bestPreview?.lastMove?.length === 2 && (
+                            <>
+                              <div slot={(insightWhite as any).bestPreview.lastMove[0]} style={{ backgroundColor: 'rgba(0, 255, 0, 0.3)', height: '100%' }}></div>
+                              <div slot={(insightWhite as any).bestPreview.lastMove[1]} style={{ backgroundColor: 'rgba(0, 255, 0, 0.3)', height: '100%' }}></div>
+                            </>
+                          )}
+                          {(insightWhite as any).actualPreview?.lastMove?.length === 2 && (() => {
+                            const actualMove = (insightWhite as any).actualPreview.lastMove;
+                            const bestMove = (insightWhite as any).bestPreview?.lastMove;
+                            const isSame = bestMove && actualMove[0] === bestMove[0] && actualMove[1] === bestMove[1];
+                            const color = isSame ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)';
+                            return (
+                              <>
+                                <div slot={actualMove[0]} style={{ backgroundColor: color, height: '100%' }}></div>
+                                <div slot={actualMove[1]} style={{ backgroundColor: color, height: '100%' }}></div>
+                              </>
+                            );
+                          })()}
+                        </Chessground>
                       </Box>
                     )}
-                    <Text size="xs">{bSan || "?"}</Text>
+                    <Box style={{ flex: '1 1 0', minWidth: '200px' }}>
+                      <Text size="xs">
+                        {(() => {
+                          const lines = describeMove((insightWhite as any).actual, { color: (insightWhite as any).color, labelForFirstSentence: 'You played', compareTo: (insightWhite as any).best, includeAnnotationPrefix: true });
+                          return lines.map((line, i) => (<span key={i}>{line}{i < lines.length - 1 ? ' ' : ''}</span>));
+                        })()}
+                      </Text>
+                    </Box>
                   </Box>
-                );
-              })()}
-            </Group>
-          ) : (
-            <Text size="xs" c="dimmed">No previous move to analyze.</Text>
-          )}
+                </Box>
+              ) : (
+                <Text size="xs" c="dimmed">No previous white move to analyze.</Text>
+              )}
+            </Box>
+            <Box style={{ flex: 1, minHeight: 0 }}>
+              <Text size="sm" fw={600} mb={4}>Black</Text>
+              {insightBlack ? (
+                <Box style={styleFromMove((insightBlack as any).actual)}>
+                  <Text size="xs" fw={700} mb={4}>Your move</Text>
+                  <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>
+                    {(insightBlack as any).actualPreview && (
+                      <Box w={140} h={140} className="mini-cg" style={{ flexShrink: 0 }}>
+                        <Chessground
+                          fen={(insightBlack as any).actualPreview.fen}
+                          coordinates={false}
+                          viewOnly
+                          orientation={(insightBlack as any).color}
+                          lastMove={(insightBlack as any).actualPreview.lastMove as any}
+                          turnColor={(insightBlack as any).actualPreview.turnColor}
+                          check={(insightBlack as any).actualPreview.isCheck}
+                          highlight={{ lastMove: true, check: true }}
+                        >
+                          {(insightBlack as any).bestPreview?.lastMove?.length === 2 && (
+                            <>
+                              <div slot={(insightBlack as any).bestPreview.lastMove[0]} style={{ backgroundColor: 'rgba(0, 255, 0, 0.3)', height: '100%' }}></div>
+                              <div slot={(insightBlack as any).bestPreview.lastMove[1]} style={{ backgroundColor: 'rgba(0, 255, 0, 0.3)', height: '100%' }}></div>
+                            </>
+                          )}
+                          {(insightBlack as any).actualPreview?.lastMove?.length === 2 && (() => {
+                            const actualMove = (insightBlack as any).actualPreview.lastMove;
+                            const bestMove = (insightBlack as any).bestPreview?.lastMove;
+                            const isSame = bestMove && actualMove[0] === bestMove[0] && actualMove[1] === bestMove[1];
+                            const color = isSame ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)';
+                            return (
+                              <>
+                                <div slot={actualMove[0]} style={{ backgroundColor: color, height: '100%' }}></div>
+                                <div slot={actualMove[1]} style={{ backgroundColor: color, height: '100%' }}></div>
+                              </>
+                            );
+                          })()}
+                        </Chessground>
+                      </Box>
+                    )}
+                    <Box style={{ flex: '1 1 0', minWidth: '200px' }}>
+                      <Text size="xs">
+                        {(() => {
+                          const lines = describeMove((insightBlack as any).actual, { color: (insightBlack as any).color, labelForFirstSentence: 'You played', compareTo: (insightBlack as any).best, includeAnnotationPrefix: true });
+                          return lines.map((line, i) => (<span key={i}>{line}{i < lines.length - 1 ? ' ' : ''}</span>));
+                        })()}
+                      </Text>
+                    </Box>
+                  </Box>
+                </Box>
+              ) : (
+                <Text size="xs" c="dimmed">No previous black move to analyze.</Text>
+              )}
+            </Box>
+          </Group>
         </Tabs.Panel>
       </Tabs>
       <Box style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: 4, background: "transparent", zIndex: 1000 }}>

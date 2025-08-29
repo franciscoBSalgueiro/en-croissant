@@ -13,3 +13,13 @@
 .mosaic-split:hover .mosaic-split-line {
   box-shadow: 0 0 0 1px var(--mantine-primary-color-filled) !important;
 }
+
+/* Remove tile borders/outlines */
+.mosaic-window, .mosaic-window-body, .mosaic-tile {
+  border: none !important;
+  box-shadow: none !important;
+}
+.mosaic-window-toolbar {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}

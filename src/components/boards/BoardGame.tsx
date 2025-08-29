@@ -14,7 +14,8 @@ import {
 import { getMainLine, getVariationLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
 import { type GameHeaders, treeIteratorMainLine, getNodeAtPath } from "@/utils/treeReducer";
-import { Box } from "@mantine/core";
+import { Box, ActionIcon, Group, Tooltip } from "@mantine/core";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { parseUci, squareFile, squareRank } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
@@ -770,6 +771,8 @@ function BoardGame() {
   // NEW: nested mosaic state for playing
   const [playingLayoutState, setPlayingLayoutState] = useAtom(playingLayoutAtom);
   // (Removed) analysis open/close state
+  const [analysisCollapsed, setAnalysisCollapsed] = useState(false);
+  const [analysisSplit, setAnalysisSplit] = useState<number>(70);
 
   // Removed center board ResizeObserver; boards live inside each PlayerPanel
 
@@ -807,6 +810,18 @@ function BoardGame() {
       splitPercentage: 70,
     } as any;
   }, [playingLayoutState.currentNode]);
+
+  // Apply collapse/expand by adjusting root split percentage when analysis present
+  const layoutForMosaic: MosaicNode<PlayingViewId> = useMemo(() => {
+    const node = pruneLayout;
+    if (typeof node === 'string') return node;
+    // We expect root to be a column with second = 'analysis'
+    if ((node as any)?.direction === 'column' && (node as any)?.second === 'analysis') {
+      const desired = analysisCollapsed ? 98 : analysisSplit;
+      return { ...(node as any), splitPercentage: desired } as any;
+    }
+    return node;
+  }, [pruneLayout, analysisCollapsed, analysisSplit]);
 
   // NEW: Define nested mosaic tile renderers for unified playing view
   const playingTiles: { [viewId in PlayingViewId]: JSX.Element } = {
@@ -891,15 +906,27 @@ function BoardGame() {
       <EvalListener />
       <BotService />
       <Box style={{ height: "100%", padding: "8px", display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <Box style={{ marginBottom: 8 }}>
-          <BoardControls />
-        </Box>
         <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <Group justify="flex-end" mt={6} mb={6} style={{ position: 'fixed', bottom: 12, right: 24, zIndex: 1000 }}>
+            <Tooltip label={analysisCollapsed ? "Expand analysis" : "Collapse analysis"}>
+              <ActionIcon variant="default" onClick={() => setAnalysisCollapsed((v) => !v)}>
+                {analysisCollapsed ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+              </ActionIcon>
+            </Tooltip>
+          </Group>
           <Mosaic<PlayingViewId>
             renderTile={(id) => playingTiles[id]}
-            value={pruneLayout}
+            value={layoutForMosaic}
             onChange={(currentNode) => {
               setPlayingLayoutState({ currentNode: (currentNode as any) ?? DEFAULT_PLAYING_LAYOUT });
+              // capture current split when not collapsed
+              try {
+                const n = (currentNode as any);
+                if (n && typeof n === 'object' && n.direction === 'column' && n.second === 'analysis') {
+                  const sp = typeof n.splitPercentage === 'number' ? n.splitPercentage : analysisSplit;
+                  setAnalysisSplit(sp);
+                }
+              } catch {}
             }}
             resize={{ minimumPaneSizePercentage: 10 }}
           />

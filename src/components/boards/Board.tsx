@@ -167,6 +167,10 @@ interface ChessboardProps {
   forcedOrientation?: "white" | "black";
   // NEW: compact mode hides top/bottom chrome (material, move input, footer controls)
   compact?: boolean;
+  // NEW: allow caller to override whether engine arrows are shown (per-board)
+  arrowsEnabledOverride?: boolean;
+  // NEW: show evaluation bar (vertical) toggle
+  evalBarEnabled?: boolean;
 }
 
 function Board({
@@ -192,6 +196,8 @@ function Board({
   redrawSeq,
   forcedOrientation,
   compact = false,
+  arrowsEnabledOverride,
+  evalBarEnabled = true,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -284,7 +290,7 @@ function Board({
 
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
-  const showArrows = useAtomValue(showArrowsAtom);
+  const showArrowsGlobal = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
   const arrowColorMeaning = useAtomValue(arrowColorMeaningAtom);
   const arrowOpacityMeaning = useAtomValue(arrowOpacityMeaningAtom);
@@ -433,6 +439,7 @@ function Board({
   }
 
   let shapes: DrawShape[] = [];
+  const showArrows = (typeof arrowsEnabledOverride === 'boolean') ? arrowsEnabledOverride : showArrowsGlobal;
   if (showArrows && evalOpen && arrowsMap.size > 0 && pos) {
     // Clear color cache periodically to prevent memory leaks
     if (arrowColorMeaning === "score" && qualityColorCache.size > 100) {
@@ -854,28 +861,30 @@ function Board({
                   </Box>
                 </Box>
               )}
-            <Box
-              h="100%"
-              style={{
-                width: 25,
-              }}
-            >
-              {!evalOpen && (
-                <Center h="100%" w="100%">
-                  <ActionIcon size="1rem" onClick={() => setEvalOpen(true)}>
-                    <IconChevronRight />
-                  </ActionIcon>
-                </Center>
-              )}
-              {evalOpen && (
-                <Box onClick={() => setEvalOpen(false)} h="100%">
-                  <EvalBar
-                    score={currentNode.score?.value || null}
-                    orientation={orientation}
-                  />
-                </Box>
-              )}
-            </Box>
+            {evalBarEnabled && (
+              <Box
+                h="100%"
+                style={{
+                  width: 25,
+                }}
+              >
+                {!evalOpen && (
+                  <Center h="100%" w="100%">
+                    <ActionIcon size="1rem" onClick={() => setEvalOpen(true)}>
+                      <IconChevronRight />
+                    </ActionIcon>
+                  </Center>
+                )}
+                {evalOpen && (
+                  <Box onClick={() => setEvalOpen(false)} h="100%">
+                    <EvalBar
+                      score={currentNode.score?.value || null}
+                      orientation={orientation}
+                    />
+                  </Box>
+                )}
+              </Box>
+            )}
             <Box style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Box
                 ref={boardContainerRef}
