@@ -1136,7 +1136,7 @@ function Board({
                         <div slot={bestOverlay.squares[1]}>
                           <svg viewBox="0 0 10 10" fill="none">
                           {bestOverlay.text && (
-                              <text x="0.5" y="1.25" textAnchor="left" dominantBaseline="middle" fontSize="2" fill={bestOverlay.stroke} stroke="purple" strokeWidth="0.1">
+                              <text x="0.5" y="1.25" textAnchor="left" dominantBaseline="middle" fontSize="2" fill={bestOverlay.stroke} stroke="red" strokeWidth="0.1">
                                 {bestOverlay.text}
                               </text>
                             )}

@@ -22,12 +22,21 @@ function ConvertButton({
 
   useEffect(() => {
     async function getProgress() {
-      await listen<number[]>("convert_progress", (event) => {
+      const unlisten = await listen<number[]>("convert_progress", (event) => {
         const progress = event.payload;
         setProgress({ total: progress[0], elapsed: progress[1] / 1000 });
       });
+      return unlisten;
     }
-    getProgress();
+    
+    let unlisten: (() => void) | undefined;
+    getProgress().then((unlistenFn) => {
+      unlisten = unlistenFn;
+    });
+    
+    return () => {
+      unlisten?.();
+    };
   }, []);
   return (
     <Box

@@ -184,7 +184,7 @@ function PlayerPanel({
   const [showConsecutiveArrows, setShowConsecutiveArrows] = useAtom(showConsecutiveArrowsAtom);
 
   return (
-    <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column', opacity: isActive === false ? 0.6 : 1 }}>
+    <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column', opacity: isActive === false ? 0.8 : 1 }}>
       <Stack gap="xs" style={{ flex: 1, minHeight: 0 }}>
         <Box ref={topRef}>
         <Group align="center" gap="xs">
