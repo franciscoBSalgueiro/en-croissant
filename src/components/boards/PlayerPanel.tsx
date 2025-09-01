@@ -1,7 +1,7 @@
 import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, botsAtom, enginesAtom, playersAtom, arrowColorMeaningAtom, arrowOpacityMeaningAtom, arrowSizeMeaningAtom, arrowOpacityAtom, arrowSizeScaleAtom, arrowCountPolicyAtom, arrowBestThresholdAtom, snapArrowsAtom, showConsecutiveArrowsAtom } from "@/state/atoms";
 import { Group, Paper, Select, Stack, Text, Box, Menu, ActionIcon, SegmentedControl, Slider, Switch } from "@mantine/core";
-import { IconChevronDown, IconPlayerPlay, IconPlayerPause, IconArrowUpRight, IconFlag } from "@tabler/icons-react";
+import { IconChevronDown, IconPlayerPlay, IconPlayerPause, IconArrowUpRight, IconFlag, IconArrowBackUp } from "@tabler/icons-react";
 import { memo, useContext, useRef, useState } from "react";
 import type { OpponentSettings } from "./types";
 import type { PiecesCount } from "@/utils/chess";
@@ -101,6 +101,9 @@ function PlayerPanel({
   movable,
   onCapturedChange,
   onMaterialDiffChange,
+  arrowsContextOverride,
+  arrowsEnabledOverride,
+  isActive,
 }: {
   color: "white" | "black";
   opponent: OpponentSettings;
@@ -121,9 +124,13 @@ function PlayerPanel({
   movable: "both" | "white" | "black" | "turn" | "none";
   onCapturedChange?: (captured: { white: PiecesCount; black: PiecesCount }) => void;
   onMaterialDiffChange?: (diff: number) => void;
+  arrowsContextOverride?: { rootFen: string; fen: string; gameMoves: string[]; playedSan?: string; playedPctBest?: number };
+  arrowsEnabledOverride?: boolean;
+  isActive?: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
   const setResult = useStore(store, (s) => s.setResult);
+  const goToPrevious = useStore(store, (s) => s.goToPrevious);
   const headers = useStore(store, (s) => s.headers);
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const activeTab = useAtomValue(activeTabAtom)!;
@@ -149,10 +156,22 @@ function PlayerPanel({
     setResult(outcome as any);
   }
 
+  function onTakeback() {
+    // If it's this player's turn, go back two plies to reach their previous turn.
+    // If it's opponent's turn, go back one ply to undo opponent's last move.
+    if ((turn || "white") === color) {
+      goToPrevious();
+      goToPrevious();
+    } else {
+      goToPrevious();
+    }
+  }
+
   const boardRef = useRef<HTMLDivElement | null>(null);
 
   const topRef = useRef<HTMLDivElement | null>(null);
-  const [arrowsOn, setArrowsOn] = useState(true);
+  const [showNextArrows, setShowNextArrows] = useState(true);
+  const [showLastArrows, setShowLastArrows] = useState(true);
   const [enginePaused, setEnginePaused] = useState(false);
   const [arrowColorMeaning, setArrowColorMeaning] = useAtom(arrowColorMeaningAtom);
   const [arrowOpacityMeaning, setArrowOpacityMeaning] = useAtom(arrowOpacityMeaningAtom);
@@ -165,7 +184,7 @@ function PlayerPanel({
   const [showConsecutiveArrows, setShowConsecutiveArrows] = useAtom(showConsecutiveArrowsAtom);
 
   return (
-    <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column' }}>
+    <Paper withBorder shadow="sm" p="md" h="100%" style={{ minHeight: 300, overflow: 'hidden', color: color === 'white' ? 'inherit' : 'white', display: 'flex', flexDirection: 'column', opacity: isActive === false ? 0.6 : 1 }}>
       <Stack gap="xs" style={{ flex: 1, minHeight: 0 }}>
         <Box ref={topRef}>
         <Group align="center" gap="xs">
@@ -210,22 +229,42 @@ function PlayerPanel({
                 clearable={false}
                 w={100}
               />
-              <ActionIcon size="md" variant="light" color="red" onClick={onResign} aria-label="Resign">
-                <IconFlag size={18} />
-              </ActionIcon>
+              <Group gap={4}
+              >
+                <ActionIcon size="md" variant="light" color="gray" onClick={onTakeback} aria-label="Takeback">
+                  <IconArrowBackUp size={18} />
+                </ActionIcon>
+                <ActionIcon size="md" variant="light" color="red" onClick={onResign} aria-label="Resign">
+                  <IconFlag size={18} />
+                </ActionIcon>
+              </Group>
 
               <Group gap={4}>
-                <ActionIcon size="md" variant={arrowsOn ? "filled" : "default"} onClick={() => setArrowsOn((v) => !v)} aria-label="Arrows">
+                <ActionIcon size="md" variant={showNextArrows || showLastArrows ? "filled" : "default"} onClick={() => {
+                  const next = !(showNextArrows || showLastArrows);
+                  setShowNextArrows(next);
+                  setShowLastArrows(next);
+                }} aria-label="Arrows">
                   <IconArrowUpRight size={18} />
                 </ActionIcon>
                 <Menu position="bottom-start" shadow="md" width={300}>
                   <Menu.Target>
-                    <ActionIcon size="md" variant={arrowsOn ? "filled" : "default"} aria-label="Arrow settings">
+                    <ActionIcon size="md" variant={showNextArrows || showLastArrows ? "filled" : "default"} aria-label="Arrow settings">
                       <IconChevronDown size={18} />
                     </ActionIcon>
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Box p="sm" style={{ width: 280 }}>
+                      <Box mb="sm">
+                        <Group justify="space-between">
+                          <Text size="sm">Show next move arrows</Text>
+                          <Switch checked={showNextArrows} onChange={(e) => setShowNextArrows(e.currentTarget.checked)} />
+                        </Group>
+                        <Group justify="space-between" mt={6}>
+                          <Text size="sm">Show last move arrows</Text>
+                          <Switch checked={showLastArrows} onChange={(e) => setShowLastArrows(e.currentTarget.checked)} />
+                        </Group>
+                      </Box>
                       <Text size="xs" fw={600} mb={4}>Color</Text>
                       <SegmentedControl
                         fullWidth
@@ -337,22 +376,41 @@ function PlayerPanel({
                 clearable={false}
                 w={100}
               />
-              <ActionIcon size="md" variant="light" color="red" onClick={onResign} aria-label="Resign">
-                <IconFlag size={18} />
-              </ActionIcon>
+              <Group gap={4}>
+                <ActionIcon size="md" variant="light" color="gray" onClick={onTakeback} aria-label="Takeback">
+                  <IconArrowBackUp size={18} />
+                </ActionIcon>
+                <ActionIcon size="md" variant="light" color="red" onClick={onResign} aria-label="Resign">
+                  <IconFlag size={18} />
+                </ActionIcon>
+              </Group>
 
               <Group gap={4}>
-                <ActionIcon size="md" variant={arrowsOn ? "filled" : "default"} onClick={() => setArrowsOn((v) => !v)} aria-label="Arrows">
+                <ActionIcon size="md" variant={showNextArrows || showLastArrows ? "filled" : "default"} onClick={() => {
+                  const next = !(showNextArrows || showLastArrows);
+                  setShowNextArrows(next);
+                  setShowLastArrows(next);
+                }} aria-label="Arrows">
                   <IconArrowUpRight size={18} />
                 </ActionIcon>
                 <Menu position="bottom-start" shadow="md" width={300}>
                   <Menu.Target>
-                    <ActionIcon size="md" variant={arrowsOn ? "filled" : "default"} aria-label="Arrow settings">
+                    <ActionIcon size="md" variant={showNextArrows || showLastArrows ? "filled" : "default"} aria-label="Arrow settings">
                       <IconChevronDown size={18} />
                     </ActionIcon>
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Box p="sm" style={{ width: 280 }}>
+                      <Box mb="sm">
+                        <Group justify="space-between">
+                          <Text size="sm">Show next move arrows</Text>
+                          <Switch checked={showNextArrows} onChange={(e) => setShowNextArrows(e.currentTarget.checked)} />
+                        </Group>
+                        <Group justify="space-between" mt={6}>
+                          <Text size="sm">Show last move arrows</Text>
+                          <Switch checked={showLastArrows} onChange={(e) => setShowLastArrows(e.currentTarget.checked)} />
+                        </Group>
+                      </Box>
                       <Text size="xs" fw={600} mb={4}>Color</Text>
                       <SegmentedControl
                         fullWidth
@@ -447,6 +505,11 @@ function PlayerPanel({
         {/* Embedded board from this player's perspective */}
         <Box style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <Box style={{ height: '100%', width: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>
+            {(() => {
+              const enableArrows = (typeof arrowsEnabledOverride === 'boolean') ? arrowsEnabledOverride : (isActive ? showNextArrows : showLastArrows);
+              const ctxOverride = isActive ? undefined : (showLastArrows ? arrowsContextOverride : undefined);
+              const showLast = isActive ? false : showLastArrows;
+              return (
             <Board
               dirty={false}
               editingMode={false}
@@ -458,13 +521,17 @@ function PlayerPanel({
               whiteTime={whiteTime ?? undefined}
               blackTime={blackTime ?? undefined}
               fitContainer
-              arrowsEnabledOverride={arrowsOn}
+              arrowsEnabledOverride={enableArrows}
+              arrowsContextOverride={ctxOverride}
               compact
               evalBarEnabled={false}
               forcedOrientation={color}
               onCapturedChange={onCapturedChange}
               onMaterialDiffChange={onMaterialDiffChange}
-            />
+              showLastOverlaysOverride={showLast}
+              registerNavHotkeys={isActive}
+            />);
+            })()}
           </Box>
         </Box>
 

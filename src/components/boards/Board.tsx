@@ -73,6 +73,7 @@ import {
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
+import { parseSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useCallback, useContext, useMemo, useState, useRef, useLayoutEffect, useEffect } from "react";
@@ -102,9 +103,11 @@ const qualityColorCache = new Map<string, string>();
 
 function pctBestToColor(pctBest: number, isMainLine: boolean): string {
   const v = Math.max(0, Math.min(100, pctBest));
-  if (v >= 66) return isMainLine ? "green" : "paleGreen";
-  if (v >= 33) return "yellow";
-  return isMainLine ? "red" : "paleRed";
+  // Continuous gradient: 0 -> red (h=0), 50 -> yellow (h=60), 100 -> green (h=120)
+  const hue = 1.2 * v; // 0..120
+  const saturation = isMainLine ? 85 : 60; // main lines more saturated
+  const lightness = isMainLine ? 50 : 60; // non-main slightly lighter
+  return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`;
 }
 
 function getQualityColor(winChance: number, isMainLine: boolean): string {
@@ -169,8 +172,14 @@ interface ChessboardProps {
   compact?: boolean;
   // NEW: allow caller to override whether engine arrows are shown (per-board)
   arrowsEnabledOverride?: boolean;
+  // NEW: allow caller to disable last-move overlays (played/best) on passive board
+  showLastOverlaysOverride?: boolean;
   // NEW: show evaluation bar (vertical) toggle
   evalBarEnabled?: boolean;
+  // NEW: optionally override which position/moves to use for engine arrows
+  arrowsContextOverride?: { rootFen: string; fen: string; gameMoves: string[]; playedSan?: string; playedPctBest?: number };
+  // NEW: control whether this Board registers navigation hotkeys (left/right, takeback)
+  registerNavHotkeys?: boolean;
 }
 
 function Board({
@@ -197,7 +206,10 @@ function Board({
   forcedOrientation,
   compact = false,
   arrowsEnabledOverride,
+  showLastOverlaysOverride,
   evalBarEnabled = true,
+  arrowsContextOverride,
+  registerNavHotkeys = true,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -268,9 +280,9 @@ function Board({
 
   const arrows = useAtomValue(
     unifiedBoardArrowsFamily({
-      rootFen,
-      fen: currentNode.fen,
-      gameMoves: moves,
+      rootFen: arrowsContextOverride?.rootFen ?? rootFen,
+      fen: arrowsContextOverride?.fen ?? currentNode.fen,
+      gameMoves: arrowsContextOverride?.gameMoves ?? moves,
     }),
   );
   const botSuggestion = useAtomValue(currentBotSuggestionAtom);
@@ -287,6 +299,7 @@ function Board({
   const setFen = useStore(store, (s) => s.setFen);
 
   const [pos, error] = positionFromFen(currentNode.fen);
+  const [posForArrows] = positionFromFen(arrowsContextOverride?.fen ?? currentNode.fen);
 
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
@@ -380,12 +393,16 @@ function Board({
     useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
   }
   useHotkeys(keyMap.TAKE_BACK.keys, () => {
-    if (canTakeBack) {
+    if (registerNavHotkeys && canTakeBack) {
       goToPrevious();
     }
   });
-  useHotkeys(keyMap.PREVIOUS_MOVE.keys, () => goToPrevious());
-  useHotkeys(keyMap.NEXT_MOVE.keys, () => goToNext());
+  useHotkeys(keyMap.PREVIOUS_MOVE.keys, () => {
+    if (registerNavHotkeys) goToPrevious();
+  });
+  useHotkeys(keyMap.NEXT_MOVE.keys, () => {
+    if (registerNavHotkeys) goToNext();
+  });
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
@@ -440,7 +457,7 @@ function Board({
 
   let shapes: DrawShape[] = [];
   const showArrows = (typeof arrowsEnabledOverride === 'boolean') ? arrowsEnabledOverride : showArrowsGlobal;
-  if (showArrows && evalOpen && arrowsMap.size > 0 && pos) {
+  if (showArrows && evalOpen && arrowsMap.size > 0 && posForArrows) {
     // Clear color cache periodically to prevent memory leaks
     if (arrowColorMeaning === "score" && qualityColorCache.size > 100) {
       qualityColorCache.clear();
@@ -457,7 +474,7 @@ function Board({
           return 100 * Math.max(0, Math.min(1, (w - minWinChance) / range));
         };
         for (const [j, { pv, winChance }] of moves.entries()) {
-          const posClone = pos.clone();
+          const posClone = posForArrows.clone();
           let prevSquare = null;
           for (const [ii, uci] of pv.entries()) {
             const m = parseUci(uci)! as NormalMove;
@@ -506,7 +523,7 @@ function Board({
                 const brushColor = (() => {
                   // Color meaning: rank | score | pctBest | uniform
                   if (arrowColorMeaning === "uniform") {
-                    return "green";
+                    return "purple";
                   }
                   if (arrowColorMeaning === "rank") {
                     return j === 0 ? arrowColors[i].strong : arrowColors[i].pale;
@@ -537,6 +554,93 @@ function Board({
       }
     }
   }
+
+  // Compute played move overlay (slots) by %Best for passive board
+  const playedOverlay = React.useMemo(() => {
+    try {
+      if (!arrowsContextOverride?.playedSan || !posForArrows) return null;
+      if (showLastOverlaysOverride === false) return null;
+      const mv = parseSan(posForArrows, arrowsContextOverride.playedSan) as any;
+      if (!mv?.from && !mv?.to) return null;
+      const toSqName = (s: number) => {
+        const f = (s & 7);
+        const r = (s >> 3);
+        return `${String.fromCharCode("a".charCodeAt(0) + f)}${r + 1}`;
+      };
+      const promo = mv.promotion ? mv.promotion[0] : undefined;
+      const playedUci = `${toSqName(mv.from)}${toSqName(mv.to)}${promo ? String(promo).toLowerCase() : ""}`;
+      const entries = Array.from(arrowsMap.entries()).sort((a, b) => a[0] - b[0]);
+      const firstEngine = entries[0]?.[1] as { pv: string[]; winChance: number }[] | undefined;
+      // default: use annotation color with opacity if available, else derive from pctBest as hsla
+      let rgba = (() => {
+        if (currentNode.annotations?.length > 0 && isBasicAnnotation(currentNode.annotations[0])) {
+          return undefined as string | undefined; // we'll use darkColor with opacity in render
+        }
+        return undefined as string | undefined;
+      })();
+      const hslaForPct = (p: number) => {
+        const v = Math.max(0, Math.min(100, p));
+        const hue = Math.round(1.2 * v); // 0..120
+        const saturation = 85;
+        const lightness = 50;
+        return `hsla(${hue}, ${saturation}%, ${lightness}%, 0.3)`;
+      };
+      if (typeof arrowsContextOverride.playedPctBest === 'number') {
+        rgba = hslaForPct(arrowsContextOverride.playedPctBest);
+      } else if (firstEngine && firstEngine.length > 0) {
+        const bestWinChance = firstEngine[0].winChance;
+        const minWinChance = firstEngine.reduce((acc, m) => (m.winChance < acc ? m.winChance : acc), bestWinChance);
+        const range = Math.max(1e-3, bestWinChance - minWinChance);
+        const pctBestForMove = (w: number) => {
+          if (range < 1e-2) return 100;
+          return 100 * Math.max(0, Math.min(1, (w - minWinChance) / range));
+        };
+        const idx = firstEngine.findIndex((m) => (m.pv?.[0] || "") === playedUci);
+        const winChance = idx >= 0 ? firstEngine[idx].winChance : minWinChance;
+        const p = pctBestForMove(winChance);
+        rgba = hslaForPct(p);
+      }
+      const from = toSqName(mv.from);
+      const to = toSqName(mv.to);
+      return { squares: [from, to], color: rgba } as { squares: string[]; color: string | undefined };
+    } catch { return null; }
+  }, [arrowsContextOverride?.playedSan, arrowsMap, posForArrows, currentNode.annotations, showLastOverlaysOverride]);
+
+  // Compute best move overlay circles (from/to) for the current arrows context
+  const bestOverlay = React.useMemo(() => {
+    try {
+      // Only show circles for the "best last move" context, i.e., when we have a playedSan (passive board)
+      if (!arrowsContextOverride?.playedSan) return null;
+      if (showLastOverlaysOverride === false) return null;
+      if (!posForArrows || arrowsMap.size === 0) return null;
+      const entries = Array.from(arrowsMap.entries()).sort((a, b) => a[0] - b[0]);
+      const firstEngine = entries[0]?.[1] as { pv: string[]; winChance: number }[] | undefined;
+      const top = firstEngine && firstEngine.length > 0 ? firstEngine[0] : undefined;
+      const firstUci = top?.pv?.[0];
+      if (!firstUci) return null;
+      // Convert UCI to a1..h8 squares
+      const toSqName = (s: number) => {
+        const f = (s & 7);
+        const r = (s >> 3);
+        return `${String.fromCharCode("a".charCodeAt(0) + f)}${r + 1}`;
+      };
+      const mv = parseUci(firstUci);
+      if (!mv) return null;
+      const from = toSqName((mv as any).from);
+      const to = toSqName((mv as any).to);
+      // stroke color: strong green (100% pctBest) with high opacity
+      // const stroke = pctBestToColor(100, true);
+      const stroke = 'rgba(75, 0, 130,0.6)';
+      // Compute factor text = 100 / playedPctBest (rounded to 1 decimal)
+      let text: string | undefined = undefined;
+      const playedPct = arrowsContextOverride?.playedPctBest;
+      if (typeof playedPct === 'number' && playedPct > 0) {
+        const factor = 100 / playedPct;
+        text = `${factor.toFixed(1)}`;
+      }
+      return { squares: [from, to], stroke, text } as { squares: string[]; stroke: string; text?: string };
+    } catch { return null; }
+  }, [arrowsMap, posForArrows, arrowsContextOverride?.playedSan, arrowsContextOverride?.playedPctBest, showLastOverlaysOverride]);
 
   // Add bot suggestion arrow (semi-transparent black), if present
   if (botSuggestion) {
@@ -1013,7 +1117,37 @@ function Board({
                         setShapes(shapes);
                       },
                     }}
-                  />
+                  >
+                    {/* Overlay played move squares (from/to) using slot-based coloring like AnalysisBar insights */}
+                    {playedOverlay?.squares?.length === 2 && (
+                      <>
+                        <div slot={playedOverlay.squares[0]} style={{ backgroundColor: (playedOverlay.color || `${darkColor}4D`), height: '100%' }}></div>
+                        <div slot={playedOverlay.squares[1]} style={{ backgroundColor: (playedOverlay.color || `${darkColor}4D`), height: '100%' }}></div>
+                      </>
+                    )}
+                    {/* Overlay best move circles for the current arrows context */}
+                    {bestOverlay?.squares?.length === 2 && (
+                      <>
+                        <div slot={bestOverlay.squares[0]}>
+                          <svg viewBox="0 0 10 10" fill="none">
+                            <ellipse cx="5" cy="5" rx="4" ry="4" stroke={bestOverlay.stroke} strokeWidth="0.6" />
+                          </svg>
+                        </div>
+                        <div slot={bestOverlay.squares[1]}>
+                          <svg viewBox="0 0 10 10" fill="none">
+                          {bestOverlay.text && (
+                              <text x="0.5" y="1.25" textAnchor="left" dominantBaseline="middle" fontSize="2" fill={bestOverlay.stroke} stroke="purple" strokeWidth="0.1">
+                                {bestOverlay.text}
+                              </text>
+                            )}
+                            
+                            <ellipse cx="5" cy="5" rx="4" ry="4" stroke={bestOverlay.stroke} strokeWidth="0.4" />
+                            
+                          </svg>
+                        </div>
+                      </>
+                    )}
+                  </Chessground>
                 </Box>
               </Box>
             </Box>

@@ -122,8 +122,8 @@ function BoardGame() {
   );
 
   const [pos, error] = useMemo(() => {
-    return positionFromFen(lastNode.fen);
-  }, [lastNode.fen]);
+    return positionFromFen(currentNode.fen);
+  }, [currentNode.fen]);
 
   const [players, setPlayers] = useAtom(currentPlayersAtom);
   const [savedPlayers, setSavedPlayers] = useAtom(savedPlayersAtom);
@@ -213,6 +213,26 @@ function BoardGame() {
     }
   }, [unifiedPrevLoadable, currentNode?.san, currentNode?.halfMoves, prevNode?.fen]);
 
+  // Build arrows context for previous position (before the last move)
+  const prevArrowsContext = useMemo(() => {
+    try {
+      if (!prevNode) return undefined as { rootFen: string; fen: string; gameMoves: string[] } | undefined;
+      const is960 = headers.variant === "Chess960";
+      const prevMoves = getVariationLine(root, position.slice(0, -1), is960, false);
+      const playedSan = (currentNode as any)?.san as string | undefined;
+      // Try to read pctBest for the played move from unifiedPrevLoadable
+      let playedPctBest: number | undefined = undefined;
+      try {
+        const data: any[] = (unifiedPrevLoadable as any)?.data || [];
+        const found = data.find((m: any) => (m.san || m.move) === playedSan);
+        if (found && typeof found.pctBest === 'number') playedPctBest = found.pctBest;
+      } catch {}
+      return { rootFen: root.fen, fen: prevNode.fen, gameMoves: prevMoves, playedSan, playedPctBest } as any;
+    } catch {
+      return undefined as any;
+    }
+  }, [prevNode?.fen, headers.variant, root, position, unifiedPrevLoadable]);
+
   // Persist last known prev-move info per side to avoid flicker and keep it visible until that side moves again
   const [prevInfoWhite, setPrevInfoWhite] = useState<{
     playedSan?: string;
@@ -249,6 +269,20 @@ function BoardGame() {
       });
     }
   }, [prevMoveComparison]);
+
+  // Detect takebacks (position moved backward in half-moves) and clear cached prev info to avoid stale overlays
+  const lastHalfMovesRef = useRef<number | null>(null);
+  useEffect(() => {
+    const half: number | undefined = (currentNode as any)?.halfMoves;
+    const prev = lastHalfMovesRef.current;
+    if (typeof half === "number") {
+      if (prev !== null && typeof prev === "number" && half < prev) {
+        setPrevInfoWhite(undefined);
+        setPrevInfoBlack(undefined);
+      }
+      lastHalfMovesRef.current = half;
+    }
+  }, [currentNode?.halfMoves]);
 
   // Ensure any move made via external UI (e.g., GameNotation click) is reflected in Played Moves
   useEffect(() => {
@@ -289,7 +323,7 @@ function BoardGame() {
         return [...prev, replacement];
       });
     } catch {}
-  }, [gameState, lastNode?.san, lastNode?.halfMoves, prevNode?.fen, whitePlayed, blackPlayed, unifiedPrevLoadable, setWhitePlayed, setBlackPlayed]);
+  }, [gameState, currentNode?.san, currentNode?.halfMoves, prevNode?.fen, whitePlayed, blackPlayed, unifiedPrevLoadable, setWhitePlayed, setBlackPlayed]);
 
   // Enrich last played move entry when engine/database data arrives later
   useEffect(() => {
@@ -363,7 +397,7 @@ function BoardGame() {
       clearTimeout(botTimeoutRef.current);
       botTimeoutRef.current = null;
     }
-  }, [lastNode.fen, pos?.turn]);
+  }, [currentNode.fen, pos?.turn]);
 
   useEffect(() => {
     const isTauri = typeof (globalThis as any).__TAURI__ !== "undefined";
@@ -852,6 +886,9 @@ function BoardGame() {
         materialDiff={materialDiff}
         prevMoveInfo={prevInfoWhite}
         movable={gameState === "settingUp" ? "turn" : movable}
+        // If it's White's turn, White is active → show current arrows; otherwise show previous-position arrows
+        arrowsContextOverride={pos?.turn === "white" ? undefined : prevArrowsContext}
+        isActive={pos?.turn === "white"}
         onCapturedChange={setCaptured}
         onMaterialDiffChange={setMaterialDiff}
       />
@@ -884,6 +921,9 @@ function BoardGame() {
         materialDiff={materialDiff}
         prevMoveInfo={prevInfoBlack}
         movable={gameState === "settingUp" ? "turn" : movable}
+        // If it's Black's turn, Black is active → show current arrows; otherwise show previous-position arrows
+        arrowsContextOverride={pos?.turn === "black" ? undefined : prevArrowsContext}
+        isActive={pos?.turn === "black"}
         onCapturedChange={setCaptured}
         onMaterialDiffChange={setMaterialDiff}
       />

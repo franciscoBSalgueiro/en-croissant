@@ -130,15 +130,32 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unifiedPrevLoadable?.state, JSON.stringify(unifiedPrevLoadable?.data || []), (currentNode as any)?.san, (currentNode as any)?.halfMoves, (prevNode as any)?.fen]);
 
+  // Continuous gradient: 0 -> red (h=0), 50 -> yellow (h=60), 100 -> green (h=120)
+  const pctBestToHsl = (pct: number, opts?: { saturation?: number; lightness?: number }) => {
+    const v = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
+    const hue = 1.2 * v; // 0..120
+    const saturation = typeof opts?.saturation === 'number' ? opts!.saturation : 85;
+    const lightness = typeof opts?.lightness === 'number' ? opts!.lightness : 90;
+    return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%)`;
+  };
+
   const styleFromMove = (move: any): React.CSSProperties => {
     const ann = (move?.annotation ?? "") as Annotation;
     const colorName = ANNOTATION_INFO[ann]?.color as any;
     const darkText = (theme.colors as any)?.dark?.[9] ?? "#111";
+    // Prefer %Best-based continuous coloring when available
+    if (typeof move?.pctBest === 'number') {
+      const bg = pctBestToHsl(move.pctBest, { saturation: 85, lightness: 92 });
+      const border = pctBestToHsl(move.pctBest, { saturation: 70, lightness: 55 });
+      return { backgroundColor: bg, border: `1px solid ${border}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
+    }
+    // Fallback to annotation-based coloring if provided
     if (colorName) {
       const bg = (theme.colors as any)[colorName]?.[0] ?? theme.colors.gray[0];
       const border = (theme.colors as any)[colorName]?.[4] ?? theme.colors.gray[4];
       return { backgroundColor: bg, border: `1px solid ${border}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
     }
+    // Neutral fallback
     const lightBg = theme.colors.gray[0];
     const lightBorder = theme.colors.gray[3];
     return { backgroundColor: lightBg, border: `1px solid ${lightBorder}`, borderRadius: 6, padding: 6, color: darkText } as React.CSSProperties;
