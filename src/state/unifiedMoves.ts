@@ -807,6 +807,7 @@ export const unifiedMovesFamily = atomFamily(
       //     console.groupEnd();
       //   } catch {}
       // }
+      // Removed DataStore persistence to reduce UI churn and potential flicker
       return withEvalRank;
     }),
   (a, b) => a.rootFen === b.rootFen && a.fen === b.fen && a.tab === b.tab && a.moves.length === b.moves.length && a.moves.every((m, i) => m === b.moves[i]),

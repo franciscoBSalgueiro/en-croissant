@@ -18,7 +18,8 @@ export default function BotsPage() {
     navigate({ search: { selected: v ?? undefined } });
   };
 
-  const selectedBot = selected !== undefined ? bots[selected] : null;
+  const list = Array.isArray(bots) ? bots : [];
+  const selectedBot = selected !== undefined ? list[selected] : null;
 
   useEffect(() => {
     // noop; placeholder for future logging
@@ -27,7 +28,7 @@ export default function BotsPage() {
   function addDefaultBot() {
     const newBot: Bot = {
       id: genID(),
-      name: `Bot ${bots.length + 1}`,
+      name: `Bot ${(Array.isArray(bots) ? bots.length : 0) + 1}`,
       strategy: { mode: "rankSet", ranks: [1, 2, 3] } as any,
       elo: 1500,
       skillLevel: 10,
@@ -36,8 +37,9 @@ export default function BotsPage() {
       thinkingDelayMinMs: 1000,
       thinkingDelayMaxMs: 10000,
     } as Bot;
-    setBots((prev) => [...prev, newBot]);
-    setSelected(bots.length);
+    setBots((prev) => (Array.isArray(prev) ? [...prev, newBot] : [newBot]) as any);
+    const newIndex = (Array.isArray(bots) ? bots.length : 0);
+    setSelected(newIndex);
   }
 
   return (
@@ -48,7 +50,7 @@ export default function BotsPage() {
       <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
         <ScrollArea h="100%" offsetScrollbars>
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }}>
-            {bots.map((item, i) => {
+            {list.map((item, i) => {
               return (
                 <GenericCard
                   id={i}
@@ -94,14 +96,16 @@ function BotHeader({ bot }: { bot: Bot }) {
 
 function BotDetails({ selected, setSelected }: { selected: number; setSelected: (v: number | null) => void }) {
   const [bots, setBots] = useAtom(botsAtom);
-  const bot = bots[selected];
+  const list = Array.isArray(bots) ? bots : [];
+  const bot = list[selected];
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   function setBot(newBot: Bot) {
     setBots((prev) => {
-      const copy = [...prev];
-      copy[selected] = newBot;
-      return copy;
+      const arr = Array.isArray(prev) ? [...prev] : [];
+      if (selected < 0 || selected >= arr.length) return arr as any;
+      arr[selected] = newBot;
+      return arr as any;
     });
   }
 
@@ -236,9 +240,10 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
           onClose={() => setDeleteModalOpen(false)}
           onConfirm={() => {
             setBots((prev) => {
-              const copy = [...prev];
-              copy.splice(selected, 1);
-              return copy;
+              const arr = Array.isArray(prev) ? [...prev] : [];
+              if (selected < 0 || selected >= arr.length) return arr as any;
+              arr.splice(selected, 1);
+              return arr as any;
             });
             setSelected(null);
           }}

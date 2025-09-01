@@ -409,7 +409,7 @@ function AnalysisBar({ height = 380 }: { height?: number | string }) {
       <Box style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: 4, background: "transparent", zIndex: 1000 }}>
         <Group justify="space-between" gap="xs" mb={2} style={{ padding: "0 8px" }}>
           <Text size="xs" c="dimmed">{depthHint ? `d${depthHint}` : ""}</Text>
-          <Text size="xs" c="dimmed">{progress ? `${progress}%` : ""}</Text>
+          <Text size="xs" c="dimmed">{progress ? `${progress}%${depthHint ? ` d${depthHint}` : ""}` : (depthHint ? `d${depthHint}` : "")}</Text>
         </Group>
         <Progress value={progress} size={2} radius={0} color="blue" style={{ height: 2 }} />
       </Box>

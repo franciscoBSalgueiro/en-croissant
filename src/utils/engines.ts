@@ -68,7 +68,10 @@ export type Engine = z.infer<typeof engineSchema>;
 
 export async function saveEngines(_engines: Engine[]): Promise<void> { /* no-op in web-first */ }
 
-export function stopEngine(_engine: LocalEngine, _tab: string): Promise<void> { return webStopEngine(); }
+export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
+  const name = engine?.name || "Stockfish (WASM)";
+  return webStopEngine(name, tab) as any;
+}
 
 export function killEngine(_engine: LocalEngine, _tab: string): Promise<void> { return webKillEngine(); }
 

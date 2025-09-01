@@ -20,12 +20,16 @@ export class WasmEngineProvider {
     const wasmSupported = typeof WebAssembly === "object" && typeof WebAssembly.validate === "function" && WebAssembly.validate(new Uint8Array([0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]));
     const scriptUrl = wasmSupported ? "/wasm/stockfish.wasm.js" : "/wasm/stockfish.js";
     // eslint-disable-next-line no-console
-    // console.info("[WASM] starting worker", { scriptUrl });
+    try { console.info("[WASM] starting worker", { scriptUrl }); } catch {}
     this.worker = new Worker(scriptUrl, { type: "classic" });
     this.worker.onmessage = (e: MessageEvent<any>) => {
       const line = String(e.data ?? "");
       // eslint-disable-next-line no-console
-      // if (line.startsWith("info ") || line.startsWith("bestmove")) console.debug("[WASM<-]", line);
+      try {
+        if (line.startsWith("info ") || line.startsWith("bestmove") || line === "uciok" || line === "readyok") {
+          // console.debug("[WASM<-]", line);
+        }
+      } catch {}
       for (const h of this.handlers) h(line);
     };
   }
@@ -33,7 +37,7 @@ export class WasmEngineProvider {
   async send(cmd: string) {
     await this.ensureReady();
     // eslint-disable-next-line no-console
-    // console.debug("[WASM->]", cmd);
+    try { if (/^(setoption|position|go|uci|isready)/.test(cmd)) console.info("[WASM->]", cmd); } catch {}
     this.worker!.postMessage(cmd);
   }
 
@@ -43,12 +47,31 @@ export class WasmEngineProvider {
   }
 }
 
-// Track the currently active provider so we can cancel previous runs
-let currentProvider: WasmEngineProvider | null = null;
+// Track active providers by a logical key so multiple searches can run concurrently
+// Key format: `${engineName}::${tab}`; a special "default" key is used when absent
+const currentProviders: Map<string, WasmEngineProvider> = new Map();
 
-export function stopWasmEngine(): void {
-  try { currentProvider?.dispose(); } catch {}
-  currentProvider = null;
+function makeKey(ctx?: { engineName?: string; tab?: string }): string {
+  const name = ctx?.engineName || "default";
+  const tab = ctx?.tab || "default";
+  return `${name}::${tab}`;
+}
+
+export function stopWasmEngine(ctx?: { engineName?: string; tab?: string } | string): void {
+  try {
+    if (!ctx) {
+      // stop all
+      for (const [, prov] of Array.from(currentProviders.entries())) {
+        try { prov.dispose(); } catch {}
+      }
+      currentProviders.clear();
+      return;
+    }
+    const key = typeof ctx === "string" ? ctx : makeKey(ctx);
+    const prov = currentProviders.get(key);
+    try { prov?.dispose(); } catch {}
+    currentProviders.delete(key);
+  } catch {}
 }
 
 // Minimal parser to collect best lines from UCI info messages
@@ -82,10 +105,11 @@ export async function getBestMovesWasm(
   const MAX_WEB_DEPTH = 20;
   // eslint-disable-next-line no-console
   // console.info("[WASM] getBestMoves start", { goMode, options });
-  // Cancel any in-flight search and start fresh
-  stopWasmEngine();
+  // Cancel any in-flight search for this logical key and start fresh
+  const key = makeKey(ctx);
+  stopWasmEngine(key);
   const engine = new WasmEngineProvider();
-  currentProvider = engine;
+  currentProviders.set(key, engine);
   const bestByPv: Map<number, any> = new Map();
   let sentOptions = false;
   let sentGo = false;
@@ -170,6 +194,7 @@ export async function getBestMovesWasm(
         } catch {}
         detach();
         engine.dispose();
+        currentProviders.delete(key);
         // eslint-disable-next-line no-console
         // console.info("[WASM] getBestMoves done", { count: bestMoves.length });
         resolve([100, bestMoves]);

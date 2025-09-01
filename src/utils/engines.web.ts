@@ -1,5 +1,5 @@
 import type { BestMoves, EngineOption, EngineOptions, GoMode, Score } from "@/bindings";
-import { getBestMovesWasm } from "@/engine/providers/wasm";
+import { getBestMovesWasm, stopWasmEngine } from "@/engine/providers/wasm";
 import { listenBestMoves } from "@/utils/webEvents";
 
 export type MoveScore = { uci: string; score: Score };
@@ -40,7 +40,9 @@ export async function scoreAllMoves(
     .filter((x) => Boolean(x.uci));
 }
 
-export async function stopEngine(): Promise<void> { /* no-op in web */ }
+export async function stopEngine(engineName: string, tab: string): Promise<void> {
+  try { stopWasmEngine({ engineName, tab }); } catch {}
+}
 export async function killEngine(): Promise<void> { /* no-op in web */ }
 
 

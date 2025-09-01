@@ -2,6 +2,7 @@ import { events, type EngineOptions, type GoMode } from "@/bindings";
 import {
   activeTabAtom,
   currentThreatAtom,
+  currentGameStateAtom,
   engineMovesFamily,
   engineProgressFamily,
   enginesAtom,
@@ -130,6 +131,7 @@ function EngineListener({
   const store = useContext(TreeStateContext)!;
   const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
+  const gameState = useAtomValue(currentGameStateAtom);
 
   const [, setProgress] = useAtom(
     engineProgressFamily({ engine: engine.name, tab: activeTab! }),
@@ -305,6 +307,11 @@ function EngineListener({
             stopEngine(engine, activeTab!);
           }
         } else {
+          // Stop previous engine search for this engine/tab before starting a new one (WASM concurrency guard)
+          if (engine.type === "local") {
+            try { stopEngine(engine, activeTab!); } catch {}
+          }
+
           const options =
             settings.settings?.map((s) => ({
               name: s.name,
@@ -346,9 +353,11 @@ function EngineListener({
               const multiPVIndex = adjustedOptions.findIndex((o) => o.name === "MultiPV");
               if (multiPVIndex >= 0) {
                 originalMultiPV = parseInt(adjustedOptions[multiPVIndex].value) || 1;
-                adjustedOptions[multiPVIndex].value = legalCount.toString();
+                const capped = gameState === 'playing' ? Math.min(legalCount, 10) : legalCount;
+                adjustedOptions[multiPVIndex].value = capped.toString();
               } else {
-                adjustedOptions.push({ name: "MultiPV", value: legalCount.toString() });
+                const capped = gameState === 'playing' ? Math.min(legalCount, 10) : legalCount;
+                adjustedOptions.push({ name: "MultiPV", value: capped.toString() });
               }
             }
           }
@@ -460,7 +469,7 @@ function EngineListener({
         }
       }
     },
-    50,
+    150,
     [
       settings.enabled,
       settings.allMoves,
@@ -473,6 +482,7 @@ function EngineListener({
       getBestMoves,
       setEngineVariation,
       engine,
+      gameState,
     ],
   );
   return null;
