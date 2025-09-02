@@ -2,7 +2,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, botsAtom, enginesAtom, playersAtom, arrowColorMeaningAtom, arrowOpacityMeaningAtom, arrowSizeMeaningAtom, arrowOpacityAtom, arrowSizeScaleAtom, arrowCountPolicyAtom, arrowBestThresholdAtom, snapArrowsAtom, showConsecutiveArrowsAtom } from "@/state/atoms";
 import { Group, Paper, Select, Stack, Text, Box, Menu, ActionIcon, SegmentedControl, Slider, Switch } from "@mantine/core";
 import { IconChevronDown, IconPlayerPlay, IconPlayerPause, IconArrowUpRight, IconFlag, IconArrowBackUp } from "@tabler/icons-react";
-import { memo, useContext, useRef, useState, useMemo } from "react";
+import { memo, useContext, useRef, useState, useMemo, useEffect } from "react";
 import type { OpponentSettings } from "./types";
 import type { PiecesCount } from "@/utils/chess";
 import Clock from "./Clock";
@@ -170,6 +170,16 @@ function PlayerPanel({
       return Math.round(getWinChance(cp));
     } catch { return undefined as any; }
   }, [currentNode?.score?.value]);
+
+  // Persist last known win% values so the UI doesn't flicker/disappear between updates
+  const [lastWhiteWinPct, setLastWhiteWinPct] = useState<number | undefined>(undefined);
+  const [lastBlackWinPct, setLastBlackWinPct] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (typeof whiteWinPct === 'number') setLastWhiteWinPct(whiteWinPct);
+  }, [whiteWinPct]);
+  useEffect(() => {
+    if (typeof blackWinPct === 'number') setLastBlackWinPct(blackWinPct);
+  }, [blackWinPct]);
 
   function onResign() {
     if (headers.result && headers.result !== "*") return;
@@ -505,15 +515,15 @@ function PlayerPanel({
         <Group w="100%" align="center" style={{ height: 32, overflowX: 'auto', overflowY: 'hidden' }} justify={color === 'white' ? 'flex-end' : 'flex-start'}>
           {color === 'white' ? (
             <Group gap="xs" style={{ flexWrap: 'nowrap' }}>
-              {typeof whiteWinPct === 'number' && <Text size="sm" fw={600}>{`${whiteWinPct}%`}</Text>}
               <Group gap={0} style={{ flexWrap: 'nowrap' }}>{items}</Group>
               {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
+              <Text size="sm" fw={600}>{`${(typeof whiteWinPct === 'number' ? whiteWinPct : lastWhiteWinPct) ?? ""}${(typeof whiteWinPct === 'number' || typeof lastWhiteWinPct === 'number') ? '%' : ''}`}</Text>
             </Group>
           ) : (
             <Group gap="xs" style={{ flexWrap: 'nowrap' }}>
+              <Text size="sm" fw={600}>{`${(typeof blackWinPct === 'number' ? blackWinPct : lastBlackWinPct) ?? ""}${(typeof blackWinPct === 'number' || typeof lastBlackWinPct === 'number') ? '%' : ''}`}</Text>
               {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
               <Group gap={0} style={{ flexWrap: 'nowrap' }}>{items}</Group>
-              {typeof blackWinPct === 'number' && <Text size="sm" fw={600}>{`${blackWinPct}%`}</Text>}
             </Group>
           )}
         </Group>

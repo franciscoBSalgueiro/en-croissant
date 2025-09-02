@@ -632,10 +632,10 @@ export const bestMovesFamily = atomFamily(
           }
           finalFen = makeFen(pos.toSetup());
         }
-        // Always use top-n moves for arrows (never all-legal-moves data)
+        // Always use canonical keys: threat key or finalFen key
         const moves =
           engineMoves.get(`${swapMove(finalFen)}:`) ||
-          engineMoves.get(`${fen}:${gameMoves.join(",")}`);
+          engineMoves.get(`${finalFen}:`);
         if (moves && moves.length > 0) {
           const bestWinChange = getWinChance(
             normalizeScore(moves[0].score.value, pos?.turn || "white"),

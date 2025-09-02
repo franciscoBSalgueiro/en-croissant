@@ -186,7 +186,8 @@ export const unifiedMovesFamily = atomFamily(
       // Support threat context by preferring threat key when present
       const [posForFinal] = positionFromFen(fen);
       const finalFen = posForFinal ? makeFen(posForFinal.toSetup()) : INITIAL_FEN;
-      const normalKey = `${rootFen}:${moves.join(",")}`;
+      // Use finalFen plus empty moves as the canonical analysis key
+      const normalKey = `${finalFen}:`;
       const threatKey = `${swapMove(finalFen)}:`;
       let usedThreat = false;
       for (let i = 0; i < engines.length; i++) {
@@ -201,7 +202,7 @@ export const unifiedMovesFamily = atomFamily(
         }
       }
 
-      const [pos] = positionFromFen(fen);
+      const [pos] = positionFromFen(finalFen);
       const currentTurn = pos?.turn || "white";
 
       // Process engine data and database data into unified moves

@@ -71,8 +71,9 @@ function EvalListener() {
           searchingMoves: [],
         }))
         .with(false, () => ({
-          searchingFen: fen,
-          searchingMoves: moves,
+          // Always analyze by final FEN with no moves to avoid growing UCI strings
+          searchingFen: finalFen || INITIAL_FEN,
+          searchingMoves: [],
         }))
         .exhaustive(),
     [fen, moves, threat, finalFen],
@@ -186,7 +187,7 @@ function EngineListener({
           // Avoid flooding React with transitions; write synchronously
           setEngineVariation((prev) => {
             const newMap = new Map(prev);
-            const key = `${searchingFen}:${searchingMoves.join(",")}`;
+            const key = `${searchingFen}:`;
             const prevVal = newMap.get(key);
             // Shallow compare top line to skip no-op updates
             const prevTop = prevVal?.[0];
@@ -195,7 +196,8 @@ function EngineListener({
               newMap.set(key, ev);
             }
             if (threat) {
-              newMap.delete(`${fen}:${moves.join(",")}`);
+              // Remove the normal-key entry (final FEN) when in threat mode
+              newMap.delete(`${finalFen || ""}:`);
             } else if (finalFen) {
               newMap.delete(`${swapMove(finalFen)}:`);
             }
@@ -205,7 +207,7 @@ function EngineListener({
           try {
             setEngineVariationByDepth((prev: Map<string, Map<number, any[]>>) => {
               const next = new Map(prev);
-              const k = `${searchingFen}:${searchingMoves.join(",")}`;
+              const k = `${searchingFen}:`;
               const depthMap = new Map(next.get(k) || new Map());
               const d = Number(top?.depth || 0);
               if (d > 0) depthMap.set(d, ev as any);
@@ -264,7 +266,7 @@ function EngineListener({
             lastMapUpdateTsRef.current = now;
             setEngineVariation((prev) => {
               const newMap = new Map(prev);
-              const key = `${searchingFen}:${searchingMoves.join(",")}`;
+              const key = `${searchingFen}:`;
               const prevVal = newMap.get(key);
               const prevTop = prevVal?.[0];
               const changed = !prevTop || prevTop.depth !== top?.depth || prevTop.nodes !== top?.nodes || prevTop.uciMoves?.[0] !== top?.uciMoves?.[0] || prevVal.length !== bestLines.length;
@@ -272,7 +274,7 @@ function EngineListener({
                 newMap.set(key, bestLines);
               }
               if (threat) {
-                newMap.delete(`${fen}:${moves.join(",")}`);
+                newMap.delete(`${finalFen || ""}:`);
               } else if (finalFen) {
                 newMap.delete(`${swapMove(finalFen)}:`);
               }
@@ -282,7 +284,7 @@ function EngineListener({
             try {
               setEngineVariationByDepth((prev: Map<string, Map<number, any[]>>) => {
                 const next = new Map(prev);
-                const k = `${searchingFen}:${searchingMoves.join(",")}`;
+                const k = `${searchingFen}:`;
                 const depthMap = new Map(next.get(k) || new Map());
                 const d = Number(top?.depth || 0);
                 if (d > 0) depthMap.set(d, bestLines as any);

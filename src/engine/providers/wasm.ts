@@ -133,8 +133,8 @@ export async function getBestMovesWasm(
         sentOptions = true;
       } else if (line === "readyok" && !sentGo) {
         // position
-        const moves = options.moves?.length ? ` moves ${options.moves.join(" ")}` : "";
-        engine.send(`position fen ${options.fen}${moves}`);
+        // Always prefer sending the final FEN with no moves for performance
+        engine.send(`position fen ${options.fen}`);
         // go
         const mode = goMode as any;
         // Determine side to move after applying moves to the provided FEN
