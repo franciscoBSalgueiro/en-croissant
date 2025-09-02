@@ -206,3 +206,40 @@ export const dataStoreStorage: AsyncStringStorage = {
     await store.removeItem(key);
   },
 };
+
+// Async wrapper around localStorage for web fallback
+export const localAsyncStorage: AsyncStringStorage = {
+  async getItem(key) {
+    try {
+      const v = localStorage.getItem(key);
+      return v === null ? null : v;
+    } catch {
+      return null;
+    }
+  },
+  async setItem(key, newValue) {
+    try { localStorage.setItem(key, newValue); } catch {}
+  },
+  async removeItem(key) {
+    try { localStorage.removeItem(key); } catch {}
+  },
+};
+
+// Hybrid storage: try DataStore (IndexedDB) first; fall back to localStorage transparently.
+export const hybridDataStoreStorage: AsyncStringStorage = {
+  async getItem(key) {
+    // Prefer DataStore; if unavailable/empty, fall back to localStorage
+    const ds = await dataStoreStorage.getItem(key);
+    if (ds !== null && typeof ds === 'string' && ds.length > 0) return ds;
+    return await localAsyncStorage.getItem(key);
+  },
+  async setItem(key, newValue) {
+    // Best-effort write to both backends
+    try { await dataStoreStorage.setItem(key, newValue); } catch {}
+    try { await localAsyncStorage.setItem(key, newValue); } catch {}
+  },
+  async removeItem(key) {
+    try { await dataStoreStorage.removeItem(key); } catch {}
+    try { await localAsyncStorage.removeItem(key); } catch {}
+  },
+};

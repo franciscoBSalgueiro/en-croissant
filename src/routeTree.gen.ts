@@ -20,6 +20,7 @@ import { Route as BotsImport } from './routes/bots'
 import { Route as IndexImport } from './routes/index'
 import { Route as DatabasesIndexImport } from './routes/databases/index'
 import { Route as DatabasesDatabaseIdImport } from './routes/databases/$databaseId'
+import { Route as BotsTournamentImport } from './routes/bots.tournament'
 
 // Create/Update Routes
 
@@ -68,6 +69,11 @@ const DatabasesDatabaseIdRoute = DatabasesDatabaseIdImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const BotsTournamentRoute = BotsTournamentImport.update({
+  path: '/tournament',
+  getParentRoute: () => BotsRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -100,6 +106,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsImport
       parentRoute: typeof rootRoute
     }
+    '/bots/tournament': {
+      preLoaderRoute: typeof BotsTournamentImport
+      parentRoute: typeof BotsImport
+    }
     '/databases/$databaseId': {
       preLoaderRoute: typeof DatabasesDatabaseIdImport
       parentRoute: typeof rootRoute
@@ -115,7 +125,7 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren([
   IndexRoute,
-  BotsRoute,
+  BotsRoute.addChildren([BotsTournamentRoute]),
   EnginesRoute,
   FilesRoute,
   HistoryRoute,

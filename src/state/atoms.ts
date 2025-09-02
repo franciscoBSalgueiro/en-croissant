@@ -41,7 +41,7 @@ import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
-import { createZodStorage, createAsyncZodStorage, dataStoreStorage } from "./utils";
+import { createZodStorage, createAsyncZodStorage, dataStoreStorage, hybridDataStoreStorage } from "./utils";
 import type { BestMoves } from "@/bindings";
 
 export const lastMovedAtom = atom<string | null>(null);
@@ -64,21 +64,90 @@ export const enginesAtom = atomWithStorage<Engine[]>(
 );
 
 // Bots
-export const botsAtom = atomWithStorage<Bot[]>(
+const defaultBots: Bot[] = [
+  {
+    id: genID(),
+    name: "Bot 1",
+    elo: 1500,
+    earnedELO: 1500,
+    skillLevel: 1,
+    confThreshold: 90,
+    thinkingDelayMinMs: 200,
+    thinkingDelayMaxMs: 1200,
+  } as any,
+  {
+    id: genID(),
+    name: "Bot 10",
+    elo: 1500,
+    earnedELO: 1500,
+    skillLevel: 10,
+    confThreshold: 90,
+    thinkingDelayMinMs: 200,
+    thinkingDelayMaxMs: 1200,
+  } as any,
+  {
+    id: genID(),
+    name: "Bot 15",
+    elo: 1500,
+    earnedELO: 1500,
+    skillLevel: 15,
+    confThreshold: 90,
+    thinkingDelayMinMs: 200,
+    thinkingDelayMaxMs: 1200,
+  } as any,
+];
+
+// Underlying persisted bots array (may be empty on first run)
+const botsStorageAtom = atomWithStorage<Bot[]>(
   "bots",
   [],
-  createAsyncZodStorage(z.array(botSchema), dataStoreStorage),
+  // Use synchronous localStorage for reliability in web mode
+  createZodStorage(z.array(botSchema), createJSONStorage(() => localStorage)),
+  { getOnInit: true },
+);
+
+// Public bots atom that surfaces defaults if storage is empty,
+// and ensures edits persist by using defaults as the base when storage is empty.
+export const botsAtom = atom(
+  (get) => {
+    const stored = get(botsStorageAtom);
+    return Array.isArray(stored) && stored.length > 0 ? stored : defaultBots;
+  },
+  (get, set, update: Bot[] | ((prev: Bot[]) => Bot[])) => {
+    const currentStored = get(botsStorageAtom);
+    const base = Array.isArray(currentStored) && currentStored.length > 0 ? currentStored : defaultBots;
+    const next = typeof update === "function" ? (update as any)(base) : update;
+    try { console.info("[botsAtom] persist", { count: Array.isArray(next) ? (next as any[]).length : 0 }); } catch {}
+    set(botsStorageAtom, next as any);
+  }
 );
 
 export const loadableEnginesAtom = loadable(enginesAtom);
 
 // Players
-export const playersAtom = atomWithStorage<Player[]>(
+const defaultPlayers: Player[] = [
+  { id: "human", name: "Human", elo: 1500, earnedELO: 1500 } as Player,
+];
+
+const playersStorageAtom = atomWithStorage<Player[]>(
   "players",
-  [
-    { id: "human", name: "Human", elo: 1500, earnedELO: 1500 } as Player,
-  ],
-  createAsyncZodStorage(z.array(playerSchema), dataStoreStorage),
+  [],
+  createAsyncZodStorage(z.array(playerSchema), hybridDataStoreStorage),
+  { getOnInit: true },
+);
+
+export const playersAtom = atom(
+  (get) => {
+    const stored = get(playersStorageAtom);
+    return Array.isArray(stored) && stored.length > 0 ? stored : defaultPlayers;
+  },
+  (get, set, update: Player[] | ((prev: Player[]) => Player[])) => {
+    const currentStored = get(playersStorageAtom);
+    const base = Array.isArray(currentStored) && currentStored.length > 0 ? currentStored : defaultPlayers;
+    const next = typeof update === "function" ? (update as any)(base) : update;
+    try { console.info("[playersAtom] persist", { count: Array.isArray(next) ? (next as any[]).length : 0 }); } catch {}
+    set(playersStorageAtom, next as any);
+  }
 );
 
 export const defaultPlayerIdAtom = atomWithStorage<string>(
@@ -508,6 +577,13 @@ export const deckAtomFamily = atomFamily(
 export const engineMovesFamily = atomFamily(
   ({ tab, engine }: { tab: string; engine: string }) =>
     atom<Map<string, BestMoves[]>>(new Map()),
+  (a, b) => a.tab === b.tab && a.engine === b.engine,
+);
+
+// Per-depth engine moves snapshots: Map<positionKey, Map<depth, BestMoves[]>>
+export const engineMovesByDepthFamily = atomFamily(
+  ({ tab, engine }: { tab: string; engine: string }) =>
+    atom<Map<string, Map<number, BestMoves[]>>>(new Map()),
   (a, b) => a.tab === b.tab && a.engine === b.engine,
 );
 

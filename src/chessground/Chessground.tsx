@@ -129,7 +129,16 @@ export function Chessground(
       lastMove: props.highlight?.lastMove ?? true,
       check: props.highlight?.check ?? true,
     } as any;
-  }, [props.orientation, props.coordinates, props.fen, props.turnColor, interactive]);
+    // animation toggle (if supported by web component)
+    if (props.animation && typeof props.animation.enabled === "boolean") {
+      try {
+        el.animation = { enabled: !!props.animation.enabled } as any;
+        if (props.animation.enabled === false) {
+          try { (el as HTMLElement).style.setProperty("--animation-duration", "0ms"); } catch {}
+        }
+      } catch {}
+    }
+  }, [props.orientation, props.coordinates, props.fen, props.turnColor, interactive, props.animation?.enabled]);
 
   // Map arrows and inject brush styles (color + opacity). Weight maps to size.
   useEffect(() => {

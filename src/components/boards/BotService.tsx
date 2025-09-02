@@ -25,6 +25,7 @@ export default function BotService() {
   const headers = useStore(store, (s) => s.headers);
   const position = useStore(store, (s) => s.position);
   const makeMove = useStore(store, (s) => s.makeMove);
+  const setResult = useStore(store, (s) => s.setResult);
 
   const currentNode = useStore(store, (s) => s.currentNode());
   const [pos] = useMemo(() => positionFromFen(currentNode.fen), [currentNode.fen]);
@@ -89,7 +90,34 @@ export default function BotService() {
       try {
         const list = ((unifiedLoadable as any).data || []) as UnifiedMove[];
         if (Array.isArray(list) && list.length > 0) {
-          // Optional depth gating: if skillLevel set, and we have any engine depth data, wait until max depth >= skillLevel
+          // Early resignation check based on top win chance vs configured threshold
+          try {
+            const resignPct: number | undefined = (player as any)?.resignBelowWinPct;
+            if (typeof resignPct === 'number' && resignPct >= 0) {
+              const winChances: number[] = list
+                .map((x: any) => Number.isFinite(x?.winChance) ? Number(x.winChance) : NaN)
+                .filter((n) => Number.isFinite(n)) as number[];
+              if (winChances.length > 0) {
+                const topWin = winChances.reduce((a, b) => Math.max(a, b), -Infinity);
+                if (Number.isFinite(topWin) && topWin < resignPct) {
+                  // Resign on behalf of the current side
+                  const outcome = currentTurn === 'white' ? '0-1' : '1-0';
+                  try { console.info('[BotService] resign due to low win chance', { topWin, resignPct, outcome }); } catch {}
+                  // Clear any scheduled move and suggestion
+                  if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                  }
+                  setBotSuggestion(null as any);
+                  setResult(outcome as any);
+                  return; // stop further processing
+                }
+              }
+            }
+          } catch {}
+
+          // Depth gating: if skillLevel set, and we have any engine depth data, wait until max depth >= skillLevel
+          // Apply the same behavior in tournament as in regular games; only thinking delay differs
           const skillDepth = (player as any).skillLevel;
           if (typeof skillDepth === 'number') {
             const depths = list.map((x: any) => (Number.isFinite(x?.depth) ? Number(x.depth) : 0));

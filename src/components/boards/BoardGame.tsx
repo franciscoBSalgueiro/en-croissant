@@ -50,6 +50,7 @@ import { normalizeScore } from "@/utils/score";
 import { getPGN } from "@/utils/chess";
 import { historyAtom, type HistoryEntry } from "@/state/atoms";
 import BoardControls from "@/components/boards/BoardControls";
+import { botsAtom } from "@/state/atoms";
 
 // NEW: Nested mosaic state for playing layout
 type PlayingViewId =
@@ -105,6 +106,15 @@ function BoardGame() {
   const whitePlayed = useAtomValue(playedMovesFamily({ tab: activeTab!, color: "white" }));
   const blackPlayed = useAtomValue(playedMovesFamily({ tab: activeTab!, color: "black" }));
   const pushHistory = useSetAtom(historyAtom);
+  const [allBots] = useAtom(botsAtom);
+
+  // Tournament manager: when this tab is created via /bots/tournament redirect,
+  // it stores botIds in sessionStorage under key tournament-<tabId>.
+  // We detect it once, kick off matches using existing UI, and disable arrows.
+  const [tournamentBotIds, setTournamentBotIds] = useState<string[] | null>(null);
+  const [tournamentPairings, setTournamentPairings] = useState<{ white: string; black: string }[] | null>(null);
+  const [tournamentIndex, setTournamentIndex] = useState<number>(0);
+  const [arrowsEnabledOverrideLocal, setArrowsEnabledOverrideLocal] = useState<boolean | undefined>(undefined);
 
   const boardRef = useRef(null);
   const botTimeoutRef = useRef<number | null>(null);
@@ -249,6 +259,77 @@ function BoardGame() {
     bestPreview?: { fen: string; lastMove: string[]; isCheck: boolean; turnColor: "white" | "black" };
   } | undefined>(undefined);
 
+  useEffect(() => {
+    // One-time fetch of tournament config
+    if (!activeTab) return;
+    if (tournamentBotIds != null) return;
+    try {
+      const raw = sessionStorage.getItem(`tournament-${activeTab}`);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const ids: string[] = Array.isArray(parsed?.botIds) ? parsed.botIds : [];
+      if (ids.length >= 2) {
+        setTournamentBotIds(ids);
+        // Build round-robin pairings
+        const pairs: { white: string; black: string }[] = [];
+        for (let i = 0; i < ids.length; i++) {
+          for (let j = i + 1; j < ids.length; j++) {
+            const a = ids[i], b = ids[j];
+            if (Math.random() < 0.5) pairs.push({ white: a, black: b });
+            else pairs.push({ white: b, black: a });
+          }
+        }
+        setTournamentPairings(pairs);
+        // Disable arrows during automated play
+        setArrowsEnabledOverrideLocal(false);
+      }
+    } catch {}
+  }, [activeTab, tournamentBotIds]);
+
+  // When a pairing is ready and we're in playing state, set both sides to bots and start quickly
+  useEffect(() => {
+    if (!tournamentPairings || tournamentIndex >= (tournamentPairings?.length || 0)) return;
+    if (!pos) return;
+    const pairing = tournamentPairings[tournamentIndex];
+    const findBot = (id: string) => (Array.isArray(allBots) ? allBots.find((b: any) => b.id === id) : undefined);
+    const wb = findBot(pairing.white);
+    const bb = findBot(pairing.black);
+    if (!wb || !bb) return;
+    const mk = (b: any) => ({
+      type: "engine",
+      engine: null,
+      botId: b.id,
+      name: b.name,
+      strategy: b.strategy || { mode: "rank", rank: b.pickRank ?? 1 },
+      elo: b.earnedELO ?? b.elo ?? 1500,
+      skillLevel: b.skillLevel,
+      confThreshold: b.confThreshold,
+      resignBelowWinPct: (b as any).resignBelowWinPct,
+      thinkingDelayMinMs: 0,
+      thinkingDelayMaxMs: 0,
+      tournament: true,
+    });
+    setPlayers({ white: mk(wb) as any, black: mk(bb) as any });
+    setEnginePaused(false);
+    setHeaders({ ...headers, white: wb.name, black: bb.name, result: "*" });
+    setFen(root.fen);
+    setGameState("playing");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentPairings, tournamentIndex]);
+
+  // Advance tournament to next pairing when a result is set while in tournament mode
+  useEffect(() => {
+    if (!tournamentPairings) return;
+    if (headers.result && headers.result !== "*" && gameState === "gameOver") {
+      setTournamentIndex((i) => i + 1);
+      // Reset position for next game; BotService will start moving
+      setHeaders({ ...headers, result: "*" });
+      setFen(root.fen);
+      setGameState("playing");
+    }
+  }, [headers.result, gameState, tournamentPairings]);
+
+  // Update previous move comparison panels
   useEffect(() => {
     if (!prevMoveComparison) return;
     if (prevMoveComparison.color === "white") {
@@ -888,6 +969,9 @@ function BoardGame() {
         movable={gameState === "settingUp" ? "turn" : movable}
         // If it's White's turn, White is active → show current arrows; otherwise show previous-position arrows
         arrowsContextOverride={pos?.turn === "white" ? undefined : prevArrowsContext}
+        arrowsEnabledOverride={arrowsEnabledOverrideLocal}
+        // Disable piece animations in tournament
+        // PlayerPanel passes through to Board via props; reflect tournament mode with arrowsEnabledOverrideLocal
         isActive={pos?.turn === "white"}
         onCapturedChange={setCaptured}
         onMaterialDiffChange={setMaterialDiff}
@@ -923,6 +1007,8 @@ function BoardGame() {
         movable={gameState === "settingUp" ? "turn" : movable}
         // If it's Black's turn, Black is active → show current arrows; otherwise show previous-position arrows
         arrowsContextOverride={pos?.turn === "black" ? undefined : prevArrowsContext}
+        arrowsEnabledOverride={arrowsEnabledOverrideLocal}
+        // Disable piece animations in tournament
         isActive={pos?.turn === "black"}
         onCapturedChange={setCaptured}
         onMaterialDiffChange={setMaterialDiff}

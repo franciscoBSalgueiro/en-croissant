@@ -172,6 +172,8 @@ interface ChessboardProps {
   compact?: boolean;
   // NEW: allow caller to override whether engine arrows are shown (per-board)
   arrowsEnabledOverride?: boolean;
+  // NEW: allow caller to override whether piece animations are enabled
+  animationsEnabledOverride?: boolean;
   // NEW: allow caller to disable last-move overlays (played/best) on passive board
   showLastOverlaysOverride?: boolean;
   // NEW: show evaluation bar (vertical) toggle
@@ -206,6 +208,7 @@ function Board({
   forcedOrientation,
   compact = false,
   arrowsEnabledOverride,
+  animationsEnabledOverride,
   showLastOverlaysOverride,
   evalBarEnabled = true,
   arrowsContextOverride,
@@ -1051,7 +1054,7 @@ function Board({
                     orientation={orientation}
                     fen={currentNode.fen}
                     pixelSize={boardSize ?? undefined}
-                    animation={{ enabled: !editingMode }}
+                    animation={{ enabled: animationsEnabledOverride ?? !editingMode }}
                     coordinates={showCoordinates}
                     movable={{
                       free: editingMode,

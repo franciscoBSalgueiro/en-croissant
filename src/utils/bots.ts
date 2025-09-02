@@ -15,7 +15,7 @@ export const botStrategySchema: z.ZodSchema<BotStrategy> = z.union([
 
 export const botSchema = z.object({
 	id: z.string(),
-	name: z.string().min(1),
+	name: z.string(),
 	// Legacy: Nth best move; used to derive default strategy if strategy is absent
 	pickRank: z.number().min(1).max(100).default(1).optional(),
 	// New flexible strategy
@@ -28,6 +28,8 @@ export const botSchema = z.object({
 	earnedELO: z.number().min(400).max(3600).optional(),
 	// Confidence override: if set, consider only moves with confidence >= threshold for selection
 	confThreshold: z.number().min(0).max(100).default(90).optional(),
+	// Auto-resign: if top win chance drops below this percent, bot resigns (disabled when absent)
+	resignBelowWinPct: z.number().min(0).max(100).optional(),
 	// Thinking delay (ms)
 	thinkingDelayMinMs: z.number().min(0).max(60000).default(1000).optional(),
 	thinkingDelayMaxMs: z.number().min(0).max(60000).default(10000).optional(),

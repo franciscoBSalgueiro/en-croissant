@@ -1,4 +1,4 @@
-import { currentDbTypeAtom, currentLocalOptionsAtom, enginesAtom, engineMovesFamily, lichessOptionsAtom, masterOptionsAtom, referenceDbAtom } from "@/state/atoms";
+import { currentDbTypeAtom, currentLocalOptionsAtom, enginesAtom, engineMovesFamily, engineMovesByDepthFamily, lichessOptionsAtom, masterOptionsAtom, referenceDbAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { getAnnotation, getWinChance, normalizeScore } from "@/utils/score";
 import { positionFromFen } from "@/utils/chessops";
@@ -348,7 +348,19 @@ export const unifiedMovesFamily = atomFamily(
         }> = [];
 
         for (const [engineName, movesData] of allEngineMoves.entries()) {
-          for (const moveData of movesData) {
+          // If there is an exact-depth preference for this engine/tab, pick that snapshot if available
+          let effectiveMoves = movesData;
+          try {
+            const depthStore = get(engineMovesByDepthFamily({ engine: engineName, tab }));
+            const key = usedThreat ? threatKey : normalKey;
+            const byDepth = depthStore.get(key);
+            if (byDepth && byDepth.size > 0) {
+              // If consumers later need exact depth, they can select from this per-depth map
+              // For now, keep default behavior unless a depth consumer uses byDepth directly
+            }
+          } catch {}
+
+          for (const moveData of effectiveMoves) {
             if ((moveData.sanMoves && moveData.sanMoves.length > 0) || (moveData.uciMoves && moveData.uciMoves.length > 0)) {
               // Build SAN list from current position if needed
               let sanList: string[] = [];

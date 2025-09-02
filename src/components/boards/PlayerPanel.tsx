@@ -2,13 +2,14 @@ import { useAtom, useAtomValue } from "jotai";
 import { activeTabAtom, botsAtom, enginesAtom, playersAtom, arrowColorMeaningAtom, arrowOpacityMeaningAtom, arrowSizeMeaningAtom, arrowOpacityAtom, arrowSizeScaleAtom, arrowCountPolicyAtom, arrowBestThresholdAtom, snapArrowsAtom, showConsecutiveArrowsAtom } from "@/state/atoms";
 import { Group, Paper, Select, Stack, Text, Box, Menu, ActionIcon, SegmentedControl, Slider, Switch } from "@mantine/core";
 import { IconChevronDown, IconPlayerPlay, IconPlayerPause, IconArrowUpRight, IconFlag, IconArrowBackUp } from "@tabler/icons-react";
-import { memo, useContext, useRef, useState } from "react";
+import { memo, useContext, useRef, useState, useMemo } from "react";
 import type { OpponentSettings } from "./types";
 import type { PiecesCount } from "@/utils/chess";
 import Clock from "./Clock";
 import { TreeStateContext } from "../common/TreeStateContext";
 import { useStore } from "zustand";
 import Board from "./Board";
+import { normalizeScore, getWinChance } from "@/utils/score";
 
 
 
@@ -70,6 +71,7 @@ function OpponentForm({
             elo: (bot as any).earnedELO ?? (bot as any).elo,
             skillLevel: (bot as any).skillLevel,
             confThreshold: (bot as any).confThreshold,
+            resignBelowWinPct: (bot as any).resignBelowWinPct,
             thinkingDelayMinMs: (bot as any).thinkingDelayMinMs,
             thinkingDelayMaxMs: (bot as any).thinkingDelayMaxMs,
             timeControl: undefined,
@@ -133,6 +135,7 @@ function PlayerPanel({
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
   const headers = useStore(store, (s) => s.headers);
   const setHeaders = useStore(store, (s) => s.setHeaders);
+  const currentNode = useStore(store, (s) => s.currentNode());
   const activeTab = useAtomValue(activeTabAtom)!;
   const copiedTimeRef = (globalThis as any).__timeCopiedOnce || ((globalThis as any).__timeCopiedOnce = new Map<string, boolean>());
 
@@ -149,6 +152,24 @@ function PlayerPanel({
 
   const sideDiff = color === "white" ? materialDiff : -materialDiff;
   const diffLabel = sideDiff > 0 ? `+${sideDiff}` : sideDiff < 0 ? `${sideDiff}` : undefined;
+
+  // Compute current win chance for each side from the current node score
+  const whiteWinPct = useMemo(() => {
+    const sv: any = (currentNode as any)?.score?.value;
+    if (!sv) return undefined as number | undefined;
+    try {
+      const cp = normalizeScore(sv, "white");
+      return Math.round(getWinChance(cp));
+    } catch { return undefined as any; }
+  }, [currentNode?.score?.value]);
+  const blackWinPct = useMemo(() => {
+    const sv: any = (currentNode as any)?.score?.value;
+    if (!sv) return undefined as number | undefined;
+    try {
+      const cp = normalizeScore(sv, "black");
+      return Math.round(getWinChance(cp));
+    } catch { return undefined as any; }
+  }, [currentNode?.score?.value]);
 
   function onResign() {
     if (headers.result && headers.result !== "*") return;
@@ -484,6 +505,7 @@ function PlayerPanel({
         <Group w="100%" align="center" style={{ height: 32, overflowX: 'auto', overflowY: 'hidden' }} justify={color === 'white' ? 'flex-end' : 'flex-start'}>
           {color === 'white' ? (
             <Group gap="xs" style={{ flexWrap: 'nowrap' }}>
+              {typeof whiteWinPct === 'number' && <Text size="sm" fw={600}>{`${whiteWinPct}%`}</Text>}
               <Group gap={0} style={{ flexWrap: 'nowrap' }}>{items}</Group>
               {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
             </Group>
@@ -491,6 +513,7 @@ function PlayerPanel({
             <Group gap="xs" style={{ flexWrap: 'nowrap' }}>
               {diffLabel && <Text size="sm" fw={600}>{diffLabel}</Text>}
               <Group gap={0} style={{ flexWrap: 'nowrap' }}>{items}</Group>
+              {typeof blackWinPct === 'number' && <Text size="sm" fw={600}>{`${blackWinPct}%`}</Text>}
             </Group>
           )}
         </Group>
@@ -522,6 +545,7 @@ function PlayerPanel({
               blackTime={blackTime ?? undefined}
               fitContainer
               arrowsEnabledOverride={enableArrows}
+              animationsEnabledOverride={arrowsEnabledOverride === false ? false : undefined}
               arrowsContextOverride={ctxOverride}
               compact
               evalBarEnabled={false}

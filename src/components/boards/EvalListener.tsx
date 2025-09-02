@@ -5,6 +5,7 @@ import {
   currentGameStateAtom,
   engineMovesFamily,
   engineProgressFamily,
+  engineMovesByDepthFamily,
   enginesAtom,
   lastMovedAtom,
   tabEngineSettingsFamily,
@@ -144,6 +145,9 @@ function EngineListener({
   const [, setEngineVariation] = useAtom(
     engineMovesFamily({ engine: engine.name, tab: activeTab! }),
   );
+  const [, setEngineVariationByDepth] = useAtom(
+    engineMovesByDepthFamily({ engine: engine.name, tab: activeTab! }) as any,
+  );
   const [settings] = useAtom(
     tabEngineSettingsFamily({
       engineName: engine.name,
@@ -197,6 +201,18 @@ function EngineListener({
             }
             return newMap;
           });
+          // Also store per-depth snapshot for exact-depth consumers
+          try {
+            setEngineVariationByDepth((prev: Map<string, Map<number, any[]>>) => {
+              const next = new Map(prev);
+              const k = `${searchingFen}:${searchingMoves.join(",")}`;
+              const depthMap = new Map(next.get(k) || new Map());
+              const d = Number(top?.depth || 0);
+              if (d > 0) depthMap.set(d, ev as any);
+              next.set(k, depthMap);
+              return next as any;
+            });
+          } catch {}
           // Update score sparingly
           if (top?.score) setScore(top.score);
         }
@@ -262,6 +278,18 @@ function EngineListener({
               }
               return newMap;
             });
+            // Per-depth snapshot
+            try {
+              setEngineVariationByDepth((prev: Map<string, Map<number, any[]>>) => {
+                const next = new Map(prev);
+                const k = `${searchingFen}:${searchingMoves.join(",")}`;
+                const depthMap = new Map(next.get(k) || new Map());
+                const d = Number(top?.depth || 0);
+                if (d > 0) depthMap.set(d, bestLines as any);
+                next.set(k, depthMap);
+                return next as any;
+              });
+            } catch {}
             if (top?.score) setScore(top.score);
           }
           lastEventTsRef.current = now;

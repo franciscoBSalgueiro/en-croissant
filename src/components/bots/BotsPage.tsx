@@ -1,10 +1,10 @@
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Route } from "@/routes/bots";
-import { useNavigate } from "@tanstack/react-router";
+import { Outlet, useNavigate } from "@tanstack/react-router";
 import { botsAtom } from "@/state/atoms";
 import type { Bot } from "@/utils/bots";
-import { Box, Button, Divider, Group, NumberInput, Paper, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Checkbox, Divider, Group, Modal, NumberInput, Paper, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
 import * as classes from "@/components/common/GenericCard.css";
 import GenericCard from "@/components/common/GenericCard";
 import ConfirmModal from "@/components/common/ConfirmModal";
@@ -17,6 +17,9 @@ export default function BotsPage() {
   const setSelected = (v: number | null) => {
     navigate({ search: { selected: v ?? undefined } });
   };
+
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourSelected, setTourSelected] = useState<string[]>([]);
 
   const list = Array.isArray(bots) ? bots : [];
   const selectedBot = selected !== undefined ? list[selected] : null;
@@ -34,6 +37,7 @@ export default function BotsPage() {
       skillLevel: 10,
       earnedELO: 1500,
       confThreshold: 90,
+      ...( { resignBelowWinPct: undefined } as any ),
       thinkingDelayMinMs: 1000,
       thinkingDelayMaxMs: 10000,
     } as Bot;
@@ -43,9 +47,19 @@ export default function BotsPage() {
   }
 
   return (
+    <>
     <Stack h="100%" px="lg" pb="lg">
       <Group align="baseline" py="sm">
         <Title>Bots</Title>
+        <Button
+          variant="light"
+          onClick={() => {
+            setTourSelected([]);
+            setTourOpen(true);
+          }}
+        >
+          Start Bot Tournament
+        </Button>
       </Group>
       <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
         <ScrollArea h="100%" offsetScrollbars>
@@ -79,7 +93,43 @@ export default function BotsPage() {
           )}
         </Paper>
       </Group>
+      <Modal opened={tourOpen} onClose={() => setTourOpen(false)} title="Select Bots">
+        <Stack>
+          {list.length === 0 ? (
+            <Text c="dimmed">No bots available.</Text>
+          ) : (
+            list.map((b) => (
+              <Checkbox
+                key={b.id}
+                label={`${b.name}`}
+                checked={tourSelected.includes(b.id)}
+                onChange={(e) => {
+                  const checked = e.currentTarget.checked;
+                  setTourSelected((prev) => {
+                    if (checked) return [...prev, b.id];
+                    return prev.filter((x) => x !== b.id);
+                  });
+                }}
+              />
+            ))
+          )}
+          <Group justify="end">
+            <Button
+              disabled={tourSelected.length < 2}
+              onClick={() => {
+                const ids = tourSelected.join(",");
+                setTourOpen(false);
+                navigate({ to: "/bots/tournament", search: { ids } });
+              }}
+            >
+              Start
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
+    <Outlet />
+    </>
   );
 }
 
@@ -209,6 +259,15 @@ function BotDetails({ selected, setSelected }: { selected: number; setSelected: 
             value={bot.confThreshold ?? undefined}
             placeholder="Disabled"
             onChange={(v) => setBot({ ...bot, confThreshold: typeof v === "number" ? v : undefined })}
+          />
+          <NumberInput
+            label="Resign below win chance (%)"
+            description="Bot will resign if top line win chance drops below this."
+            min={0}
+            max={100}
+            value={(bot as any).resignBelowWinPct ?? undefined}
+            placeholder="Disabled"
+            onChange={(v) => setBot({ ...(bot as any), resignBelowWinPct: typeof v === 'number' ? v : undefined } as any)}
           />
           <Divider variant="dashed" label="Thinking delay (ms)" />
           <Group grow>
