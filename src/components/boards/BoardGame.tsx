@@ -898,7 +898,9 @@ function BoardGame() {
     const removeDeprecated = (node: MosaicNode<PlayingViewId> | null): MosaicNode<PlayingViewId> | null => {
       if (!node) return null;
       if (typeof node === "string") {
-        return node === "linesTree" || node === "unifiedMoves" ? null : node;
+        // Keep only the two board tiles here; analysis will be re-injected at root
+        const allowed: ReadonlySet<PlayingViewId> = new Set(["leftPlayer", "rightPlayer"] as const);
+        return allowed.has(node as PlayingViewId) ? node : null;
       }
       const first = removeDeprecated(node.first as any);
       const second = removeDeprecated(node.second as any);
@@ -925,6 +927,15 @@ function BoardGame() {
       splitPercentage: 70,
     } as any;
   }, [playingLayoutState.currentNode]);
+
+  // Persist normalized layout back to storage to avoid stray dividers reappearing
+  useEffect(() => {
+    try {
+      if (!equal(playingLayoutState.currentNode as any, pruneLayout as any)) {
+        setPlayingLayoutState({ currentNode: pruneLayout });
+      }
+    } catch {}
+  }, [pruneLayout, playingLayoutState.currentNode, setPlayingLayoutState]);
 
   // Apply collapse/expand by adjusting root split percentage when analysis present
   const layoutForMosaic: MosaicNode<PlayingViewId> = useMemo(() => {
