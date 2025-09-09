@@ -27,3 +27,4 @@ tsconfig.tsbuildinfo
 *.sw?
 
 src-tauri/gen/
+venv

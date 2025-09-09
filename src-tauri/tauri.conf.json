@@ -28,7 +28,7 @@
   },
   "bundle": {
     "resources": [
-      "resources/*",
+      "resources/*"
       
     ]
   },
