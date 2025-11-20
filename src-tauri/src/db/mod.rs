@@ -35,7 +35,7 @@ use specta::Type;
 use std::{
     fs::{remove_file, File, OpenOptions},
     path::PathBuf,
-    sync::atomic::{AtomicI32, AtomicUsize, Ordering},
+    sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
 use std::{
@@ -1125,27 +1125,52 @@ pub async fn get_tournaments(
 
 #[derive(Debug, Clone, Serialize, Type, Default)]
 pub struct PlayerGameInfo {
-    pub won: i32,
-    pub lost: i32,
-    pub draw: i32,
-    pub data_per_month: Vec<(String, MonthData)>,
-    pub white_openings: Vec<(String, Results)>,
-    pub black_openings: Vec<(String, Results)>,
+    pub site_stats_data: Vec<SiteStatsData>,
 }
 
-#[derive(Debug, Clone, Serialize, Type, Default, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Results {
-    pub won: i32,
-    pub lost: i32,
-    pub draw: i32,
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Type)]
+#[repr(u8)] // Ensure minimal memory usage (as u8)
+pub enum GameOutcome {
+    #[default]
+    Won = 0,
+    Drawn = 1,
+    Lost = 2,
+}
+
+impl GameOutcome {
+    pub fn from_str(result_str: &str, is_white: bool) -> Option<Self> {
+        match result_str {
+            "1-0" => Some(if is_white {
+                GameOutcome::Won
+            } else {
+                GameOutcome::Lost
+            }),
+            "1/2-1/2" => Some(GameOutcome::Drawn),
+            "0-1" => Some(if is_white {
+                GameOutcome::Lost
+            } else {
+                GameOutcome::Won
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Type, Default)]
-pub struct MonthData {
-    pub count: i32,
-    pub avg_elo: i32,
-    #[serde(skip)]
-    avg_count: i32,
+pub struct SiteStatsData {
+    pub site: String,
+    pub player: String,
+    pub data: Vec<StatsData>,
+}
+
+#[derive(Debug, Clone, Serialize, Type, Default)]
+pub struct StatsData {
+    pub date: String,
+    pub is_player_white: bool,
+    pub player_elo: i32,
+    pub result: GameOutcome,
+    pub time_control: String,
+    pub opening: String,
 }
 
 #[derive(Serialize, Debug, Clone, Type, tauri_specta::Event)]
@@ -1166,6 +1191,8 @@ pub async fn get_players_game_info(
     let timer = Instant::now();
 
     let sql_query = games::table
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .inner_join(players::table.on(players::id.eq(id)))
         .select((
             games::white_id,
             games::black_id,
@@ -1174,6 +1201,9 @@ pub async fn get_players_game_info(
             games::moves,
             games::white_elo,
             games::black_elo,
+            games::time_control,
+            sites::name,
+            players::name,
         ))
         .filter(games::white_id.eq(id).or(games::black_id.eq(id)))
         .filter(games::fen.is_null());
@@ -1186,158 +1216,115 @@ pub async fn get_players_game_info(
         Vec<u8>,
         Option<i32>,
         Option<i32>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
     );
     let info: Vec<GameInfo> = sql_query.load(db)?;
 
     let mut game_info = PlayerGameInfo::default();
-    let white_openings = DashMap::new();
-    let black_openings = DashMap::new();
-    let won = AtomicI32::new(0);
-    let lost = AtomicI32::new(0);
-    let draw = AtomicI32::new(0);
-    let data_per_month = DashMap::new();
     let progress = AtomicUsize::new(0);
+    game_info.site_stats_data = info
+        .par_iter()
+        .filter_map(
+            |(
+                white_id,
+                black_id,
+                outcome,
+                date,
+                moves,
+                white_elo,
+                black_elo,
+                time_control,
+                site,
+                player,
+            )| {
+                let is_white = *white_id == id;
+                let is_black = *black_id == id;
+                let result = GameOutcome::from_str(outcome.as_deref()?, is_white);
 
-    info.par_iter().for_each(
-        |(white_id, black_id, outcome, date, moves, white_elo, black_elo)| {
-            let is_white = *white_id == id;
-            assert!(is_white || *black_id == id);
-
-            let mut setups = vec![];
-            let mut chess = Chess::default();
-            for (i, byte) in moves.iter().enumerate() {
-                if i > 54 {
-                    // max length of opening in data
-                    break;
+                if !is_white && !is_black
+                    || is_white && white_elo.is_none()
+                    || is_black && black_elo.is_none()
+                    || result.is_none()
+                    || date.is_none()
+                    || site.is_none()
+                    || player.is_none()
+                {
+                    return None;
                 }
-                let m = decode_move(*byte, &chess).unwrap();
-                chess.play_unchecked(&m);
-                setups.push(chess.clone().into_setup(EnPassantMode::Legal));
-            }
 
-            setups.reverse();
-            for setup in setups {
-                if let Ok(opening) = get_opening_from_setup(setup) {
-                    let openings = if is_white {
-                        &white_openings
+                let site = site.as_deref().map(|s| {
+                    if s.starts_with("https://lichess.org/") {
+                        "Lichess".to_string()
                     } else {
-                        &black_openings
-                    };
-                    if outcome.as_deref() == Some("1-0") {
-                        openings
-                            .entry(opening)
-                            .and_modify(|e: &mut Results| {
-                                if is_white {
-                                    e.won += 1;
-                                } else {
-                                    e.lost += 1;
-                                }
-                            })
-                            .or_insert(Results {
-                                won: 1,
-                                lost: 0,
-                                draw: 0,
-                            });
-                    } else if outcome.as_deref() == Some("0-1") {
-                        openings
-                            .entry(opening)
-                            .and_modify(|e| {
-                                if is_white {
-                                    e.lost += 1;
-                                } else {
-                                    e.won += 1;
-                                }
-                            })
-                            .or_insert(Results {
-                                won: 0,
-                                lost: 1,
-                                draw: 0,
-                            });
-                    } else if outcome.as_deref() == Some("1/2-1/2") {
-                        openings
-                            .entry(opening)
-                            .and_modify(|e| {
-                                e.draw += 1;
-                            })
-                            .or_insert(Results {
-                                won: 0,
-                                lost: 0,
-                                draw: 1,
-                            });
+                        s.to_string()
                     }
+                })?;
 
-                    break;
+                let mut setups = vec![];
+                let mut chess = Chess::default();
+                for (i, byte) in moves.iter().enumerate() {
+                    if i > 54 {
+                        // max length of opening in data
+                        break;
+                    }
+                    let m = decode_move(*byte, &chess).unwrap();
+                    chess.play_unchecked(&m);
+                    setups.push(chess.clone().into_setup(EnPassantMode::Legal));
                 }
-            }
 
-            if let Some(date) = date {
-                let date = match NaiveDate::parse_from_str(date, "%Y.%m.%d") {
-                    Ok(date) => date,
-                    Err(_) => return,
-                };
-                let month = date.format("%Y-%m").to_string();
+                setups.reverse();
+                let opening = setups
+                    .iter()
+                    .find_map(|setup| get_opening_from_setup(setup.clone()).ok())
+                    .unwrap_or_default();
 
-                // update count and avg elo
-                let mut month_data = data_per_month.entry(month).or_insert(MonthData::default());
-                month_data.count += 1;
-                let elo = if is_white { white_elo } else { black_elo };
-                if let Some(elo) = elo {
-                    month_data.avg_elo += elo;
-                    month_data.avg_count += 1;
+                let p = progress.fetch_add(1, Ordering::Relaxed);
+                if p % 1000 == 0 || p == info.len() - 1 {
+                    let _ = DatabaseProgress {
+                        id: id.to_string(),
+                        progress: (p as f64 / info.len() as f64) * 100_f64,
+                    }
+                    .emit(&app);
                 }
-            }
-            match outcome.as_deref() {
-                Some("1-0") => match is_white {
-                    true => won.fetch_add(1, Ordering::Relaxed),
-                    false => lost.fetch_add(1, Ordering::Relaxed),
-                },
-                Some("0-1") => match is_white {
-                    true => lost.fetch_add(1, Ordering::Relaxed),
-                    false => won.fetch_add(1, Ordering::Relaxed),
-                },
-                Some("1/2-1/2") => draw.fetch_add(1, Ordering::Relaxed),
-                _ => 0,
-            };
 
-            let p = progress.fetch_add(1, Ordering::Relaxed);
-            if p % 1000 == 0 || p == info.len() - 1 {
-                let _ = DatabaseProgress {
-                    id: id.to_string(),
-                    progress: (p as f64 / info.len() as f64) * 100_f64,
-                }
-                .emit(&app);
-            }
-        },
-    );
-    game_info.white_openings = white_openings.into_iter().collect();
-    game_info.black_openings = black_openings.into_iter().collect();
-    game_info.won = won.into_inner();
-    game_info.lost = lost.into_inner();
-    game_info.draw = draw.into_inner();
-    game_info.data_per_month = data_per_month.into_iter().collect();
-    game_info.data_per_month = game_info
-        .data_per_month
-        .into_iter()
-        .map(|(month, data)| {
-            let avg_elo = if data.avg_count == 0 {
-                0
-            } else {
-                data.avg_elo / data.avg_count
-            };
-            (
-                month,
-                MonthData {
-                    count: data.count,
-                    avg_elo,
-                    avg_count: data.avg_count,
-                },
-            )
+                Some(SiteStatsData {
+                    site: site.clone(),
+                    player: player.clone().unwrap(),
+                    data: vec![StatsData {
+                        date: date.clone().unwrap(),
+                        is_player_white: is_white,
+                        player_elo: if is_white {
+                            white_elo.unwrap()
+                        } else {
+                            black_elo.unwrap()
+                        },
+                        result: result.unwrap(),
+                        time_control: time_control.clone().unwrap_or_default(),
+                        opening,
+                    }],
+                })
+            },
+        )
+        .fold(|| DashMap::new(), |acc, data| {
+            acc.entry((data.site.clone(), data.player.clone()))
+                .or_insert_with(Vec::new)
+                .extend(data.data);
+            acc
         })
+        .reduce(|| DashMap::new(), |acc1, acc2| {
+                for ((site, player), data) in acc2 {
+                    acc1.entry((site, player))
+                        .or_insert_with(Vec::new)
+                        .extend(data);
+                }
+                acc1
+            },
+        )
+        .into_iter()
+        .map(|((site, player), data)| SiteStatsData { site, player, data })
         .collect();
-
-    // sort openings by count
-    game_info.white_openings.sort_by(|(_, a), (_, b)| b.cmp(a));
-    game_info.black_openings.sort_by(|(_, a), (_, b)| b.cmp(a));
 
     println!("get_players_game_info {:?}: {:?}", file, timer.elapsed());
 

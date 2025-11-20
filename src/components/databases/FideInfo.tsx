@@ -148,7 +148,7 @@ function FideInfo({
               <Text fz="sm">{player.rapid_rating || "Not Rated"}</Text>
             </Card>
             <Card p="sm">
-              <Text fw="bold">Rapid</Text>
+              <Text fw="bold">Blitz</Text>
               <Text fz="sm">{player.blitz_rating || "Not Rated"}</Text>
             </Card>
           </Group>
