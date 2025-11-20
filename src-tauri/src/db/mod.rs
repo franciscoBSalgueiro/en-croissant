@@ -707,6 +707,8 @@ pub struct GameQueryJs {
     pub outcome: Option<String>,
     #[specta(optional)]
     pub position: Option<PositionQueryJs>,
+    #[specta(optional)]
+    pub wanted_result: Option<String>,
 }
 
 impl GameQueryJs {
