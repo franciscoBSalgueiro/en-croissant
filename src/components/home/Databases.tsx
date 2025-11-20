@@ -1,5 +1,8 @@
 import { events, commands } from "@/bindings";
-import type { DatabaseInfo as PlainDatabaseInfo, PlayerGameInfo } from "@/bindings";
+import type {
+  DatabaseInfo as PlainDatabaseInfo,
+  PlayerGameInfo,
+} from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { getDatabases, query_players } from "@/utils/db";
 import type { Session } from "@/utils/session";
@@ -170,8 +173,9 @@ function Databases() {
             name={name}
             setName={setName}
             info={{
-              site_stats_data: personalInfo
-                .flatMap((i) => i.info.site_stats_data)
+              site_stats_data: personalInfo.flatMap(
+                (i) => i.info.site_stats_data,
+              ),
             }}
           />
         ))}

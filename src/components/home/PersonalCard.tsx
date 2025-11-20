@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { useAtomValue } from "jotai";
-import { sessionsAtom } from "@/state/atoms";
 import type { PlayerGameInfo } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
 import {
   ActionIcon,
   Box,
@@ -13,10 +11,12 @@ import {
   Text,
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
+import { useState } from "react";
 import FideInfo from "../databases/FideInfo";
-import RatingsPanel from "./PersonalCardPanels/RatingsPanel";
-import OverviewPanel from "./PersonalCardPanels/OverviewPanel";
 import OpeningsPanel from "./PersonalCardPanels/OpeningsPanel";
+import OverviewPanel from "./PersonalCardPanels/OverviewPanel";
+import RatingsPanel from "./PersonalCardPanels/RatingsPanel";
 
 function PersonalPlayerCard({
   name,
@@ -100,10 +100,7 @@ function PersonalPlayerCard({
         <Tabs.Panel value="overview">
           <OverviewPanel playerName={name} info={info} />
         </Tabs.Panel>
-        <Tabs.Panel
-          value="openings"
-          style={{ overflow: "hidden" }}
-        >
+        <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
           <OpeningsPanel playerName={name} info={info} />
         </Tabs.Panel>
         <Tabs.Panel value="ratings">

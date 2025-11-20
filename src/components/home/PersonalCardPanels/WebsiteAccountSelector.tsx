@@ -1,7 +1,7 @@
-import { useAtomValue } from "jotai";
-import { useState, useEffect } from "react";
-import { Group, Select } from "@mantine/core";
 import { sessionsAtom } from "@/state/atoms";
+import { Group, Select } from "@mantine/core";
+import { useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
 
 interface WebsiteAccountSelectorProps {
   playerName: string;
@@ -11,7 +11,7 @@ interface WebsiteAccountSelectorProps {
 }
 
 const WebsiteAccountSelector = ({
-  playerName: playerName,
+  playerName,
   onWebsiteChange,
   onAccountChange,
   allowAll,
@@ -22,7 +22,11 @@ const WebsiteAccountSelector = ({
   if (sessions.some((s) => s.player === playerName && s.chessCom?.username)) {
     websites.push({ value: "Chess.com", label: "Chess.com" });
   }
-  if (sessions.some((s) => s.player === playerName && s.lichess?.username)) {
+  if (
+    sessions.some(
+      (s) => s.lichess?.username && s.lichess?.username === playerName,
+    )
+  ) {
     websites.push({ value: "Lichess", label: "Lichess" });
   }
 
@@ -47,11 +51,13 @@ const WebsiteAccountSelector = ({
         (s) =>
           s.player === playerName &&
           ((website === "Chess.com" && s.chessCom?.username) ||
-            (website === "Lichess" && s.lichess?.username))
+            (website === "Lichess" && s.lichess?.username)),
       )
       .map((s) => s.chessCom?.username || s.lichess?.username)
-      .filter((username): username is string =>
-        username !== undefined && username !== null)
+      .filter(
+        (username): username is string =>
+          username !== undefined && username !== null,
+      ),
   );
 
   return (

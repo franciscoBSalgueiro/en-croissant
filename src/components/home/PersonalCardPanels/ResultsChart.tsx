@@ -1,4 +1,4 @@
-import { Progress, Tooltip as MTTooltip } from "@mantine/core";
+import { Tooltip as MTTooltip, Progress } from "@mantine/core";
 
 function ResultsChart({
   won,
