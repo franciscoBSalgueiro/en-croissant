@@ -4,6 +4,7 @@ import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount } from "@/utils/chess.com/api";
 import { getDatabases } from "@/utils/db";
 import { getLichessAccount } from "@/utils/lichess/api";
+import type { ChessComSession, LichessSession } from "@/utils/session";
 import {
   Autocomplete,
   Button,
@@ -21,7 +22,6 @@ import { useEffect, useRef, useState } from "react";
 import AccountCards from "../common/AccountCards";
 import GenericCard from "../common/GenericCard";
 import LichessLogo from "./LichessLogo";
-import type { ChessComSession, LichessSession } from "@/utils/session";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);
@@ -42,7 +42,7 @@ function Accounts() {
         {
           chessCom: session,
           player: alias,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         },
       ];
     });
@@ -58,28 +58,22 @@ function Accounts() {
         {
           lichess: session,
           player: alias,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         },
       ];
     });
   }
 
-  async function addChessCom(
-    player: string,
-    username: string
-  ) {
+  async function addChessCom(player: string, username: string) {
     const p = player !== "" ? player : username;
     const stats = await getChessComAccount(username);
     if (!stats) {
       return;
     }
     addChessComSession(p, { username, stats });
-  };
+  }
 
-  async function addLichessNoLogin(
-    player: string,
-    username: string
-  ) {
+  async function addLichessNoLogin(player: string, username: string) {
     const p = player !== "" ? player : username;
     const account = await getLichessAccount({ username });
     if (!account) return;

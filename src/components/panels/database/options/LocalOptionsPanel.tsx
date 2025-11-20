@@ -6,8 +6,8 @@ import {
   Box,
   Button,
   Group,
-  Select,
   SegmentedControl,
+  Select,
   Stack,
   Text,
 } from "@mantine/core";

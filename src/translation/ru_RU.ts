@@ -135,7 +135,8 @@ export const ru_RU = {
     "Home.Card.Puzzle.Desc": "Тренируйте шахматные навыки",
     "Home.Card.Puzzle.Button": "Тренироваться",
 
-    "Board.Action.TogglePawnStructureView": "Переключить отображение структуры пешек",
+    "Board.Action.TogglePawnStructureView":
+      "Переключить отображение структуры пешек",
     "Board.Action.TakeSnapshot": "Сделать скриншот",
     "Board.Action.AnalyzeGame": "Анализировать партию",
     "Board.Action.PlayFromHere": "Играть отсюда",
@@ -394,6 +395,7 @@ export const ru_RU = {
     "PgnInput.MaxDepth": "Максимальная глубина",
     "PgnInput.TotalMoves": "Всего ходов",
 
-    "Puzzle.JumpToNextPuzzleImmediately": "Сразу переходить к следующей головоломке",
+    "Puzzle.JumpToNextPuzzleImmediately":
+      "Сразу переходить к следующей головоломке",
   },
 };

@@ -52,10 +52,7 @@ export interface TreeStoreState {
     changeHeaders?: boolean;
   }) => void;
 
-  appendMove: (args: {
-    payload: Move;
-    clock?: number;
-  }) => void;
+  appendMove: (args: { payload: Move; clock?: number }) => void;
 
   makeMoves: (args: {
     payload: string[];
@@ -142,7 +139,10 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         return state;
       }),
     goToPrevious: () =>
-      set((state) => ({ ...state, position: state.position.slice(0, -1) })),
+      set((state) => ({
+        ...state,
+        position: state.position.slice(0, -1),
+      })),
 
     goToAnnotation: (annotation, color) =>
       set(
@@ -377,9 +377,10 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       set(
         produce((state) => {
           state.dirty = true;
-          while (path.some((v) => v !== 0)) {
-            promoteVariation(state, path);
-            path = state.position;
+          let p = path;
+          while (p.some((v) => v !== 0)) {
+            promoteVariation(state, p);
+            p = state.position;
           }
         }),
       ),
