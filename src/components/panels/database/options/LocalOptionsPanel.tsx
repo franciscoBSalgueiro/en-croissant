@@ -6,7 +6,7 @@ import {
   Box,
   Button,
   Group,
-  NativeSelect,
+  Select,
   SegmentedControl,
   Stack,
   Text,
@@ -60,7 +60,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
         </Group>
         <Group>
           <Text fw="bold">Result:</Text>
-          <NativeSelect
+          <Select
             data={[
               { value: "any", label: "Any" },
               { value: "whitewon", label: "White Won" },
@@ -71,11 +71,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             onChange={(v) =>
               setOptions({
                 ...options,
-                result: v.currentTarget.value as
-                  | "any"
-                  | "whitewon"
-                  | "draw"
-                  | "blackwon",
+                result: v as "any" | "whitewon" | "draw" | "blackwon",
               })
             }
           />
