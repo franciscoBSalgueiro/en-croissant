@@ -54,7 +54,6 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { documentDir, homeDir } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import type { DrawShape } from "chessground/draw";
@@ -85,6 +84,7 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
+import { useLoaderData } from "@tanstack/react-router";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
@@ -122,6 +122,7 @@ function Board({
   practicing,
 }: ChessboardProps) {
   const { t } = useTranslation();
+  const { documentDir } = useLoaderData({ from: "/" });
 
   const store = useContext(TreeStateContext)!;
 
@@ -192,16 +193,10 @@ function Board({
 
     domtoimage.toBlob(refChildNode).then(async (blob) => {
       if (blob == null) return;
-      let documentsDirPath;
-      try {
-        documentsDirPath = await documentDir();
-      } catch (e) {
-        documentsDirPath = await homeDir();
-      }
 
       const filePath = await save({
         title: "Save board snapshot",
-        defaultPath: documentsDirPath,
+        defaultPath: documentDir,
         filters: [
           {
             name: "Png image",
