@@ -54,6 +54,7 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import type { DrawShape } from "chessground/draw";
@@ -84,7 +85,6 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
-import { useLoaderData } from "@tanstack/react-router";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
