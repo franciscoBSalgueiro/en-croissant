@@ -1,4 +1,4 @@
-use crate::db::models::{Event, Game, NewEvent, NewGame, NewPlayer, NewSite, Player, Site};
+use crate::db::models::{Event, NewEvent, NewPlayer, NewSite, Player, Site};
 use diesel::prelude::*;
 
 /// Creates a new player in the database, and returns the player's ID.
@@ -58,16 +58,4 @@ pub fn create_site(conn: &mut SqliteConnection, name: &str) -> Result<Site, dies
             .first::<Site>(conn),
         Err(e) => Err(e),
     }
-}
-
-/// Creates a new game in the database, and returns the game's ID.
-pub fn create_game(
-    conn: &mut SqliteConnection,
-    game: NewGame,
-) -> Result<Game, diesel::result::Error> {
-    use crate::db::schema::games;
-
-    diesel::insert_or_ignore_into(games::table)
-        .values(&game)
-        .get_result(conn)
 }

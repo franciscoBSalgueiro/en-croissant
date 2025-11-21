@@ -115,14 +115,15 @@ function CompleteMoveCell({
 
             <Portal>
               <Menu.Dropdown>
-                {currentTab?.file?.metadata.type === "repertoire" && (
-                  <Menu.Item
-                    leftSection={<IconFlag size="0.875rem" />}
-                    onClick={() => setStart(movePath)}
-                  >
-                    {t("Menu.MarkAsStart")}
-                  </Menu.Item>
-                )}
+                {currentTab?.source?.type === "file" &&
+                  currentTab.source.metadata.type === "repertoire" && (
+                    <Menu.Item
+                      leftSection={<IconFlag size="0.875rem" />}
+                      onClick={() => setStart(movePath)}
+                    >
+                      {t("Menu.MarkAsStart")}
+                    </Menu.Item>
+                  )}
                 <Menu.Item
                   leftSection={<IconChevronsUp size="0.875rem" />}
                   onClick={() => promoteToMainline(movePath)}

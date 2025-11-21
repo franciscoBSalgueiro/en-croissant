@@ -69,6 +69,9 @@ tauri-plugin-process = "2"
 tauri-plugin-log = "2"
 tauri-plugin-window-state = "2"
 
+[dev-dependencies]
+regex = "1.11.1"
+
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL

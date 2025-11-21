@@ -212,7 +212,7 @@ function Table({
         setTabs,
         setActiveTab,
         pgn: pgn[0] || "",
-        fileInfo: record,
+        srcInfo: record,
         gameNumber: 0,
       });
       navigate({ to: "/" });

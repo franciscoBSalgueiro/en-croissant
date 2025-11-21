@@ -8,47 +8,51 @@ import { useAtom } from "jotai";
 
 function FileInfo({
   setGames,
-}: {
-  setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
-}) {
+}: { setGames: React.Dispatch<React.SetStateAction<Map<number, string>>> }) {
   const [tab, setCurrentTab] = useAtom(currentTabAtom);
 
-  if (!tab?.file) return null;
-  return (
-    <>
-      <Group justify="space-between" py="sm" px="md">
-        <Text>
-          {formatNumber(tab.file.numGames || 0)} game
-          {tab.file.numGames === 1 ? "" : "s"}
-        </Text>
-        <Group>
-          <Tooltip label={tab.file.path}>
-            <Code>{tab.file.path.split(/[\\/]/).pop()}</Code>
-          </Tooltip>
+  if (tab?.source?.type === "file") {
+    return (
+      <>
+        <Group justify="space-between" py="sm" px="md">
+          <Text>
+            {formatNumber(tab.source.numGames || 0)} game
+            {tab.source.numGames === 1 ? "" : "s"}
+          </Text>
+          <Group>
+            <Tooltip label={tab.source.path}>
+              <Code>{tab.source.path.split(/[\\/]/).pop()}</Code>
+            </Tooltip>
 
-          <Tooltip label="Reload file">
-            <ActionIcon
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                tab.file &&
-                commands.countPgnGames(tab.file.path).then((v) => {
-                  setCurrentTab((prev) => {
-                    prev.file!.numGames = unwrap(v);
-                    return { ...prev };
-                  });
-                  setGames(new Map());
-                })
-              }
-            >
-              <IconReload size="1rem" />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip label="Reload file">
+              <ActionIcon
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (tab.source?.type === "file") {
+                    commands.countPgnGames(tab.source.path).then((v) => {
+                      setCurrentTab((prev) => {
+                        if (prev.source?.type === "file") {
+                          prev.source.numGames = unwrap(v);
+                        }
+                        return { ...prev };
+                      });
+                      setGames(new Map());
+                    });
+                  }
+                }}
+              >
+                <IconReload size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </Group>
-      </Group>
-      <Divider />
-    </>
-  );
+        <Divider />
+      </>
+    );
+  }
+
+  return null;
 }
 
 export default FileInfo;

@@ -326,6 +326,22 @@ async getGames(file: string, query: GameQueryJs) : Promise<Result<QueryResponse<
     else return { status: "error", error: e  as any };
 }
 },
+async getGame(file: string, gameId: number) : Promise<Result<NormalizedGame, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_game", { file, gameId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateGame(file: string, gameId: number, update: UpdateGame) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_game", { file, gameId, update }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async searchPosition(file: string, query: GameQueryJs, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search_position", { file, query, tabId }) };
@@ -499,6 +515,7 @@ name: string;
  * The default value of this string option.
  */
 default: string | null } }
+export type UpdateGame = { fen: string; event: string; site: string; date?: string | null; time?: string | null; round?: string | null; white: string; white_elo?: number | null; black: string; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 
 /** tauri-specta globals **/
 

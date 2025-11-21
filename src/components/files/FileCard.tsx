@@ -63,7 +63,7 @@ function FileCard({
       setTabs,
       setActiveTab,
       pgn: selectedGame || "",
-      fileInfo: selected,
+      srcInfo: selected,
       gameNumber: page,
     });
     navigate({ to: "/" });
