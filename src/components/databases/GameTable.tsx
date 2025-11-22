@@ -22,7 +22,7 @@ import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import useSWR from "swr";
 import { useStore } from "zustand";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
@@ -44,7 +44,8 @@ function GameTable() {
     (s) => s.toggleGamesOpenedSettings,
   );
 
-  const [selectedGame, setSelectedGame] = useState<number | null>(null);
+  const selectedGame = useStore(store, (s) => s.games.selectedGame);
+  const setSelectedGame = useStore(store, (s) => s.setGamesSelectedGame);
 
   const navigate = useNavigate();
 
@@ -62,29 +63,25 @@ function GameTable() {
     [
       "ArrowUp",
       () => {
-        setSelectedGame((prev) => {
-          if (prev === null) {
-            return null;
-          }
-          if (prev === 0) {
-            return 0;
-          }
-          return prev - 1;
-        });
+        setSelectedGame(
+          selectedGame === undefined || selectedGame === null
+            ? undefined
+            : selectedGame === 0
+              ? 0
+              : selectedGame - 1,
+        );
       },
     ],
     [
       "ArrowDown",
       () => {
-        setSelectedGame((prev) => {
-          if (prev === null) {
-            return 0;
-          }
-          if (prev === games.length - 1) {
-            return games.length - 1;
-          }
-          return prev + 1;
-        });
+        setSelectedGame(
+          selectedGame === undefined || selectedGame === null
+            ? 0
+            : selectedGame === games.length - 1
+              ? games.length - 1
+              : selectedGame + 1,
+        );
       },
     ],
   ]);
@@ -326,7 +323,9 @@ function GameTable() {
           />
         }
         preview={
-          selectedGame !== null && games[selectedGame] ? (
+          selectedGame !== undefined &&
+          selectedGame !== null &&
+          games[selectedGame] ? (
             <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
           ) : (
             <Center h="100%">

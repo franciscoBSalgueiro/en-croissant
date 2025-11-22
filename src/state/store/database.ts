@@ -10,6 +10,7 @@ export interface DatabaseViewStore {
   games: {
     isFilterExpanded: boolean;
     query: GameQuery;
+    selectedGame?: number;
   };
   players: {
     query: PlayerQuery;
@@ -27,6 +28,7 @@ export interface DatabaseViewStore {
   setActiveTab: (mode: DatabaseViewStore["activeTab"]) => void;
 
   setGamesQuery: (filter: GameQuery) => void;
+  setGamesSelectedGame: (game?: number) => void;
   toggleGamesOpenedSettings: () => void;
 
   setPlayersQuery: (filter: PlayerQuery) => void;
@@ -44,6 +46,7 @@ export interface DatabaseViewStore {
 
 const defaultGamesState: DatabaseViewStore["games"] = {
   isFilterExpanded: false,
+  selectedGame: undefined,
   query: {
     player1: undefined,
     range1: [0, 3000],
@@ -131,6 +134,13 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
         set(
           produce((state: Draft<DatabaseViewStore>) => {
             state.games.query = query;
+          }),
+        );
+      },
+      setGamesSelectedGame: (game) => {
+        set(
+          produce((state: Draft<DatabaseViewStore>) => {
+            state.games.selectedGame = game;
           }),
         );
       },
