@@ -1,5 +1,6 @@
 import type { PlayerGameInfo } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
+import type { DatabaseViewStore } from "@/state/store/database";
 import {
   ActionIcon,
   Box,
@@ -12,7 +13,9 @@ import {
 } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { useStore } from "zustand";
+import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import FideInfo from "../databases/FideInfo";
 import OpeningsPanel from "./PersonalCardPanels/OpeningsPanel";
 import OverviewPanel from "./PersonalCardPanels/OverviewPanel";
@@ -27,6 +30,10 @@ function PersonalPlayerCard({
   setName?: (name: string) => void;
   info: PlayerGameInfo;
 }) {
+  const store = useContext(DatabaseViewStateContext)!;
+  const activeTab = useStore(store, (s) => s.players.activeTab);
+  const setActiveTab = useStore(store, (s) => s.setPlayersActiveTab);
+
   const [opened, setOpened] = useState(false);
   const sessions = useAtomValue(sessionsAtom);
   const players = Array.from(
@@ -83,7 +90,10 @@ function PersonalPlayerCard({
       <Tabs
         mt="xs"
         keepMounted={false}
-        defaultValue="overview"
+        value={activeTab}
+        onChange={(v) =>
+          setActiveTab(v as DatabaseViewStore["players"]["activeTab"])
+        }
         variant="outline"
         flex={1}
         style={{
