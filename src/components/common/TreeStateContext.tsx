@@ -1,4 +1,4 @@
-import { type TreeStore, createTreeStore } from "@/state/store";
+import { type TreeStore, createTreeStore } from "@/state/store/tree";
 import type { TreeState } from "@/utils/treeReducer";
 import { createContext, useRef } from "react";
 

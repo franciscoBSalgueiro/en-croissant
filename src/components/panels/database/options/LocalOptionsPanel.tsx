@@ -7,6 +7,7 @@ import {
   Button,
   Group,
   SegmentedControl,
+  Select,
   Stack,
   Text,
 } from "@mantine/core";
@@ -54,6 +55,24 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             value={options.color}
             onChange={(v) =>
               setOptions({ ...options, color: v as "white" | "black" })
+            }
+          />
+        </Group>
+        <Group>
+          <Text fw="bold">Result:</Text>
+          <Select
+            data={[
+              { value: "any", label: "Any" },
+              { value: "whitewon", label: "White Won" },
+              { value: "draw", label: "Draw" },
+              { value: "blackwon", label: "Black Won" },
+            ]}
+            value={options.result}
+            onChange={(v) =>
+              setOptions({
+                ...options,
+                result: v as "any" | "whitewon" | "draw" | "blackwon",
+              })
             }
           />
         </Group>

@@ -1,13 +1,11 @@
 import {
   type DatabaseInfo,
   type GameQuery,
-  type MonthData,
   type NormalizedGame,
   type Player,
   type PlayerQuery,
   type PuzzleDatabaseInfo,
   type QueryResponse,
-  type Results,
   commands,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
@@ -170,15 +168,6 @@ export async function getTournamentGames(file: string, id: number) {
   });
 }
 
-export interface PlayerGameInfo {
-  won: number;
-  lost: number;
-  draw: number;
-  data_per_month: [string, MonthData][];
-  white_openings: [string, Results][];
-  black_openings: [string, Results][];
-}
-
 export async function searchPosition(options: LocalOptions, tab: string) {
   const res = await commands.searchPosition(
     options.path!,
@@ -191,6 +180,7 @@ export async function searchPosition(options: LocalOptions, tab: string) {
       },
       start_date: options.start_date,
       end_date: options.end_date,
+      wanted_result: options.result,
     },
     tab,
   );

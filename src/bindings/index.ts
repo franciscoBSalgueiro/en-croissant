@@ -18,6 +18,7 @@ export type DatabaseInfo =
       type: "success";
       file: string;
       downloadLink?: string;
+      filter?: GameQuery;
     })
   | {
       type: "error";

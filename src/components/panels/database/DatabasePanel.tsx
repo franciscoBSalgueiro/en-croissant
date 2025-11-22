@@ -56,6 +56,7 @@ export type LocalOptions = {
   color: "white" | "black";
   start_date?: string;
   end_date?: string;
+  result: "any" | "whitewon" | "draw" | "blackwon";
 };
 
 function sortOpenings(openings: Opening[]) {

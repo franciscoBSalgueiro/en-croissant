@@ -1,4 +1,4 @@
-import type { BestMoves, DatabaseInfo, GoMode } from "@/bindings";
+import type { BestMoves, DatabaseInfo, GameQuery, GoMode } from "@/bindings";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import {
@@ -289,6 +289,7 @@ const localOptionsFamily = atomFamily((tab: string) =>
     fen: "",
     player: null,
     color: "white",
+    result: "any",
   }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);
@@ -382,13 +383,7 @@ export type PracticeData = {
 };
 
 export const deckAtomFamily = atomFamily(
-  ({
-    file,
-    game,
-  }: {
-    file: string;
-    game: number;
-  }) =>
+  ({ file, game }: { file: string; game: number }) =>
     atomWithStorage<PracticeData>(
       `deck-${file}-${game}`,
       {
