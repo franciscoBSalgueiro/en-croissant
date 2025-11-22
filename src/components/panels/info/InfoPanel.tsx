@@ -88,10 +88,28 @@ function GameSelectorAccordion({
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
 
-  if (!currentTab?.file) return null;
-
-  const gameNumber = currentTab.gameNumber || 0;
+  const gameNumber = currentTab?.gameNumber || 0;
   const currentName = games.get(gameNumber) || "Untitled";
+
+  const keyMap = useAtomValue(keyMapAtom);
+
+  useHotkeys(
+    keyMap.NEXT_GAME.keys,
+    () => setPage(Math.min(gameNumber + 1, currentTab?.file?.numGames! - 1)),
+    {
+      enabled: !!currentTab?.file,
+    },
+  );
+
+  useHotkeys(
+    keyMap.PREVIOUS_GAME.keys,
+    () => setPage(Math.max(0, gameNumber - 1)),
+    {
+      enabled: !!currentTab?.file,
+    },
+  );
+
+  if (!currentTab?.file) return null;
 
   async function setPage(page: number, forced?: boolean) {
     if (!forced && dirty) {
@@ -131,14 +149,6 @@ function GameSelectorAccordion({
     });
     setGames(new Map());
   }
-
-  const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys(keyMap.NEXT_GAME.keys, () =>
-    setPage(Math.min(gameNumber + 1, currentTab.file!.numGames - 1)),
-  );
-  useHotkeys(keyMap.PREVIOUS_GAME.keys, () =>
-    setPage(Math.max(0, gameNumber - 1)),
-  );
 
   return (
     <>

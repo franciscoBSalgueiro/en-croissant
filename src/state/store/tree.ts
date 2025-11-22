@@ -134,7 +134,10 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         return state;
       }),
     goToPrevious: () =>
-      set((state) => ({ ...state, position: state.position.slice(0, -1) })),
+      set((state) => ({
+        ...state,
+        position: state.position.slice(0, -1),
+      })),
 
     goToAnnotation: (annotation, color) =>
       set(
@@ -369,7 +372,11 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       set(
         produce((state) => {
           state.dirty = true;
-          while (!promoteVariation(state, path)) {}
+          let p = path;
+          while (p.some((v) => v !== 0)) {
+            promoteVariation(state, p);
+            p = state.position;
+          }
         }),
       ),
     copyVariationPgn: (path) => {

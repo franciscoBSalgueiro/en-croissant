@@ -4,6 +4,7 @@ import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount } from "@/utils/chess.com/api";
 import { getDatabases } from "@/utils/db";
 import { getLichessAccount } from "@/utils/lichess/api";
+import type { ChessComSession, LichessSession } from "@/utils/session";
 import {
   Autocomplete,
   Button,
@@ -24,15 +25,69 @@ import LichessLogo from "./LichessLogo";
 
 function Accounts() {
   const [, setSessions] = useAtom(sessionsAtom);
-  const isListesning = useRef(false);
+  const isListening = useRef(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));
   }, []);
   const [open, setOpen] = useState(false);
 
-  async function login(username: string) {
-    await commands.authenticate(username);
+  function addChessComSession(alias: string, session: ChessComSession) {
+    setSessions((sessions) => {
+      const newSessions = sessions.filter(
+        (s) => s.chessCom?.username !== session.username,
+      );
+      return [
+        ...newSessions,
+        {
+          chessCom: session,
+          player: alias,
+          updatedAt: Date.now(),
+        },
+      ];
+    });
+  }
+
+  function addLichessSession(alias: string, session: LichessSession) {
+    setSessions((sessions) => {
+      const newSessions = sessions.filter(
+        (s) => s.lichess?.username !== session.username,
+      );
+      return [
+        ...newSessions,
+        {
+          lichess: session,
+          player: alias,
+          updatedAt: Date.now(),
+        },
+      ];
+    });
+  }
+
+  async function addChessCom(player: string, username: string) {
+    const p = player !== "" ? player : username;
+    const stats = await getChessComAccount(username);
+    if (!stats) {
+      return;
+    }
+    addChessComSession(p, { username, stats });
+  }
+
+  async function addLichessNoLogin(player: string, username: string) {
+    const p = player !== "" ? player : username;
+    const account = await getLichessAccount({ username });
+    if (!account) return;
+    addLichessSession(p, { username, account });
+  }
+
+  async function onLichessAuthentication(token: string) {
+    const player = sessionStorage.getItem("lichess_player_alias") || "";
+    sessionStorage.removeItem("lichess_player_alias");
+    const account = await getLichessAccount({ token });
+    if (!account) return;
+    const username = account.username;
+    const p = player !== "" ? player : username;
+    addLichessSession(p, { accessToken: token, username: username, account });
   }
 
   async function addLichess(
@@ -40,45 +95,20 @@ function Accounts() {
     username: string,
     withLogin: boolean,
   ) {
-    const p = player !== "" ? player : username;
     if (withLogin) {
-      login(username);
-    } else {
-      const account = await getLichessAccount({
-        username,
-      });
-      if (!account) return;
-      setSessions((sessions) => {
-        const newSessions = sessions.filter(
-          (s) => s.lichess?.username !== username,
-        );
-        return [
-          ...newSessions,
-          { lichess: { username, account }, player: p, updatedAt: Date.now() },
-        ];
-      });
+      sessionStorage.setItem("lichess_player_alias", player);
+      return await commands.authenticate(username);
     }
+    return await addLichessNoLogin(player, username);
   }
 
   useEffect(() => {
     async function listen_for_code() {
-      if (isListesning.current) return;
-      isListesning.current = true;
+      if (isListening.current) return;
+      isListening.current = true;
       await listen<string>("access_token", async (event) => {
         const token = event.payload;
-        const account = await getLichessAccount({ token });
-        if (!account) return;
-        setSessions((sessions) => [
-          ...sessions,
-          {
-            lichess: {
-              accessToken: token,
-              account,
-              username: account.username,
-            },
-            updatedAt: Date.now(),
-          },
-        ]);
+        await onLichessAuthentication(token);
       });
     }
 
@@ -100,25 +130,7 @@ function Accounts() {
         open={open}
         setOpen={setOpen}
         addLichess={addLichess}
-        addChessCom={(player, username) => {
-          getChessComAccount(username).then((stats) => {
-            const p = player !== "" ? player : username;
-            if (!stats) return;
-            setSessions((sessions) => {
-              const newSessions = sessions.filter(
-                (s) => s.chessCom?.username !== username,
-              );
-              return [
-                ...newSessions,
-                {
-                  chessCom: { username, stats },
-                  player: p,
-                  updatedAt: Date.now(),
-                },
-              ];
-            });
-          });
-        }}
+        addChessCom={addChessCom}
       />
     </>
   );

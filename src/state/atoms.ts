@@ -289,6 +289,7 @@ const localOptionsFamily = atomFamily((tab: string) =>
     fen: "",
     player: null,
     color: "white",
+    result: "any",
   }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);
