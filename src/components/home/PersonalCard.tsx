@@ -1,6 +1,6 @@
+import type { PlayerGameInfo } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import type { DatabaseViewStore } from "@/state/store/database";
-import type { PlayerGameInfo } from "@/bindings";
 import {
   ActionIcon,
   Box,
