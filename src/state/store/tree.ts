@@ -80,6 +80,8 @@ export interface TreeStoreState extends TreeState {
     }[],
   ) => void;
 
+  setReportInProgress: (value: boolean) => void;
+
   setState: (state: TreeState) => void;
   reset: () => void;
   save: () => void;
@@ -471,6 +473,14 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           addAnalysis(state, analysis);
         }),
       ),
+
+    setReportInProgress: (value: boolean) => {
+      set(
+        produce((state: Draft<TreeStoreState>) => {
+          state.report.inProgress = value;
+        }),
+      );
+    },
 
     clearShapes: () =>
       set(
