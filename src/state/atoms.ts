@@ -125,6 +125,7 @@ export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">(
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
+export const moveHighlightAtom = atomWithStorage<boolean>("move-highlight", true);
 export const snapArrowsAtom = atomWithStorage<boolean>("snap-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(

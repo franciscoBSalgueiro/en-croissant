@@ -14,6 +14,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  moveHighlightAtom,
   snapArrowsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
@@ -156,6 +157,7 @@ function Board({
 
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
+  const moveHighlight = useAtomValue(moveHighlightAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
@@ -699,8 +701,8 @@ function Board({
                   },
                 }}
                 turnColor={turn}
-                check={pos?.isCheck()}
-                lastMove={editingMode ? undefined : lastMove}
+                check={moveHighlight && pos?.isCheck()}
+                lastMove={moveHighlight && !editingMode ? lastMove : undefined}
                 premovable={{
                   enabled: false,
                 }}

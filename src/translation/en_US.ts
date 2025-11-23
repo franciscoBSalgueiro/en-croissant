@@ -319,6 +319,8 @@ export const en_US = {
     "Settings.Board.Desc": "Customize the analysis board and game controls",
     "Settings.PieceDest": "Piece Destinations",
     "Settings.PieceDest.Desc": "Show possible moves for each piece",
+    "Settings.MoveHighlight": "Move Highlight",
+    "Settings.MoveHighlight.Desc": "Show hightlight for last move and check",
     "Settings.Arrows": "Arrows",
     "Settings.Arrows.Desc": "Show best move arrows",
     "Settings.SnapArrows": "Snap Arrows",
