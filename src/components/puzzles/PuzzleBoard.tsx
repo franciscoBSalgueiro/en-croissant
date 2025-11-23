@@ -1,5 +1,9 @@
 import { Chessground } from "@/chessground/Chessground";
-import { jumpToNextPuzzleAtom, showCoordinatesAtom } from "@/state/atoms";
+import {
+  jumpToNextPuzzleAtom,
+  moveHighlightAtom,
+  showCoordinatesAtom,
+} from "@/state/atoms";
 import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
@@ -38,6 +42,7 @@ function PuzzleBoard({
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
+  const moveHighlight = useAtomValue(moveHighlightAtom);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
@@ -170,11 +175,13 @@ function PuzzleBoard({
             },
           }}
           lastMove={
-            currentNode.move ? chessgroundMove(currentNode.move) : undefined
+            moveHighlight && currentNode.move
+              ? chessgroundMove(currentNode.move)
+              : undefined
           }
           turnColor={turn}
           fen={currentNode.fen}
-          check={pos?.isCheck()}
+          check={moveHighlight && pos?.isCheck()}
         />
       </Box>
     </Box>

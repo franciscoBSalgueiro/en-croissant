@@ -2,7 +2,11 @@ import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
+import {
+  moveHighlightAtom,
+  previewBoardOnHoverAtom,
+  scoreTypeFamily,
+} from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
@@ -159,6 +163,7 @@ function BoardPopover({
   const store = useContext(TreeStateContext)!;
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const preview = useAtomValue(previewBoardOnHoverAtom);
+  const moveHighlight = useAtomValue(moveHighlightAtom);
 
   const [hovering, setHovering] = useState(false);
 
@@ -198,9 +203,9 @@ function BoardPopover({
               coordinates={false}
               viewOnly
               orientation={orientation}
-              lastMove={lastMove}
+              lastMove={moveHighlight ? lastMove : undefined}
               turnColor={is_white ? "black" : "white"}
-              check={isCheck}
+              check={moveHighlight && isCheck}
               drawable={{
                 enabled: true,
                 visible: true,
