@@ -4,6 +4,7 @@ import type {
   PlayerGameInfo,
 } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
+import { activeDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, query_players } from "@/utils/db";
 import type { Session } from "@/utils/session";
 import { unwrap } from "@/utils/unwrap";
@@ -11,9 +12,8 @@ import { Flex, Progress, Select, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
-import PersonalPlayerCard from "./PersonalCard";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
-import { activeDatabaseViewStore } from "@/state/store/database";
+import PersonalPlayerCard from "./PersonalCard";
 
 type DatabaseInfo = PlainDatabaseInfo & {
   username?: string;
