@@ -468,7 +468,11 @@ export default function Page() {
                     },
                     {
                       value: "zh_CN",
-                      label: "Chinese",
+                      label: "Chinese (Simplified)",
+                    },
+                    {
+                      value: "zh_TW",
+                      label: "Chinese (Traditional)",
                     },
                     {
                       value: "en_US",
