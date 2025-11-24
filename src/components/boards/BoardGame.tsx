@@ -50,7 +50,7 @@ import { useStore } from "zustand";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
-import TimeInput from "../common/TimeInput";
+import TimeInput, { type TimeType } from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
@@ -95,12 +95,16 @@ export type OpponentSettings =
       type: "human";
       timeControl?: TimeControlField;
       name?: string;
+      timeUnit?: TimeType;
+      incrementUnit?: TimeType;
     }
   | {
       type: "engine";
       timeControl?: TimeControlField;
       engine: LocalEngine | null;
       go: GoMode;
+      timeUnit?: TimeType;
+      incrementUnit?: TimeType;
     };
 
 function OpponentForm({
@@ -185,6 +189,13 @@ function OpponentForm({
             <InputWrapper label="Time">
               <TimeInput
                 defaultType="m"
+                type={opponent.timeUnit}
+                onTypeChange={(t) => {
+                  setOpponent((prev) => ({ ...prev, timeUnit: t }));
+                  if (sameTimeControl) {
+                    setOtherOpponent((prev) => ({ ...prev, timeUnit: t }));
+                  }
+                }}
                 value={opponent.timeControl.seconds}
                 setValue={(v) => {
                   setOpponent((prev) => ({
@@ -209,6 +220,13 @@ function OpponentForm({
             <InputWrapper label="Increment">
               <TimeInput
                 defaultType="s"
+                type={opponent.incrementUnit}
+                onTypeChange={(t) => {
+                  setOpponent((prev) => ({ ...prev, incrementUnit: t }));
+                  if (sameTimeControl) {
+                    setOtherOpponent((prev) => ({ ...prev, incrementUnit: t }));
+                  }
+                }}
                 value={opponent.timeControl.increment ?? 0}
                 setValue={(v) => {
                   setOpponent((prev) => ({
@@ -295,11 +313,15 @@ function BoardGame() {
     type: "human",
     name: "Player",
     timeControl: DEFAULT_TIME_CONTROL,
+    timeUnit: "m",
+    incrementUnit: "s",
   });
   const [player2Settings, setPlayer2Settings] = useState<OpponentSettings>({
     type: "human",
     name: "Player",
     timeControl: DEFAULT_TIME_CONTROL,
+    timeUnit: "m",
+    incrementUnit: "s",
   });
 
   function getPlayers() {
@@ -657,7 +679,18 @@ function BoardGame() {
                 <Checkbox
                   label="Same time control"
                   checked={sameTimeControl}
-                  onChange={(e) => setSameTimeControl(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSameTimeControl(checked);
+                    if (checked) {
+                      setPlayer2Settings((prev) => ({
+                        ...prev,
+                        timeControl: player1Settings.timeControl,
+                        timeUnit: player1Settings.timeUnit,
+                        incrementUnit: player1Settings.incrementUnit,
+                      }));
+                    }
+                  }}
                 />
 
                 <Group>

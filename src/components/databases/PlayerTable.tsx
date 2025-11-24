@@ -1,5 +1,5 @@
 import type { Player, PlayerSort } from "@/bindings";
-import { type SuccessDatabaseInfo, query_players } from "@/utils/db";
+import { query_players } from "@/utils/db";
 import {
   ActionIcon,
   Center,
@@ -11,91 +11,52 @@ import {
   TextInput,
 } from "@mantine/core";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
-import { DataTable, type DataTableSortStatus } from "mantine-datatable";
-import { useEffect, useState } from "react";
+import { DataTable } from "mantine-datatable";
+import { useContext, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import useSWR from "swr";
+import { useStore } from "zustand";
+import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";
 import * as classes from "./styles.css";
 
-function PlayerTable({ database }: { database: SuccessDatabaseInfo }) {
-  const file = database.file;
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [count, setCount] = useState(0);
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [range, setRange] = useState<[number, number]>([0, 3000]);
-  const [limit, setLimit] = useState(25);
-  const [activePage, setActivePage] = useState(1);
-  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
+function PlayerTable() {
+  const store = useContext(DatabaseViewStateContext)!;
+
+  const file = useStore(store, (s) => s.database?.file)!;
+  const query = useStore(store, (s) => s.players.query);
+  const setQuery = useStore(store, (s) => s.setPlayersQuery);
+
+  const selectedPlayer = useStore(store, (s) => s.players.selectedPlayer);
+  const setSelectedPlayer = useStore(store, (s) => s.setPlayersSelectedPlayer);
+
+  const { data, isLoading } = useSWR(["players", query], () =>
+    query_players(file, query),
+  );
+  const players = data?.data ?? [];
+  const count = data?.count;
+  const player = players.find((p) => p.id === selectedPlayer);
+
   const [open, setOpen] = useState(false);
-  const [sort, setSort] = useState<DataTableSortStatus<Player>>({
-    columnAccessor: "id",
-    direction: "asc",
-  });
-
-  useEffect(() => {
-    setActivePage(1);
-    setSelectedPlayer(null);
-    setLoading(true);
-    query_players(file, {
-      name: name,
-      range: range,
-      options: {
-        page: 1,
-        pageSize: limit,
-        sort: sort.columnAccessor as PlayerSort,
-        direction: sort.direction,
-        skipCount: false,
-      },
-    }).then((res) => {
-      setLoading(false);
-      setPlayers(res.data);
-      setCount(res.count!);
-    });
-  }, [name, range, limit, file]);
-
-  useEffect(() => {
-    setLoading(true);
-    setSelectedPlayer(null);
-    query_players(file, {
-      name: name === "" ? undefined : name,
-      range: range,
-      options: {
-        page: activePage,
-        pageSize: limit,
-        sort: sort.columnAccessor as PlayerSort,
-        direction: sort.direction,
-        skipCount: false,
-      },
-    }).then((res) => {
-      setLoading(false);
-      setPlayers(res.data);
-      setCount(res.count!);
-    });
-  }, [activePage, sort]);
 
   useHotkeys("ArrowUp", () => {
-    setSelectedPlayer((prev) => {
-      if (prev === null) {
-        return null;
+    if (selectedPlayer != null) {
+      const prevIndex = players.findIndex((p) => p.id === selectedPlayer) - 1;
+      if (prevIndex > -1) {
+        setSelectedPlayer(players[prevIndex].id);
       }
-      if (prev === 0) {
-        return 0;
-      }
-      return prev - 1;
-    });
+    }
   });
   useHotkeys("ArrowDown", () => {
-    setSelectedPlayer((prev) => {
-      if (prev === null) {
-        return 0;
+    const curIndex = players.findIndex((p) => p.id === selectedPlayer);
+    if (curIndex > -1) {
+      const nextIndex = curIndex + 1;
+
+      if (nextIndex < (count ?? 0)) {
+        setSelectedPlayer(players[nextIndex].id);
       }
-      if (prev === players.length - 1) {
-        return players.length - 1;
-      }
-      return prev + 1;
-    });
+    }
   });
 
   return (
@@ -107,8 +68,17 @@ function PlayerTable({ database }: { database: SuccessDatabaseInfo }) {
               style={{ flexGrow: 1 }}
               placeholder="Search player..."
               leftSection={<IconSearch size="1rem" />}
-              value={name}
-              onChange={(v) => setName(v.currentTarget.value)}
+              value={query.name ?? undefined}
+              onChange={(e) =>
+                setQuery({
+                  ...query,
+                  name: e.currentTarget.value,
+                  options: {
+                    ...query.options,
+                    page: 1,
+                  },
+                })
+              }
             />
             <ActionIcon
               style={{ flexGrow: 0 }}
@@ -117,23 +87,34 @@ function PlayerTable({ database }: { database: SuccessDatabaseInfo }) {
               <IconDotsVertical size="1rem" />
             </ActionIcon>
           </Flex>
+
           <Collapse in={open}>
             <Group mt="md">
               <NumberInput
                 label="Min ELO"
-                value={range[0]}
+                value={query.range?.[0]}
+                onChange={(v) =>
+                  setQuery({
+                    ...query,
+                    range: [(v || 0) as number, query.range?.[1] ?? 3000],
+                  })
+                }
                 min={0}
                 max={3000}
                 step={100}
-                onChange={(v) => setRange([(v || 0) as number, range[1]])}
               />
               <NumberInput
                 label="Max ELO"
-                value={range[1]}
+                value={query.range?.[1]}
                 min={0}
                 max={3000}
                 step={100}
-                onChange={(v) => setRange([range[0], (v || 0) as number])}
+                onChange={(v) =>
+                  setQuery({
+                    ...query,
+                    range: [query.range?.[0] ?? 0, (v || 3000) as number],
+                  })
+                }
               />
             </Group>
           </Collapse>
@@ -144,32 +125,57 @@ function PlayerTable({ database }: { database: SuccessDatabaseInfo }) {
           withTableBorder
           highlightOnHover
           records={players}
-          fetching={loading}
+          fetching={isLoading}
           columns={[
             { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },
             { accessor: "elo", sortable: true },
           ]}
-          rowClassName={(_, i) =>
-            i === selectedPlayer ? classes.selected : ""
+          rowClassName={(r) =>
+            r.id === selectedPlayer ? classes.selected : ""
           }
           noRecordsText="No players found"
-          totalRecords={count}
-          recordsPerPage={limit}
-          page={activePage}
-          onPageChange={setActivePage}
-          onRecordsPerPageChange={setLimit}
-          sortStatus={sort}
-          onSortStatusChange={setSort}
+          totalRecords={count!}
+          recordsPerPage={query.options.pageSize ?? 25}
+          page={query.options?.page ?? 1}
+          onPageChange={(page) =>
+            setQuery({
+              ...query,
+              options: {
+                ...query.options!,
+                page,
+              },
+            })
+          }
+          onRecordsPerPageChange={(value) =>
+            setQuery({
+              ...query,
+              options: { ...query.options!, pageSize: value },
+            })
+          }
+          sortStatus={{
+            columnAccessor: query.options?.sort || "name",
+            direction: query.options?.direction || "desc",
+          }}
+          onSortStatusChange={(value) =>
+            setQuery({
+              ...query,
+              options: {
+                ...query.options!,
+                sort: value.columnAccessor as PlayerSort,
+                direction: value.direction,
+              },
+            })
+          }
           recordsPerPageOptions={[10, 25, 50]}
           onRowClick={({ index }) => {
-            setSelectedPlayer(index);
+            setSelectedPlayer(players[index].id);
           }}
         />
       }
       preview={
-        selectedPlayer !== null && players[selectedPlayer] ? (
-          <PlayerCard player={players[selectedPlayer]} file={database.file} />
+        player != null ? (
+          <PlayerCard player={player} file={file} />
         ) : (
           <Center h="100%">
             <Text>No player selected</Text>

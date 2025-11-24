@@ -1,10 +1,4 @@
-import type {
-  DatabaseInfo,
-  GameQuery,
-  GameSort,
-  NormalizedGame,
-  Outcome,
-} from "@/bindings";
+import type { GameSort, NormalizedGame, Outcome } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -22,40 +16,36 @@ import {
   Text,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 import { IconDotsVertical } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { useState } from "react";
+import { useContext } from "react";
 import useSWR from "swr";
+import { useStore } from "zustand";
+import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 import { SideInput } from "./SideInput";
 import * as classes from "./styles.css";
 
-function GameTable({ database }: { database: DatabaseInfo }) {
-  const file = database.file;
-  const [query, setQuery] = useState<GameQuery>({
-    player1: undefined,
-    range1: [0, 3000],
-    player2: undefined,
-    range2: [0, 3000],
-    sides: "WhiteBlack",
-    outcome: undefined,
-    options: {
-      sort: "date",
-      direction: "desc",
-      pageSize: 25,
-      page: 1,
-      skipCount: false,
-    },
-  });
+function GameTable() {
+  const store = useContext(DatabaseViewStateContext)!;
 
-  const [selectedGame, setSelectedGame] = useState<number | null>(null);
-  const [openedSettings, toggleOpenedSettings] = useToggle();
+  const file = useStore(store, (s) => s.database?.file)!;
+  const query = useStore(store, (s) => s.games.query);
+  const setQuery = useStore(store, (s) => s.setGamesQuery);
+  const openedSettings = useStore(store, (s) => s.games.isFilterExpanded);
+  const toggleOpenedSettings = useStore(
+    store,
+    (s) => s.toggleGamesOpenedSettings,
+  );
+
+  const selectedGame = useStore(store, (s) => s.games.selectedGame);
+  const setSelectedGame = useStore(store, (s) => s.setGamesSelectedGame);
 
   const navigate = useNavigate();
 
@@ -73,29 +63,25 @@ function GameTable({ database }: { database: DatabaseInfo }) {
     [
       "ArrowUp",
       () => {
-        setSelectedGame((prev) => {
-          if (prev === null) {
-            return null;
-          }
-          if (prev === 0) {
-            return 0;
-          }
-          return prev - 1;
-        });
+        setSelectedGame(
+          selectedGame === undefined || selectedGame === null
+            ? undefined
+            : selectedGame === 0
+              ? 0
+              : selectedGame - 1,
+        );
       },
     ],
     [
       "ArrowDown",
       () => {
-        setSelectedGame((prev) => {
-          if (prev === null) {
-            return 0;
-          }
-          if (prev === games.length - 1) {
-            return games.length - 1;
-          }
-          return prev + 1;
-        });
+        setSelectedGame(
+          selectedGame === undefined || selectedGame === null
+            ? 0
+            : selectedGame === games.length - 1
+              ? games.length - 1
+              : selectedGame + 1,
+        );
       },
     ],
   ]);
@@ -108,6 +94,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
             <Box style={{ flexGrow: 1 }}>
               <Group grow>
                 <PlayerSearchInput
+                  value={query?.player1 ?? undefined}
                   setValue={(value) => setQuery({ ...query, player1: value })}
                   rightSection={
                     <SideInput
@@ -120,6 +107,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                   file={file}
                 />
                 <PlayerSearchInput
+                  value={query?.player2 ?? undefined}
                   setValue={(value) => setQuery({ ...query, player2: value })}
                   rightSection={
                     <SideInput
@@ -145,6 +133,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                           { value: 2000, label: "2000" },
                           { value: 3000, label: "3000" },
                         ]}
+                        value={query.range1 ?? undefined}
                         onChangeEnd={(value) =>
                           setQuery({ ...query, range1: value })
                         }
@@ -161,6 +150,7 @@ function GameTable({ database }: { database: DatabaseInfo }) {
                           { value: 2000, label: "2000" },
                           { value: 3000, label: "3000" },
                         ]}
+                        value={query.range2 ?? undefined}
                         onChangeEnd={(value) =>
                           setQuery({ ...query, range2: value })
                         }
@@ -333,7 +323,9 @@ function GameTable({ database }: { database: DatabaseInfo }) {
           />
         }
         preview={
-          selectedGame !== null && games[selectedGame] ? (
+          selectedGame !== undefined &&
+          selectedGame !== null &&
+          games[selectedGame] ? (
             <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
           ) : (
             <Center h="100%">

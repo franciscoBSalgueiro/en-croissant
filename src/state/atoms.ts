@@ -1,4 +1,4 @@
-import type { BestMoves, DatabaseInfo, GoMode } from "@/bindings";
+import type { BestMoves, DatabaseInfo, GameQuery, GoMode } from "@/bindings";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import {
@@ -125,6 +125,10 @@ export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">(
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
+export const moveHighlightAtom = atomWithStorage<boolean>(
+  "move-highlight",
+  true,
+);
 export const snapArrowsAtom = atomWithStorage<boolean>("snap-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
@@ -289,6 +293,7 @@ const localOptionsFamily = atomFamily((tab: string) =>
     fen: "",
     player: null,
     color: "white",
+    result: "any",
   }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);
@@ -382,13 +387,7 @@ export type PracticeData = {
 };
 
 export const deckAtomFamily = atomFamily(
-  ({
-    file,
-    game,
-  }: {
-    file: string;
-    game: number;
-  }) =>
+  ({ file, game }: { file: string; game: number }) =>
     atomWithStorage<PracticeData>(
       `deck-${file}-${game}`,
       {

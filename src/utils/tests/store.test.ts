@@ -1,4 +1,4 @@
-import { createTreeStore } from "@/state/store";
+import { createTreeStore } from "@/state/store/tree";
 import { type TreeState, defaultTree } from "@/utils/treeReducer";
 import { parseUci } from "chessops";
 import { beforeEach, expect, test } from "vitest";
@@ -54,6 +54,9 @@ const treeE4D5: () => TreeState = () => ({
     shapes: [],
     annotations: [],
     comment: "",
+  },
+  report: {
+    inProgress: false,
   },
 });
 
@@ -113,6 +116,9 @@ const treeE4D5Nf3: () => TreeState = () => ({
     annotations: [],
     comment: "",
   },
+  report: {
+    inProgress: false,
+  },
 });
 
 const getNewState = () => {
@@ -122,6 +128,9 @@ const getNewState = () => {
     position: s.position,
     headers: s.headers,
     dirty: s.dirty,
+    report: {
+      inProgress: false,
+    },
   };
 };
 

@@ -1,13 +1,18 @@
-import { events, type MonthData, type Results, commands } from "@/bindings";
-import type { DatabaseInfo as PlainDatabaseInfo, Player } from "@/bindings";
+import { events, commands } from "@/bindings";
+import type {
+  DatabaseInfo as PlainDatabaseInfo,
+  PlayerGameInfo,
+} from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
-import { type PlayerGameInfo, getDatabases, query_players } from "@/utils/db";
+import { activeDatabaseViewStore } from "@/state/store/database";
+import { getDatabases, query_players } from "@/utils/db";
 import type { Session } from "@/utils/session";
 import { unwrap } from "@/utils/unwrap";
 import { Flex, Progress, Select, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import useSWRImmutable from "swr/immutable";
+import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import PersonalPlayerCard from "./PersonalCard";
 
 type DatabaseInfo = PlainDatabaseInfo & {
@@ -37,70 +42,6 @@ function isDatabaseFromSession(db: DatabaseInfo, sessions: Session[]) {
 interface PersonalInfo {
   db: DatabaseInfo;
   info: PlayerGameInfo;
-}
-
-function sumGamesPlayed(lists: [string, Results][][]) {
-  const openingCounts = new Map<string, Results>();
-
-  for (const list of lists) {
-    for (const [opening, count] of list) {
-      const prev = openingCounts.get(opening) || { won: 0, draw: 0, lost: 0 };
-      openingCounts.set(opening, {
-        won: prev.won + count.won,
-        draw: prev.draw + count.draw,
-        lost: prev.lost + count.lost,
-      });
-    }
-  }
-
-  return Array.from(openingCounts.entries()).sort(
-    (a, b) =>
-      b[1].won + b[1].draw + b[1].lost - a[1].won - a[1].draw - a[1].lost,
-  );
-}
-
-function joinMonthData(data: [string, MonthData][][]) {
-  const monthCounts = new Map<string, MonthData & { avg_count: number }>();
-
-  for (const list of data) {
-    for (const [month, monthData] of list) {
-      if (monthCounts.has(month)) {
-        const oldData = monthCounts.get(month);
-        if (oldData) {
-          monthCounts.set(month, {
-            count: oldData.count + monthData.count,
-            avg_elo: oldData.avg_elo + monthData.avg_elo,
-            avg_count: oldData.avg_count + 1,
-          });
-        }
-      } else {
-        monthCounts.set(month, { ...monthData, avg_count: 1 });
-      }
-    }
-  }
-  for (const [month, monthData] of monthCounts) {
-    monthCounts.set(month, {
-      count: monthData.count,
-      avg_elo: monthData.avg_elo / monthData.avg_count,
-      avg_count: monthData.avg_count,
-    });
-  }
-
-  return Array.from(monthCounts.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
-}
-
-function combinePlayerInfo(playerInfos: PlayerGameInfo[]) {
-  const combined: PlayerGameInfo = {
-    won: playerInfos.reduce((acc, i) => acc + i.won, 0),
-    lost: playerInfos.reduce((acc, i) => acc + i.lost, 0),
-    draw: playerInfos.reduce((acc, i) => acc + i.draw, 0),
-    data_per_month: joinMonthData(playerInfos.map((i) => i.data_per_month)),
-    white_openings: sumGamesPlayed(playerInfos.map((i) => i.white_openings)),
-    black_openings: sumGamesPlayed(playerInfos.map((i) => i.black_openings)),
-  };
-  return combined;
 }
 
 function Databases() {
@@ -230,11 +171,17 @@ function Databases() {
             </Text>
           </>
         ) : (
-          <PersonalPlayerCard
-            name={name}
-            setName={setName}
-            info={combinePlayerInfo(personalInfo.map((i) => i.info))}
-          />
+          <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
+            <PersonalPlayerCard
+              name={name}
+              setName={setName}
+              info={{
+                site_stats_data: personalInfo.flatMap(
+                  (i) => i.info.site_stats_data,
+                ),
+              }}
+            />
+          </DatabaseViewStateContext.Provider>
         ))}
     </>
   );

@@ -5,6 +5,7 @@ import {
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
   minimumGamesAtom,
+  moveHighlightAtom,
   moveInputAtom,
   moveMethodAtom,
   moveNotationTypeAtom,
@@ -128,6 +129,20 @@ export default function Page() {
                   </Text>
                 </div>
                 <SettingsSwitch atom={showDestsAtom} />
+              </Group>
+              <Group
+                justify="space-between"
+                wrap="nowrap"
+                gap="xl"
+                className={classes.item}
+              >
+                <div>
+                  <Text>{t("Settings.MoveHighlight")}</Text>
+                  <Text size="xs" c="dimmed">
+                    {t("Settings.MoveHighlight.Desc")}
+                  </Text>
+                </div>
+                <SettingsSwitch atom={moveHighlightAtom} />
               </Group>
               <Group
                 justify="space-between"

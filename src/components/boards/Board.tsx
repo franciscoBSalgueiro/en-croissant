@@ -9,6 +9,7 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
+  moveHighlightAtom,
   moveInputAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
@@ -54,7 +55,7 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { documentDir } from "@tauri-apps/api/path";
+import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import type { DrawShape } from "chessground/draw";
@@ -122,6 +123,7 @@ function Board({
   practicing,
 }: ChessboardProps) {
   const { t } = useTranslation();
+  const { documentDir } = useLoaderData({ from: "/" });
 
   const store = useContext(TreeStateContext)!;
 
@@ -155,6 +157,7 @@ function Board({
 
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
+  const moveHighlight = useAtomValue(moveHighlightAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
@@ -192,11 +195,10 @@ function Board({
 
     domtoimage.toBlob(refChildNode).then(async (blob) => {
       if (blob == null) return;
-      const documentsDirPath = await documentDir();
 
       const filePath = await save({
         title: "Save board snapshot",
-        defaultPath: documentsDirPath,
+        defaultPath: documentDir,
         filters: [
           {
             name: "Png image",
@@ -699,8 +701,8 @@ function Board({
                   },
                 }}
                 turnColor={turn}
-                check={pos?.isCheck()}
-                lastMove={editingMode ? undefined : lastMove}
+                check={moveHighlight && pos?.isCheck()}
+                lastMove={moveHighlight && !editingMode ? lastMove : undefined}
                 premovable={{
                   enabled: false,
                 }}

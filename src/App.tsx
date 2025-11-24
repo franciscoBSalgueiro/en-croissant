@@ -49,7 +49,7 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 import ErrorComponent from "@/components/ErrorComponent";
-import { documentDir, resolve } from "@tauri-apps/api/path";
+import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
 import { routeTree } from "./routeTree.gen";
 
 export type Dirs = {
@@ -62,9 +62,14 @@ const router = createRouter({
   context: {
     loadDirs: async () => {
       const store = getDefaultStore();
-      const doc =
-        store.get(storedDocumentDirAtom) ||
-        (await resolve(await documentDir(), "EnCroissant"));
+      let doc = store.get(storedDocumentDirAtom);
+      if (!doc) {
+        try {
+          doc = await resolve(await documentDir(), "EnCroissant");
+        } catch (e) {
+          doc = await resolve(await homeDir(), "EnCroissant");
+        }
+      }
       const dirs: Dirs = { documentDir: doc };
       return dirs;
     },
