@@ -1,0 +1,11 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "En Croissant",
+        "maximizable": true,
+        "visible": false,
+        "decorations": true
+      }
+    ]
+  }
