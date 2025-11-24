@@ -110,12 +110,13 @@ export async function saveToFile({
     });
     if (userChoice === null) {
       return;
-    } else if (userChoice.endsWith(".pgn")) {
+    }
+    if (userChoice.endsWith(".pgn")) {
       filePath = userChoice;
     } else {
       // on Linux filters for userChoice seemingly don't work
       // so userChoice can end without 'pgn' extension
-      filePath = userChoice.concat(".pgn"); 
+      filePath = userChoice.concat(".pgn");
     }
     setCurrentTab((prev) => {
       return {
