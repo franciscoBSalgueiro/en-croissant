@@ -3,13 +3,33 @@ import { NumberInput, Select } from "@mantine/core";
 import { useState } from "react";
 import { match } from "ts-pattern";
 
-type TimeType = "ms" | "s" | "m" | "h";
+export type TimeType = "ms" | "s" | "m" | "h";
 function TimeInput({
   value,
   setValue,
   defaultType,
-}: { value: number; setValue: (v: GoMode) => void; defaultType?: TimeType }) {
-  const [timeType, setTimeType] = useState<TimeType>(defaultType ?? "ms");
+  type,
+  onTypeChange,
+}: {
+  value: number;
+  setValue: (v: GoMode) => void;
+  defaultType?: TimeType;
+  type?: TimeType;
+  onTypeChange?: (type: TimeType) => void;
+}) {
+  const [internalTimeType, setInternalTimeType] = useState<TimeType>(
+    defaultType ?? "ms",
+  );
+
+  const timeType = type ?? internalTimeType;
+  const handleTypeChange = (newType: TimeType) => {
+    if (onTypeChange) {
+      onTypeChange(newType);
+    } else {
+      setInternalTimeType(newType);
+    }
+  };
+
   const displayedValue = match(timeType)
     .with("ms", () => value)
     .with("s", () => value / 1000)
@@ -31,7 +51,7 @@ function TimeInput({
           allowDeselect={false}
           value={timeType}
           withScrollArea={false}
-          onChange={(v) => setTimeType(v as TimeType)}
+          onChange={(v) => handleTypeChange(v as TimeType)}
           styles={{
             option: {
               wordBreak: "keep-all",
