@@ -11,6 +11,7 @@ import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
 import { fr_FR } from "./translation/fr_FR";
 import { it_IT } from "./translation/it_IT";
+import { ko_KR } from "./translation/ko_KR";
 import { nb_NO } from "./translation/nb_NO";
 import { pl_PL } from "./translation/pl_PL";
 import { pt_PT } from "./translation/pt_PT";
@@ -18,7 +19,6 @@ import { ru_RU } from "./translation/ru_RU";
 import { tr_TR } from "./translation/tr_TR";
 import { uk_UA } from "./translation/uk_UA";
 import { zh_CN } from "./translation/zh_CN";
-import { ko_KR } from "./translation/ko_KR";
 
 i18n.use(initReactI18next).init({
   resources: {

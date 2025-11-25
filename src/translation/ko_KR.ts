@@ -181,8 +181,7 @@ export const ko_KR = {
       "참조 데이터베이스가 선택되지 않았습니다. 먼저 데이터베이스 페이지에서 하나를 선택하세요",
     "Board.Analysis.Time": "시간 (ms)",
     "Board.Analysis.Reversed": "역순 분석",
-    "Board.Analysis.Reversed.Desc":
-      "마지막 수부터 게임을 분석합니다.",
+    "Board.Analysis.Reversed.Desc": "마지막 수부터 게임을 분석합니다.",
     "Board.Analysis.AnnotateNovelties": "신수 주석",
     "Board.Analysis.AnnotateNovelties.Desc":
       "참조 데이터베이스에 없는 첫 번째 포지션에 주석을 추가합니다.",
@@ -217,8 +216,7 @@ export const ko_KR = {
     "Engines.Settings.Reset": "기본값으로 재설정",
     "Engines.Add.Title": "엔진 추가",
     "Engines.Add.Cloud": "클라우드",
-    "Engines.Add.ErrorFetch":
-      "서버에서 엔진 정보를 가져오는데 실패했습니다.",
+    "Engines.Add.ErrorFetch": "서버에서 엔진 정보를 가져오는데 실패했습니다.",
     "Engines.Add.BinaryFile": "바이너리 파일",
     "Engines.Add.BinaryFile.Desc": "클릭하여 바이너리 파일 선택",
     "Engines.Add.Name": "이름",
@@ -261,8 +259,7 @@ export const ko_KR = {
     "Databases.Settings.AddGames": "게임 추가",
     "Databases.Settings.ExportPGN": "PGN으로 내보내기",
     "Databases.Delete.Title": "데이터베이스 삭제",
-    "Databases.Delete.Message":
-      "정말로 이 데이터베이스를 삭제하시겠습니까?",
+    "Databases.Delete.Message": "정말로 이 데이터베이스를 삭제하시겠습니까?",
 
     "Errors.EmptyBoard": "빈 보드",
     "Errors.InvalidKings": "잘못된 킹 개수",
@@ -348,8 +345,7 @@ export const ko_KR = {
     "Settings.Inputs.TextInput": "텍스트 수 입력",
     "Settings.Inputs.TextInput.Desc": "텍스트 형식으로 수를 입력합니다",
     "Settings.Inputs.SpellCheck": "맞춤법 검사",
-    "Settings.Inputs.SpellCheck.Desc":
-      "텍스트 입력에서 맞춤법을 검사합니다",
+    "Settings.Inputs.SpellCheck.Desc": "텍스트 입력에서 맞춤법을 검사합니다",
     "Settings.OpeningReport.Desc": "오프닝 보고서를 설정합니다",
     "Settings.OpeningReport.PercentCoverage": "커버리지 백분율",
     "Settings.OpeningReport.PercentCoverage.Desc":
@@ -378,8 +374,7 @@ export const ko_KR = {
     "Settings.Appearance.PieceSet": "기물 세트",
     "Settings.Appearance.PieceSet.Desc": "보드에서 사용할 기물 모양",
     "Settings.Appearance.BoardImage": "보드 이미지",
-    "Settings.Appearance.BoardImage.Desc":
-      "보드 배경으로 사용할 이미지",
+    "Settings.Appearance.BoardImage.Desc": "보드 배경으로 사용할 이미지",
     "Settings.Appearance.AccentColor": "강조 색상",
     "Settings.Appearance.AccentColor.Desc": "앱의 주요 색상",
     "Settings.Sound.Desc": "소리를 설정합니다",
