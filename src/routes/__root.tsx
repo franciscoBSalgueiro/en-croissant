@@ -54,7 +54,7 @@ async function createMenu(menuActions: MenuGroup[]) {
             .with("divider", () =>
               PredefinedMenuItem.new({
                 item: "Separator",
-              })
+              }),
             )
             .otherwise(() => {
               return MenuItem.new({
@@ -64,14 +64,14 @@ async function createMenu(menuActions: MenuGroup[]) {
                 action: option.action,
               });
             });
-        })
+        }),
       );
 
       return Submenu.new({
         text: group.label,
         items: submenuItems,
       });
-    })
+    }),
   );
 
   return Menu.new({
@@ -219,11 +219,11 @@ function RootLayout() {
         ],
       },
     ],
-    [t, checkForUpdates, createNewTab, keyMap, openNewFile]
+    [t, checkForUpdates, createNewTab, keyMap, openNewFile],
   );
 
   const { data: menu } = useSWRImmutable(["menu", menuActions], () =>
-    createMenu(menuActions)
+    createMenu(menuActions),
   );
 
   useEffect(() => {
@@ -244,7 +244,7 @@ function RootLayout() {
         breakpoint: 0,
       }}
       header={
-        (isNative || import.meta.env.VITE_PLATFORM !== "win32")
+        isNative || import.meta.env.VITE_PLATFORM !== "win32"
           ? undefined
           : {
               height: "2.5rem",
