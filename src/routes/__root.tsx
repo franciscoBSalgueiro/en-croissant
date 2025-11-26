@@ -54,7 +54,7 @@ async function createMenu(menuActions: MenuGroup[]) {
             .with("divider", () =>
               PredefinedMenuItem.new({
                 item: "Separator",
-              }),
+              })
             )
             .otherwise(() => {
               return MenuItem.new({
@@ -64,14 +64,14 @@ async function createMenu(menuActions: MenuGroup[]) {
                 action: option.action,
               });
             });
-        }),
+        })
       );
 
       return Submenu.new({
         text: group.label,
         items: submenuItems,
       });
-    }),
+    })
   );
 
   return Menu.new({
@@ -219,16 +219,16 @@ function RootLayout() {
         ],
       },
     ],
-    [t, checkForUpdates, createNewTab, keyMap, openNewFile],
+    [t, checkForUpdates, createNewTab, keyMap, openNewFile]
   );
 
   const { data: menu } = useSWRImmutable(["menu", menuActions], () =>
-    createMenu(menuActions),
+    createMenu(menuActions)
   );
 
   useEffect(() => {
     if (!menu) return;
-    if (isNative) {
+    if (isNative || import.meta.env.VITE_PLATFORM !== "win32") {
       menu.setAsAppMenu();
       getCurrentWindow().setDecorations(true);
     } else {
@@ -244,7 +244,7 @@ function RootLayout() {
         breakpoint: 0,
       }}
       header={
-        isNative
+        (isNative || import.meta.env.VITE_PLATFORM !== "win32")
           ? undefined
           : {
               height: "2.5rem",
@@ -258,7 +258,7 @@ function RootLayout() {
       }}
     >
       <AboutModal opened={opened} setOpened={setOpened} />
-      {!isNative && (
+      {!isNative && import.meta.env.VITE_PLATFORM === "win32" && (
         <AppShell.Header>
           <TopBar menuActions={menuActions} />
         </AppShell.Header>

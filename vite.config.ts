@@ -4,6 +4,7 @@ import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react-swc";
 import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
 import { defineConfig } from "vite";
+import * as os from "node:os";
 
 const isDebug = !!process.env.TAURI_ENV_DEBUG;
 
@@ -29,5 +30,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+  },
+  define: {
+    "import.meta.env.VITE_PLATFORM": JSON.stringify(os.platform()),
   },
 });
