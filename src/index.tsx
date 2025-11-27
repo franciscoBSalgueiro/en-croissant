@@ -7,6 +7,7 @@ import { initReactI18next } from "react-i18next";
 import App from "./App";
 
 import { be_BY } from "./translation/be_BY";
+import { de_DE } from "./translation/de_DE";
 import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
 import { fr_FR } from "./translation/fr_FR";
@@ -33,6 +34,7 @@ i18n.use(initReactI18next).init({
     it_IT: it_IT,
     fr_FR: fr_FR,
     tr_TR: tr_TR,
+    de_DE: de_DE,
   },
   lng: localStorage.getItem("lang") || "en_US",
   fallbackLng: "en",
