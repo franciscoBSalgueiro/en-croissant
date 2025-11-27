@@ -518,6 +518,7 @@ export default function Page() {
                       value: "ko_KR",
                       label: "한국어",
                     },
+                    {
                       value: "de_DE",
                       label: "Deutsch",
                     },
