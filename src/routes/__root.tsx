@@ -228,7 +228,7 @@ function RootLayout() {
 
   useEffect(() => {
     if (!menu) return;
-    if (isNative) {
+    if (isNative || import.meta.env.VITE_PLATFORM !== "win32") {
       menu.setAsAppMenu();
       getCurrentWindow().setDecorations(true);
     } else {
@@ -244,7 +244,7 @@ function RootLayout() {
         breakpoint: 0,
       }}
       header={
-        isNative
+        isNative || import.meta.env.VITE_PLATFORM !== "win32"
           ? undefined
           : {
               height: "2.5rem",
@@ -258,7 +258,7 @@ function RootLayout() {
       }}
     >
       <AboutModal opened={opened} setOpened={setOpened} />
-      {!isNative && (
+      {!isNative && import.meta.env.VITE_PLATFORM === "win32" && (
         <AppShell.Header>
           <TopBar menuActions={menuActions} />
         </AppShell.Header>

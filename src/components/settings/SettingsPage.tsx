@@ -468,7 +468,11 @@ export default function Page() {
                     },
                     {
                       value: "zh_CN",
-                      label: "Chinese",
+                      label: "Chinese (Simplified)",
+                    },
+                    {
+                      value: "zh_TW",
+                      label: "Chinese (Traditional)",
                     },
                     {
                       value: "en_US",
@@ -514,6 +518,9 @@ export default function Page() {
                       value: "ko_KR",
                       label: "한국어",
                     },
+                      value: "de_DE",
+                      label: "Deutsch",
+                    },
                   ]}
                   value={i18n.language}
                   onChange={(val) => {
@@ -522,27 +529,29 @@ export default function Page() {
                   }}
                 />
               </Group>
-              <Group
-                justify="space-between"
-                wrap="nowrap"
-                gap="xl"
-                className={classes.item}
-              >
-                <div>
-                  <Text>{t("Settings.Appearance.TitleBar")}</Text>
-                  <Text size="xs" c="dimmed">
-                    {t("Settings.Appearance.TitleBar.Desc")}
-                  </Text>
-                </div>
-                <Select
-                  allowDeselect={false}
-                  data={["Native", "Custom"]}
-                  value={isNative ? "Native" : "Custom"}
-                  onChange={(val) => {
-                    setIsNative(val === "Native");
-                  }}
-                />
-              </Group>
+              {import.meta.env.VITE_PLATFORM === "win32" && (
+                <Group
+                  justify="space-between"
+                  wrap="nowrap"
+                  gap="xl"
+                  className={classes.item}
+                >
+                  <div>
+                    <Text>{t("Settings.Appearance.TitleBar")}</Text>
+                    <Text size="xs" c="dimmed">
+                      {t("Settings.Appearance.TitleBar.Desc")}
+                    </Text>
+                  </div>
+                  <Select
+                    allowDeselect={false}
+                    data={["Native", "Custom"]}
+                    value={isNative ? "Native" : "Custom"}
+                    onChange={(val) => {
+                      setIsNative(val === "Native");
+                    }}
+                  />
+                </Group>
+              )}
               <Group
                 justify="space-between"
                 wrap="nowrap"

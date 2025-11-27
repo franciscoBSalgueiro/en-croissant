@@ -22,7 +22,7 @@ jobs:
             args: '--target aarch64-apple-darwin --bundles dmg'
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin --bundles dmg'
-          - platform: 'ubuntu-22.04'
+          - platform: 'ubuntu-24.04'
             args: ''
           - platform: 'windows-latest'
             args: '--bundles nsis'
@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-24.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
