@@ -536,10 +536,18 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     Variant,
   } = Object.fromEntries(headersN);
 
+  const isValidOutcome = (value: string): value is Outcome => {
+    return ["*", "1-0", "0-1", "1/2-1/2"].includes(value);
+  };
+
+  const isValidOrientation = (value: string): value is "white" | "black" => {
+    return ["white", "black"].includes(value);
+  };
+
   const headers: GameHeaders = {
     id: 0,
     fen: FEN ?? INITIAL_FEN,
-    result: (Result as Outcome) ?? "*",
+    result: isValidOutcome(Result) ? Result : "*",
     black: Black ?? "?",
     white: White ?? "?",
     round: Round ?? "?",
@@ -549,7 +557,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     site: Site ?? "",
     event: Event ?? "",
     start: JSON.parse(Start ?? "[]"),
-    orientation: (Orientation as "white" | "black") ?? "white",
+    orientation: isValidOrientation(Orientation) ? Orientation : "white",
     time_control: TimeControl,
     variant: Variant,
   };
