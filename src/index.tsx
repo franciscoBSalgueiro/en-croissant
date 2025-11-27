@@ -12,6 +12,7 @@ import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
 import { fr_FR } from "./translation/fr_FR";
 import { it_IT } from "./translation/it_IT";
+import { ko_KR } from "./translation/ko_KR";
 import { nb_NO } from "./translation/nb_NO";
 import { pl_PL } from "./translation/pl_PL";
 import { pt_PT } from "./translation/pt_PT";
@@ -35,6 +36,7 @@ i18n.use(initReactI18next).init({
     it_IT: it_IT,
     fr_FR: fr_FR,
     tr_TR: tr_TR,
+    ko_KR: ko_KR,
     zh_TW: zh_TW,
     de_DE: de_DE,
   },

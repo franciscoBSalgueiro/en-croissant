@@ -515,6 +515,9 @@ export default function Page() {
                       label: "Türkçe",
                     },
                     {
+                      value: "ko_KR",
+                      label: "한국어",
+                    },
                       value: "de_DE",
                       label: "Deutsch",
                     },
