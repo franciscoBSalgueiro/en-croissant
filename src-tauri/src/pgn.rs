@@ -34,7 +34,13 @@ impl PgnParser {
     fn offset_by_index(&mut self, n: usize, state: &AppState, file: &String) -> io::Result<()> {
         let offset_index = n / GAME_OFFSET_FREQ;
         let n_left = n % GAME_OFFSET_FREQ;
-        let pgn_offsets = state.pgn_offsets.get(file).unwrap();
+        let wrapped_pgn_offsets = state.pgn_offsets.get(file);
+        if wrapped_pgn_offsets.is_none() {
+            self.reader.seek(SeekFrom::Start(self.start))?;
+            self.skip_games(n)?;
+            return Ok(());
+        }
+        let pgn_offsets = wrapped_pgn_offsets.unwrap();
 
         if offset_index == 0 || offset_index < pgn_offsets.len() {
             let offset = match offset_index {
@@ -219,21 +225,23 @@ fn write_to_end<R: Read>(reader: &mut R, writer: &mut File) -> io::Result<()> {
 #[tauri::command]
 #[specta::specta]
 pub async fn write_game(
-    file: PathBuf,
+    file_path: String,
     n: i32,
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    let file = PathBuf::from(file_path);
     if !file.exists() {
         File::create(&file)?;
     }
 
-    let file_r = File::open(&file)?;
+    let mut file_r = File::open(&file)?;
     let mut file_w = OpenOptions::new().write(true).open(&file)?;
 
     let mut tmpf = tempfile::tempfile()?;
     io::copy(&mut file_r.try_clone()?, &mut tmpf)?;
 
+    file_r.seek(SeekFrom::Start(0))?;
     let mut parser = PgnParser::new(file_r.try_clone()?);
 
     parser.offset_by_index(n as usize, &state, &file.to_string_lossy().to_string())?;

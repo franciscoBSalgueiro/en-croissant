@@ -153,7 +153,8 @@ function PuzzleBoard({
             color:
               puzzle &&
               equal(position, Array(currentMove).fill(0)) &&
-              puzzle.completion === "incomplete"
+              (puzzle.completion === "incomplete" ||
+                puzzle.completion === "incorrect")
                 ? turn
                 : undefined,
             dests: dests,

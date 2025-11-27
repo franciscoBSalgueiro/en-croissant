@@ -514,6 +514,10 @@ export default function Page() {
                       value: "tr_TR",
                       label: "Türkçe",
                     },
+                    {
+                      value: "de_DE",
+                      label: "Deutsch",
+                    },
                   ]}
                   value={i18n.language}
                   onChange={(val) => {
@@ -522,27 +526,29 @@ export default function Page() {
                   }}
                 />
               </Group>
-              <Group
-                justify="space-between"
-                wrap="nowrap"
-                gap="xl"
-                className={classes.item}
-              >
-                <div>
-                  <Text>{t("Settings.Appearance.TitleBar")}</Text>
-                  <Text size="xs" c="dimmed">
-                    {t("Settings.Appearance.TitleBar.Desc")}
-                  </Text>
-                </div>
-                <Select
-                  allowDeselect={false}
-                  data={["Native", "Custom"]}
-                  value={isNative ? "Native" : "Custom"}
-                  onChange={(val) => {
-                    setIsNative(val === "Native");
-                  }}
-                />
-              </Group>
+              {import.meta.env.VITE_PLATFORM === "win32" && (
+                <Group
+                  justify="space-between"
+                  wrap="nowrap"
+                  gap="xl"
+                  className={classes.item}
+                >
+                  <div>
+                    <Text>{t("Settings.Appearance.TitleBar")}</Text>
+                    <Text size="xs" c="dimmed">
+                      {t("Settings.Appearance.TitleBar.Desc")}
+                    </Text>
+                  </div>
+                  <Select
+                    allowDeselect={false}
+                    data={["Native", "Custom"]}
+                    value={isNative ? "Native" : "Custom"}
+                    onChange={(val) => {
+                      setIsNative(val === "Native");
+                    }}
+                  />
+                </Group>
+              )}
               <Group
                 justify="space-between"
                 wrap="nowrap"
