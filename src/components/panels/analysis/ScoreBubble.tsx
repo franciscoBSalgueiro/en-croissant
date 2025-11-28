@@ -1,6 +1,6 @@
 import type { Score } from "@/bindings";
 import { formatScore } from "@/utils/score";
-import { Box, Progress, Text } from "@mantine/core";
+import { Box, Progress, Text, Tooltip } from "@mantine/core";
 import * as classes from "./ScoreBubble.css";
 
 function ScoreBubble({
@@ -23,7 +23,7 @@ function ScoreBubble({
         style={(theme) => ({
           borderRadius: theme.radius.sm,
           boxShadow: theme.shadows.md,
-          width: size === "md" ? "4rem" : "3.5rem",
+          width: size === "md" ? "5.0rem" : "3.5rem",
           height: size === "md" ? "1.85rem" : "1.6rem",
         })}
         fz="0.5rem"
@@ -66,22 +66,31 @@ function ScoreBubble({
         textAlign: "center",
         padding: "0.15rem",
         borderRadius: theme.radius.sm,
-        width: size === "md" ? "4rem" : "3.5rem",
+        width: size === "md" ? "5.0rem" : "3.5rem",
         height: size === "md" ? "1.85rem" : "1.6rem",
         boxShadow: theme.shadows.md,
       })}
     >
-      <Text
-        fw={700}
-        c={score.value.value >= 0 ? "black" : "white"}
-        size={size}
-        ta="center"
-        style={(theme) => ({
-          fontFamily: theme.fontFamilyMonospace,
-        })}
+      <Tooltip
+        position="left"
+        color={score.value.value < 0 ? "dark" : undefined}
+        label={formatScore(score.value)}
       >
-        {formatScore(score.value)}
-      </Text>
+        <Text
+          fw={700}
+          c={score.value.value >= 0 ? "black" : "white"}
+          size={size}
+          ta="center"
+          style={(theme) => ({
+            fontFamily: theme.fontFamilyMonospace,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          })}
+        >
+          {formatScore(score.value)}
+        </Text>
+      </Tooltip>
     </Box>
   );
 }
