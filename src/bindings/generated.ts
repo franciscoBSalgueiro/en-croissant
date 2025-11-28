@@ -13,14 +13,6 @@ async closeSplashscreen() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async findFidePlayer(player: string) : Promise<Result<FidePlayer | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("find_fide_player", { player }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async getBestMoves(id: string, engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<Result<[number, BestMoves[]] | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_best_moves", { id, engine, tab, goMode, options }) };
@@ -286,14 +278,6 @@ async writeGame(filePath: string, n: number, pgn: string) : Promise<Result<null,
     else return { status: "error", error: e  as any };
 }
 },
-async downloadFideDb() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("download_fide_db") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async downloadFile(id: string, url: string, path: string, token: string | null, finalize: boolean | null, totalSize: number | null) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("download_file", { id, url, path, token, finalize, totalSize }) };
@@ -384,7 +368,6 @@ export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type Event = { id: number; name: string | null }
-export type FidePlayer = { fideid: number; name: string; country: string; sex: string; title: string | null; w_title: string | null; o_title: string | null; foa_title: string | null; rating: number | null; games: number | null; k: number | null; rapid_rating: number | null; rapid_games: number | null; rapid_k: number | null; blitz_rating: number | null; blitz_games: number | null; blitz_k: number | null; birthday: number | null; flag: string | null }
 export type FileMetadata = { last_modified: number }
 export type GameOutcome = "Won" | "Drawn" | "Lost"
 export type GameQueryJs = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }

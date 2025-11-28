@@ -429,3 +429,27 @@ export async function getTablebaseInfo(fen: string): Promise<TablebaseData> {
   }
   return res.json();
 }
+
+export async function getFidePlayer(query: string) {
+  if (!Number.isNaN(Number(query))) {
+    const res = await fetch(`${baseURL}/fide/player/${query}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } else {
+    const res = await fetch(`${baseURL}/fide/player?q=${query}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data[0];
+    }
+  }
+  throw new Error("Player not found");
+}
