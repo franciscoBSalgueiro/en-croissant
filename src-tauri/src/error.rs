@@ -10,15 +10,6 @@ pub enum Error {
     Zip(#[from] zip::result::ZipError),
 
     #[error(transparent)]
-    BincodeEncode(#[from] bincode::error::EncodeError),
-
-    #[error(transparent)]
-    BincodeDecode(#[from] bincode::error::DecodeError),
-
-    #[error(transparent)]
-    XmlDeserialize(#[from] quick_xml::de::DeError),
-
-    #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
 
     #[error(transparent)]
