@@ -46,16 +46,16 @@ function calculateEarliestDate(
 function RatingsPanel({
   playerName,
   info,
+  isDatabase,
 }: {
   playerName: string;
   info: PlayerGameInfo;
+  isDatabase?: boolean;
 }) {
-  const [dateRange, setDateRange] = useState<string | null>(
-    DateRange.NinetyDays,
-  );
+  const [dateRange, setDateRange] = useState<string | null>(DateRange.AllTime);
   const [timeControl, setTimeControl] = useState<string | null>(null);
   const [website, setWebsite] = useState<string | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
+  const [account, setAccount] = useState<string | null>("All accounts");
   const [timeRange, setTimeRange] = useState({ start: 0, end: 0 });
 
   const dates = useMemo(() => {
@@ -67,14 +67,15 @@ function RatingsPanel({
       new Set([
         today,
         ...info.site_stats_data
-          .filter((games) => games.site === website)
+          .filter((games) => !website || games.site === website)
           .filter(
             (games) => account === "All accounts" || games.player === account,
           )
           .flatMap((games) => games.data)
           .filter(
             (game) =>
-              getTimeControl(website!, game.time_control) === timeControl,
+              !timeControl ||
+              getTimeControl(website, game.time_control) === timeControl,
           )
           .map((game) => new Date(game.date).getTime()),
       ]),
@@ -94,13 +95,15 @@ function RatingsPanel({
   const [summary, ratingData] = useMemo(() => {
     const filteredGames =
       info.site_stats_data
-        ?.filter((games) => games.site === website)
+        .filter((games) => !website || games.site === website)
         .filter(
           (games) => account === "All accounts" || games.player === account,
         )
         .flatMap((games) => games.data)
         .filter(
-          (game) => getTimeControl(website!, game.time_control) === timeControl,
+          (game) =>
+            !timeControl ||
+            getTimeControl(website!, game.time_control) === timeControl,
         )
         .filter((game) => {
           const gameDate = new Date(game.date).getTime();
@@ -157,17 +160,21 @@ function RatingsPanel({
   return (
     <Stack>
       <Group grow>
-        <WebsiteAccountSelector
-          playerName={playerName}
-          onWebsiteChange={setWebsite}
-          onAccountChange={setAccount}
-          allowAll={false}
-        />
-        <TimeControlSelector
-          onTimeControlChange={setTimeControl}
-          website={website}
-          allowAll={false}
-        />
+        {!isDatabase && (
+          <>
+            <WebsiteAccountSelector
+              playerName={playerName}
+              onWebsiteChange={setWebsite}
+              onAccountChange={setAccount}
+              allowAll={false}
+            />
+            <TimeControlSelector
+              onTimeControlChange={setTimeControl}
+              website={website}
+              allowAll={false}
+            />
+          </>
+        )}
       </Group>
       <DateRangeTabs timeRange={dateRange} onTimeRangeChange={setDateRange} />
 

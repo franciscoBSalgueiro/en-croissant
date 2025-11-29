@@ -25,10 +25,12 @@ function PersonalPlayerCard({
   name,
   setName,
   info,
+  isDatabase,
 }: {
   name: string;
   setName?: (name: string) => void;
   info: PlayerGameInfo;
+  isDatabase?: boolean;
 }) {
   const store = useContext(DatabaseViewStateContext)!;
   const activeTab = useStore(store, (s) => s.players.activeTab);
@@ -108,13 +110,21 @@ function PersonalPlayerCard({
           <Tabs.Tab value="openings">Openings</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="overview">
-          <OverviewPanel playerName={name} info={info} />
+          <OverviewPanel
+            playerName={name}
+            info={info}
+            isDatabase={isDatabase}
+          />
         </Tabs.Panel>
         <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
-          <OpeningsPanel playerName={name} info={info} />
+          <OpeningsPanel
+            playerName={name}
+            info={info}
+            isDatabase={isDatabase}
+          />
         </Tabs.Panel>
         <Tabs.Panel value="ratings">
-          <RatingsPanel playerName={name} info={info} />
+          <RatingsPanel playerName={name} info={info} isDatabase={isDatabase} />
         </Tabs.Panel>
       </Tabs>
     </Paper>
