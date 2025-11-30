@@ -70,7 +70,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -152,6 +152,10 @@ function Board({
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const setShapes = useStore(store, (s) => s.setShapes);
   const setFen = useStore(store, (s) => s.setFen);
+  const setPracticeNavigation = useStore(
+    store,
+    (s) => s.setPracticeNavigation,
+  );
 
   const [pos, error] = positionFromFen(currentNode.fen);
 
@@ -175,6 +179,11 @@ function Board({
 
   const [viewPawnStructure, setViewPawnStructure] = useState(false);
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
+
+  useEffect(() => {
+    setPracticeNavigation(!!practicing);
+    return () => setPracticeNavigation(false);
+  }, [practicing, setPracticeNavigation]);
 
   const turn = pos?.turn || "white";
   const orientation = headers.orientation || "white";

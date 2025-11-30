@@ -6,10 +6,11 @@ import { beforeEach, expect, test } from "vitest";
 const store = createTreeStore();
 
 beforeEach(() => {
-  store.setState(defaultTree());
+  store.getState().reset();
 });
 
 const e4 = parseUci("e2e4")!;
+const d4 = parseUci("d2d4")!;
 const d5 = parseUci("d7d5")!;
 const e5 = parseUci("e7e5")!;
 const treeE4D5: () => TreeState = () => ({
@@ -100,6 +101,81 @@ const treeE4D5Nf3: () => TreeState = () => ({
         move: parseUci("g1f3")!,
         san: "Nf3",
         children: [],
+        clock: undefined,
+        score: null,
+        depth: null,
+        halfMoves: 1,
+        shapes: [],
+        annotations: [],
+        comment: "",
+      },
+    ],
+    score: null,
+    depth: null,
+    halfMoves: 0,
+    shapes: [],
+    annotations: [],
+    comment: "",
+  },
+  report: {
+    inProgress: false,
+  },
+});
+
+const treePracticeBranch: () => TreeState = () => ({
+  ...defaultTree(),
+  position: [],
+  root: {
+    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    move: null,
+    san: null,
+    children: [
+      {
+        fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        move: e4,
+        san: "e4",
+        children: [
+          {
+            fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+            move: e5,
+            san: "e5",
+            clock: undefined,
+            children: [],
+            score: null,
+            depth: null,
+            halfMoves: 2,
+            shapes: [],
+            annotations: [],
+            comment: "",
+          },
+        ],
+        clock: undefined,
+        score: null,
+        depth: null,
+        halfMoves: 1,
+        shapes: [],
+        annotations: [],
+        comment: "",
+      },
+      {
+        fen: "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1",
+        move: d4,
+        san: "d4",
+        children: [
+          {
+            fen: "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2",
+            move: d5,
+            san: "d5",
+            clock: undefined,
+            children: [],
+            score: null,
+            depth: null,
+            halfMoves: 2,
+            shapes: [],
+            annotations: [],
+            comment: "",
+          },
+        ],
         clock: undefined,
         score: null,
         depth: null,
@@ -245,6 +321,79 @@ test("should handle goToNext", () => {
   expect(getNewState()).toStrictEqual({
     ...treeE4D5(),
     position: [0],
+  });
+});
+
+test("goToNext should follow practice path when enabled", () => {
+  store.setState({ ...treeE4D5Nf3(), position: [] });
+  store.getState().setPracticePath([1]);
+  store.getState().setPracticeNavigation(true);
+  store.getState().goToNext();
+
+  expect(getNewState()).toStrictEqual({
+    ...treeE4D5Nf3(),
+    position: [1],
+  });
+});
+
+test("goToNext should advance through entire practice path", () => {
+  store.setState(treePracticeBranch());
+  store.getState().setPracticePath([1, 0]);
+  store.getState().setPracticeNavigation(true);
+  store.getState().goToNext();
+
+  expect(getNewState()).toStrictEqual({
+    ...treePracticeBranch(),
+    position: [1],
+  });
+
+  store.getState().goToNext();
+  expect(getNewState()).toStrictEqual({
+    ...treePracticeBranch(),
+    position: [1, 0],
+  });
+});
+
+test("goToNext should ignore practice path when disabled", () => {
+  store.setState(treePracticeBranch());
+  store.getState().setPracticePath([1]);
+  store.getState().setPracticeNavigation(false);
+  store.getState().goToNext();
+
+  expect(getNewState()).toStrictEqual({
+    ...treePracticeBranch(),
+    position: [0],
+  });
+});
+
+test("should prevent going past practice node until answer revealed", () => {
+  store.setState({ ...treePracticeBranch(), position: [1] });
+  store.getState().setPracticePath([1]);
+  store.getState().setPracticeNavigation(true);
+  store.getState().goToNext();
+
+  expect(getNewState()).toStrictEqual({
+    ...treePracticeBranch(),
+    position: [1],
+  });
+
+  store.getState().setPracticeAnswerRevealed(true);
+  store.getState().goToNext();
+  expect(getNewState()).toStrictEqual({
+    ...treePracticeBranch(),
+    position: [1, 0],
+  });
+});
+
+test("should allow returning to practice node while answer hidden", () => {
+  store.setState({ ...treePracticeBranch(), position: [] });
+  store.getState().setPracticePath([1]);
+  store.getState().setPracticeNavigation(true);
+  store.getState().goToNext();
+
+  expect(getNewState()).toStrictEqual({
+    ...treePracticeBranch(),
+    position: [1],
   });
 });
 
