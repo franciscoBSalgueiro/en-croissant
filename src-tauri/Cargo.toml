@@ -47,7 +47,7 @@ tempfile = "3.6.0"
 specta = { version = "^2.0.0-rc.20", features = ["derive"] }
 tauri-specta = { version = "^2.0.0-rc.20", features = ["derive", "typescript"] }
 strsim = "0.11.0"
-thiserror = "1.0.48"
+thiserror = "2"
 log = "0.4.20"
 oauth2 = "4.4.2"
 axum = "0.6.20"
