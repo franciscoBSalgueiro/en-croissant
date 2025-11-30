@@ -156,6 +156,10 @@ function Board({
     store,
     (s) => s.setPracticeNavigation,
   );
+  const setPracticeAnswerRevealed = useStore(
+    store,
+    (s) => s.setPracticeAnswerRevealed,
+  );
 
   const [pos, error] = positionFromFen(currentNode.fen);
 
@@ -255,6 +259,7 @@ function Board({
           color: "red",
         });
         await new Promise((resolve) => setTimeout(resolve, 500));
+        setPracticeAnswerRevealed(true);
         goToNext();
       } else {
         storeMakeMove({
