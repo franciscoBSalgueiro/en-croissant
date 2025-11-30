@@ -2,7 +2,11 @@ import { Comment } from "@/components/common/Comment";
 import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { hasMorePriority, stripClock } from "@/utils/chess";
-import { type TreeNode, treeIterator } from "@/utils/treeReducer";
+import {
+  type TreeNode,
+  getNodeAtPath,
+  treeIterator,
+} from "@/utils/treeReducer";
 import { ActionIcon, Box, Menu, Portal, Tooltip } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import {
@@ -95,7 +99,7 @@ function CompleteMoveCell({
           fontSize: "80%",
         }}
       >
-        {hasNumber && `${moveNumber.toString()}${isWhite ? "." : "..."}`}
+        {hasNumber && `${moveNumber.toString()}${isWhite ? "." : "..."}`}{" "}
         {move && (
           <Menu opened={open} width={200}>
             <Menu.Target>
@@ -110,6 +114,7 @@ function CompleteMoveCell({
                   setOpen((v) => !v);
                   e.preventDefault();
                 }}
+                clock={getNodeAtPath(root, movePath)?.clock}
               />
             </Menu.Target>
 
