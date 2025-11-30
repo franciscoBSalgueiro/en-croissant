@@ -691,9 +691,6 @@ function addAnalysis(
     const [pos] = positionFromFen(cur.fen);
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
       cur.score = analysis[i].best[0].score;
-      if (analysis[i].novelty) {
-        cur.annotations = [...new Set([...cur.annotations, "N" as const])];
-      }
       let prevScore = null;
       let prevprevScore = null;
       let prevMoves: BestMoves[] = [];
@@ -716,8 +713,15 @@ function addAnalysis(
         cur.san || "",
       );
       if (annotation) {
-        cur.annotations = [...new Set([...cur.annotations, annotation])];
+        cur.annotations = [...cur.annotations, annotation];
       }
+      if (analysis[i].novelty) {
+        cur.annotations = [...cur.annotations, "N"];
+      }
+      cur.annotations = [...new Set(cur.annotations)];
+      cur.annotations.sort((a, b) =>
+        ANNOTATION_INFO[a].nag > ANNOTATION_INFO[b].nag ? 1 : -1,
+      );
     }
     cur = cur.children[0];
     i++;
