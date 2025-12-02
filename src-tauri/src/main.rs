@@ -6,7 +6,7 @@
 mod chess;
 mod db;
 mod error;
-mod fide;
+
 mod fs;
 mod lexer;
 mod oauth;
@@ -22,7 +22,7 @@ use chess::{BestMovesPayload, EngineProcess, ReportProgress};
 use dashmap::DashMap;
 use db::{DatabaseProgress, GameQueryJs, NormalizedGame, PositionStats};
 use derivative::Derivative;
-use fide::FidePlayer;
+
 use log::LevelFilter;
 use oauth::AuthState;
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -39,7 +39,7 @@ use crate::db::{
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
     search_position,
 };
-use crate::fide::{download_fide_db, find_fide_player};
+
 use crate::fs::{set_file_as_executable, DownloadProgress};
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
@@ -80,7 +80,7 @@ pub struct AppState {
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     pgn_offsets: DashMap<String, Vec<u64>>,
-    fide_players: RwLock<Vec<FidePlayer>>,
+
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
     auth: AuthState,
 }
@@ -112,7 +112,6 @@ fn main() {
     let specta_builder = tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
-            find_fide_player,
             get_best_moves,
             analyze_game,
             stop_engine,
@@ -148,7 +147,6 @@ fn main() {
             export_to_pgn,
             authenticate,
             write_game,
-            download_fide_db,
             download_file,
             get_tournaments,
             get_db_info,

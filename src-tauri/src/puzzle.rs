@@ -80,7 +80,7 @@ pub struct PuzzleDatabaseInfo {
     title: String,
     description: String,
     puzzle_count: i32,
-    storage_size: i32,
+    storage_size: u64,
     path: String,
 }
 
@@ -99,7 +99,7 @@ pub async fn get_puzzle_db_info(
 
     let puzzle_count = puzzles::table.count().get_result::<i64>(&mut db)? as i32;
 
-    let storage_size = path.metadata()?.len() as i32;
+    let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     Ok(PuzzleDatabaseInfo {

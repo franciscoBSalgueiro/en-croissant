@@ -13,11 +13,9 @@ import {
 import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
 
-import { events, commands } from "@/bindings";
-import { BaseDirectory, exists } from "@tauri-apps/plugin-fs";
-import { useEffect, useState } from "react";
+import { getFidePlayer } from "@/utils/lichess/api";
 import useSWR from "swr/immutable";
-import ProgressButton from "../common/ProgressButton";
+
 import COUNTRIES from "./countries.json";
 
 const flags = Object.entries(Flags).map(([key, value]) => ({
@@ -34,30 +32,19 @@ function FideInfo({
   setOpened: (opened: boolean) => void;
   name: string;
 }) {
-  const [fileExists, setFileExists] = useState<boolean>(false);
   const {
     data: player,
     error,
     isLoading,
-  } = useSWR(!fileExists || !opened ? null : name, async (name) => {
-    const res = await commands.findFidePlayer(name);
-    if (res.status === "ok") {
-      return res.data;
-    }
-    throw new Error(res.error);
+  } = useSWR(!opened ? null : name, async (name) => {
+    return await getFidePlayer(name);
   });
 
-  const country = COUNTRIES.find((c) => c.ioc === player?.country);
+  const country = COUNTRIES.find((c) => c.ioc === player?.federation);
 
-  const Flag = player?.country
+  const Flag = player?.federation
     ? flags.find((f) => f.key === country?.a2)?.component
     : undefined;
-
-  useEffect(() => {
-    exists("fide.bin", { baseDir: BaseDirectory.AppData }).then((exists) => {
-      setFileExists(exists);
-    });
-  }, []);
 
   return (
     <Modal
@@ -71,7 +58,7 @@ function FideInfo({
           <b>FIDE Player Info</b>
           {player && (
             <a
-              href={`https://ratings.fide.com/profile/${player.fideid}`}
+              href={`https://ratings.fide.com/profile/${player.id}`}
               target="_blank"
               rel="noreferrer"
             >
@@ -85,25 +72,7 @@ function FideInfo({
       opened={opened}
       onClose={() => setOpened(false)}
     >
-      {!fileExists ? (
-        <Stack>
-          No FIDE database installed
-          <ProgressButton
-            id="fide_db"
-            initInstalled={false}
-            progressEvent={events.downloadProgress}
-            onClick={() => commands.downloadFideDb()}
-            labels={{
-              completed: "Downloaded",
-              action: "Download",
-              inProgress: "Downloading...",
-              finalizing: "Processing...",
-            }}
-            inProgress={false}
-            setInProgress={(v) => setFileExists(!v)}
-          />
-        </Stack>
-      ) : isLoading ? (
+      {isLoading ? (
         <Center>Loading...</Center>
       ) : player ? (
         <Stack gap="xs">
@@ -136,20 +105,20 @@ function FideInfo({
 
           <Group>
             {player.sex && <Text>Sex: {player.sex}</Text>}
-            {player.birthday && <Text>Born: {player.birthday}</Text>}
+            {player.birth_year && <Text>Born: {player.birth_year}</Text>}
           </Group>
           <Group grow>
             <Card p="sm">
               <Text fw="bold">Standard</Text>
-              <Text fz="sm">{player.rating || "Not Rated"}</Text>
+              <Text fz="sm">{player.standard || "Not Rated"}</Text>
             </Card>
             <Card p="sm">
               <Text fw="bold">Rapid</Text>
-              <Text fz="sm">{player.rapid_rating || "Not Rated"}</Text>
+              <Text fz="sm">{player.rapid || "Not Rated"}</Text>
             </Card>
             <Card p="sm">
               <Text fw="bold">Blitz</Text>
-              <Text fz="sm">{player.blitz_rating || "Not Rated"}</Text>
+              <Text fz="sm">{player.blitz || "Not Rated"}</Text>
             </Card>
           </Group>
           <div />

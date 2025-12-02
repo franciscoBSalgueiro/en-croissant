@@ -61,9 +61,11 @@ function aggregateOpenings(
 function OpeningsPanel({
   playerName,
   info,
+  isDatabase,
 }: {
   playerName: string;
   info: PlayerGameInfo;
+  isDatabase?: boolean;
 }) {
   const [website, setWebsite] = useState<string | null>("All websites");
   const [account, setAccount] = useState<string | null>("All accounts");
@@ -104,19 +106,21 @@ function OpeningsPanel({
   return (
     <Stack gap={0} h="100%">
       <Group grow>
-        <WebsiteAccountSelector
-          playerName={playerName}
-          onWebsiteChange={(website) => {
-            setWebsite(website);
-            if (website === "All websites") {
-              setTimeControl(null);
-            } else if (timeControl === null) {
-              setTimeControl("any");
-            }
-          }}
-          onAccountChange={setAccount}
-          allowAll={true}
-        />
+        {!isDatabase && (
+          <WebsiteAccountSelector
+            playerName={playerName}
+            onWebsiteChange={(website) => {
+              setWebsite(website);
+              if (website === "All websites") {
+                setTimeControl(null);
+              } else if (timeControl === null) {
+                setTimeControl("any");
+              }
+            }}
+            onAccountChange={setAccount}
+            allowAll={true}
+          />
+        )}
         {website !== "All websites" && (
           <TimeControlSelector
             website={website}

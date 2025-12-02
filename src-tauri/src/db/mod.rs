@@ -501,7 +501,7 @@ pub struct DatabaseInfo {
     player_count: i32,
     event_count: i32,
     game_count: i32,
-    storage_size: i32,
+    storage_size: u64,
     filename: String,
     indexed: bool,
 }
@@ -555,7 +555,7 @@ pub async fn get_db_info(
         _ => "".to_string(),
     };
 
-    let storage_size = path.metadata()?.len() as i32;
+    let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     let is_indexed = check_index_exists(db)?;
@@ -1281,7 +1281,7 @@ pub async fn get_players_game_info(
                     .unwrap_or_default();
 
                 let p = progress.fetch_add(1, Ordering::Relaxed);
-                if p % 1000 == 0 || p == info.len() - 1 {
+                if p.is_multiple_of(1000) || p == info.len() - 1 {
                     let _ = DatabaseProgress {
                         id: id.to_string(),
                         progress: (p as f64 / info.len() as f64) * 100_f64,
@@ -1307,13 +1307,13 @@ pub async fn get_players_game_info(
                 })
             },
         )
-        .fold(|| DashMap::new(), |acc, data| {
+        .fold(DashMap::new, |acc, data| {
             acc.entry((data.site.clone(), data.player.clone()))
                 .or_insert_with(Vec::new)
                 .extend(data.data);
             acc
         })
-        .reduce(|| DashMap::new(), |acc1, acc2| {
+        .reduce(DashMap::new, |acc1, acc2| {
                 for ((site, player), data) in acc2 {
                     acc1.entry((site, player))
                         .or_insert_with(Vec::new)
