@@ -27,6 +27,8 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
 import { type Dispatch, type SetStateAction, useState } from "react";
+import { useAtom } from "jotai";
+import { activeDownloadAtom } from "@/state/atoms";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import FileInput from "../common/FileInput";
@@ -198,12 +200,20 @@ function DatabaseCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [, setActiveDownload] = useAtom(activeDownloadAtom);
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(await appDataDir(), "db", `${name}.db3`);
-    await commands.downloadFile(`db_${id}`, url, path, null, null, null);
-    setDatabases(await getDatabases());
+    try {
+      await commands.downloadFile(`db_${id}`, url, path, null, null, null);
+      setDatabases(await getDatabases());
+    } catch (e) {
+      console.error(e);
+      setActiveDownload((prev) => (prev === `db_${id}` ? null : prev));
+      setInProgress(false);
+      throw e;
+    }
   }
 
   return (

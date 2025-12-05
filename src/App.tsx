@@ -12,7 +12,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getMatches } from "@tauri-apps/plugin-cli";
 import { attachConsole, info } from "@tauri-apps/plugin-log";
-import { getDefaultStore, useAtom, useAtomValue } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect } from "react";
 import { Helmet } from "react-helmet";
@@ -26,6 +26,7 @@ import {
   storedDocumentDirAtom,
   tabsAtom,
 } from "./state/atoms";
+import { activeDownloadAtom } from "./state/atoms";
 
 import "@/styles/chessgroundBaseOverride.css";
 import "@/styles/chessgroundColorsOverride.css";
@@ -111,6 +112,16 @@ export default function App() {
 
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
+  const setActiveDownload = useSetAtom(activeDownloadAtom);
+
+  useEffect(() => {
+    // Clear the active download lock when the app is closed (beforeunload)
+    const clearActiveDownload = () => setActiveDownload(null);
+    window.addEventListener("beforeunload", clearActiveDownload);
+    return () => {
+      window.removeEventListener("beforeunload", clearActiveDownload);
+    };
+  }, [setActiveDownload]);
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;

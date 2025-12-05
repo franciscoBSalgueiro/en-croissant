@@ -27,8 +27,9 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
-import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
+import { useAtom } from "jotai";
+import { activeDownloadAtom } from "@/state/atoms";
 import { useTranslation } from "react-i18next";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
@@ -201,6 +202,7 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [, setActiveDownload] = useAtom(activeDownloadAtom);
   const [, setEngines] = useAtom(enginesAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
@@ -213,7 +215,15 @@ function EngineCard({
       if (url.endsWith(".zip") || url.endsWith(".tar")) {
         path = await resolve(await appDataDir(), "engines");
       }
-      await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
+      try {
+        await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
+      } catch (e) {
+        console.error(e);
+        // release global lock if any
+        setActiveDownload((prev) => (prev === `engine_${id}` ? null : prev));
+        setInProgress(false);
+        throw e;
+      }
       let appDataDirPath = await appDataDir();
       if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
         appDataDirPath = appDataDirPath.slice(0, -1);

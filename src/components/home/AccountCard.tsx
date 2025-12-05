@@ -28,6 +28,8 @@ import {
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useEffect, useState } from "react";
+import { useAtomValue, useSetAtom } from "jotai";
+import { activeDownloadAtom } from "@/state/atoms";
 import LichessLogo from "./LichessLogo";
 import * as classes from "./styles.css";
 
@@ -95,6 +97,8 @@ export function AccountCard({
     );
   });
   const [loading, setLoading] = useState(false);
+  const activeDownload = useAtomValue(activeDownloadAtom);
+  const setActiveDownload = useSetAtom(activeDownloadAtom);
   const [progress, setProgress] = useState<number | null>(null);
 
   async function convert(filepath: string, timestamp: number | null) {
@@ -131,6 +135,10 @@ export function AccountCard({
         if (e.payload.finished) {
           setLoading(false);
           setDatabases(await getDatabases());
+          // Clear active download if it matches
+          if (activeDownload === e.payload.id) {
+            setActiveDownload(null);
+          }
         } else {
           setLoading(true);
         }
@@ -139,7 +147,8 @@ export function AccountCard({
     return () => {
       unlisten.then((f) => f());
     };
-  }, [setDatabases]);
+  }, [setDatabases, activeDownload, setActiveDownload]);
+  // NOTE: Do not clear activeDownload on unmount - only clear on success or app close.
 
   const downloadedGames =
     database?.type === "success" ? database.game_count : 0;
@@ -198,34 +207,45 @@ export function AccountCard({
                 </Tooltip>
                 <Tooltip label="Download games">
                   <ActionIcon
-                    disabled={loading}
+                    disabled={
+                      loading ||
+                      (activeDownload !== null && activeDownload !== `${type}_${title}`)
+                    }
                     onClick={async () => {
+                      if (activeDownload !== null && activeDownload !== `${type}_${title}`) return;
                       setLoading(true);
-                      const lastGameDate = database
-                        ? await getLastGameDate({ database })
-                        : null;
-                      if (type === "lichess") {
-                        await downloadLichess(
-                          title,
-                          lastGameDate,
-                          total - downloadedGames,
-                          setProgress,
-                          token,
-                        );
-                      } else {
-                        await downloadChessCom(title, lastGameDate);
-                      }
-                      const p = await resolve(
-                        await appDataDir(),
-                        "db",
-                        `${title}_${type}.pgn`,
-                      );
+                      setActiveDownload(`${type}_${title}`);
                       try {
-                        await convert(p, lastGameDate);
+                        const lastGameDate = database
+                          ? await getLastGameDate({ database })
+                          : null;
+                        if (type === "lichess") {
+                          await downloadLichess(
+                            title,
+                            lastGameDate,
+                            total - downloadedGames,
+                            setProgress,
+                            token,
+                          );
+                        } else {
+                          await downloadChessCom(title, lastGameDate);
+                        }
+                        const p = await resolve(
+                          await appDataDir(),
+                          "db",
+                          `${title}_${type}.pgn`,
+                        );
+                        try {
+                          await convert(p, lastGameDate);
+                        } catch (e) {
+                          console.error(e);
+                        }
                       } catch (e) {
                         console.error(e);
+                      } finally {
+                        setLoading(false);
+                        setActiveDownload((prev) => (prev === `${type}_${title}` ? null : prev));
                       }
-                      setLoading(false);
                     }}
                   >
                     {loading ? (
