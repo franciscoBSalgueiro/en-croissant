@@ -78,6 +78,7 @@ function ReportPanel() {
                 inProgress: t("Board.Analysis.GeneratingReport"),
               }}
               inProgress={inProgress}
+              lockDownloads={false}
               setInProgress={setInProgress}
             />
           </div>

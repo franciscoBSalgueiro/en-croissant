@@ -5,6 +5,8 @@ import {
   listen,
 } from "@tauri-apps/api/event";
 import { memo, useEffect, useState } from "react";
+import { useAtom } from "jotai";
+import { activeDownloadAtom } from "@/state/atoms";
 import * as classes from "./ProgressButton.css";
 
 type Payload = {
@@ -29,6 +31,7 @@ type Props<T> = {
   redoable?: boolean;
   inProgress: boolean;
   setInProgress: (inProgress: boolean) => void;
+  lockDownloads?: boolean; // whether starting a task should use the global download lock
 };
 
 function ProgressButton<T extends Payload>({
@@ -42,7 +45,9 @@ function ProgressButton<T extends Payload>({
   redoable,
   inProgress,
   setInProgress,
+  lockDownloads = true,
 }: Props<T>) {
+  const [activeDownload, setActiveDownload] = useAtom(activeDownloadAtom);
   const [progress, setProgress] = useState(0);
   const [completed, setCompleted] = useState(initInstalled);
 
@@ -53,6 +58,10 @@ function ProgressButton<T extends Payload>({
         setInProgress(false);
         setCompleted(true);
         setProgress(0);
+        // If this was the active global download, clear it
+        if (lockDownloads && activeDownload === id) {
+          setActiveDownload(null);
+        }
       } else {
         setProgress(payload.progress);
       }
@@ -60,7 +69,7 @@ function ProgressButton<T extends Payload>({
     return () => {
       unlisten.then((f) => f());
     };
-  }, [id]);
+  }, [id, activeDownload, lockDownloads, setActiveDownload]);
 
   let label: string;
   if (completed) {
@@ -77,10 +86,18 @@ function ProgressButton<T extends Payload>({
       <Button
         fullWidth
         onClick={() => {
+          // prevent starting another global download while one is active
+          if (lockDownloads) {
+            if (activeDownload !== null && activeDownload !== id) return;
+            setActiveDownload(id);
+          }
           onClick(id);
         }}
         color={completed ? "green" : theme.primaryColor}
-        disabled={inProgress || (completed && !redoable) || disabled}
+        disabled={
+          inProgress || (completed && !redoable) || disabled ||
+          (lockDownloads && activeDownload !== null && activeDownload !== id)
+        }
         leftSection={<Box className={classes.label}>{leftIcon}</Box>}
         autoContrast
       >

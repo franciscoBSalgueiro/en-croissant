@@ -188,6 +188,9 @@ export const primaryColorAtom = atomWithStorage<MantineColor>(
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
 
+// Global download lock: store the id of the current active download, or null when none
+export const activeDownloadAtom = atom<string | null>(null);
+
 // Database
 
 export const referenceDbAtom = atomWithStorage<string | null>(

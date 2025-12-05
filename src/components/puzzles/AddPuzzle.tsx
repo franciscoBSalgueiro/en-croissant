@@ -16,6 +16,8 @@ import {
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { type Dispatch, type SetStateAction, useState } from "react";
+import { useAtom } from "jotai";
+import { activeDownloadAtom } from "@/state/atoms";
 import useSWRImmutable from "swr/immutable";
 import ProgressButton from "../common/ProgressButton";
 
@@ -79,12 +81,20 @@ function PuzzleDbCard({
   initInstalled: boolean;
 }) {
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [, setActiveDownload] = useAtom(activeDownloadAtom);
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(await appDataDir(), "puzzles", `${name}.db3`);
-    await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
-    setPuzzleDbs(await getPuzzleDatabases());
+    try {
+      await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
+      setPuzzleDbs(await getPuzzleDatabases());
+    } catch (e) {
+      console.error(e);
+      setActiveDownload((prev) => (prev === `puzzle_db_${id}` ? null : prev));
+      setInProgress(false);
+      throw e;
+    }
   }
 
   return (
