@@ -474,9 +474,10 @@ export default function Page() {
                       value: "zh_TW",
                       label: "Chinese (Traditional)",
                     },
+                    { value: "en_GB", label: "English (UK)" },
                     {
                       value: "en_US",
-                      label: "English",
+                      label: "English (US)",
                     },
                     {
                       value: "fr_FR",
