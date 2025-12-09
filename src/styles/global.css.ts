@@ -46,3 +46,12 @@ globalStyle("cg-board square.oc.move-dest:hover", {
   },
   borderRadius: 0,
 });
+
+globalStyle("html, body", {
+  overscrollBehavior: "none",
+  overflow: "auto",
+});
+
+globalStyle(".mantine-ScrollArea-viewport", {
+  overscrollBehavior: "none",
+});
