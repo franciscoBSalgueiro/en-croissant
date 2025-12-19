@@ -220,7 +220,7 @@ function BoardAnalysis() {
               flex={1}
               style={{ overflowY: "hidden" }}
             >
-              <AnnotationPanel />
+              <AnnotationPanel autoFocus={currentTabSelected == "annotate"} />
             </Tabs.Panel>
             <Tabs.Panel
               value="analysis"
