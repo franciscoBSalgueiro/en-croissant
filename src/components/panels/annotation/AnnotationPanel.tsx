@@ -18,7 +18,7 @@ import {
 } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
 import { atom, useAtom } from "jotai";
-import { memo, useContext } from "react";
+import { memo, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import AnnotationEditor from "./AnnotationEditor";
@@ -71,12 +71,20 @@ const EXTRA = [
   "⊗",
 ] as const;
 
-function AnnotationPanel() {
+function AnnotationPanel({ autoFocus }: { autoFocus?: boolean }) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
   const currentNode = getNodeAtPath(root, position);
   const [showMoreSymbols, setShowMoreSymbols] = useAtom(showMoreSymbolsAtom);
+  const editorRef = useRef<{ focus: () => void }>(null);
+
+  useEffect(() => {
+    if (autoFocus) {
+      editorRef.current?.focus();
+    }
+  }, [autoFocus]);
+
   return (
     <Stack h="100%" gap={0}>
       <Stack gap={0}>
@@ -132,7 +140,7 @@ function AnnotationPanel() {
       </Collapse>
 
       <ScrollArea offsetScrollbars>
-        <AnnotationEditor />
+        <AnnotationEditor ref={editorRef} />
       </ScrollArea>
     </Stack>
   );

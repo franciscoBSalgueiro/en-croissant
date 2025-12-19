@@ -8,12 +8,12 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useAtomValue } from "jotai";
-import { useContext } from "react";
+import { forwardRef, useContext, useImperativeHandle, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Markdown } from "tiptap-markdown";
 import { useStore } from "zustand";
 
-function AnnotationEditor() {
+const AnnotationEditor = forwardRef<{ focus: () => void }>(function AnnotationEditor(_, ref) {
   const { t } = useTranslation();
 
   const store = useContext(TreeStateContext)!;
@@ -23,6 +23,7 @@ function AnnotationEditor() {
 
   const currentNode = getNodeAtPath(root, position);
   const spellCheck = useAtomValue(spellCheckAtom);
+  const pendingFocus = useRef(false);
   const editor = useEditor(
     {
       extensions: [
@@ -38,6 +39,14 @@ function AnnotationEditor() {
         Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
       ],
       content: currentNode.comment,
+      onCreate: ({ editor }) => {
+        if (pendingFocus.current) {
+          setTimeout(() => {
+            editor.commands.focus();
+            pendingFocus.current = false;
+          }, 50);
+        }
+      },
       onUpdate: ({ editor }) => {
         const comment = editor.storage.markdown.getMarkdown();
         setComment(comment);
@@ -46,6 +55,17 @@ function AnnotationEditor() {
     [position.join(",")],
   );
 
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (editor) {
+          setTimeout(() => {
+            editor.commands.focus();
+          }, 50);
+      } else {
+        pendingFocus.current = true;
+      }
+    },
+  }), [editor]);
   return (
     <RichTextEditor editor={editor} spellCheck={spellCheck}>
       <RichTextEditor.Toolbar>
@@ -79,6 +99,6 @@ function AnnotationEditor() {
       <RichTextEditor.Content />
     </RichTextEditor>
   );
-}
+});
 
 export default AnnotationEditor;
