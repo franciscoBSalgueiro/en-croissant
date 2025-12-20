@@ -1,9 +1,9 @@
 import { Box, Button, Center, Group, Image, Menu, Text } from "@mantine/core";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import * as classes from "./TopBar.css";
 
 import { useColorScheme } from "@mantine/hooks";
-const appWindow = getCurrentWebviewWindow();
+import type { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { useEffect, useState } from "react";
 
 function IconMinimize() {
   return (
@@ -66,6 +66,24 @@ type MenuGroup = {
 
 function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
   const colorScheme = useColorScheme();
+  const [appWindow, setAppWindow] = useState<WebviewWindow | null>(null);
+
+  useEffect(() => {
+    // Only try to get Tauri window in production or Tauri environment
+    if (import.meta.env.PROD || import.meta.env.VITE_PLATFORM === "tauri") {
+      try {
+        import("@tauri-apps/api/webviewWindow")
+          .then((module) => {
+            setAppWindow(module.getCurrentWebviewWindow());
+          })
+          .catch(() => {
+            // Silently fail if Tauri is not available
+          });
+      } catch (error) {
+        // Silently fail if Tauri is not available
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -130,7 +148,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
             <Center
               h={35}
               w={45}
-              onClick={() => appWindow.minimize()}
+              onClick={() => appWindow?.minimize()}
               className={classes.icon}
             >
               <IconMinimize />
@@ -138,7 +156,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
             <Center
               h={35}
               w={45}
-              onClick={() => appWindow.toggleMaximize()}
+              onClick={() => appWindow?.toggleMaximize()}
               className={classes.icon}
             >
               <IconMaximize />
@@ -146,7 +164,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
             <Center
               h={35}
               w={45}
-              onClick={() => appWindow.close()}
+              onClick={() => appWindow?.close()}
               className={classes.close}
             >
               <IconX />

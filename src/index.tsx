@@ -10,6 +10,7 @@ import { be_BY } from "./translation/be_BY";
 import { de_DE } from "./translation/de_DE";
 import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
+import { fa_IR } from "./translation/fa_IR";
 import { fr_FR } from "./translation/fr_FR";
 import { it_IT } from "./translation/it_IT";
 import { ko_KR } from "./translation/ko_KR";
@@ -39,6 +40,7 @@ i18n.use(initReactI18next).init({
     ko_KR: ko_KR,
     zh_TW: zh_TW,
     de_DE: de_DE,
+    fa_IR: fa_IR,
   },
   lng: localStorage.getItem("lang") || "en_US",
   fallbackLng: "en",

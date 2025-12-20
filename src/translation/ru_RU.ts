@@ -122,6 +122,10 @@ export const ru_RU = {
 
     "Tab.NewTab": "Новая вкладка",
 
+    "BoardTab.Menu.Duplicate": "Дублировать вкладку",
+    "BoardTab.Menu.Rename": "Переименовать вкладку",
+    "BoardTab.Menu.Close": "Закрыть вкладку",
+
     "Home.Card.PlayChess.Title": "Играть в шахматы",
     "Home.Card.PlayChess.Desc": "Играйте против движка или друга",
     "Home.Card.PlayChess.Button": "Играть",

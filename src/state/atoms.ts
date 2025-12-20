@@ -24,18 +24,15 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { type PrimitiveAtom, atom } from "jotai";
-import {
-  atomFamily,
-  atomWithStorage,
-  createJSONStorage,
-  loadable,
-} from "jotai/utils";
-import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import { atomFamily } from "jotai-family";
+import type { AtomFamily } from "jotai-family";
+import { atomWithStorage, createJSONStorage, loadable } from "jotai/utils";
 import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
+import i18n from "i18next";
 
 const zodArray = <S>(itemSchema: z.ZodType<S>) => {
   const catchValue = {} as never;
@@ -58,8 +55,16 @@ const loadableEnginesAtom = loadable(enginesAtom);
 
 // Tabs
 
+// Function to get translated "New Tab" text
+function getNewTabName(): string {
+  return i18n.t("Tab.NewTab");
+}
+
+// Atom that provides the current "New Tab" name based on language
+const newTabNameAtom = atom(() => getNewTabName());
+
 const firstTab: Tab = {
-  name: "New Tab",
+  name: getNewTabName(),
   value: genID(),
   type: "new",
 };

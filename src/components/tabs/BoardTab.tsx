@@ -4,6 +4,7 @@ import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import cx from "clsx";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import * as classes from "./BoardTab.css";
 import { ContentEditable } from "./ContentEditable";
 
@@ -24,6 +25,7 @@ export function BoardTab({
 }) {
   const [open, toggleOpen] = useToggle();
   const [renaming, toggleRenaming] = useToggle();
+  const { t } = useTranslation();
   const ref = useClickOutside(() => {
     toggleOpen(false);
     toggleRenaming(false);
@@ -97,20 +99,20 @@ export function BoardTab({
           leftSection={<IconCopy size="0.875rem" />}
           onClick={() => duplicateTab(tab.value)}
         >
-          Duplicate Tab
+          {t("BoardTab.Menu.Duplicate")}
         </Menu.Item>
         <Menu.Item
           leftSection={<IconEdit size="0.875rem" />}
           onClick={() => toggleRenaming(true)}
         >
-          Rename Tab
+          {t("BoardTab.Menu.Rename")}
         </Menu.Item>
         <Menu.Item
           color="red"
           leftSection={<IconX size="0.875rem" />}
           onClick={() => closeTab(tab.value)}
         >
-          Close Tab
+          {t("BoardTab.Menu.Close")}
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

@@ -1,6 +1,5 @@
 import { Anchor, Modal, Text } from "@mantine/core";
-import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
-import { version as OSVersion, arch, type } from "@tauri-apps/plugin-os";
+import { isTauri } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 
 function AboutModal({
@@ -20,12 +19,37 @@ function AboutModal({
 
   useEffect(() => {
     async function load() {
-      const os = await type();
-      const version = await getVersion();
-      const tauri = await getTauriVersion();
-      const architecture = await arch();
-      const osVersion = await OSVersion();
-      setInfo({ version, tauri, os, architecture, osVersion });
+      if (isTauri()) {
+        try {
+          const { getVersion, getTauriVersion } = await import("@tauri-apps/api/app");
+          const { version: OSVersion, arch, type } = await import("@tauri-apps/plugin-os");
+          
+          const os = await type();
+          const version = await getVersion();
+          const tauri = await getTauriVersion();
+          const architecture = await arch();
+          const osVersion = await OSVersion();
+          setInfo({ version, tauri, os, architecture, osVersion });
+        } catch (e) {
+          console.warn("Failed to load app info:", e);
+          setInfo({
+            version: "Unknown",
+            tauri: "Unknown",
+            os: "Unknown",
+            architecture: "Unknown",
+            osVersion: "Unknown",
+          });
+        }
+      } else {
+        // Development mode fallback
+        setInfo({
+          version: "Development",
+          tauri: "N/A",
+          os: "Web Browser",
+          architecture: "N/A",
+          osVersion: "N/A",
+        });
+      }
     }
     load();
   }, []);

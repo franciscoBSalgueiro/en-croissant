@@ -122,6 +122,10 @@ export const pt_PT = {
 
     "Tab.NewTab": "Novo separador",
 
+    "BoardTab.Menu.Duplicate": "Duplicar separador",
+    "BoardTab.Menu.Rename": "Renomear separador",
+    "BoardTab.Menu.Close": "Fechar separador",
+
     "Home.Card.PlayChess.Title": "Jogar xadrez",
     "Home.Card.PlayChess.Desc": "Jogue contra um engine ou um amigo",
     "Home.Card.PlayChess.Button": "Jogar",

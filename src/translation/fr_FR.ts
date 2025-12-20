@@ -122,6 +122,10 @@ export const fr_FR = {
 
     "Tab.NewTab": "Nouvel onglet",
 
+    "BoardTab.Menu.Duplicate": "Dupliquer l'onglet",
+    "BoardTab.Menu.Rename": "Renommer l'onglet",
+    "BoardTab.Menu.Close": "Fermer l'onglet",
+
     "Home.Card.PlayChess.Title": "Jouer",
     "Home.Card.PlayChess.Desc": "Jouer contre un moteur ou un ami",
     "Home.Card.PlayChess.Button": "Jouer",
