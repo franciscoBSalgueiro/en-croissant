@@ -526,6 +526,10 @@ export default function Page() {
                       value: "fa_IR",
                       label: "فارسی",
                     },
+                    {
+                      value: "ar_SA",
+                      label: "العربية",
+                    },
                   ]}
                   value={i18n.language}
                   onChange={(val) => {

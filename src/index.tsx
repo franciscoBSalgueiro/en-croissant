@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { initReactI18next } from "react-i18next";
 import App from "./App";
 
+import { ar_SA } from "./translation/ar_SA";
 import { be_BY } from "./translation/be_BY";
 import { de_DE } from "./translation/de_DE";
 import { en_US } from "./translation/en_US";
@@ -41,6 +42,7 @@ i18n.use(initReactI18next).init({
     zh_TW: zh_TW,
     de_DE: de_DE,
     fa_IR: fa_IR,
+    ar_SA: ar_SA,
   },
   lng: localStorage.getItem("lang") || "en_US",
   fallbackLng: "en",
