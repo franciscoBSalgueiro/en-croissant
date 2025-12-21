@@ -122,6 +122,10 @@ export const en_US = {
 
     "Tab.NewTab": "New Tab",
 
+    "BoardTab.Menu.Duplicate": "Duplicate Tab",
+    "BoardTab.Menu.Rename": "Rename Tab",
+    "BoardTab.Menu.Close": "Close Tab",
+
     "Home.Card.PlayChess.Title": "Play Chess",
     "Home.Card.PlayChess.Desc": "Play against an engine or a friend",
     "Home.Card.PlayChess.Button": "Play",

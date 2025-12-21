@@ -122,6 +122,10 @@ export const uk_UA = {
 
     "Tab.NewTab": "Нова вкладка",
 
+    "BoardTab.Menu.Duplicate": "Дублювати вкладку",
+    "BoardTab.Menu.Rename": "Перейменувати вкладку",
+    "BoardTab.Menu.Close": "Закрити вкладку",
+
     "Home.Card.PlayChess.Title": "Грати в шахи",
     "Home.Card.PlayChess.Desc": "Грайте проти движка або друга",
     "Home.Card.PlayChess.Button": "Грати",

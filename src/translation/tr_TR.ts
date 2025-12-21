@@ -122,6 +122,10 @@ export const tr_TR = {
 
     "Tab.NewTab": "Yeni Sekme",
 
+    "BoardTab.Menu.Duplicate": "Sekmeyi Çoğalt",
+    "BoardTab.Menu.Rename": "Sekmeyi Yeniden Adlandır",
+    "BoardTab.Menu.Close": "Sekmeyi Kapat",
+
     "Home.Card.PlayChess.Title": "Satranç Oyna",
     "Home.Card.PlayChess.Desc": "Motora veya bir arkadaşa karşı oyna",
     "Home.Card.PlayChess.Button": "Oyna",

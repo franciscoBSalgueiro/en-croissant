@@ -19,8 +19,8 @@ import {
   PredefinedMenuItem,
   Submenu,
 } from "@tauri-apps/api/menu";
-import { appLogDir, resolve } from "@tauri-apps/api/path";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { resolve } from "@tauri-apps/api/path";
+import { isTauri } from "@tauri-apps/api/core";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { exit } from "@tauri-apps/plugin-process";
@@ -197,12 +197,30 @@ function RootLayout() {
             label: t("Menu.Help.OpenLogs"),
             id: "logs",
             action: async () => {
-              const path = await resolve(await appLogDir(), "en-croissant.log");
+              let path = "en-croissant.log"; // Default path for development
+              
+              if (isTauri()) {
+                try {
+                  const { appLogDir } = await import("@tauri-apps/api/path");
+                  path = await resolve(await appLogDir(), "en-croissant.log");
+                } catch (e) {
+                  console.warn("Failed to get app log dir:", e);
+                }
+              }
+              
               notifications.show({
                 title: "Logs",
-                message: `Opened logs in ${path}`,
+                message: `Logs would be at: ${path}`,
               });
-              await shellOpen(path);
+              
+              if (isTauri()) {
+                try {
+                  const { open: shellOpen } = await import("@tauri-apps/plugin-shell");
+                  await shellOpen(path);
+                } catch (e) {
+                  console.warn("Failed to open logs:", e);
+                }
+              }
             },
           },
           { label: "divider" },
@@ -228,13 +246,17 @@ function RootLayout() {
 
   useEffect(() => {
     if (!menu) return;
-    if (isNative || import.meta.env.VITE_PLATFORM !== "win32") {
-      menu.setAsAppMenu();
-      getCurrentWindow().setDecorations(true);
-    } else {
-      Menu.new().then((m) => m.setAsAppMenu());
-      getCurrentWindow().setDecorations(false);
+    
+    if (isTauri()) {
+      if (isNative || import.meta.env.VITE_PLATFORM !== "win32") {
+        menu.setAsAppMenu();
+        getCurrentWindow().then((window) => window.setDecorations(true));
+      } else {
+        Menu.new().then((m) => m.setAsAppMenu());
+        getCurrentWindow().then((window) => window.setDecorations(false));
+      }
     }
+    // In development mode, we don't set up the native menu
   }, [menu, isNative]);
 
   return (

@@ -49,7 +49,8 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 import ErrorComponent from "@/components/ErrorComponent";
-import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
+import { resolve } from "@tauri-apps/api/path";
+import { isTauri } from "@tauri-apps/api/core";
 import { routeTree } from "./routeTree.gen";
 
 export type Dirs = {
@@ -65,9 +66,26 @@ const router = createRouter({
       let doc = store.get(storedDocumentDirAtom);
       if (!doc) {
         try {
-          doc = await resolve(await documentDir(), "EnCroissant");
+          if (isTauri()) {
+            const { documentDir, homeDir } = await import("@tauri-apps/api/path");
+            doc = await resolve(await documentDir(), "EnCroissant");
+          } else {
+            // Fallback for development mode
+            doc = await resolve("./data", "EnCroissant");
+          }
         } catch (e) {
-          doc = await resolve(await homeDir(), "EnCroissant");
+          try {
+            if (isTauri()) {
+              const { homeDir } = await import("@tauri-apps/api/path");
+              doc = await resolve(await homeDir(), "EnCroissant");
+            } else {
+              // Fallback for development mode
+              doc = await resolve("./data", "EnCroissant");
+            }
+          } catch (fallbackError) {
+            // Final fallback
+            doc = "./data/EnCroissant";
+          }
         }
       }
       const dirs: Dirs = { documentDir: doc };

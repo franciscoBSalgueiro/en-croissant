@@ -122,6 +122,10 @@ export const nb_NO = {
 
     "Tab.NewTab": "Ny fane",
 
+    "BoardTab.Menu.Duplicate": "Dupliser fane",
+    "BoardTab.Menu.Rename": "Gi nytt navn til fanen",
+    "BoardTab.Menu.Close": "Lukk fane",
+
     "Home.Card.PlayChess.Title": "Spill Sjakk",
     "Home.Card.PlayChess.Desc": "Spill mot computer eller en venn",
     "Home.Card.PlayChess.Button": "Spill",

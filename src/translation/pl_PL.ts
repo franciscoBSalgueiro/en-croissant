@@ -122,6 +122,10 @@ export const pl_PL = {
 
     "Tab.NewTab": "Nowa karta",
 
+    "BoardTab.Menu.Duplicate": "Duplikuj kartę",
+    "BoardTab.Menu.Rename": "Zmień nazwę karty",
+    "BoardTab.Menu.Close": "Zamknij kartę",
+
     "Home.Card.PlayChess.Title": "Graj w szachy",
     "Home.Card.PlayChess.Desc": "Graj przeciwko silnikowi lub przyjacielowi",
     "Home.Card.PlayChess.Button": "Graj",

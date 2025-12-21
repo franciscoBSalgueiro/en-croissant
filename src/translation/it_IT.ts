@@ -122,6 +122,10 @@ export const it_IT = {
 
     "Tab.NewTab": "Nuova scheda",
 
+    "BoardTab.Menu.Duplicate": "Duplica scheda",
+    "BoardTab.Menu.Rename": "Rinomina scheda",
+    "BoardTab.Menu.Close": "Chiudi scheda",
+
     "Home.Card.PlayChess.Title": "Gioca a scacchi",
     "Home.Card.PlayChess.Desc": "Giochi contro il computer o un amico",
     "Home.Card.PlayChess.Button": "Gioca",

@@ -58,6 +58,7 @@
     "i18next": "^23.11.2",
     "immer": "^10.0.4",
     "jotai": "^2.7.0",
+    "jotai-family": "^1.0.1",
     "mantine-contextmenu": "^7.6.2",
     "mantine-datatable": "^7.6.1",
     "mantine-flagpack": "^4.0.0",

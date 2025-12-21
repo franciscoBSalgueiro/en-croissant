@@ -122,6 +122,10 @@ export const be_BY = {
 
     "Tab.NewTab": "Новая ўкладка",
 
+    "BoardTab.Menu.Duplicate": "Дублікаваць укладку",
+    "BoardTab.Menu.Rename": "Перайменаваць укладку",
+    "BoardTab.Menu.Close": "Зачыніць укладку",
+
     "Home.Card.PlayChess.Title": "Гуляць у шахматы",
     "Home.Card.PlayChess.Desc": "Гуляйце супраць рухавіка або сябра",
     "Home.Card.PlayChess.Button": "Гуляць",

@@ -522,6 +522,14 @@ export default function Page() {
                       value: "de_DE",
                       label: "Deutsch",
                     },
+                    {
+                      value: "fa_IR",
+                      label: "فارسی",
+                    },
+                    {
+                      value: "ar_SA",
+                      label: "العربية",
+                    },
                   ]}
                   value={i18n.language}
                   onChange={(val) => {

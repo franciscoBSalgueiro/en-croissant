@@ -122,6 +122,10 @@ export const ko_KR = {
 
     "Tab.NewTab": "새 탭",
 
+    "BoardTab.Menu.Duplicate": "탭 복제",
+    "BoardTab.Menu.Rename": "탭 이름 바꾸기",
+    "BoardTab.Menu.Close": "탭 닫기",
+
     "Home.Card.PlayChess.Title": "체스 플레이",
     "Home.Card.PlayChess.Desc": "엔진이나 친구와 대국하세요",
     "Home.Card.PlayChess.Button": "플레이",

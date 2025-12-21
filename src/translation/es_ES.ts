@@ -122,6 +122,10 @@ export const es_ES = {
 
     "Tab.NewTab": "Nueva pestaña",
 
+    "BoardTab.Menu.Duplicate": "Duplicar pestaña",
+    "BoardTab.Menu.Rename": "Renombrar pestaña",
+    "BoardTab.Menu.Close": "Cerrar pestaña",
+
     "Home.Card.PlayChess.Title": "Jugar al ajedrez",
     "Home.Card.PlayChess.Desc": "Juega contra un motor o un amigo",
     "Home.Card.PlayChess.Button": "Jugar",

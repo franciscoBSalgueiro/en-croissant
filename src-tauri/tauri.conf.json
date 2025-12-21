@@ -38,8 +38,8 @@
     "createUpdaterArtifacts": "v1Compatible"
   },
   "build": {
-    "beforeDevCommand": "pnpm start-vite",
-    "beforeBuildCommand": "pnpm build-vite",
+    "beforeDevCommand": "npm run start-vite",
+    "beforeBuildCommand": "npm run build-vite",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
