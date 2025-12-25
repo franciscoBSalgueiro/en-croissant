@@ -42,7 +42,7 @@ const AnnotationEditor = forwardRef<{ focus: () => void }>(function AnnotationEd
       onCreate: ({ editor }) => {
         if (pendingFocus.current) {
           setTimeout(() => {
-            editor.commands.focus();
+            editor.commands.focus("end");
             pendingFocus.current = false;
           }, 50);
         }
@@ -59,7 +59,7 @@ const AnnotationEditor = forwardRef<{ focus: () => void }>(function AnnotationEd
     focus: () => {
       if (editor) {
           setTimeout(() => {
-            editor.commands.focus();
+            editor.commands.focus("end");
           }, 50);
       } else {
         pendingFocus.current = true;
