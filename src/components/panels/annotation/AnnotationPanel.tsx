@@ -17,11 +17,12 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import AnnotationEditor from "./AnnotationEditor";
+import { annotationFocusAtom } from "@/state/atoms";
 
 const SymbolButton = memo(function SymbolButton({
   curAnnotations,
@@ -71,19 +72,18 @@ const EXTRA = [
   "⊗",
 ] as const;
 
-function AnnotationPanel({ autoFocus }: { autoFocus?: boolean }) {
+function AnnotationPanel() {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
   const currentNode = getNodeAtPath(root, position);
   const [showMoreSymbols, setShowMoreSymbols] = useAtom(showMoreSymbolsAtom);
   const editorRef = useRef<{ focus: () => void }>(null);
+  const focusSignal = useAtomValue(annotationFocusAtom);
 
   useEffect(() => {
-    if (autoFocus) {
-      editorRef.current?.focus();
-    }
-  }, [autoFocus]);
+    editorRef.current?.focus();
+  }, [focusSignal])
 
   return (
     <Stack h="100%" gap={0}>

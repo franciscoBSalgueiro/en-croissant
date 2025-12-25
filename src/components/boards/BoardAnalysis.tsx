@@ -5,6 +5,7 @@ import {
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
+  triggerAnnotationFocusAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN, getVariationLine } from "@/utils/chess";
@@ -86,6 +87,7 @@ function BoardAnalysis() {
   const allEnabled =
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
+  const [, triggerAnnotationFocus] = useAtom(triggerAnnotationFocusAtom);
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
@@ -106,7 +108,9 @@ function BoardAnalysis() {
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
-    [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
+    [keyMap.ANNOTATE_TAB.keys, () => {
+      setCurrentTabSelected("annotate"); triggerAnnotationFocus()
+    }],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
     [
       keyMap.TOGGLE_ALL_ENGINES.keys,
@@ -220,7 +224,7 @@ function BoardAnalysis() {
               flex={1}
               style={{ overflowY: "hidden" }}
             >
-              <AnnotationPanel autoFocus={currentTabSelected == "annotate"} />
+              <AnnotationPanel />
             </Tabs.Panel>
             <Tabs.Panel
               value="analysis"
