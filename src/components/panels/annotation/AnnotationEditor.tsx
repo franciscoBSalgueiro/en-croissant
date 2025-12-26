@@ -58,14 +58,13 @@ const AnnotationEditor = forwardRef<{ focus: () => void }>(function AnnotationEd
   useImperativeHandle(ref, () => ({
     focus: () => {
       if (editor) {
-          setTimeout(() => {
-            editor.commands.focus("end");
-          }, 50);
+        editor.commands.focus("end");
       } else {
         pendingFocus.current = true;
       }
     },
   }), [editor]);
+
   return (
     <RichTextEditor editor={editor} spellCheck={spellCheck}>
       <RichTextEditor.Toolbar>
