@@ -2,7 +2,7 @@ import type { BestMoves, Score, ScoreValue } from "@/bindings";
 import { minMax } from "@tiptap/react";
 import type { Color } from "chessops";
 import { match } from "ts-pattern";
-import type { Annotation } from "./annotation";
+import type { Annotation, ReviewClassification } from "./annotation";
 
 export const INITIAL_SCORE: Score = {
   value: {
@@ -135,4 +135,16 @@ export function getAnnotation(
     }
   }
   return "";
+}
+
+export function getChessComClassification(
+  cpLoss: number,
+  isBestMove: boolean,
+): ReviewClassification {
+  if (isBestMove) return "best";
+  if (cpLoss > 200) return "blunder";
+  if (cpLoss > 100) return "mistake";
+  if (cpLoss > 50) return "inaccuracy";
+  if (cpLoss < 20) return "excellent";
+  return "good";
 }

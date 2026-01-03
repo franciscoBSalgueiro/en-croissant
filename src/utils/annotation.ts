@@ -158,3 +158,31 @@ export function isBasicAnnotation(
 ): annotation is "!" | "!!" | "?" | "??" | "!?" | "?!" {
   return ["!", "!!", "?", "??", "!?", "?!"].includes(annotation);
 }
+
+export type ReviewClassification =
+  | "best"
+  | "excellent"
+  | "good"
+  | "inaccuracy"
+  | "mistake"
+  | "blunder"
+  | "book"
+  | "forced";
+
+type ReviewInfo = {
+  name: string;
+  translationKey: string;
+  color: MantineColor;
+  symbol: string;
+};
+
+export const REVIEW_INFO: Record<ReviewClassification, ReviewInfo> = {
+  best: { name: "Best", translationKey: "Review.Best", color: "green", symbol: "★" },
+  excellent: { name: "Excellent", translationKey: "Review.Excellent", color: "teal", symbol: "!" },
+  good: { name: "Good", translationKey: "Review.Good", color: "lime", symbol: "✓" },
+  inaccuracy: { name: "Inaccuracy", translationKey: "Review.Inaccuracy", color: "yellow", symbol: "?!" },
+  mistake: { name: "Mistake", translationKey: "Review.Mistake", color: "orange", symbol: "?" },
+  blunder: { name: "Blunder", translationKey: "Review.Blunder", color: "red", symbol: "??" },
+  book: { name: "Book", translationKey: "Review.Book", color: "blue", symbol: "📖" },
+  forced: { name: "Forced", translationKey: "Review.Forced", color: "gray", symbol: "□" },
+};
