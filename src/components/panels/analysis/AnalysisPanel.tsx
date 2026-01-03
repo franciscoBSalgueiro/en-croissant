@@ -40,6 +40,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
+import GameReviewPanel from "./GameReviewPanel";
 import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
@@ -98,6 +99,7 @@ function AnalysisPanel() {
         <Tabs.List>
           <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
           <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
+          <Tabs.Tab value="review">{t("Board.Analysis.Review")}</Tabs.Tab>
           <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
             {t("Board.Analysis.Logs")}
           </Tabs.Tab>
@@ -271,6 +273,17 @@ function AnalysisPanel() {
           }}
         >
           <ReportPanel />
+        </Tabs.Panel>
+        <Tabs.Panel
+          value="review"
+          pt="xs"
+          style={{
+            overflow: "hidden",
+            display: tab === "review" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <GameReviewPanel />
         </Tabs.Panel>
         <Tabs.Panel
           value="logs"
