@@ -4,6 +4,7 @@ import {
   autoSaveAtom,
   bestMovesFamily,
   currentEvalOpenAtom,
+  currentGameReviewAtom,
   currentTabAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
@@ -83,6 +84,7 @@ import { updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import Clock from "./Clock";
+import ReviewHint from "./ReviewHint";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
@@ -165,6 +167,7 @@ function Board({
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
   const autoSave = useAtomValue(autoSaveAtom);
+  const reviewData = useAtomValue(currentGameReviewAtom);
 
   let dests: Map<SquareName, SquareName[]> = pos
     ? chessgroundDests(pos)
@@ -583,6 +586,23 @@ function Board({
                       orientation={orientation}
                       square={square}
                       annotation={currentNode.annotations[0]}
+                    />
+                  </Box>
+                </Box>
+              )}
+            {reviewData &&
+              currentNode.halfMoves > 0 &&
+              reviewData.moves[currentNode.halfMoves - 1] &&
+              currentNode.move &&
+              square !== undefined && (
+                <Box pl="2.5rem" w="100%" h="100%" pos="absolute">
+                  <Box pos="relative" w="100%" h="100%">
+                    <ReviewHint
+                      orientation={orientation}
+                      square={square}
+                      classification={
+                        reviewData.moves[currentNode.halfMoves - 1].classification
+                      }
                     />
                   </Box>
                 </Box>
