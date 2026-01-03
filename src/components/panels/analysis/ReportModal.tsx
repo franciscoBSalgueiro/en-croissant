@@ -19,7 +19,7 @@ import { memo, useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
-const reportSettingsAtom = atomWithStorage("report-settings", {
+export const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
   reversed: true,
   goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
