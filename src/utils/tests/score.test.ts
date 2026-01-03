@@ -3,6 +3,7 @@ import {
   formatScore,
   getAccuracy,
   getAnnotation,
+  getChessComClassification,
   getCPLoss,
   getWinChance,
 } from "../score";
@@ -78,4 +79,34 @@ test("should not annotate", () => {
   expect(
     getAnnotation(null, null, { type: "cp", value: 50 }, "black", []),
   ).toBe("");
+});
+
+test("should classify as best move when isBestMove is true", () => {
+  expect(getChessComClassification(0, true)).toBe("best");
+  expect(getChessComClassification(100, true)).toBe("best");
+});
+
+test("should classify as blunder for cpLoss > 200", () => {
+  expect(getChessComClassification(201, false)).toBe("blunder");
+  expect(getChessComClassification(500, false)).toBe("blunder");
+});
+
+test("should classify as mistake for cpLoss > 100 and <= 200", () => {
+  expect(getChessComClassification(101, false)).toBe("mistake");
+  expect(getChessComClassification(200, false)).toBe("mistake");
+});
+
+test("should classify as inaccuracy for cpLoss > 50 and <= 100", () => {
+  expect(getChessComClassification(51, false)).toBe("inaccuracy");
+  expect(getChessComClassification(100, false)).toBe("inaccuracy");
+});
+
+test("should classify as excellent for cpLoss < 20", () => {
+  expect(getChessComClassification(0, false)).toBe("excellent");
+  expect(getChessComClassification(19, false)).toBe("excellent");
+});
+
+test("should classify as good for cpLoss between 20 and 50", () => {
+  expect(getChessComClassification(20, false)).toBe("good");
+  expect(getChessComClassification(50, false)).toBe("good");
 });
