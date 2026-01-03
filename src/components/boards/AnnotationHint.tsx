@@ -1,4 +1,9 @@
-import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
+import {
+  ANNOTATION_INFO,
+  REVIEW_INFO,
+  type Annotation,
+  type ReviewClassification,
+} from "@/utils/annotation";
 import { squareToCoordinates } from "@/utils/chessops";
 import { Box } from "@mantine/core";
 import type { Color, Square } from "chessops";
@@ -267,3 +272,37 @@ const glyphToSvg: Record<Annotation, JSX.Element> = {
     </>
   ),
 } as const;
+
+export const reviewGlyphToSvg: Record<ReviewClassification, JSX.Element> = {
+  best: (
+    <>
+      <path
+        fill="#fff"
+        d="M50 15L61.756 38.82L88.168 42.66L69.084 61.18L73.511 87.34L50 75L26.489 87.34L30.916 61.18L11.832 42.66L38.244 38.82L50 15Z"
+      />
+    </>
+  ),
+  excellent: glyphToSvg["!"],
+  good: (
+    <>
+      <path
+        fill="#fff"
+        d="M20 55L35 70L80 25L72 18L35 55L28 48L20 55Z"
+      />
+    </>
+  ),
+  inaccuracy: glyphToSvg["?!"],
+  mistake: glyphToSvg["?"],
+  blunder: glyphToSvg["??"],
+  book: (
+    <>
+      <path
+        fill="#fff"
+        d="M25 20C25 20 30 18 50 18C70 18 75 20 75 20V75C75 75 70 73 50 73C30 73 25 75 25 75V20ZM50 22V69M30 24V71M70 24V71"
+        strokeWidth="4"
+        stroke="#fff"
+      />
+    </>
+  ),
+  forced: glyphToSvg["□"],
+};
