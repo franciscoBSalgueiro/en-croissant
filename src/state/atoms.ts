@@ -14,6 +14,7 @@ import {
 } from "@/utils/lichess/explorer";
 import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
+import type { ReviewClassification } from "@/utils/annotation";
 import type { MantineColor } from "@mantine/core";
 
 import type { OpponentSettings } from "@/components/boards/BoardGame";
@@ -333,6 +334,36 @@ export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
 
 const practiceTabFamily = atomFamily((tab: string) => atom("train"));
 export const currentPracticeTabAtom = tabValue(practiceTabFamily);
+
+// Game Review Types and Atoms
+
+export interface MoveReview {
+  classification: ReviewClassification;
+  cpLoss: number;
+  bestMove: string | null;
+  playedMove: string;
+}
+
+export interface PlayerReviewStats {
+  accuracy: number;
+  averageCPL: number;
+  counts: Record<ReviewClassification, number>;
+  totalMoves: number;
+}
+
+export interface GameReviewData {
+  moves: MoveReview[];
+  white: PlayerReviewStats;
+  black: PlayerReviewStats;
+}
+
+const gameReviewFamily = atomFamily((tab: string) =>
+  atom<GameReviewData | null>(null),
+);
+export const currentGameReviewAtom = tabValue(gameReviewFamily);
+
+const reviewInProgressFamily = atomFamily((tab: string) => atom(false));
+export const currentReviewInProgressAtom = tabValue(reviewInProgressFamily);
 
 const expandedEnginesFamily = atomFamily((tab: string) =>
   atom<string[] | undefined>(undefined),
