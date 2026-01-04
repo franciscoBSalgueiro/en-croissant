@@ -320,7 +320,7 @@ export const en_US = {
     "Settings.PieceDest": "Piece Destinations",
     "Settings.PieceDest.Desc": "Show possible moves for each piece",
     "Settings.MoveHighlight": "Move Highlight",
-    "Settings.MoveHighlight.Desc": "Show hightlight for last move and check",
+    "Settings.MoveHighlight.Desc": "Show highlight for last move and check",
     "Settings.Arrows": "Arrows",
     "Settings.Arrows.Desc": "Show best move arrows",
     "Settings.SnapArrows": "Snap Arrows",
