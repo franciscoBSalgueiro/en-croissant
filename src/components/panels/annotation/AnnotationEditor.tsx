@@ -13,91 +13,97 @@ import { useTranslation } from "react-i18next";
 import { Markdown } from "tiptap-markdown";
 import { useStore } from "zustand";
 
-const AnnotationEditor = forwardRef<{ focus: () => void }>(function AnnotationEditor(_, ref) {
-  const { t } = useTranslation();
+const AnnotationEditor = forwardRef<{ focus: () => void }>(
+  function AnnotationEditor(_, ref) {
+    const { t } = useTranslation();
 
-  const store = useContext(TreeStateContext)!;
-  const root = useStore(store, (s) => s.root);
-  const position = useStore(store, (s) => s.position);
-  const setComment = useStore(store, (s) => s.setComment);
+    const store = useContext(TreeStateContext)!;
+    const root = useStore(store, (s) => s.root);
+    const position = useStore(store, (s) => s.position);
+    const setComment = useStore(store, (s) => s.setComment);
 
-  const currentNode = getNodeAtPath(root, position);
-  const spellCheck = useAtomValue(spellCheckAtom);
-  const pendingFocus = useRef(false);
-  const editor = useEditor(
-    {
-      extensions: [
-        StarterKit,
-        Underline,
-        Link.configure({
-          autolink: true,
-          openOnClick: false,
-        }),
-        Markdown.configure({
-          linkify: true,
-        }),
-        Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
-      ],
-      content: currentNode.comment,
-      onCreate: ({ editor }) => {
-        if (pendingFocus.current) {
-          setTimeout(() => {
+    const currentNode = getNodeAtPath(root, position);
+    const spellCheck = useAtomValue(spellCheckAtom);
+    const pendingFocus = useRef(false);
+    const editor = useEditor(
+      {
+        extensions: [
+          StarterKit,
+          Underline,
+          Link.configure({
+            autolink: true,
+            openOnClick: false,
+          }),
+          Markdown.configure({
+            linkify: true,
+          }),
+          Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
+        ],
+        content: currentNode.comment,
+        onCreate: ({ editor }) => {
+          if (pendingFocus.current) {
+            setTimeout(() => {
+              editor.commands.focus("end");
+              pendingFocus.current = false;
+            }, 50);
+          }
+        },
+        onUpdate: ({ editor }) => {
+          const comment = editor.storage.markdown.getMarkdown();
+          setComment(comment);
+        },
+      },
+      [position.join(",")],
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          if (editor) {
             editor.commands.focus("end");
-            pendingFocus.current = false;
-          }, 50);
-        }
-      },
-      onUpdate: ({ editor }) => {
-        const comment = editor.storage.markdown.getMarkdown();
-        setComment(comment);
-      },
-    },
-    [position.join(",")],
-  );
+          } else {
+            pendingFocus.current = true;
+          }
+        },
+      }),
+      [editor],
+    );
 
-  useImperativeHandle(ref, () => ({
-    focus: () => {
-      if (editor) {
-        editor.commands.focus("end");
-      } else {
-        pendingFocus.current = true;
-      }
-    },
-  }), [editor]);
+    return (
+      <RichTextEditor editor={editor} spellCheck={spellCheck}>
+        <RichTextEditor.Toolbar>
+          <RichTextEditor.ControlsGroup>
+            <RichTextEditor.Bold />
+            <RichTextEditor.Italic />
+            <RichTextEditor.Underline />
+            <RichTextEditor.Strikethrough />
+            <RichTextEditor.ClearFormatting />
+          </RichTextEditor.ControlsGroup>
 
-  return (
-    <RichTextEditor editor={editor} spellCheck={spellCheck}>
-      <RichTextEditor.Toolbar>
-        <RichTextEditor.ControlsGroup>
-          <RichTextEditor.Bold />
-          <RichTextEditor.Italic />
-          <RichTextEditor.Underline />
-          <RichTextEditor.Strikethrough />
-          <RichTextEditor.ClearFormatting />
-        </RichTextEditor.ControlsGroup>
+          <RichTextEditor.ControlsGroup>
+            <RichTextEditor.H1 />
+            <RichTextEditor.H2 />
+            <RichTextEditor.H3 />
+            <RichTextEditor.H4 />
+          </RichTextEditor.ControlsGroup>
 
-        <RichTextEditor.ControlsGroup>
-          <RichTextEditor.H1 />
-          <RichTextEditor.H2 />
-          <RichTextEditor.H3 />
-          <RichTextEditor.H4 />
-        </RichTextEditor.ControlsGroup>
+          <RichTextEditor.ControlsGroup>
+            <RichTextEditor.Blockquote />
+            <RichTextEditor.Hr />
+            <RichTextEditor.BulletList />
+            <RichTextEditor.OrderedList />
+          </RichTextEditor.ControlsGroup>
+          <RichTextEditor.ControlsGroup>
+            <RichTextEditor.Link />
+            <RichTextEditor.Unlink />
+          </RichTextEditor.ControlsGroup>
+        </RichTextEditor.Toolbar>
 
-        <RichTextEditor.ControlsGroup>
-          <RichTextEditor.Blockquote />
-          <RichTextEditor.Hr />
-          <RichTextEditor.BulletList />
-          <RichTextEditor.OrderedList />
-        </RichTextEditor.ControlsGroup>
-        <RichTextEditor.ControlsGroup>
-          <RichTextEditor.Link />
-          <RichTextEditor.Unlink />
-        </RichTextEditor.ControlsGroup>
-      </RichTextEditor.Toolbar>
-
-      <RichTextEditor.Content />
-    </RichTextEditor>
-  );
-});
+        <RichTextEditor.Content />
+      </RichTextEditor>
+    );
+  },
+);
 
 export default AnnotationEditor;

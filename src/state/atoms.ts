@@ -286,10 +286,9 @@ export const currentInvisibleAtom = tabValue(invisibleFamily);
 const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 export const annotationFocusAtom = atom(0);
-export const triggerAnnotationFocusAtom = atom(
-  null,
-  (_, set) => { set(annotationFocusAtom, n => n + 1) }
-)
+export const triggerAnnotationFocusAtom = atom(null, (_, set) => {
+  set(annotationFocusAtom, (n) => n + 1);
+});
 
 const localOptionsFamily = atomFamily((tab: string) =>
   atom<LocalOptions>({

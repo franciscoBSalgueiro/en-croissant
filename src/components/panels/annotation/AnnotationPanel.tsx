@@ -1,4 +1,5 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { annotationFocusAtom } from "@/state/atoms";
 import {
   ANNOTATION_INFO,
   type Annotation,
@@ -22,7 +23,6 @@ import { memo, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import AnnotationEditor from "./AnnotationEditor";
-import { annotationFocusAtom } from "@/state/atoms";
 
 const SymbolButton = memo(function SymbolButton({
   curAnnotations,
@@ -83,7 +83,7 @@ function AnnotationPanel() {
 
   useEffect(() => {
     editorRef.current?.focus();
-  }, [focusSignal])
+  }, [focusSignal]);
 
   return (
     <Stack h="100%" gap={0}>

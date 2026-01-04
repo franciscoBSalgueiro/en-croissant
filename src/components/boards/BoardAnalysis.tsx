@@ -108,9 +108,13 @@ function BoardAnalysis() {
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
-    [keyMap.ANNOTATE_TAB.keys, () => {
-      setCurrentTabSelected("annotate"); triggerAnnotationFocus()
-    }],
+    [
+      keyMap.ANNOTATE_TAB.keys,
+      () => {
+        setCurrentTabSelected("annotate");
+        triggerAnnotationFocus();
+      },
+    ],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
     [
       keyMap.TOGGLE_ALL_ENGINES.keys,
