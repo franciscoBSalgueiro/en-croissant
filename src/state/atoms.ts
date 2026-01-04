@@ -16,7 +16,7 @@ import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
 import type { MantineColor } from "@mantine/core";
 
-import type { OpponentSettings } from "@/components/boards/BoardGame";
+import type { OpponentSettings } from "@/components/boards/OpponentForm";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
