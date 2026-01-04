@@ -615,22 +615,27 @@ pub async fn analyze_game(
     let mut chess: Chess = fen.clone().into_position(CastlingMode::Chess960)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
-    options.moves.iter().enumerate().for_each(|(i, m)| {
-        let uci = UciMove::from_ascii(m.as_bytes()).unwrap();
-        let m = uci.to_move(&chess).unwrap();
-        let previous_pos = chess.clone();
-        chess.play_unchecked(&m);
-        let current_pos = chess.clone();
-        if !chess.is_game_over() {
-            let prev_eval = naive_eval(&previous_pos);
-            let cur_eval = -naive_eval(&current_pos);
-            fens.push((
-                Fen::from_position(current_pos, EnPassantMode::Legal),
-                options.moves.clone().into_iter().take(i + 1).collect(),
-                prev_eval > cur_eval + 100,
-            ));
-        }
-    });
+    options
+        .moves
+        .iter()
+        .enumerate()
+        .try_for_each(|(i, m)| -> Result<(), Error> {
+            let uci = UciMove::from_ascii(m.as_bytes())?;
+            let m = uci.to_move(&chess)?;
+            let previous_pos = chess.clone();
+            chess.play_unchecked(&m);
+            let current_pos = chess.clone();
+            if !chess.is_game_over() {
+                let prev_eval = naive_eval(&previous_pos);
+                let cur_eval = -naive_eval(&current_pos);
+                fens.push((
+                    Fen::from_position(current_pos, EnPassantMode::Legal),
+                    options.moves.clone().into_iter().take(i + 1).collect(),
+                    prev_eval > cur_eval + 100,
+                ));
+            }
+            Ok(())
+        })?;
 
     if options.reversed {
         fens.reverse();
