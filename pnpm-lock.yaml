@@ -149,6 +149,12 @@ importers:
       react-contenteditable:
         specifier: ^3.3.7
         version: 3.3.7(react@18.3.1)
+      react-dnd:
+        specifier: ^16.0.1
+        version: 16.0.1(@types/hoist-non-react-statics@3.3.6)(@types/node@22.10.1)(@types/react@18.3.14)(react@18.3.1)
+      react-dnd-html5-backend:
+        specifier: ^16.0.1
+        version: 16.0.1
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
