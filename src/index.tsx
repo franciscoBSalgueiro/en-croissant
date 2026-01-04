@@ -8,8 +8,8 @@ import App from "./App";
 
 import { be_BY } from "./translation/be_BY";
 import { de_DE } from "./translation/de_DE";
-import { en_US } from "./translation/en_US";
 import { en_GB } from "./translation/en_GB";
+import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
 import { fr_FR } from "./translation/fr_FR";
 import { it_IT } from "./translation/it_IT";
