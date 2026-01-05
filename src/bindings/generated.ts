@@ -310,6 +310,14 @@ async getGames(file: string, query: GameQueryJs) : Promise<Result<QueryResponse<
     else return { status: "error", error: e  as any };
 }
 },
+async getTimeControls(file: string) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_time_controls", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async searchPosition(file: string, query: GameQueryJs, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search_position", { file, query, tabId }) };
@@ -370,7 +378,7 @@ export type EngineOptions = { fen: string; moves: string[]; extraOptions: Engine
 export type Event = { id: number; name: string | null }
 export type FileMetadata = { last_modified: number }
 export type GameOutcome = "Won" | "Drawn" | "Lost"
-export type GameQueryJs = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
+export type GameQueryJs = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null; time_controls?: string[] | null }
 export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }

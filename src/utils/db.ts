@@ -58,6 +58,7 @@ export async function query_games(
       start_date: query.start_date,
       end_date: query.end_date,
       position: null,
+      time_controls: query.time_controls,
       options: {
         skipCount: query.options?.skipCount ?? false,
         page: query.options?.page,
@@ -86,6 +87,10 @@ export async function query_players(
       range: normalizeRange(query.range),
     }),
   );
+}
+
+export async function getTimeControls(db: string) {
+  return unwrap(await commands.getTimeControls(db));
 }
 
 export async function getDatabases(): Promise<DatabaseInfo[]> {

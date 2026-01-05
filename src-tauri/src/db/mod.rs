@@ -681,6 +681,7 @@ pub struct GameQuery {
     pub sides: Option<Sides>,
     pub outcome: Option<String>,
     pub position: Option<PositionQuery>,
+    pub time_controls: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, Hash, Type)]
@@ -709,6 +710,8 @@ pub struct GameQueryJs {
     pub position: Option<PositionQueryJs>,
     #[specta(optional)]
     pub wanted_result: Option<String>,
+    #[specta(optional)]
+    pub time_controls: Option<Vec<String>>,
 }
 
 impl GameQueryJs {
@@ -756,6 +759,14 @@ pub async fn get_games(
     if let Some(outcome) = query.outcome {
         sql_query = sql_query.filter(games::result.eq(outcome.clone()));
         count_query = count_query.filter(games::result.eq(outcome));
+    }
+
+    if let Some(time_controls) = query.time_controls {
+        if !time_controls.is_empty() {
+            let time_controls: Vec<Option<String>> = time_controls.into_iter().map(Some).collect();
+            sql_query = sql_query.filter(games::time_control.eq_any(time_controls.clone()));
+            count_query = count_query.filter(games::time_control.eq_any(time_controls));
+        }
     }
 
     if let Some(start_date) = query.start_date {
@@ -927,6 +938,66 @@ pub async fn get_games(
         data: normalized_games,
         count: count.map(|c| c as i32),
     })
+}
+
+fn parse_time_value(value: &str) -> Option<i64> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if let Some(stripped) = trimmed.strip_suffix("''") {
+        return stripped.trim().parse::<i64>().ok();
+    }
+    if let Some(stripped) = trimmed.strip_suffix("'") {
+        return stripped.trim().parse::<i64>().ok().map(|m| m * 60);
+    }
+
+    trimmed.parse::<i64>().ok()
+}
+
+fn parse_time_control_descriptor(descriptor: &str) -> Option<(i64, i64)> {
+    let descriptor = descriptor.trim();
+    match descriptor {
+        "" | "?" | "-" => None,
+        _ if descriptor.starts_with('*') => parse_time_value(descriptor.trim_start_matches('*'))
+            .map(|seconds| (seconds, 0)),
+        _ if descriptor.contains('/') => descriptor.split_once('/').and_then(|(_moves, seconds)| {
+            parse_time_value(seconds).map(|s| (s, 0))
+        }),
+        _ if descriptor.contains('+') => descriptor.split_once('+').and_then(|(base, inc)| {
+            let base = parse_time_value(base)?;
+            let inc = parse_time_value(inc)?;
+            Some((base, inc))
+        }),
+        _ => parse_time_value(descriptor).map(|base| (base, 0)),
+    }
+}
+
+fn time_control_sort_key(time_control: &str) -> (i64, i64) {
+    time_control
+        .split(':')
+        .find_map(parse_time_control_descriptor)
+        .unwrap_or((i64::MAX, i64::MAX))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_time_controls(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<String>, Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let mut time_controls: Vec<String> = games::table
+        .select(games::time_control)
+        .distinct()
+        .load::<Option<String>>(db)?
+        .into_iter()
+        .flatten()
+        .collect();
+
+    time_controls.sort_by_key(|tc| time_control_sort_key(tc));
+    Ok(time_controls)
 }
 
 fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<NormalizedGame> {
@@ -1314,14 +1385,13 @@ pub async fn get_players_game_info(
             acc
         })
         .reduce(DashMap::new, |acc1, acc2| {
-                for ((site, player), data) in acc2 {
-                    acc1.entry((site, player))
-                        .or_insert_with(Vec::new)
-                        .extend(data);
-                }
-                acc1
-            },
-        )
+            for ((site, player), data) in acc2 {
+                acc1.entry((site, player))
+                    .or_insert_with(Vec::new)
+                    .extend(data);
+            }
+            acc1
+        })
         .into_iter()
         .map(|((site, player), data)| SiteStatsData { site, player, data })
         .collect();

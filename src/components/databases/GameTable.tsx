@@ -1,11 +1,13 @@
 import type { GameSort, NormalizedGame, Outcome } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { query_games } from "@/utils/db";
+import { formatTimeControl } from "@/utils/clock";
+import { getTimeControls, query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
   Box,
   Center,
+  Checkbox,
   Collapse,
   Flex,
   Group,
@@ -22,7 +24,7 @@ import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import useSWR from "swr";
 import { useStore } from "zustand";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
@@ -55,6 +57,52 @@ function GameTable() {
   const { data, isLoading, mutate } = useSWR(["games", query], () =>
     query_games(file, query),
   );
+  const { data: timeControls } = useSWR(
+    ["time-controls", file],
+    () => getTimeControls(file),
+  );
+  const groupedTimeControls = useMemo(() => {
+    const groups: {
+      key: string;
+      raws: string[];
+      label: string;
+      exotic: boolean;
+    }[] = [];
+    const keyIndex = new Map<string, number>();
+
+    (timeControls ?? []).forEach((tc) => {
+      const normalized = tc.trim();
+      const exotic = /[a-zA-Z]/.test(normalized);
+      const key = exotic ? "__exotic__" : `normal:${normalized}`;
+
+      if (!keyIndex.has(key)) {
+        keyIndex.set(key, groups.length);
+        groups.push({
+          key,
+          raws: [tc],
+          label: exotic ? "Exotic" : formatTimeControl(normalized),
+          exotic,
+        });
+      } else {
+        groups[keyIndex.get(key)!].raws.push(tc);
+      }
+    });
+
+    return groups;
+  }, [timeControls]);
+
+  const selectedGroupKeys = useMemo(() => {
+    const selected = query.time_controls ?? [];
+    const keys = new Set<string>();
+
+    groupedTimeControls.forEach((group) => {
+      if (group.raws.some((raw) => selected.includes(raw))) {
+        keys.add(group.key);
+      }
+    });
+
+    return Array.from(keys);
+  }, [query.time_controls, groupedTimeControls]);
 
   const games = data?.data ?? [];
   const count = data?.count;
@@ -214,6 +262,49 @@ function GameTable() {
                       }
                     />
                   </Group>
+                  <Group grow>
+                    <InputWrapper label="Time control">
+                      <Checkbox.Group
+                        value={selectedGroupKeys}
+                        onChange={(value) =>
+                          setQuery({
+                            ...query,
+                            options: { ...query.options!, page: 1 },
+                            time_controls: value
+                              .flatMap((key) => {
+                                const group = groupedTimeControls.find(
+                                  (g) => g.key === key,
+                                );
+                                if (!group) {
+                                  return [];
+                                }
+                                return group.raws;
+                              })
+                              .filter((v, i, arr) => arr.indexOf(v) === i)
+                              .filter(Boolean)
+                              .slice(),
+                          })
+                        }
+                      >
+                        <Box
+                          style={{
+                            maxHeight: "7.5rem",
+                            overflowY: "auto",
+                          }}
+                        >
+                          <Flex gap="sm" wrap="wrap">
+                            {groupedTimeControls.map((group) => (
+                              <Checkbox
+                                key={group.key}
+                                value={group.key}
+                                label={group.label}
+                              />
+                            ))}
+                          </Flex>
+                        </Box>
+                      </Checkbox.Group>
+                    </InputWrapper>
+                  </Group>
                 </Stack>
               </Collapse>
             </Box>
@@ -275,6 +366,11 @@ function GameTable() {
               {
                 accessor: "result",
                 render: ({ result }) => result?.replaceAll("1/2", "½"),
+              },
+              {
+                accessor: "time_control",
+                title: "Time control",
+                render: ({ time_control }) => formatTimeControl(time_control),
               },
               { accessor: "ply_count", title: "Plies", sortable: true },
               { accessor: "event" },

@@ -48,7 +48,8 @@ use crate::puzzle::{get_puzzle, get_puzzle_db_info};
 use crate::{
     chess::get_best_moves,
     db::{
-        delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
+        delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players,
+        get_time_controls, merge_players,
     },
     fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
@@ -151,6 +152,7 @@ fn main() {
             get_tournaments,
             get_db_info,
             get_games,
+            get_time_controls,
             search_position,
             get_players,
             get_puzzle_db_info
