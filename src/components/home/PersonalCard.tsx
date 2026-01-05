@@ -14,6 +14,7 @@ import {
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import FideInfo from "../databases/FideInfo";
@@ -32,6 +33,7 @@ function PersonalPlayerCard({
   info: PlayerGameInfo;
   isDatabase?: boolean;
 }) {
+  const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
   const activeTab = useStore(store, (s) => s.players.activeTab);
   const setActiveTab = useStore(store, (s) => s.setPlayersActiveTab);
@@ -57,7 +59,7 @@ function PersonalPlayerCard({
       <FideInfo key={name} opened={opened} setOpened={setOpened} name={name} />
       <Box pos="relative">
         {name !== "Stats" && (
-          <MTTooltip label="FIDE info">
+          <MTTooltip label={t("Databases.FIDE.Info")}>
             <ActionIcon
               pos="absolute"
               right={0}
@@ -105,9 +107,9 @@ function PersonalPlayerCard({
         }}
       >
         <Tabs.List>
-          <Tabs.Tab value="overview">Overview</Tabs.Tab>
-          <Tabs.Tab value="ratings">Ratings</Tabs.Tab>
-          <Tabs.Tab value="openings">Openings</Tabs.Tab>
+          <Tabs.Tab value="overview">{t("Home.Personal.Overview")}</Tabs.Tab>
+          <Tabs.Tab value="ratings">{t("Home.Personal.Ratings")}</Tabs.Tab>
+          <Tabs.Tab value="openings">{t("Home.Personal.Openings")}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="overview">
           <OverviewPanel

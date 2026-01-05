@@ -5,6 +5,7 @@ import { DateInput } from "@mantine/dates";
 import cx from "clsx";
 import dayjs from "dayjs";
 import { memo, useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import FideInfo from "../databases/FideInfo";
 import { ContentEditable } from "../tabs/ContentEditable";
@@ -20,6 +21,7 @@ function GameInfo({
   simplified?: boolean;
   changeTitle?: (title: string) => void;
 }) {
+  const { t } = useTranslation();
   const store = useContext(TreeStateContext);
   const disabled = store === null;
   const setHeaders =
@@ -120,7 +122,7 @@ function GameInfo({
       </Group>
       {simplified && (
         <Group gap={4}>
-          <Text size="sm">opening for</Text>
+          <Text size="sm">{t("GameInfo.OpeningFor")}</Text>
 
           <Select
             allowDeselect={false}
@@ -143,11 +145,11 @@ function GameInfo({
             data={[
               {
                 value: "white",
-                label: "White",
+                label: t("Fen.White"),
               },
               {
                 value: "black",
-                label: "Black",
+                label: t("Fen.Black"),
               },
             ]}
           />

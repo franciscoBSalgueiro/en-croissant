@@ -337,6 +337,7 @@ function EngineTop({
   progress: number;
   error: any;
 }) {
+  const { t } = useTranslation();
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
@@ -348,14 +349,14 @@ function EngineTop({
           {name}
         </Text>
         {enabled && !isGameOver && !error && !engineVariations && (
-          <Code fz="xs">Loading...</Code>
+          <Code fz="xs">{t("Common.Loading")}</Code>
         )}
         {progress < 100 &&
           enabled &&
           !isGameOver &&
           engineVariations &&
           engineVariations.length > 0 && (
-            <Tooltip label={"How fast the engine is running"}>
+            <Tooltip label={t("Board.Analysis.EngineSpeedHint")}>
               <Code fz="xs">{nps}n/s</Code>
             </Tooltip>
           )}

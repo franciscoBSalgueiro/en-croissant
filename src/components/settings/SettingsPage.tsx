@@ -776,22 +776,22 @@ export default function Page() {
                 <Tabs.Panel value="keybinds">
                   <Group>
                     <Text size="lg" fw={500} className={classes.title}>
-                      Keybinds
+                      {t("Settings.Keybinds")}
                     </Text>
-                    <Tooltip label="Reset">
+                    <Tooltip label={t("Common.Reset")}>
                       <ActionIcon onClick={() => setKeyMap(RESET)}>
                         <IconReload size="1rem" />
                       </ActionIcon>
                     </Tooltip>
                   </Group>
                   <Text size="xs" c="dimmed" mt={3} mb="lg">
-                    Customize keyboard shortcuts
+                    {t("Settings.Keybinds.Desc")}
                   </Text>
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th>Description</Table.Th>
-                        <Table.Th>Key</Table.Th>
+                        <Table.Th>{t("Common.Description")}</Table.Th>
+                        <Table.Th>{t("Settings.Key")}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -821,10 +821,10 @@ export default function Page() {
 
                 <Tabs.Panel value="privacy">
                   <Text size="lg" fw={500} className={classes.title}>
-                    Privacy
+                    {t("Settings.Privacy")}
                   </Text>
                   <Text size="xs" c="dimmed" mt={3} mb="lg">
-                    Privacy and data collection settings
+                    {t("Settings.Privacy.Desc")}
                   </Text>
                   {renderCategorySettings("privacy")}
                 </Tabs.Panel>

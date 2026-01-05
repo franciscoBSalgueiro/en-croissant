@@ -6,6 +6,7 @@ import cx from "clsx";
 import { useAtom } from "jotai";
 import { useState } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 import * as classes from "./KeybindInput.css";
 
 function KeybindInput({
@@ -68,13 +69,14 @@ function ShortcutInput({
   action: string;
   stop: () => void;
 }) {
+  const { t } = useTranslation();
   const [, setKeymap] = useAtom(keyMapAtom);
   const stringed = Array.from(keys).join("+");
 
   return (
     <Group>
       {stringed === "" ? (
-        <Kbd>Press any key</Kbd>
+        <Kbd>{t("Settings.Keybinds.PressAnyKey")}</Kbd>
       ) : (
         <KbdDisplay keys={stringed} hovering={false} />
       )}

@@ -14,6 +14,7 @@ import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 function EngineBox({
   engine,
@@ -56,6 +57,7 @@ function EngineBox({
 }
 
 function EngineSelection() {
+  const { t } = useTranslation();
   const [engines, setEngines] = useAtom(enginesAtom);
 
   return (
@@ -63,8 +65,9 @@ function EngineSelection() {
       {engines.length === 0 && (
         <Center>
           <Text>
-            No engines installed. Please{" "}
-            <Link to="/engines">Add an engine</Link> first.
+            {t("Engines.Selection.NonePrefix")}{" "}
+            <Link to="/engines">{t("Engines.Selection.AddEngine")}</Link>{" "}
+            {t("Engines.Selection.NoneSuffix")}
           </Text>
         </Center>
       )}

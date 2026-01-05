@@ -26,9 +26,11 @@ import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useContext, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 
 function RepertoireInfo() {
+  const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
@@ -76,15 +78,15 @@ function RepertoireInfo() {
   return (
     <Stack style={{ overflow: "hidden" }} h="100%">
       <Group>
-        <Text>Variations: {stats.leafs}</Text>
-        <Text>Max Depth: {stats.depth}</Text>
-        <Text>Total moves: {stats.total}</Text>
+        <Text>{t("Board.Practice.Variations")}: {stats.leafs}</Text>
+        <Text>{t("Board.Practice.MaxDepth")}: {stats.depth}</Text>
+        <Text>{t("Board.Practice.TotalMoves")}: {stats.total}</Text>
       </Group>
 
       <Group>
         {!loading && !missingMoves && (
           <Button variant="default" onClick={() => searchForMissingMoves()}>
-            Look for missing moves
+            {t("Board.Practice.LookForMissingMoves")}
           </Button>
         )}
       </Group>
@@ -92,14 +94,13 @@ function RepertoireInfo() {
       {!headers.start ||
         (headers.start.length === 0 && (
           <Alert icon={<IconInfoCircle />}>
-            Mark a move as <b>Start</b> in order to exclude unwanted moves from
-            the results
+            {t("Board.Practice.MarkStart")}
           </Alert>
         ))}
 
       {loading ? (
         <>
-          <Text>Analyzing Repertoire</Text>
+          <Text>{t("Board.Practice.AnalyzingRepertoire")}</Text>
           <Progress value={progress} />
         </>
       ) : (
@@ -133,6 +134,7 @@ function MissingMoves({
   missingMoves: MissingMove[];
   search: () => void;
 }) {
+  const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const goToMove = useStore(store, (s) => s.goToMove);
 
@@ -165,7 +167,7 @@ function MissingMoves({
   return (
     <DataTable
       withTableBorder
-      emptyState={<Text py={200}>No missing moves found</Text>}
+      emptyState={<Text py={200}>{t("Board.Practice.NoMissingMovesFound")}</Text>}
       highlightOnHover
       records={sortedMissingMoves}
       onRowClick={({ record }) => goToMove(record.position)}
@@ -173,11 +175,11 @@ function MissingMoves({
       onSortStatusChange={setSort}
       groups={[
         {
-          id: "Missing Moves",
+          id: t("Board.Practice.MissingMoves"),
           title: (
             <Group gap="xs">
-              <Text>Missing Moves</Text>
-              <Tooltip label="Refresh moves">
+              <Text>{t("Board.Practice.MissingMoves")}</Text>
+              <Tooltip label={t("Board.Practice.RefreshMoves")}>
                 <ActionIcon variant="subtle" onClick={search}>
                   <IconReload size="1rem" />
                 </ActionIcon>
