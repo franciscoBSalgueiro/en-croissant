@@ -64,6 +64,7 @@ import {
   type Piece,
   type SquareName,
   makeSquare,
+  makeUci,
   parseSquare,
   parseUci,
 } from "chessops";
@@ -108,6 +109,7 @@ interface ChessboardProps {
   blackTime?: number;
   practicing?: boolean;
   selectedPiece?: Piece | null;
+  onMove?: (uci: string) => void;
 }
 
 function Board({
@@ -125,6 +127,7 @@ function Board({
   blackTime,
   practicing,
   selectedPiece,
+  onMove,
 }: ChessboardProps) {
   const { t } = useTranslation();
   const { documentDir } = useLoaderData({ from: "/" });
@@ -265,6 +268,10 @@ function Board({
         clock: pos.turn === "white" ? whiteTime : blackTime,
       });
       setPendingMove(null);
+
+      if (onMove) {
+        onMove(makeUci(move));
+      }
     }
   }
 

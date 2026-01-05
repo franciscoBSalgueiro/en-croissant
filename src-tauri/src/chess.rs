@@ -362,13 +362,13 @@ pub struct EngineOptions {
     pub extra_options: Vec<EngineOption>,
 }
 
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq)]
 pub struct EngineOption {
-    name: String,
-    value: String,
+    pub name: String,
+    pub value: String,
 }
 
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq)]
 #[serde(tag = "t", content = "c")]
 pub enum GoMode {
     PlayersTime(PlayersTime),
@@ -378,12 +378,18 @@ pub enum GoMode {
     Infinite,
 }
 
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq)]
 pub struct PlayersTime {
-    white: u32,
-    black: u32,
-    winc: u32,
-    binc: u32,
+    pub white: u32,
+    pub black: u32,
+    pub winc: u32,
+    pub binc: u32,
+}
+
+impl PlayersTime {
+    pub fn new(white: u32, black: u32, winc: u32, binc: u32) -> Self {
+        Self { white, black, winc, binc }
+    }
 }
 
 #[tauri::command]

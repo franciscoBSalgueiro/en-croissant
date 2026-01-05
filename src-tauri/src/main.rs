@@ -6,6 +6,7 @@
 mod chess;
 mod db;
 mod error;
+mod game;
 
 mod fs;
 mod lexer;
@@ -22,6 +23,7 @@ use chess::{BestMovesPayload, EngineProcess, ReportProgress};
 use dashmap::DashMap;
 use db::{DatabaseProgress, GameQueryJs, NormalizedGame, PositionStats};
 use derivative::Derivative;
+use game::GameManager;
 
 use log::LevelFilter;
 use oauth::AuthState;
@@ -38,6 +40,10 @@ use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
     search_position,
+};
+use crate::game::{
+    abort_game, get_game_state, make_game_move, resign_game, start_game,
+    ClockUpdateEvent, GameMoveEvent, GameOverEvent, GameStartedEvent,
 };
 
 use crate::fs::{set_file_as_executable, DownloadProgress};
@@ -83,6 +89,7 @@ pub struct AppState {
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
     auth: AuthState,
+    game_manager: GameManager,
 }
 
 const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
@@ -153,13 +160,22 @@ fn main() {
             get_games,
             search_position,
             get_players,
-            get_puzzle_db_info
+            get_puzzle_db_info,
+            start_game,
+            get_game_state,
+            make_game_move,
+            resign_game,
+            abort_game
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
             DatabaseProgress,
             DownloadProgress,
-            ReportProgress
+            ReportProgress,
+            GameStartedEvent,
+            GameMoveEvent,
+            ClockUpdateEvent,
+            GameOverEvent
         ));
 
     #[cfg(debug_assertions)]

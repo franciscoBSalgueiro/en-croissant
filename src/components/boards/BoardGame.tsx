@@ -1,17 +1,21 @@
-import { events, type GoMode, commands } from "@/bindings";
-import { useGameTimer } from "@/hooks/useGameTimer";
+import {
+  events,
+  type GoMode,
+  commands,
+  type GameConfig,
+  type PlayerConfig,
+  type GameState,
+  type GameResult,
+} from "@/bindings";
 import {
   activeTabAtom,
+  currentGameIdAtom,
   currentGameStateAtom,
   currentPlayersAtom,
-  enginesAtom,
   tabsAtom,
 } from "@/state/atoms";
-import { getMainLine } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import type { TimeControlField } from "@/utils/clock";
-import type { LocalEngine } from "@/utils/engines";
-import { type GameHeaders, treeIteratorMainLine } from "@/utils/treeReducer";
+import type { GameHeaders } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -19,27 +23,22 @@ import {
   Checkbox,
   Divider,
   Group,
-  InputWrapper,
   Paper,
   Portal,
   ScrollArea,
-  SegmentedControl,
-  Select,
   Stack,
   Text,
-  TextInput,
 } from "@mantine/core";
 import {
   IconArrowsExchange,
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { parseUci } from "chessops";
+import { parseUci, makeUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
-import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import {
-  Suspense,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -51,21 +50,27 @@ import { useStore } from "zustand";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
-import TimeInput, { type TimeType } from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
-import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
 import {
   DEFAULT_TIME_CONTROL,
   OpponentForm,
   type OpponentSettings,
 } from "./OpponentForm";
+import { unwrap } from "@/utils/unwrap";
+import type { Outcome } from "@/bindings";
+
+function gameResultToOutcome(result: GameResult): Outcome {
+  if (result.type === "whiteWins") return "1-0";
+  if (result.type === "blackWins") return "0-1";
+  return "1/2-1/2";
+}
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
 
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
-    "white",
+    "white"
   );
   function cycleColor() {
     setInputColor((prev) =>
@@ -73,7 +78,7 @@ function BoardGame() {
         .with("white", () => "black" as const)
         .with("black", () => "random" as const)
         .with("random", () => "white" as const)
-        .exhaustive(),
+        .exhaustive()
     );
   }
 
@@ -114,193 +119,315 @@ function BoardGame() {
 
   const boardRef = useRef(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
+  const [players, setPlayers] = useAtom(currentPlayersAtom);
+
+  const [whiteTime, setWhiteTime] = useState<number | null>(null);
+  const [blackTime, setBlackTime] = useState<number | null>(null);
+  const [gameId, setGameId] = useAtom(currentGameIdAtom);
+
+  const getTreeMoves = useCallback(() => {
+    const moves: string[] = [];
+    let node = root;
+    while (node.children.length > 0) {
+      node = node.children[0];
+      if (node.move) {
+        moves.push(makeUci(node.move));
+      }
+    }
+    return moves;
+  }, [root]);
+
+  const syncTreeWithMoves = useCallback(
+    (backendMoves: { uci: string; clock: number | null }[]) => {
+      const treeMoves = getTreeMoves();
+
+      let needsReset = false;
+      for (let i = 0; i < treeMoves.length; i++) {
+        if (i >= backendMoves.length || treeMoves[i] !== backendMoves[i].uci) {
+          needsReset = true;
+          break;
+        }
+      }
+
+      if (needsReset) {
+        setFen(root.fen);
+        for (const move of backendMoves) {
+          const parsed = parseUci(move.uci);
+          if (parsed) {
+            appendMove({
+              payload: parsed,
+              clock: move.clock !== null ? Number(move.clock) : undefined,
+            });
+          }
+        }
+        return true;
+      }
+
+      if (backendMoves.length > treeMoves.length) {
+        for (let i = treeMoves.length; i < backendMoves.length; i++) {
+          const move = backendMoves[i];
+          const parsed = parseUci(move.uci);
+          if (parsed) {
+            appendMove({
+              payload: parsed,
+              clock: move.clock !== null ? Number(move.clock) : undefined,
+            });
+          }
+        }
+        return true;
+      }
+
+      return false;
+    },
+    [getTreeMoves, root.fen, setFen, appendMove]
+  );
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
       prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab,
-      ),
+        tab.value === activeTab ? { ...tab, type: "analysis" } : tab
+      )
     );
   }
-  const mainLine = Array.from(treeIteratorMainLine(root));
-  const lastNode = mainLine[mainLine.length - 1].node;
-  const moves = useMemo(
-    () => getMainLine(root, headers.variant === "Chess960"),
-    [root, headers],
-  );
 
   const [pos, error] = useMemo(() => {
-    return positionFromFen(lastNode.fen);
-  }, [lastNode.fen]);
-
-  useEffect(() => {
-    if (pos?.isEnd()) {
-      setGameState("gameOver");
+    let node = root;
+    while (node.children.length > 0) {
+      node = node.children[0];
     }
-  }, [pos, setGameState]);
+    return positionFromFen(node.fen);
+  }, [root]);
 
-  const [players, setPlayers] = useAtom(currentPlayersAtom);
-
-  useEffect(() => {
-    if (pos && gameState === "playing") {
-      if (headers.result !== "*") {
-        setGameState("gameOver");
-        return;
-      }
-      const currentTurn = pos.turn;
-      const player = currentTurn === "white" ? players.white : players.black;
-
-      if (player.type === "engine" && player.engine) {
-        commands.getBestMoves(
-          currentTurn,
-          player.engine.path,
-          activeTab + currentTurn,
-          player.timeControl
-            ? {
-                t: "PlayersTime",
-                c: {
-                  white: whiteTime ?? 0,
-                  black: blackTime ?? 0,
-                  winc: player.timeControl.increment ?? 0,
-                  binc: player.timeControl.increment ?? 0,
-                },
-              }
-            : player.go,
-          {
-            fen: root.fen,
-            moves: moves,
-            extraOptions: (player.engine.settings || [])
-              .filter((s) => s.name !== "MultiPV")
-              .map((s) => ({
-                ...s,
-                value: s.value?.toString() ?? "",
-              })),
-          },
-        );
-      }
+  function toPlayerConfig(settings: OpponentSettings): PlayerConfig {
+    if (settings.type === "human") {
+      return {
+        type: "human",
+        name: settings.name ?? "Player",
+      };
     }
-  }, [
-    gameState,
-    pos,
-    players,
-    headers.result,
-    setGameState,
-    activeTab,
-    root.fen,
-    moves,
-  ]);
-
-  const { whiteTime, blackTime, setWhiteTime, setBlackTime } = useGameTimer({
-    gameState,
-    pos: pos ?? undefined,
-    setGameState,
-    setResult,
-  });
-
-  function startGame() {
-    setGameState("playing");
-
-    const players = getPlayers();
-
-    if (players.white.timeControl) {
-      setWhiteTime(players.white.timeControl.seconds);
-    }
-
-    if (players.black.timeControl) {
-      setBlackTime(players.black.timeControl.seconds);
-    }
-
-    setPlayers(players);
-
-    const newHeaders: Partial<GameHeaders> = {
-      white:
-        (players.white.type === "human"
-          ? players.white.name
-          : players.white.engine?.name) ?? "?",
-      black:
-        (players.black.type === "human"
-          ? players.black.name
-          : players.black.engine?.name) ?? "?",
-      time_control: undefined,
+    return {
+      type: "engine",
+      name: settings.engine?.name ?? "Engine",
+      path: settings.engine?.path ?? "",
+      options: (settings.engine?.settings ?? [])
+        .filter((s) => s.name !== "MultiPV")
+        .map((s) => ({
+          name: s.name,
+          value: s.value?.toString() ?? "",
+        })),
+      go: settings.timeControl ? null : settings.go,
     };
-
-    if (players.white.timeControl || players.black.timeControl) {
-      if (sameTimeControl && players.white.timeControl) {
-        newHeaders.time_control = `${players.white.timeControl.seconds / 1000}`;
-        if (players.white.timeControl.increment) {
-          newHeaders.time_control += `+${
-            players.white.timeControl.increment / 1000
-          }`;
-        }
-      } else {
-        if (players.white.timeControl) {
-          newHeaders.white_time_control = `${players.white.timeControl.seconds / 1000}`;
-          if (players.white.timeControl.increment) {
-            newHeaders.white_time_control += `+${
-              players.white.timeControl.increment / 1000
-            }`;
-          }
-        }
-        if (players.black.timeControl) {
-          newHeaders.black_time_control = `${players.black.timeControl.seconds / 1000}`;
-          if (players.black.timeControl.increment) {
-            newHeaders.black_time_control += `+${
-              players.black.timeControl.increment / 1000
-            }`;
-          }
-        }
-      }
-    }
-
-    setHeaders({
-      ...headers,
-      ...newHeaders,
-      fen: root.fen,
-    });
-
-    setTabs((prev) =>
-      prev.map((tab) => {
-        const whiteName =
-          players.white.type === "human"
-            ? players.white.name
-            : (players.white.engine?.name ?? "?");
-
-        const blackName =
-          players.black.type === "human"
-            ? players.black.name
-            : (players.black.engine?.name ?? "?");
-
-        return tab.value === activeTab
-          ? {
-              ...tab,
-              name: `${whiteName} vs. ${blackName}`,
-            }
-          : tab;
-      }),
-    );
   }
 
-  useEffect(() => {
-    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      const ev = payload.bestLines;
+  async function startGame() {
+    const playerSettings = getPlayers();
+    setPlayers(playerSettings);
+
+    const newGameId = `${activeTab}-game`;
+    setGameId(newGameId);
+
+    const config: GameConfig = {
+      white: toPlayerConfig(playerSettings.white),
+      black: toPlayerConfig(playerSettings.black),
+      whiteTimeControl: playerSettings.white.timeControl
+        ? {
+            initialTime: playerSettings.white.timeControl.seconds,
+            increment: playerSettings.white.timeControl.increment ?? 0,
+          }
+        : null,
+      blackTimeControl: playerSettings.black.timeControl
+        ? {
+            initialTime: playerSettings.black.timeControl.seconds,
+            increment: playerSettings.black.timeControl.increment ?? 0,
+          }
+        : null,
+      initialFen: root.fen === INITIAL_FEN ? null : root.fen,
+    } as GameConfig;
+
+    try {
+      const result = await commands.startGame(newGameId, config);
+      const state = unwrap(result);
+
+      setWhiteTime(state.whiteTime !== null ? Number(state.whiteTime) : null);
+      setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
+
+      setGameState("playing");
+
+      const newHeaders: Partial<GameHeaders> = {
+        white: state.whitePlayer,
+        black: state.blackPlayer,
+        time_control: undefined,
+      };
+
       if (
-        payload.progress === 100 &&
-        payload.engine === pos?.turn &&
-        payload.tab === activeTab + pos.turn &&
-        payload.fen === root.fen &&
-        equal(payload.moves, moves) &&
-        !pos?.isEnd()
+        playerSettings.white.timeControl ||
+        playerSettings.black.timeControl
       ) {
-        appendMove({
-          payload: parseUci(ev[0].uciMoves[0])!,
-          clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
-        });
+        if (playerSettings.white.timeControl) {
+          const seconds = playerSettings.white.timeControl.seconds / 1000;
+          const increment =
+            (playerSettings.white.timeControl.increment ?? 0) / 1000;
+          newHeaders.time_control = increment
+            ? `${seconds}+${increment}`
+            : `${seconds}`;
+        }
       }
+
+      setHeaders({
+        ...headers,
+        ...newHeaders,
+        fen: root.fen,
+      });
+
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.value === activeTab
+            ? { ...tab, name: `${state.whitePlayer} vs. ${state.blackPlayer}` }
+            : tab
+        )
+      );
+    } catch (err) {
+      console.error("Failed to start game:", err);
+    }
+  }
+
+  const handleHumanMove = useCallback(
+    async (uci: string) => {
+      if (!gameId || gameState !== "playing") return;
+
+      try {
+        const result = await commands.makeGameMove(gameId, uci);
+      } catch (err) {
+        console.error("Failed to make move:", err);
+      }
+    },
+    [gameId, gameState]
+  );
+
+  const pendingMovesRef = useRef<
+    { uci: string; clock: number | null }[] | null
+  >(null);
+  const pendingTimesRef = useRef<{
+    white: number | null;
+    black: number | null;
+  } | null>(null);
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const THROTTLE_MS = 150;
+
+  const applyPendingUpdates = useCallback(() => {
+    if (pendingMovesRef.current) {
+      syncTreeWithMoves(pendingMovesRef.current);
+      pendingMovesRef.current = null;
+    }
+    if (pendingTimesRef.current) {
+      setWhiteTime(pendingTimesRef.current.white);
+      setBlackTime(pendingTimesRef.current.black);
+      pendingTimesRef.current = null;
+    }
+    throttleTimerRef.current = null;
+  }, [syncTreeWithMoves]);
+
+  const scheduleUpdate = useCallback(() => {
+    if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(applyPendingUpdates, THROTTLE_MS);
+    }
+  }, [applyPendingUpdates]);
+
+  useEffect(() => {
+    if (gameState !== "playing" || !gameId) return;
+
+    const currentGameId = gameId;
+
+    const unlistenMove = events.gameMoveEvent.listen(({ payload }) => {
+      if (payload.gameId !== currentGameId) return;
+
+      pendingMovesRef.current = payload.moves.map((m) => ({
+        uci: m.uci,
+        clock: m.clock !== null ? Number(m.clock) : null,
+      }));
+      pendingTimesRef.current = {
+        white: payload.whiteTime !== null ? Number(payload.whiteTime) : null,
+        black: payload.blackTime !== null ? Number(payload.blackTime) : null,
+      };
+      scheduleUpdate();
     });
+
+    const unlistenClock = events.clockUpdateEvent.listen(({ payload }) => {
+      if (payload.gameId !== currentGameId) return;
+      setWhiteTime(
+        payload.whiteTime !== null ? Number(payload.whiteTime) : null
+      );
+      setBlackTime(
+        payload.blackTime !== null ? Number(payload.blackTime) : null
+      );
+    });
+
+    const unlistenGameOver = events.gameOverEvent.listen(({ payload }) => {
+      if (payload.gameId !== currentGameId) return;
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+      const finalMoves = payload.moves.map((m) => ({
+        uci: m.uci,
+        clock: m.clock !== null ? Number(m.clock) : null,
+      }));
+      syncTreeWithMoves(finalMoves);
+
+      setGameState("gameOver");
+      setResult(gameResultToOutcome(payload.result));
+    });
+
     return () => {
-      unlisten.then((f) => f());
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+      unlistenMove.then((f) => f());
+      unlistenClock.then((f) => f());
+      unlistenGameOver.then((f) => f());
     };
-  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
+  }, [
+    gameId,
+    gameState,
+    scheduleUpdate,
+    applyPendingUpdates,
+    setGameState,
+    setResult,
+  ]);
+
+  useEffect(() => {
+    if (gameState === "playing" && gameId) {
+      commands.getGameState(gameId).then((result) => {
+        if (result.status === "ok") {
+          const state = result.data;
+
+          const backendMoves = state.moves.map((m) => ({
+            uci: m.uci,
+            clock: m.clock !== null ? Number(m.clock) : null,
+          }));
+          syncTreeWithMoves(backendMoves);
+
+          setWhiteTime(
+            state.whiteTime !== null ? Number(state.whiteTime) : null
+          );
+          setBlackTime(
+            state.blackTime !== null ? Number(state.blackTime) : null
+          );
+
+          if (state.status !== "playing") {
+            setGameState("gameOver");
+            if (
+              typeof state.status === "object" &&
+              "finished" in state.status
+            ) {
+              setResult(gameResultToOutcome(state.status.finished.result));
+            }
+          }
+        }
+      });
+    }
+  }, [gameId, gameState, syncTreeWithMoves, setGameState, setResult]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -321,6 +448,21 @@ function BoardGame() {
     (players.white.type === "engine" || players.black.type === "engine") &&
     players.white.type !== players.black.type;
 
+  async function handleNewGame() {
+    if (gameId) {
+      await commands.abortGame(gameId);
+      setGameId(null);
+    }
+    setGameState("settingUp");
+    setWhiteTime(null);
+    setBlackTime(null);
+    setFen(INITIAL_FEN);
+    setHeaders({
+      ...headers,
+      result: "*",
+    });
+  }
+
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -334,11 +476,12 @@ function BoardGame() {
           canTakeBack={onePlayerIsEngine}
           movable={movable}
           whiteTime={
-            gameState === "playing" ? (whiteTime ?? undefined) : undefined
+            gameState === "playing" ? whiteTime ?? undefined : undefined
           }
           blackTime={
-            gameState === "playing" ? (blackTime ?? undefined) : undefined
+            gameState === "playing" ? blackTime ?? undefined : undefined
           }
+          onMove={handleHumanMove}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
@@ -414,19 +557,7 @@ function BoardGame() {
                 <GameInfo headers={headers} />
               </Box>
               <Group grow>
-                <Button
-                  onClick={() => {
-                    setGameState("settingUp");
-                    setWhiteTime(null);
-                    setBlackTime(null);
-                    setFen(INITIAL_FEN);
-                    setHeaders({
-                      ...headers,
-                      result: "*",
-                    });
-                  }}
-                  leftSection={<IconPlus />}
-                >
+                <Button onClick={handleNewGame} leftSection={<IconPlus />}>
                   New Game
                 </Button>
                 <Button
