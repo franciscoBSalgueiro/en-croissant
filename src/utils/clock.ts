@@ -95,7 +95,9 @@ function formatDescriptor(descriptor: string): string {
   }
 
   if (descriptor.includes("+")) {
-    const [base, increment] = descriptor.split("+").map((v) => parseTimeValue(v));
+    const [base, increment] = descriptor
+      .split("+")
+      .map((v) => parseTimeValue(v));
     if (Number.isFinite(base) && Number.isFinite(increment)) {
       if (increment === 0) {
         return secondsToDisplay(base!);
@@ -113,7 +115,9 @@ function formatDescriptor(descriptor: string): string {
   return descriptor;
 }
 
-export function formatTimeControl(timeControl: string | null | undefined): string {
+export function formatTimeControl(
+  timeControl: string | null | undefined,
+): string {
   if (!timeControl) {
     return "Unknown";
   }
@@ -159,7 +163,9 @@ function parseTimeControl(timeControl: string): TimeControl {
       }
 
       if (field.includes("+")) {
-        const [base, increment] = field.split("+").map((v) => parseTimeValue(v));
+        const [base, increment] = field
+          .split("+")
+          .map((v) => parseTimeValue(v));
         if (Number.isFinite(base) && Number.isFinite(increment)) {
           acc.push({
             seconds: base! * 1000,

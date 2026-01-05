@@ -57,9 +57,8 @@ function GameTable() {
   const { data, isLoading, mutate } = useSWR(["games", query], () =>
     query_games(file, query),
   );
-  const { data: timeControls } = useSWR(
-    ["time-controls", file],
-    () => getTimeControls(file),
+  const { data: timeControls } = useSWR(["time-controls", file], () =>
+    getTimeControls(file),
   );
   const groupedTimeControls = useMemo(() => {
     const groups: {
@@ -70,7 +69,7 @@ function GameTable() {
     }[] = [];
     const keyIndex = new Map<string, number>();
 
-    (timeControls ?? []).forEach((tc) => {
+    for (const tc of timeControls ?? []) {
       const normalized = tc.trim();
       const exotic = /[a-zA-Z]/.test(normalized);
       const key = exotic ? "__exotic__" : `normal:${normalized}`;
@@ -86,7 +85,7 @@ function GameTable() {
       } else {
         groups[keyIndex.get(key)!].raws.push(tc);
       }
-    });
+    }
 
     return groups;
   }, [timeControls]);
@@ -95,11 +94,11 @@ function GameTable() {
     const selected = query.time_controls ?? [];
     const keys = new Set<string>();
 
-    groupedTimeControls.forEach((group) => {
+    for (const group of groupedTimeControls) {
       if (group.raws.some((raw) => selected.includes(raw))) {
         keys.add(group.key);
       }
-    });
+    }
 
     return Array.from(keys);
   }, [query.time_controls, groupedTimeControls]);
