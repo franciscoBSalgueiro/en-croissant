@@ -5,13 +5,17 @@ import { TreeStateContext } from "../common/TreeStateContext";
 import FenInput from "../panels/info/FenInput";
 import * as classes from "./EditingCard.css";
 import PiecesGrid from "./PiecesGrid";
+import type { Piece } from "chessops";
 
 function EditingCard({
   boardRef,
   setEditingMode,
+  selectedPiece, setSelectedPiece,
 }: {
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;
+  selectedPiece: Piece | null;
+  setSelectedPiece: (piece: Piece | null) => void;
 }) {
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
@@ -36,6 +40,8 @@ function EditingCard({
         onPut={(newFen) => {
           setFen(newFen);
         }}
+        selectedPiece={selectedPiece}
+        onSelectPiece={setSelectedPiece}
         orientation={headers.orientation}
       />
     </Card>

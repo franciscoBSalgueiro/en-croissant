@@ -61,12 +61,14 @@ import { writeFile } from "@tauri-apps/plugin-fs";
 import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
+  type Piece,
   type SquareName,
   makeSquare,
   parseSquare,
   parseUci,
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
+import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
@@ -105,6 +107,7 @@ interface ChessboardProps {
   whiteTime?: number;
   blackTime?: number;
   practicing?: boolean;
+  selectedPiece?: Piece | null;
 }
 
 function Board({
@@ -121,6 +124,7 @@ function Board({
   whiteTime,
   blackTime,
   practicing,
+  selectedPiece,
 }: ChessboardProps) {
   const { t } = useTranslation();
   const { documentDir } = useLoaderData({ from: "/" });
@@ -698,6 +702,18 @@ function Board({
                         }
                       }
                     },
+                  },
+                }}
+                events={{
+                  select: (key) => {
+                    if (editingMode && selectedPiece) {
+                      const square = parseSquare(key);
+                      if (square) {
+                        const setup = parseFen(currentNode.fen).unwrap();
+                        setup.board.set(square, selectedPiece);
+                        setFen(makeFen(setup));
+                      }
+                    }
                   },
                 }}
                 turnColor={turn}

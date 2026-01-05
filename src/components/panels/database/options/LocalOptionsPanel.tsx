@@ -12,11 +12,11 @@ import {
   Text,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { parseSquare } from "chessops";
+import { parseSquare, type Piece } from "chessops";
 import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
 import dayjs from "dayjs";
 import { useAtom } from "jotai";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
   const boardRef = useRef(null);
@@ -30,6 +30,8 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
     const fenResult = makeFen(setup);
     setOptions((q) => ({ ...q, type: "partial", fen: fenResult }));
   };
+
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
 
   return (
     <Stack>
@@ -149,6 +151,16 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
                   },
                 },
               }}
+              events={{
+                select: (key) => {
+                  const square = parseSquare(key);
+                  if (square && selectedPiece) {
+                    const setup = parseFen(options.fen).unwrap();
+                    setup.board.set(square, selectedPiece);
+                    setOptions((q) => ({ ...q, fen: makeFen(setup) }));
+                  }
+                },
+              }}
             />
           </Box>
 
@@ -196,6 +208,8 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             onPut={(newFen) => {
               setOptions((q) => ({ ...q, fen: newFen }));
             }}
+            onSelectPiece={setSelectedPiece}
+            selectedPiece={selectedPiece}
           />
         </Box>
       </Group>

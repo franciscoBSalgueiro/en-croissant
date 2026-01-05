@@ -21,6 +21,7 @@ export function Chessground(
       api.set({
         ...props,
         events: {
+          ...props.events,
           change: () => {
             if (props.setBoardFen && api) {
               props.setBoardFen(api.getFen());
@@ -33,6 +34,7 @@ export function Chessground(
         ...props,
         addDimensionsCssVarsTo: ref.current,
         events: {
+          ...props.events,
           change: () => {
             if (props.setBoardFen && chessgroundApi) {
               props.setBoardFen(chessgroundApi.getFen());
