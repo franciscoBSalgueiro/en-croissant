@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::Stdio, sync::Arc, time::Instant};
+use std::{collections::HashMap, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
 
 use dashmap::DashMap;
 use log::{error, info};
@@ -284,6 +284,7 @@ struct GameController {
     initial_fen: String,
     moves: Vec<GameMove>,
     position: Chess,
+    position_history: HashMap<String, u32>,
     status: GameStatus,
     clock: Option<ClockState>,
     white_engine: Option<Arc<Mutex<GameEngine>>>,
@@ -325,12 +326,17 @@ impl GameController {
             None
         };
 
+        let mut position_history = HashMap::new();
+        let initial_key = Self::position_key(&position);
+        position_history.insert(initial_key, 1);
+
         Ok(Self {
             game_id,
             config,
             initial_fen,
             moves: Vec::new(),
             position,
+            position_history,
             status: GameStatus::Playing,
             clock,
             white_engine: None,
@@ -375,6 +381,11 @@ impl GameController {
         }
     }
 
+    fn position_key(position: &Chess) -> String {
+        let fen = Fen::from_position(position.clone(), EnPassantMode::Legal).to_string();
+        fen.split_whitespace().take(4).collect::<Vec<_>>().join(" ")
+    }
+
     fn current_turn_player(&self) -> &PlayerConfig {
         if self.position.turn() == Color::White {
             &self.config.white
@@ -406,6 +417,9 @@ impl GameController {
         });
 
         self.position.play_unchecked(&mv);
+
+        let pos_key = Self::position_key(&self.position);
+        *self.position_history.entry(pos_key).or_insert(0) += 1;
 
         if let Some(ref mut clock_state) = self.clock {
             let elapsed = clock_state.last_tick.elapsed().as_millis() as u64;
@@ -480,6 +494,18 @@ impl GameController {
                     reason: DrawReason::FiftyMoveRule,
                 },
             };
+            return;
+        }
+
+        let pos_key = Self::position_key(&self.position);
+        if let Some(&count) = self.position_history.get(&pos_key) {
+            if count >= 3 {
+                self.status = GameStatus::Finished {
+                    result: GameResult::Draw {
+                        reason: DrawReason::ThreefoldRepetition,
+                    },
+                };
+            }
         }
     }
 
