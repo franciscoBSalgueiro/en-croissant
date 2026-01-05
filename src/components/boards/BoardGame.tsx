@@ -1,4 +1,5 @@
 import { events, type GoMode, commands } from "@/bindings";
+import { useGameTimer } from "@/hooks/useGameTimer";
 import {
   activeTabAtom,
   currentGameStateAtom,
@@ -54,244 +55,11 @@ import TimeInput, { type TimeType } from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
 import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
-
-function EnginesSelect({
-  engine,
-  setEngine,
-}: {
-  engine: LocalEngine | null;
-  setEngine: (engine: LocalEngine | null) => void;
-}) {
-  const engines = useAtomValue(enginesAtom).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
-
-  useEffect(() => {
-    if (engines.length > 0 && engine === null) {
-      setEngine(engines[0]);
-    }
-  }, [engine, engines[0], setEngine]);
-
-  return (
-    <Suspense>
-      <Select
-        label="Engine"
-        allowDeselect={false}
-        data={engines?.map((engine) => ({
-          label: engine.name,
-          value: engine.path,
-        }))}
-        value={engine?.path ?? ""}
-        onChange={(e) => {
-          setEngine(engines.find((engine) => engine.path === e) ?? null);
-        }}
-      />
-    </Suspense>
-  );
-}
-
-export type OpponentSettings =
-  | {
-      type: "human";
-      timeControl?: TimeControlField;
-      name?: string;
-      timeUnit?: TimeType;
-      incrementUnit?: TimeType;
-    }
-  | {
-      type: "engine";
-      timeControl?: TimeControlField;
-      engine: LocalEngine | null;
-      go: GoMode;
-      timeUnit?: TimeType;
-      incrementUnit?: TimeType;
-    };
-
-function OpponentForm({
-  sameTimeControl,
-  opponent,
-  setOpponent,
-  setOtherOpponent,
-}: {
-  sameTimeControl: boolean;
-  opponent: OpponentSettings;
-  setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-  setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-}) {
-  function updateType(type: "engine" | "human") {
-    if (type === "human") {
-      setOpponent((prev) => ({
-        ...prev,
-        type: "human",
-        name: "Player",
-      }));
-    } else {
-      setOpponent((prev) => ({
-        ...prev,
-        type: "engine",
-        engine: null,
-        go: {
-          t: "Depth",
-          c: 24,
-        },
-      }));
-    }
-  }
-
-  return (
-    <Stack flex={1}>
-      <SegmentedControl
-        data={[
-          { value: "human", label: "Human" },
-          { value: "engine", label: "Engine" },
-        ]}
-        value={opponent.type}
-        onChange={(v) => updateType(v as "human" | "engine")}
-      />
-
-      {opponent.type === "human" && (
-        <TextInput
-          label="Name"
-          value={opponent.name ?? ""}
-          onChange={(e) =>
-            setOpponent((prev) => ({ ...prev, name: e.target.value }))
-          }
-        />
-      )}
-
-      {opponent.type === "engine" && (
-        <EnginesSelect
-          engine={opponent.engine}
-          setEngine={(engine) => setOpponent((prev) => ({ ...prev, engine }))}
-        />
-      )}
-
-      <Divider variant="dashed" label="Time Settings" />
-      <SegmentedControl
-        data={["Time", "Unlimited"]}
-        value={opponent.timeControl ? "Time" : "Unlimited"}
-        onChange={(v) => {
-          setOpponent((prev) => ({
-            ...prev,
-            timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
-          }));
-          if (sameTimeControl) {
-            setOtherOpponent((prev) => ({
-              ...prev,
-              timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
-            }));
-          }
-        }}
-      />
-      <Group grow wrap="nowrap">
-        {opponent.timeControl && (
-          <>
-            <InputWrapper label="Time">
-              <TimeInput
-                defaultType="m"
-                type={opponent.timeUnit}
-                onTypeChange={(t) => {
-                  setOpponent((prev) => ({ ...prev, timeUnit: t }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({ ...prev, timeUnit: t }));
-                  }
-                }}
-                value={opponent.timeControl.seconds}
-                setValue={(v) => {
-                  setOpponent((prev) => ({
-                    ...prev,
-                    timeControl: {
-                      seconds: v.t === "Time" ? v.c : 0,
-                      increment: prev.timeControl?.increment ?? 0,
-                    },
-                  }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({
-                      ...prev,
-                      timeControl: {
-                        seconds: v.t === "Time" ? v.c : 0,
-                        increment: prev.timeControl?.increment ?? 0,
-                      },
-                    }));
-                  }
-                }}
-              />
-            </InputWrapper>
-            <InputWrapper label="Increment">
-              <TimeInput
-                defaultType="s"
-                type={opponent.incrementUnit}
-                onTypeChange={(t) => {
-                  setOpponent((prev) => ({ ...prev, incrementUnit: t }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({ ...prev, incrementUnit: t }));
-                  }
-                }}
-                value={opponent.timeControl.increment ?? 0}
-                setValue={(v) => {
-                  setOpponent((prev) => ({
-                    ...prev,
-                    timeControl: {
-                      seconds: prev.timeControl?.seconds ?? 0,
-                      increment: v.t === "Time" ? v.c : 0,
-                    },
-                  }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({
-                      ...prev,
-                      timeControl: {
-                        seconds: prev.timeControl?.seconds ?? 0,
-                        increment: v.t === "Time" ? v.c : 0,
-                      },
-                    }));
-                  }
-                }}
-              />
-            </InputWrapper>
-          </>
-        )}
-      </Group>
-
-      {opponent.type === "engine" && (
-        <Stack>
-          {opponent.engine && !opponent.timeControl && (
-            <EngineSettingsForm
-              engine={opponent.engine}
-              remote={false}
-              gameMode
-              settings={{
-                go: opponent.go,
-                settings: opponent.engine.settings || [],
-                enabled: true,
-                synced: false,
-              }}
-              setSettings={(fn) =>
-                setOpponent((prev) => {
-                  if (prev.type === "human") {
-                    return prev;
-                  }
-                  const newSettings = fn({
-                    go: prev.go,
-                    settings: prev.engine?.settings || [],
-                    enabled: true,
-                    synced: false,
-                  });
-                  return { ...prev, ...newSettings };
-                })
-              }
-              minimal={true}
-            />
-          )}
-        </Stack>
-      )}
-    </Stack>
-  );
-}
-
-const DEFAULT_TIME_CONTROL: TimeControlField = {
-  seconds: 180_000,
-  increment: 2_000,
-};
+import {
+  DEFAULT_TIME_CONTROL,
+  OpponentForm,
+  type OpponentSettings,
+} from "./OpponentForm";
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
@@ -422,89 +190,12 @@ function BoardGame() {
     moves,
   ]);
 
-  const [whiteTime, setWhiteTime] = useState<number | null>(null);
-  const [blackTime, setBlackTime] = useState<number | null>(null);
-
-  useEffect(() => {
-    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      const ev = payload.bestLines;
-      if (
-        payload.progress === 100 &&
-        payload.engine === pos?.turn &&
-        payload.tab === activeTab + pos.turn &&
-        payload.fen === root.fen &&
-        equal(payload.moves, moves) &&
-        !pos?.isEnd()
-      ) {
-        appendMove({
-          payload: parseUci(ev[0].uciMoves[0])!,
-          clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
-        });
-      }
-    });
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
-
-  const movable = useMemo(() => {
-    if (players.white.type === "human" && players.black.type === "human") {
-      return "turn";
-    }
-    if (players.white.type === "human") {
-      return "white";
-    }
-    if (players.black.type === "human") {
-      return "black";
-    }
-    return "none";
-  }, [players]);
-
-  const [sameTimeControl, setSameTimeControl] = useState(true);
-
-  const [intervalId, setIntervalId] = useState<ReturnType<
-    typeof setInterval
-  > | null>(null);
-
-  useEffect(() => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
-    }
-  }, [pos?.turn]);
-
-  useEffect(() => {
-    if (gameState === "playing" && whiteTime !== null && whiteTime <= 0) {
-      setGameState("gameOver");
-      setResult("0-1");
-    }
-  }, [gameState, whiteTime, setGameState, setResult]);
-
-  useEffect(() => {
-    if (gameState !== "playing") {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-    }
-  }, [gameState, intervalId]);
-
-  useEffect(() => {
-    if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
-      setGameState("gameOver");
-      setResult("1-0");
-    }
-  }, [gameState, blackTime, setGameState, setResult]);
-
-  function decrementTime() {
-    if (gameState === "playing") {
-      if (pos?.turn === "white" && whiteTime !== null) {
-        setWhiteTime((prev) => prev! - 100);
-      } else if (pos?.turn === "black" && blackTime !== null) {
-        setBlackTime((prev) => prev! - 100);
-      }
-    }
-  }
+  const { whiteTime, blackTime, setWhiteTime, setBlackTime } = useGameTimer({
+    gameState,
+    pos: pos ?? undefined,
+    setGameState,
+    setResult,
+  });
 
   function startGame() {
     setGameState("playing");
@@ -590,25 +281,41 @@ function BoardGame() {
   }
 
   useEffect(() => {
-    if (gameState === "playing" && !intervalId) {
-      const intervalId = setInterval(decrementTime, 100);
-      if (pos?.turn === "black" && whiteTime !== null) {
-        setWhiteTime(
-          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
-        );
-      }
-      if (pos?.turn === "white" && blackTime !== null) {
-        setBlackTime((prev) => {
-          if (pos?.fullmoves === 1) {
-            return prev!;
-          }
-
-          return prev! + (players.black.timeControl?.increment ?? 0);
+    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
+      const ev = payload.bestLines;
+      if (
+        payload.progress === 100 &&
+        payload.engine === pos?.turn &&
+        payload.tab === activeTab + pos.turn &&
+        payload.fen === root.fen &&
+        equal(payload.moves, moves) &&
+        !pos?.isEnd()
+      ) {
+        appendMove({
+          payload: parseUci(ev[0].uciMoves[0])!,
+          clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
         });
       }
-      setIntervalId(intervalId);
+    });
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
+
+  const movable = useMemo(() => {
+    if (players.white.type === "human" && players.black.type === "human") {
+      return "turn";
     }
-  }, [gameState, intervalId, pos?.turn]);
+    if (players.white.type === "human") {
+      return "white";
+    }
+    if (players.black.type === "human") {
+      return "black";
+    }
+    return "none";
+  }, [players]);
+
+  const [sameTimeControl, setSameTimeControl] = useState(true);
 
   const onePlayerIsEngine =
     (players.white.type === "engine" || players.black.type === "engine") &&

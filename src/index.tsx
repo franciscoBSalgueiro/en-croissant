@@ -8,6 +8,7 @@ import App from "./App";
 
 import { be_BY } from "./translation/be_BY";
 import { de_DE } from "./translation/de_DE";
+import { en_GB } from "./translation/en_GB";
 import { en_US } from "./translation/en_US";
 import { es_ES } from "./translation/es_ES";
 import { fr_FR } from "./translation/fr_FR";
@@ -24,7 +25,8 @@ import { zh_TW } from "./translation/zh_TW";
 
 i18n.use(initReactI18next).init({
   resources: {
-    en: en_US,
+    en_US: en_US,
+    en_GB: en_GB,
     pt_PT: pt_PT,
     zh_CN: zh_CN,
     ru_RU: ru_RU,
@@ -41,7 +43,7 @@ i18n.use(initReactI18next).init({
     de_DE: de_DE,
   },
   lng: localStorage.getItem("lang") || "en_US",
-  fallbackLng: "en",
+  fallbackLng: "en_US",
 });
 
 dayjs.extend(customParseFormat);

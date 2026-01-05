@@ -60,7 +60,7 @@ The following steps will get you setup to contribute changes to this repo:
 ## Submitting a Pull Request
 
 - Implement your contributions (see the [Development](#development) section for more information)
-- Before submitting a PR, first build the app using `pnpm tauri build -b none` and check every feature you've contributed to.
+- Before submitting a PR, first build the app using `pnpm build` and check every feature you've contributed to.
 - Format and lint your code using `pnpm format` followed by `pnpm lint:fix`
 - Go to [the comparison page](https://github.com/franciscoBSalgueiro/en-croissant/compare) and select the branch you just pushed in the `compare:` dropdown
 - Submit the new PR. The maintainers will follow up ASAP.

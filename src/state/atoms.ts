@@ -16,7 +16,7 @@ import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
 import type { MantineColor } from "@mantine/core";
 
-import type { OpponentSettings } from "@/components/boards/BoardGame";
+import type { OpponentSettings } from "@/components/boards/OpponentForm";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
@@ -285,6 +285,10 @@ export const currentInvisibleAtom = tabValue(invisibleFamily);
 
 const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
+export const annotationFocusAtom = atom(0);
+export const triggerAnnotationFocusAtom = atom(null, (_, set) => {
+  set(annotationFocusAtom, (n) => n + 1);
+});
 
 const localOptionsFamily = atomFamily((tab: string) =>
   atom<LocalOptions>({
