@@ -13,7 +13,7 @@ export function Comment({ comment }: { comment: string }) {
       pl={0}
       mx={4}
       style={{
-        display: multipleLine ? "block" : "inline-block",
+        display: multipleLine ? "block" : "inline",
       }}
     >
       <Markdown
@@ -21,6 +21,8 @@ export function Comment({ comment }: { comment: string }) {
           a: ({ node, ...props }) => (
             <a {...props} target="_blank" rel="noreferrer" />
           ),
+          p: ({ node, ...props }) =>
+            multipleLine ? <p {...props} /> : <span {...props} />,
         }}
         rehypePlugins={[rehypeRaw, remarkGfm]}
       >
