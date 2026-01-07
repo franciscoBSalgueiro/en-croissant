@@ -1,8 +1,8 @@
 import { Box, SimpleGrid } from "@mantine/core";
 import { COLORS, ROLES, parseSquare } from "chessops";
+import type { Piece as PieceT } from "chessops";
 import { makeFen, parseFen } from "chessops/fen";
 import Piece from "../common/Piece";
-import type { Piece as PieceT } from "chessops";
 
 function PiecesGrid({
   fen,
@@ -22,9 +22,7 @@ function PiecesGrid({
   orientation?: "white" | "black";
 }) {
   return (
-    <SimpleGrid
-      cols={vertical ? 2 : 6}
-    >
+    <SimpleGrid cols={vertical ? 2 : 6}>
       {COLORS.map((color) =>
         ROLES.map((role) => {
           const piece = { role, color };
@@ -46,7 +44,7 @@ function PiecesGrid({
               onClick={() => onSelectPiece?.(isSelected ? null : piece)}
             />
           );
-        })
+        }),
       )}
     </SimpleGrid>
   );

@@ -372,9 +372,7 @@ const playersFamily = atomFamily((tab: string) =>
 );
 export const currentPlayersAtom = tabValue(playersFamily);
 
-const gameIdFamily = atomFamily((tab: string) =>
-  atom<string | null>(null),
-);
+const gameIdFamily = atomFamily((tab: string) => atom<string | null>(null));
 export const currentGameIdAtom = tabValue(gameIdFamily);
 
 // Practice

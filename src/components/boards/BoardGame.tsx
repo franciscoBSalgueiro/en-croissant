@@ -1,12 +1,13 @@
 import {
   events,
-  type GoMode,
-  commands,
   type GameConfig,
-  type PlayerConfig,
-  type GameState,
   type GameResult,
+  type GameState,
+  type GoMode,
+  type PlayerConfig,
+  commands,
 } from "@/bindings";
+import type { Outcome } from "@/bindings";
 import {
   activeTabAtom,
   currentGameIdAtom,
@@ -16,6 +17,7 @@ import {
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import type { GameHeaders } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import {
   ActionIcon,
   Box,
@@ -34,7 +36,7 @@ import {
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { parseUci, makeUci } from "chessops";
+import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -57,8 +59,6 @@ import {
   OpponentForm,
   type OpponentSettings,
 } from "./OpponentForm";
-import { unwrap } from "@/utils/unwrap";
-import type { Outcome } from "@/bindings";
 
 function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
@@ -70,7 +70,7 @@ function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
 
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
-    "white"
+    "white",
   );
   function cycleColor() {
     setInputColor((prev) =>
@@ -78,7 +78,7 @@ function BoardGame() {
         .with("white", () => "black" as const)
         .with("black", () => "random" as const)
         .with("random", () => "white" as const)
-        .exhaustive()
+        .exhaustive(),
     );
   }
 
@@ -179,14 +179,14 @@ function BoardGame() {
 
       return false;
     },
-    [getTreeMoves, root.fen, setFen, appendMove]
+    [getTreeMoves, root.fen, setFen, appendMove],
   );
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
       prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab
-      )
+        tab.value === activeTab ? { ...tab, type: "analysis" } : tab,
+      ),
     );
   }
 
@@ -283,8 +283,8 @@ function BoardGame() {
         prev.map((tab) =>
           tab.value === activeTab
             ? { ...tab, name: `${state.whitePlayer} vs. ${state.blackPlayer}` }
-            : tab
-        )
+            : tab,
+        ),
       );
     } catch (err) {
       console.error("Failed to start game:", err);
@@ -301,7 +301,7 @@ function BoardGame() {
         console.error("Failed to make move:", err);
       }
     },
-    [gameId, gameState]
+    [gameId, gameState],
   );
 
   const pendingMovesRef = useRef<
@@ -355,10 +355,10 @@ function BoardGame() {
     const unlistenClock = events.clockUpdateEvent.listen(({ payload }) => {
       if (payload.gameId !== currentGameId) return;
       setWhiteTime(
-        payload.whiteTime !== null ? Number(payload.whiteTime) : null
+        payload.whiteTime !== null ? Number(payload.whiteTime) : null,
       );
       setBlackTime(
-        payload.blackTime !== null ? Number(payload.blackTime) : null
+        payload.blackTime !== null ? Number(payload.blackTime) : null,
       );
     });
 
@@ -409,10 +409,10 @@ function BoardGame() {
           syncTreeWithMoves(backendMoves);
 
           setWhiteTime(
-            state.whiteTime !== null ? Number(state.whiteTime) : null
+            state.whiteTime !== null ? Number(state.whiteTime) : null,
           );
           setBlackTime(
-            state.blackTime !== null ? Number(state.blackTime) : null
+            state.blackTime !== null ? Number(state.blackTime) : null,
           );
 
           if (state.status !== "playing") {
@@ -476,10 +476,10 @@ function BoardGame() {
           canTakeBack={onePlayerIsEngine}
           movable={movable}
           whiteTime={
-            gameState === "playing" ? whiteTime ?? undefined : undefined
+            gameState === "playing" ? (whiteTime ?? undefined) : undefined
           }
           blackTime={
-            gameState === "playing" ? blackTime ?? undefined : undefined
+            gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           onMove={handleHumanMove}
         />

@@ -21,8 +21,16 @@ import {
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import type { Piece } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import { Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -37,7 +45,6 @@ import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
-import type { Piece } from "chessops";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -247,8 +254,8 @@ function BoardAnalysis() {
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         {editingMode ? (
-          <EditingCard 
-            boardRef={boardRef} 
+          <EditingCard
+            boardRef={boardRef}
             setEditingMode={toggleEditingMode}
             selectedPiece={selectedPiece}
             setSelectedPiece={setSelectedPiece}

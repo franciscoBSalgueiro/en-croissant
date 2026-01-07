@@ -12,7 +12,7 @@ import {
   Text,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { parseSquare, type Piece } from "chessops";
+import { type Piece, parseSquare } from "chessops";
 import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
 import dayjs from "dayjs";
 import { useAtom } from "jotai";

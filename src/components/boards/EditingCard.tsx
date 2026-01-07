@@ -1,16 +1,17 @@
 import { Card, CloseButton, Divider } from "@mantine/core";
+import type { Piece } from "chessops";
 import { useContext } from "react";
 import { useStore } from "zustand";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FenInput from "../panels/info/FenInput";
 import * as classes from "./EditingCard.css";
 import PiecesGrid from "./PiecesGrid";
-import type { Piece } from "chessops";
 
 function EditingCard({
   boardRef,
   setEditingMode,
-  selectedPiece, setSelectedPiece,
+  selectedPiece,
+  setSelectedPiece,
 }: {
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;

@@ -39,7 +39,6 @@ export default function PieceComponent({
     );
   }
   const handleDrop = (position: { x: number; y: number }) => {
-
     if (startPosition.current) {
       const dx = position.x - startPosition.current.x;
       const dy = position.y - startPosition.current.y;
