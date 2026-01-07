@@ -110,6 +110,7 @@ interface ChessboardProps {
   practicing?: boolean;
   selectedPiece?: Piece | null;
   onMove?: (uci: string) => void;
+  onTakeBack?: () => void;
 }
 
 function Board({
@@ -128,6 +129,7 @@ function Board({
   practicing,
   selectedPiece,
   onMove,
+  onTakeBack,
 }: ChessboardProps) {
   const { t } = useTranslation();
   const { documentDir } = useLoaderData({ from: "/" });
@@ -155,7 +157,6 @@ function Board({
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
   const storeMakeMove = useStore(store, (s) => s.makeMove);
   const setHeaders = useStore(store, (s) => s.setHeaders);
-  const deleteMove = useStore(store, (s) => s.deleteMove);
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const setShapes = useStore(store, (s) => s.setShapes);
   const setFen = useStore(store, (s) => s.setFen);
@@ -382,12 +383,12 @@ function Board({
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
-        {canTakeBack && (
+        {canTakeBack && onTakeBack && (
           <Tooltip label="Take Back">
             <ActionIcon
               variant="default"
               size="lg"
-              onClick={() => deleteMove()}
+              onClick={() => onTakeBack()}
             >
               <IconArrowBack />
             </ActionIcon>

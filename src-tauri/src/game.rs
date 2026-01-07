@@ -107,6 +107,8 @@ pub struct GameMove {
     pub san: String,
     pub fen_after: String,
     pub clock: Option<u64>,
+    pub white_time: Option<u64>,
+    pub black_time: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Type)]
@@ -439,6 +441,12 @@ impl GameController {
             clock_state.last_tick = Instant::now();
         }
 
+        let (white_time, black_time) = self
+            .clock
+            .as_ref()
+            .map(|c| (c.white_time, c.black_time))
+            .unwrap_or((None, None));
+
         let fen_after =
             Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
 
@@ -447,12 +455,60 @@ impl GameController {
             san: san.to_string(),
             fen_after,
             clock,
+            white_time,
+            black_time,
         };
 
         self.moves.push(game_move.clone());
         self.check_game_end();
 
         Ok(game_move)
+    }
+
+    fn rebuild_position_from_moves(&mut self) -> Result<(), Error> {
+        let fen: Fen = self.initial_fen.parse()?;
+        let position: Chess = match fen.into_position(CastlingMode::Chess960) {
+            Ok(p) => p,
+            Err(e) => e.ignore_too_much_material()?,
+        };
+
+        self.position = position;
+
+        self.position_history.clear();
+        let initial_key = Self::position_key(&self.position);
+        self.position_history.insert(initial_key, 1);
+
+        for m in &self.moves {
+            let uci = UciMove::from_ascii(m.uci.as_bytes())?;
+            let mv = uci.to_move(&self.position)?;
+            self.position.play_unchecked(&mv);
+            let pos_key = Self::position_key(&self.position);
+            *self.position_history.entry(pos_key).or_insert(0) += 1;
+        }
+
+        if let Some(ref mut clock) = self.clock {
+            clock.white_time = self
+                .config
+                .white_time_control
+                .as_ref()
+                .map(|tc| tc.initial_time);
+            clock.black_time = self
+                .config
+                .black_time_control
+                .as_ref()
+                .map(|tc| tc.initial_time);
+
+            if let Some(last_move) = self.moves.last() {
+                if last_move.white_time.is_some() || last_move.black_time.is_some() {
+                    clock.white_time = last_move.white_time;
+                    clock.black_time = last_move.black_time;
+                }
+            }
+
+            clock.last_tick = Instant::now();
+        }
+
+        Ok(())
     }
 
     fn check_game_end(&mut self) {
@@ -695,6 +751,70 @@ impl GameManager {
             }
             .emit(app)?;
         } else {
+            if let Some(tx) = &controller.move_notify_tx {
+                let _ = tx.try_send(());
+            }
+        }
+
+        Ok(controller.get_state())
+    }
+
+    pub async fn take_back_move(
+        &self,
+        game_id: &str,
+        app: &AppHandle,
+    ) -> Result<GameState, Error> {
+        let game = self
+            .games
+            .get(game_id)
+            .ok_or_else(|| Error::GameNotFound(game_id.to_string()))?;
+
+        let mut controller = game.write().await;
+
+        if controller.moves.is_empty() {
+            return Err(Error::NoMovesFound);
+        }
+
+        let human_color = match (&controller.config.white, &controller.config.black) {
+            (PlayerConfig::Human { .. }, PlayerConfig::Engine { .. }) => Some(Color::White),
+            (PlayerConfig::Engine { .. }, PlayerConfig::Human { .. }) => Some(Color::Black),
+            _ => None,
+        };
+
+        let should_pop_two = human_color
+            .map(|c| controller.position.turn() == c)
+            .unwrap_or(false);
+
+        controller.moves.pop();
+        if should_pop_two {
+            controller.moves.pop();
+        }
+        controller.status = GameStatus::Playing;
+        controller.engine_thinking = false;
+
+        controller.rebuild_position_from_moves()?;
+        controller.check_game_end();
+
+        let (white_time, black_time) = controller.get_current_times();
+        let fen = Fen::from_position(controller.position.clone(), EnPassantMode::Legal).to_string();
+
+        GameMoveEvent {
+            game_id: game_id.to_string(),
+            moves: controller.moves.clone(),
+            fen,
+            white_time,
+            black_time,
+        }
+        .emit(app)?;
+
+        if let GameStatus::Finished { result } = &controller.status {
+            GameOverEvent {
+                game_id: game_id.to_string(),
+                result: result.clone(),
+                moves: controller.moves.clone(),
+            }
+            .emit(app)?;
+        } else if controller.is_engine_turn() {
             if let Some(tx) = &controller.move_notify_tx {
                 let _ = tx.try_send(());
             }
@@ -1046,6 +1166,16 @@ pub async fn make_game_move(
     state: tauri::State<'_, crate::AppState>,
 ) -> Result<GameState, Error> {
     state.game_manager.make_move(&game_id, &uci, &app).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn take_back_game_move(
+    game_id: String,
+    app: AppHandle,
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<GameState, Error> {
+    state.game_manager.take_back_move(&game_id, &app).await
 }
 
 #[tauri::command]

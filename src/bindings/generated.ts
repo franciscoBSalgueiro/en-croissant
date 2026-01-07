@@ -358,6 +358,14 @@ async makeGameMove(gameId: string, uci: string) : Promise<Result<GameState, stri
     else return { status: "error", error: e  as any };
 }
 },
+async takeBackGameMove(gameId: string) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("take_back_game_move", { gameId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async resignGame(gameId: string, color: string) : Promise<Result<GameState, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("resign_game", { gameId, color }) };
@@ -421,7 +429,7 @@ export type Event = { id: number; name: string | null }
 export type FileMetadata = { last_modified: number }
 export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null }
 export type GameEndReason = "checkmate" | "timeout" | "resignation" | "abandonment"
-export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigint | null }
+export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigint | null; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameMoveEvent = { gameId: string; moves: GameMove[]; fen: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameOutcome = "Won" | "Drawn" | "Lost"
 export type GameOverEvent = { gameId: string; result: GameResult; moves: GameMove[] }
