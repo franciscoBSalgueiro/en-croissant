@@ -333,6 +333,11 @@ function BoardGame() {
     }
   }, [applyPendingUpdates]);
 
+  const onTakeBack = useCallback(async () => {
+    if (!gameId || gameState !== "playing") return;
+    const result = await commands.takeBackGameMove(gameId);
+  }, [gameId, gameState]);
+
   useEffect(() => {
     if (gameState !== "playing" || !gameId) return;
 
@@ -480,6 +485,7 @@ function BoardGame() {
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           onMove={handleHumanMove}
+          onTakeBack={onTakeBack}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
