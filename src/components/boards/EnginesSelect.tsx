@@ -24,7 +24,6 @@ export function EnginesSelect({
   return (
     <Suspense>
       <Select
-        label="Engine"
         allowDeselect={false}
         data={engines?.map((engine) => ({
           label: engine.name,

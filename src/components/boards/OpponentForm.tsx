@@ -4,6 +4,7 @@ import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm"
 import type { TimeControlField } from "@/utils/clock";
 import type { LocalEngine } from "@/utils/engines";
 import {
+  Center,
   Divider,
   Group,
   InputWrapper,
@@ -11,6 +12,7 @@ import {
   Stack,
   TextInput,
 } from "@mantine/core";
+import { IconCpu, IconUser } from "@tabler/icons-react";
 import { EnginesSelect } from "./EnginesSelect";
 
 export type OpponentSettings =
@@ -70,8 +72,24 @@ export function OpponentForm({
     <Stack flex={1}>
       <SegmentedControl
         data={[
-          { value: "human", label: "Human" },
-          { value: "engine", label: "Engine" },
+          {
+            value: "human",
+            label: (
+              <Center style={{ gap: 10 }}>
+                <IconUser size={16} />
+                <span>Human</span>
+              </Center>
+            ),
+          },
+          {
+            value: "engine",
+            label: (
+              <Center style={{ gap: 10 }}>
+                <IconCpu size={16} />
+                <span>Engine</span>
+              </Center>
+            ),
+          },
         ]}
         value={opponent.type}
         onChange={(v) => updateType(v as "human" | "engine")}
@@ -79,7 +97,6 @@ export function OpponentForm({
 
       {opponent.type === "human" && (
         <TextInput
-          label="Name"
           value={opponent.name ?? ""}
           onChange={(e) =>
             setOpponent((prev) => ({ ...prev, name: e.target.value }))

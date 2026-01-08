@@ -465,7 +465,7 @@ export default function Page() {
       setMoveMethod,
       setIsNative,
       setFilesDirectory,
-    ]
+    ],
   );
 
   const filteredSettings = useMemo(() => {
@@ -475,7 +475,7 @@ export default function Page() {
       (setting) =>
         setting.title.toLowerCase().includes(query) ||
         setting.description.toLowerCase().includes(query) ||
-        setting.keywords?.some((kw) => kw.toLowerCase().includes(query))
+        setting.keywords?.some((kw) => kw.toLowerCase().includes(query)),
     );
   }, [searchQuery, settings]);
 
@@ -539,13 +539,16 @@ export default function Page() {
     }
 
     // Group filtered settings by category
-    const groupedSettings = filteredSettings.reduce((acc, setting) => {
-      if (!acc[setting.category]) {
-        acc[setting.category] = [];
-      }
-      acc[setting.category].push(setting);
-      return acc;
-    }, {} as Record<SettingCategory, SettingItem[]>);
+    const groupedSettings = filteredSettings.reduce(
+      (acc, setting) => {
+        if (!acc[setting.category]) {
+          acc[setting.category] = [];
+        }
+        acc[setting.category].push(setting);
+        return acc;
+      },
+      {} as Record<SettingCategory, SettingItem[]>,
+    );
 
     return (
       <Card withBorder p="lg" className={classes.card} w="100%">
