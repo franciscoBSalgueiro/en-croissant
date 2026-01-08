@@ -26,8 +26,9 @@ function EditingCard({
   return (
     <Card
       shadow="md"
-      style={{ position: "relative", overflow: "visible" }}
+      style={{ position: "relative" }}
       className={classes.card}
+      withBorder
     >
       <CloseButton
         style={{ position: "absolute", top: 10, right: 15 }}
