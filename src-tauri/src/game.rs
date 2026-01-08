@@ -1,26 +1,23 @@
-use std::{collections::HashMap, path::PathBuf, process::Stdio, sync::Arc, time::Instant};
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
 
 use dashmap::DashMap;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position,
+    fen::Fen, san::SanPlus, uci::UciMove, Chess, Color, EnPassantMode, Position,
 };
 use specta::Type;
 use tauri::AppHandle;
 use tauri_specta::Event;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
-    process::{Child, ChildStdin, ChildStdout, Command},
     sync::{watch, Mutex, RwLock},
     time::{interval, Duration},
 };
-use vampirc_uci::UciMessage;
 
-use crate::{chess::{EngineOption, GoMode, PlayersTime}, error::Error};
-
-#[cfg(target_os = "windows")]
-const CREATE_NO_WINDOW: u32 = 0x08000000;
+use crate::{
+    engine::{parse_fen_to_position, BaseEngine, EngineOption, GoMode, PlayersTime},
+    error::Error,
+};
 
 pub type GameId = String;
 
@@ -164,114 +161,6 @@ pub struct GameStartedEvent {
     pub black_time: Option<u64>,
 }
 
-struct GameEngine {
-    stdin: ChildStdin,
-    reader: Lines<BufReader<ChildStdout>>,
-    #[allow(dead_code)]
-    child: Child,
-}
-
-impl GameEngine {
-    async fn new(path: PathBuf) -> Result<Self, Error> {
-        let mut command = Command::new(&path);
-        command.current_dir(path.parent().unwrap_or(&path));
-        command
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        #[cfg(target_os = "windows")]
-        command.creation_flags(CREATE_NO_WINDOW);
-
-        let mut child = command.spawn()?;
-
-        let stdin = child.stdin.take().ok_or(Error::NoStdin)?;
-        let stdout = child.stdout.take().ok_or(Error::NoStdout)?;
-        let reader = BufReader::new(stdout).lines();
-
-        if let Some(stderr) = child.stderr.take() {
-            tokio::spawn(async move {
-                let mut stderr_reader = BufReader::new(stderr).lines();
-                while let Ok(Some(line)) = stderr_reader.next_line().await {
-                    error!("Engine stderr: {}", line);
-                }
-            });
-        }
-
-        let mut engine = Self {
-            stdin,
-            reader,
-            child,
-        };
-
-        engine.send("uci").await?;
-        engine.wait_for("uciok").await?;
-        engine.send("isready").await?;
-        engine.wait_for("readyok").await?;
-
-        Ok(engine)
-    }
-
-    async fn send(&mut self, cmd: &str) -> Result<(), Error> {
-        let msg = format!("{}\n", cmd);
-        self.stdin.write_all(msg.as_bytes()).await?;
-        Ok(())
-    }
-
-    async fn wait_for(&mut self, expected: &str) -> Result<(), Error> {
-        while let Some(line) = self.reader.next_line().await? {
-            if line.starts_with(expected) {
-                return Ok(());
-            }
-        }
-        Err(Error::EngineDisconnected)
-    }
-
-    async fn set_option(&mut self, name: &str, value: &str) -> Result<(), Error> {
-        self.send(&format!("setoption name {} value {}", name, value))
-            .await
-    }
-
-    async fn set_position(&mut self, fen: &str, moves: &[String]) -> Result<(), Error> {
-        let cmd = if moves.is_empty() {
-            format!("position fen {}", fen)
-        } else {
-            format!("position fen {} moves {}", fen, moves.join(" "))
-        };
-        self.send(&cmd).await
-    }
-
-    async fn go(&mut self, mode: &GoMode) -> Result<(), Error> {
-        let cmd = match mode {
-            GoMode::Depth(d) => format!("go depth {}", d),
-            GoMode::Time(t) => format!("go movetime {}", t),
-            GoMode::Nodes(n) => format!("go nodes {}", n),
-            GoMode::PlayersTime(pt) => {
-                format!(
-                    "go wtime {} btime {} winc {} binc {}",
-                    pt.white, pt.black, pt.winc, pt.binc
-                )
-            }
-            GoMode::Infinite => "go infinite".to_string(),
-        };
-        self.send(&cmd).await
-    }
-
-    async fn wait_for_bestmove(&mut self) -> Result<String, Error> {
-        while let Some(line) = self.reader.next_line().await? {
-            if let UciMessage::BestMove { best_move, .. } = vampirc_uci::parse_one(&line) {
-                return Ok(best_move.to_string());
-            }
-        }
-        Err(Error::EngineDisconnected)
-    }
-
-    async fn quit(&mut self) -> Result<(), Error> {
-        let _ = self.send("quit").await;
-        Ok(())
-    }
-}
-
 struct ClockState {
     white_time: Option<u64>,
     black_time: Option<u64>,
@@ -289,8 +178,8 @@ struct GameController {
     position_history: HashMap<String, u32>,
     status: GameStatus,
     clock: Option<ClockState>,
-    white_engine: Option<Arc<Mutex<GameEngine>>>,
-    black_engine: Option<Arc<Mutex<GameEngine>>>,
+    white_engine: Option<Arc<Mutex<BaseEngine>>>,
+    black_engine: Option<Arc<Mutex<BaseEngine>>>,
     shutdown_tx: Option<watch::Sender<bool>>,
     move_notify_tx: Option<tokio::sync::mpsc::Sender<()>>,
     engine_thinking: bool,
@@ -302,11 +191,7 @@ impl GameController {
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()
         });
 
-        let fen: Fen = initial_fen.parse()?;
-        let position: Chess = match fen.into_position(CastlingMode::Chess960) {
-            Ok(p) => p,
-            Err(e) => e.ignore_too_much_material()?,
-        };
+        let position = parse_fen_to_position(&initial_fen)?;
 
         let clock = if config.white_time_control.is_some() || config.black_time_control.is_some() {
             Some(ClockState {
@@ -466,13 +351,7 @@ impl GameController {
     }
 
     fn rebuild_position_from_moves(&mut self) -> Result<(), Error> {
-        let fen: Fen = self.initial_fen.parse()?;
-        let position: Chess = match fen.into_position(CastlingMode::Chess960) {
-            Ok(p) => p,
-            Err(e) => e.ignore_too_much_material()?,
-        };
-
-        self.position = position;
+        self.position = parse_fen_to_position(&self.initial_fen)?;
 
         self.position_history.clear();
         let initial_key = Self::position_key(&self.position);
@@ -663,7 +542,8 @@ impl GameManager {
         let (white_time, black_time) = controller.get_current_times();
 
         if let PlayerConfig::Engine { path, options, .. } = &config.white {
-            let mut engine = GameEngine::new(PathBuf::from(path)).await?;
+            let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
+            engine.init_uci().await?;
             for opt in options {
                 engine.set_option(&opt.name, &opt.value).await?;
             }
@@ -671,7 +551,8 @@ impl GameManager {
         }
 
         if let PlayerConfig::Engine { path, options, .. } = &config.black {
-            let mut engine = GameEngine::new(PathBuf::from(path)).await?;
+            let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
+            engine.init_uci().await?;
             for opt in options {
                 engine.set_option(&opt.name, &opt.value).await?;
             }

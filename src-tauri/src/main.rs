@@ -5,6 +5,7 @@
 
 mod chess;
 mod db;
+mod engine;
 mod error;
 mod game;
 
