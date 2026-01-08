@@ -80,18 +80,27 @@ function Puzzles({ id }: { id: string }) {
   const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
     useAtom(jumpToNextPuzzleAtom);
 
-  const wonPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === "correct",
-  );
-  const lostPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === "incorrect",
-  );
-  const averageWonRating =
-    wonPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
-    wonPuzzles.length;
-  const averageLostRating =
-    lostPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
-    lostPuzzles.length;
+  const wonPuzzles = puzzles.filter((p) => p.completion === "correct");
+  const lostPuzzles = puzzles.filter((p) => p.completion === "incorrect");
+
+  const totalCompleted = wonPuzzles.length + lostPuzzles.length;
+  const accuracy =
+    totalCompleted > 0
+      ? Math.round((wonPuzzles.length / totalCompleted) * 100)
+      : 0;
+
+  let currentStreak = 0;
+  for (let i = puzzles.length - 1; i >= 0; i--) {
+    if (puzzles[i].completion === "correct") currentStreak++;
+    else if (puzzles[i].completion === "incorrect") break;
+  }
+
+  const avgTimeSeconds =
+    wonPuzzles.length > 0
+      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
+        wonPuzzles.length /
+        1000
+      : 0;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
     setFen(puzzle.fen);
@@ -204,69 +213,80 @@ function Puzzles({ id }: { id: string }) {
             setOpened={setAddOpened}
             setPuzzleDbs={setPuzzleDbs}
           />
+          <Select
+            data={puzzleDbs
+              .map((p) => ({
+                label: p.title.split(".db3")[0],
+                value: p.path,
+              }))
+              .concat({ label: "+ Add new", value: "add" })}
+            value={selectedDb}
+            clearable={false}
+            placeholder="Select database"
+            onChange={(v) => {
+              if (v === "add") {
+                setAddOpened(true);
+              } else {
+                setSelectedDb(v);
+              }
+            }}
+            pb="sm"
+          />
           <Group grow>
-            <div>
-              <Text size="sm" c="dimmed">
-                Puzzle Rating
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Rating
               </Text>
-              <Text fw={500} size="xl">
+              <Text fw={700} size="lg">
                 {puzzles[currentPuzzle]?.completion === "incomplete"
                   ? hideRating
                     ? "?"
                     : puzzles[currentPuzzle]?.rating
-                  : puzzles[currentPuzzle]?.rating}
+                  : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
-            </div>
-            <div>
-              <Text size="sm" c="dimmed">
+            </Paper>
+
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
                 Time
               </Text>
-              <Text fw={500} size="xl" ff="monospace">
+              <Text fw={700} size="lg" ff="monospace">
                 {puzzles[currentPuzzle]?.completion === "incomplete"
                   ? formatTime(elapsedTime)
                   : puzzles[currentPuzzle]?.timeSpent
                     ? formatTime(puzzles[currentPuzzle].timeSpent)
                     : "-"}
               </Text>
-            </div>
-            {averageWonRating && (
-              <div>
-                <Text size="sm" c="dimmed">
-                  Average Success Rating
+            </Paper>
+
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Accuracy
+              </Text>
+              <Text fw={700} size="lg" c={accuracy >= 50 ? "teal" : "orange"}>
+                {accuracy}%
+              </Text>
+            </Paper>
+
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Streak
+              </Text>
+              <Text fw={700} size="lg" c="blue">
+                {currentStreak} 🔥
+              </Text>
+            </Paper>
+
+            {avgTimeSeconds > 0 && (
+              <Paper withBorder p="xs">
+                <Text size="xs" c="dimmed">
+                  Avg Time
                 </Text>
-                <Text fw={500} size="xl">
-                  {averageWonRating.toFixed(0)}
+                <Text fw={700} size="lg">
+                  {avgTimeSeconds.toFixed(1)}s
                 </Text>
-              </div>
+              </Paper>
             )}
-            {averageLostRating && (
-              <div>
-                <Text size="sm" c="dimmed">
-                  Average Fail Rating
-                </Text>
-                <Text fw={500} size="xl">
-                  {averageLostRating.toFixed(0)}
-                </Text>
-              </div>
-            )}
-            <Select
-              data={puzzleDbs
-                .map((p) => ({
-                  label: p.title.split(".db3")[0],
-                  value: p.path,
-                }))
-                .concat({ label: "+ Add new", value: "add" })}
-              value={selectedDb}
-              clearable={false}
-              placeholder="Select database"
-              onChange={(v) => {
-                if (v === "add") {
-                  setAddOpened(true);
-                } else {
-                  setSelectedDb(v);
-                }
-              }}
-            />
           </Group>
           <Divider my="sm" />
           <Group>
