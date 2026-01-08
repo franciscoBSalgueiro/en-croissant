@@ -254,7 +254,7 @@ function Puzzles({ id }: { id: string }) {
                 {puzzles[currentPuzzle]?.completion === "incomplete"
                   ? formatTime(elapsedTime)
                   : puzzles[currentPuzzle]?.timeSpent
-                    ? formatTime(puzzles[currentPuzzle].timeSpent)
+                    ? formatTime(puzzles[currentPuzzle].timeSpent!)
                     : "-"}
               </Text>
             </Paper>

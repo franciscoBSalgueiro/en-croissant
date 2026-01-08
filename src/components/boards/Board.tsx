@@ -607,18 +607,23 @@ function Board({
             >
               {!evalOpen && (
                 <Center h="100%" w="100%">
-                  <ActionIcon size="1rem" onClick={() => setEvalOpen(true)}>
+                  <ActionIcon
+                    size="1rem"
+                    onClick={() => setEvalOpen(true)}
+                    onContextMenu={(e) => {
+                      setEvalOpen(true);
+                      e.preventDefault();
+                    }}
+                  >
                     <IconChevronRight />
                   </ActionIcon>
                 </Center>
               )}
               {evalOpen && (
-                <Box onClick={() => setEvalOpen(false)} h="100%">
-                  <EvalBar
-                    score={currentNode.score?.value || null}
-                    orientation={orientation}
-                  />
-                </Box>
+                <EvalBar
+                  score={currentNode.score || null}
+                  orientation={orientation}
+                />
               )}
             </Box>
             <Box

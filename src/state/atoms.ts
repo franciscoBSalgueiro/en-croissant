@@ -285,6 +285,11 @@ export const currentThreatAtom = tabValue(threatFamily);
 const evalOpenFamily = atomFamily((tab: string) => atom(true));
 export const currentEvalOpenAtom = tabValue(evalOpenFamily);
 
+const evalBarDisplayFamily = atomFamily((tab: string) =>
+  atom<"cp" | "wdl">("cp"),
+);
+export const currentEvalBarDisplayAtom = tabValue(evalBarDisplayFamily);
+
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
@@ -475,6 +480,41 @@ export const bestMovesFamily = atomFamily(
         n++;
       }
       return bestMoves;
+    }),
+  (a, b) => a.fen === b.fen && equal(a.gameMoves, b.gameMoves),
+);
+
+export const firstEngineWithLinesFamily = atomFamily(
+  ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
+    atom<string | null>((get) => {
+      const tab = get(activeTabAtom);
+      if (!tab) return null;
+      const engines = get(loadableEnginesAtom);
+      if (!(engines.state === "hasData")) return null;
+
+      const [pos] = positionFromFen(fen);
+      let finalFen = INITIAL_FEN;
+      if (pos) {
+        for (const move of gameMoves) {
+          const m = parseUci(move);
+          if (m) pos.play(m);
+        }
+        finalFen = makeFen(pos.toSetup());
+      }
+
+      for (const engine of engines.data.filter((e) => e.loaded)) {
+        const engineMoves = get(
+          engineMovesFamily({ tab, engine: engine.name }),
+        );
+        const moves =
+          engineMoves.get(`${swapMove(finalFen)}:`) ||
+          engineMoves.get(`${fen}:${gameMoves.join(",")}`);
+
+        if (moves && moves.length > 0) {
+          return engine.name;
+        }
+      }
+      return null;
     }),
   (a, b) => a.fen === b.fen && equal(a.gameMoves, b.gameMoves),
 );
