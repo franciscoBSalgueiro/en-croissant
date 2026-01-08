@@ -264,6 +264,11 @@ export const puzzleRatingRangeAtom = atomWithStorage<[number, number]>(
   [1000, 1500],
 );
 
+export const puzzleTimerFamily = atomFamily((tab: string) =>
+  atom<number | null>(null),
+);
+export const currentPuzzleTimerAtom = tabValue(puzzleTimerFamily);
+
 // CP / WDL
 
 export const reportTypeAtom = atom<"CP" | "WDL">("CP");

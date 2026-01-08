@@ -2,6 +2,7 @@ import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleAtom,
+  currentPuzzleTimerAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
@@ -10,6 +11,7 @@ import {
   tabsAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
+import { formatTime } from "@/utils/format";
 import {
   type Completion,
   type Puzzle,
@@ -117,20 +119,62 @@ function Puzzles({ id }: { id: string }) {
       });
       setCurrentPuzzle(puzzles.length);
       setPuzzle(newPuzzle);
+      setTimerStart(Date.now());
     });
   }
 
   function changeCompletion(completion: Completion) {
+    const timeSpent = timerStart !== null ? Date.now() - timerStart : 0;
     setPuzzles((puzzles) => {
       puzzles[currentPuzzle].completion = completion;
+      puzzles[currentPuzzle].timeSpent = timeSpent;
       return [...puzzles];
     });
+    setTimerStart(null);
   }
 
   const [addOpened, setAddOpened] = useState(false);
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
+
+  const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
+  const [, setTick] = useState(0);
+
+  const elapsedTime = timerStart !== null ? Date.now() - timerStart : 0;
+
+  useEffect(() => {
+    const currentPuzzleData = puzzles[currentPuzzle];
+    if (!currentPuzzleData || currentPuzzleData.completion !== "incomplete") {
+      return;
+    }
+
+    if (timerStart === null) {
+      setTimerStart(Date.now());
+    }
+
+    const displayInterval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 100);
+
+    const saveInterval = setInterval(() => {
+      if (timerStart !== null) {
+        const elapsed = Date.now() - timerStart;
+        setPuzzles((puzzles) => {
+          if (puzzles[currentPuzzle]?.completion === "incomplete") {
+            puzzles[currentPuzzle].timeSpent = elapsed;
+            return [...puzzles];
+          }
+          return puzzles;
+        });
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(displayInterval);
+      clearInterval(saveInterval);
+    };
+  }, [currentPuzzle, puzzles, timerStart, setTimerStart, setPuzzles]);
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -171,6 +215,18 @@ function Puzzles({ id }: { id: string }) {
                     ? "?"
                     : puzzles[currentPuzzle]?.rating
                   : puzzles[currentPuzzle]?.rating}
+              </Text>
+            </div>
+            <div>
+              <Text size="sm" c="dimmed">
+                Time
+              </Text>
+              <Text fw={500} size="xl" ff="monospace">
+                {puzzles[currentPuzzle]?.completion === "incomplete"
+                  ? formatTime(elapsedTime)
+                  : puzzles[currentPuzzle]?.timeSpent
+                    ? formatTime(puzzles[currentPuzzle].timeSpent)
+                    : "-"}
               </Text>
             </div>
             {averageWonRating && (
@@ -303,6 +359,7 @@ function Puzzles({ id }: { id: string }) {
                   onClick={() => {
                     setPuzzles([]);
                     reset();
+                    setTimerStart(null);
                   }}
                 >
                   <IconX />
@@ -347,6 +404,11 @@ function Puzzles({ id }: { id: string }) {
                 select={(i) => {
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);
+                  if (puzzles[i].completion === "incomplete") {
+                    setTimerStart(Date.now() - (puzzles[i].timeSpent || 0));
+                  } else {
+                    setTimerStart(null);
+                  }
                 }}
               />
             </ScrollArea>

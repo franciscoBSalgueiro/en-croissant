@@ -13,6 +13,7 @@ export interface Puzzle {
   popularity: number;
   nb_plays: number;
   completion: Completion;
+  timeSpent?: number;
 }
 
 async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo> {
