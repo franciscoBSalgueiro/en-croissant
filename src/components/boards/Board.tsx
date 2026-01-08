@@ -559,7 +559,7 @@ function Board({
             overflow: "hidden",
             maxWidth:
               //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              "calc(100vh - 2.5rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
+              "calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
           }}
         >
           {materialDiff && (

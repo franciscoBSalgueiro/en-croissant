@@ -247,7 +247,7 @@ function RootLayout() {
         isNative || import.meta.env.VITE_PLATFORM !== "win32"
           ? undefined
           : {
-              height: "2.5rem",
+              height: "2.25rem",
             }
       }
       styles={{
