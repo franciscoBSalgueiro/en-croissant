@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[cfg(target_os = "windows")]
-pub const CREATE_NO_WINDOW: u32 = 0x08000000;
-
 #[derive(Deserialize, Serialize, Debug, Clone, Type, PartialEq, Eq)]
 pub struct EngineOption {
     pub name: String,

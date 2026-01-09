@@ -11,7 +11,10 @@ use vampirc_uci::UciMessage;
 
 use crate::error::Error;
 
-use super::{types::GoMode, CREATE_NO_WINDOW};
+use super::{types::GoMode};
+
+#[cfg(target_os = "windows")]
+pub const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "type", content = "value", rename_all = "camelCase")]
