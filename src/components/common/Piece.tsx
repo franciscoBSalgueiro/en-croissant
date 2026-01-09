@@ -1,4 +1,4 @@
-import type { Color, Piece } from "chessground/types";
+import type { Color, Piece } from "@lichess-org/chessground/types";
 import type { Square } from "chessops";
 import { squareFromCoords } from "chessops/util";
 import { useRef, useState } from "react";

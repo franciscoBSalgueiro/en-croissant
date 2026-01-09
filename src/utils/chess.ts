@@ -1,5 +1,5 @@
 import { type Outcome, type Score, type Token, commands } from "@/bindings";
-import type { DrawShape } from "chessground/draw";
+import type { DrawShape } from "@lichess-org/chessground/draw";
 import {
   type Color,
   type Move,

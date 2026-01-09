@@ -1,8 +1,8 @@
 import type { Score } from "@/bindings";
 import { currentEvalBarDisplayAtom, currentEvalOpenAtom } from "@/state/atoms";
 import { formatScore, getWinChance } from "@/utils/score";
+import type { Color } from "@lichess-org/chessground/types";
 import { Box, Text, Tooltip, useMantineTheme } from "@mantine/core";
-import type { Color } from "chessground/types";
 import { useAtom } from "jotai";
 
 function EvalBar({

@@ -28,6 +28,7 @@ import {
 } from "@/utils/chessops";
 import { type TimeControlField, getClockInfo } from "@/utils/clock";
 import { getNodeAtPath } from "@/utils/treeReducer";
+import type { DrawShape } from "@lichess-org/chessground/draw";
 import {
   ActionIcon,
   Box,
@@ -58,7 +59,6 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
   type Piece,
