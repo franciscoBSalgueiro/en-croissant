@@ -26,7 +26,7 @@ function EditingCard({
   return (
     <Card
       shadow="md"
-      style={{ position: "relative" }}
+      style={{ position: "relative", overflow: "visible" }}
       className={classes.card}
       withBorder
     >
