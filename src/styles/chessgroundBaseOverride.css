@@ -132,6 +132,47 @@ piece.fading {
   font-weight: bold;
 }
 
+.cg-wrap coords.squares {
+  width: 100%;
+  height: 100%;
+  margin-left: 4px;
+  margin-top: 2px;
+  font-size: 0.9rem;
+  flex-flow: row;
+}
+
+.cg-wrap coords.rank1 {
+  bottom: 0%;
+}
+
+.cg-wrap coords.rank2 {
+  top: 12.5%;
+}
+
+.cg-wrap coords.rank3 {
+  top: 25%;
+}
+
+.cg-wrap coords.rank4 {
+  top: 37.5%;
+}
+
+.cg-wrap coords.rank5 {
+  top: 50%;
+}
+
+.cg-wrap coords.rank6 {
+  top: 62.5%;
+}
+
+.cg-wrap coords.rank7 {
+  top: 75%;
+}
+
+.cg-wrap coords.rank8 {
+  top: 87.5%;
+}
+
 .cg-wrap coords.ranks {
   left: 1%;
   top: -4%;

@@ -133,6 +133,7 @@ export default function Page() {
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
+  const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -238,7 +239,18 @@ export default function Page() {
         title: t("Settings.Coordinates"),
         description: t("Settings.Coordinates.Desc"),
         keywords: ["coordinates", "a-h", "1-8"],
-        render: () => <SettingsSwitch atom={showCoordinatesAtom} />,
+        render: () => (
+          <Select
+            data={[
+              { label: "No", value: "no" },
+              { label: "On the edge", value: "edge" },
+              { label: "On all squares", value: "all" },
+            ]}
+            allowDeselect={false}
+            value={showCoordinates}
+            onChange={(val) => setShowCoordinates(val as "no" | "edge" | "all")}
+          />
+        ),
       },
       {
         id: "auto-save",
@@ -460,11 +472,13 @@ export default function Page() {
       moveNotationType,
       moveMethod,
       isNative,
+      showCoordinates,
       filesDirectory,
       setMoveNotationType,
       setMoveMethod,
       setIsNative,
       setFilesDirectory,
+      setShowCoordinates,
     ],
   );
 

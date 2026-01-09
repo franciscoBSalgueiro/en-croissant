@@ -150,13 +150,11 @@ export const enableBoardScrollAtom = atomWithStorage<boolean>(
   true,
 );
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
-export const showCoordinatesAtom = atomWithStorage<boolean>(
-  "show-coordinates",
-  false,
+export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
+  "show-coordinates-v2",
+  "no",
   undefined,
-  {
-    getOnInit: true,
-  },
+  { getOnInit: true },
 );
 export const soundCollectionAtom = atomWithStorage<string>(
   "sound-collection",

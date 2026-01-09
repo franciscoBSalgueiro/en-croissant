@@ -671,7 +671,8 @@ function Board({
                 orientation={orientation}
                 fen={currentNode.fen}
                 animation={{ enabled: !editingMode }}
-                coordinates={showCoordinates}
+                coordinates={showCoordinates !== "no"}
+                coordinatesOnSquares={showCoordinates === "all"}
                 movable={{
                   free: editingMode,
                   color: movableColor,

@@ -146,7 +146,8 @@ function PuzzleBoard({
           animation={{
             enabled: true,
           }}
-          coordinates={showCoordinates}
+          coordinates={showCoordinates !== "no"}
+          coordinatesOnSquares={showCoordinates === "all"}
           orientation={orientation}
           movable={{
             free: false,
