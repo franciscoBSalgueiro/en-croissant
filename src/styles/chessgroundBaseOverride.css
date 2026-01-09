@@ -169,3 +169,7 @@ piece.fading {
 .cg-wrap coords.ranks coord {
   transform: translateY(39%);
 }
+
+.cg-custom-below {
+  display: none;
+}
