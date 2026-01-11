@@ -218,7 +218,6 @@ const RenderVariationTree = memo(
                 targetRef={targetRef}
                 tree={variation}
                 depth={depth + 2}
-                first
                 showVariations={showVariations}
                 showComments={showComments}
                 start={start}
