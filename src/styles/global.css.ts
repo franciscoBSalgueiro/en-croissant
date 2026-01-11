@@ -51,3 +51,12 @@ globalStyle("*", {
   userSelect: "none",
   WebkitUserSelect: "none",
 });
+
+globalStyle("html, body", {
+  overscrollBehavior: "none",
+  overflow: "auto",
+});
+
+globalStyle(".mantine-ScrollArea-viewport", {
+  overscrollBehavior: "none",
+});
