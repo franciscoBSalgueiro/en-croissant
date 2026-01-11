@@ -28,6 +28,7 @@ import {
 } from "@/utils/chessops";
 import { type TimeControlField, getClockInfo } from "@/utils/clock";
 import { getNodeAtPath } from "@/utils/treeReducer";
+import type { DrawShape } from "@lichess-org/chessground/draw";
 import {
   ActionIcon,
   Box,
@@ -58,15 +59,17 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import type { DrawShape } from "chessground/draw";
 import {
   type NormalMove,
+  type Piece,
   type SquareName,
   makeSquare,
+  makeUci,
   parseSquare,
   parseUci,
 } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
+import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue } from "jotai";
@@ -97,6 +100,7 @@ interface ChessboardProps {
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
+  allowEditing?: boolean;
   movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
@@ -105,6 +109,9 @@ interface ChessboardProps {
   whiteTime?: number;
   blackTime?: number;
   practicing?: boolean;
+  selectedPiece?: Piece | null;
+  onMove?: (uci: string) => void;
+  onTakeBack?: () => void;
 }
 
 function Board({
@@ -113,6 +120,7 @@ function Board({
   toggleEditingMode,
   viewOnly,
   disableVariations,
+  allowEditing,
   movable = "turn",
   boardRef,
   saveFile,
@@ -121,6 +129,9 @@ function Board({
   whiteTime,
   blackTime,
   practicing,
+  selectedPiece,
+  onMove,
+  onTakeBack,
 }: ChessboardProps) {
   const { t } = useTranslation();
   const { documentDir } = useLoaderData({ from: "/" });
@@ -148,7 +159,6 @@ function Board({
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
   const storeMakeMove = useStore(store, (s) => s.makeMove);
   const setHeaders = useStore(store, (s) => s.setHeaders);
-  const deleteMove = useStore(store, (s) => s.deleteMove);
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const setShapes = useStore(store, (s) => s.setShapes);
   const setFen = useStore(store, (s) => s.setFen);
@@ -261,6 +271,10 @@ function Board({
         clock: pos.turn === "white" ? whiteTime : blackTime,
       });
       setPendingMove(null);
+
+      if (onMove) {
+        onMove(makeUci(move));
+      }
     }
   }
 
@@ -371,12 +385,12 @@ function Board({
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
-        {canTakeBack && (
+        {canTakeBack && onTakeBack && (
           <Tooltip label="Take Back">
             <ActionIcon
               variant="default"
               size="lg"
-              onClick={() => deleteMove()}
+              onClick={() => onTakeBack()}
             >
               <IconArrowBack />
             </ActionIcon>
@@ -408,7 +422,7 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        {!disableVariations && (
+        {(!disableVariations || allowEditing) && (
           <Tooltip label={t("Board.Action.EditPosition")}>
             <ActionIcon
               variant={editingMode ? "filled" : "default"}
@@ -547,7 +561,7 @@ function Board({
             overflow: "hidden",
             maxWidth:
               //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              "calc(100vh - 2.5rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
+              "calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
           }}
         >
           {materialDiff && (
@@ -595,18 +609,23 @@ function Board({
             >
               {!evalOpen && (
                 <Center h="100%" w="100%">
-                  <ActionIcon size="1rem" onClick={() => setEvalOpen(true)}>
+                  <ActionIcon
+                    size="1rem"
+                    onClick={() => setEvalOpen(true)}
+                    onContextMenu={(e) => {
+                      setEvalOpen(true);
+                      e.preventDefault();
+                    }}
+                  >
                     <IconChevronRight />
                   </ActionIcon>
                 </Center>
               )}
               {evalOpen && (
-                <Box onClick={() => setEvalOpen(false)} h="100%">
-                  <EvalBar
-                    score={currentNode.score?.value || null}
-                    orientation={orientation}
-                  />
-                </Box>
+                <EvalBar
+                  score={currentNode.score || null}
+                  orientation={orientation}
+                />
               )}
             </Box>
             <Box
@@ -654,7 +673,8 @@ function Board({
                 orientation={orientation}
                 fen={currentNode.fen}
                 animation={{ enabled: !editingMode }}
-                coordinates={showCoordinates}
+                coordinates={showCoordinates !== "no"}
+                coordinatesOnSquares={showCoordinates === "all"}
                 movable={{
                   free: editingMode,
                   color: movableColor,
@@ -698,6 +718,18 @@ function Board({
                         }
                       }
                     },
+                  },
+                }}
+                events={{
+                  select: (key) => {
+                    if (editingMode && selectedPiece) {
+                      const square = parseSquare(key);
+                      if (square) {
+                        const setup = parseFen(currentNode.fen).unwrap();
+                        setup.board.set(square, selectedPiece);
+                        setFen(makeFen(setup));
+                      }
+                    }
                   },
                 }}
                 turnColor={turn}

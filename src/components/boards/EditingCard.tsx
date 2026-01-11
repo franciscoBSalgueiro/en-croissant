@@ -1,4 +1,5 @@
 import { Card, CloseButton, Divider } from "@mantine/core";
+import type { Piece } from "chessops";
 import { useContext } from "react";
 import { useStore } from "zustand";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -9,9 +10,13 @@ import PiecesGrid from "./PiecesGrid";
 function EditingCard({
   boardRef,
   setEditingMode,
+  selectedPiece,
+  setSelectedPiece,
 }: {
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   setEditingMode: (editing: boolean) => void;
+  selectedPiece: Piece | null;
+  setSelectedPiece: (piece: Piece | null) => void;
 }) {
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
@@ -23,6 +28,7 @@ function EditingCard({
       shadow="md"
       style={{ position: "relative", overflow: "visible" }}
       className={classes.card}
+      withBorder
     >
       <CloseButton
         style={{ position: "absolute", top: 10, right: 15 }}
@@ -36,6 +42,8 @@ function EditingCard({
         onPut={(newFen) => {
           setFen(newFen);
         }}
+        selectedPiece={selectedPiece}
+        onSelectPiece={setSelectedPiece}
         orientation={headers.orientation}
       />
     </Card>

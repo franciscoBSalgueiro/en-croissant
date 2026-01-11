@@ -1,6 +1,6 @@
 [package]
 name = "en-croissant"
-version = "0.12.1"
+version = "0.12.2"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
 license = "GPL-3.0-only"
@@ -39,7 +39,7 @@ derivative = "2.2.0"
 dashmap = "6.0.1"
 once_cell = "1.17.1"
 rand = "0.8.5"
-vampirc-uci = { git = "https://github.com/franciscoBSalgueiro/vampirc-uci", rev = "c60e65c7d801920ccfc533df3ab87e292d6d0448", features = [
+vampirc-uci = { git = "https://github.com/franciscoBSalgueiro/vampirc-uci", rev = "0d2b70d1e9cc6fb2159717a7252e1e080c25bd53", features = [
     "specta",
     "serde",
 ] }

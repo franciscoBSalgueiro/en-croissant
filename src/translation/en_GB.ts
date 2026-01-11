@@ -1,4 +1,4 @@
-export const en_US = {
+export const en_GB = {
   translation: {
     "Common.On": "ON",
     "Common.Off": "OFF",
@@ -126,7 +126,7 @@ export const en_US = {
     "Home.Card.PlayChess.Desc": "Play against an engine or a friend",
     "Home.Card.PlayChess.Button": "Play",
     "Home.Card.AnalysisBoard.Title": "Analysis Board",
-    "Home.Card.AnalysisBoard.Desc": "Analyze a game or position",
+    "Home.Card.AnalysisBoard.Desc": "Analyse a game or position",
     "Home.Card.AnalysisBoard.Button": "Open",
     "Home.Card.ImportGame.Title": "Import Game",
     "Home.Card.ImportGame.Desc": "Import a game from a PGN",
@@ -137,7 +137,7 @@ export const en_US = {
 
     "Board.Action.TogglePawnStructureView": "Toggle Pawn Structure View",
     "Board.Action.TakeSnapshot": "Take Snapshot",
-    "Board.Action.AnalyzeGame": "Analyze game",
+    "Board.Action.AnalyzeGame": "Analyse game",
     "Board.Action.PlayFromHere": "Play from here",
     "Board.Action.ClearDrawings": "Clear Drawings",
     "Board.Action.EditPosition": "Edit Position",
@@ -182,11 +182,11 @@ export const en_US = {
     "Board.Analysis.Time": "Time (ms)",
     "Board.Analysis.Reversed": "Reversed analysis",
     "Board.Analysis.Reversed.Desc":
-      "Analyze the game in starting from the last move.",
+      "Analyse the game in starting from the last move.",
     "Board.Analysis.AnnotateNovelties": "Annotate Novelties",
     "Board.Analysis.AnnotateNovelties.Desc":
       "Add a comment to the first position that is not in the reference database.",
-    "Board.Analysis.Analyze": "Analyze",
+    "Board.Analysis.Analyze": "Analyse",
     "Board.Analysis.Advantage": "Advantage",
     "Board.Analysis.Accuracy": "Accuracy",
     "Board.Analysis.EnableWDL":
@@ -316,7 +316,7 @@ export const en_US = {
     "Settings.Keybinds": "Keybinds",
     "Settings.Directories": "Directories",
 
-    "Settings.Board.Desc": "Customize the analysis board and game controls",
+    "Settings.Board.Desc": "Customise the analysis board and game controls",
     "Settings.PieceDest": "Piece Destinations",
     "Settings.PieceDest.Desc": "Show possible moves for each piece",
     "Settings.MoveHighlight": "Move Highlight",
@@ -344,13 +344,13 @@ export const en_US = {
     "Settings.ScrollThroughMoves": "Scroll Through Moves",
     "Settings.ScrollThroughMoves.Desc":
       "Enable or disable scrolling through moves on the chessboard",
-    "Settings.Inputs.Desc": "Customize the input settings",
+    "Settings.Inputs.Desc": "Customise the input settings",
     "Settings.Inputs.TextInput": "Text Move Input",
     "Settings.Inputs.TextInput.Desc": "Enter moves in text format",
     "Settings.Inputs.SpellCheck": "Spell Check",
     "Settings.Inputs.SpellCheck.Desc":
       "Enable or disable spell check on text inputs",
-    "Settings.OpeningReport.Desc": "Customize the opening report settings",
+    "Settings.OpeningReport.Desc": "Customise the opening report settings",
     "Settings.OpeningReport.PercentCoverage": "Percent Coverage",
     "Settings.OpeningReport.PercentCoverage.Desc":
       "Percentage of moves covered in each position",
@@ -361,9 +361,9 @@ export const en_US = {
     "Settings.Anarchy.ForcedEnCroissant": "Forced En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
       "Forces you to play En Croissant, if it's a legal move.",
-    "Settings.Appearance.Desc": "Customize the look of the app",
+    "Settings.Appearance.Desc": "Customise the look of the app",
     "Settings.Appearance.Theme": "Theme",
-    "Settings.Appearance.Theme.Desc": "Overall color scheme",
+    "Settings.Appearance.Theme.Desc": "Overall colour scheme",
     "Settings.Appearance.Theme.Light": "Light",
     "Settings.Appearance.Theme.Dark": "Dark",
     "Settings.Appearance.TitleBar": "Title Bar",
@@ -380,14 +380,14 @@ export const en_US = {
     "Settings.Appearance.BoardImage": "Board Image",
     "Settings.Appearance.BoardImage.Desc":
       "Image used as the background of the board",
-    "Settings.Appearance.AccentColor": "Accent Color",
-    "Settings.Appearance.AccentColor.Desc": "Main color of the app",
-    "Settings.Sound.Desc": "Customize the sound settings",
+    "Settings.Appearance.AccentColor": "Accent Colour",
+    "Settings.Appearance.AccentColor.Desc": "Main colour of the app",
+    "Settings.Sound.Desc": "Customise the sound settings",
     "Settings.Sound.Volume": "Volume",
     "Settings.Sound.Volume.Desc": "Overall volume",
     "Settings.Sound.Collection": "Sound collection",
     "Settings.Sound.Collection.Desc": "Collection of sounds used",
-    "Settings.Directories.Desc": "Customize the directories used by the app",
+    "Settings.Directories.Desc": "Customise the directories used by the app",
     "Settings.Directories.Files": "Files directory",
     "Settings.Directories.Files.Desc":
       "This is where your games in the Files page are stored",

@@ -2,6 +2,7 @@ import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleAtom,
+  currentPuzzleTimerAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
@@ -10,6 +11,7 @@ import {
   tabsAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
+import { formatTime } from "@/utils/format";
 import {
   type Completion,
   type Puzzle,
@@ -78,18 +80,27 @@ function Puzzles({ id }: { id: string }) {
   const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
     useAtom(jumpToNextPuzzleAtom);
 
-  const wonPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === "correct",
-  );
-  const lostPuzzles = puzzles.filter(
-    (puzzle) => puzzle.completion === "incorrect",
-  );
-  const averageWonRating =
-    wonPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
-    wonPuzzles.length;
-  const averageLostRating =
-    lostPuzzles.reduce((acc, puzzle) => acc + puzzle.rating, 0) /
-    lostPuzzles.length;
+  const wonPuzzles = puzzles.filter((p) => p.completion === "correct");
+  const lostPuzzles = puzzles.filter((p) => p.completion === "incorrect");
+
+  const totalCompleted = wonPuzzles.length + lostPuzzles.length;
+  const accuracy =
+    totalCompleted > 0
+      ? Math.round((wonPuzzles.length / totalCompleted) * 100)
+      : 0;
+
+  let currentStreak = 0;
+  for (let i = puzzles.length - 1; i >= 0; i--) {
+    if (puzzles[i].completion === "correct") currentStreak++;
+    else if (puzzles[i].completion === "incorrect") break;
+  }
+
+  const avgTimeSeconds =
+    wonPuzzles.length > 0
+      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
+        wonPuzzles.length /
+        1000
+      : 0;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
     setFen(puzzle.fen);
@@ -117,20 +128,62 @@ function Puzzles({ id }: { id: string }) {
       });
       setCurrentPuzzle(puzzles.length);
       setPuzzle(newPuzzle);
+      setTimerStart(Date.now());
     });
   }
 
   function changeCompletion(completion: Completion) {
+    const timeSpent = timerStart !== null ? Date.now() - timerStart : 0;
     setPuzzles((puzzles) => {
       puzzles[currentPuzzle].completion = completion;
+      puzzles[currentPuzzle].timeSpent = timeSpent;
       return [...puzzles];
     });
+    setTimerStart(null);
   }
 
   const [addOpened, setAddOpened] = useState(false);
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
+
+  const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
+  const [, setTick] = useState(0);
+
+  const elapsedTime = timerStart !== null ? Date.now() - timerStart : 0;
+
+  useEffect(() => {
+    const currentPuzzleData = puzzles[currentPuzzle];
+    if (!currentPuzzleData || currentPuzzleData.completion !== "incomplete") {
+      return;
+    }
+
+    if (timerStart === null) {
+      setTimerStart(Date.now());
+    }
+
+    const displayInterval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 100);
+
+    const saveInterval = setInterval(() => {
+      if (timerStart !== null) {
+        const elapsed = Date.now() - timerStart;
+        setPuzzles((puzzles) => {
+          if (puzzles[currentPuzzle]?.completion === "incomplete") {
+            puzzles[currentPuzzle].timeSpent = elapsed;
+            return [...puzzles];
+          }
+          return puzzles;
+        });
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(displayInterval);
+      clearInterval(saveInterval);
+    };
+  }, [currentPuzzle, puzzles, timerStart, setTimerStart, setPuzzles]);
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -160,57 +213,80 @@ function Puzzles({ id }: { id: string }) {
             setOpened={setAddOpened}
             setPuzzleDbs={setPuzzleDbs}
           />
+          <Select
+            data={puzzleDbs
+              .map((p) => ({
+                label: p.title.split(".db3")[0],
+                value: p.path,
+              }))
+              .concat({ label: "+ Add new", value: "add" })}
+            value={selectedDb}
+            clearable={false}
+            placeholder="Select database"
+            onChange={(v) => {
+              if (v === "add") {
+                setAddOpened(true);
+              } else {
+                setSelectedDb(v);
+              }
+            }}
+            pb="sm"
+          />
           <Group grow>
-            <div>
-              <Text size="sm" c="dimmed">
-                Puzzle Rating
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Rating
               </Text>
-              <Text fw={500} size="xl">
+              <Text fw={700} size="lg">
                 {puzzles[currentPuzzle]?.completion === "incomplete"
                   ? hideRating
                     ? "?"
                     : puzzles[currentPuzzle]?.rating
-                  : puzzles[currentPuzzle]?.rating}
+                  : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
-            </div>
-            {averageWonRating && (
-              <div>
-                <Text size="sm" c="dimmed">
-                  Average Success Rating
+            </Paper>
+
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Time
+              </Text>
+              <Text fw={700} size="lg" ff="monospace">
+                {puzzles[currentPuzzle]?.completion === "incomplete"
+                  ? formatTime(elapsedTime)
+                  : puzzles[currentPuzzle]?.timeSpent
+                    ? formatTime(puzzles[currentPuzzle].timeSpent!)
+                    : "-"}
+              </Text>
+            </Paper>
+
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Accuracy
+              </Text>
+              <Text fw={700} size="lg" c={accuracy >= 50 ? "teal" : "orange"}>
+                {accuracy}%
+              </Text>
+            </Paper>
+
+            <Paper withBorder p="xs">
+              <Text size="xs" c="dimmed">
+                Streak
+              </Text>
+              <Text fw={700} size="lg" c="blue">
+                {currentStreak} 🔥
+              </Text>
+            </Paper>
+
+            {avgTimeSeconds > 0 && (
+              <Paper withBorder p="xs">
+                <Text size="xs" c="dimmed">
+                  Avg Time
                 </Text>
-                <Text fw={500} size="xl">
-                  {averageWonRating.toFixed(0)}
+                <Text fw={700} size="lg">
+                  {avgTimeSeconds.toFixed(1)}s
                 </Text>
-              </div>
+              </Paper>
             )}
-            {averageLostRating && (
-              <div>
-                <Text size="sm" c="dimmed">
-                  Average Fail Rating
-                </Text>
-                <Text fw={500} size="xl">
-                  {averageLostRating.toFixed(0)}
-                </Text>
-              </div>
-            )}
-            <Select
-              data={puzzleDbs
-                .map((p) => ({
-                  label: p.title.split(".db3")[0],
-                  value: p.path,
-                }))
-                .concat({ label: "+ Add new", value: "add" })}
-              value={selectedDb}
-              clearable={false}
-              placeholder="Select database"
-              onChange={(v) => {
-                if (v === "add") {
-                  setAddOpened(true);
-                } else {
-                  setSelectedDb(v);
-                }
-              }}
-            />
           </Group>
           <Divider my="sm" />
           <Group>
@@ -303,6 +379,7 @@ function Puzzles({ id }: { id: string }) {
                   onClick={() => {
                     setPuzzles([]);
                     reset();
+                    setTimerStart(null);
                   }}
                 >
                   <IconX />
@@ -347,6 +424,11 @@ function Puzzles({ id }: { id: string }) {
                 select={(i) => {
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);
+                  if (puzzles[i].completion === "incomplete") {
+                    setTimerStart(Date.now() - (puzzles[i].timeSpent || 0));
+                  } else {
+                    setTimerStart(null);
+                  }
                 }}
               />
             </ScrollArea>

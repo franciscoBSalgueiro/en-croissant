@@ -53,3 +53,14 @@ export function formatNodes(nodes: number) {
   if (nodes < 1000) return nodes.toFixed(0);
   return `${(nodes / 1000).toFixed(0)}k`;
 }
+
+export function formatTime(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const tenths = Math.floor((ms % 1000) / 100);
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toString().padStart(2, "0")}.${tenths}`;
+  }
+  return `${seconds}.${tenths}s`;
+}

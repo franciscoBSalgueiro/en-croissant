@@ -5,6 +5,7 @@ import {
   engineMovesFamily,
   engineProgressFamily,
   enginesAtom,
+  firstEngineWithLinesFamily,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
@@ -70,10 +71,18 @@ function EvalListener() {
     [fen, moves, threat, finalFen],
   );
 
+  const firstEngineWithLines = useAtomValue(
+    firstEngineWithLinesFamily({
+      fen: searchingFen,
+      gameMoves: searchingMoves,
+    }),
+  );
+
   return engines.map((e) => (
     <EngineListener
       key={e.name}
       engine={e}
+      firstEngineWithLines={firstEngineWithLines}
       isGameOver={isGameOver}
       finalFen={finalFen || ""}
       searchingFen={searchingFen}
@@ -88,6 +97,7 @@ function EvalListener() {
 
 function EngineListener({
   engine,
+  firstEngineWithLines,
   isGameOver,
   finalFen,
   searchingFen,
@@ -98,6 +108,7 @@ function EngineListener({
   chess960,
 }: {
   engine: Engine;
+  firstEngineWithLines: string | null;
   isGameOver: boolean;
   finalFen: string;
   searchingFen: string;
@@ -150,7 +161,12 @@ function EngineListener({
             return newMap;
           });
           setProgress(payload.progress);
-          setScore(ev[0].score);
+          const shouldSetScore =
+            firstEngineWithLines === engine.name ||
+            firstEngineWithLines === null;
+          if (shouldSetScore) {
+            setScore(ev[0].score);
+          }
         });
       }
     });
@@ -166,6 +182,7 @@ function EngineListener({
     JSON.stringify(searchingMoves),
     engine.name,
     setEngineVariation,
+    firstEngineWithLines,
   ]);
 
   const getBestMoves = useMemo(

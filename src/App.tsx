@@ -15,6 +15,8 @@ import { attachConsole, info } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import { useEffect } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { Helmet } from "react-helmet";
 import {
   activeTabAtom,
@@ -118,64 +120,66 @@ export default function App() {
 
   return (
     <>
-      <Helmet>
-        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
-      </Helmet>
-      <MantineProvider
-        colorSchemeManager={colorSchemeManager}
-        defaultColorScheme="dark"
-        theme={{
-          primaryColor,
-          components: {
-            ActionIcon: ActionIcon.extend({
-              defaultProps: {
-                variant: "transparent",
-                color: "gray",
-              },
-            }),
-            TextInput: TextInput.extend({
-              defaultProps: {
-                spellCheck: spellCheck,
-              },
-            }),
-            Autocomplete: Autocomplete.extend({
-              defaultProps: {
-                spellCheck: spellCheck,
-              },
-            }),
-            Textarea: Textarea.extend({
-              defaultProps: {
-                spellCheck: spellCheck,
-              },
-            }),
-            Input: Input.extend({
-              defaultProps: {
-                // @ts-ignore
-                spellCheck: spellCheck,
-              },
-            }),
-          },
-          colors: {
-            dark: [
-              "#C1C2C5",
-              "#A6A7AB",
-              "#909296",
-              "#5c5f66",
-              "#373A40",
-              "#2C2E33",
-              "#25262b",
-              "#1A1B1E",
-              "#141517",
-              "#101113",
-            ],
-          },
-        }}
-      >
-        <ContextMenuProvider>
-          <Notifications />
-          <RouterProvider router={router} />
-        </ContextMenuProvider>
-      </MantineProvider>
+      <DndProvider backend={HTML5Backend}>
+        <Helmet>
+          <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+        </Helmet>
+        <MantineProvider
+          colorSchemeManager={colorSchemeManager}
+          defaultColorScheme="dark"
+          theme={{
+            primaryColor,
+            components: {
+              ActionIcon: ActionIcon.extend({
+                defaultProps: {
+                  variant: "transparent",
+                  color: "gray",
+                },
+              }),
+              TextInput: TextInput.extend({
+                defaultProps: {
+                  spellCheck: spellCheck,
+                },
+              }),
+              Autocomplete: Autocomplete.extend({
+                defaultProps: {
+                  spellCheck: spellCheck,
+                },
+              }),
+              Textarea: Textarea.extend({
+                defaultProps: {
+                  spellCheck: spellCheck,
+                },
+              }),
+              Input: Input.extend({
+                defaultProps: {
+                  // @ts-ignore
+                  spellCheck: spellCheck,
+                },
+              }),
+            },
+            colors: {
+              dark: [
+                "#C1C2C5",
+                "#A6A7AB",
+                "#909296",
+                "#5c5f66",
+                "#373A40",
+                "#2C2E33",
+                "#25262b",
+                "#1A1B1E",
+                "#141517",
+                "#101113",
+              ],
+            },
+          }}
+        >
+          <ContextMenuProvider>
+            <Notifications />
+            <RouterProvider router={router} />
+          </ContextMenuProvider>
+        </MantineProvider>
+      </DndProvider>
     </>
   );
 }

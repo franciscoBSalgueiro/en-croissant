@@ -1,8 +1,8 @@
 import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
+import { Chessground as NativeChessground } from "@lichess-org/chessground";
+import type { Api } from "@lichess-org/chessground/api";
+import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
-import { Chessground as NativeChessground } from "chessground";
-import type { Api } from "chessground/api";
-import type { Config } from "chessground/config";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,6 +21,7 @@ export function Chessground(
       api.set({
         ...props,
         events: {
+          ...props.events,
           change: () => {
             if (props.setBoardFen && api) {
               props.setBoardFen(api.getFen());
@@ -33,6 +34,7 @@ export function Chessground(
         ...props,
         addDimensionsCssVarsTo: ref.current,
         events: {
+          ...props.events,
           change: () => {
             if (props.setBoardFen && chessgroundApi) {
               props.setBoardFen(chessgroundApi.getFen());

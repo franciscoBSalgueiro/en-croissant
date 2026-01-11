@@ -8,10 +8,10 @@ import {
   scoreTypeFamily,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
+import type { Key } from "@lichess-org/chessground/types";
 import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
-import type { Key } from "chessground/types";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
@@ -196,7 +196,7 @@ function BoardPopover({
               top: position.top,
               left: position.left,
             }}
-            pos="absolute"
+            pos="fixed"
           >
             <Chessground
               fen={fen}
@@ -210,7 +210,7 @@ function BoardPopover({
                 enabled: true,
                 visible: true,
                 defaultSnapToValidMove: true,
-                eraseOnClick: true,
+                eraseOnMovablePieceClick: true,
               }}
             />
           </Box>

@@ -1,5 +1,5 @@
 import type { Outcome, Score } from "@/bindings";
-import type { DrawShape } from "chessground/draw";
+import type { DrawShape } from "@lichess-org/chessground/draw";
 import type { Move } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import type { Annotation } from "./annotation";

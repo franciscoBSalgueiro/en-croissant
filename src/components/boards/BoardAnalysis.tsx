@@ -5,6 +5,7 @@ import {
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
+  triggerAnnotationFocusAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN, getVariationLine } from "@/utils/chess";
@@ -20,8 +21,16 @@ import {
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import type { Piece } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import { Suspense, useCallback, useContext, useEffect, useRef } from "react";
+import {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -41,6 +50,7 @@ function BoardAnalysis() {
   const { t } = useTranslation();
 
   const [editingMode, toggleEditingMode] = useToggle();
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const { documentDir } = useLoaderData({ from: "/" });
@@ -86,6 +96,7 @@ function BoardAnalysis() {
   const allEnabled =
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
+  const [, triggerAnnotationFocus] = useAtom(triggerAnnotationFocusAtom);
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
@@ -106,7 +117,13 @@ function BoardAnalysis() {
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
-    [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
+    [
+      keyMap.ANNOTATE_TAB.keys,
+      () => {
+        setCurrentTabSelected("annotate");
+        triggerAnnotationFocus();
+      },
+    ],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
     [
       keyMap.TOGGLE_ALL_ENGINES.keys,
@@ -137,6 +154,7 @@ function BoardAnalysis() {
           boardRef={boardRef}
           saveFile={saveFile}
           addGame={addGame}
+          selectedPiece={selectedPiece}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
@@ -236,7 +254,12 @@ function BoardAnalysis() {
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         {editingMode ? (
-          <EditingCard boardRef={boardRef} setEditingMode={toggleEditingMode} />
+          <EditingCard
+            boardRef={boardRef}
+            setEditingMode={toggleEditingMode}
+            selectedPiece={selectedPiece}
+            setSelectedPiece={setSelectedPiece}
+          />
         ) : (
           <Stack h="100%" gap="xs">
             <GameNotation topBar />

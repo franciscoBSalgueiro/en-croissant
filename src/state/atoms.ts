@@ -16,7 +16,7 @@ import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
 import type { MantineColor } from "@mantine/core";
 
-import type { OpponentSettings } from "@/components/boards/BoardGame";
+import type { OpponentSettings } from "@/components/boards/OpponentForm";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
@@ -150,13 +150,11 @@ export const enableBoardScrollAtom = atomWithStorage<boolean>(
   true,
 );
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
-export const showCoordinatesAtom = atomWithStorage<boolean>(
-  "show-coordinates",
-  false,
+export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
+  "show-coordinates-v2",
+  "no",
   undefined,
-  {
-    getOnInit: true,
-  },
+  { getOnInit: true },
 );
 export const soundCollectionAtom = atomWithStorage<string>(
   "sound-collection",
@@ -264,6 +262,11 @@ export const puzzleRatingRangeAtom = atomWithStorage<[number, number]>(
   [1000, 1500],
 );
 
+export const puzzleTimerFamily = atomFamily((tab: string) =>
+  atom<number | null>(null),
+);
+export const currentPuzzleTimerAtom = tabValue(puzzleTimerFamily);
+
 // CP / WDL
 
 export const reportTypeAtom = atom<"CP" | "WDL">("CP");
@@ -280,11 +283,20 @@ export const currentThreatAtom = tabValue(threatFamily);
 const evalOpenFamily = atomFamily((tab: string) => atom(true));
 export const currentEvalOpenAtom = tabValue(evalOpenFamily);
 
+const evalBarDisplayFamily = atomFamily((tab: string) =>
+  atom<"cp" | "wdl">("cp"),
+);
+export const currentEvalBarDisplayAtom = tabValue(evalBarDisplayFamily);
+
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
 const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
+export const annotationFocusAtom = atom(0);
+export const triggerAnnotationFocusAtom = atom(null, (_, set) => {
+  set(annotationFocusAtom, (n) => n + 1);
+});
 
 const localOptionsFamily = atomFamily((tab: string) =>
   atom<LocalOptions>({
@@ -367,6 +379,9 @@ const playersFamily = atomFamily((tab: string) =>
   }>({ white: {} as OpponentSettings, black: {} as OpponentSettings }),
 );
 export const currentPlayersAtom = tabValue(playersFamily);
+
+const gameIdFamily = atomFamily((tab: string) => atom<string | null>(null));
+export const currentGameIdAtom = tabValue(gameIdFamily);
 
 // Practice
 
@@ -463,6 +478,41 @@ export const bestMovesFamily = atomFamily(
         n++;
       }
       return bestMoves;
+    }),
+  (a, b) => a.fen === b.fen && equal(a.gameMoves, b.gameMoves),
+);
+
+export const firstEngineWithLinesFamily = atomFamily(
+  ({ fen, gameMoves }: { fen: string; gameMoves: string[] }) =>
+    atom<string | null>((get) => {
+      const tab = get(activeTabAtom);
+      if (!tab) return null;
+      const engines = get(loadableEnginesAtom);
+      if (!(engines.state === "hasData")) return null;
+
+      const [pos] = positionFromFen(fen);
+      let finalFen = INITIAL_FEN;
+      if (pos) {
+        for (const move of gameMoves) {
+          const m = parseUci(move);
+          if (m) pos.play(m);
+        }
+        finalFen = makeFen(pos.toSetup());
+      }
+
+      for (const engine of engines.data.filter((e) => e.loaded)) {
+        const engineMoves = get(
+          engineMovesFamily({ tab, engine: engine.name }),
+        );
+        const moves =
+          engineMoves.get(`${swapMove(finalFen)}:`) ||
+          engineMoves.get(`${fen}:${gameMoves.join(",")}`);
+
+        if (moves && moves.length > 0) {
+          return engine.name;
+        }
+      }
+      return null;
     }),
   (a, b) => a.fen === b.fen && equal(a.gameMoves, b.gameMoves),
 );
