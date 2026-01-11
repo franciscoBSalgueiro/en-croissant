@@ -2,8 +2,6 @@ import {
   events,
   type GameConfig,
   type GameResult,
-  type GameState,
-  type GoMode,
   type PlayerConfig,
   commands,
 } from "@/bindings";
@@ -66,6 +64,15 @@ function gameResultToOutcome(result: GameResult): Outcome {
   return "1/2-1/2";
 }
 
+type BackendMove = { uci: string; clock: number | null };
+
+function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): BackendMove[] {
+  return moves.map((m) => ({
+    uci: m.uci,
+    clock: m.clock !== null ? Number(m.clock) : null,
+  }));
+}
+
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
 
@@ -125,21 +132,16 @@ function BoardGame() {
   const [blackTime, setBlackTime] = useState<number | null>(null);
   const [gameId, setGameId] = useAtom(currentGameIdAtom);
 
-  const getTreeMoves = useCallback(() => {
-    const moves: string[] = [];
-    let node = root;
-    while (node.children.length > 0) {
-      node = node.children[0];
-      if (node.move) {
-        moves.push(makeUci(node.move));
-      }
-    }
-    return moves;
-  }, [root]);
-
   const syncTreeWithMoves = useCallback(
-    (backendMoves: { uci: string; clock: number | null }[]) => {
-      const treeMoves = getTreeMoves();
+    (backendMoves: BackendMove[]) => {
+      const treeMoves: string[] = [];
+      let node = root;
+      while (node.children.length > 0) {
+        node = node.children[0];
+        if (node.move) {
+          treeMoves.push(makeUci(node.move));
+        }
+      }
 
       let needsReset = false;
       for (let i = 0; i < treeMoves.length; i++) {
@@ -179,7 +181,7 @@ function BoardGame() {
 
       return false;
     },
-    [getTreeMoves, root.fen, setFen, appendMove],
+    [root, setFen, appendMove],
   );
 
   function changeToAnalysisMode() {
@@ -314,9 +316,12 @@ function BoardGame() {
   const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const THROTTLE_MS = 150;
 
+  const syncTreeWithMovesRef = useRef(syncTreeWithMoves);
+  syncTreeWithMovesRef.current = syncTreeWithMoves;
+
   const applyPendingUpdates = useCallback(() => {
     if (pendingMovesRef.current) {
-      syncTreeWithMoves(pendingMovesRef.current);
+      syncTreeWithMovesRef.current(pendingMovesRef.current);
       pendingMovesRef.current = null;
     }
     if (pendingTimesRef.current) {
@@ -325,7 +330,7 @@ function BoardGame() {
       pendingTimesRef.current = null;
     }
     throttleTimerRef.current = null;
-  }, [syncTreeWithMoves]);
+  }, []);
 
   const scheduleUpdate = useCallback(() => {
     if (!throttleTimerRef.current) {
@@ -346,10 +351,7 @@ function BoardGame() {
     const unlistenMove = events.gameMoveEvent.listen(({ payload }) => {
       if (payload.gameId !== currentGameId) return;
 
-      pendingMovesRef.current = payload.moves.map((m) => ({
-        uci: m.uci,
-        clock: m.clock !== null ? Number(m.clock) : null,
-      }));
+      pendingMovesRef.current = mapBackendMoves(payload.moves);
       pendingTimesRef.current = {
         white: payload.whiteTime !== null ? Number(payload.whiteTime) : null,
         black: payload.blackTime !== null ? Number(payload.blackTime) : null,
@@ -369,15 +371,16 @@ function BoardGame() {
 
     const unlistenGameOver = events.gameOverEvent.listen(({ payload }) => {
       if (payload.gameId !== currentGameId) return;
+      
+      
       if (throttleTimerRef.current) {
         clearTimeout(throttleTimerRef.current);
         throttleTimerRef.current = null;
       }
-      const finalMoves = payload.moves.map((m) => ({
-        uci: m.uci,
-        clock: m.clock !== null ? Number(m.clock) : null,
-      }));
-      syncTreeWithMoves(finalMoves);
+      pendingMovesRef.current = null;
+      pendingTimesRef.current = null;
+
+      syncTreeWithMovesRef.current(mapBackendMoves(payload.moves));
 
       setGameState("gameOver");
       setResult(gameResultToOutcome(payload.result));
@@ -392,14 +395,7 @@ function BoardGame() {
       unlistenClock.then((f) => f());
       unlistenGameOver.then((f) => f());
     };
-  }, [
-    gameId,
-    gameState,
-    scheduleUpdate,
-    applyPendingUpdates,
-    setGameState,
-    setResult,
-  ]);
+  }, [gameId, gameState, scheduleUpdate, setGameState, setResult]);
 
   useEffect(() => {
     if (gameState === "playing" && gameId) {
@@ -407,11 +403,7 @@ function BoardGame() {
         if (result.status === "ok") {
           const state = result.data;
 
-          const backendMoves = state.moves.map((m) => ({
-            uci: m.uci,
-            clock: m.clock !== null ? Number(m.clock) : null,
-          }));
-          syncTreeWithMoves(backendMoves);
+          syncTreeWithMovesRef.current(mapBackendMoves(state.moves));
 
           setWhiteTime(
             state.whiteTime !== null ? Number(state.whiteTime) : null,
@@ -432,7 +424,7 @@ function BoardGame() {
         }
       });
     }
-  }, [gameId, gameState, syncTreeWithMoves, setGameState, setResult]);
+  }, [gameId, gameState, setGameState, setResult]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
