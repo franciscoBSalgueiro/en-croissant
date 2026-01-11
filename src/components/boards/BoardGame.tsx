@@ -66,7 +66,9 @@ function gameResultToOutcome(result: GameResult): Outcome {
 
 type BackendMove = { uci: string; clock: number | null };
 
-function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): BackendMove[] {
+function mapBackendMoves(
+  moves: { uci: string; clock: bigint | null }[],
+): BackendMove[] {
   return moves.map((m) => ({
     uci: m.uci,
     clock: m.clock !== null ? Number(m.clock) : null,
@@ -221,12 +223,26 @@ function BoardGame() {
     };
   }
 
+  function getTreeMoves(): string[] {
+    const moves: string[] = [];
+    let node = root;
+    while (node.children.length > 0) {
+      node = node.children[0];
+      if (node.move) {
+        moves.push(makeUci(node.move));
+      }
+    }
+    return moves;
+  }
+
   async function startGame() {
     const playerSettings = getPlayers();
     setPlayers(playerSettings);
 
     const newGameId = `${activeTab}-game`;
     setGameId(newGameId);
+
+    const initialMoves = getTreeMoves();
 
     const config: GameConfig = {
       white: toPlayerConfig(playerSettings.white),
@@ -244,6 +260,7 @@ function BoardGame() {
           }
         : null,
       initialFen: root.fen === INITIAL_FEN ? null : root.fen,
+      initialMoves,
     } as GameConfig;
 
     try {
@@ -371,8 +388,7 @@ function BoardGame() {
 
     const unlistenGameOver = events.gameOverEvent.listen(({ payload }) => {
       if (payload.gameId !== currentGameId) return;
-      
-      
+
       if (throttleTimerRef.current) {
         clearTimeout(throttleTimerRef.current);
         throttleTimerRef.current = null;

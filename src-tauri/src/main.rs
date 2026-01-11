@@ -44,7 +44,7 @@ use crate::db::{
 };
 use crate::game::{
     abort_game, get_game_state, make_game_move, take_back_game_move, resign_game, start_game,
-    ClockUpdateEvent, GameMoveEvent, GameOverEvent, GameStartedEvent,
+    ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
 
 use crate::fs::{set_file_as_executable, DownloadProgress};
@@ -174,7 +174,6 @@ fn main() {
             DatabaseProgress,
             DownloadProgress,
             ReportProgress,
-            GameStartedEvent,
             GameMoveEvent,
             ClockUpdateEvent,
             GameOverEvent

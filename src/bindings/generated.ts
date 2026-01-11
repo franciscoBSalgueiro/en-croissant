@@ -394,7 +394,6 @@ databaseProgress: DatabaseProgress,
 downloadProgress: DownloadProgress,
 gameMoveEvent: GameMoveEvent,
 gameOverEvent: GameOverEvent,
-gameStartedEvent: GameStartedEvent,
 reportProgress: ReportProgress
 }>({
 bestMovesPayload: "best-moves-payload",
@@ -403,7 +402,6 @@ databaseProgress: "database-progress",
 downloadProgress: "download-progress",
 gameMoveEvent: "game-move-event",
 gameOverEvent: "game-over-event",
-gameStartedEvent: "game-started-event",
 reportProgress: "report-progress"
 })
 
@@ -427,7 +425,7 @@ export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type Event = { id: number; name: string | null }
 export type FileMetadata = { last_modified: number }
-export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null }
+export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null; initialMoves?: string[] }
 export type GameEndReason = "checkmate" | "timeout" | "resignation" | "abandonment"
 export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigint | null; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameMoveEvent = { gameId: string; moves: GameMove[]; fen: string; whiteTime: bigint | null; blackTime: bigint | null }
@@ -436,7 +434,6 @@ export type GameOverEvent = { gameId: string; result: GameResult; moves: GameMov
 export type GameQueryJs = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
 export type GameResult = { type: "whiteWins"; reason: GameEndReason } | { type: "blackWins"; reason: GameEndReason } | { type: "draw"; reason: DrawReason }
 export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
-export type GameStartedEvent = { gameId: string; initialFen: string; whitePlayer: string; blackPlayer: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }

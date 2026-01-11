@@ -3,9 +3,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
 use dashmap::DashMap;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen, san::SanPlus, uci::UciMove, Chess, Color, EnPassantMode, Position,
-};
+use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, Chess, Color, EnPassantMode, Position};
 use specta::Type;
 use tauri::AppHandle;
 use tauri_specta::Event;
@@ -51,6 +49,8 @@ pub struct GameConfig {
     pub white_time_control: Option<TimeControl>,
     pub black_time_control: Option<TimeControl>,
     pub initial_fen: Option<String>,
+    #[serde(default)]
+    pub initial_moves: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Type, PartialEq)]
@@ -150,17 +150,6 @@ pub struct GameOverEvent {
     pub moves: Vec<GameMove>,
 }
 
-#[derive(Clone, Debug, Serialize, Type, Event)]
-#[serde(rename_all = "camelCase")]
-pub struct GameStartedEvent {
-    pub game_id: GameId,
-    pub initial_fen: String,
-    pub white_player: String,
-    pub black_player: String,
-    pub white_time: Option<u64>,
-    pub black_time: Option<u64>,
-}
-
 struct ClockState {
     white_time: Option<u64>,
     black_time: Option<u64>,
@@ -217,7 +206,9 @@ impl GameController {
         let initial_key = Self::position_key(&position);
         position_history.insert(initial_key, 1);
 
-        Ok(Self {
+        let initial_moves = config.initial_moves.clone();
+
+        let mut controller = Self {
             game_id,
             config,
             initial_fen,
@@ -231,7 +222,13 @@ impl GameController {
             shutdown_tx: None,
             move_notify_tx: None,
             engine_thinking: false,
-        })
+        };
+
+        for uci_str in &initial_moves {
+            controller.apply_move_no_clock(uci_str)?;
+        }
+
+        Ok(controller)
     }
 
     fn get_state(&self) -> GameState {
@@ -258,7 +255,8 @@ impl GameController {
             status: self.status.clone(),
             initial_fen: self.initial_fen.clone(),
             moves: self.moves.clone(),
-            current_fen: Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string(),
+            current_fen: Fen::from_position(self.position.clone(), EnPassantMode::Legal)
+                .to_string(),
             ply: self.moves.len() as u32,
             turn: turn.to_string(),
             white_time,
@@ -332,14 +330,47 @@ impl GameController {
             .map(|c| (c.white_time, c.black_time))
             .unwrap_or((None, None));
 
-        let fen_after =
-            Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
+        let fen_after = Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
 
         let game_move = GameMove {
             uci: uci_str.to_string(),
             san: san.to_string(),
             fen_after,
             clock,
+            white_time,
+            black_time,
+        };
+
+        self.moves.push(game_move.clone());
+        self.check_game_end();
+
+        Ok(game_move)
+    }
+
+    fn apply_move_no_clock(&mut self, uci_str: &str) -> Result<GameMove, Error> {
+        let uci = UciMove::from_ascii(uci_str.as_bytes())?;
+        let mv = uci.to_move(&self.position)?;
+
+        let san = SanPlus::from_move_and_play_unchecked(&mut self.position.clone(), &mv);
+
+        self.position.play_unchecked(&mv);
+
+        let pos_key = Self::position_key(&self.position);
+        *self.position_history.entry(pos_key).or_insert(0) += 1;
+
+        let (white_time, black_time) = self
+            .clock
+            .as_ref()
+            .map(|c| (c.white_time, c.black_time))
+            .unwrap_or((None, None));
+
+        let fen_after = Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
+
+        let game_move = GameMove {
+            uci: uci_str.to_string(),
+            san: san.to_string(),
+            fen_after,
+            clock: None,
             white_time,
             black_time,
         };
@@ -561,16 +592,6 @@ impl GameManager {
 
         controller.reset_clock();
 
-        GameStartedEvent {
-            game_id: game_id.clone(),
-            initial_fen: controller.initial_fen.clone(),
-            white_player,
-            black_player,
-            white_time,
-            black_time,
-        }
-        .emit(&app)?;
-
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         controller.shutdown_tx = Some(shutdown_tx);
 
@@ -581,7 +602,13 @@ impl GameManager {
         let controller = Arc::new(RwLock::new(controller));
         self.games.insert(game_id.clone(), controller.clone());
 
-        tokio::spawn(game_loop(game_id, controller, shutdown_rx, move_notify_rx, app));
+        tokio::spawn(game_loop(
+            game_id,
+            controller,
+            shutdown_rx,
+            move_notify_rx,
+            app,
+        ));
 
         Ok(state)
     }
@@ -640,11 +667,7 @@ impl GameManager {
         Ok(controller.get_state())
     }
 
-    pub async fn take_back_move(
-        &self,
-        game_id: &str,
-        app: &AppHandle,
-    ) -> Result<GameState, Error> {
+    pub async fn take_back_move(&self, game_id: &str, app: &AppHandle) -> Result<GameState, Error> {
         let game = self
             .games
             .get(game_id)
@@ -773,9 +796,9 @@ fn spawn_engine_task(
     let game_id_clone = game_id.clone();
     let controller_clone = controller.clone();
     let app_clone = app.clone();
-    tokio::spawn(async move {
-        request_engine_move(&game_id_clone, &controller_clone, &app_clone).await
-    })
+    tokio::spawn(
+        async move { request_engine_move(&game_id_clone, &controller_clone, &app_clone).await },
+    )
 }
 
 async fn maybe_start_engine(
@@ -783,10 +806,10 @@ async fn maybe_start_engine(
     engine_task: &Option<tokio::task::JoinHandle<Result<(), Error>>>,
 ) -> bool {
     let mut ctrl = controller.write().await;
-    if ctrl.status == GameStatus::Playing 
-        && ctrl.is_engine_turn() 
-        && !ctrl.engine_thinking 
-        && engine_task.is_none() 
+    if ctrl.status == GameStatus::Playing
+        && ctrl.is_engine_turn()
+        && !ctrl.engine_thinking
+        && engine_task.is_none()
     {
         ctrl.engine_thinking = true;
         true
@@ -831,7 +854,7 @@ async fn game_loop(
                 }
             } => {
                 engine_task = None;
-                
+
                 match result {
                     Some(Ok(Ok(()))) => {
                         if maybe_start_engine(&controller, &engine_task).await {
