@@ -1,9 +1,9 @@
 import {
   events,
+  type EngineLog,
   type GameConfig,
   type GameResult,
   type PlayerConfig,
-  type EngineLog,
   commands,
 } from "@/bindings";
 import type { Outcome } from "@/bindings";
@@ -157,7 +157,10 @@ function BoardGame() {
     let color = logsColor;
     if (players.white.type === "human" && players.black.type === "engine") {
       color = "black";
-    } else if (players.black.type === "human" && players.white.type === "engine") {
+    } else if (
+      players.black.type === "human" &&
+      players.white.type === "engine"
+    ) {
       color = "white";
     }
     const result = await commands.getGameEngineLogs(gameId, color);

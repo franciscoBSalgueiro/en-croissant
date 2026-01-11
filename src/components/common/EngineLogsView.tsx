@@ -109,7 +109,11 @@ export default function EngineLogsView({
           No logs available
         </Text>
       ) : virtualized ? (
-        <ScrollArea flex={height ? undefined : 1} h={height} viewportRef={viewportRef}>
+        <ScrollArea
+          flex={height ? undefined : 1}
+          h={height}
+          viewportRef={viewportRef}
+        >
           <Table
             withTableBorder
             withColumnBorders
@@ -137,7 +141,11 @@ export default function EngineLogsView({
           </Table>
         </ScrollArea>
       ) : (
-        <ScrollArea flex={height ? undefined : 1} h={height} viewportRef={viewportRef}>
+        <ScrollArea
+          flex={height ? undefined : 1}
+          h={height}
+          viewportRef={viewportRef}
+        >
           <Table withTableBorder withColumnBorders>
             <Table.Thead>
               <Table.Tr>
