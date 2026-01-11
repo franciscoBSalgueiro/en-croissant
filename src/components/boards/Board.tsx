@@ -100,6 +100,7 @@ interface ChessboardProps {
   toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
+  allowEditing?: boolean;
   movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
@@ -119,6 +120,7 @@ function Board({
   toggleEditingMode,
   viewOnly,
   disableVariations,
+  allowEditing,
   movable = "turn",
   boardRef,
   saveFile,
@@ -420,7 +422,7 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        {!disableVariations && (
+        {(!disableVariations || allowEditing) && (
           <Tooltip label={t("Board.Action.EditPosition")}>
             <ActionIcon
               variant={editingMode ? "filled" : "default"}

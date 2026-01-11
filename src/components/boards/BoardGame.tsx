@@ -29,12 +29,14 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import {
   IconArrowsExchange,
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { makeUci, parseUci } from "chessops";
+import type { Piece } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -52,6 +54,7 @@ import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
+import EditingCard from "./EditingCard";
 import {
   DEFAULT_TIME_CONTROL,
   OpponentForm,
@@ -77,6 +80,9 @@ function mapBackendMoves(
 
 function BoardGame() {
   const activeTab = useAtomValue(activeTabAtom);
+
+  const [editingMode, toggleEditingMode] = useToggle();
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
 
   const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
     "white",
@@ -479,13 +485,14 @@ function BoardGame() {
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           dirty={false}
-          editingMode={false}
-          toggleEditingMode={() => undefined}
-          viewOnly={gameState !== "playing"}
+          editingMode={gameState === "settingUp" && editingMode}
+          toggleEditingMode={toggleEditingMode}
+          viewOnly={gameState !== "playing" && !editingMode}
           disableVariations
+          allowEditing={gameState === "settingUp"}
           boardRef={boardRef}
           canTakeBack={onePlayerIsEngine}
-          movable={movable}
+          movable={gameState === "settingUp" && editingMode ? "none" : movable}
           whiteTime={
             gameState === "playing" ? (whiteTime ?? undefined) : undefined
           }
@@ -494,6 +501,7 @@ function BoardGame() {
           }
           onMove={handleHumanMove}
           onTakeBack={onTakeBack}
+          selectedPiece={selectedPiece}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
@@ -585,10 +593,19 @@ function BoardGame() {
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Stack h="100%" gap="xs">
-          <GameNotation topBar />
-          <MoveControls />
-        </Stack>
+        {gameState === "settingUp" && editingMode ? (
+          <EditingCard
+            boardRef={boardRef}
+            setEditingMode={toggleEditingMode}
+            selectedPiece={selectedPiece}
+            setSelectedPiece={setSelectedPiece}
+          />
+        ) : (
+          <Stack h="100%" gap="xs">
+            <GameNotation topBar />
+            <MoveControls />
+          </Stack>
+        )}
       </Portal>
     </>
   );
