@@ -13,7 +13,7 @@ use tokio::{
 };
 
 use crate::{
-    engine::{parse_fen_to_position, BaseEngine, EngineOption, GoMode, PlayersTime},
+    engine::{parse_fen_to_position, BaseEngine, EngineLog, EngineOption, GoMode, PlayersTime},
     error::Error,
 };
 
@@ -780,6 +780,32 @@ impl GameManager {
         }
         Ok(())
     }
+
+    pub async fn get_engine_logs(
+        &self,
+        game_id: &str,
+        color: &str,
+    ) -> Result<Vec<EngineLog>, Error> {
+        let game = self
+            .games
+            .get(game_id)
+            .ok_or_else(|| Error::GameNotFound(game_id.to_string()))?;
+
+        let controller = game.read().await;
+
+        let engine = match color {
+            "white" => &controller.white_engine,
+            "black" => &controller.black_engine,
+            _ => return Err(Error::InvalidColor(color.to_string())),
+        };
+
+        if let Some(engine_arc) = engine {
+            let engine = engine_arc.lock().await;
+            Ok(engine.get_logs())
+        } else {
+            Ok(Vec::new())
+        }
+    }
 }
 
 impl Default for GameManager {
@@ -1100,4 +1126,14 @@ pub async fn abort_game(
     state: tauri::State<'_, crate::AppState>,
 ) -> Result<(), Error> {
     state.game_manager.abort_game(&game_id).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_game_engine_logs(
+    game_id: String,
+    color: String,
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<Vec<EngineLog>, Error> {
+    state.game_manager.get_engine_logs(&game_id, &color).await
 }

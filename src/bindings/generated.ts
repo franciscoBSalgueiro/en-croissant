@@ -381,6 +381,14 @@ async abortGame(gameId: string) : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getGameEngineLogs(gameId: string, color: string) : Promise<Result<EngineLog[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_game_engine_logs", { gameId, color }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

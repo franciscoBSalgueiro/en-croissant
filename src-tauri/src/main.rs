@@ -43,7 +43,7 @@ use crate::db::{
     search_position,
 };
 use crate::game::{
-    abort_game, get_game_state, make_game_move, take_back_game_move, resign_game, start_game,
+    abort_game, get_game_state, get_game_engine_logs, make_game_move, take_back_game_move, resign_game, start_game,
     ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
 
@@ -167,7 +167,8 @@ fn main() {
             make_game_move,
             take_back_game_move,
             resign_game,
-            abort_game
+            abort_game,
+            get_game_engine_logs
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,

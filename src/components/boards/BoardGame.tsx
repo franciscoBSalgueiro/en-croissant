@@ -3,6 +3,7 @@ import {
   type GameConfig,
   type GameResult,
   type PlayerConfig,
+  type EngineLog,
   commands,
 } from "@/bindings";
 import type { Outcome } from "@/bindings";
@@ -23,15 +24,18 @@ import {
   Checkbox,
   Divider,
   Group,
+  Modal,
   Paper,
   Portal,
   ScrollArea,
+  SegmentedControl,
   Stack,
   Text,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
   IconArrowsExchange,
+  IconFileText,
   IconPlus,
   IconZoomCheck,
 } from "@tabler/icons-react";
@@ -49,6 +53,7 @@ import {
 } from "react";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import EngineLogsView from "../common/EngineLogsView";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -139,6 +144,33 @@ function BoardGame() {
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
   const [gameId, setGameId] = useAtom(currentGameIdAtom);
+
+  const [logsOpened, toggleLogsOpened] = useToggle();
+  const [logsColor, setLogsColor] = useState<"white" | "black">("white");
+  const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
+
+  const hasEngine =
+    players.white.type === "engine" || players.black.type === "engine";
+
+  const fetchEngineLogs = useCallback(async () => {
+    if (!gameId || !hasEngine) return;
+    let color = logsColor;
+    if (players.white.type === "human" && players.black.type === "engine") {
+      color = "black";
+    } else if (players.black.type === "human" && players.white.type === "engine") {
+      color = "white";
+    }
+    const result = await commands.getGameEngineLogs(gameId, color);
+    if (result.status === "ok") {
+      setEngineLogs(result.data);
+    }
+  }, [gameId, logsColor, hasEngine, players.white.type, players.black.type]);
+
+  useEffect(() => {
+    if (logsOpened) {
+      fetchEngineLogs();
+    }
+  }, [logsOpened, fetchEngineLogs]);
 
   const syncTreeWithMoves = useCallback(
     (backendMoves: BackendMove[]) => {
@@ -588,6 +620,14 @@ function BoardGame() {
                   Analyze
                 </Button>
               </Group>
+              {hasEngine && (
+                <Button
+                  onClick={() => toggleLogsOpened()}
+                  leftSection={<IconFileText size="1rem" />}
+                >
+                  Engine Logs
+                </Button>
+              )}
             </Stack>
           )}
         </Paper>
@@ -607,6 +647,34 @@ function BoardGame() {
           </Stack>
         )}
       </Portal>
+
+      <Modal
+        opened={logsOpened}
+        onClose={() => toggleLogsOpened()}
+        title="Engine Logs"
+        size="xl"
+      >
+        <EngineLogsView
+          logs={engineLogs}
+          onRefresh={fetchEngineLogs}
+          height={400}
+          showExport={false}
+          virtualized={false}
+          additionalControls={
+            players.white.type === "engine" &&
+            players.black.type === "engine" && (
+              <SegmentedControl
+                value={logsColor}
+                onChange={(value) => setLogsColor(value as "white" | "black")}
+                data={[
+                  { value: "white", label: "White" },
+                  { value: "black", label: "Black" },
+                ]}
+              />
+            )
+          }
+        />
+      </Modal>
     </>
   );
 }

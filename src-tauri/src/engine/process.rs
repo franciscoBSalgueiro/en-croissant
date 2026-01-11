@@ -152,6 +152,7 @@ impl BaseEngine {
     pub async fn wait_for_bestmove(&mut self) -> Result<String, Error> {
         let reader = self.reader.as_mut().ok_or(Error::EngineDisconnected)?;
         while let Some(line) = reader.next_line().await? {
+            self.logs.push(EngineLog::Engine(line.clone()));
             if let UciMessage::BestMove { best_move, .. } = vampirc_uci::parse_one(&line) {
                 return Ok(best_move.to_string());
             }
