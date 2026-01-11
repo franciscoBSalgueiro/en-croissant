@@ -32,8 +32,6 @@ export default function LogsPanel() {
       <EngineLogsView
         logs={data ?? []}
         onRefresh={() => mutate()}
-        showExport
-        virtualized
         additionalControls={
           <Select
             allowDeselect={false}
