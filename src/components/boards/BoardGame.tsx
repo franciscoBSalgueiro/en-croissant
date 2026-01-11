@@ -37,6 +37,7 @@ import {
   IconArrowsExchange,
   IconFileText,
   IconPlus,
+  IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
 import { makeUci, parseUci } from "chessops";
@@ -541,97 +542,133 @@ function BoardGame() {
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
         <Paper withBorder shadow="sm" p="md" h="100%">
-          {gameState === "settingUp" && (
-            <ScrollArea h="100%" offsetScrollbars>
-              <Stack>
-                <Group>
-                  <Text flex={1} ta="center" fz="lg" fw="bold">
-                    {match(inputColor)
-                      .with("white", () => "White")
-                      .with("random", () => "Random")
-                      .with("black", () => "Black")
-                      .exhaustive()}
-                  </Text>
-                  <ActionIcon onClick={cycleColor}>
-                    <IconArrowsExchange />
-                  </ActionIcon>
-                  <Text flex={1} ta="center" fz="lg" fw="bold">
-                    {match(inputColor)
-                      .with("white", () => "Black")
-                      .with("random", () => "Random")
-                      .with("black", () => "White")
-                      .exhaustive()}
-                  </Text>
-                </Group>
-                <Box flex={1}>
-                  <Group style={{ alignItems: "start" }}>
-                    <OpponentForm
-                      sameTimeControl={sameTimeControl}
-                      opponent={player1Settings}
-                      setOpponent={setPlayer1Settings}
-                      setOtherOpponent={setPlayer2Settings}
+          {logsOpened ? (
+            <EngineLogsView
+              logs={engineLogs}
+              onRefresh={fetchEngineLogs}
+              additionalControls={
+                players.white.type === "engine" &&
+                players.black.type === "engine" && (
+                  <Group grow justify="space-between">
+                    <SegmentedControl
+                      value={logsColor}
+                      onChange={(value) =>
+                        setLogsColor(value as "white" | "black")
+                      }
+                      data={[
+                        { value: "white", label: "White" },
+                        { value: "black", label: "Black" },
+                      ]}
                     />
-                    <Divider orientation="vertical" />
-                    <OpponentForm
-                      sameTimeControl={sameTimeControl}
-                      opponent={player2Settings}
-                      setOpponent={setPlayer2Settings}
-                      setOtherOpponent={setPlayer1Settings}
-                    />
+
+                    <ActionIcon flex={0} onClick={() => toggleLogsOpened()}>
+                      <IconX size="1.2rem" />
+                    </ActionIcon>
                   </Group>
-                </Box>
+                )
+              }
+            />
+          ) : (
+            <>
+              {gameState === "settingUp" && (
+                <ScrollArea h="100%" offsetScrollbars>
+                  <Stack>
+                    <Group>
+                      <Text flex={1} ta="center" fz="lg" fw="bold">
+                        {match(inputColor)
+                          .with("white", () => "White")
+                          .with("random", () => "Random")
+                          .with("black", () => "Black")
+                          .exhaustive()}
+                      </Text>
+                      <ActionIcon onClick={cycleColor}>
+                        <IconArrowsExchange />
+                      </ActionIcon>
+                      <Text flex={1} ta="center" fz="lg" fw="bold">
+                        {match(inputColor)
+                          .with("white", () => "Black")
+                          .with("random", () => "Random")
+                          .with("black", () => "White")
+                          .exhaustive()}
+                      </Text>
+                    </Group>
+                    <Box flex={1}>
+                      <Group style={{ alignItems: "start" }}>
+                        <OpponentForm
+                          sameTimeControl={sameTimeControl}
+                          opponent={player1Settings}
+                          setOpponent={setPlayer1Settings}
+                          setOtherOpponent={setPlayer2Settings}
+                        />
+                        <Divider orientation="vertical" />
+                        <OpponentForm
+                          sameTimeControl={sameTimeControl}
+                          opponent={player2Settings}
+                          setOpponent={setPlayer2Settings}
+                          setOtherOpponent={setPlayer1Settings}
+                        />
+                      </Group>
+                    </Box>
 
-                <Checkbox
-                  label="Same time control"
-                  checked={sameTimeControl}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setSameTimeControl(checked);
-                    if (checked) {
-                      setPlayer2Settings((prev) => ({
-                        ...prev,
-                        timeControl: player1Settings.timeControl,
-                        timeUnit: player1Settings.timeUnit,
-                        incrementUnit: player1Settings.incrementUnit,
-                      }));
-                    }
-                  }}
-                />
+                    <Checkbox
+                      label="Same time control"
+                      checked={sameTimeControl}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSameTimeControl(checked);
+                        if (checked) {
+                          setPlayer2Settings((prev) => ({
+                            ...prev,
+                            timeControl: player1Settings.timeControl,
+                            timeUnit: player1Settings.timeUnit,
+                            incrementUnit: player1Settings.incrementUnit,
+                          }));
+                        }
+                      }}
+                    />
 
-                <Group>
-                  <Button onClick={startGame} disabled={error !== null}>
-                    Start game
-                  </Button>
-                </Group>
-              </Stack>
-            </ScrollArea>
-          )}
-          {(gameState === "playing" || gameState === "gameOver") && (
-            <Stack h="100%">
-              <Box flex={1}>
-                <GameInfo headers={headers} />
-              </Box>
-              <Group grow>
-                <Button onClick={handleNewGame} leftSection={<IconPlus />}>
-                  New Game
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => changeToAnalysisMode()}
-                  leftSection={<IconZoomCheck />}
-                >
-                  Analyze
-                </Button>
-              </Group>
-              {hasEngine && (
-                <Button
-                  onClick={() => toggleLogsOpened()}
-                  leftSection={<IconFileText size="1rem" />}
-                >
-                  Engine Logs
-                </Button>
+                    <Group>
+                      <Button onClick={startGame} disabled={error !== null}>
+                        Start game
+                      </Button>
+                    </Group>
+                  </Stack>
+                </ScrollArea>
               )}
-            </Stack>
+              {(gameState === "playing" || gameState === "gameOver") && (
+                <Stack h="100%">
+                  <Box flex={1}>
+                    <GameInfo headers={headers} />
+                  </Box>
+                  <Group grow>
+                    <Button
+                      variant="default"
+                      onClick={handleNewGame}
+                      leftSection={<IconPlus />}
+                    >
+                      New Game
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={() => changeToAnalysisMode()}
+                      leftSection={<IconZoomCheck />}
+                    >
+                      Analyze
+                    </Button>
+
+                    {hasEngine && (
+                      <Button
+                        variant="default"
+                        onClick={() => toggleLogsOpened()}
+                        leftSection={<IconFileText size="1rem" />}
+                      >
+                        Engine Logs
+                      </Button>
+                    )}
+                  </Group>
+                </Stack>
+              )}
+            </>
           )}
         </Paper>
       </Portal>
@@ -650,34 +687,6 @@ function BoardGame() {
           </Stack>
         )}
       </Portal>
-
-      <Modal
-        opened={logsOpened}
-        onClose={() => toggleLogsOpened()}
-        title="Engine Logs"
-        size="xl"
-      >
-        <EngineLogsView
-          logs={engineLogs}
-          onRefresh={fetchEngineLogs}
-          height={400}
-          showExport={false}
-          virtualized={false}
-          additionalControls={
-            players.white.type === "engine" &&
-            players.black.type === "engine" && (
-              <SegmentedControl
-                value={logsColor}
-                onChange={(value) => setLogsColor(value as "white" | "black")}
-                data={[
-                  { value: "white", label: "White" },
-                  { value: "black", label: "Black" },
-                ]}
-              />
-            )
-          }
-        />
-      </Modal>
     </>
   );
 }

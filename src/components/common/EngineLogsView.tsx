@@ -21,18 +21,12 @@ export type LogsFilter = "all" | "gui" | "engine";
 interface EngineLogsViewProps {
   logs: EngineLog[];
   onRefresh?: () => void;
-  height?: number | string;
-  showExport?: boolean;
-  virtualized?: boolean;
   additionalControls?: React.ReactNode;
 }
 
 export default function EngineLogsView({
   logs,
   onRefresh,
-  height,
-  showExport = true,
-  virtualized = true,
   additionalControls,
 }: EngineLogsViewProps) {
   const [filter, setFilter] = useState<LogsFilter>("all");
@@ -77,18 +71,16 @@ export default function EngineLogsView({
 
   return (
     <Stack flex={1} h="100%" gap="xs">
-      <Group>
+      <Group w="100%" grow>
         <ActionIcon.Group style={{ flexGrow: 0 }}>
           {onRefresh && (
             <ActionIcon size="lg" variant="default" onClick={onRefresh}>
               <IconRefresh size="1.3rem" />
             </ActionIcon>
           )}
-          {showExport && (
-            <ActionIcon size="lg" variant="default" onClick={exportLogs}>
-              <IconFileExport size="1.3rem" />
-            </ActionIcon>
-          )}
+          <ActionIcon size="lg" variant="default" onClick={exportLogs}>
+            <IconFileExport size="1.3rem" />
+          </ActionIcon>
         </ActionIcon.Group>
 
         <SegmentedControl
@@ -108,12 +100,8 @@ export default function EngineLogsView({
         <Text ta="center" mt="lg" c="dimmed">
           No logs available
         </Text>
-      ) : virtualized ? (
-        <ScrollArea
-          flex={height ? undefined : 1}
-          h={height}
-          viewportRef={viewportRef}
-        >
+      ) : (
+        <ScrollArea flex={1} viewportRef={viewportRef}>
           <Table
             withTableBorder
             withColumnBorders
@@ -138,28 +126,6 @@ export default function EngineLogsView({
                 <LogLine log={filteredLogs[virtualRow.index]} />
               </Table.Tr>
             ))}
-          </Table>
-        </ScrollArea>
-      ) : (
-        <ScrollArea
-          flex={height ? undefined : 1}
-          h={height}
-          viewportRef={viewportRef}
-        >
-          <Table withTableBorder withColumnBorders>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th w="5rem">Source</Table.Th>
-                <Table.Th>Message</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filteredLogs.map((log, index) => (
-                <Table.Tr key={index}>
-                  <LogLine log={log} />
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
           </Table>
         </ScrollArea>
       )}
