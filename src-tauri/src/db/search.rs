@@ -244,6 +244,12 @@ pub async fn search_position(
 
     let processed = AtomicUsize::new(0);
 
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
+
     println!("start search on {tab_id}");
 
     games.par_iter().for_each(
@@ -334,11 +340,9 @@ pub async fn search_position(
             }
 
 
-            if let Some(position_query) = &query.position {
-                let position_query =
-                    convert_position_query(position_query.clone()).expect("Invalid position query");
+            if let Some(position_query) = &parsed_position_query {
                 if position_query.can_reach(&end_material, *end_pawn_home as u16) {
-                    if let Ok(Some(m)) = get_move_after_match(game, fen, &position_query) {
+                    if let Ok(Some(m)) = get_move_after_match(game, fen, position_query) {
                         if sample_games.lock().unwrap().len() < 10 {
                             sample_games.lock().unwrap().push(*id);
                         }
@@ -413,6 +417,12 @@ pub async fn is_position_in_db(
         return Ok(!pos.0.is_empty());
     }
 
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
+
     // start counting the time
     let start = Instant::now();
     info!("start loading games");
@@ -459,11 +469,9 @@ pub async fn is_position_in_db(
                 white: *white_material as u8,
                 black: *black_material as u8,
             };
-            if let Some(position_query) = &query.position {
-                let position_query =
-                    convert_position_query(position_query.clone()).expect("Invalid position query");
+            if let Some(position_query) = &parsed_position_query {
                 position_query.can_reach(&end_material, *end_pawn_home as u16)
-                    && get_move_after_match(game, fen, &position_query)
+                    && get_move_after_match(game, fen, position_query)
                         .unwrap_or(None)
                         .is_some()
             } else {
