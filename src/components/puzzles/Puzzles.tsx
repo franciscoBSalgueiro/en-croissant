@@ -39,7 +39,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
-import { IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
+import { IconFlame, IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
 import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
@@ -272,9 +272,12 @@ function Puzzles({ id }: { id: string }) {
               <Text size="xs" c="dimmed">
                 Streak
               </Text>
-              <Text fw={700} size="lg" c="blue">
-                {currentStreak} 🔥
-              </Text>
+              <Group gap={2}>
+                <Text fw={700} size="lg">
+                  {currentStreak}
+                </Text>
+                <IconFlame size={20} color="orange" />
+              </Group>
             </Paper>
 
             {avgTimeSeconds > 0 && (
