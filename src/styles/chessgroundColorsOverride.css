@@ -51,24 +51,40 @@ cg-board square.current-premove {
   color: rgba(255, 255, 255, 0.8);
 }
 
-coords.rank1 coord:nth-child(2n + 1),
-coords.rank2 coord:nth-child(2n),
-coords.rank3 coord:nth-child(2n + 1),
-coords.rank4 coord:nth-child(2n),
-coords.rank5 coord:nth-child(2n + 1),
-coords.rank6 coord:nth-child(2n),
-coords.rank7 coord:nth-child(2n + 1),
-coords.rank8 coord:nth-child(2n) {
-  color: rgba(72, 72, 72, 0.8);
+.cg-wrap.orientation-white coords.rank1 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank2 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank3 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank4 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank5 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank6 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank7 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank8 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank1 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank2 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank3 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank4 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank5 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank6 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank7 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank8 coord:nth-child(2n + 1) {
+  color: rgba(255, 255, 255, 0.8);
 }
 
-coords.rank1 coord:nth-child(2n),
-coords.rank2 coord:nth-child(2n + 1),
-coords.rank3 coord:nth-child(2n),
-coords.rank4 coord:nth-child(2n + 1),
-coords.rank5 coord:nth-child(2n),
-coords.rank6 coord:nth-child(2n + 1),
-coords.rank7 coord:nth-child(2n),
-coords.rank8 coord:nth-child(2n + 1) {
-  color: rgba(255, 255, 255, 0.8);
+.cg-wrap.orientation-white coords.rank1 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank2 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank3 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank4 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank5 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank6 coord:nth-child(2n + 1),
+.cg-wrap.orientation-white coords.rank7 coord:nth-child(2n),
+.cg-wrap.orientation-white coords.rank8 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank1 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank2 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank3 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank4 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank5 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank6 coord:nth-child(2n),
+.cg-wrap.orientation-black coords.rank7 coord:nth-child(2n + 1),
+.cg-wrap.orientation-black coords.rank8 coord:nth-child(2n) {
+  color: rgba(72, 72, 72, 0.8);
 }

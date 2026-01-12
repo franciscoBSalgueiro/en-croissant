@@ -138,38 +138,45 @@ piece.fading {
   margin-left: 4px;
   margin-top: 2px;
   font-size: 0.9rem;
+}
+
+.cg-wrap.orientation-white coords.squares {
   flex-flow: row;
 }
 
-.cg-wrap coords.rank1 {
-  bottom: 0%;
-}
-
-.cg-wrap coords.rank2 {
-  top: 12.5%;
-}
-
-.cg-wrap coords.rank3 {
-  top: 25%;
-}
-
-.cg-wrap coords.rank4 {
-  top: 37.5%;
-}
-
-.cg-wrap coords.rank5 {
-  top: 50%;
-}
-
-.cg-wrap coords.rank6 {
-  top: 62.5%;
-}
-
-.cg-wrap coords.rank7 {
-  top: 75%;
+.cg-wrap.orientation-black coords.squares {
+  flex-flow: row-reverse;
 }
 
 .cg-wrap coords.rank8 {
+  bottom: 0%;
+}
+
+.cg-wrap coords.rank7 {
+  top: 12.5%;
+}
+
+.cg-wrap coords.rank6 {
+  top: 25%;
+}
+
+.cg-wrap coords.rank5 {
+  top: 37.5%;
+}
+
+.cg-wrap coords.rank4 {
+  top: 50%;
+}
+
+.cg-wrap coords.rank3 {
+  top: 62.5%;
+}
+
+.cg-wrap coords.rank2 {
+  top: 75%;
+}
+
+.cg-wrap coords.rank1 {
   top: 87.5%;
 }
 
