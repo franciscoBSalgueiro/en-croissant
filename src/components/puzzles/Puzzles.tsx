@@ -21,25 +21,30 @@ import { createTab } from "@/utils/tabs";
 import { defaultTree } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import {
+  Accordion,
   ActionIcon,
   Button,
-  Center,
-  Checkbox,
   Divider,
   Group,
-  Input,
   Paper,
   Portal,
   RangeSlider,
   ScrollArea,
   Select,
+  SimpleGrid,
   Stack,
   Switch,
   Text,
   Tooltip,
 } from "@mantine/core";
 import { useSessionStorage } from "@mantine/hooks";
-import { IconFlame, IconPlus, IconX, IconZoomCheck } from "@tabler/icons-react";
+import {
+  IconFlame,
+  IconPlus,
+  IconSettings,
+  IconX,
+  IconZoomCheck,
+} from "@tabler/icons-react";
 import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
@@ -68,6 +73,8 @@ function Puzzles({ id }: { id: string }) {
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
+
+  const [settingsOpened, setSettingsOpened] = useState(false);
 
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
@@ -206,32 +213,104 @@ function Puzzles({ id }: { id: string }) {
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
-        <Paper h="100%" withBorder p="md">
+        <Paper
+          h="100%"
+          withBorder
+          p="md"
+          style={{
+            overflow: "hidden",
+          }}
+        >
           <AddPuzzle
             puzzleDbs={puzzleDbs}
             opened={addOpened}
             setOpened={setAddOpened}
             setPuzzleDbs={setPuzzleDbs}
           />
-          <Select
-            data={puzzleDbs
-              .map((p) => ({
-                label: p.title.split(".db3")[0],
-                value: p.path,
-              }))
-              .concat({ label: "+ Add new", value: "add" })}
-            value={selectedDb}
-            clearable={false}
-            placeholder="Select database"
-            onChange={(v) => {
-              if (v === "add") {
-                setAddOpened(true);
-              } else {
-                setSelectedDb(v);
-              }
-            }}
-            pb="sm"
-          />
+          <Group justify="space-between">
+            <Select
+              data={puzzleDbs
+                .map((p) => ({
+                  label: p.title.split(".db3")[0],
+                  value: p.path,
+                }))
+                .concat({ label: "+ Add new", value: "add" })}
+              value={selectedDb}
+              clearable={false}
+              placeholder="Select database"
+              onChange={(v) => {
+                if (v === "add") {
+                  setAddOpened(true);
+                } else {
+                  setSelectedDb(v);
+                }
+              }}
+              pb="sm"
+            />
+            <Tooltip label={t("SideBar.Settings")}>
+              <ActionIcon onClick={() => setSettingsOpened((o) => !o)}>
+                <IconSettings />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+          <Accordion
+            value={settingsOpened ? "settings" : null}
+            onChange={(v) => setSettingsOpened(v === "settings")}
+            mb="sm"
+          >
+            <Accordion.Item value="settings">
+              <Accordion.Panel>
+                <Stack gap="md">
+                  <div>
+                    <Text size="sm" fw={500} mb={4}>
+                      Rating Range
+                    </Text>
+                    <RangeSlider
+                      min={600}
+                      my="md"
+                      max={2800}
+                      value={ratingRange}
+                      onChange={setRatingRange}
+                      disabled={progressive}
+                      marks={[
+                        { value: 600, label: "600" },
+                        { value: 1700, label: "1700" },
+                        { value: 2800, label: "2800" },
+                      ]}
+                    />
+                  </div>
+                  <SimpleGrid cols={2} spacing="sm">
+                    <Switch
+                      label="Progressive"
+                      description="Auto-increase difficulty"
+                      checked={progressive}
+                      onChange={(event) =>
+                        setProgressive(event.currentTarget.checked)
+                      }
+                    />
+                    <Switch
+                      label="Hide Rating"
+                      description="Hide until solved"
+                      checked={hideRating}
+                      onChange={(event) =>
+                        setHideRating(event.currentTarget.checked)
+                      }
+                    />
+                    <Switch
+                      label={t("Puzzle.JumpToNextPuzzleImmediately")}
+                      description="Auto-advance on solve"
+                      checked={jumpToNextPuzzleImmediately}
+                      onChange={(event) =>
+                        setJumpToNextPuzzleImmediately(
+                          event.currentTarget.checked,
+                        )
+                      }
+                    />
+                  </SimpleGrid>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+          </Accordion>
           <Group grow>
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
@@ -292,55 +371,15 @@ function Puzzles({ id }: { id: string }) {
             )}
           </Group>
           <Divider my="sm" />
-          <Group>
-            <Input.Wrapper label="Rating Range" flex={1}>
-              <RangeSlider
-                min={600}
-                max={2800}
-                value={ratingRange}
-                onChange={setRatingRange}
-                disabled={progressive}
-              />
-            </Input.Wrapper>
-            <Input.Wrapper label="Progressive">
-              <Center>
-                <Checkbox
-                  checked={progressive}
-                  onChange={(event) =>
-                    setProgressive(event.currentTarget.checked)
-                  }
-                />
-              </Center>
-            </Input.Wrapper>
-            <Input.Wrapper label="Hide Rating">
-              <Center>
-                <Checkbox
-                  checked={hideRating}
-                  onChange={(event) =>
-                    setHideRating(event.currentTarget.checked)
-                  }
-                />
-              </Center>
-            </Input.Wrapper>
-          </Group>
-          <Divider my="sm" />
           <Group justify="space-between">
-            {turnToMove && (
-              <Text fz="1.75rem">
-                {turnToMove === "white" ? "Black " : "White "}
-                To Move
-              </Text>
-            )}
-            <Group>
-              <Switch
-                defaultChecked
-                onChange={(event) =>
-                  setJumpToNextPuzzleImmediately(event.currentTarget.checked)
-                }
-                checked={jumpToNextPuzzleImmediately}
-                label={t("Puzzle.JumpToNextPuzzleImmediately")}
-              />
-
+            <Text fz="1.75rem" fw={500}>
+              {!turnToMove
+                ? ""
+                : turnToMove === "white"
+                  ? "Black to move"
+                  : "White to move"}
+            </Text>
+            <Group gap="xs">
               <Tooltip label="New Puzzle">
                 <ActionIcon
                   disabled={!selectedDb}
@@ -390,10 +429,10 @@ function Puzzles({ id }: { id: string }) {
               </Tooltip>
             </Group>
           </Group>
-
           <Button
             mt="sm"
             variant="light"
+            fullWidth
             onClick={async () => {
               const curPuzzle = puzzles[currentPuzzle];
               if (curPuzzle.completion === "incomplete") {
