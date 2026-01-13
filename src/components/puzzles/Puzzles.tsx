@@ -150,6 +150,7 @@ function Puzzles({ id }: { id: string }) {
   }
 
   const [addOpened, setAddOpened] = useState(false);
+  const [showingSolution, setShowingSolution] = useState(false);
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
@@ -434,6 +435,7 @@ function Puzzles({ id }: { id: string }) {
             variant="light"
             fullWidth
             onClick={async () => {
+              setShowingSolution(true);
               const curPuzzle = puzzles[currentPuzzle];
               if (curPuzzle.completion === "incomplete") {
                 changeCompletion("incorrect");
@@ -446,10 +448,11 @@ function Puzzles({ id }: { id: string }) {
                 });
                 await new Promise((r) => setTimeout(r, 500));
               }
+              setShowingSolution(false);
             }}
-            disabled={puzzles.length === 0}
+            disabled={puzzles.length === 0 || showingSolution}
           >
-            View Solution
+            { showingSolution ?  "Showing Solution" : "View Solution" }
           </Button>
         </Paper>
       </Portal>
