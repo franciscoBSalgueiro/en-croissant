@@ -11,6 +11,7 @@ export interface TreeState {
   position: number[];
   dirty: boolean;
   report: ReportState;
+  treeVersion: number;
 }
 
 export interface TreeNode {
@@ -104,6 +105,7 @@ export function defaultTree(fen?: string): TreeState {
     report: {
       inProgress: false,
     },
+    treeVersion: 0,
   };
 }
 

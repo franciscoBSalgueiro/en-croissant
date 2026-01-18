@@ -117,6 +117,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           state.dirty = true;
           state.root = defaultTree(fen).root;
           state.position = [];
+          state.treeVersion++;
         }),
       ),
 
@@ -361,6 +362,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         produce((state) => {
           state.dirty = true;
           deleteMove(state, path ?? state.position);
+          state.treeVersion++;
         }),
       ),
     promoteVariation: (path) =>
@@ -470,6 +472,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
       set(
         produce((state) => {
           state.dirty = true;
+          state.treeVersion++;
           addAnalysis(state, analysis);
         }),
       ),
@@ -568,6 +571,7 @@ function makeMove({
     }
   } else {
     state.dirty = true;
+    state.treeVersion++;
     const newMoveNode = createNode({
       fen: newFen,
       move,
@@ -653,6 +657,7 @@ function promoteVariation(state: TreeState, path: number[]) {
   node.children.unshift(node.children.splice(v, 1)[0]);
   state.position = path;
   state.position[i] = 0;
+  state.treeVersion++;
 }
 
 function setShapes(state: TreeState, shapes: DrawShape[]) {
