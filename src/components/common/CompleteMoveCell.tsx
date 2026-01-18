@@ -15,7 +15,7 @@ import {
 } from "@tabler/icons-react";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import { memo, useContext, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import MoveCell from "./MoveCell";
@@ -64,7 +64,11 @@ function CompleteMoveCell({
   const isCurrentVariation = useStore(store, (s) =>
     equal(s.position, movePath),
   );
-  const root = useStore(store, (s) => s.root);
+  const root = useStore(
+    store,
+    useCallback((s) => s.root, []),
+  );
+  const treeVersion = useStore(store, (s) => s.treeVersion);
   const goToMove = useStore(store, (s) => s.goToMove);
   const deleteMove = useStore(store, (s) => s.deleteMove);
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
@@ -81,7 +85,10 @@ function CompleteMoveCell({
   const [open, setOpen] = useState(false);
   const currentTab = useAtomValue(currentTabAtom);
 
-  const transpositions = fen ? getTranspositions(fen, movePath, root) : [];
+  const movePathKey = movePath.join(",");
+  const transpositions = useMemo(() => {
+    return fen ? getTranspositions(fen, movePath, root) : [];
+  }, [fen, movePathKey, treeVersion]);
   const { t } = useTranslation();
 
   return (
