@@ -40,7 +40,7 @@ use crate::chess::{
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    search_position,
+    search_position, MmapSearchIndex,
 };
 use crate::game::{
     abort_game, get_game_state, get_game_engine_logs, make_game_move, take_back_game_move, resign_game, start_game,
@@ -62,19 +62,6 @@ use crate::{
 };
 use tokio::sync::{RwLock, Semaphore};
 
-pub type GameData = (
-    i32,
-    i32,
-    i32,
-    Option<String>,
-    Option<String>,
-    Vec<u8>,
-    Option<String>,
-    i32,
-    i32,
-    i32,
-);
-
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct AppState {
@@ -83,7 +70,7 @@ pub struct AppState {
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
     line_cache: DashMap<(GameQueryJs, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    db_cache: Mutex<Vec<GameData>>,
+    db_cache: Mutex<Option<MmapSearchIndex>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     pgn_offsets: DashMap<String, Vec<u64>>,
