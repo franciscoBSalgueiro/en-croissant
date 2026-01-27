@@ -3,6 +3,7 @@ mod models;
 mod ops;
 mod schema;
 mod search;
+mod search_index;
 
 use crate::{
     db::{
@@ -49,6 +50,9 @@ use log::info;
 use tauri_specta::Event as _;
 
 use self::encoding::encode_move;
+pub use self::search_index::{
+    get_index_path, MmapSearchIndex, SearchGameEntry, SearchIndex,
+};
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -491,6 +495,80 @@ pub async fn convert_pgn(
             .execute(db)?;
     }
 
+    Ok(())
+}
+
+pub fn generate_search_index(
+    db_path: &PathBuf,
+    state: &tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(
+        state,
+        db_path.to_str().unwrap(),
+        ConnectionOptions::default(),
+    )?;
+    let index_path = get_index_path(db_path);
+
+    info!("Generating search index at {:?}", index_path);
+    let start = Instant::now();
+
+    let games: Vec<(
+        i32,
+        i32,
+        i32,
+        Option<String>,
+        Option<String>,
+        Vec<u8>,
+        Option<String>,
+        i32,
+        i32,
+        i32,
+    )> = games::table
+        .select((
+            games::id,
+            games::white_id,
+            games::black_id,
+            games::date,
+            games::result,
+            games::moves,
+            games::fen,
+            games::pawn_home,
+            games::white_material,
+            games::black_material,
+        ))
+        .load(db)?;
+
+    let mut writer = SearchIndex::with_capacity(games.len());
+    for (
+        id,
+        white_id,
+        black_id,
+        date,
+        result,
+        moves,
+        fen,
+        pawn_home,
+        white_material,
+        black_material,
+    ) in games
+    {
+        let entry = SearchGameEntry::from_game_data(
+            id,
+            white_id,
+            black_id,
+            date,
+            result,
+            moves,
+            fen,
+            pawn_home,
+            white_material,
+            black_material,
+        );
+        writer.push(entry);
+    }
+    writer.write_to(&index_path)?;
+
+    info!("Search index generated in {:?}", start.elapsed());
     Ok(())
 }
 
@@ -1314,14 +1392,13 @@ pub async fn get_players_game_info(
             acc
         })
         .reduce(DashMap::new, |acc1, acc2| {
-                for ((site, player), data) in acc2 {
-                    acc1.entry((site, player))
-                        .or_insert_with(Vec::new)
-                        .extend(data);
-                }
-                acc1
-            },
-        )
+            for ((site, player), data) in acc2 {
+                acc1.entry((site, player))
+                    .or_insert_with(Vec::new)
+                    .extend(data);
+            }
+            acc1
+        })
         .into_iter()
         .map(|((site, player), data)| SiteStatsData { site, player, data })
         .collect();
@@ -1590,7 +1667,7 @@ pub async fn merge_players(
 #[specta::specta]
 pub fn clear_games(state: tauri::State<'_, AppState>) {
     let mut state = state.db_cache.lock().unwrap();
-    state.clear();
+    *state = None;
 }
 
 #[cfg(test)]
