@@ -547,9 +547,9 @@ function BoardGame() {
               logs={engineLogs}
               onRefresh={fetchEngineLogs}
               additionalControls={
-                players.white.type === "engine" &&
-                players.black.type === "engine" && (
-                  <Group grow justify="space-between">
+                <Group grow justify="space-between">
+                  {players.white.type === "engine" &&
+                  players.black.type === "engine" ? (
                     <SegmentedControl
                       value={logsColor}
                       onChange={(value) =>
@@ -560,12 +560,13 @@ function BoardGame() {
                         { value: "black", label: "Black" },
                       ]}
                     />
-
-                    <ActionIcon flex={0} onClick={() => toggleLogsOpened()}>
-                      <IconX size="1.2rem" />
-                    </ActionIcon>
-                  </Group>
-                )
+                  ) : (
+                    <div />
+                  )}
+                  <ActionIcon flex={0} onClick={() => toggleLogsOpened()}>
+                    <IconX size="1.2rem" />
+                  </ActionIcon>
+                </Group>
               }
             />
           ) : (
