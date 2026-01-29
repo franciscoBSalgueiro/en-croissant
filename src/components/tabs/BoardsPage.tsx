@@ -66,6 +66,7 @@ export default function BoardsPage() {
         }
         setTabs((prev) => prev.filter((tab) => tab.value !== value));
         unwrap(await commands.killEngines(value));
+        await commands.abortGame(`${value}-game`);
       }
     },
     [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
