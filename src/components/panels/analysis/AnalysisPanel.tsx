@@ -11,6 +11,7 @@ import {
 import { getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
+import { getInitials } from "@/utils/format";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
@@ -126,32 +127,26 @@ function AnalysisPanel() {
               )}
             {loadedEngines.length > 1 && (
               <Paper withBorder p="xs" flex={1}>
-                <Group w="100%">
-                  <Stack w="6rem" gap="xs">
-                    <Text ta="center" fw="bold">
-                      {t("Board.Analysis.Summary")}
-                    </Text>
-                    <Button
-                      rightSection={
-                        allEnabled ? (
-                          <IconPlayerPause size="1.2rem" />
-                        ) : (
-                          <IconChevronsRight size="1.2rem" />
-                        )
-                      }
-                      variant={allEnabled ? "filled" : "default"}
-                      onClick={() => enable(!allEnabled)}
-                    >
-                      {allEnabled ? t("Common.Stop") : t("Common.Run")}
-                    </Button>
-                  </Stack>
-                  <Group grow flex={1}>
+                <Group w="100%" gap="xs" wrap="nowrap">
+                  <ActionIcon
+                    size="lg"
+                    variant="default"
+                    onClick={() => enable(!allEnabled)}
+                  >
+                    {allEnabled ? (
+                      <IconPlayerPause size="1.25rem" />
+                    ) : (
+                      <IconChevronsRight size="1.25rem" />
+                    )}
+                  </ActionIcon>
+                  <Group grow flex={1} gap="xs">
                     {loadedEngines.map((engine, i) => (
                       <EngineSummary
                         key={engine.name}
                         engine={engine}
                         fen={rootFen}
                         moves={moves}
+                        shorten={loadedEngines.length > 3}
                         i={i}
                       />
                     ))}
@@ -198,7 +193,7 @@ function AnalysisPanel() {
                   <Droppable droppableId="droppable" direction="vertical">
                     {(provided) => (
                       <div ref={provided.innerRef} {...provided.droppableProps}>
-                        <Stack w="100%">
+                        <Stack w="100%" gap="xs">
                           {loadedEngines.map((engine, i) => (
                             <Draggable
                               key={engine.name + i.toString()}
@@ -292,11 +287,13 @@ function EngineSummary({
   engine,
   fen,
   moves,
+  shorten,
   i,
 }: {
   engine: Engine;
   fen: string;
   moves: string[];
+  shorten: boolean;
   i: number;
 }) {
   const activeTab = useAtomValue(activeTabAtom);
@@ -310,14 +307,19 @@ function EngineSummary({
   const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (
-    <Card withBorder c={arrowColors[i]?.strong} p="xs">
-      <Stack gap="xs" align="center">
+    <Card withBorder c={arrowColors[i]?.strong} py={4} px="xs">
+      <Group gap="xs" wrap="nowrap" justify="center">
         <Text
           fw="bold"
           fz="xs"
-          style={{ textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
         >
-          {engine.name}
+          {(shorten && engine.name.length > 3) || engine.name.length > 10
+            ? `${getInitials(engine.name)}.`
+            : engine.name}
         </Text>
         {score ? (
           <ScoreBubble size="sm" score={score} />
@@ -326,7 +328,7 @@ function EngineSummary({
             ???
           </Text>
         )}
-      </Stack>
+      </Group>
     </Card>
   );
 }

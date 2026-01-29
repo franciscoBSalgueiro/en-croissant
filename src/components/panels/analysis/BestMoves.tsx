@@ -163,7 +163,7 @@ function BestMovesComponent({
       <Box style={{ display: "flex" }}>
         <Stack gap={0} py="1rem">
           <ActionIcon
-            size="lg"
+            size="md"
             variant={settings.enabled ? "filled" : "transparent"}
             color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
             onClick={() => {
@@ -344,7 +344,7 @@ function EngineTop({
   return (
     <Group justify="space-between">
       <Group align="center">
-        <Text fw="bold" fz="xl">
+        <Text fw="bold" fz="lg">
           {name}
         </Text>
         {enabled && !isGameOver && !error && !engineVariations && (
@@ -356,7 +356,7 @@ function EngineTop({
           engineVariations &&
           engineVariations.length > 0 && (
             <Tooltip label={"How fast the engine is running"}>
-              <Code fz="xs">{nps} nodes/s</Code>
+              <Code fz="xs">{nps}n/s</Code>
             </Tooltip>
           )}
       </Group>

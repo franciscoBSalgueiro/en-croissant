@@ -179,7 +179,7 @@ function DatabasePanel() {
         />
 
         {tabType !== "options" && (
-          <Text>
+          <Text pr="sm">
             {t("Board.Database.Matches", {
               matches: formatNumber(
                 Math.max(grandTotal || 0, openingData?.games.length || 0),
