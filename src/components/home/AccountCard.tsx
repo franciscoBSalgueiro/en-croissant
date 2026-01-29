@@ -143,7 +143,8 @@ export function AccountCard({
 
   const downloadedGames =
     database?.type === "success" ? database.game_count : 0;
-  const percentage = ((downloadedGames / total) * 100).toFixed(2);
+  const percentage =
+    total === 0 ? "0.00" : ((downloadedGames / total) * 100).toFixed(2);
 
   async function getLastGameDate({
     database,
