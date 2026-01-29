@@ -97,7 +97,7 @@
     "@vanilla-extract/css": "^1.18.0",
     "@vanilla-extract/vite-plugin": "^5.1.4",
     "jsdom": "^24.0.0",
-    "typescript": "^5.4.2",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   }
 }

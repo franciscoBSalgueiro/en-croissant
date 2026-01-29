@@ -247,8 +247,8 @@ importers:
         specifier: ^24.0.0
         version: 24.0.0
       typescript:
-        specifier: ^5.4.2
-        version: 5.4.2
+        specifier: ^5.9.3
+        version: 5.9.3
       vitest:
         specifier: ^4.0.16
         version: 4.0.16(jsdom@24.0.0)
@@ -2574,8 +2574,8 @@ packages:
     resolution: {integrity: sha512-5Y2/pp2wtJk8o08G0CMkuFPCO354FGwk/vbidxrdhRGZfd0tFnb4Qb8anp9XxXriwBgVPjdWbKpGl4J9lJY2jQ==}
     engines: {node: '>=16'}
 
-  typescript@5.4.2:
-    resolution: {integrity: sha512-+2/g0Fds1ERlP6JsakQQDXjZdZMM+rqpamFZJEKh4kwTIn3iDkgKtby0CeNd5ATNZ4Ry1ax15TMx0W2V+miizQ==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -5442,7 +5442,7 @@ snapshots:
 
   type-fest@4.12.0: {}
 
-  typescript@5.4.2: {}
+  typescript@5.9.3: {}
 
   uc.micro@1.0.6: {}
 
