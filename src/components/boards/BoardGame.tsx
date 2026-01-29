@@ -12,6 +12,10 @@ import {
   currentGameIdAtom,
   currentGameStateAtom,
   currentPlayersAtom,
+  gameInputColorAtom,
+  gamePlayer1SettingsAtom,
+  gamePlayer2SettingsAtom,
+  gameSameTimeControlAtom,
   tabsAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
@@ -61,11 +65,7 @@ import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
 import EditingCard from "./EditingCard";
-import {
-  DEFAULT_TIME_CONTROL,
-  OpponentForm,
-  type OpponentSettings,
-} from "./OpponentForm";
+import { OpponentForm, type OpponentSettings } from "./OpponentForm";
 
 function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
@@ -90,9 +90,7 @@ function BoardGame() {
   const [editingMode, toggleEditingMode] = useToggle();
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
 
-  const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
-    "white",
-  );
+  const [inputColor, setInputColor] = useAtom(gameInputColorAtom);
   function cycleColor() {
     setInputColor((prev) =>
       match(prev)
@@ -103,20 +101,12 @@ function BoardGame() {
     );
   }
 
-  const [player1Settings, setPlayer1Settings] = useState<OpponentSettings>({
-    type: "human",
-    name: "Player",
-    timeControl: DEFAULT_TIME_CONTROL,
-    timeUnit: "m",
-    incrementUnit: "s",
-  });
-  const [player2Settings, setPlayer2Settings] = useState<OpponentSettings>({
-    type: "human",
-    name: "Player",
-    timeControl: DEFAULT_TIME_CONTROL,
-    timeUnit: "m",
-    incrementUnit: "s",
-  });
+  const [player1Settings, setPlayer1Settings] = useAtom(
+    gamePlayer1SettingsAtom,
+  );
+  const [player2Settings, setPlayer2Settings] = useAtom(
+    gamePlayer2SettingsAtom,
+  );
 
   function getPlayers() {
     let white = inputColor === "white" ? player1Settings : player2Settings;
@@ -497,7 +487,9 @@ function BoardGame() {
     return "none";
   }, [players]);
 
-  const [sameTimeControl, setSameTimeControl] = useState(true);
+  const [sameTimeControl, setSameTimeControl] = useAtom(
+    gameSameTimeControlAtom,
+  );
 
   const onePlayerIsEngine = players.white.type !== players.black.type;
 

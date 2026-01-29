@@ -16,7 +16,10 @@ import type { MissingMove } from "@/utils/repertoire";
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
 import type { MantineColor } from "@mantine/core";
 
-import type { OpponentSettings } from "@/components/boards/OpponentForm";
+import {
+  DEFAULT_TIME_CONTROL,
+  type OpponentSettings,
+} from "@/components/boards/OpponentForm";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
@@ -202,6 +205,37 @@ export const selectedDatabaseAtom = atomWithStorage<SuccessDatabaseInfo | null>(
   "database-view",
   null,
   createJSONStorage(() => sessionStorage),
+);
+
+// Game Settings
+
+export type GameInputColor = "white" | "random" | "black";
+
+export const gameInputColorAtom = atomWithStorage<GameInputColor>(
+  "game-input-color",
+  "white",
+);
+
+const defaultPlayerSettings: OpponentSettings = {
+  type: "human",
+  name: "Player",
+  timeControl: DEFAULT_TIME_CONTROL,
+  timeUnit: "m",
+  incrementUnit: "s",
+};
+export const gamePlayer1SettingsAtom = atomWithStorage<OpponentSettings>(
+  "game-player1-settings",
+  defaultPlayerSettings,
+);
+
+export const gamePlayer2SettingsAtom = atomWithStorage<OpponentSettings>(
+  "game-player2-settings",
+  defaultPlayerSettings,
+);
+
+export const gameSameTimeControlAtom = atomWithStorage<boolean>(
+  "game-same-time-control",
+  true,
 );
 
 // Opening Report
