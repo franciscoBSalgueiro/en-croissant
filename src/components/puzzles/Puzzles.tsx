@@ -404,9 +404,8 @@ function Puzzles({ id }: { id: string }) {
                         ...defaultTree().headers,
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
-                          Chess.fromSetup(
-                            parseFen(puzzles[currentPuzzle].fen).unwrap(),
-                          ).unwrap().turn === "white"
+                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
+                          "white"
                             ? "black"
                             : "white",
                       },

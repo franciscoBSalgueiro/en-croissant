@@ -71,7 +71,7 @@ function PuzzleBoard({
     }
   }
   const orientation = puzzle?.fen
-    ? Chess.fromSetup(parseFen(puzzle.fen).unwrap()).unwrap().turn === "white"
+    ? parseFen(puzzle.fen).unwrap().turn === "white"
       ? "black"
       : "white"
     : "white";

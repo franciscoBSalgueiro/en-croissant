@@ -6,6 +6,7 @@ import {
   type Role,
   makeSquare,
   makeUci,
+  parseUci,
 } from "chessops";
 import { type Chess, castlingSide, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
@@ -461,9 +462,12 @@ function innerParsePGN(
       if (error) {
         continue;
       }
-      const move = parseSan(pos, token.value);
+      let move = parseSan(pos, token.value);
       if (!move) {
-        continue;
+        move = parseUci(token.value);
+        if (!move) {
+          continue;
+        }
       }
       const san = makeSan(pos, move);
       pos.play(move);
