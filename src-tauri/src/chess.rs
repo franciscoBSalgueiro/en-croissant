@@ -20,11 +20,13 @@ use vampirc_uci::{
 
 use crate::{
     db::{is_position_in_db, GameQueryJs, PositionQueryJs},
-    engine::{parse_fen_and_apply_moves, BaseEngine, EngineLog, EngineOption, EngineReader, GoMode},
+    engine::{
+        parse_fen_and_apply_moves, BaseEngine, EngineLog, EngineOption, EngineReader, GoMode,
+    },
     error::Error,
+    progress::update_progress,
     AppState,
 };
-
 
 pub struct EngineProcess {
     base: BaseEngine,
@@ -45,18 +47,21 @@ impl EngineProcess {
         base.init_uci().await?;
         let reader = base.take_reader().ok_or(Error::EngineDisconnected)?;
 
-        Ok((Self {
-            base,
-            last_depth: 0,
-            best_moves: Vec::new(),
-            last_best_moves: Vec::new(),
-            last_progress: 0.0,
-            options: EngineOptions::default(),
-            real_multipv: 0,
-            go_mode: GoMode::Infinite,
-            running: false,
-            start: Instant::now(),
-        }, reader))
+        Ok((
+            Self {
+                base,
+                last_depth: 0,
+                best_moves: Vec::new(),
+                last_best_moves: Vec::new(),
+                last_progress: 0.0,
+                options: EngineOptions::default(),
+                real_multipv: 0,
+                go_mode: GoMode::Infinite,
+                running: false,
+                start: Instant::now(),
+            },
+            reader,
+        ))
     }
 
     async fn set_option<T>(&mut self, name: &str, value: T) -> Result<(), Error>
@@ -219,7 +224,6 @@ pub struct EngineOptions {
     pub moves: Vec<String>,
     pub extra_options: Vec<EngineOption>,
 }
-
 
 #[tauri::command]
 #[specta::specta]
@@ -422,13 +426,6 @@ pub struct AnalysisOptions {
     pub reversed: bool,
 }
 
-#[derive(Clone, Type, serde::Serialize, Event)]
-pub struct ReportProgress {
-    pub progress: f64,
-    pub id: String,
-    pub finished: bool,
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(
@@ -479,12 +476,13 @@ pub async fn analyze_game(
     let mut novelty_found = false;
 
     for (i, (_, moves, _)) in fens.iter().enumerate() {
-        ReportProgress {
-            progress: (i as f64 / fens.len() as f64) * 100.0,
-            id: id.clone(),
-            finished: false,
-        }
-        .emit(&app)?;
+        update_progress(
+            &state.progress_state,
+            &app,
+            id.clone(),
+            (i as f32 / fens.len() as f32) * 100.0,
+            false,
+        )?;
 
         let mut extra_options = uci_options.clone();
         if !extra_options.iter().any(|x| x.name == "MultiPV") {
@@ -572,12 +570,7 @@ pub async fn analyze_game(
             }
         }
     }
-    ReportProgress {
-        progress: 100.0,
-        id: id.clone(),
-        finished: true,
-    }
-    .emit(&app)?;
+    update_progress(&state.progress_state, &app, id.clone(), 100.0, true)?;
     Ok(analysis)
 }
 

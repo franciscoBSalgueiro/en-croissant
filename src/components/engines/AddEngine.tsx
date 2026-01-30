@@ -1,4 +1,4 @@
-import { events, commands } from "@/bindings";
+import { commands } from "@/bindings";
 import { enginesAtom } from "@/state/atoms";
 import {
   type LocalEngine,
@@ -270,7 +270,6 @@ function EngineCard({
           </Group>
           <ProgressButton
             id={`engine_${engineId}`}
-            progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
               completed: t("Common.Installed"),

@@ -14,17 +14,19 @@ mod lexer;
 mod oauth;
 mod opening;
 mod pgn;
+mod progress;
 mod puzzle;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::{fs::create_dir_all, path::Path};
 
-use chess::{BestMovesPayload, EngineProcess, ReportProgress};
+use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
 use db::{DatabaseProgress, GameQueryJs, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use game::GameManager;
+use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
 
 use log::LevelFilter;
 use oauth::AuthState;
@@ -47,7 +49,7 @@ use crate::game::{
     take_back_game_move, ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
 
-use crate::fs::{set_file_as_executable, DownloadProgress};
+use crate::fs::set_file_as_executable;
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -78,6 +80,7 @@ pub struct AppState {
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
     auth: AuthState,
     game_manager: GameManager,
+    progress_state: ProgressStore,
 }
 
 const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
@@ -156,13 +159,14 @@ fn main() {
             resign_game,
             abort_game,
             get_game_engine_logs,
-            preload_reference_db
+            preload_reference_db,
+            get_progress,
+            clear_progress
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
             DatabaseProgress,
-            DownloadProgress,
-            ReportProgress,
+            ProgressEvent,
             GameMoveEvent,
             ClockUpdateEvent,
             GameOverEvent

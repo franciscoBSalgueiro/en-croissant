@@ -105,10 +105,7 @@ function AddDatabase({
                   key={i}
                   setDatabases={setDatabases}
                   initInstalled={databases.some(
-                    (e) =>
-                      e.type === "success" &&
-                      db.type === "success" &&
-                      e.title === db.title,
+                    (e) => e.type === "success" && e.title === db.title,
                   )}
                 />
               ))}
@@ -243,7 +240,6 @@ function DatabaseCard({
           </Group>
           <ProgressButton
             id={`db_${databaseId}`}
-            progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
               completed: t("Common.Installed"),

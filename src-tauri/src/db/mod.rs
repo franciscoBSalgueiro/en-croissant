@@ -1418,6 +1418,7 @@ pub async fn delete_database(
 
     // delete file
     remove_file(path_str)?;
+    remove_file(get_index_path(&PathBuf::from(path_str)))?;
     Ok(())
 }
 

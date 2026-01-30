@@ -1,4 +1,4 @@
-import { events, type PuzzleDatabaseInfo, commands } from "@/bindings";
+import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { getPuzzleDatabases } from "@/utils/puzzles";
@@ -118,7 +118,6 @@ function PuzzleDbCard({
           </Group>
           <ProgressButton
             id={`puzzle_db_${databaseId}`}
-            progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
               completed: "Installed",

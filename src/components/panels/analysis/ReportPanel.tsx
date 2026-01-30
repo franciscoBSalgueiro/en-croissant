@@ -1,4 +1,3 @@
-import { events } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -71,7 +70,6 @@ function ReportPanel() {
               leftIcon={<IconZoomCheck size="0.875rem" />}
               onClick={() => toggleReportingMode()}
               initInstalled={false}
-              progressEvent={events.reportProgress}
               labels={{
                 action: t("Board.Analysis.GenerateReport"),
                 completed: t("Board.Analysis.ReportGenerated"),

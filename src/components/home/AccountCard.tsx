@@ -117,7 +117,7 @@ export function AccountCard({
         null,
       ),
     );
-    events.downloadProgress.emit({
+    events.progressEvent.emit({
       id: `${type}_${title}`,
       progress: 100,
       finished: true,
@@ -125,7 +125,7 @@ export function AccountCard({
   }
 
   useEffect(() => {
-    const unlisten = events.downloadProgress.listen(async (e) => {
+    const unlisten = events.progressEvent.listen(async (e) => {
       if (e.payload.id === `${type}_${title}`) {
         setProgress(e.payload.progress);
         if (e.payload.finished) {

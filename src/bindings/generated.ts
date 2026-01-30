@@ -397,6 +397,12 @@ async preloadReferenceDb(file: string) : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getProgress(id: string) : Promise<ProgressItem | null> {
+    return await TAURI_INVOKE("get_progress", { id });
+},
+async clearProgress(id: string) : Promise<void> {
+    await TAURI_INVOKE("clear_progress", { id });
 }
 }
 
@@ -407,18 +413,16 @@ export const events = __makeEvents__<{
 bestMovesPayload: BestMovesPayload,
 clockUpdateEvent: ClockUpdateEvent,
 databaseProgress: DatabaseProgress,
-downloadProgress: DownloadProgress,
 gameMoveEvent: GameMoveEvent,
 gameOverEvent: GameOverEvent,
-reportProgress: ReportProgress
+progressEvent: ProgressEvent
 }>({
 bestMovesPayload: "best-moves-payload",
 clockUpdateEvent: "clock-update-event",
 databaseProgress: "database-progress",
-downloadProgress: "download-progress",
 gameMoveEvent: "game-move-event",
 gameOverEvent: "game-over-event",
-reportProgress: "report-progress"
+progressEvent: "progress-event"
 })
 
 /** user-defined constants **/
@@ -433,7 +437,6 @@ export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: st
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
 export type DatabaseProgress = { id: string; progress: number }
-export type DownloadProgress = { progress: number; id: string; finished: boolean }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
@@ -465,11 +468,12 @@ export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type PositionQueryJs = { fen: string; type_: string }
 export type PositionStats = { move: string; white: number; draw: number; black: number }
+export type ProgressEvent = { id: string; progress: number; finished: boolean }
+export type ProgressItem = { id: string; progress: number; finished: boolean }
 export type Puzzle = { id: number; fen: string; moves: string; rating: number; rating_deviation: number; popularity: number; nb_plays: number }
 export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }
 export type QueryResponse<T> = { data: T; count: number | null }
-export type ReportProgress = { progress: number; id: string; finished: boolean }
 export type Score = { value: ScoreValue; 
 /**
  * The probability of each result (win, draw, loss).

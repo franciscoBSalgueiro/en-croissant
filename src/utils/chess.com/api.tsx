@@ -162,14 +162,14 @@ export async function downloadChessCom(
     writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
       append: true,
     });
-    events.downloadProgress.emit({
+    events.progressEvent.emit({
       finished: false,
       id: `chesscom_${player}`,
       progress:
         (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
     });
   }
-  events.downloadProgress.emit({
+  events.progressEvent.emit({
     finished: false,
     id: `chesscom_${player}`,
     progress: 100,
