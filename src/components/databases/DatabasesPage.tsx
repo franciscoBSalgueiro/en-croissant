@@ -8,6 +8,7 @@ import { unwrap } from "@/utils/unwrap";
 import {
   Box,
   Button,
+  Center,
   Checkbox,
   Divider,
   Group,
@@ -195,10 +196,12 @@ export default function DatabasesPage() {
           </SimpleGrid>
         </ScrollArea>
 
-        <Paper withBorder p="md" h="100%">
-          {selectedDatabase === null ? (
-            <Text ta="center">No database selected</Text>
-          ) : (
+        {selectedDatabase === null ? (
+          <Center h="100%">
+            <Text>No database selected</Text>
+          </Center>
+        ) : (
+          <Paper withBorder p="md" h="100%">
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 {selectedDatabase.type === "error" ? (
@@ -358,8 +361,8 @@ export default function DatabasesPage() {
                 </Group>
               </Stack>
             </ScrollArea>
-          )}
-        </Paper>
+          </Paper>
+        )}
       </Group>
     </Stack>
   );
