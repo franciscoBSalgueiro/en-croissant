@@ -333,7 +333,6 @@ pub async fn search_position(
 
         let index = processed.fetch_add(1, Ordering::Relaxed) + 1;
         if index.is_multiple_of(50000) {
-            info!("{} games processed: {:?}", index, start.elapsed());
             let _ = app.emit(
                 "search_progress",
                 ProgressPayload {
