@@ -2,7 +2,7 @@ import { Card, SimpleGrid, Stack, Title } from "@mantine/core";
 import Accounts from "./Accounts";
 import Databases from "./Databases";
 
-function HomePage() {
+function AccountsPage() {
   return (
     <SimpleGrid
       cols={2}
@@ -24,4 +24,4 @@ function HomePage() {
   );
 }
 
-export default HomePage;
+export default AccountsPage;
