@@ -64,6 +64,7 @@ impl PgnParser {
         let mut new_game = false;
         let mut skipped = 0;
         let mut count = 0;
+        let mut in_comment = false;
 
         if n == 0 {
             return Ok(0);
@@ -80,7 +81,15 @@ impl PgnParser {
             if bytes == 0 {
                 break;
             }
-            if line.starts_with('[') {
+            let is_header = !in_comment && line.starts_with('[');
+            for c in line.chars() {
+                match c {
+                    '{' => in_comment = true,
+                    '}' => in_comment = false,
+                    _ => {}
+                }
+            }
+            if is_header {
                 if new_game {
                     count += 1;
                     if count == n {
@@ -99,6 +108,7 @@ impl PgnParser {
 
     fn read_game(&mut self) -> io::Result<String> {
         let mut new_game = false;
+        let mut in_comment = false;
         self.game.clear();
         loop {
             let res = self.reader.read_line(&mut self.line);
@@ -109,7 +119,15 @@ impl PgnParser {
             if bytes == 0 {
                 break;
             }
-            if self.line.starts_with('[') {
+            let is_header = !in_comment && self.line.starts_with('[');
+            for c in self.line.chars() {
+                match c {
+                    '{' => in_comment = true,
+                    '}' => in_comment = false,
+                    _ => {}
+                }
+            }
+            if is_header {
                 if new_game {
                     break;
                 }
