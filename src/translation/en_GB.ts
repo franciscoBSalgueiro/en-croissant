@@ -206,7 +206,7 @@ export const en_GB = {
     "Board.Database.AverageRating": "Average rating",
     "Board.Annotate.WriteHere": "Write here...",
 
-    "Engines.Title": "Your Engines",
+    "Engines.Title": "Engines",
     "Engines.Settings.NoEngine": "No engine selected",
     "Engines.Settings.SearchSettings": "Search settings",
     "Engines.Settings.AdvancedSettings": "Advanced settings",
@@ -231,7 +231,7 @@ export const en_GB = {
     "Engines.Remove.Message":
       "Are you sure you want to remove this engine from En Croissant?",
 
-    "Databases.Title": "Your Databases",
+    "Databases.Title": "Databases",
     "Databases.Card.Games": "Games",
     "Databases.Card.Players": "Players",
     "Databases.Card.Storage": "Storage",
