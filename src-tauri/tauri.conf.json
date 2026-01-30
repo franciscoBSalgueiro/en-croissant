@@ -63,6 +63,9 @@
       "endpoints": [
         "https://www.encroissant.org/updates"
       ]
+    },
+    "shell": {
+      "open": "*"
     }
   },
   "app": {
