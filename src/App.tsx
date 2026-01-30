@@ -24,6 +24,7 @@ import {
   nativeBarAtom,
   pieceSetAtom,
   primaryColorAtom,
+  referenceDbAtom,
   spellCheckAtom,
   storedDocumentDirAtom,
   tabsAtom,
@@ -117,6 +118,17 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, [fontSize]);
+
+  useEffect(() => {
+    const store = getDefaultStore();
+    const referenceDb = store.get(referenceDbAtom);
+    if (referenceDb) {
+      info(`Preloading reference database: ${referenceDb}`);
+      commands.preloadReferenceDb(referenceDb).catch((e: unknown) => {
+        info(`Failed to preload reference database: ${e}`);
+      });
+    }
+  }, []);
 
   return (
     <>

@@ -389,6 +389,14 @@ async getGameEngineLogs(gameId: string, color: string) : Promise<Result<EngineLo
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async preloadReferenceDb(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("preload_reference_db", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

@@ -40,11 +40,11 @@ use crate::chess::{
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    search_position, MmapSearchIndex,
+    preload_reference_db, search_position, MmapSearchIndex,
 };
 use crate::game::{
-    abort_game, get_game_state, get_game_engine_logs, make_game_move, take_back_game_move, resign_game, start_game,
-    ClockUpdateEvent, GameMoveEvent, GameOverEvent,
+    abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
+    take_back_game_move, ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
 
 use crate::fs::{set_file_as_executable, DownloadProgress};
@@ -155,7 +155,8 @@ fn main() {
             take_back_game_move,
             resign_game,
             abort_game,
-            get_game_engine_logs
+            get_game_engine_logs,
+            preload_reference_db
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,

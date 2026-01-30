@@ -50,9 +50,7 @@ use log::info;
 use tauri_specta::Event as _;
 
 use self::encoding::encode_move;
-pub use self::search_index::{
-    get_index_path, MmapSearchIndex, SearchGameEntry, SearchIndex,
-};
+pub use self::search_index::{get_index_path, MmapSearchIndex, SearchGameEntry, SearchIndex};
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -1668,6 +1666,36 @@ pub async fn merge_players(
 pub fn clear_games(state: tauri::State<'_, AppState>) {
     let mut state = state.db_cache.lock().unwrap();
     *state = None;
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn preload_reference_db(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let index_path = get_index_path(&file);
+
+    if !MmapSearchIndex::is_valid(&index_path) {
+        info!("Search index not found for reference database, generating...");
+        generate_search_index(&file, &state)?;
+    }
+
+    let mut cache = state.db_cache.lock().unwrap();
+    if cache.is_none() {
+        info!("Preloading reference database from {:?}", index_path);
+        match MmapSearchIndex::open(&index_path) {
+            Ok(index) => {
+                info!("Preloaded reference database with {} games", index.len());
+                *cache = Some(index);
+            }
+            Err(e) => {
+                return Err(Error::Io(e));
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
