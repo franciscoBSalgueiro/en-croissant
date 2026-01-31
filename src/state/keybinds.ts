@@ -15,10 +15,10 @@ type Keybind = {
 type KeyMap = {[key: string]: Keybind};
 
 const keys: KeyMap  = {
-  NEW_TAB: { name: "New tab", keys: `meta+t` },
-  CLOSE_TAB: { name: "Close tab", keys: `meta+w` },
-  OPEN_FILE: { name: "Open File", keys: `meta+o` },
-  SAVE_FILE: { name: "Save File", keys: `meta+s` },
+  NEW_TAB: { name: "New tab", keys: `${meta}+t` },
+  CLOSE_TAB: { name: "Close tab", keys: `${meta}+w` },
+  OPEN_FILE: { name: "Open File", keys: `${meta}+o` },
+  SAVE_FILE: { name: "Save File", keys: `${meta}+s` },
   SWAP_ORIENTATION: { name: "Swap orientation", keys: "f" },
   CLEAR_SHAPES: { name: "Clear shapes", keys: "ctrl+l" },
   NEXT_MOVE: { name: "Next move", keys: "arrowright" },

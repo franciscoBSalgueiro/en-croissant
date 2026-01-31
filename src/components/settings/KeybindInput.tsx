@@ -47,7 +47,7 @@ const mapToOs = (key: string): string => {
     return key === "meta" ? "ctrl" : key;
   }
 
-  if (key === "meta" || key == "cmd") {
+  if (key === "meta" || key === "cmd") {
     return "⌘";
   } else if (key == "ctrl") {
     return "⌃";
