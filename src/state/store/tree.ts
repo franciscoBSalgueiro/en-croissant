@@ -23,6 +23,9 @@ import { type StateCreator, createStore } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface TreeStoreState extends TreeState {
+  practicePath: number[] | null;
+  practiceNavigationEnabled: boolean;
+  practiceAnswerRevealed: boolean;
   currentNode: () => TreeNode;
 
   goToNext: () => void;
@@ -82,6 +85,10 @@ export interface TreeStoreState extends TreeState {
 
   setReportInProgress: (value: boolean) => void;
 
+  setPracticePath: (path: number[] | null) => void;
+  setPracticeNavigation: (enabled: boolean) => void;
+  setPracticeAnswerRevealed: (revealed: boolean) => void;
+
   setState: (state: TreeState) => void;
   reset: () => void;
   save: () => void;
@@ -92,17 +99,28 @@ export type TreeStore = ReturnType<typeof createTreeStore>;
 export const createTreeStore = (id?: string, initialTree?: TreeState) => {
   const stateCreator: StateCreator<TreeStoreState> = (set, get) => ({
     ...(initialTree ?? defaultTree()),
+    practicePath: null,
+    practiceNavigationEnabled: false,
+    practiceAnswerRevealed: false,
 
     currentNode: () => getNodeAtPath(get().root, get().position),
 
     setState: (state) => {
-      set(() => state);
+      set(() => ({
+        ...state,
+        practicePath: null,
+        practiceNavigationEnabled: false,
+        practiceAnswerRevealed: false,
+      }));
     },
 
     reset: () =>
-      set(() => {
-        return defaultTree();
-      }),
+      set(() => ({
+        ...defaultTree(),
+        practicePath: null,
+        practiceNavigationEnabled: false,
+        practiceAnswerRevealed: false,
+      })),
 
     save: () => {
       set((state) => ({
@@ -117,23 +135,78 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           state.dirty = true;
           state.root = defaultTree(fen).root;
           state.position = [];
+          state.practicePath = null;
+          state.practiceNavigationEnabled = false;
+          state.practiceAnswerRevealed = false;
+        }),
+      ),
+
+    setPracticePath: (path) =>
+      set(
+        produce((state: Draft<TreeStoreState>) => {
+          state.practicePath = path;
+          state.practiceAnswerRevealed = false;
+        }),
+      ),
+
+    setPracticeNavigation: (enabled) =>
+      set(
+        produce((state: Draft<TreeStoreState>) => {
+          state.practiceNavigationEnabled = enabled;
+        }),
+      ),
+
+    setPracticeAnswerRevealed: (revealed) =>
+      set(
+        produce((state: Draft<TreeStoreState>) => {
+          state.practiceAnswerRevealed = revealed;
         }),
       ),
 
     goToNext: () =>
       set((state) => {
         const node = getNodeAtPath(state.root, state.position);
-        const [pos] = positionFromFen(node.fen);
-        if (!pos || !node.children[0]?.move) return state;
-        const san = makeSan(pos, node.children[0].move);
-        playSound(san.includes("x"), san.includes("+"));
-        if (node && node.children.length > 0) {
-          return {
-            ...state,
-            position: [...state.position, 0],
-          };
+        const practicePath = state.practicePath;
+        const usePracticePath =
+          !!practicePath &&
+          state.practiceNavigationEnabled &&
+          isPrefix(state.position, practicePath) &&
+          practicePath.length > state.position.length;
+
+        let targetIndex = 0;
+        if (usePracticePath) {
+          const practiceIndex = practicePath[state.position.length];
+          if (
+            typeof practiceIndex === "number" &&
+            practiceIndex < node.children.length
+          ) {
+            targetIndex = practiceIndex;
+          }
         }
-        return state;
+
+        const targetChild = node.children[targetIndex];
+        if (!targetChild?.move) return state;
+        const [pos] = positionFromFen(node.fen);
+        if (!pos) return state;
+        const nextPosition = [...state.position, targetIndex];
+
+        if (
+          practicePath &&
+          state.practiceNavigationEnabled &&
+          !state.practiceAnswerRevealed &&
+          isPrefix(practicePath, nextPosition) &&
+          nextPosition.length > practicePath.length
+        ) {
+          return state;
+        }
+
+        const san = makeSan(pos, targetChild.move);
+        playSound(san.includes("x"), san.includes("+"));
+
+        return {
+          ...state,
+          position: nextPosition,
+        };
       }),
     goToPrevious: () =>
       set((state) => ({
@@ -439,6 +512,9 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           if (headers.fen && headers.fen !== state.root.fen) {
             state.root = defaultTree(headers.fen).root;
             state.position = [];
+            state.practicePath = null;
+            state.practiceNavigationEnabled = false;
+            state.practiceAnswerRevealed = false;
           }
         }),
       ),
