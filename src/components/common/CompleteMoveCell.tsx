@@ -18,6 +18,7 @@ import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
 
@@ -64,7 +65,11 @@ function CompleteMoveCell({
   const isCurrentVariation = useStore(store, (s) =>
     equal(s.position, movePath),
   );
-  const root = useStore(store, (s) => s.root);
+  const transpositions = useStoreWithEqualityFn(
+    store,
+    (s) => (fen ? getTranspositions(fen, movePath, s.root) : []),
+    (a, b) => equal(a, b),
+  );
   const goToMove = useStore(store, (s) => s.goToMove);
   const deleteMove = useStore(store, (s) => s.deleteMove);
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
@@ -81,7 +86,6 @@ function CompleteMoveCell({
   const [open, setOpen] = useState(false);
   const currentTab = useAtomValue(currentTabAtom);
 
-  const transpositions = fen ? getTranspositions(fen, movePath, root) : [];
   const { t } = useTranslation();
 
   return (
