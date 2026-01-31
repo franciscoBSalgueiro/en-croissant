@@ -4,8 +4,9 @@ import {
   type Annotation,
   addPieceSymbol,
 } from "@/utils/annotation";
-import { Box, rgba, useMantineTheme } from "@mantine/core";
-import { IconFlag } from "@tabler/icons-react";
+import { makeClk } from "@/utils/chess";
+import { Box, Tooltip, rgba, useMantineTheme } from "@mantine/core";
+import { IconClockHour4, IconFlag } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { type ForwardedRef, forwardRef } from "react";
 import * as classes from "./MoveCell.css";
@@ -17,6 +18,7 @@ interface MoveCellProps {
   move: string;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  clock?: number;
 }
 
 const MoveCell = forwardRef(function MoveCell(
@@ -48,7 +50,6 @@ const MoveCell = forwardRef(function MoveCell(
     hoverLight = rgba(lightBg, 0.25);
     hoverDark = rgba(darkBg, 0.25);
   }
-
   return (
     <Box
       ref={ref}
@@ -68,6 +69,19 @@ const MoveCell = forwardRef(function MoveCell(
       {props.isStart && <IconFlag style={{ marginRight: 5 }} size="0.875rem" />}
       {moveNotationType === "symbols" ? addPieceSymbol(props.move) : props.move}
       {props.annotations.join("")}
+      {props.clock && (
+        <Tooltip label={makeClk(props.clock)} position="top" withArrow>
+          <IconClockHour4
+            size="0.75rem"
+            style={{
+              marginLeft: 4,
+              opacity: 0.6,
+              display: "inline-block",
+              verticalAlign: "middle",
+            }}
+          />
+        </Tooltip>
+      )}
     </Box>
   );
 });
