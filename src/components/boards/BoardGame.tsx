@@ -492,12 +492,35 @@ function BoardGame() {
   );
 
   const onePlayerIsEngine = players.white.type !== players.black.type;
+  const isEngineVsEngine =
+    players.white.type === "engine" && players.black.type === "engine";
+
+  function getResignationLosingColor(): "white" | "black" {
+    const isPlayerVsEngine =
+      (players.white.type === "human" && players.black.type === "engine") ||
+      (players.black.type === "human" && players.white.type === "engine");
+
+    if (isPlayerVsEngine) {
+      return players.white.type === "human" ? "white" : "black";
+    }
+    return pos?.turn === "white" ? "white" : "black";
+  }
+
+  async function handleAbort() {
+    if (!gameId) return;
+    await commands.abortGame(gameId);
+    setGameState("gameOver");
+    setResult("*");
+  }
+
+  async function handleResign() {
+    if (!gameId) return;
+    const losingColor = getResignationLosingColor();
+    await commands.resignGame(gameId, losingColor);
+  }
 
   async function handleNewGame() {
-    if (gameId) {
-      await commands.abortGame(gameId);
-      setGameId(null);
-    }
+    setGameId(null);
     setGameState("settingUp");
     setWhiteTime(null);
     setBlackTime(null);
@@ -634,13 +657,25 @@ function BoardGame() {
                     <GameInfo headers={headers} />
                   </Box>
                   <Group grow>
-                    <Button
-                      variant="default"
-                      onClick={handleNewGame}
-                      leftSection={<IconPlus />}
-                    >
-                      New Game
-                    </Button>
+                    {gameState === "playing" && (
+                      <Button
+                        variant="default"
+                        color="red"
+                        onClick={isEngineVsEngine ? handleAbort : handleResign}
+                        leftSection={<IconX />}
+                      >
+                        {isEngineVsEngine ? "Abort" : "Resign"}
+                      </Button>
+                    )}
+                    {gameState === "gameOver" && (
+                      <Button
+                        variant="default"
+                        onClick={handleNewGame}
+                        leftSection={<IconPlus />}
+                      >
+                        New Game
+                      </Button>
+                    )}
                     <Button
                       variant="default"
                       onClick={() => changeToAnalysisMode()}
