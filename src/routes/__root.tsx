@@ -14,7 +14,6 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import {
-  AboutMetadata,
   Menu,
   MenuItem,
   PredefinedMenuItem,
@@ -45,7 +44,7 @@ type MenuAction = {
   label: string;
   shortcut?: string;
   action?: () => void;
-  item?: 'Hide' | 'Copy' | 'Cut' | 'Paste' | 'SelectAll' | 'Undo' | 'Redo' | 'Quit' | {About: AboutMetadata | null}
+  item?: 'Hide' | 'Copy' | 'Cut' | 'Paste' | 'SelectAll' | 'Undo' | 'Redo' | 'Quit'
 };
 
 async function createMenu(menuActions: MenuGroup[]) {
