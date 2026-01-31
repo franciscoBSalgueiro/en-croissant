@@ -209,43 +209,47 @@ function RootLayout() {
             shortcut: keyMap.OPEN_FILE.keys,
             action: openNewFile,
           },
-          {
-            label: t("Menu.File.Exit"),
-            id: "exit",
-            action: () => exit(0),
-          },
+          ...(!isMacOS
+            ? [
+                {
+                  label: t("Menu.File.Exit"),
+                  id: "exit",
+                  action: () => exit(0),
+                },
+              ]
+            : []),
         ],
       },
       {
         label: t("Menu.Edit"),
         options: [
           {
-            label:t("Menu.Edit.Undo"),
-            item: "Undo"
+            label: t("Menu.Edit.Undo"),
+            item: "Undo",
           },
           {
-            label:t("Menu.Edit.Redo"),
-            item: "Redo"
-          },
-          { label: "divider" },
-          {
-            label:t("Menu.Edit.Copy"),
-            item: "Copy"
-          },
-          {
-            label:t("Menu.Edit.Cut"),
-            item: "Cut"
-          },
-          {
-            label:t("Menu.Edit.Paste"),
-            item: "Paste"
+            label: t("Menu.Edit.Redo"),
+            item: "Redo",
           },
           { label: "divider" },
           {
-            label:t("Menu.Edit.SelectAll"),
-            item: "SelectAll"
-          }
-        ]
+            label: t("Menu.Edit.Copy"),
+            item: "Copy",
+          },
+          {
+            label: t("Menu.Edit.Cut"),
+            item: "Cut",
+          },
+          {
+            label: t("Menu.Edit.Paste"),
+            item: "Paste",
+          },
+          { label: "divider" },
+          {
+            label: t("Menu.Edit.SelectAll"),
+            item: "SelectAll",
+          },
+        ],
       },
       {
         label: t("Menu.View"),
@@ -294,12 +298,7 @@ function RootLayout() {
             },
           },
           { label: "divider" },
-          ...(!isMacOS
-            ? [
-                checkForUpdatesOption,
-                aboutOption,
-              ]
-            : []),
+          ...(!isMacOS ? [checkForUpdatesOption, aboutOption] : []),
         ],
       },
     ],
