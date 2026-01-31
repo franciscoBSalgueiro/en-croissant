@@ -86,7 +86,7 @@ function defaultStorage(
     },
     setItem(key, value) {
       for (const subkey in value) {
-        // value[subkey].keys = value[subkey].keys.replace("meta", meta);
+        value[subkey].keys = value[subkey].keys.replace("meta", meta);
       }
 
       storage.setItem(key, JSON.stringify(value));
