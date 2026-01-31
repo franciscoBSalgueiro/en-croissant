@@ -25,6 +25,7 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
+import { platform } from "@tauri-apps/plugin-os";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
@@ -129,6 +130,23 @@ export default function BoardsPage() {
     },
     [tabs, setTabs, setActiveTab],
   );
+
+  useEffect(() => {
+    if (platform() !== "macos") return;
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        e.stopPropagation();
+        closeTab(activeTab);
+      }
+    };
+
+    window.addEventListener("keydown", handler, { capture: true });
+
+    return () =>
+      window.removeEventListener("keydown", handler, { capture: true });
+  }, [closeTab]);
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys([
