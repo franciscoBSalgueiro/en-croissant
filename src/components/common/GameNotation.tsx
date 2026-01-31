@@ -2,7 +2,7 @@ import { Comment } from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { currentInvisibleAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -39,9 +39,9 @@ import OpeningName from "./OpeningName";
 
 function GameNotation({ topBar }: { topBar?: boolean }) {
   const store = useContext(TreeStateContext)!;
-  const root = useStore(store, (s) => s.root);
   const currentFen = useStore(store, (s) => s.currentNode().fen);
   const headers = useStore(store, (s) => s.headers);
+  const rootComment = useStore(store, (s) => s.root.comment);
 
   const viewport = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLSpanElement>(null);
@@ -95,18 +95,15 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
                   zIndex={2}
                 />
               )}
-              {showComments && root.comment && (
-                <Comment comment={root.comment} />
-              )}
+              {showComments && rootComment && <Comment comment={rootComment} />}
               <RenderVariationTree
                 targetRef={targetRef}
-                tree={root}
+                nodePath={[]}
                 depth={0}
                 first
                 start={headers.start}
                 showVariations={showVariations}
                 showComments={showComments}
-                path={[]}
               />
             </Box>
             {headers.result && headers.result !== "*" && (
@@ -178,28 +175,30 @@ const NotationHeader = memo(function NotationHeader({
 
 const RenderVariationTree = memo(
   function RenderVariationTree({
-    tree,
+    nodePath,
     depth,
     start,
     first,
     showVariations,
     showComments,
     targetRef,
-    path,
   }: {
     start?: number[];
-    tree: TreeNode;
+    nodePath: number[];
     depth: number;
     first?: boolean;
     showVariations: boolean;
     showComments: boolean;
     targetRef: React.RefObject<HTMLSpanElement>;
-    path: number[];
   }) {
-    const variations = tree.children;
+    const store = useContext(TreeStateContext)!;
+    const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
+    const variations = node.children;
+
     const variationNodes = showVariations
-      ? variations.slice(1).map((variation) => {
-          const newPath = [...path, variations.indexOf(variation)];
+      ? variations.slice(1).map((variation, idx) => {
+          const variationIndex = idx + 1;
+          const newPath = [...nodePath, variationIndex];
           return (
             <React.Fragment key={variation.fen}>
               <CompleteMoveCell
@@ -216,19 +215,18 @@ const RenderVariationTree = memo(
               />
               <RenderVariationTree
                 targetRef={targetRef}
-                tree={variation}
+                nodePath={newPath}
                 depth={depth + 2}
                 showVariations={showVariations}
                 showComments={showComments}
                 start={start}
-                path={newPath}
               />
             </React.Fragment>
           );
         })
       : [];
 
-    const newPath = [...path, 0];
+    const mainLinePath = [...nodePath, 0];
     return (
       <>
         {variations.length > 0 && (
@@ -239,24 +237,23 @@ const RenderVariationTree = memo(
             halfMoves={variations[0].halfMoves}
             move={variations[0].san}
             fen={variations[0].fen}
-            movePath={newPath}
+            movePath={mainLinePath}
             showComments={showComments}
-            isStart={equal(newPath, start)}
+            isStart={equal(mainLinePath, start)}
             first={first}
           />
         )}
 
         <VariationCell moveNodes={variationNodes} />
 
-        {tree.children.length > 0 && (
+        {node.children.length > 0 && (
           <RenderVariationTree
             targetRef={targetRef}
-            tree={tree.children[0]}
+            nodePath={mainLinePath}
             depth={depth + 1}
             showVariations={showVariations}
             start={start}
             showComments={showComments}
-            path={newPath}
           />
         )}
       </>
@@ -264,12 +261,11 @@ const RenderVariationTree = memo(
   },
   (prev, next) => {
     return (
-      prev.tree === next.tree &&
+      equal(prev.nodePath, next.nodePath) &&
       prev.depth === next.depth &&
       prev.first === next.first &&
       prev.showVariations === next.showVariations &&
       prev.showComments === next.showComments &&
-      equal(prev.path, next.path) &&
       equal(prev.start, next.start)
     );
   },
