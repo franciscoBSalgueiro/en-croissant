@@ -113,7 +113,7 @@ export const en_US = {
     "Menu.Edit.Cut": "Cut",
     "Menu.Edit.Copy": "Copy",
     "Menu.Edit.Paste": "Paste",
-    "Menu.Edit.SelectAll": "SelectAll",
+    "Menu.Edit.SelectAll": "Select All",
     "Menu.View": "View",
     "Menu.View.Reload": "Reload",
     "Menu.Help": "Help",
