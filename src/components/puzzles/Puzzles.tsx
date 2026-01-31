@@ -48,7 +48,7 @@ import {
 import { Chess, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import ChallengeHistory from "../common/ChallengeHistory";
@@ -114,7 +114,11 @@ function Puzzles({ id }: { id: string }) {
     makeMove({ payload: parseUci(puzzle.moves[0])! });
   }
 
+  const solutionAbortRef = useRef<AbortController | null>(null);
+
   function generatePuzzle(db: string) {
+    solutionAbortRef.current?.abort();
+
     let range = ratingRange;
     if (progressive) {
       const rating = puzzles[currentPuzzle]?.rating;
@@ -433,12 +437,17 @@ function Puzzles({ id }: { id: string }) {
             variant="light"
             fullWidth
             onClick={async () => {
+              solutionAbortRef.current?.abort();
+              const abortController = new AbortController();
+              solutionAbortRef.current = abortController;
+
               const curPuzzle = puzzles[currentPuzzle];
               if (curPuzzle.completion === "incomplete") {
                 changeCompletion("incorrect");
               }
               goToStart();
               for (let i = 0; i < curPuzzle.moves.length; i++) {
+                if (abortController.signal.aborted) break;
                 makeMove({
                   payload: parseUci(curPuzzle.moves[i])!,
                   mainline: true,
@@ -463,6 +472,7 @@ function Puzzles({ id }: { id: string }) {
                 }))}
                 current={currentPuzzle}
                 select={(i) => {
+                  solutionAbortRef.current?.abort();
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);
                   if (puzzles[i].completion === "incomplete") {
