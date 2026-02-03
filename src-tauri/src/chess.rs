@@ -346,6 +346,11 @@ pub async fn get_best_moves(
                 if let Ok(best_moves) =
                     parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves)
                 {
+                    if best_moves.score.lower_bound == Some(true)
+                        || best_moves.score.upper_bound == Some(true)
+                    {
+                        continue;
+                    }
                     let multipv = best_moves.multipv;
                     let cur_depth = best_moves.depth;
                     let cur_nodes = best_moves.nodes;
