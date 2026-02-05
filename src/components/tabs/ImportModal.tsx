@@ -22,13 +22,13 @@ import {
 } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtom } from "jotai";
 import { useState } from "react";
 import { match } from "ts-pattern";
 import GenericCard from "../common/GenericCard";
 import type { FileMetadata, FileType } from "../files/file";
-import { readTextFile } from "@tauri-apps/plugin-fs";
 
 type ImportType = "PGN" | "Link" | "FEN";
 
