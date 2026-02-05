@@ -28,6 +28,7 @@ import { useState } from "react";
 import { match } from "ts-pattern";
 import GenericCard from "../common/GenericCard";
 import type { FileMetadata, FileType } from "../files/file";
+import { readTextFile } from "@tauri-apps/plugin-fs";
 
 type ImportType = "PGN" | "Link" | "FEN";
 
@@ -69,12 +70,13 @@ export default function ImportModal({
         let input = pgn;
         if (file) {
           const count = unwrap(await commands.countPgnGames(file));
+          const fileContent = await readTextFile(file);
           input = unwrap(await commands.readGames(file, 0, 0))[0];
           if (save) {
             const newFile = await createFile({
               filename,
               filetype,
-              pgn: input,
+              pgn: fileContent,
               dir: documentDir,
             });
             if (newFile.isErr) {

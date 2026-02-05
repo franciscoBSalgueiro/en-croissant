@@ -71,11 +71,12 @@ export async function createFile({
   };
   await writeTextFile(file, pgn || makePgn(defaultGame()));
   await writeTextFile(file.replace(".pgn", ".info"), JSON.stringify(metadata));
+  const numGames = unwrap(await commands.countPgnGames(file));
   return Result.ok({
     type: "file",
     name: filename,
     path: file,
-    numGames: 1,
+    numGames,
     metadata,
     lastModified: new Date().getUTCSeconds(),
   });
