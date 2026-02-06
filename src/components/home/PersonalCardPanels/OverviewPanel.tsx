@@ -1,12 +1,7 @@
 import type { PlayerGameInfo } from "@/bindings";
 import type { StatsData } from "@/bindings";
 import { getTimeControl } from "@/utils/timeControl";
-import {
-  Stack,
-  Text,
-  useMantineColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
+import { Stack, Text } from "@mantine/core";
 import { useState } from "react";
 import {
   Bar,

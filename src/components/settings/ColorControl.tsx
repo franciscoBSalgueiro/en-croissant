@@ -4,15 +4,15 @@ import {
   ColorSwatch,
   Group,
   Input,
-  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
+import { useColorScheme } from "@mantine/hooks";
 import { useAtom } from "jotai";
 
 export default function ColorControl() {
   const [primaryColor, setPrimaryColor] = useAtom(primaryColorAtom);
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useColorScheme();
 
   const colors = Object.keys(theme.colors).map((color) => (
     <ColorSwatch
