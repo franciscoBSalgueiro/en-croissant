@@ -3,7 +3,7 @@ import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { hasMorePriority, stripClock } from "@/utils/chess";
 import { type TreeNode, treeIterator } from "@/utils/treeReducer";
-import { ActionIcon, Box, Menu, Portal, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Menu, Portal, Text, Tooltip } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import {
   IconArrowsJoin,
@@ -50,6 +50,7 @@ function CompleteMoveCell({
   isStart,
   targetRef,
   tableLayout,
+  scoreText,
 }: {
   halfMoves: number;
   comment: string;
@@ -62,6 +63,7 @@ function CompleteMoveCell({
   movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement>;
   tableLayout?: boolean;
+  scoreText?: string;
 }) {
   const store = useContext(TreeStateContext)!;
   const isCurrentVariation = useStore(store, (s) =>
@@ -96,9 +98,10 @@ function CompleteMoveCell({
         ref={isCurrentVariation ? targetRef : undefined}
         component="span"
         style={{
-          display: "inline-block",
+          display: tableLayout ? "block" : "inline-block",
           marginLeft: hasNumber ? 6 : 0,
           fontSize: "80%",
+          width: tableLayout ? "100%" : undefined,
         }}
       >
         {hasNumber && `${moveNumber.toString()}${isWhite ? "." : "..."}`}
@@ -116,6 +119,14 @@ function CompleteMoveCell({
                   setOpen((v) => !v);
                   e.preventDefault();
                 }}
+                fullWidth={tableLayout}
+                rightAccessory={
+                  tableLayout && scoreText ? (
+                    <Text component="span" size="xs" c="dimmed">
+                      {scoreText}
+                    </Text>
+                  ) : undefined
+                }
               />
             </Menu.Target>
 
@@ -185,6 +196,7 @@ export default memo(CompleteMoveCell, (prev, next) => {
     prev.isStart === next.isStart &&
     equal(prev.movePath, next.movePath) &&
     prev.halfMoves === next.halfMoves &&
-    prev.tableLayout === next.tableLayout
+    prev.tableLayout === next.tableLayout &&
+    prev.scoreText === next.scoreText
   );
 });

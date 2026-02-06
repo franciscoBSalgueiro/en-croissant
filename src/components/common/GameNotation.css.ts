@@ -35,6 +35,8 @@ export const moveTableMoveNumber = style({
 });
 
 export const moveTableCell = style({
-  padding: "1px 2px",
+  padding: 0,
   verticalAlign: "middle",
+  overflow: "hidden",
+  minWidth: 0,
 });

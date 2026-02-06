@@ -7,7 +7,7 @@ import {
 import { Box, rgba, useMantineTheme } from "@mantine/core";
 import { IconFlag } from "@tabler/icons-react";
 import { useAtom } from "jotai";
-import { type ForwardedRef, forwardRef } from "react";
+import { type ForwardedRef, type ReactNode, forwardRef } from "react";
 import * as classes from "./MoveCell.css";
 
 interface MoveCellProps {
@@ -17,6 +17,8 @@ interface MoveCellProps {
   move: string;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  fullWidth?: boolean;
+  rightAccessory?: ReactNode;
 }
 
 const MoveCell = forwardRef(function MoveCell(
@@ -53,7 +55,7 @@ const MoveCell = forwardRef(function MoveCell(
     <Box
       ref={ref}
       component="button"
-      className={classes.cell}
+      className={`${classes.cell} ${props.fullWidth ? classes.cellFullWidth : ""}`}
       style={{
         "--light-color": baseLight,
         "--light-hover-color": hoverLight,
@@ -65,9 +67,20 @@ const MoveCell = forwardRef(function MoveCell(
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >
-      {props.isStart && <IconFlag style={{ marginRight: 5 }} size="0.875rem" />}
-      {moveNotationType === "symbols" ? addPieceSymbol(props.move) : props.move}
-      {props.annotations.join("")}
+      <Box component="span" className={classes.moveText}>
+        {props.isStart && (
+          <IconFlag style={{ marginRight: 5 }} size="0.875rem" />
+        )}
+        {moveNotationType === "symbols"
+          ? addPieceSymbol(props.move)
+          : props.move}
+        {props.annotations.join("")}
+      </Box>
+      {props.rightAccessory && (
+        <Box component="span" className={classes.rightAccessory}>
+          {props.rightAccessory}
+        </Box>
+      )}
     </Box>
   );
 });

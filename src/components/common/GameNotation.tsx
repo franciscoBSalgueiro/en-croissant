@@ -85,18 +85,18 @@ function GameNotation({
   return (
     <Paper
       withBorder
-      p="md"
+      px="md"
       flex={1}
       style={{ position: "relative", overflow: "hidden" }}
     >
-      <Group h="100%" gap="xs" wrap="nowrap" align="stretch">
+      <Group h="100%" gap="sm" wrap="nowrap" align="stretch">
         {controls && (
-          <ScrollArea type="never" style={{ flexShrink: 0 }}>
+          <ScrollArea type="never" py="md" style={{ flexShrink: 0 }}>
             {controls}
           </ScrollArea>
         )}
         <Divider orientation="vertical" />
-        <Stack h="100%" gap={0} style={{ flex: 1, minWidth: 0 }}>
+        <Stack h="100%" py="md" gap={0} style={{ flex: 1, minWidth: 0 }}>
           {topBar && (
             <NotationHeader
               showComments={showComments}
@@ -106,7 +106,7 @@ function GameNotation({
             />
           )}
           <ScrollArea flex={1} offsetScrollbars viewportRef={viewport}>
-            <Stack pt="md">
+            <Stack>
               <Box>
                 {invisible && (
                   <Overlay
@@ -127,15 +127,17 @@ function GameNotation({
                     showComments={showComments}
                   />
                 ) : (
-                  <RenderVariationTree
-                    targetRef={targetRef}
-                    nodePath={[]}
-                    depth={0}
-                    first
-                    start={headers.start}
-                    showVariations={showVariations}
-                    showComments={showComments}
-                  />
+                  <Box pt="md">
+                    <RenderVariationTree
+                      targetRef={targetRef}
+                      nodePath={[]}
+                      depth={0}
+                      first
+                      start={headers.start}
+                      showVariations={showVariations}
+                      showComments={showComments}
+                    />
+                  </Box>
                 )}
               </Box>
               {headers.result && headers.result !== "*" && (
@@ -570,62 +572,50 @@ const TableNotation = memo(function TableNotation({
                 </Table.Td>
                 <Table.Td className={styles.moveTableCell}>
                   {row.white ? (
-                    <Group gap={4} wrap="nowrap" justify="space-between">
-                      <CompleteMoveCell
-                        targetRef={targetRef}
-                        annotations={row.white.annotations}
-                        comment={row.white.comment}
-                        halfMoves={row.white.halfMoves}
-                        move={row.white.san}
-                        fen={row.white.fen}
-                        movePath={row.whitePath}
-                        showComments={showComments}
-                        isStart={equal(row.whitePath, start)}
-                        tableLayout
-                      />
-                      {row.white.score && (
-                        <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
-                          {formatScore(row.white.score.value, 1)}
-                        </Text>
-                      )}
-                    </Group>
+                    <CompleteMoveCell
+                      targetRef={targetRef}
+                      annotations={row.white.annotations}
+                      comment={row.white.comment}
+                      halfMoves={row.white.halfMoves}
+                      move={row.white.san}
+                      fen={row.white.fen}
+                      movePath={row.whitePath}
+                      showComments={showComments}
+                      isStart={equal(row.whitePath, start)}
+                      tableLayout
+                      scoreText={
+                        row.white.score
+                          ? formatScore(row.white.score.value, 1)
+                          : undefined
+                      }
+                    />
                   ) : (
-                    <Text
-                      size="xs"
-                      c="dimmed"
-                      style={{ paddingLeft: 6, fontSize: "80%" }}
-                    >
+                    <Text c="dimmed" style={{ padding: "5px 8px" }}>
                       ...
                     </Text>
                   )}
                 </Table.Td>
                 <Table.Td className={styles.moveTableCell}>
                   {row.black ? (
-                    <Group gap={4} wrap="nowrap" justify="space-between">
-                      <CompleteMoveCell
-                        targetRef={targetRef}
-                        annotations={row.black.annotations}
-                        comment={row.black.comment}
-                        halfMoves={row.black.halfMoves}
-                        move={row.black.san}
-                        fen={row.black.fen}
-                        movePath={row.blackPath}
-                        showComments={showComments}
-                        isStart={equal(row.blackPath, start)}
-                        tableLayout
-                      />
-                      {row.black.score && (
-                        <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
-                          {formatScore(row.black.score.value, 1)}
-                        </Text>
-                      )}
-                    </Group>
+                    <CompleteMoveCell
+                      targetRef={targetRef}
+                      annotations={row.black.annotations}
+                      comment={row.black.comment}
+                      halfMoves={row.black.halfMoves}
+                      move={row.black.san}
+                      fen={row.black.fen}
+                      movePath={row.blackPath}
+                      showComments={showComments}
+                      isStart={equal(row.blackPath, start)}
+                      tableLayout
+                      scoreText={
+                        row.black.score
+                          ? formatScore(row.black.score.value, 1)
+                          : undefined
+                      }
+                    />
                   ) : row.splitRow ? (
-                    <Text
-                      size="xs"
-                      c="dimmed"
-                      style={{ paddingLeft: 6, fontSize: "80%" }}
-                    >
+                    <Text c="dimmed" style={{ padding: "5px 8px" }}>
                       ...
                     </Text>
                   ) : null}
