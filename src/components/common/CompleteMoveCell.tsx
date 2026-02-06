@@ -49,6 +49,7 @@ function CompleteMoveCell({
   first,
   isStart,
   targetRef,
+  tableLayout,
 }: {
   halfMoves: number;
   comment: string;
@@ -60,6 +61,7 @@ function CompleteMoveCell({
   isStart: boolean;
   movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement>;
+  tableLayout?: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
   const isCurrentVariation = useStore(store, (s) =>
@@ -79,7 +81,7 @@ function CompleteMoveCell({
 
   const moveNumber = Math.ceil(halfMoves / 2);
   const isWhite = halfMoves % 2 === 1;
-  const hasNumber = halfMoves > 0 && (first || isWhite);
+  const hasNumber = !tableLayout && halfMoves > 0 && (first || isWhite);
   const ref = useClickOutside(() => {
     setOpen(false);
   });
@@ -167,7 +169,7 @@ function CompleteMoveCell({
           </Tooltip>
         )}
       </Box>
-      {showComments && comment && <Comment comment={comment} />}
+      {showComments && !tableLayout && comment && <Comment comment={comment} />}
     </>
   );
 }
@@ -182,6 +184,7 @@ export default memo(CompleteMoveCell, (prev, next) => {
     prev.first === next.first &&
     prev.isStart === next.isStart &&
     equal(prev.movePath, next.movePath) &&
-    prev.halfMoves === next.halfMoves
+    prev.halfMoves === next.halfMoves &&
+    prev.tableLayout === next.tableLayout
   );
 });

@@ -1,8 +1,9 @@
 import { Comment } from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { currentInvisibleAtom } from "@/state/atoms";
+import { currentInvisibleAtom, tableViewAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { getNodeAtPath } from "@/utils/treeReducer";
+import { formatScore } from "@/utils/score";
+import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -12,6 +13,7 @@ import {
   Paper,
   ScrollArea,
   Stack,
+  Table,
   Text,
   Tooltip,
 } from "@mantine/core";
@@ -23,6 +25,8 @@ import {
   IconArticleOff,
   IconEye,
   IconEyeOff,
+  IconLayoutList,
+  IconList,
   IconMinus,
   IconPlus,
 } from "@tabler/icons-react";
@@ -54,8 +58,14 @@ function GameNotation({
       if (currentFen === INITIAL_FEN) {
         viewport.current.scrollTo({ top: 0, behavior: "smooth" });
       } else if (targetRef.current) {
-        viewport.current.scrollTo({
-          top: targetRef.current.offsetTop - 65,
+        const viewportEl = viewport.current;
+        const targetEl = targetRef.current;
+        const viewportRect = viewportEl.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        const offsetInViewport =
+          targetRect.top - viewportRect.top + viewportEl.scrollTop;
+        viewportEl.scrollTo({
+          top: offsetInViewport - 65,
           behavior: "smooth",
         });
       }
@@ -66,6 +76,7 @@ function GameNotation({
   const invisible = topBar && invisibleValue;
   const [showVariations, toggleVariations] = useToggle([true, false]);
   const [showComments, toggleComments] = useToggle([true, false]);
+  const [tableView, setTableView] = useAtom(tableViewAtom);
   const colorScheme = useColorScheme();
 
   const keyMap = useAtomValue(keyMapAtom);
@@ -108,15 +119,24 @@ function GameNotation({
                 {showComments && rootComment && (
                   <Comment comment={rootComment} />
                 )}
-                <RenderVariationTree
-                  targetRef={targetRef}
-                  nodePath={[]}
-                  depth={0}
-                  first
-                  start={headers.start}
-                  showVariations={showVariations}
-                  showComments={showComments}
-                />
+                {tableView ? (
+                  <TableNotation
+                    targetRef={targetRef}
+                    start={headers.start}
+                    showVariations={showVariations}
+                    showComments={showComments}
+                  />
+                ) : (
+                  <RenderVariationTree
+                    targetRef={targetRef}
+                    nodePath={[]}
+                    depth={0}
+                    first
+                    start={headers.start}
+                    showVariations={showVariations}
+                    showComments={showComments}
+                  />
+                )}
               </Box>
               {headers.result && headers.result !== "*" && (
                 <Text ta="center">
@@ -151,6 +171,7 @@ const NotationHeader = memo(function NotationHeader({
   toggleVariations: () => void;
 }) {
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
+  const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
     <Stack>
       <Group justify="space-between">
@@ -159,6 +180,15 @@ const NotationHeader = memo(function NotationHeader({
           <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
               {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={tableView ? "Normal view" : "Table view"}>
+            <ActionIcon onClick={() => setTableView((v) => !v)}>
+              {tableView ? (
+                <IconList size="1rem" />
+              ) : (
+                <IconLayoutList size="1rem" />
+              )}
             </ActionIcon>
           </Tooltip>
           <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
@@ -283,6 +313,331 @@ const RenderVariationTree = memo(
     );
   },
 );
+
+const TableNotation = memo(function TableNotation({
+  targetRef,
+  start,
+  showVariations,
+  showComments,
+}: {
+  targetRef: React.RefObject<HTMLSpanElement>;
+  start?: number[];
+  showVariations: boolean;
+  showComments: boolean;
+}) {
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+
+  type RowItem = {
+    type: "row";
+    moveNumber: number;
+    white: TreeNode | null;
+    whitePath: number[];
+    black: TreeNode | null;
+    blackPath: number[];
+    splitRow?: boolean;
+  };
+  type VariationItem = {
+    type: "variations";
+    variations: TreeNode[];
+    parentPath: number[];
+  };
+  type CommentItem = {
+    type: "comment";
+    comment: string;
+  };
+  type Segment = RowItem | VariationItem | CommentItem;
+
+  const segments: Segment[] = [];
+
+  let current = root;
+  let path: number[] = [];
+
+  while (current.children.length > 0) {
+    const child = current.children[0];
+    const childPath = [...path, 0];
+    const isWhite = child.halfMoves % 2 === 1;
+    const moveNum = Math.ceil(child.halfMoves / 2);
+    const whiteVariations = current.children.slice(1);
+
+    if (isWhite) {
+      const hasWhiteVars = showVariations && whiteVariations.length > 0;
+      const hasWhiteComment = showComments && !!child.comment;
+
+      let blackNode: TreeNode | null = null;
+      let blackPath: number[] = [];
+      let blackVariations: TreeNode[] = [];
+
+      if (child.children.length > 0) {
+        const blackChild = child.children[0];
+        const bPath = [...childPath, 0];
+        if (blackChild.halfMoves % 2 === 0) {
+          blackNode = blackChild;
+          blackPath = bPath;
+          blackVariations = child.children.slice(1);
+        }
+      }
+
+      const hasBlackVars = showVariations && blackVariations.length > 0;
+      const hasBlackComment = showComments && !!blackNode?.comment;
+      const splitWhite = hasWhiteVars || hasWhiteComment;
+
+      if (splitWhite) {
+        segments.push({
+          type: "row",
+          moveNumber: moveNum,
+          white: child,
+          whitePath: childPath,
+          black: null,
+          blackPath: [],
+          splitRow: !!blackNode,
+        });
+        if (hasWhiteComment) {
+          segments.push({ type: "comment", comment: child.comment });
+        }
+        if (hasWhiteVars) {
+          segments.push({
+            type: "variations",
+            variations: whiteVariations,
+            parentPath: childPath.slice(0, -1),
+          });
+        }
+
+        if (blackNode) {
+          if (hasBlackVars || hasBlackComment) {
+            segments.push({
+              type: "row",
+              moveNumber: moveNum,
+              white: null,
+              whitePath: [],
+              black: blackNode,
+              blackPath: blackPath,
+            });
+            if (hasBlackComment) {
+              segments.push({ type: "comment", comment: blackNode.comment });
+            }
+            if (hasBlackVars) {
+              segments.push({
+                type: "variations",
+                variations: blackVariations,
+                parentPath: blackPath.slice(0, -1),
+              });
+            }
+          } else {
+            segments.push({
+              type: "row",
+              moveNumber: moveNum,
+              white: null,
+              whitePath: [],
+              black: blackNode,
+              blackPath: blackPath,
+            });
+          }
+          current = blackNode;
+          path = blackPath;
+        } else {
+          current = child;
+          path = childPath;
+        }
+      } else if (hasBlackVars || hasBlackComment) {
+        segments.push({
+          type: "row",
+          moveNumber: moveNum,
+          white: child,
+          whitePath: childPath,
+          black: blackNode,
+          blackPath: blackPath,
+        });
+        if (hasBlackComment) {
+          segments.push({ type: "comment", comment: blackNode!.comment });
+        }
+        if (hasBlackVars) {
+          segments.push({
+            type: "variations",
+            variations: blackVariations,
+            parentPath: blackPath.slice(0, -1),
+          });
+        }
+        current = blackNode!;
+        path = blackPath;
+      } else {
+        segments.push({
+          type: "row",
+          moveNumber: moveNum,
+          white: child,
+          whitePath: childPath,
+          black: blackNode,
+          blackPath: blackPath,
+        });
+        if (blackNode) {
+          current = blackNode;
+          path = blackPath;
+        } else {
+          current = child;
+          path = childPath;
+        }
+      }
+    } else {
+      const hasBlackVars = showVariations && whiteVariations.length > 0;
+      const hasBlackComment = showComments && !!child.comment;
+      segments.push({
+        type: "row",
+        moveNumber: moveNum,
+        white: null,
+        whitePath: [],
+        black: child,
+        blackPath: childPath,
+      });
+      if (hasBlackComment) {
+        segments.push({ type: "comment", comment: child.comment });
+      }
+      if (hasBlackVars) {
+        segments.push({
+          type: "variations",
+          variations: whiteVariations,
+          parentPath: childPath.slice(0, -1),
+        });
+      }
+      current = child;
+      path = childPath;
+    }
+  }
+
+  return (
+    <Table layout="fixed">
+      <Table.Tbody>
+        {segments.map((seg, idx) => {
+          if (seg.type === "comment") {
+            return (
+              <tr key={`comment-${idx}`}>
+                <td colSpan={3}>
+                  <Box pl="sm" pt="xs">
+                    <Comment comment={seg.comment} />
+                  </Box>
+                </td>
+              </tr>
+            );
+          }
+
+          if (seg.type === "variations") {
+            return (
+              <tr key={`var-${idx}`}>
+                <td colSpan={3}>
+                  <Box pl="sm" pt="xs">
+                    {seg.variations.map((variation, vIdx) => {
+                      const variationPath = [...seg.parentPath, vIdx + 1];
+                      return (
+                        <Box
+                          key={variation.fen}
+                          className={styles.variationBorder}
+                          mb={4}
+                        >
+                          <CompleteMoveCell
+                            targetRef={targetRef}
+                            annotations={variation.annotations}
+                            comment={variation.comment}
+                            halfMoves={variation.halfMoves}
+                            move={variation.san}
+                            fen={variation.fen}
+                            movePath={variationPath}
+                            showComments={showComments}
+                            isStart={equal(variationPath, start)}
+                            first
+                          />
+                          <RenderVariationTree
+                            targetRef={targetRef}
+                            nodePath={variationPath}
+                            depth={1}
+                            showVariations={showVariations}
+                            showComments={showComments}
+                            start={start}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </td>
+              </tr>
+            );
+          }
+
+          const row = seg;
+          return (
+            <React.Fragment key={`row-${row.moveNumber}-${idx}`}>
+              <Table.Tr>
+                <Table.Td className={styles.moveTableMoveNumber}>
+                  {row.moveNumber}
+                </Table.Td>
+                <Table.Td className={styles.moveTableCell}>
+                  {row.white ? (
+                    <Group gap={4} wrap="nowrap" justify="space-between">
+                      <CompleteMoveCell
+                        targetRef={targetRef}
+                        annotations={row.white.annotations}
+                        comment={row.white.comment}
+                        halfMoves={row.white.halfMoves}
+                        move={row.white.san}
+                        fen={row.white.fen}
+                        movePath={row.whitePath}
+                        showComments={showComments}
+                        isStart={equal(row.whitePath, start)}
+                        tableLayout
+                      />
+                      {row.white.score && (
+                        <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                          {formatScore(row.white.score.value, 1)}
+                        </Text>
+                      )}
+                    </Group>
+                  ) : (
+                    <Text
+                      size="xs"
+                      c="dimmed"
+                      style={{ paddingLeft: 6, fontSize: "80%" }}
+                    >
+                      ...
+                    </Text>
+                  )}
+                </Table.Td>
+                <Table.Td className={styles.moveTableCell}>
+                  {row.black ? (
+                    <Group gap={4} wrap="nowrap" justify="space-between">
+                      <CompleteMoveCell
+                        targetRef={targetRef}
+                        annotations={row.black.annotations}
+                        comment={row.black.comment}
+                        halfMoves={row.black.halfMoves}
+                        move={row.black.san}
+                        fen={row.black.fen}
+                        movePath={row.blackPath}
+                        showComments={showComments}
+                        isStart={equal(row.blackPath, start)}
+                        tableLayout
+                      />
+                      {row.black.score && (
+                        <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                          {formatScore(row.black.score.value, 1)}
+                        </Text>
+                      )}
+                    </Group>
+                  ) : row.splitRow ? (
+                    <Text
+                      size="xs"
+                      c="dimmed"
+                      style={{ paddingLeft: 6, fontSize: "80%" }}
+                    >
+                      ...
+                    </Text>
+                  ) : null}
+                </Table.Td>
+              </Table.Tr>
+            </React.Fragment>
+          );
+        })}
+      </Table.Tbody>
+    </Table>
+  );
+});
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   const [expanded, setExpanded] = useState(true);

@@ -112,6 +112,8 @@ export const storedDocumentDirAtom = atomWithStorage<string>(
 
 // Settings
 
+export const tableViewAtom = atomWithStorage<boolean>("table-view", false);
+
 export const fontSizeAtom = atomWithStorage(
   "font-size",
   Number.parseInt(document.documentElement.style.fontSize) || 100,
