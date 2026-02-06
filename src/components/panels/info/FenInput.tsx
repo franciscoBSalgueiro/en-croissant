@@ -114,8 +114,18 @@ function FenInput({ currentFen }: { currentFen: string }) {
         true,
       );
     }
-    setFen(makeFen({ ...setup, castlingRights: newCastlingRights }));
-  }, [blackCastling, setCastlingRights, setup, whiteCastling, setFen]);
+    const newFen = makeFen({ ...setup, castlingRights: newCastlingRights });
+    if (newFen !== currentFen) {
+      setFen(newFen);
+    }
+  }, [
+    blackCastling,
+    setCastlingRights,
+    setup,
+    whiteCastling,
+    setFen,
+    currentFen,
+  ]);
 
   const { t } = useTranslation();
 
