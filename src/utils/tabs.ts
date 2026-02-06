@@ -1,11 +1,41 @@
 import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import type { TreeStoreState } from "@/state/store/tree";
+import { resolve } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
-import type { GameHeaders } from "./treeReducer";
+import { getGameName, type GameHeaders } from "./treeReducer";
+
+const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
+
+function getDefaultGameFilename(headers: GameHeaders) {
+  const baseName = getGameName(headers).trim();
+  const date = headers.date?.trim() || "";
+  const hasUsableBase = baseName.length > 0 && baseName !== "Unknown";
+  const hasUsableDate =
+    Boolean(date) && date !== "????.??.??" && date !== "????.??";
+
+  let filename = hasUsableBase ? baseName : "";
+  if (hasUsableDate) {
+    filename = filename ? `${date}_${filename}` : date;
+  }
+
+  filename = filename
+    .replace(INVALID_FILENAME_CHARS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (filename.length > 0) {
+    return filename;
+  }
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const time = now.toISOString().slice(11, 16).replace(":", ".");
+  return `${today}_${time}_analysis`;
+}
 
 export const tabSchema = z.object({
   name: z.string(),
@@ -99,8 +129,11 @@ export async function saveToFile({
   if (tab?.file) {
     filePath = tab.file.path;
   } else {
+    const headers = store.getState().headers;
+    const suggestedName = getDefaultGameFilename(headers) || "Game";
+    const defaultPath = await resolve(dir, `${suggestedName}.pgn`);
     const userChoice = await save({
-      defaultPath: dir,
+      defaultPath,
       filters: [
         {
           name: "PGN",
