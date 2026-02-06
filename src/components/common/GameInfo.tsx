@@ -85,7 +85,7 @@ function GameInfo({
           {headers.round && headers.round !== "?" && (
             <>
               {"-"}
-              <Group gap={0} className={classes.textInput} wrap="nowrap">
+              <Group gap={0} wrap="nowrap">
                 <Text c="dimmed" size="sm" mr="xs">
                   Round
                 </Text>
