@@ -141,33 +141,35 @@ function GameRow({
       <Group
         style={style}
         justify="space-between"
-        pr="xl"
+        wrap="nowrap"
+        gap="xs"
         className={cx(classes.row, {
           [classes.active]: index === activePage,
         })}
+        onClick={() => {
+          setPage(index);
+        }}
       >
-        <Text
-          fz="sm"
-          truncate
-          maw={600}
-          onClick={() => {
-            setPage(index);
-          }}
-          flex={1}
-        >
-          {formatNumber(index + 1)}. {game}
+        <Text fz="xs" className={classes.index}>
+          {formatNumber(index + 1)}
+        </Text>
+        <Text fz="sm" truncate flex={1} lh="sm">
+          {game || "..."}
         </Text>
         {deleteGame && (
-          <Group>
-            <ActionIcon
-              onClick={() => toggleDelete()}
-              variant="outline"
-              color="red"
-              size="1rem"
-            >
-              <IconX />
-            </ActionIcon>
-          </Group>
+          <ActionIcon
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleDelete();
+            }}
+            variant="subtle"
+            color="red"
+            size="xs"
+            mr="xs"
+            className={classes.deleteBtn}
+          >
+            <IconX size={12} />
+          </ActionIcon>
         )}
       </Group>
     </>
