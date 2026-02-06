@@ -153,7 +153,6 @@ function BoardAnalysis() {
           toggleEditingMode={toggleEditingMode}
           boardRef={boardRef}
           saveFile={saveFile}
-          addGame={addGame}
           selectedPiece={selectedPiece}
         />
       </Portal>
@@ -224,7 +223,7 @@ function BoardAnalysis() {
               </Tabs.Panel>
             )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
-              <InfoPanel />
+              <InfoPanel addGame={addGame} />
             </Tabs.Panel>
             <Tabs.Panel
               value="database"

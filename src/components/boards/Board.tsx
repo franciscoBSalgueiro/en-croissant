@@ -51,7 +51,6 @@ import {
   IconEdit,
   IconEditOff,
   IconEraser,
-  IconPlus,
   IconSwitchVertical,
   IconTarget,
   IconZoomCheck,
@@ -104,7 +103,6 @@ interface ChessboardProps {
   movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
   saveFile?: () => void;
-  addGame?: () => void;
   canTakeBack?: boolean;
   whiteTime?: number;
   blackTime?: number;
@@ -124,7 +122,6 @@ function Board({
   movable = "turn",
   boardRef,
   saveFile,
-  addGame,
   canTakeBack,
   whiteTime,
   blackTime,
@@ -451,13 +448,6 @@ function Board({
             </ActionIcon>
           </Tooltip>
         )}
-        {addGame && currentTab?.file && (
-          <Tooltip label={t("Board.Action.AddGame")}>
-            <ActionIcon variant="default" size="lg" onClick={() => addGame()}>
-              <IconPlus size="1.3rem" />
-            </ActionIcon>
-          </Tooltip>
-        )}
         <Tooltip
           label={t("Board.Action.FlipBoard", {
             key: keyMap.SWAP_ORIENTATION.keys,
@@ -483,7 +473,6 @@ function Board({
       canTakeBack,
       toggleEditingMode,
       toggleOrientation,
-      addGame,
     ],
   );
   const materialDiff = getMaterialDiff(currentNode.fen);

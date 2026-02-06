@@ -9,8 +9,18 @@ import { formatNumber } from "@/utils/format";
 import { getTreeStats } from "@/utils/repertoire";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
-import { Accordion, Box, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import {
+  Accordion,
+  ActionIcon,
+  Box,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
+import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -21,7 +31,7 @@ import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
 
-function InfoPanel() {
+function InfoPanel({ addGame }: { addGame?: () => void }) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
@@ -37,7 +47,11 @@ function InfoPanel() {
 
   return (
     <Stack h="100%">
-      <GameSelectorAccordion games={games} setGames={setGames} />
+      <GameSelectorAccordion
+        games={games}
+        setGames={setGames}
+        addGame={addGame}
+      />
       <ScrollArea offsetScrollbars>
         <FileInfo setGames={setGames} />
         <Stack>
@@ -75,9 +89,11 @@ function InfoPanel() {
 function GameSelectorAccordion({
   games,
   setGames,
+  addGame,
 }: {
   games: Map<number, string>;
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
+  addGame?: () => void;
 }) {
   const store = useContext(TreeStateContext)!;
   const dirty = useStore(store, (s) => s.dirty);
@@ -92,6 +108,7 @@ function GameSelectorAccordion({
   const currentName = games.get(gameNumber) || "Untitled";
 
   const keyMap = useAtomValue(keyMapAtom);
+  const { t } = useTranslation();
 
   useHotkeys(
     keyMap.NEXT_GAME.keys,
@@ -162,7 +179,26 @@ function GameSelectorAccordion({
       <Accordion>
         <Accordion.Item value="game">
           <Accordion.Control>
-            {formatNumber(gameNumber + 1)}. {currentName}
+            <Group justify="space-between" wrap="nowrap" w="100%">
+              <Text truncate flex={1}>
+                {formatNumber(gameNumber + 1)}. {currentName}
+              </Text>
+              {addGame && (
+                <Tooltip label={t("Board.Action.AddGame")}>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      addGame();
+                    }}
+                  >
+                    <IconPlus size="0.9rem" />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            </Group>
           </Accordion.Control>
           <Accordion.Panel>
             <Box h="10rem">
