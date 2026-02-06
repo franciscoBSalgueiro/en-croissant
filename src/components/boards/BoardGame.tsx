@@ -305,24 +305,49 @@ function BoardGame() {
 
       setGameState("playing");
 
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ".");
+      const timeStr = now.toISOString().slice(11, 19);
+
+      const whiteIsEngine = playerSettings.white.type === "engine";
+      const blackIsEngine = playerSettings.black.type === "engine";
+      let eventStr = "Casual Game";
+      if (whiteIsEngine && blackIsEngine) {
+        eventStr = "Engine Match";
+      } else if (whiteIsEngine || blackIsEngine) {
+        eventStr = "Player vs Engine";
+      } else {
+        eventStr = "Player Match";
+      }
+
+      const formatTimeControl = (settings: OpponentSettings): string => {
+        if (!settings.timeControl) return "-";
+        const seconds = settings.timeControl.seconds / 1000;
+        const increment = (settings.timeControl.increment ?? 0) / 1000;
+        return increment ? `${seconds}+${increment}` : `${seconds}`;
+      };
+
+      const whiteTimeControl = formatTimeControl(playerSettings.white);
+      const blackTimeControl = formatTimeControl(playerSettings.black);
+      const sameTimeControl = whiteTimeControl === blackTimeControl;
+
       const newHeaders: Partial<GameHeaders> = {
         white: state.whitePlayer,
         black: state.blackPlayer,
+        event: eventStr,
+        site: "En Croissant",
+        date: dateStr,
+        time: timeStr,
         time_control: undefined,
       };
 
-      if (
-        playerSettings.white.timeControl ||
-        playerSettings.black.timeControl
-      ) {
-        if (playerSettings.white.timeControl) {
-          const seconds = playerSettings.white.timeControl.seconds / 1000;
-          const increment =
-            (playerSettings.white.timeControl.increment ?? 0) / 1000;
-          newHeaders.time_control = increment
-            ? `${seconds}+${increment}`
-            : `${seconds}`;
+      if (sameTimeControl) {
+        if (whiteTimeControl !== "-") {
+          newHeaders.time_control = whiteTimeControl;
         }
+      } else {
+        newHeaders.white_time_control = whiteTimeControl;
+        newHeaders.black_time_control = blackTimeControl;
       }
 
       setHeaders({
