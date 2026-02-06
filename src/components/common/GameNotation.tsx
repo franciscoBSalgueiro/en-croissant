@@ -85,18 +85,17 @@ function GameNotation({
   return (
     <Paper
       withBorder
-      px="md"
       flex={1}
       style={{ position: "relative", overflow: "hidden" }}
     >
-      <Group h="100%" gap="sm" wrap="nowrap" align="stretch">
+      <Group h="100%" gap="sm" wrap="nowrap" align="stretch" pr="md" pl="sm">
         {controls && (
           <ScrollArea type="never" py="md" style={{ flexShrink: 0 }}>
             {controls}
           </ScrollArea>
         )}
         <Divider orientation="vertical" />
-        <Stack h="100%" py="md" gap={0} style={{ flex: 1, minWidth: 0 }}>
+        <Stack h="100%" pt="md" gap={0} style={{ flex: 1, minWidth: 0 }}>
           {topBar && (
             <NotationHeader
               showComments={showComments}
@@ -105,8 +104,13 @@ function GameNotation({
               toggleVariations={toggleVariations}
             />
           )}
-          <ScrollArea flex={1} offsetScrollbars viewportRef={viewport}>
-            <Stack>
+          <ScrollArea
+            flex={1}
+            offsetScrollbars
+            scrollbars="y"
+            viewportRef={viewport}
+          >
+            <Stack gap="xs">
               <Box>
                 {invisible && (
                   <Overlay
@@ -140,19 +144,21 @@ function GameNotation({
                   </Box>
                 )}
               </Box>
-              {headers.result && headers.result !== "*" && (
-                <Text ta="center">
-                  {headers.result}
-                  <br />
-                  <Text span fs="italic">
-                    {headers.result === "1/2-1/2"
-                      ? "Draw"
-                      : headers.result === "1-0"
-                        ? "White wins"
-                        : "Black wins"}
+              <Box pb="md">
+                {headers.result !== "*" && (
+                  <Text ta="center">
+                    {headers.result}
+                    <br />
+                    <Text span fs="italic">
+                      {headers.result === "1/2-1/2"
+                        ? "Draw"
+                        : headers.result === "1-0"
+                          ? "White wins"
+                          : "Black wins"}
+                    </Text>
                   </Text>
-                </Text>
-              )}
+                )}
+              </Box>
             </Stack>
           </ScrollArea>
         </Stack>

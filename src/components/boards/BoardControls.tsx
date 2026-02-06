@@ -112,13 +112,13 @@ function BoardControls({
   return (
     <Stack gap={4} align="center">
       <Tooltip position="right" label={t("Board.Action.TakeSnapshot")}>
-        <ActionIcon variant="default" onClick={() => takeSnapshot()}>
+        <ActionIcon onClick={() => takeSnapshot()}>
           <IconCamera size="1.2rem" />
         </ActionIcon>
       </Tooltip>
       {canTakeBack && onTakeBack && (
         <Tooltip label="Take Back" position="right">
-          <ActionIcon variant="default" onClick={() => onTakeBack()}>
+          <ActionIcon onClick={() => onTakeBack()}>
             <IconArrowBack />
           </ActionIcon>
         </Tooltip>
@@ -131,7 +131,7 @@ function BoardControls({
             : "Board.Action.AnalyzeGame",
         )}
       >
-        <ActionIcon variant="default" onClick={changeTabType}>
+        <ActionIcon onClick={changeTabType}>
           {currentTab?.type === "analysis" ? (
             <IconTarget size="1.2rem" />
           ) : (
@@ -141,17 +141,14 @@ function BoardControls({
       </Tooltip>
       {!eraseDrawablesOnClick && (
         <Tooltip position="right" label={t("Board.Action.ClearDrawings")}>
-          <ActionIcon variant="default" onClick={() => clearShapes()}>
+          <ActionIcon onClick={() => clearShapes()}>
             <IconEraser size="1.2rem" />
           </ActionIcon>
         </Tooltip>
       )}
       {(!disableVariations || allowEditing) && (
         <Tooltip position="right" label={t("Board.Action.EditPosition")}>
-          <ActionIcon
-            variant={editingMode ? "filled" : "default"}
-            onClick={() => toggleEditingMode()}
-          >
+          <ActionIcon onClick={() => toggleEditingMode()}>
             {editingMode ? (
               <IconEditOff size="1.2rem" />
             ) : (
@@ -168,7 +165,7 @@ function BoardControls({
         >
           <ActionIcon
             onClick={() => saveFile()}
-            variant={dirty && !autoSave ? "outline" : "default"}
+            variant={dirty && !autoSave ? "default" : "transparent"}
           >
             <IconDeviceFloppy size="1.2rem" />
           </ActionIcon>
@@ -180,7 +177,7 @@ function BoardControls({
           key: keyMap.SWAP_ORIENTATION.keys,
         })}
       >
-        <ActionIcon variant="default" onClick={() => toggleOrientation()}>
+        <ActionIcon onClick={() => toggleOrientation()}>
           <IconSwitchVertical size="1.2rem" />
         </ActionIcon>
       </Tooltip>
