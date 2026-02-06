@@ -2,6 +2,7 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   autoSaveAtom,
   currentEvalOpenAtom,
+  currentGameStateAtom,
   currentTabAtom,
   eraseDrawablesOnClickAtom,
 } from "@/state/atoms";
@@ -24,7 +25,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import domtoimage from "dom-to-image";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -63,6 +64,7 @@ function BoardControls({
 
   const keyMap = useAtomValue(keyMapAtom);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const setGameState = useSetAtom(currentGameStateAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
 
@@ -76,6 +78,9 @@ function BoardControls({
 
   function changeTabType() {
     setCurrentTab((t) => {
+      if (t.type === "analysis") {
+        setGameState("settingUp");
+      }
       return {
         ...t,
         type: t.type === "analysis" ? "play" : "analysis",
