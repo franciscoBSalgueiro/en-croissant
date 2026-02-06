@@ -6,7 +6,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { getPGN, parsePGN } from "./chess";
-import { getGameName, type GameHeaders } from "./treeReducer";
+import { type GameHeaders, getGameName } from "./treeReducer";
 
 const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
 

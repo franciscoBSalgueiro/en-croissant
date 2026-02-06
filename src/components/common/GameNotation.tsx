@@ -56,7 +56,7 @@ function GameNotation({
   useEffect(() => {
     if (viewport.current) {
       if (currentFen === INITIAL_FEN) {
-        viewport.current.scrollTo({ top: 0, behavior: "smooth" });
+        viewport.current.scrollTo({ top: 0, behavior: "auto" });
       } else if (targetRef.current) {
         const viewportEl = viewport.current;
         const targetEl = targetRef.current;
@@ -66,7 +66,7 @@ function GameNotation({
           targetRect.top - viewportRect.top + viewportEl.scrollTop;
         viewportEl.scrollTo({
           top: offsetInViewport - 65,
-          behavior: "smooth",
+          behavior: "auto",
         });
       }
     }
