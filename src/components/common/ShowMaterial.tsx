@@ -25,39 +25,39 @@ export default function ShowMaterial({
     .exhaustive();
 
   const pawns = [...Array(Math.abs(pieces.p)).keys()].map((i) => (
-    <IconChessFilled size="1.1rem" key={i} style={{ marginRight: "-7px" }} />
+    <IconChessFilled size="0.9rem" key={i} style={{ marginRight: "-7px" }} />
   ));
   const knights = [...Array(Math.abs(pieces.n)).keys()].map((i) => (
     <IconChessKnightFilled
-      size="1.1rem"
+      size="0.9rem"
       key={i}
       style={{ marginRight: "-7px" }}
     />
   ));
   const bishops = [...Array(Math.abs(pieces.b)).keys()].map((i) => (
     <IconChessBishopFilled
-      size="1.1rem"
+      size="0.9rem"
       key={i}
       style={{ marginRight: "-7px" }}
     />
   ));
   const rooks = [...Array(Math.abs(pieces.r)).keys()].map((i) => (
     <IconChessRookFilled
-      size="1.1rem"
+      size="0.9rem"
       key={i}
       style={{ marginRight: "-7px" }}
     />
   ));
   const queens = [...Array(Math.abs(pieces.q)).keys()].map((i) => (
     <IconChessQueenFilled
-      size="1.1rem"
+      size="0.9rem"
       key={i}
       style={{ marginRight: "-7px" }}
     />
   ));
 
   return (
-    <Group gap="xs" h="1.3rem" fz="sm">
+    <Group gap="xs" h="1.3rem" fz="sm" ml="-3px">
       <Group gap={"xs"}>
         {compare(pieces.p) && <Group gap="0">{pawns}</Group>}
         {compare(pieces.n) && <Group gap="0">{knights}</Group>}

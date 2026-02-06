@@ -380,7 +380,7 @@ function Board({
             wrap="nowrap"
           >
             <Stack gap={0}>
-              <Group gap="xs">
+              <Group gap={6} align="end">
                 <Text
                   fw="bold"
                   size="sm"
@@ -606,7 +606,7 @@ function Board({
           >
             <Group wrap="nowrap">
               <Stack gap={0} justify="flex-start">
-                <Group gap="xs">
+                <Group gap={6} align="end">
                   <Text
                     fw="bold"
                     size="sm"
