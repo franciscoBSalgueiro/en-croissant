@@ -135,7 +135,6 @@ export const ko_KR = {
     "Home.Card.Puzzle.Desc": "체스 실력을 훈련하세요",
     "Home.Card.Puzzle.Button": "훈련하기",
 
-    "Board.Action.TogglePawnStructureView": "폰 구조 보기 전환",
     "Board.Action.TakeSnapshot": "스냅샷 찍기",
     "Board.Action.AnalyzeGame": "게임 분석",
     "Board.Action.PlayFromHere": "여기서부터 플레이",

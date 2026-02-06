@@ -1,7 +1,6 @@
 import { Chessground } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
-  autoSaveAtom,
   bestMovesFamily,
   currentEvalOpenAtom,
   currentTabAtom,
@@ -34,30 +33,13 @@ import {
   Box,
   Center,
   Group,
-  Menu,
+  Stack,
   Text,
-  Tooltip,
   useMantineTheme,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  IconArrowBack,
-  IconCamera,
-  IconChess,
-  IconChessFilled,
-  IconChevronRight,
-  IconDeviceFloppy,
-  IconDotsVertical,
-  IconEdit,
-  IconEditOff,
-  IconEraser,
-  IconSwitchVertical,
-  IconTarget,
-  IconZoomCheck,
-} from "@tabler/icons-react";
-import { useLoaderData } from "@tanstack/react-router";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeFile } from "@tauri-apps/plugin-fs";
+import { IconChevronRight } from "@tabler/icons-react";
+
 import {
   type NormalMove,
   type Piece,
@@ -70,7 +52,7 @@ import {
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
-import domtoimage from "dom-to-image";
+
 import { useAtom, useAtomValue } from "jotai";
 import { memo, useCallback, useContext, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
@@ -81,6 +63,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
+import FideInfo from "../databases/FideInfo";
 import { updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
@@ -92,6 +75,7 @@ import PromotionModal from "./PromotionModal";
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
 const SMALL_BRUSH = 4;
+const BAR_HEIGHT = "2.1rem";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -131,7 +115,6 @@ function Board({
   onTakeBack,
 }: ChessboardProps) {
   const { t } = useTranslation();
-  const { documentDir } = useLoaderData({ from: "/" });
 
   const store = useContext(TreeStateContext)!;
 
@@ -161,6 +144,8 @@ function Board({
   const setFen = useStore(store, (s) => s.setFen);
 
   const [pos, error] = positionFromFen(currentNode.fen);
+  const [whiteFideOpen, setWhiteFideOpen] = useState(false);
+  const [blackFideOpen, setBlackFideOpen] = useState(false);
 
   const moveInput = useAtomValue(moveInputAtom);
   const showDests = useAtomValue(showDestsAtom);
@@ -171,7 +156,6 @@ function Board({
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
-  const autoSave = useAtomValue(autoSaveAtom);
 
   let dests: Map<SquareName, SquareName[]> = pos
     ? chessgroundDests(pos)
@@ -180,7 +164,6 @@ function Board({
     dests = forceEnPassant(dests, pos);
   }
 
-  const [viewPawnStructure, setViewPawnStructure] = useState(false);
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
 
   const turn = pos?.turn || "white";
@@ -188,40 +171,13 @@ function Board({
   const toggleOrientation = () =>
     setHeaders({
       ...headers,
-      fen: root.fen, // To keep the current board setup
+      fen: root.fen,
       orientation: orientation === "black" ? "white" : "black",
     });
 
-  const takeSnapshot = async () => {
-    const ref = boardRef?.current;
-    if (ref == null) return;
-
-    // We must get the first children three levels below, as it has the right dimensions.
-    const refChildNode = ref.children[0].children[0].children[0] as HTMLElement;
-    if (refChildNode == null) return;
-
-    domtoimage.toBlob(refChildNode).then(async (blob) => {
-      if (blob == null) return;
-
-      const filePath = await save({
-        title: "Save board snapshot",
-        defaultPath: documentDir,
-        filters: [
-          {
-            name: "Png image",
-            extensions: ["png"],
-          },
-        ],
-      });
-      const arrayBuffer = await blob.arrayBuffer();
-      if (filePath == null) return;
-      await writeFile(filePath, new Uint8Array(arrayBuffer));
-    });
-  };
-
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
-  const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const currentTab = useAtomValue(currentTabAtom);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
   const [deck, setDeck] = useAtom(
@@ -343,138 +299,6 @@ function Board({
     headers.white_time_control !== undefined ||
     headers.black_time_control !== undefined;
 
-  function changeTabType() {
-    setCurrentTab((t) => {
-      return {
-        ...t,
-        type: t.type === "analysis" ? "play" : "analysis",
-      };
-    });
-  }
-
-  const controls = useMemo(
-    () => (
-      <ActionIcon.Group>
-        <Menu closeOnItemClick={false}>
-          <Menu.Target>
-            <ActionIcon variant="default" size="lg">
-              <IconDotsVertical size="1.3rem" />
-            </ActionIcon>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={
-                viewPawnStructure ? (
-                  <IconChessFilled size="1.3rem" />
-                ) : (
-                  <IconChess size="1.3rem" />
-                )
-              }
-              onClick={() => setViewPawnStructure(!viewPawnStructure)}
-            >
-              {t("Board.Action.TogglePawnStructureView")}
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<IconCamera size="1.3rem" />}
-              onClick={() => takeSnapshot()}
-            >
-              {t("Board.Action.TakeSnapshot")}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-        {canTakeBack && onTakeBack && (
-          <Tooltip label="Take Back">
-            <ActionIcon
-              variant="default"
-              size="lg"
-              onClick={() => onTakeBack()}
-            >
-              <IconArrowBack />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        <Tooltip
-          label={t(
-            currentTab?.type === "analysis"
-              ? "Board.Action.PlayFromHere"
-              : "Board.AnalyzeGame",
-          )}
-        >
-          <ActionIcon variant="default" size="lg" onClick={changeTabType}>
-            {currentTab?.type === "analysis" ? (
-              <IconTarget size="1.3rem" />
-            ) : (
-              <IconZoomCheck size="1.3rem" />
-            )}
-          </ActionIcon>
-        </Tooltip>
-        {!eraseDrawablesOnClick && (
-          <Tooltip label={t("Board.Action.ClearDrawings")}>
-            <ActionIcon
-              variant="default"
-              size="lg"
-              onClick={() => clearShapes()}
-            >
-              <IconEraser size="1.3rem" />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        {(!disableVariations || allowEditing) && (
-          <Tooltip label={t("Board.Action.EditPosition")}>
-            <ActionIcon
-              variant={editingMode ? "filled" : "default"}
-              size="lg"
-              onClick={() => toggleEditingMode()}
-            >
-              {editingMode ? (
-                <IconEditOff size="1.3rem" />
-              ) : (
-                <IconEdit size="1.3rem" />
-              )}
-            </ActionIcon>
-          </Tooltip>
-        )}
-
-        {saveFile && (
-          <Tooltip
-            label={t("Board.Action.SavePGN", { key: keyMap.SAVE_FILE.keys })}
-          >
-            <ActionIcon
-              onClick={() => saveFile()}
-              size="lg"
-              variant={dirty && !autoSave ? "outline" : "default"}
-            >
-              <IconDeviceFloppy size="1.3rem" />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        <Tooltip
-          label={t("Board.Action.FlipBoard", {
-            key: keyMap.SWAP_ORIENTATION.keys,
-          })}
-        >
-          <ActionIcon
-            variant="default"
-            size="lg"
-            onClick={() => toggleOrientation()}
-          >
-            <IconSwitchVertical size="1.3rem" />
-          </ActionIcon>
-        </Tooltip>
-      </ActionIcon.Group>
-    ),
-    [
-      autoSave,
-      dirty,
-      keyMap,
-      currentTab,
-      disableVariations,
-      saveFile,
-      canTakeBack,
-      toggleEditingMode,
-      toggleOrientation,
-    ],
-  );
   const materialDiff = getMaterialDiff(currentNode.fen);
   const practiceLock =
     !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
@@ -533,11 +357,6 @@ function Board({
 
   return (
     <>
-      {viewPawnStructure && (
-        <Helmet>
-          <link rel="stylesheet" href="/pieces/view-pawn-structure.css" />
-        </Helmet>
-      )}
       <Box w="100%" h="100%">
         <Box
           style={{
@@ -550,26 +369,61 @@ function Board({
             overflow: "hidden",
             maxWidth:
               //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              "calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - 2.125rem - 2.125rem + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)",
+              `calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - ${BAR_HEIGHT} - ${BAR_HEIGHT} + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)`,
           }}
         >
-          {materialDiff && (
-            <Group ml="2.5rem" h="2.125rem">
-              {hasClock && (
-                <Clock
-                  color={orientation === "black" ? "white" : "black"}
-                  turn={turn}
-                  whiteTime={whiteTime}
-                  blackTime={blackTime}
+          <Group
+            ml="2.5rem"
+            mr="xs"
+            h={BAR_HEIGHT}
+            justify="space-between"
+            wrap="nowrap"
+          >
+            <Stack gap={0}>
+              <Group gap="xs">
+                <Text
+                  fw="bold"
+                  size="sm"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    if (orientation === "white") {
+                      setBlackFideOpen(true);
+                    } else {
+                      setWhiteFideOpen(true);
+                    }
+                  }}
+                >
+                  {orientation === "white" ? headers.black : headers.white}
+                </Text>
+                {(orientation === "white"
+                  ? headers.black_elo
+                  : headers.white_elo) && (
+                  <Text size="xs" c="dimmed">
+                    (
+                    {orientation === "white"
+                      ? headers.black_elo
+                      : headers.white_elo}
+                    )
+                  </Text>
+                )}
+              </Group>
+              {materialDiff && (
+                <ShowMaterial
+                  diff={materialDiff.diff}
+                  pieces={materialDiff.pieces}
+                  color={orientation === "white" ? "black" : "white"}
                 />
               )}
-              <ShowMaterial
-                diff={materialDiff.diff}
-                pieces={materialDiff.pieces}
-                color={orientation === "white" ? "black" : "white"}
+            </Stack>
+            {hasClock && (
+              <Clock
+                color={orientation === "black" ? "white" : "black"}
+                turn={turn}
+                whiteTime={whiteTime}
+                blackTime={blackTime}
               />
-            </Group>
-          )}
+            )}
+          </Group>
           <Group
             style={{
               position: "relative",
@@ -728,7 +582,7 @@ function Board({
                   enabled: false,
                 }}
                 draggable={{
-                  enabled: !viewPawnStructure,
+                  enabled: true,
                   deleteOnDropOff: editingMode,
                 }}
                 drawable={{
@@ -743,37 +597,83 @@ function Board({
               />
             </Box>
           </Group>
-          <Group justify="space-between" h="2.125rem">
-            {materialDiff && (
-              <Group ml="2.5rem">
-                {hasClock && (
-                  <Clock
+          <Group
+            justify="space-between"
+            h={BAR_HEIGHT}
+            ml="2.5rem"
+            mr="xs"
+            wrap="nowrap"
+          >
+            <Group wrap="nowrap">
+              <Stack gap={0} justify="flex-start">
+                <Group gap="xs">
+                  <Text
+                    fw="bold"
+                    size="sm"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      if (orientation === "white") {
+                        setWhiteFideOpen(true);
+                      } else {
+                        setBlackFideOpen(true);
+                      }
+                    }}
+                  >
+                    {orientation === "white" ? headers.white : headers.black}
+                  </Text>
+                  {(orientation === "white"
+                    ? headers.white_elo
+                    : headers.black_elo) && (
+                    <Text size="xs" c="dimmed">
+                      (
+                      {orientation === "white"
+                        ? headers.white_elo
+                        : headers.black_elo}
+                      )
+                    </Text>
+                  )}
+                </Group>
+
+                {materialDiff && (
+                  <ShowMaterial
+                    diff={materialDiff.diff}
+                    pieces={materialDiff.pieces}
                     color={orientation}
-                    turn={turn}
-                    whiteTime={whiteTime}
-                    blackTime={blackTime}
                   />
                 )}
-                <ShowMaterial
-                  diff={materialDiff.diff}
-                  pieces={materialDiff.pieces}
+              </Stack>
+            </Group>
+
+            <Group gap="xs" wrap="nowrap">
+              {error && (
+                <Text ta="center" c="red">
+                  {t(chessopsError(error))}
+                </Text>
+              )}
+
+              {moveInput && <MoveInput currentNode={currentNode} />}
+              {hasClock && (
+                <Clock
                   color={orientation}
+                  turn={turn}
+                  whiteTime={whiteTime}
+                  blackTime={blackTime}
                 />
-              </Group>
-            )}
-
-            {error && (
-              <Text ta="center" c="red">
-                {t(chessopsError(error))}
-              </Text>
-            )}
-
-            {moveInput && <MoveInput currentNode={currentNode} />}
-
-            {controls}
+              )}
+            </Group>
           </Group>
         </Box>
       </Box>
+      <FideInfo
+        opened={whiteFideOpen}
+        setOpened={setWhiteFideOpen}
+        name={headers.white}
+      />
+      <FideInfo
+        opened={blackFideOpen}
+        setOpened={setBlackFideOpen}
+        name={headers.black}
+      />
     </>
   );
 }

@@ -37,7 +37,10 @@ import CompleteMoveCell from "./CompleteMoveCell";
 import * as styles from "./GameNotation.css";
 import OpeningName from "./OpeningName";
 
-function GameNotation({ topBar }: { topBar?: boolean }) {
+function GameNotation({
+  topBar,
+  controls,
+}: { topBar?: boolean; controls?: React.ReactNode }) {
   const store = useContext(TreeStateContext)!;
   const currentFen = useStore(store, (s) => s.currentNode().fen);
   const headers = useStore(store, (s) => s.headers);
@@ -75,53 +78,63 @@ function GameNotation({ topBar }: { topBar?: boolean }) {
       flex={1}
       style={{ position: "relative", overflow: "hidden" }}
     >
-      <Stack h="100%" gap={0}>
-        {topBar && (
-          <NotationHeader
-            showComments={showComments}
-            toggleComments={toggleComments}
-            showVariations={showVariations}
-            toggleVariations={toggleVariations}
-          />
+      <Group h="100%" gap="xs" wrap="nowrap" align="stretch">
+        {controls && (
+          <ScrollArea type="never" style={{ flexShrink: 0 }}>
+            {controls}
+          </ScrollArea>
         )}
-        <ScrollArea flex={1} offsetScrollbars viewportRef={viewport}>
-          <Stack pt="md">
-            <Box>
-              {invisible && (
-                <Overlay
-                  backgroundOpacity={0.6}
-                  color={colorScheme === "dark" ? "#1a1b1e" : undefined}
-                  blur={8}
-                  zIndex={2}
+        <Divider orientation="vertical" />
+        <Stack h="100%" gap={0} style={{ flex: 1, minWidth: 0 }}>
+          {topBar && (
+            <NotationHeader
+              showComments={showComments}
+              toggleComments={toggleComments}
+              showVariations={showVariations}
+              toggleVariations={toggleVariations}
+            />
+          )}
+          <ScrollArea flex={1} offsetScrollbars viewportRef={viewport}>
+            <Stack pt="md">
+              <Box>
+                {invisible && (
+                  <Overlay
+                    backgroundOpacity={0.6}
+                    color={colorScheme === "dark" ? "#1a1b1e" : undefined}
+                    blur={8}
+                    zIndex={2}
+                  />
+                )}
+                {showComments && rootComment && (
+                  <Comment comment={rootComment} />
+                )}
+                <RenderVariationTree
+                  targetRef={targetRef}
+                  nodePath={[]}
+                  depth={0}
+                  first
+                  start={headers.start}
+                  showVariations={showVariations}
+                  showComments={showComments}
                 />
-              )}
-              {showComments && rootComment && <Comment comment={rootComment} />}
-              <RenderVariationTree
-                targetRef={targetRef}
-                nodePath={[]}
-                depth={0}
-                first
-                start={headers.start}
-                showVariations={showVariations}
-                showComments={showComments}
-              />
-            </Box>
-            {headers.result && headers.result !== "*" && (
-              <Text ta="center">
-                {headers.result}
-                <br />
-                <Text span fs="italic">
-                  {headers.result === "1/2-1/2"
-                    ? "Draw"
-                    : headers.result === "1-0"
-                      ? "White wins"
-                      : "Black wins"}
+              </Box>
+              {headers.result && headers.result !== "*" && (
+                <Text ta="center">
+                  {headers.result}
+                  <br />
+                  <Text span fs="italic">
+                    {headers.result === "1/2-1/2"
+                      ? "Draw"
+                      : headers.result === "1-0"
+                        ? "White wins"
+                        : "Black wins"}
+                  </Text>
                 </Text>
-              </Text>
-            )}
-          </Stack>
-        </ScrollArea>
-      </Stack>
+              )}
+            </Stack>
+          </ScrollArea>
+        </Stack>
+      </Group>
     </Paper>
   );
 }

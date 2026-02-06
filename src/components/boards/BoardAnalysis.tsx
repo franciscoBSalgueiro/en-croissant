@@ -43,6 +43,7 @@ import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
+import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
 
@@ -261,7 +262,18 @@ function BoardAnalysis() {
           />
         ) : (
           <Stack h="100%" gap="xs">
-            <GameNotation topBar />
+            <GameNotation
+              topBar
+              controls={
+                <BoardControls
+                  boardRef={boardRef}
+                  editingMode={editingMode}
+                  toggleEditingMode={toggleEditingMode}
+                  dirty={dirty}
+                  saveFile={saveFile}
+                />
+              }
+            />
             <MoveControls />
           </Stack>
         )}

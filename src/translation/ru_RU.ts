@@ -135,8 +135,6 @@ export const ru_RU = {
     "Home.Card.Puzzle.Desc": "Тренируйте шахматные навыки",
     "Home.Card.Puzzle.Button": "Тренироваться",
 
-    "Board.Action.TogglePawnStructureView":
-      "Переключить отображение структуры пешек",
     "Board.Action.TakeSnapshot": "Сделать скриншот",
     "Board.Action.AnalyzeGame": "Анализировать партию",
     "Board.Action.PlayFromHere": "Играть отсюда",

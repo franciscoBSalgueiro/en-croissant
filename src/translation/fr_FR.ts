@@ -135,8 +135,6 @@ export const fr_FR = {
     "Home.Card.Puzzle.Desc": "Entraînement pour vous améliorer",
     "Home.Card.Puzzle.Button": "S'entraîner",
 
-    "Board.Action.TogglePawnStructureView":
-      "Basculer l'affichage de la structure de pions",
     "Board.Action.TakeSnapshot": "Prendre une capture d'écran",
     "Board.Action.AnalyzeGame": "Analyser la partie",
     "Board.Action.PlayFromHere": "Jouer à partir d'ici",

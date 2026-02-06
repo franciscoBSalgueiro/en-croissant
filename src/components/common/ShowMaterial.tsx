@@ -57,7 +57,7 @@ export default function ShowMaterial({
   ));
 
   return (
-    <Group gap="xs" h="1.3rem">
+    <Group gap="xs" h="1.3rem" fz="sm">
       <Group gap={"xs"}>
         {compare(pieces.p) && <Group gap="0">{pawns}</Group>}
         {compare(pieces.n) && <Group gap="0">{knights}</Group>}

@@ -64,6 +64,7 @@ import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
+import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
 
@@ -710,7 +711,21 @@ function BoardGame() {
           />
         ) : (
           <Stack h="100%" gap="xs">
-            <GameNotation topBar />
+            <GameNotation
+              topBar
+              controls={
+                <BoardControls
+                  boardRef={boardRef}
+                  editingMode={gameState === "settingUp" && editingMode}
+                  toggleEditingMode={toggleEditingMode}
+                  dirty={false}
+                  canTakeBack={onePlayerIsEngine}
+                  onTakeBack={onTakeBack}
+                  disableVariations
+                  allowEditing={gameState === "settingUp"}
+                />
+              }
+            />
             <MoveControls />
           </Stack>
         )}

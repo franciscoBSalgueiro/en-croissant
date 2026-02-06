@@ -135,7 +135,6 @@ export const en_GB = {
     "Home.Card.Puzzle.Desc": "Train your chess skills",
     "Home.Card.Puzzle.Button": "Train",
 
-    "Board.Action.TogglePawnStructureView": "Toggle Pawn Structure View",
     "Board.Action.TakeSnapshot": "Take Snapshot",
     "Board.Action.AnalyzeGame": "Analyse game",
     "Board.Action.PlayFromHere": "Play from here",
