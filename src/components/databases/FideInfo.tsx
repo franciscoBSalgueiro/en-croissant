@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Avatar,
   Badge,
   Card,
   Center,
@@ -75,38 +76,38 @@ function FideInfo({
       {isLoading ? (
         <Center>Loading...</Center>
       ) : player ? (
-        <Stack gap="xs">
-          <Divider />
-          <Group justify="space-between">
-            <Stack gap={0}>
-              <Group>
-                <Group>
-                  <Text fz="lg" fw="bold">
-                    {player.name}
-                  </Text>
-                  {player.title && <Badge>{player.title}</Badge>}
-                </Group>
+        <Stack gap="md">
+          <Group wrap="nowrap" align="flex-start">
+            {player.photo?.small && (
+              <Avatar src={player.photo.small} size={80} radius="sm" />
+            )}
+            <Stack gap={4} style={{ flex: 1 }}>
+              <Group gap="xs">
+                <Text fz="xl" fw="bold">
+                  {player.name}
+                </Text>
+                {player.title && <Badge>{player.title}</Badge>}
               </Group>
+              {Flag && country?.name && (
+                <Group gap="xs">
+                  <Flag w={30} />
+                  <Text c="dimmed">{country.name}</Text>
+                </Group>
+              )}
+              {player.year && (
+                <Text size="sm" c="dimmed">
+                  Born {player.year}
+                </Text>
+              )}
               {player.name !== name && (
                 <Text c="dimmed" fz="xs">
                   Closest match to <u>{name}</u>
                 </Text>
               )}
             </Stack>
-
-            {Flag && country?.name && (
-              <Tooltip label={country.name}>
-                <div>
-                  <Flag w={50} />
-                </div>
-              </Tooltip>
-            )}
           </Group>
 
-          <Group>
-            {player.sex && <Text>Sex: {player.sex}</Text>}
-            {player.birth_year && <Text>Born: {player.birth_year}</Text>}
-          </Group>
+          <Divider />
           <Group grow>
             <Card p="sm">
               <Text fw="bold">Standard</Text>
