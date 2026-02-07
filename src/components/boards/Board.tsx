@@ -75,7 +75,7 @@ import PromotionModal from "./PromotionModal";
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
 const SMALL_BRUSH = 4;
-const BAR_HEIGHT = "2.1rem";
+const BAR_HEIGHT = "1.9rem";
 
 interface ChessboardProps {
   dirty: boolean;
@@ -293,11 +293,11 @@ function Board({
   }
 
   const hasClock =
-    whiteTime !== undefined ||
-    blackTime !== undefined ||
-    headers.time_control !== undefined ||
-    headers.white_time_control !== undefined ||
-    headers.black_time_control !== undefined;
+    !!whiteTime ||
+    !!blackTime ||
+    !!headers.time_control ||
+    !!headers.white_time_control ||
+    !!headers.black_time_control;
 
   const materialDiff = getMaterialDiff(currentNode.fen);
   const practiceLock =
@@ -380,7 +380,7 @@ function Board({
             wrap="nowrap"
             align="flex-end"
           >
-            <Group gap={6}>
+            <Group gap={6} align="baseline">
               <Text
                 fw="bold"
                 size="md"
@@ -608,7 +608,7 @@ function Board({
             align="flex-end"
           >
             <Group wrap="nowrap">
-              <Group gap={6}>
+              <Group gap={6} align="baseline">
                 <Text
                   fw="bold"
                   size="md"

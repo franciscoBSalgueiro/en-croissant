@@ -14,7 +14,7 @@ export default function MoveInput({ currentNode }: { currentNode: TreeNode }) {
   return (
     <Input
       placeholder="Enter move"
-      size="sm"
+      size="xs"
       onChange={(e) => {
         setMove(e.currentTarget.value);
         setError("");
