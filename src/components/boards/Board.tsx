@@ -378,35 +378,37 @@ function Board({
             h={BAR_HEIGHT}
             justify="space-between"
             wrap="nowrap"
+            align="flex-end"
           >
-            <Stack gap={0}>
-              <Group gap={6} align="end">
-                <Text
-                  fw="bold"
-                  size="sm"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    if (orientation === "white") {
-                      setBlackFideOpen(true);
-                    } else {
-                      setWhiteFideOpen(true);
-                    }
-                  }}
-                >
-                  {orientation === "white" ? headers.black : headers.white}
+            <Group gap={6}>
+              <Text
+                fw="bold"
+                size="md"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  if (orientation === "white") {
+                    setBlackFideOpen(true);
+                  } else {
+                    setWhiteFideOpen(true);
+                  }
+                }}
+              >
+                {orientation === "white" ? headers.black : headers.white}
+              </Text>
+              {(orientation === "white"
+                ? headers.black_elo
+                : headers.white_elo) && (
+                <Text size="xs" c="dimmed">
+                  (
+                  {orientation === "white"
+                    ? headers.black_elo
+                    : headers.white_elo}
+                  )
                 </Text>
-                {(orientation === "white"
-                  ? headers.black_elo
-                  : headers.white_elo) && (
-                  <Text size="xs" c="dimmed">
-                    (
-                    {orientation === "white"
-                      ? headers.black_elo
-                      : headers.white_elo}
-                    )
-                  </Text>
-                )}
-              </Group>
+              )}
+            </Group>
+
+            <Group align="flex-end">
               {materialDiff && (
                 <ShowMaterial
                   diff={materialDiff.diff}
@@ -414,15 +416,15 @@ function Board({
                   color={orientation === "white" ? "black" : "white"}
                 />
               )}
-            </Stack>
-            {hasClock && (
-              <Clock
-                color={orientation === "black" ? "white" : "black"}
-                turn={turn}
-                whiteTime={whiteTime}
-                blackTime={blackTime}
-              />
-            )}
+              {hasClock && (
+                <Clock
+                  color={orientation === "black" ? "white" : "black"}
+                  turn={turn}
+                  whiteTime={whiteTime}
+                  blackTime={blackTime}
+                />
+              )}
+            </Group>
           </Group>
           <Group
             style={{
@@ -603,48 +605,39 @@ function Board({
             ml="2.5rem"
             mr="xs"
             wrap="nowrap"
+            align="flex-end"
           >
             <Group wrap="nowrap">
-              <Stack gap={0} justify="flex-start">
-                <Group gap={6} align="end">
-                  <Text
-                    fw="bold"
-                    size="sm"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => {
-                      if (orientation === "white") {
-                        setWhiteFideOpen(true);
-                      } else {
-                        setBlackFideOpen(true);
-                      }
-                    }}
-                  >
-                    {orientation === "white" ? headers.white : headers.black}
+              <Group gap={6}>
+                <Text
+                  fw="bold"
+                  size="md"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    if (orientation === "white") {
+                      setWhiteFideOpen(true);
+                    } else {
+                      setBlackFideOpen(true);
+                    }
+                  }}
+                >
+                  {orientation === "white" ? headers.white : headers.black}
+                </Text>
+                {(orientation === "white"
+                  ? headers.white_elo
+                  : headers.black_elo) && (
+                  <Text size="xs" c="dimmed">
+                    (
+                    {orientation === "white"
+                      ? headers.white_elo
+                      : headers.black_elo}
+                    )
                   </Text>
-                  {(orientation === "white"
-                    ? headers.white_elo
-                    : headers.black_elo) && (
-                    <Text size="xs" c="dimmed">
-                      (
-                      {orientation === "white"
-                        ? headers.white_elo
-                        : headers.black_elo}
-                      )
-                    </Text>
-                  )}
-                </Group>
-
-                {materialDiff && (
-                  <ShowMaterial
-                    diff={materialDiff.diff}
-                    pieces={materialDiff.pieces}
-                    color={orientation}
-                  />
                 )}
-              </Stack>
+              </Group>
             </Group>
 
-            <Group gap="xs" wrap="nowrap">
+            <Group wrap="nowrap" align="flex-end">
               {error && (
                 <Text ta="center" c="red">
                   {t(chessopsError(error))}
@@ -652,6 +645,14 @@ function Board({
               )}
 
               {moveInput && <MoveInput currentNode={currentNode} />}
+
+              {materialDiff && (
+                <ShowMaterial
+                  diff={materialDiff.diff}
+                  pieces={materialDiff.pieces}
+                  color={orientation}
+                />
+              )}
               {hasClock && (
                 <Clock
                   color={orientation}
