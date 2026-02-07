@@ -90,11 +90,13 @@ function GameNotation({
     >
       <Group h="100%" gap="sm" wrap="nowrap" align="stretch" pr="md" pl="sm">
         {controls && (
-          <ScrollArea type="never" py="md" style={{ flexShrink: 0 }}>
-            {controls}
-          </ScrollArea>
+          <>
+            <ScrollArea type="never" py="md" style={{ flexShrink: 0 }}>
+              {controls}
+            </ScrollArea>
+            <Divider orientation="vertical" />
+          </>
         )}
-        <Divider orientation="vertical" />
         <Stack h="100%" pt="md" gap={0} style={{ flex: 1, minWidth: 0 }}>
           {topBar && (
             <NotationHeader
