@@ -64,6 +64,7 @@ import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
+import type { ChessgroundRef } from "@/chessground/Chessground";
 import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
@@ -130,6 +131,7 @@ function BoardGame() {
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
+  const cgRef = useRef<ChessgroundRef>(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
@@ -143,6 +145,10 @@ function BoardGame() {
 
   const hasEngine =
     players.white.type === "engine" || players.black.type === "engine";
+
+  const isPlayerVsEngine =
+    (players.white.type === "human" && players.black.type === "engine") ||
+    (players.black.type === "human" && players.white.type === "engine");
 
   const fetchEngineLogs = useCallback(async () => {
     if (!gameId || !hasEngine) return;
@@ -405,6 +411,10 @@ function BoardGame() {
       pendingTimesRef.current = null;
     }
     throttleTimerRef.current = null;
+
+    setTimeout(() => {
+      cgRef.current?.playPremove();
+    }, 0);
   }, []);
 
   const scheduleUpdate = useCallback(() => {
@@ -574,6 +584,8 @@ function BoardGame() {
           }
           onMove={handleHumanMove}
           selectedPiece={selectedPiece}
+          cgRef={cgRef}
+          enablePremoves={isPlayerVsEngine && gameState === "playing"}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>

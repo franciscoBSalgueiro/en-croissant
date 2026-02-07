@@ -1,4 +1,4 @@
-import { Chessground } from "@/chessground/Chessground";
+import { Chessground, type ChessgroundRef } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
   bestMovesFamily,
@@ -89,6 +89,8 @@ interface ChessboardProps {
   practicing?: boolean;
   selectedPiece?: Piece | null;
   onMove?: (uci: string) => void;
+  cgRef?: React.Ref<ChessgroundRef>;
+  enablePremoves?: boolean;
 }
 
 function Board({
@@ -102,6 +104,8 @@ function Board({
   practicing,
   selectedPiece,
   onMove,
+  cgRef,
+  enablePremoves = false,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -481,6 +485,7 @@ function Board({
               />
 
               <Chessground
+                ref={cgRef}
                 setBoardFen={setBoardFen}
                 orientation={orientation}
                 fen={currentNode.fen}
@@ -548,7 +553,7 @@ function Board({
                 check={moveHighlight && pos?.isCheck()}
                 lastMove={moveHighlight && !editingMode ? lastMove : undefined}
                 premovable={{
-                  enabled: false,
+                  enabled: enablePremoves && !editingMode && !viewOnly,
                 }}
                 draggable={{
                   enabled: true,

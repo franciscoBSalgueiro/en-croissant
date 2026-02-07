@@ -4,19 +4,40 @@ import type { Api } from "@lichess-org/chessground/api";
 import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
-import { useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
-export function Chessground(
-  props: Config & { setBoardFen?: (fen: string) => void },
-) {
+export interface ChessgroundRef {
+  playPremove: () => boolean;
+  cancelPremove: () => void;
+}
+
+export const Chessground = forwardRef<
+  ChessgroundRef,
+  Config & { setBoardFen?: (fen: string) => void }
+>(function Chessground(props, ref) {
   const [api, setApi] = useState<Api | null>(null);
 
-  const ref = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   const moveMethod = useAtomValue(moveMethodAtom);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      playPremove: () => api?.playPremove() ?? false,
+      cancelPremove: () => api?.cancelPremove(),
+    }),
+    [api],
+  );
+
   useEffect(() => {
-    if (ref?.current == null) return;
+    if (boardRef?.current == null) return;
     if (api) {
       api.set({
         ...props,
@@ -30,9 +51,9 @@ export function Chessground(
         },
       });
     } else {
-      const chessgroundApi = NativeChessground(ref.current, {
+      const chessgroundApi = NativeChessground(boardRef.current, {
         ...props,
-        addDimensionsCssVarsTo: ref.current,
+        addDimensionsCssVarsTo: boardRef.current,
         events: {
           ...props.events,
           change: () => {
@@ -52,7 +73,7 @@ export function Chessground(
       });
       setApi(chessgroundApi);
     }
-  }, [api, props, ref]);
+  }, [api, props, boardRef]);
 
   useEffect(() => {
     api?.set({
@@ -76,7 +97,7 @@ export function Chessground(
         width: "100%",
         "--board-image": `url('/board/${boardImage}')`,
       }}
-      ref={ref}
+      ref={boardRef}
     />
   );
-}
+});
