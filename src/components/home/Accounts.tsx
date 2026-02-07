@@ -24,7 +24,7 @@ import GenericCard from "../common/GenericCard";
 import LichessLogo from "./LichessLogo";
 
 function Accounts() {
-  const [, setSessions] = useAtom(sessionsAtom);
+  const [sessions, setSessions] = useAtom(sessionsAtom);
   const isListening = useRef(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   useEffect(() => {
@@ -117,15 +117,21 @@ function Accounts() {
 
   return (
     <>
-      <AccountCards databases={databases} setDatabases={setDatabases} />
-      <Group>
-        <Button
-          rightSection={<IconPlus size="1rem" />}
-          onClick={() => setOpen(true)}
-        >
-          Add Account
-        </Button>
-      </Group>
+      <AccountCards
+        databases={databases}
+        setDatabases={setDatabases}
+        onAddAccount={() => setOpen(true)}
+      />
+      {sessions.length > 0 && (
+        <Group>
+          <Button
+            rightSection={<IconPlus size="1rem" />}
+            onClick={() => setOpen(true)}
+          >
+            Add Account
+          </Button>
+        </Group>
+      )}
       <AccountModal
         open={open}
         setOpen={setOpen}

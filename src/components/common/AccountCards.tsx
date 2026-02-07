@@ -18,13 +18,16 @@ import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { AccountCard } from "../home/AccountCard";
+import { EmptyAccounts } from "../home/EmptyAccounts";
 
 function AccountCards({
   databases,
   setDatabases,
+  onAddAccount,
 }: {
   databases: DatabaseInfo[];
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
+  onAddAccount: () => void;
 }) {
   const sessions = useAtomValue(sessionsAtom);
   const playerNames = Array.from(
@@ -44,6 +47,10 @@ function AccountCards({
         s.chessCom?.username === name,
     ),
   }));
+
+  if (sessions.length === 0) {
+    return <EmptyAccounts onAddAccount={onAddAccount} />;
+  }
 
   return (
     <ScrollArea offsetScrollbars>
