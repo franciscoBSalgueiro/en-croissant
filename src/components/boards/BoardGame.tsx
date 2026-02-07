@@ -7,6 +7,7 @@ import {
   commands,
 } from "@/bindings";
 import type { Outcome } from "@/bindings";
+import type { ChessgroundRef } from "@/chessground/Chessground";
 import {
   activeTabAtom,
   currentGameIdAtom,
@@ -64,7 +65,6 @@ import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
-import type { ChessgroundRef } from "@/chessground/Chessground";
 import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";

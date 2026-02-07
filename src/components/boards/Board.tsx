@@ -67,11 +67,11 @@ import FideInfo from "../databases/FideInfo";
 import { updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
+import { BoardBar } from "./BoardBar";
 import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
-import { BoardBar } from "./BoardBar";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
