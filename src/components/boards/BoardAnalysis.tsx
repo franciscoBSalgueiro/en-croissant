@@ -149,11 +149,8 @@ function BoardAnalysis() {
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           practicing={practicing}
-          dirty={dirty}
           editingMode={editingMode}
-          toggleEditingMode={toggleEditingMode}
           boardRef={boardRef}
-          saveFile={saveFile}
           selectedPiece={selectedPiece}
         />
       </Portal>

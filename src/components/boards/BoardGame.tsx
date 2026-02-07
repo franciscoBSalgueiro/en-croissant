@@ -561,14 +561,10 @@ function BoardGame() {
     <>
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
-          dirty={false}
           editingMode={gameState === "settingUp" && editingMode}
-          toggleEditingMode={toggleEditingMode}
           viewOnly={gameState !== "playing" && !editingMode}
           disableVariations
-          allowEditing={gameState === "settingUp"}
           boardRef={boardRef}
-          canTakeBack={onePlayerIsEngine}
           movable={gameState === "settingUp" && editingMode ? "none" : movable}
           whiteTime={
             gameState === "playing" ? (whiteTime ?? undefined) : undefined
@@ -577,7 +573,6 @@ function BoardGame() {
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           onMove={handleHumanMove}
-          onTakeBack={onTakeBack}
           selectedPiece={selectedPiece}
         />
       </Portal>

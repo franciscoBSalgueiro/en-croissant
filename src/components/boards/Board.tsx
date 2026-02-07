@@ -71,6 +71,7 @@ import Clock from "./Clock";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
+import { BoardBar } from "./BoardBar";
 
 const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
@@ -78,41 +79,29 @@ const SMALL_BRUSH = 4;
 const BAR_HEIGHT = "1.9rem";
 
 interface ChessboardProps {
-  dirty: boolean;
   editingMode: boolean;
-  toggleEditingMode: () => void;
   viewOnly?: boolean;
   disableVariations?: boolean;
-  allowEditing?: boolean;
   movable?: "both" | "white" | "black" | "turn" | "none";
   boardRef: React.MutableRefObject<HTMLDivElement | null>;
-  saveFile?: () => void;
-  canTakeBack?: boolean;
   whiteTime?: number;
   blackTime?: number;
   practicing?: boolean;
   selectedPiece?: Piece | null;
   onMove?: (uci: string) => void;
-  onTakeBack?: () => void;
 }
 
 function Board({
-  dirty,
   editingMode,
-  toggleEditingMode,
   viewOnly,
   disableVariations,
-  allowEditing,
   movable = "turn",
   boardRef,
-  saveFile,
-  canTakeBack,
   whiteTime,
   blackTime,
   practicing,
   selectedPiece,
   onMove,
-  onTakeBack,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -124,7 +113,6 @@ function Board({
     store,
     useShallow((s) => getVariationLine(s.root, s.position)),
   );
-  const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
   const currentNode = useStore(store, (s) => s.currentNode());
 
@@ -355,6 +343,9 @@ function Board({
       ? [chessgroundMove(currentNode.move)[0], makeSquare(square)!]
       : undefined;
 
+  const topPlayer = orientation === "white" ? headers.black : headers.white;
+  const bottomPlayer = orientation === "white" ? headers.white : headers.black;
+
   return (
     <>
       <Box w="100%" h="100%">
@@ -372,60 +363,36 @@ function Board({
               `calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.778rem - var(--mantine-spacing-sm) - ${BAR_HEIGHT} - ${BAR_HEIGHT} + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.75rem)`,
           }}
         >
-          <Group
-            ml="2.5rem"
-            mr="xs"
-            h={BAR_HEIGHT}
-            justify="space-between"
-            wrap="nowrap"
-            align="flex-end"
+          <BoardBar
+            name={topPlayer}
+            rating={
+              orientation === "white" ? headers.black_elo : headers.white_elo
+            }
+            onNameClick={() => {
+              if (orientation === "white") {
+                setBlackFideOpen(true);
+              } else {
+                setWhiteFideOpen(true);
+              }
+            }}
+            height={BAR_HEIGHT}
           >
-            <Group gap={6} align="baseline">
-              <Text
-                fw="bold"
-                size="md"
-                style={{ cursor: "pointer" }}
-                onClick={() => {
-                  if (orientation === "white") {
-                    setBlackFideOpen(true);
-                  } else {
-                    setWhiteFideOpen(true);
-                  }
-                }}
-              >
-                {orientation === "white" ? headers.black : headers.white}
-              </Text>
-              {(orientation === "white"
-                ? headers.black_elo
-                : headers.white_elo) && (
-                <Text size="xs" c="dimmed">
-                  (
-                  {orientation === "white"
-                    ? headers.black_elo
-                    : headers.white_elo}
-                  )
-                </Text>
-              )}
-            </Group>
-
-            <Group align="flex-end">
-              {materialDiff && (
-                <ShowMaterial
-                  diff={materialDiff.diff}
-                  pieces={materialDiff.pieces}
-                  color={orientation === "white" ? "black" : "white"}
-                />
-              )}
-              {hasClock && (
-                <Clock
-                  color={orientation === "black" ? "white" : "black"}
-                  turn={turn}
-                  whiteTime={whiteTime}
-                  blackTime={blackTime}
-                />
-              )}
-            </Group>
-          </Group>
+            {materialDiff && (
+              <ShowMaterial
+                diff={materialDiff.diff}
+                pieces={materialDiff.pieces}
+                color={orientation === "white" ? "black" : "white"}
+              />
+            )}
+            {hasClock && (
+              <Clock
+                color={orientation === "black" ? "white" : "black"}
+                turn={turn}
+                whiteTime={whiteTime}
+                blackTime={blackTime}
+              />
+            )}
+          </BoardBar>
           <Group
             style={{
               position: "relative",
@@ -599,70 +566,44 @@ function Board({
               />
             </Box>
           </Group>
-          <Group
-            justify="space-between"
-            h={BAR_HEIGHT}
-            ml="2.5rem"
-            mr="xs"
-            wrap="nowrap"
-            align="flex-end"
+          <BoardBar
+            name={bottomPlayer}
+            rating={
+              orientation === "white" ? headers.white_elo : headers.black_elo
+            }
+            onNameClick={() => {
+              if (orientation === "white") {
+                setWhiteFideOpen(true);
+              } else {
+                setBlackFideOpen(true);
+              }
+            }}
+            height={BAR_HEIGHT}
           >
-            <Group wrap="nowrap">
-              <Group gap={6} align="baseline">
-                <Text
-                  fw="bold"
-                  size="md"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    if (orientation === "white") {
-                      setWhiteFideOpen(true);
-                    } else {
-                      setBlackFideOpen(true);
-                    }
-                  }}
-                >
-                  {orientation === "white" ? headers.white : headers.black}
-                </Text>
-                {(orientation === "white"
-                  ? headers.white_elo
-                  : headers.black_elo) && (
-                  <Text size="xs" c="dimmed">
-                    (
-                    {orientation === "white"
-                      ? headers.white_elo
-                      : headers.black_elo}
-                    )
-                  </Text>
-                )}
-              </Group>
-            </Group>
+            {error && (
+              <Text ta="center" c="red">
+                {t(chessopsError(error))}
+              </Text>
+            )}
 
-            <Group wrap="nowrap" align="flex-end">
-              {error && (
-                <Text ta="center" c="red">
-                  {t(chessopsError(error))}
-                </Text>
-              )}
+            {moveInput && <MoveInput currentNode={currentNode} />}
 
-              {moveInput && <MoveInput currentNode={currentNode} />}
-
-              {materialDiff && (
-                <ShowMaterial
-                  diff={materialDiff.diff}
-                  pieces={materialDiff.pieces}
-                  color={orientation}
-                />
-              )}
-              {hasClock && (
-                <Clock
-                  color={orientation}
-                  turn={turn}
-                  whiteTime={whiteTime}
-                  blackTime={blackTime}
-                />
-              )}
-            </Group>
-          </Group>
+            {materialDiff && (
+              <ShowMaterial
+                diff={materialDiff.diff}
+                pieces={materialDiff.pieces}
+                color={orientation}
+              />
+            )}
+            {hasClock && (
+              <Clock
+                color={orientation}
+                turn={turn}
+                whiteTime={whiteTime}
+                blackTime={blackTime}
+              />
+            )}
+          </BoardBar>
         </Box>
       </Box>
       <FideInfo
