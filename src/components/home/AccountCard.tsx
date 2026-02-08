@@ -223,6 +223,8 @@ export function AccountCard({
                       );
                       try {
                         await convert(p, lastGameDate);
+                        const dbPath = p.replace(".pgn", ".db3");
+                        await commands.deleteEmptyGames(dbPath);
                       } catch (e) {
                         console.error(e);
                       }
