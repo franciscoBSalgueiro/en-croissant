@@ -11,10 +11,10 @@ import { Notifications } from "@mantine/notifications";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getMatches } from "@tauri-apps/plugin-cli";
-import posthog from "posthog-js";
 import { attachConsole, info } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
+import posthog from "posthog-js";
 import { useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -54,9 +54,9 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 import ErrorComponent from "@/components/ErrorComponent";
+import { getVersion } from "@tauri-apps/api/app";
 import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
 import { routeTree } from "./routeTree.gen";
-import { getVersion } from "@tauri-apps/api/app";
 
 export type Dirs = {
   documentDir: string;

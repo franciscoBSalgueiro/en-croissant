@@ -21,7 +21,6 @@ import {
   storedDocumentDirAtom,
   telemetryEnabledAtom,
 } from "@/state/atoms";
-import posthog from "posthog-js";
 import { keyMapAtom } from "@/state/keybinds";
 import {
   ActionIcon,
@@ -54,6 +53,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
+import posthog from "posthog-js";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import FileInput from "../common/FileInput";
@@ -500,7 +500,8 @@ export default function Page() {
         id: "telemetry",
         category: "privacy",
         title: "Anonymous Telemetry",
-        description: "Help improve En Croissant by sending anonymous usage data",
+        description:
+          "Help improve En Croissant by sending anonymous usage data",
         keywords: ["telemetry", "privacy", "analytics", "tracking"],
         render: () => <TelemetrySwitch />,
       },
@@ -705,10 +706,7 @@ export default function Page() {
             >
               {t("Settings.Directories")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="privacy"
-              leftSection={<IconShield size="1rem" />}
-            >
+            <Tabs.Tab value="privacy" leftSection={<IconShield size="1rem" />}>
               Privacy
             </Tabs.Tab>
           </Tabs.List>
