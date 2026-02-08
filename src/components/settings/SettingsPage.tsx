@@ -19,7 +19,9 @@ import {
   snapArrowsAtom,
   spellCheckAtom,
   storedDocumentDirAtom,
+  telemetryEnabledAtom,
 } from "@/state/atoms";
+import posthog from "posthog-js";
 import { keyMapAtom } from "@/state/keybinds";
 import {
   ActionIcon,
@@ -28,6 +30,7 @@ import {
   ScrollArea,
   Select,
   Stack,
+  Switch,
   Table,
   Tabs,
   Text,
@@ -44,6 +47,7 @@ import {
   IconMouse,
   IconReload,
   IconSearch,
+  IconShield,
   IconVolume,
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
@@ -73,7 +77,8 @@ type SettingCategory =
   | "appearance"
   | "sound"
   | "keybinds"
-  | "directories";
+  | "directories"
+  | "privacy";
 
 interface SettingItem {
   id: string;
@@ -115,6 +120,31 @@ function SettingRow({
       </div>
       {children}
     </Group>
+  );
+}
+
+function TelemetrySwitch() {
+  const { t } = useTranslation();
+  const [enabled, setEnabled] = useAtom(telemetryEnabledAtom);
+  return (
+    <Switch
+      onLabel={t("Common.On")}
+      offLabel={t("Common.Off")}
+      size="lg"
+      checked={enabled}
+      onChange={(event) => {
+        const newValue = event.currentTarget.checked;
+        setEnabled(newValue);
+        if (newValue) {
+          posthog.opt_in_capturing();
+        } else {
+          posthog.opt_out_capturing();
+        }
+      }}
+      styles={{
+        track: { cursor: "pointer" },
+      }}
+    />
   );
 }
 
@@ -465,6 +495,15 @@ export default function Page() {
           />
         ),
       },
+      // Privacy settings
+      {
+        id: "telemetry",
+        category: "privacy",
+        title: "Anonymous Telemetry",
+        description: "Help improve En Croissant by sending anonymous usage data",
+        keywords: ["telemetry", "privacy", "analytics", "tracking"],
+        render: () => <TelemetrySwitch />,
+      },
     ],
     [
       t,
@@ -536,6 +575,11 @@ export default function Page() {
       title: t("Settings.Directories"),
       description: t("Settings.Directories.Desc"),
       icon: <IconFolder size="1rem" />,
+    },
+    privacy: {
+      title: "Privacy",
+      description: "Privacy and data collection settings",
+      icon: <IconShield size="1rem" />,
     },
   };
 
@@ -661,6 +705,12 @@ export default function Page() {
             >
               {t("Settings.Directories")}
             </Tabs.Tab>
+            <Tabs.Tab
+              value="privacy"
+              leftSection={<IconShield size="1rem" />}
+            >
+              Privacy
+            </Tabs.Tab>
           </Tabs.List>
           <Stack flex={1} px="md">
             <ScrollArea>
@@ -769,6 +819,16 @@ export default function Page() {
                     {t("Settings.Directories.Desc")}
                   </Text>
                   {renderCategorySettings("directories")}
+                </Tabs.Panel>
+
+                <Tabs.Panel value="privacy">
+                  <Text size="lg" fw={500} className={classes.title}>
+                    Privacy
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={3} mb="lg">
+                    Privacy and data collection settings
+                  </Text>
+                  {renderCategorySettings("privacy")}
                 </Tabs.Panel>
               </Card>
             </ScrollArea>
