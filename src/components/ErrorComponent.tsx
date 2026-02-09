@@ -9,7 +9,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 export default function ErrorComponent({
   error,
@@ -55,17 +55,23 @@ export default function ErrorComponent({
       </Group>
 
       <Text>
-        {t("Error.ReportPrefix")}{" "}
-        <Anchor
-          href="https://github.com/franciscoBSalgueiro/en-croissant/issues/new?assignees=&labels=bug&projects=&template=bug.yml"
-          target="_blank"
-        >
-          {t("Error.Github")}
-        </Anchor>{" "}
-        {t("Error.Or")}{" "}
-        <Anchor href="https://discord.com/invite/tdYzfDbSSW" target="_blank">
-          {t("Error.Discord")}
-        </Anchor>
+        <Trans
+          i18nKey="Error.ReportIssue"
+          components={{
+            github: (
+              <Anchor
+                href="https://github.com/franciscoBSalgueiro/en-croissant/issues/new?assignees=&labels=bug&projects=&template=bug.yml"
+                target="_blank"
+              />
+            ),
+            discord: (
+              <Anchor
+                href="https://discord.com/invite/tdYzfDbSSW"
+                target="_blank"
+              />
+            ),
+          }}
+        />
       </Text>
     </Stack>
   );

@@ -217,9 +217,7 @@ export default function DatabasesPage() {
                       {` ${selectedDatabase.error}`}
                     </Text>
 
-                    <Text>
-                      {t("Databases.LoadError.Description")}
-                    </Text>
+                    <Text>{t("Databases.LoadError.Description")}</Text>
                   </>
                 ) : (
                   <>

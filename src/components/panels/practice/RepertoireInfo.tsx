@@ -78,9 +78,15 @@ function RepertoireInfo() {
   return (
     <Stack style={{ overflow: "hidden" }} h="100%">
       <Group>
-        <Text>{t("Board.Practice.Variations")}: {stats.leafs}</Text>
-        <Text>{t("Board.Practice.MaxDepth")}: {stats.depth}</Text>
-        <Text>{t("Board.Practice.TotalMoves")}: {stats.total}</Text>
+        <Text>
+          {t("Board.Practice.Variations")}: {stats.leafs}
+        </Text>
+        <Text>
+          {t("Board.Practice.MaxDepth")}: {stats.depth}
+        </Text>
+        <Text>
+          {t("Board.Practice.TotalMoves")}: {stats.total}
+        </Text>
       </Group>
 
       <Group>
@@ -95,6 +101,8 @@ function RepertoireInfo() {
         (headers.start.length === 0 && (
           <Alert icon={<IconInfoCircle />}>
             {t("Board.Practice.MarkStart")}
+            <br />
+            {t("Board.Practice.MarkStartHint")}
           </Alert>
         ))}
 
@@ -167,7 +175,9 @@ function MissingMoves({
   return (
     <DataTable
       withTableBorder
-      emptyState={<Text py={200}>{t("Board.Practice.NoMissingMovesFound")}</Text>}
+      emptyState={
+        <Text py={200}>{t("Board.Practice.NoMissingMovesFound")}</Text>
+      }
       highlightOnHover
       records={sortedMissingMoves}
       onRowClick={({ record }) => goToMove(record.position)}

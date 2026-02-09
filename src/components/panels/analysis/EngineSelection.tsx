@@ -14,7 +14,7 @@ import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans } from "react-i18next";
 
 function EngineBox({
   engine,
@@ -57,7 +57,6 @@ function EngineBox({
 }
 
 function EngineSelection() {
-  const { t } = useTranslation();
   const [engines, setEngines] = useAtom(enginesAtom);
 
   return (
@@ -65,9 +64,12 @@ function EngineSelection() {
       {engines.length === 0 && (
         <Center>
           <Text>
-            {t("Engines.Selection.NonePrefix")}{" "}
-            <Link to="/engines">{t("Engines.Selection.AddEngine")}</Link>{" "}
-            {t("Engines.Selection.NoneSuffix")}
+            <Trans
+              i18nKey="Engines.Selection.None"
+              components={{
+                addEngineLink: <Link to="/engines" />,
+              }}
+            />
           </Text>
         </Center>
       )}

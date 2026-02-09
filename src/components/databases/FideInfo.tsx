@@ -15,8 +15,8 @@ import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
 
 import { getFidePlayer } from "@/utils/lichess/api";
-import useSWR from "swr/immutable";
 import { useTranslation } from "react-i18next";
+import useSWR from "swr/immutable";
 
 import COUNTRIES from "./countries.json";
 
@@ -113,15 +113,21 @@ function FideInfo({
           <Group grow>
             <Card p="sm">
               <Text fw="bold">{t("Databases.FIDE.Standard")}</Text>
-              <Text fz="sm">{player.standard || t("Databases.FIDE.NotRated")}</Text>
+              <Text fz="sm">
+                {player.standard || t("Databases.FIDE.NotRated")}
+              </Text>
             </Card>
             <Card p="sm">
               <Text fw="bold">{t("Databases.FIDE.Rapid")}</Text>
-              <Text fz="sm">{player.rapid || t("Databases.FIDE.NotRated")}</Text>
+              <Text fz="sm">
+                {player.rapid || t("Databases.FIDE.NotRated")}
+              </Text>
             </Card>
             <Card p="sm">
               <Text fw="bold">{t("Databases.FIDE.Blitz")}</Text>
-              <Text fz="sm">{player.blitz || t("Databases.FIDE.NotRated")}</Text>
+              <Text fz="sm">
+                {player.blitz || t("Databases.FIDE.NotRated")}
+              </Text>
             </Card>
           </Group>
           <div />

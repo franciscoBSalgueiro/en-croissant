@@ -26,7 +26,7 @@ export default function NewTabHome({ id }: { id: string }) {
         setTabs((prev: Tab[]) => {
           const tab = prev.find((t) => t.value === id);
           if (!tab) return prev;
-          tab.name = "New Game";
+          tab.name = t("Home.NewGame");
           tab.type = "play";
           return [...prev];
         });
@@ -65,7 +65,7 @@ export default function NewTabHome({ id }: { id: string }) {
         setTabs((prev) => {
           const tab = prev.find((t) => t.value === id);
           if (!tab) return prev;
-          tab.name = "Puzzle Training";
+          tab.name = t("Home.PuzzleTraining");
           tab.type = "puzzles";
           return [...prev];
         });

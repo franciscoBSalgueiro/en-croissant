@@ -28,6 +28,7 @@ import {
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import LichessLogo from "./LichessLogo";
 import * as classes from "./styles.css";
 
@@ -60,6 +61,7 @@ export function AccountCard({
   setDatabases,
   token,
 }: AccountCardProps) {
+  const { t } = useTranslation();
   const items = stats.map((stat) => {
     let color = "gray.5";
     let DiffIcon: React.FC<TablerIconsProps> = IconArrowRight;
@@ -192,12 +194,12 @@ export function AccountCard({
                 </Text>
               </Group>
               <ActionIcon.Group>
-                <Tooltip label="Update stats">
+                <Tooltip label={t("Home.Accounts.UpdateStats")}>
                   <ActionIcon onClick={() => reload()}>
                     <IconRefresh size="1rem" />
                   </ActionIcon>
                 </Tooltip>
-                <Tooltip label="Download games">
+                <Tooltip label={t("Home.Accounts.DownloadGames")}>
                   <ActionIcon
                     disabled={loading}
                     onClick={async () => {
@@ -238,7 +240,7 @@ export function AccountCard({
                     )}
                   </ActionIcon>
                 </Tooltip>
-                <Tooltip label="Remove account">
+                <Tooltip label={t("Home.Accounts.RemoveAccount")}>
                   <ActionIcon onClick={() => logout()}>
                     <IconX size="1rem" />
                   </ActionIcon>
@@ -253,16 +255,20 @@ export function AccountCard({
               <div>
                 <Text fw="bold">{total}</Text>
                 <Text size="xs" c="dimmed">
-                  Games
+                  {t("Common.Games")}
                 </Text>
               </div>
 
               <div>
-                <Tooltip label={`${downloadedGames} games`}>
+                <Tooltip
+                  label={t("Home.Accounts.DownloadedGamesCount", {
+                    count: downloadedGames,
+                  })}
+                >
                   <Text fw="bold">{percentage}%</Text>
                 </Tooltip>
                 <Text size="xs" c="dimmed">
-                  Downloaded
+                  {t("Home.Accounts.Downloaded")}
                 </Text>
               </div>
             </Group>
@@ -285,7 +291,12 @@ export function AccountCard({
       <Accordion.Panel p={0}>
         <Group grow>{items}</Group>
         <Text mt="xs" size="xs" c="dimmed" ta="right">
-          ({`last update: ${new Date(updatedAt).toLocaleDateString()}`})
+          (
+          {t("Home.Accounts.LastUpdate", {
+            date: new Date(updatedAt).toLocaleDateString(),
+            interpolation: { escapeValue: false },
+          })}
+          )
         </Text>
       </Accordion.Panel>
     </Accordion.Item>

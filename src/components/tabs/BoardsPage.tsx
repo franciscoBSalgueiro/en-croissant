@@ -41,7 +41,7 @@ export default function BoardsPage() {
         setActiveTab,
       });
     }
-  }, [tabs, setActiveTab, setTabs]);
+  }, [tabs, setActiveTab, setTabs, t]);
 
   const closeTab = useCallback(
     async (value: string | null, forced?: boolean) => {

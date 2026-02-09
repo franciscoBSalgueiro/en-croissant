@@ -195,14 +195,14 @@ export default function Page() {
       {
         id: "move-notation",
         category: "board",
-        title: "Move Notation",
-        description: "Choose how to display pieces in notation",
+        title: t("Settings.MoveNotation"),
+        description: t("Settings.MoveNotation.Desc"),
         keywords: ["notation", "letters", "symbols", "pieces"],
         render: () => (
           <Select
             data={[
-              { label: "Letters (K Q R B N)", value: "letters" },
-              { label: "Symbols (♔♕♖♗♘)", value: "symbols" },
+              { label: t("Settings.MoveNotation.Letters"), value: "letters" },
+              { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
             ]}
             allowDeselect={false}
             value={moveNotationType}
@@ -215,15 +215,15 @@ export default function Page() {
       {
         id: "move-method",
         category: "board",
-        title: "Ways to Move Pieces",
-        description: "Move pieces by dragging, clicking, or both",
+        title: t("Settings.MoveMethod"),
+        description: t("Settings.MoveMethod.Desc"),
         keywords: ["drag", "click", "move", "pieces"],
         render: () => (
           <Select
             data={[
-              { label: "Drag", value: "drag" },
-              { label: "Click", value: "select" },
-              { label: "Both", value: "both" },
+              { label: t("Settings.MoveMethod.Drag"), value: "drag" },
+              { label: t("Settings.MoveMethod.Click"), value: "select" },
+              { label: t("Settings.MoveMethod.Both"), value: "both" },
             ]}
             allowDeselect={false}
             value={moveMethod}
@@ -272,9 +272,9 @@ export default function Page() {
         render: () => (
           <Select
             data={[
-              { label: "No", value: "no" },
-              { label: "On the edge", value: "edge" },
-              { label: "On all squares", value: "all" },
+              { label: t("Settings.Coordinates.None"), value: "no" },
+              { label: t("Settings.Coordinates.Edge"), value: "edge" },
+              { label: t("Settings.Coordinates.All"), value: "all" },
             ]}
             allowDeselect={false}
             value={showCoordinates}
@@ -499,9 +499,8 @@ export default function Page() {
       {
         id: "telemetry",
         category: "privacy",
-        title: "Anonymous Telemetry",
-        description:
-          "Help improve En Croissant by sending anonymous usage data",
+        title: t("Settings.Privacy.Telemetry"),
+        description: t("Settings.Privacy.Telemetry.Desc"),
         keywords: ["telemetry", "privacy", "analytics", "tracking"],
         render: () => <TelemetrySwitch />,
       },
@@ -568,8 +567,8 @@ export default function Page() {
       icon: <IconVolume size="1rem" />,
     },
     keybinds: {
-      title: "Keybinds",
-      description: "Customize keyboard shortcuts",
+      title: t("Settings.Keybinds"),
+      description: t("Settings.Keybinds.Desc"),
       icon: <IconKeyboard size="1rem" />,
     },
     directories: {
@@ -578,8 +577,8 @@ export default function Page() {
       icon: <IconFolder size="1rem" />,
     },
     privacy: {
-      title: "Privacy",
-      description: "Privacy and data collection settings",
+      title: t("Settings.Privacy"),
+      description: t("Settings.Privacy.Desc"),
       icon: <IconShield size="1rem" />,
     },
   };
@@ -707,7 +706,7 @@ export default function Page() {
               {t("Settings.Directories")}
             </Tabs.Tab>
             <Tabs.Tab value="privacy" leftSection={<IconShield size="1rem" />}>
-              Privacy
+              {t("Settings.Privacy")}
             </Tabs.Tab>
           </Tabs.List>
           <Stack flex={1} px="md">
