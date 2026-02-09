@@ -7,6 +7,7 @@ import {
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
+import { apiHeaders } from "@/utils/http";
 import {
   type LichessGamesOptions,
   type MasterGamesOptions,
@@ -20,7 +21,6 @@ import { IconX } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { fetch } from "@tauri-apps/plugin-http";
 import { error } from "@tauri-apps/plugin-log";
-import { apiHeaders } from "@/utils/http";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";

@@ -1,4 +1,5 @@
 import { events } from "@/bindings";
+import { apiHeaders } from "@/utils/http";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
@@ -14,7 +15,6 @@ import {
 } from "chessops/pgn";
 import { makeSan } from "chessops/san";
 import { z } from "zod";
-import { apiHeaders } from "@/utils/http";
 import { decodeTCN } from "./tcn";
 
 const baseURL = "https://api.chess.com";

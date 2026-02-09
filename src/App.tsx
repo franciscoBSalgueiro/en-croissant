@@ -54,8 +54,8 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 import ErrorComponent from "@/components/ErrorComponent";
-import { getVersion } from "@tauri-apps/api/app";
 import { initUserAgent } from "@/utils/http";
+import { getVersion } from "@tauri-apps/api/app";
 import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
 import { routeTree } from "./routeTree.gen";
 
