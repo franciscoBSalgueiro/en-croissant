@@ -14,12 +14,10 @@ import {
 } from "chessops/pgn";
 import { makeSan } from "chessops/san";
 import { z } from "zod";
+import { apiHeaders } from "@/utils/http";
 import { decodeTCN } from "./tcn";
 
 const baseURL = "https://api.chess.com";
-const headers = {
-  "User-Agent": "EnCroissant",
-};
 
 const ChessComPerf = z.object({
   last: z.object({
@@ -73,7 +71,7 @@ export async function getChessComAccount(
   player: string,
 ): Promise<ChessComStats | null> {
   const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
-  const response = await fetch(url, { headers, method: "GET" });
+  const response = await fetch(url, { headers: apiHeaders(), method: "GET" });
   if (!response.ok) {
     error(
       `Failed to fetch Chess.com account: ${response.status} ${response.url}`,
@@ -105,7 +103,7 @@ export async function getChessComAccount(
 
 async function getGameArchives(player: string) {
   const url = `${baseURL}/pub/player/${player}/games/archives`;
-  const response = await fetch(url, { headers, method: "GET" });
+  const response = await fetch(url, { headers: apiHeaders(), method: "GET" });
   return (await response.json()) as Archive;
 }
 
@@ -141,7 +139,7 @@ export async function downloadChessCom(
   for (const archive of filteredArchives) {
     info(`Fetching games for ${player} from ${archive}`);
     const response = await fetch(archive, {
-      headers,
+      headers: apiHeaders(),
       method: "GET",
     });
     const games = ChessComGames.safeParse(await response.json());
@@ -195,7 +193,7 @@ export async function getChesscomGame(gameURL: string) {
   const response = await fetch(
     `https://www.chess.com/callback/${gameType}/game/${gameId}`,
     {
-      headers,
+      headers: apiHeaders(),
       method: "GET",
     },
   );

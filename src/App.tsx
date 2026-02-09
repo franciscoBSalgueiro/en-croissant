@@ -55,6 +55,7 @@ const colorSchemeManager = localStorageColorSchemeManager({
 
 import ErrorComponent from "@/components/ErrorComponent";
 import { getVersion } from "@tauri-apps/api/app";
+import { initUserAgent } from "@/utils/http";
 import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
 import { routeTree } from "./routeTree.gen";
 
@@ -97,6 +98,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       await commands.closeSplashscreen();
+      await initUserAgent();
       const detach = await attachConsole();
       info("React app started successfully");
 
