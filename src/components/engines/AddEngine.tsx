@@ -54,6 +54,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      id: crypto.randomUUID(),
       version: "",
       name: "",
       path: "",
@@ -117,6 +118,7 @@ function AddEngine({
           <Stack>
             <CloudCard
               engine={{
+                id: crypto.randomUUID(),
                 name: "ChessDB",
                 type: "chessdb",
                 url: "https://chessdb.cn",
@@ -124,6 +126,7 @@ function AddEngine({
             />
             <CloudCard
               engine={{
+                id: crypto.randomUUID(),
                 name: "Lichess Cloud",
                 type: "lichess",
                 url: "https://lichess.org",
@@ -169,6 +172,7 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
                 ...(await prev),
                 {
                   ...engine,
+                  id: crypto.randomUUID(),
                   type: engine.type,
                   loaded: true,
                   settings: [
@@ -229,6 +233,7 @@ function EngineCard({
         ...(await prev),
         {
           ...engine,
+          id: crypto.randomUUID(),
           type: "local",
           path: enginePath,
           loaded: true,

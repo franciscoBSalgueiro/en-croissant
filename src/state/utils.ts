@@ -58,10 +58,10 @@ export function createZodStorage<Value>(
   };
 }
 
-export function createAsyncZodStorage<Value>(
-  schema: z.ZodType<Value>,
+export function createAsyncZodStorage<Input, Output>(
+  schema: z.ZodType<Output, z.ZodTypeDef, Input>,
   storage: AsyncStringStorage,
-): AsyncStorage<Value> {
+): AsyncStorage<Output> {
   return {
     async getItem(key, initialValue) {
       try {

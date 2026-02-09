@@ -298,7 +298,7 @@ function EngineSummary({
 }) {
   const activeTab = useAtomValue(activeTabAtom);
   const [ev] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
 
   const curEval = useDeferredValue(

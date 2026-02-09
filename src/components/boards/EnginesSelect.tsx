@@ -27,11 +27,11 @@ export function EnginesSelect({
         allowDeselect={false}
         data={engines?.map((engine) => ({
           label: engine.name,
-          value: engine.path,
+          value: engine.id,
         }))}
-        value={engine?.path ?? ""}
+        value={engine?.id ?? ""}
         onChange={(e) => {
-          setEngine(engines.find((engine) => engine.path === e) ?? null);
+          setEngine(engines.find((engine) => engine.id === e) ?? null);
         }}
       />
     </Suspense>

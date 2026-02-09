@@ -304,7 +304,7 @@ pub async fn get_best_moves(
 ) -> Result<Option<(f32, Vec<BestMoves>)>, Error> {
     let path = PathBuf::from(&engine);
 
-    let key = (tab.clone(), engine.clone());
+    let key = (tab.clone(), id.clone());
 
     if state.engine_processes.contains_key(&key) {
         {

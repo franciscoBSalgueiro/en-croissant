@@ -7,6 +7,7 @@ export const en_US = {
     "Common.Version": "Version",
     "Common.Enabled": "Enabled",
     "Common.Remove": "Remove",
+    "Common.Duplicate": "Duplicate",
     "Common.Delete": "Delete",
     "Common.Add": "Add",
     "Common.Open": "Open",

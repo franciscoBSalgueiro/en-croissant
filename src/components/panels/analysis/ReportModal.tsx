@@ -72,8 +72,8 @@ function ReportModal({
       localEngines.length === 0
         ? ""
         : !reportSettings.engine ||
-            !localEngines.some((l) => l.path === reportSettings.engine)
-          ? localEngines[0].path
+            !localEngines.some((l) => l.id === reportSettings.engine)
+          ? localEngines[0].id
           : reportSettings.engine;
 
     form.setValues({ ...reportSettings, engine });
@@ -83,7 +83,7 @@ function ReportModal({
     setReportSettings(form.values);
     setInProgress(true);
     toggleReportingMode();
-    const engine = localEngines.find((e) => e.path === form.values.engine);
+    const engine = localEngines.find((e) => e.id === form.values.engine);
     const engineSettings = (engine?.settings ?? []).map((s) => ({
       ...s,
       value: s.value?.toString() ?? "",
@@ -96,7 +96,7 @@ function ReportModal({
     commands
       .analyzeGame(
         `report_${tab}`,
-        form.values.engine,
+        engine?.path ?? "",
         form.values.goMode,
         {
           annotateNovelties: form.values.novelty,
@@ -130,7 +130,7 @@ function ReportModal({
             data={
               localEngines.map((engine) => {
                 return {
-                  value: engine.path,
+                  value: engine.id,
                   label: engine.name,
                 };
               }) ?? []

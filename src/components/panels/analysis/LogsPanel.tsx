@@ -18,14 +18,11 @@ export default function LogsPanel() {
   );
 
   const activeTab = useAtomValue(activeTabAtom);
-  const { data, mutate } = useSWR(
-    ["logs", engine?.path, activeTab],
-    async () => {
-      return engine
-        ? unwrap(await commands.getEngineLogs(engine.path, activeTab!))
-        : undefined;
-    },
-  );
+  const { data, mutate } = useSWR(["logs", engine?.id, activeTab], async () => {
+    return engine
+      ? unwrap(await commands.getEngineLogs(engine.id, activeTab!))
+      : undefined;
+  });
 
   return (
     <Stack flex={1} h="100%">
@@ -35,11 +32,9 @@ export default function LogsPanel() {
         additionalControls={
           <Select
             allowDeselect={false}
-            value={engine?.name ?? "No engines loaded"}
-            onChange={(name) =>
-              setEngine(localEngines.find((e) => e.name === name))
-            }
-            data={localEngines.map((e) => ({ value: e.name, label: e.name }))}
+            value={engine?.id ?? ""}
+            onChange={(id) => setEngine(localEngines.find((e) => e.id === id))}
+            data={localEngines.map((e) => ({ value: e.id, label: e.name }))}
           />
         }
       />

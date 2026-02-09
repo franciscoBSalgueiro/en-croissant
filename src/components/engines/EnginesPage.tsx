@@ -29,6 +29,7 @@ import {
 } from "@mantine/core";
 import {
   IconCloud,
+  IconCopy,
   IconCpu,
   IconPhotoPlus,
   IconPlus,
@@ -99,7 +100,7 @@ export default function EnginesPage() {
               return (
                 <GenericCard
                   id={i}
-                  key={item.name}
+                  key={item.id}
                   isSelected={selected === i}
                   setSelected={setSelected}
                   error={undefined}
@@ -143,19 +144,6 @@ export default function EnginesPage() {
                     setEngines(async (prev) => {
                       const copy = [...(await prev)];
                       copy[selected].name = e.currentTarget.value;
-                      return copy;
-                    });
-                  }}
-                />
-
-                <Checkbox
-                  label={t("Common.Enabled")}
-                  checked={!!selectedEngine.loaded}
-                  onChange={(e) => {
-                    const checked = e.currentTarget.checked;
-                    setEngines(async (prev) => {
-                      const copy = [...(await prev)];
-                      copy[selected].loaded = checked;
                       return copy;
                     });
                   }}
@@ -362,13 +350,6 @@ function EngineSettings({
                 }
               />
             </Group>
-            <Checkbox
-              label={t("Common.Enabled")}
-              checked={!!engine.loaded}
-              onChange={(e) =>
-                setEngine({ ...engine, loaded: e.currentTarget.checked })
-              }
-            />
           </Stack>
           <Center>
             {engine.image ? (
@@ -524,6 +505,25 @@ function EngineSettings({
             }
           >
             {t("Engines.Settings.Reset")}
+          </Button>
+          <Button
+            leftSection={<IconCopy size="1rem" />}
+            variant="default"
+            onClick={() => {
+              const duplicatedEngine: LocalEngine = {
+                ...engine,
+                id: crypto.randomUUID(),
+                name: `${engine.name} (Copy)`,
+              };
+              setEngines(async (prev) => {
+                const copy = [...(await prev)];
+                copy.splice(selected + 1, 0, duplicatedEngine);
+                return copy;
+              });
+              setSelected(selected + 1);
+            }}
+          >
+            {t("Common.Duplicate")}
           </Button>
           <Button color="red" onClick={() => toggleDeleteModal()}>
             {t("Common.Remove")}

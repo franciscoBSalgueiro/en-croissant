@@ -34,27 +34,34 @@ import {
   loadable,
 } from "jotai/utils";
 import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
-import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
+import type {
+  AsyncStorage,
+  SyncStorage,
+} from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 
-const zodArray = <S>(itemSchema: z.ZodType<S>) => {
+const zodArray = <Input, Output>(
+  itemSchema: z.ZodType<Output, z.ZodTypeDef, Input>,
+) => {
   const catchValue = {} as never;
 
   const res = z
     .array(itemSchema.catch(catchValue))
-    .transform((a) => a.filter((o) => o !== catchValue))
+    .transform((a) => a.filter((o): o is Output => o !== catchValue))
     .catch([]);
 
-  return res as z.ZodType<S[]>;
+  return res as z.ZodType<Output[], z.ZodTypeDef, Input[]>;
 };
 
 export const enginesAtom = atomWithStorage<Engine[]>(
   "engines/engines.json",
   [],
-  createAsyncZodStorage(zodArray(engineSchema), fileStorage),
+  createAsyncZodStorage(zodArray(engineSchema), fileStorage) as AsyncStorage<
+    Engine[]
+  >,
 );
 
 const loadableEnginesAtom = loadable(enginesAtom);
@@ -485,9 +492,7 @@ export const bestMovesFamily = atomFamily(
       >();
       let n = 0;
       for (const engine of engines.data.filter((e) => e.loaded)) {
-        const engineMoves = get(
-          engineMovesFamily({ tab, engine: engine.name }),
-        );
+        const engineMoves = get(engineMovesFamily({ tab, engine: engine.id }));
         const [pos] = positionFromFen(fen);
         let finalFen = INITIAL_FEN;
         if (pos) {
@@ -543,15 +548,13 @@ export const firstEngineWithLinesFamily = atomFamily(
       }
 
       for (const engine of engines.data.filter((e) => e.loaded)) {
-        const engineMoves = get(
-          engineMovesFamily({ tab, engine: engine.name }),
-        );
+        const engineMoves = get(engineMovesFamily({ tab, engine: engine.id }));
         const moves =
           engineMoves.get(`${swapMove(finalFen)}:`) ||
           engineMoves.get(`${fen}:${gameMoves.join(",")}`);
 
         if (moves && moves.length > 0) {
-          return engine.name;
+          return engine.id;
         }
       }
       return null;
@@ -562,12 +565,12 @@ export const firstEngineWithLinesFamily = atomFamily(
 export const tabEngineSettingsFamily = atomFamily(
   ({
     tab,
-    engineName,
+    engineId,
     defaultSettings,
     defaultGo,
   }: {
     tab: string;
-    engineName: string;
+    engineId: string;
     defaultSettings?: EngineSettings;
     defaultGo?: GoMode;
   }) => {
@@ -583,7 +586,7 @@ export const tabEngineSettingsFamily = atomFamily(
       synced: true,
     });
   },
-  (a, b) => a.tab === b.tab && a.engineName === b.engineName,
+  (a, b) => a.tab === b.tab && a.engineId === b.engineId,
 );
 
 export const allEnabledAtom = loadable(
@@ -595,7 +598,7 @@ export const allEnabledAtom = loadable(
       .every((engine) => {
         const atom = tabEngineSettingsFamily({
           tab: get(activeTabAtom)!,
-          engineName: engine.name,
+          engineId: engine.id,
           defaultSettings:
             engine.type === "local" ? engine.settings || [] : undefined,
           defaultGo: engine.go ?? undefined,
@@ -614,7 +617,7 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
   for (const engine of engines.data.filter((e) => e.loaded)) {
     const atom = tabEngineSettingsFamily({
       tab: get(activeTabAtom)!,
-      engineName: engine.name,
+      engineId: engine.id,
       defaultSettings:
         engine.type === "local" ? engine.settings || [] : undefined,
       defaultGo: engine.go ?? undefined,

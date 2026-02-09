@@ -75,15 +75,15 @@ function BestMovesComponent({
 
   const activeTab = useAtomValue(activeTabAtom);
   const ev = useAtomValue(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
   const progress = useAtomValue(
-    engineProgressFamily({ engine: engine.name, tab: activeTab! }),
+    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
   );
   const [, setEngines] = useAtom(enginesAtom);
   const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
-      engineName: engine.name,
+      engineId: engine.id,
       defaultSettings: engine.settings ?? undefined,
       defaultGo: engine.go ?? undefined,
       tab: activeTab!,
@@ -107,7 +107,7 @@ function BestMovesComponent({
       if (newSettings.synced) {
         setEngines(async (prev) =>
           (await prev).map((o) =>
-            o.name === engine.name
+            o.id === engine.id
               ? { ...o, settings: newSettings.settings, go: newSettings.go }
               : o,
           ),
