@@ -1,5 +1,5 @@
-import { soundCollectionAtom, soundVolumeAtom } from "@/state/atoms";
 import { commands } from "@/bindings/generated";
+import { soundCollectionAtom, soundVolumeAtom } from "@/state/atoms";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
 import { platform } from "@tauri-apps/plugin-os";
