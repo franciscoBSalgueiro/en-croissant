@@ -130,6 +130,26 @@ export function hasCaptures(pos: Chess) {
   return false;
 }
 
+export function isOp1(pos: Chess) {
+  const whitePawns = pos.board.pawn.intersect(pos.board.white);
+  const blackPawns = pos.board.pawn.intersect(pos.board.black);
+
+  // Exclude positions where one side has only a king and at most one pawn
+  const whiteSize = pos.board.white.size();
+  const blackSize = pos.board.black.size();
+  if (whiteSize <= 2 && whitePawns.size() === whiteSize - 1) return false;
+  if (blackSize <= 2 && blackPawns.size() === blackSize - 1) return false;
+
+  // Check for at least one opposing pair of pawns
+  let shifted = whitePawns.shl64(8);
+  let squaresInFront = shifted;
+  for (let i = 0; i < 4 && shifted.nonEmpty(); i++) {
+    shifted = shifted.shl64(8);
+    squaresInFront = squaresInFront.union(shifted);
+  }
+  return squaresInFront.intersects(blackPawns);
+}
+
 export function parseSanOrUci(pos: Chess, sanOrUci: string): Move | null {
   const sanParsed = parseSan(pos, sanOrUci);
   if (sanParsed) {
