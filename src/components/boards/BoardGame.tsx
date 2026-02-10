@@ -57,6 +57,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import EngineLogsView from "../common/EngineLogsView";
@@ -87,6 +88,7 @@ function mapBackendMoves(
 }
 
 function BoardGame() {
+  const { t } = useTranslation();
   const activeTab = useAtomValue(activeTabAtom);
 
   const [editingMode, toggleEditingMode] = useToggle();
@@ -660,7 +662,7 @@ function BoardGame() {
                     </Box>
 
                     <Checkbox
-                      label="Same time control"
+                      label={t("Board.Opponent.SameTimeControl")}
                       checked={sameTimeControl}
                       onChange={(e) => {
                         const checked = e.target.checked;
@@ -678,7 +680,7 @@ function BoardGame() {
 
                     <Group>
                       <Button onClick={startGame} disabled={error !== null}>
-                        Start game
+                        {t("Board.Opponent.StartGame")}
                       </Button>
                     </Group>
                   </Stack>

@@ -13,6 +13,7 @@ import {
 import { IconTrash, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
+import { useTranslation } from "react-i18next";
 import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
 
@@ -21,6 +22,7 @@ function GameCard({
   file,
   mutate,
 }: { game: NormalizedGame; file: string; mutate: () => void }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [, setTabs] = useAtom(tabsAtom);
@@ -33,7 +35,7 @@ function GameCard({
           <GameInfo headers={game} />
           <Divider />
           <Group justify="left">
-            <Tooltip label="Analyze game">
+            <Tooltip label={t("Board.Action.AnalyzeGame")}>
               <ActionIcon
                 variant="subtle"
                 onClick={() => {
@@ -54,7 +56,7 @@ function GameCard({
               </ActionIcon>
             </Tooltip>
 
-            <Tooltip label="Delete game">
+            <Tooltip label={t("Databases.Game.Delete")}>
               <ActionIcon
                 variant="subtle"
                 color="red"

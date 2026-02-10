@@ -54,7 +54,9 @@ pub use self::search_index::{get_index_path, MmapSearchIndex, SearchGameEntry, S
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
+pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
+pub use self::schema::themes;
 pub use self::search::{
     is_position_in_db, search_position, PositionQuery, PositionQueryJs, PositionStats,
 };

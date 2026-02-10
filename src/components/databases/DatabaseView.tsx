@@ -13,10 +13,12 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import TournamentTable from "./TournamentTable";
 
 function DatabaseView() {
+  const { t } = useTranslation();
   const database = useActiveDatabaseViewStore((s) => s.database);
   const databaseTitle = useActiveDatabaseViewStore((s) => s.database?.title)!;
   const mode = useActiveDatabaseViewStore((s) => s.activeTab);
@@ -52,19 +54,19 @@ function DatabaseView() {
             >
               <Tabs.List>
                 <Tabs.Tab leftSection={<IconChess size="1rem" />} value="games">
-                  Games
+                  {t("Common.Games")}
                 </Tabs.Tab>
                 <Tabs.Tab
                   leftSection={<IconUser size="1rem" />}
                   value="players"
                 >
-                  Players
+                  {t("Databases.Card.Players")}
                 </Tabs.Tab>
                 <Tabs.Tab
                   leftSection={<IconTrophy size="1rem" />}
                   value="tournaments"
                 >
-                  Tournaments
+                  {t("Databases.Settings.Events")}
                 </Tabs.Tab>
               </Tabs.List>
               <Tabs.Panel

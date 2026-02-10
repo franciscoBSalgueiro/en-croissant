@@ -36,6 +36,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef, useState } from "react";
 import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import CompleteMoveCell from "./CompleteMoveCell";
 import * as styles from "./GameNotation.css";
@@ -180,6 +181,7 @@ const NotationHeader = memo(function NotationHeader({
   showVariations: boolean;
   toggleVariations: () => void;
 }) {
+  const { t } = useTranslation();
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
@@ -187,12 +189,20 @@ const NotationHeader = memo(function NotationHeader({
       <Group justify="space-between">
         <OpeningName />
         <Group gap="sm">
-          <Tooltip label={invisible ? "Show moves" : "Hide moves"}>
+          <Tooltip
+            label={
+              invisible ? t("Notation.ShowMoves") : t("Notation.HideMoves")
+            }
+          >
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
               {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={tableView ? "Normal view" : "Table view"}>
+          <Tooltip
+            label={
+              tableView ? t("Notation.NormalView") : t("Notation.TableView")
+            }
+          >
             <ActionIcon onClick={() => setTableView((v) => !v)}>
               {tableView ? (
                 <IconList size="1rem" />
@@ -201,7 +211,13 @@ const NotationHeader = memo(function NotationHeader({
               )}
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={showComments ? "Hide comments" : "Show comments"}>
+          <Tooltip
+            label={
+              showComments
+                ? t("Notation.HideComments")
+                : t("Notation.ShowComments")
+            }
+          >
             <ActionIcon onClick={() => toggleComments()}>
               {showComments ? (
                 <IconArticle size="1rem" />
@@ -210,7 +226,13 @@ const NotationHeader = memo(function NotationHeader({
               )}
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={showVariations ? "Show Variations" : "Main line"}>
+          <Tooltip
+            label={
+              showVariations
+                ? t("Notation.HideVariations")
+                : t("Notation.ShowVariations")
+            }
+          >
             <ActionIcon onClick={() => toggleVariations()}>
               {showVariations ? (
                 <IconArrowsSplit size="1rem" />

@@ -13,6 +13,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { IconCpu, IconUser } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 import { EnginesSelect } from "./EnginesSelect";
 
 export type OpponentSettings =
@@ -48,6 +49,8 @@ export function OpponentForm({
   setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
   setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
 }) {
+  const { t } = useTranslation();
+
   function updateType(type: "engine" | "human") {
     if (type === "human") {
       setOpponent((prev) => ({
@@ -77,7 +80,7 @@ export function OpponentForm({
             label: (
               <Center style={{ gap: 10 }}>
                 <IconUser size={16} />
-                <span>Human</span>
+                <span>{t("Board.Opponent.Human")}</span>
               </Center>
             ),
           },
@@ -86,7 +89,7 @@ export function OpponentForm({
             label: (
               <Center style={{ gap: 10 }}>
                 <IconCpu size={16} />
-                <span>Engine</span>
+                <span>{t("Common.Engine")}</span>
               </Center>
             ),
           },
@@ -111,19 +114,22 @@ export function OpponentForm({
         />
       )}
 
-      <Divider variant="dashed" label="Time Settings" />
+      <Divider variant="dashed" label={t("Board.Opponent.TimeSettings")} />
       <SegmentedControl
-        data={["Time", "Unlimited"]}
-        value={opponent.timeControl ? "Time" : "Unlimited"}
+        data={[
+          { value: "time", label: t("GoMode.Time") },
+          { value: "unlimited", label: t("Board.Opponent.Unlimited") },
+        ]}
+        value={opponent.timeControl ? "time" : "unlimited"}
         onChange={(v) => {
           setOpponent((prev) => ({
             ...prev,
-            timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
+            timeControl: v === "time" ? DEFAULT_TIME_CONTROL : undefined,
           }));
           if (sameTimeControl) {
             setOtherOpponent((prev) => ({
               ...prev,
-              timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
+              timeControl: v === "time" ? DEFAULT_TIME_CONTROL : undefined,
             }));
           }
         }}
@@ -131,7 +137,7 @@ export function OpponentForm({
       <Group grow wrap="nowrap">
         {opponent.timeControl && (
           <>
-            <InputWrapper label="Time">
+            <InputWrapper label={t("GoMode.Time")}>
               <TimeInput
                 defaultType="m"
                 type={opponent.timeUnit}
@@ -162,7 +168,7 @@ export function OpponentForm({
                 }}
               />
             </InputWrapper>
-            <InputWrapper label="Increment">
+            <InputWrapper label={t("Board.Opponent.Increment")}>
               <TimeInput
                 defaultType="s"
                 type={opponent.incrementUnit}

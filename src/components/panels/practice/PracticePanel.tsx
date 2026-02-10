@@ -199,7 +199,7 @@ function PracticePanel() {
                 onClick={() => newPractice()}
                 disabled={stats.due === 0 && stats.unseen === 0}
               >
-                <u>N</u>ext
+                {t("Common.Next")}
               </Button>
               <Button
                 variant="default"
@@ -242,8 +242,10 @@ function PracticePanel() {
       </Tabs>
 
       <ConfirmModal
-        title={"Reset opening data"}
-        description={`Are you sure you want to reset the opening data for "${currentTab?.file?.name}"? All the learning progress will be lost.`}
+        title={t("Board.Practice.Reset.Title")}
+        description={t("Board.Practice.Reset.Description", {
+          name: currentTab?.file?.name,
+        })}
         opened={resetModal}
         onClose={toggleResetModal}
         onConfirm={() => {
@@ -255,7 +257,7 @@ function PracticePanel() {
           setDeck({ positions: cards, logs: [] });
           toggleResetModal();
         }}
-        confirmLabel="Reset"
+        confirmLabel={t("Common.Reset")}
       />
       <PositionsModal
         open={positionsOpen}
@@ -286,10 +288,10 @@ function PositionsModal({
       opened={open}
       onClose={() => setOpen(false)}
       size="xl"
-      title={<b>Practice Positions</b>}
+      title={<b>{t("Board.Practice.Positions")}</b>}
     >
       {deck.positions.length === 0 && (
-        <Text>You haven't added any positions to practice yet.</Text>
+        <Text>{t("Board.Practice.NoPositionsYet")}</Text>
       )}
       <SimpleGrid cols={2}>
         {deck.positions.map((c) => {
@@ -306,7 +308,7 @@ function PositionsModal({
               <Group justify="space-between">
                 <Stack>
                   <Text tt="uppercase" fw="bold" fz="sm">
-                    Status
+                    {t("Board.Practice.Status")}
                   </Text>
                   <Badge
                     color={
@@ -326,7 +328,7 @@ function PositionsModal({
                 </Stack>
                 <Stack>
                   <Text tt="uppercase" fw="bold" fz="sm">
-                    Due
+                    {t("Board.Practice.Due")}
                   </Text>
                   <Text>{formatDate(c.card.due)}</Text>
                 </Stack>
@@ -357,6 +359,7 @@ function LogsModal({
   setOpen: (open: boolean) => void;
   logs: PracticeData["logs"];
 }) {
+  const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const goToMove = useStore(store, (s) => s.goToMove);
@@ -365,10 +368,10 @@ function LogsModal({
       opened={open}
       onClose={() => setOpen(false)}
       size="xl"
-      title={<b>Practice Logs</b>}
+      title={<b>{t("Board.Practice.Logs")}</b>}
     >
       <SimpleGrid cols={2}>
-        {logs.length === 0 && <Text>No logs yet</Text>}
+        {logs.length === 0 && <Text>{t("Board.Practice.NoLogsYet")}</Text>}
         {logs.map((log) => {
           const position = findFen(log.fen, root);
           const node = getNodeAtPath(root, position);
@@ -385,15 +388,17 @@ function LogsModal({
               <Group justify="space-between">
                 <Stack>
                   <Text tt="uppercase" fw="bold" fz="sm">
-                    Rating
+                    {t("Board.Practice.Rating")}
                   </Text>
                   <Badge color={log.rating === 4 ? "green" : "red"}>
-                    {log.rating === 4 ? "Success" : "Fail"}
+                    {log.rating === 4
+                      ? t("Board.Practice.Success")
+                      : t("Board.Practice.Fail")}
                   </Badge>
                 </Stack>
                 <Stack>
                   <Text tt="uppercase" fw="bold" fz="sm">
-                    Date
+                    {t("Common.Date")}
                   </Text>
                   <Text>{formatDate(log.due)}</Text>
                 </Stack>

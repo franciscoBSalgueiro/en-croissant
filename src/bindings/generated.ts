@@ -64,9 +64,9 @@ async getEngineLogs(engine: string, tab: string) : Promise<Result<EngineLog[], s
 async memorySize() : Promise<number> {
     return await TAURI_INVOKE("memory_size");
 },
-async getPuzzle(file: string, minRating: number, maxRating: number) : Promise<Result<Puzzle, string>> {
+async getPuzzle(file: string, minRating: number, maxRating: number, theme: string | null) : Promise<Result<Puzzle, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating, theme }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -329,6 +329,30 @@ async getPlayers(file: string, query: PlayerQuery) : Promise<Result<QueryRespons
 async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_puzzle_db_info", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getPuzzleThemes(file: string) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle_themes", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getThemesForPuzzle(file: string, puzzleId: number) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_themes_for_puzzle", { file, puzzleId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deletePuzzleDatabase(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_puzzle_database", { file }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

@@ -172,7 +172,7 @@ function AddDatabase({
             />
 
             <Button fullWidth mt="xl" type="submit">
-              Convert
+              {t("Databases.Add.Convert")}
             </Button>
           </form>
         </Tabs.Panel>

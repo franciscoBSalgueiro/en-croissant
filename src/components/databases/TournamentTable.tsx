@@ -5,6 +5,7 @@ import { IconSearch } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import { useContext } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
@@ -13,6 +14,7 @@ import TournamentCard from "./TournamentCard";
 import * as classes from "./styles.css";
 
 function TournamentTable() {
+  const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
 
   const file = useStore(store, (s) => s.database?.file)!;
@@ -53,7 +55,7 @@ function TournamentTable() {
         <Flex style={{ alignItems: "center", gap: 10 }}>
           <TextInput
             style={{ flexGrow: 1 }}
-            placeholder="Search tournament..."
+            placeholder={t("Databases.Tournament.Search")}
             leftSection={<IconSearch size="1rem" />}
             value={query.name ?? ""}
             onChange={(v) =>
@@ -76,7 +78,7 @@ function TournamentTable() {
             { accessor: "name", sortable: true },
           ]}
           rowClassName={(t) => (t.id === selected ? classes.selected : "")}
-          noRecordsText="No tournaments found"
+          noRecordsText={t("Databases.Tournament.NoneFound")}
           totalRecords={count!}
           recordsPerPage={query.options.pageSize ?? 25}
           page={query.options.page ?? 1}
@@ -124,7 +126,7 @@ function TournamentTable() {
           />
         ) : (
           <Center h="100%">
-            <Text>No tournament selected</Text>
+            <Text>{t("Databases.Tournament.NoSelection")}</Text>
           </Center>
         )
       }

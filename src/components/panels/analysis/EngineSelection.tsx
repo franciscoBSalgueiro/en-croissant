@@ -14,6 +14,7 @@ import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
+import { Trans } from "react-i18next";
 
 function EngineBox({
   engine,
@@ -63,8 +64,12 @@ function EngineSelection() {
       {engines.length === 0 && (
         <Center>
           <Text>
-            No engines installed. Please{" "}
-            <Link to="/engines">Add an engine</Link> first.
+            <Trans
+              i18nKey="Engines.Selection.None"
+              components={{
+                addEngineLink: <Link to="/engines" />,
+              }}
+            />
           </Text>
         </Center>
       )}

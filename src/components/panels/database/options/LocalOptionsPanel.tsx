@@ -17,8 +17,10 @@ import { EMPTY_BOARD_FEN, makeFen, parseFen } from "chessops/fen";
 import dayjs from "dayjs";
 import { useAtom } from "jotai";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
+  const { t } = useTranslation();
   const boardRef = useRef(null);
   const [options, setOptions] = useAtom(currentLocalOptionsAtom);
 
@@ -37,10 +39,10 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
     <Stack>
       <Group>
         <Group>
-          <Text fw="bold">Player:</Text>
+          <Text fw="bold">{t("Board.Database.Local.Player")}:</Text>
           {options.path && (
             <PlayerSearchInput
-              label={"Search"}
+              label={t("Common.Search")}
               value={options.player ?? undefined}
               file={options.path}
               setValue={(v) => setOptions((q) => ({ ...q, player: v || null }))}
@@ -48,11 +50,11 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           )}
         </Group>
         <Group>
-          <Text fw="bold">Color:</Text>
+          <Text fw="bold">{t("Board.Database.Local.Color")}:</Text>
           <SegmentedControl
             data={[
-              { value: "white", label: "White" },
-              { value: "black", label: "Black" },
+              { value: "white", label: t("Fen.White") },
+              { value: "black", label: t("Fen.Black") },
             ]}
             value={options.color}
             onChange={(v) =>
@@ -61,13 +63,19 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           />
         </Group>
         <Group>
-          <Text fw="bold">Result:</Text>
+          <Text fw="bold">{t("Board.Database.Local.Result")}:</Text>
           <Select
             data={[
-              { value: "any", label: "Any" },
-              { value: "whitewon", label: "White Won" },
-              { value: "draw", label: "Draw" },
-              { value: "blackwon", label: "Black Won" },
+              { value: "any", label: t("Board.Database.Local.Result.Any") },
+              {
+                value: "whitewon",
+                label: t("Board.Database.Local.Result.WhiteWon"),
+              },
+              { value: "draw", label: t("Board.Analysis.Tablebase.Draw") },
+              {
+                value: "blackwon",
+                label: t("Board.Database.Local.Result.BlackWon"),
+              },
             ]}
             value={options.result}
             onChange={(v) =>
@@ -80,8 +88,8 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
         </Group>
         <Group>
           <DateInput
-            label="From"
-            placeholder="Start date"
+            label={t("Common.From")}
+            placeholder={t("Common.StartDate")}
             valueFormat="YYYY-MM-DD"
             clearable
             value={
@@ -99,8 +107,8 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             }
           />
           <DateInput
-            label="To"
-            placeholder="End date"
+            label={t("Common.To")}
+            placeholder={t("Common.EndDate")}
             valueFormat="YYYY-MM-DD"
             clearable
             value={
@@ -119,11 +127,11 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
       </Group>
 
       <Group>
-        <Text fw="bold">Position:</Text>
+        <Text fw="bold">{t("Board.Database.Local.Position")}:</Text>
         <SegmentedControl
           data={[
-            { value: "exact", label: "Exact" },
-            { value: "partial", label: "Partial" },
+            { value: "exact", label: t("Board.Database.Local.Exact") },
+            { value: "partial", label: t("Board.Database.Local.Partial") },
           ]}
           value={options.type}
           onChange={(v) =>
@@ -171,7 +179,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
                 setOptions((q) => ({ ...q, type: "exact", fen: boardFen }));
               }}
             >
-              Current Position
+              {t("Board.Database.Local.CurrentPosition")}
             </Button>
             <Button
               variant="default"
@@ -179,7 +187,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
                 setSimilarStructure(boardFen);
               }}
             >
-              Similar Structure
+              {t("Board.Database.Local.SimilarStructure")}
             </Button>
             <Button
               variant="default"
@@ -191,7 +199,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
                 }));
               }}
             >
-              Empty
+              {t("Fen.Empty")}
             </Button>
           </Group>
         </Stack>

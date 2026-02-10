@@ -198,7 +198,7 @@ export default function DatabasesPage() {
 
         {selectedDatabase === null ? (
           <Center h="100%">
-            <Text>No database selected</Text>
+            <Text>{t("Databases.NoSelection")}</Text>
           </Center>
         ) : (
           <Paper withBorder p="md" h="100%">
@@ -207,19 +207,17 @@ export default function DatabasesPage() {
                 {selectedDatabase.type === "error" ? (
                   <>
                     <Text fz="lg" fw="bold">
-                      There was an error loading this database
+                      {t("Databases.LoadError.Title")}
                     </Text>
 
                     <Text>
                       <Text td="underline" span>
-                        Reason:
+                        {t("Common.Reason")}:
                       </Text>
                       {` ${selectedDatabase.error}`}
                     </Text>
 
-                    <Text>
-                      Check if the file exists and that it is not corrupted.
-                    </Text>
+                    <Text>{t("Databases.LoadError.Description")}</Text>
                   </>
                 ) : (
                   <>
@@ -450,7 +448,7 @@ function PlayerMerger({
       <Text fz="sm">{t("Databases.Settings.MergePlayers.Desc")}</Text>
       <Group grow>
         <PlayerSearchInput
-          label="Player 1"
+          label={t("Databases.Player.One")}
           file={selectedDatabase.file}
           setValue={setPlayer1}
         />
@@ -462,7 +460,7 @@ function PlayerMerger({
           {t("Databases.Settings.Merge")}
         </Button>
         <PlayerSearchInput
-          label="Player 2"
+          label={t("Databases.Player.Two")}
           file={selectedDatabase.file}
           setValue={setPlayer2}
         />

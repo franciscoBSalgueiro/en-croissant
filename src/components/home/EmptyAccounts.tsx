@@ -1,20 +1,22 @@
 import { Button, Center, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconPlus, IconUserPlus } from "@tabler/icons-react";
+import { useTranslation } from "react-i18next";
 
 export function EmptyAccounts({ onAddAccount }: { onAddAccount: () => void }) {
+  const { t } = useTranslation();
+
   return (
     <Center h="100%">
       <Stack align="center" gap="md">
         <ThemeIcon size={80} radius="100%" variant="light" color="blue">
           <IconUserPlus size={40} />
         </ThemeIcon>
-        <Title order={3}>No accounts connected</Title>
+        <Title order={3}>{t("Home.Accounts.Empty.Title")}</Title>
         <Text c="dimmed" ta="center" maw={400}>
-          Connect your Lichess or Chess.com account to analyze your games and
-          track your progress.
+          {t("Home.Accounts.Empty.Description")}
         </Text>
         <Button onClick={onAddAccount} size="md" mt="sm">
-          Add Account
+          {t("Home.Accounts.Add")}
         </Button>
       </Stack>
     </Center>

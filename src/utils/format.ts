@@ -49,6 +49,27 @@ export function capitalize(str: string) {
   return `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
 }
 
+export function formatThemeLabel(theme: string) {
+  const normalized = theme
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/([a-zA-Z])([0-9])/g, "$1 $2")
+    .replace(/([0-9])([a-zA-Z])/g, "$1 $2")
+    .trim();
+
+  if (!normalized) return theme;
+
+  return normalized
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => {
+      if (/^\d+$/.test(word)) return word;
+      return capitalize(word.toLowerCase());
+    })
+    .join(" ");
+}
+
 export function formatNodes(nodes: number) {
   if (nodes < 1000) return nodes.toFixed(0);
   return `${(nodes / 1000).toFixed(0)}k`;

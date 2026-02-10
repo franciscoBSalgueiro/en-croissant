@@ -23,6 +23,7 @@ import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
@@ -33,6 +34,7 @@ import { SideInput } from "./SideInput";
 import * as classes from "./styles.css";
 
 function GameTable() {
+  const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
 
   const file = useStore(store, (s) => s.database?.file)!;
@@ -329,7 +331,7 @@ function GameTable() {
             <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
           ) : (
             <Center h="100%">
-              <Text>No game selected</Text>
+              <Text>{t("Databases.Game.NoSelection")}</Text>
             </Center>
           )
         }
