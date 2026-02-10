@@ -403,6 +403,14 @@ async getProgress(id: string) : Promise<ProgressItem | null> {
 },
 async clearProgress(id: string) : Promise<void> {
     await TAURI_INVOKE("clear_progress", { id });
+},
+async getSoundServerPort() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_sound_server_port") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
