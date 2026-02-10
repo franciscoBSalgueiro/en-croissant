@@ -311,6 +311,11 @@ export const puzzleRatingRangeAtom = atomWithStorage<[number, number]>(
   [1000, 1500],
 );
 
+export const puzzleThemeAtom = atomWithStorage<string | null>(
+  "puzzle-theme",
+  null,
+);
+
 export const puzzleTimerFamily = atomFamily((tab: string) =>
   atom<number | null>(null),
 );

@@ -53,7 +53,10 @@ use crate::fs::set_file_as_executable;
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
-use crate::puzzle::{get_puzzle, get_puzzle_db_info};
+use crate::puzzle::{
+    delete_puzzle_database, get_puzzle, get_puzzle_db_info, get_puzzle_themes,
+    get_themes_for_puzzle,
+};
 use crate::{
     chess::get_best_moves,
     db::{
@@ -62,7 +65,7 @@ use crate::{
     fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
-use tokio::sync::{RwLock, Semaphore};
+use tokio::sync::Semaphore;
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -152,6 +155,9 @@ fn main() {
             search_position,
             get_players,
             get_puzzle_db_info,
+            get_puzzle_themes,
+            get_themes_for_puzzle,
+            delete_puzzle_database,
             start_game,
             get_game_state,
             make_game_move,

@@ -49,7 +49,9 @@ function AddPuzzle({
               databaseId={i}
               key={i}
               setPuzzleDbs={setPuzzleDbs}
-              initInstalled={puzzleDbs.some((e) => e.title === db.title)}
+              initInstalled={puzzleDbs.some(
+                (e) => e.title.replace(".db3", "") === db.title,
+              )}
             />
           ))}
           {error && (
