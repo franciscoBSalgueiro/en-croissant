@@ -16,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
@@ -40,6 +41,7 @@ function TournamentCard({
   tournament,
   file,
 }: { tournament: Event; file: string }) {
+  const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
   const tournamentsActiveTab = useStore(store, (s) => s.tournaments.activeTab);
   const setTournamentsActiveTab = useStore(
@@ -135,8 +137,10 @@ function TournamentCard({
           h="100%"
         >
           <Tabs.List>
-            <Tabs.Tab value="games">Games</Tabs.Tab>
-            <Tabs.Tab value="leaderboard">Leaderboard</Tabs.Tab>
+            <Tabs.Tab value="games">{t("Common.Games")}</Tabs.Tab>
+            <Tabs.Tab value="leaderboard">
+              {t("Databases.Tournament.Leaderboard")}
+            </Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="games" flex={1} style={{ overflow: "hidden" }}>
             <DataTable<NormalizedGame>

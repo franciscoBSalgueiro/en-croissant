@@ -14,6 +14,7 @@ import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import { useContext, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
@@ -22,6 +23,7 @@ import PlayerCard from "./PlayerCard";
 import * as classes from "./styles.css";
 
 function PlayerTable() {
+  const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
 
   const file = useStore(store, (s) => s.database?.file)!;
@@ -66,7 +68,7 @@ function PlayerTable() {
           <Flex style={{ alignItems: "center", gap: 10 }}>
             <TextInput
               style={{ flexGrow: 1 }}
-              placeholder="Search player..."
+              placeholder={t("Databases.Player.Search")}
               leftSection={<IconSearch size="1rem" />}
               value={query.name ?? undefined}
               onChange={(e) =>
@@ -91,7 +93,7 @@ function PlayerTable() {
           <Collapse in={open}>
             <Group mt="md">
               <NumberInput
-                label="Min ELO"
+                label={t("Databases.Player.MinELO")}
                 value={query.range?.[0]}
                 onChange={(v) =>
                   setQuery({
@@ -104,7 +106,7 @@ function PlayerTable() {
                 step={100}
               />
               <NumberInput
-                label="Max ELO"
+                label={t("Databases.Player.MaxELO")}
                 value={query.range?.[1]}
                 min={0}
                 max={3000}
@@ -134,7 +136,7 @@ function PlayerTable() {
           rowClassName={(r) =>
             r.id === selectedPlayer ? classes.selected : ""
           }
-          noRecordsText="No players found"
+          noRecordsText={t("Databases.Player.NoPlayersFound")}
           totalRecords={count!}
           recordsPerPage={query.options.pageSize ?? 25}
           page={query.options?.page ?? 1}
@@ -178,7 +180,7 @@ function PlayerTable() {
           <PlayerCard player={player} file={file} />
         ) : (
           <Center h="100%">
-            <Text>No player selected</Text>
+            <Text>{t("Databases.Player.NoSelection")}</Text>
           </Center>
         )
       }

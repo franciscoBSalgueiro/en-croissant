@@ -45,8 +45,14 @@ export function CreateModal({
   const { documentDir } = useLoaderData({ from: "/files" });
 
   async function addFile() {
+    const trimmedFilename = filename.trim();
+    if (!trimmedFilename) {
+      setError(t("Common.RequireName"));
+      return;
+    }
+
     const newFile = await createFile({
-      filename,
+      filename: trimmedFilename,
       filetype,
       pgn,
       dir: documentDir,
@@ -79,9 +85,11 @@ export function CreateModal({
           <TextInput
             label={t("Common.Name")}
             placeholder={t("Common.EnterFileName")}
-            required
             value={filename}
-            onChange={(e) => setFilename(e.currentTarget.value)}
+            onChange={(e) => {
+              setFilename(e.currentTarget.value);
+              if (error) setError("");
+            }}
             error={error}
           />
 
@@ -107,7 +115,7 @@ export function CreateModal({
             value={pgn}
             onChange={(event) => setPgn(event.currentTarget.value)}
             label={t("Common.PGNGame")}
-            placeholder="Leave empty to start from scratch"
+            placeholder={t("Files.Create.PGNPlaceholder")}
             rows={10}
           />
 

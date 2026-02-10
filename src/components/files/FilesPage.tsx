@@ -186,7 +186,7 @@ function FilesPage() {
           </>
         ) : (
           <Center h="100%">
-            <Text>No file selected</Text>
+            <Text>{t("Files.NoSelection")}</Text>
           </Center>
         )}
       </Group>

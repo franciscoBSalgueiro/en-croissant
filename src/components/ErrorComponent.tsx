@@ -9,17 +9,19 @@ import {
   Title,
 } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
+import { Trans, useTranslation } from "react-i18next";
 
 export default function ErrorComponent({
   error,
 }: {
   error: unknown;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <Stack p="md">
-      <Title>An error occurred</Title>
+      <Title>{t("Error.Title")}</Title>
       {error instanceof Error ? (
         <>
           <Text>
@@ -30,7 +32,7 @@ export default function ErrorComponent({
         </>
       ) : (
         <Text>
-          <b>Unexpected Error:</b> {JSON.stringify(error)}
+          <b>{t("Error.Unexpected")}:</b> {JSON.stringify(error)}
         </Text>
       )}
       <Group>
@@ -38,7 +40,7 @@ export default function ErrorComponent({
           <CopyButton value={`${error.message}\n${error.stack}`}>
             {({ copied, copy }) => (
               <Button color={copied ? "teal" : undefined} onClick={copy}>
-                {copied ? "Copied" : "Copy stack strace"}
+                {copied ? t("Common.Copied") : t("Error.CopyStackTrace")}
               </Button>
             )}
           </CopyButton>
@@ -48,22 +50,28 @@ export default function ErrorComponent({
             navigate({ to: "/" }).then(() => window.location.reload())
           }
         >
-          Reload
+          {t("Menu.View.Reload")}
         </Button>
       </Group>
 
       <Text>
-        Please report this on{" "}
-        <Anchor
-          href="https://github.com/franciscoBSalgueiro/en-croissant/issues/new?assignees=&labels=bug&projects=&template=bug.yml"
-          target="_blank"
-        >
-          Github
-        </Anchor>{" "}
-        or on the{" "}
-        <Anchor href="https://discord.com/invite/tdYzfDbSSW" target="_blank">
-          Discord server
-        </Anchor>
+        <Trans
+          i18nKey="Error.ReportIssue"
+          components={{
+            github: (
+              <Anchor
+                href="https://github.com/franciscoBSalgueiro/en-croissant/issues/new?assignees=&labels=bug&projects=&template=bug.yml"
+                target="_blank"
+              />
+            ),
+            discord: (
+              <Anchor
+                href="https://discord.com/invite/tdYzfDbSSW"
+                target="_blank"
+              />
+            ),
+          }}
+        />
       </Text>
     </Stack>
   );

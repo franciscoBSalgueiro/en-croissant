@@ -245,7 +245,7 @@ function AnalysisPanel() {
                   }}
                   leftSection={<IconSettings size="0.875rem" />}
                 >
-                  Manage Engines
+                  {t("Board.Analysis.ManageEngines")}
                 </Button>
                 <Popover width={250} position="top-end" shadow="md">
                   <Popover.Target>

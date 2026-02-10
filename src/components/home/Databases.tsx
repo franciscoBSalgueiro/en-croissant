@@ -11,6 +11,7 @@ import { unwrap } from "@/utils/unwrap";
 import { Flex, Progress, Select, Text } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import PersonalPlayerCard from "./PersonalCard";
@@ -45,6 +46,7 @@ interface PersonalInfo {
 }
 
 function Databases() {
+  const { t } = useTranslation();
   const sessions = useAtomValue(sessionsAtom);
 
   const players = Array.from(
@@ -141,13 +143,15 @@ function Databases() {
       {isLoading && databases && (
         <>
           <Text ta="center" fw="bold" my="auto" fz="lg">
-            Processing Games...
+            {t("Home.Databases.ProcessingGames")}
           </Text>
 
           <Progress value={progress} />
         </>
       )}
-      {error && <Text ta="center">Error loading databases: {error}</Text>}
+      {error && (
+        <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>
+      )}
       {personalInfo &&
         (personalInfo.length === 0 ? (
           <>
@@ -167,7 +171,7 @@ function Databases() {
               />
             </Flex>
             <Text ta="center" fw="bold" my="auto" fz="lg">
-              No databases found
+              {t("Home.Databases.NoDatabasesFound")}
             </Text>
           </>
         ) : (

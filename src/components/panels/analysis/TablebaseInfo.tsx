@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import { parseUci } from "chessops";
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { P, match } from "ts-pattern";
 import { useStore } from "zustand";
@@ -20,6 +21,7 @@ function TablebaseInfo({
   fen,
   turn,
 }: { fen: string; turn: "white" | "black" }) {
+  const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const { data, error, isLoading } = useSWRImmutable(
@@ -55,13 +57,17 @@ function TablebaseInfo({
         <Accordion.Item value="tablebase">
           <Accordion.Control>
             <Group>
-              <Text fw="bold">Tablebase</Text>
+              <Text fw="bold">{t("Board.Analysis.Tablebase")}</Text>
               {isLoading && (
                 <Group p="xs">
-                  <Badge variant="transparent">Loading...</Badge>
+                  <Badge variant="transparent">{t("Common.Loading")}</Badge>
                 </Group>
               )}
-              {error && <Text ta="center">Error: {error.message}</Text>}
+              {error && (
+                <Text ta="center">
+                  {t("Common.Error")}: {error.message}
+                </Text>
+              )}
               {data && (
                 <OutcomeBadge category={data.category} turn={turn} wins />
               )}
@@ -117,11 +123,24 @@ function OutcomeBadge({
   dtz?: number;
   dtm?: number;
 }) {
+  const { t } = useTranslation();
   const normalizedCategory = match(category)
-    .with("win", () => (turn === "white" ? "White wins" : "Black wins"))
-    .with("loss", () => (turn === "white" ? "Black wins" : "White wins"))
-    .with(P.union("draw", "blessed-loss", "cursed-win"), () => "Draw")
-    .with(P.union("unknown", "maybe-win", "maybe-loss"), () => "Unknown")
+    .with("win", () =>
+      turn === "white"
+        ? t("Board.Analysis.Tablebase.WhiteWins")
+        : t("Board.Analysis.Tablebase.BlackWins"),
+    )
+    .with("loss", () =>
+      turn === "white"
+        ? t("Board.Analysis.Tablebase.BlackWins")
+        : t("Board.Analysis.Tablebase.WhiteWins"),
+    )
+    .with(P.union("draw", "blessed-loss", "cursed-win"), () =>
+      t("Board.Analysis.Tablebase.Draw"),
+    )
+    .with(P.union("unknown", "maybe-win", "maybe-loss"), () =>
+      t("Common.Unknown"),
+    )
     .exhaustive();
 
   const color = match(category)
@@ -132,8 +151,8 @@ function OutcomeBadge({
   const label = wins
     ? normalizedCategory
     : match(category)
-        .with("draw", () => "Draw")
-        .with("unknown", () => "Unknown")
+        .with("draw", () => t("Board.Analysis.Tablebase.Draw"))
+        .with("unknown", () => t("Common.Unknown"))
         .otherwise(() => (dtm ? `DTM ${Math.abs(dtm)}` : `DTZ ${dtz}`));
 
   return (
@@ -146,7 +165,7 @@ function OutcomeBadge({
       ) &&
         wins && (
           <Text c="dimmed" fz="xs">
-            *due to the 50-move rule
+            {t("Board.Analysis.Tablebase.FiftyMoveRule")}
           </Text>
         )}
     </Group>

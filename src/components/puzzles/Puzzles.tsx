@@ -310,10 +310,10 @@ function Puzzles({ id }: { id: string }) {
                   label: p.title.split(".db3")[0],
                   value: p.path,
                 }))
-                .concat({ label: "+ Add new", value: "add" })}
+                .concat({ label: `+ ${t("Common.AddNew")}`, value: "add" })}
               value={selectedDb}
               clearable={false}
-              placeholder="Select database"
+              placeholder={t("Puzzle.SelectDatabase")}
               onChange={(v) => {
                 if (v === "add") {
                   setAddOpened(true);
@@ -359,7 +359,7 @@ function Puzzles({ id }: { id: string }) {
                   )}
                   <div>
                     <Text size="sm" fw={500} mb={4}>
-                      Rating Range
+                      {t("Puzzle.RatingRange")}
                     </Text>
                     <RangeSlider
                       min={600}
@@ -389,16 +389,16 @@ function Puzzles({ id }: { id: string }) {
                   />
                   <SimpleGrid cols={2} spacing="sm">
                     <Switch
-                      label="Progressive"
-                      description="Auto-increase difficulty"
+                      label={t("Puzzle.Progressive")}
+                      description={t("Puzzle.Progressive.Desc")}
                       checked={progressive}
                       onChange={(event) =>
                         setProgressive(event.currentTarget.checked)
                       }
                     />
                     <Switch
-                      label="Hide Rating"
-                      description="Hide until solved"
+                      label={t("Puzzle.HideRating")}
+                      description={t("Puzzle.HideRating.Desc")}
                       checked={hideRating}
                       onChange={(event) =>
                         setHideRating(event.currentTarget.checked)
@@ -406,7 +406,7 @@ function Puzzles({ id }: { id: string }) {
                     />
                     <Switch
                       label={t("Puzzle.JumpToNextPuzzleImmediately")}
-                      description="Auto-advance on solve"
+                      description={t("Puzzle.JumpToNextPuzzleImmediately.Desc")}
                       checked={jumpToNextPuzzleImmediately}
                       onChange={(event) =>
                         setJumpToNextPuzzleImmediately(
@@ -422,7 +422,7 @@ function Puzzles({ id }: { id: string }) {
           <Group grow>
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
-                Rating
+                {t("Puzzle.Rating")}
               </Text>
               <Text fw={700} size="lg">
                 {puzzles[currentPuzzle]?.completion === "incomplete"
@@ -435,7 +435,7 @@ function Puzzles({ id }: { id: string }) {
 
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
-                Time
+                {t("Puzzle.Time")}
               </Text>
               <Text fw={700} size="lg" ff="monospace">
                 {puzzles[currentPuzzle]?.completion === "incomplete"
@@ -448,7 +448,7 @@ function Puzzles({ id }: { id: string }) {
 
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
-                Accuracy
+                {t("Puzzle.Accuracy")}
               </Text>
               <Text fw={700} size="lg" c={accuracy >= 50 ? "teal" : "orange"}>
                 {accuracy}%
@@ -457,7 +457,7 @@ function Puzzles({ id }: { id: string }) {
 
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
-                Streak
+                {t("Puzzle.Streak")}
               </Text>
               <Group gap={2}>
                 <Text fw={700} size="lg">
@@ -470,7 +470,7 @@ function Puzzles({ id }: { id: string }) {
             {avgTimeSeconds > 0 && (
               <Paper withBorder p="xs">
                 <Text size="xs" c="dimmed">
-                  Avg Time
+                  {t("Puzzle.AvgTime")}
                 </Text>
                 <Text fw={700} size="lg">
                   {avgTimeSeconds.toFixed(1)}s
@@ -494,11 +494,11 @@ function Puzzles({ id }: { id: string }) {
               {!turnToMove
                 ? ""
                 : turnToMove === "white"
-                  ? "Black to move"
-                  : "White to move"}
+                  ? t("Fen.BlackToMove")
+                  : t("Fen.WhiteToMove")}
             </Text>
             <Group gap="xs">
-              <Tooltip label="New Puzzle">
+              <Tooltip label={t("Puzzle.NewPuzzle")}>
                 <ActionIcon
                   disabled={!selectedDb}
                   onClick={() => generatePuzzle(selectedDb!)}
@@ -506,7 +506,7 @@ function Puzzles({ id }: { id: string }) {
                   <IconPlus />
                 </ActionIcon>
               </Tooltip>
-              <Tooltip label="Analyze Position">
+              <Tooltip label={t("Puzzle.AnalyzePosition")}>
                 <ActionIcon
                   disabled={!selectedDb}
                   onClick={() =>
@@ -533,7 +533,7 @@ function Puzzles({ id }: { id: string }) {
                   <IconZoomCheck />
                 </ActionIcon>
               </Tooltip>
-              <Tooltip label="Clear Session">
+              <Tooltip label={t("Puzzle.ClearSession")}>
                 <ActionIcon
                   onClick={() => {
                     setPuzzles([]);
@@ -571,7 +571,7 @@ function Puzzles({ id }: { id: string }) {
             }}
             disabled={puzzles.length === 0}
           >
-            View Solution
+            {t("Puzzle.ViewSolution")}
           </Button>
         </Paper>
       </Portal>

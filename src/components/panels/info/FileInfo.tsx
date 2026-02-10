@@ -5,12 +5,14 @@ import { unwrap } from "@/utils/unwrap";
 import { ActionIcon, Code, Divider, Group, Text, Tooltip } from "@mantine/core";
 import { IconReload } from "@tabler/icons-react";
 import { useAtom } from "jotai";
+import { useTranslation } from "react-i18next";
 
 function FileInfo({
   setGames,
 }: {
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
 }) {
+  const { t } = useTranslation();
   const [tab, setCurrentTab] = useAtom(currentTabAtom);
 
   if (!tab?.file) return null;
@@ -18,7 +20,7 @@ function FileInfo({
     <>
       <Group justify="space-between" py="sm" px="md">
         <Text>
-          {formatNumber(tab.file.numGames || 0)} game
+          {formatNumber(tab.file.numGames || 0)} {t("Files.GameCountSuffix")}
           {tab.file.numGames === 1 ? "" : "s"}
         </Text>
         <Group>
@@ -26,7 +28,7 @@ function FileInfo({
             <Code>{tab.file.path.split(/[\\/]/).pop()}</Code>
           </Tooltip>
 
-          <Tooltip label="Reload file">
+          <Tooltip label={t("Files.Reload")}>
             <ActionIcon
               variant="outline"
               size="sm"
