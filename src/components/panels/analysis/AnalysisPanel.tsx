@@ -9,7 +9,12 @@ import {
   enginesAtom,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
-import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
+import {
+  getPiecesCount,
+  hasCaptures,
+  isOp1,
+  positionFromFen,
+} from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
 import { getInitials } from "@/utils/format";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
@@ -119,7 +124,8 @@ function AnalysisPanel() {
           >
             {pos &&
               (getPiecesCount(pos) <= 7 ||
-                (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
+                (getPiecesCount(pos) === 8 &&
+                  (hasCaptures(pos) || isOp1(pos)))) && (
                 <>
                   <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
                   <Space h="sm" />
