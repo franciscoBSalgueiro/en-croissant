@@ -1,15 +1,38 @@
+import { commands } from "@/bindings/generated";
 import { soundCollectionAtom, soundVolumeAtom } from "@/state/atoms";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
+import { platform } from "@tauri-apps/plugin-os";
 import { getDefaultStore } from "jotai";
 
 const POOL_SIZE = 5;
 const audioPool = Array.from({ length: POOL_SIZE }, () => new Audio());
 let poolIndex = 0;
 
+let soundServerPort: number | null = null;
 const soundUrlCache = new Map<string, string>();
 
+function isLinux(): boolean {
+  try {
+    return platform() === "linux";
+  } catch {
+    return false;
+  }
+}
+
 let lastTime = 0;
+
+async function getSoundServerPort(): Promise<number> {
+  if (soundServerPort !== null) {
+    return soundServerPort;
+  }
+  const result = await commands.getSoundServerPort();
+  if (result.status === "ok") {
+    soundServerPort = result.data;
+    return soundServerPort;
+  }
+  throw new Error("Failed to get sound server port");
+}
 
 export function playSound(capture: boolean, check: boolean) {
   // only play at most 1 sound every 75ms
@@ -42,21 +65,31 @@ export function playSound(capture: boolean, check: boolean) {
     player.play().catch((e) => console.error("Audio playback error:", e));
   };
 
-  if (soundUrlCache.has(cacheKey)) {
-    playWithUrl(soundUrlCache.get(cacheKey)!);
-    return;
+  if (isLinux()) {
+    getSoundServerPort()
+      .then((port) => {
+        const url = `http://127.0.0.1:${port}/${collection}/${type}.mp3`;
+        playWithUrl(url);
+      })
+      .catch(() => {
+        // fails if Tauri APIs are unavailable (e.g., in tests)
+      });
+  } else {
+    const path = `sound/${collection}/${type}.mp3`;
+
+    if (soundUrlCache.has(cacheKey)) {
+      playWithUrl(soundUrlCache.get(cacheKey)!);
+      return;
+    }
+    resolveResource(path)
+      .then((filePath) => {
+        const assetUrl = convertFileSrc(filePath);
+        soundUrlCache.set(cacheKey, assetUrl);
+
+        playWithUrl(assetUrl);
+      })
+      .catch(() => {
+        // fails if Tauri APIs are unavailable (e.g., in tests)
+      });
   }
-
-  const path = `sound/${collection}/${type}.mp3`;
-
-  resolveResource(path)
-    .then((filePath) => {
-      const assetUrl = convertFileSrc(filePath);
-      soundUrlCache.set(cacheKey, assetUrl);
-
-      playWithUrl(assetUrl);
-    })
-    .catch(() => {
-      // fails if Tauri APIs are unavailable (e.g., in tests)
-    });
 }

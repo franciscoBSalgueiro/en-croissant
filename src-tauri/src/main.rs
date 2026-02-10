@@ -16,6 +16,7 @@ mod opening;
 mod pgn;
 mod progress;
 mod puzzle;
+mod sound;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -57,6 +58,7 @@ use crate::puzzle::{
     delete_puzzle_database, get_puzzle, get_puzzle_db_info, get_puzzle_themes,
     get_themes_for_puzzle,
 };
+use crate::sound::get_sound_server_port;
 use crate::{
     chess::get_best_moves,
     db::{
@@ -167,7 +169,8 @@ fn main() {
             get_game_engine_logs,
             preload_reference_db,
             get_progress,
-            clear_progress
+            clear_progress,
+            get_sound_server_port
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
@@ -239,6 +242,18 @@ fn main() {
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();
 
             specta_builder.mount_events(app);
+
+            #[cfg(target_os = "linux")]
+            {
+                let sound_dir = app
+                    .path()
+                    .resolve("sound", BaseDirectory::Resource)
+                    .expect("failed to resolve sound resource directory");
+                let port = sound::start_sound_server(sound_dir);
+                app.manage(sound::SoundServerPort(port));
+            }
+            #[cfg(not(target_os = "linux"))]
+            app.manage(sound::SoundServerPort(0));
 
             #[cfg(desktop)]
             app.handle().plugin(tauri_plugin_cli::init())?;
