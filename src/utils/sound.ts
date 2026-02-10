@@ -11,7 +11,14 @@ let poolIndex = 0;
 
 let soundServerPort: number | null = null;
 const soundUrlCache = new Map<string, string>();
-const isLinux = platform() === "linux";
+
+function isLinux(): boolean {
+  try {
+    return platform() === "linux";
+  } catch {
+    return false;
+  }
+}
 
 let lastTime = 0;
 
@@ -58,7 +65,7 @@ export function playSound(capture: boolean, check: boolean) {
     player.play().catch((e) => console.error("Audio playback error:", e));
   };
 
-  if (isLinux) {
+  if (isLinux()) {
     getSoundServerPort()
       .then((port) => {
         const url = `http://127.0.0.1:${port}/${collection}/${type}.mp3`;
