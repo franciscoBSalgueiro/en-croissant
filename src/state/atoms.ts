@@ -132,7 +132,7 @@ export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols">(
 );
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">(
   "move-method",
-  "drag",
+  "both",
 );
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);

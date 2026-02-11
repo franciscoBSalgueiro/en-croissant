@@ -79,14 +79,23 @@ export const Chessground = forwardRef<
     api?.set({
       ...props,
       events: {
+        ...props.events,
         change: () => {
           if (props.setBoardFen && api) {
             props.setBoardFen(api.getFen());
           }
         },
       },
+      draggable: {
+        ...props.draggable,
+        enabled: moveMethod !== "select",
+      },
+      selectable: {
+        ...props.selectable,
+        enabled: moveMethod !== "drag",
+      },
     });
-  }, [api, props]);
+  }, [api, props, moveMethod]);
 
   const boardImage = useAtomValue(boardImageAtom);
 
