@@ -13,6 +13,7 @@ import {
   createRootRouteWithContext,
   useNavigate,
 } from "@tanstack/react-router";
+import { TauriEvent } from "@tauri-apps/api/event";
 import {
   Menu,
   MenuItem,
@@ -236,6 +237,31 @@ function RootLayout() {
       getCurrentWindow().setDecorations(false);
     }
   }, [menu, isNative]);
+
+  useEffect(() => {
+    const unlisten = getCurrentWindow().listen(
+      TauriEvent.DRAG_DROP,
+      (event) => {
+        const payload = event.payload as { paths: string[] };
+        if (payload?.paths) {
+          const pgnFiles = payload.paths.filter((path) =>
+            path.toLowerCase().endsWith(".pgn"),
+          );
+
+          if (pgnFiles.length > 0) {
+            navigate({ to: "/" });
+            for (const file of pgnFiles) {
+              openFile(file, setTabs, setActiveTab);
+            }
+          }
+        }
+      },
+    );
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [navigate, setTabs, setActiveTab]);
 
   return (
     <AppShell
