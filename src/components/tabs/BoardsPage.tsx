@@ -28,6 +28,7 @@ import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
+  const [, startTransition] = useTransition();
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
@@ -56,12 +57,12 @@ export default function BoardsPage() {
           const index = tabs.findIndex((tab) => tab.value === value);
           if (tabs.length > 1) {
             if (index === tabs.length - 1) {
-              setActiveTab(tabs[index - 1].value);
+              startTransition(() => setActiveTab(tabs[index - 1].value));
             } else {
-              setActiveTab(tabs[index + 1].value);
+              startTransition(() => setActiveTab(tabs[index + 1].value));
             }
           } else {
-            setActiveTab(null);
+            startTransition(() => setActiveTab(null));
           }
         }
         setTabs((prev) => prev.filter((tab) => tab.value !== value));
@@ -69,26 +70,28 @@ export default function BoardsPage() {
         await commands.abortGame(`${value}-game`);
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
+    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab, startTransition],
   );
 
   function selectTab(index: number) {
-    setActiveTab(tabs[Math.min(index, tabs.length - 1)].value);
+    startTransition(() =>
+      setActiveTab(tabs[Math.min(index, tabs.length - 1)].value),
+    );
   }
 
   function cycleTabs(reverse = false) {
     const index = tabs.findIndex((tab) => tab.value === activeTab);
     if (reverse) {
       if (index === 0) {
-        setActiveTab(tabs[tabs.length - 1].value);
+        startTransition(() => setActiveTab(tabs[tabs.length - 1].value));
       } else {
-        setActiveTab(tabs[index - 1].value);
+        startTransition(() => setActiveTab(tabs[index - 1].value));
       }
     } else {
       if (index === tabs.length - 1) {
-        setActiveTab(tabs[0].value);
+        startTransition(() => setActiveTab(tabs[0].value));
       } else {
-        setActiveTab(tabs[index + 1].value);
+        startTransition(() => setActiveTab(tabs[index + 1].value));
       }
     }
   }
@@ -124,13 +127,20 @@ export default function BoardsPage() {
             type: tab.type,
           },
         ]);
-        setActiveTab(id);
+        startTransition(() => setActiveTab(id));
       }
     },
-    [tabs, setTabs, setActiveTab],
+    [tabs, setTabs, setActiveTab, startTransition],
   );
 
   const keyMap = useAtomValue(keyMapAtom);
+
+  const handleSetActiveTab = useCallback(
+    (v: string) => {
+      startTransition(() => setActiveTab(v));
+    },
+    [setActiveTab, startTransition],
+  );
   useHotkeys([
     [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],
     [keyMap.CYCLE_TABS.keys, () => cycleTabs()],
@@ -159,7 +169,7 @@ export default function BoardsPage() {
     <>
       <Tabs
         value={activeTab}
-        onChange={(v) => setActiveTab(v)}
+        onChange={(v) => startTransition(() => setActiveTab(v))}
         keepMounted={false}
         style={{
           display: "flex",
@@ -201,7 +211,7 @@ export default function BoardsPage() {
                         >
                           <BoardTab
                             tab={tab}
-                            setActiveTab={setActiveTab}
+                            setActiveTab={handleSetActiveTab}
                             closeTab={closeTab}
                             renameTab={renameTab}
                             duplicateTab={duplicateTab}
