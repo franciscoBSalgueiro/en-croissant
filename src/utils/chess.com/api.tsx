@@ -175,8 +175,13 @@ export async function downloadChessCom(
 }
 
 const chessComGameSchema = z.object({
-  moveList: z.string(),
-  pgnHeaders: z.record(z.string(), z.string()),
+  game: z.object({
+    moveList: z.string(),
+    pgnHeaders: z.record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean()]),
+    ),
+  }),
 });
 
 export async function getChesscomGame(gameURL: string) {
@@ -184,7 +189,25 @@ export async function getChesscomGame(gameURL: string) {
   const match = gameURL.match(regex);
 
   if (!match) {
-    return "";
+    const eventRegex = /chess.com\/events/;
+    if (gameURL.match(eventRegex)) {
+      error(`Event URLs are not supported: ${gameURL}`);
+      notifications.show({
+        title: "Event URLs not supported",
+        message: `Event URLs cannot be imported directly. Please import the PGN instead.`,
+        color: "red",
+        icon: <IconX />,
+      });
+      return null;
+    }
+    error(`Unsupported Chess.com URL format: ${gameURL}`);
+    notifications.show({
+      title: "Unsupported URL format",
+      message: `The URL format is not recognized. Please use a direct game link like https://www.chess.com/game/live/12345`,
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
   }
 
   const gameType = match[1];
@@ -224,8 +247,8 @@ export async function getChesscomGame(gameURL: string) {
     return null;
   }
 
-  const moveList = gameData.data.moveList;
-  const pgnHeaders = gameData.data.pgnHeaders;
+  const moveList = gameData.data.game.moveList;
+  const pgnHeaders = gameData.data.game.pgnHeaders;
   const moves = moveList.match(/.{1,2}/g);
   if (!moves) {
     return "";
