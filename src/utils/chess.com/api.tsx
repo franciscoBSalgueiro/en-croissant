@@ -177,10 +177,7 @@ export async function downloadChessCom(
 const chessComGameSchema = z.object({
   game: z.object({
     moveList: z.string(),
-    pgnHeaders: z.record(
-      z.string(),
-      z.union([z.string(), z.number(), z.boolean()]),
-    ),
+    pgnHeaders: z.record(z.string(), z.union([z.string(), z.number()])),
   }),
 });
 
