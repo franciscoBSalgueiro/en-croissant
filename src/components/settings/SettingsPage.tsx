@@ -667,6 +667,7 @@ export default function Page() {
             }
             if (e.key === "Escape") {
               setSearchQuery("");
+              searchInputRef.current?.blur();
             }
           }}
           style={{ flex: 1, maxWidth: 400 }}

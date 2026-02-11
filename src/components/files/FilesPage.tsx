@@ -9,17 +9,11 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
-import {
-  BaseDirectory,
-  type DirEntry,
-  type FileInfo,
-  readDir,
-  remove,
-} from "@tauri-apps/plugin-fs";
-import React, { useEffect, useState } from "react";
+import { readDir, remove } from "@tauri-apps/plugin-fs";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import ConfirmModal from "../common/ConfirmModal";
@@ -75,6 +69,10 @@ function FilesPage() {
   const [createModal, toggleCreateModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useHotkeys([["mod+f", () => searchInputRef.current?.focus()]]);
+
   useEffect(() => {
     setGames(new Map());
   }, [selected]);
@@ -110,10 +108,20 @@ function FilesPage() {
           <Group>
             <Input
               style={{ flexGrow: 1 }}
-              rightSection={<IconSearch size="1rem" />}
+              leftSection={<IconSearch size="1rem" />}
               placeholder={t("Files.Search")}
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
+              ref={searchInputRef}
+              onKeyDown={(e) => {
+                if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                }
+                if (e.key === "Escape") {
+                  setSearch("");
+                  searchInputRef.current?.blur();
+                }
+              }}
             />
             <Button
               size="xs"
