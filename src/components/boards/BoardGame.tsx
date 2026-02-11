@@ -597,7 +597,7 @@ function BoardGame() {
               logs={engineLogs}
               onRefresh={fetchEngineLogs}
               additionalControls={
-                <Group grow justify="space-between">
+                <>
                   {players.white.type === "engine" &&
                   players.black.type === "engine" ? (
                     <SegmentedControl
@@ -616,7 +616,7 @@ function BoardGame() {
                   <ActionIcon flex={0} onClick={() => toggleLogsOpened()}>
                     <IconX size="1.2rem" />
                   </ActionIcon>
-                </Group>
+                </>
               }
             />
           ) : (

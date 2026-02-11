@@ -2,14 +2,23 @@ import type { EngineLog } from "@/bindings";
 import { fontSizeAtom } from "@/state/atoms";
 import {
   ActionIcon,
+  Badge,
+  Box,
+  Divider,
   Group,
   ScrollArea,
   SegmentedControl,
   Stack,
-  Table,
   Text,
+  TextInput,
+  Tooltip,
 } from "@mantine/core";
-import { IconFileExport, IconRefresh } from "@tabler/icons-react";
+import {
+  IconFileExport,
+  IconFilter,
+  IconRefresh,
+  IconTerminal2,
+} from "@tabler/icons-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
@@ -30,28 +39,29 @@ export default function EngineLogsView({
   additionalControls,
 }: EngineLogsViewProps) {
   const [filter, setFilter] = useState<LogsFilter>("all");
+  const [search, setSearch] = useState("");
   const viewportRef = useRef<HTMLDivElement>(null);
   const fontSize = useAtomValue(fontSizeAtom);
 
   const filteredLogs = useMemo(
     () =>
       logs.filter((log) => {
-        if (filter === "all") return true;
-        if (filter === "gui") return log.type === "gui";
-        if (filter === "engine") return log.type === "engine";
+        if (filter === "gui" && log.type !== "gui") return false;
+        if (filter === "engine" && log.type !== "engine") return false;
+        if (search && !log.value.toLowerCase().includes(search.toLowerCase()))
+          return false;
         return true;
       }),
-    [logs, filter],
+    [logs, filter, search],
   );
 
-  const logsLength = logs.length;
   useEffect(() => {
-    if (viewportRef.current) {
+    if (viewportRef.current && !search) {
       viewportRef.current.scrollTo({
         top: viewportRef.current.scrollHeight,
       });
     }
-  }, [logsLength]);
+  }, [logs.length, search]);
 
   async function exportLogs() {
     const file = await save({ defaultPath: "logs.csv" });
@@ -65,22 +75,26 @@ export default function EngineLogsView({
 
   const rowVirtualizer = useVirtualizer({
     count: filteredLogs.length,
-    estimateSize: () => 35 * (fontSize / 100),
+    estimateSize: () => 30 * (fontSize / 100),
     getScrollElement: () => viewportRef.current,
   });
 
   return (
-    <Stack flex={1} h="100%" gap="xs">
-      <Group w="100%" grow>
-        <ActionIcon.Group style={{ flexGrow: 0 }}>
+    <Stack flex={1} h="100%" gap={0}>
+      <Group w="100%" gap="xs" wrap="nowrap" pr="sm">
+        <ActionIcon.Group style={{ flexShrink: 0 }}>
           {onRefresh && (
-            <ActionIcon size="lg" variant="default" onClick={onRefresh}>
-              <IconRefresh size="1.3rem" />
-            </ActionIcon>
+            <Tooltip label="Refresh logs">
+              <ActionIcon size="lg" variant="default" onClick={onRefresh}>
+                <IconRefresh size="1.1rem" />
+              </ActionIcon>
+            </Tooltip>
           )}
-          <ActionIcon size="lg" variant="default" onClick={exportLogs}>
-            <IconFileExport size="1.3rem" />
-          </ActionIcon>
+          <Tooltip label="Export logs">
+            <ActionIcon size="lg" variant="default" onClick={exportLogs}>
+              <IconFileExport size="1.1rem" />
+            </ActionIcon>
+          </Tooltip>
         </ActionIcon.Group>
 
         <SegmentedControl
@@ -93,27 +107,41 @@ export default function EngineLogsView({
           ]}
         />
 
+        <TextInput
+          placeholder="Filter logs..."
+          leftSection={<IconFilter size="0.9rem" />}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          style={{ flexGrow: 1, minWidth: 0 }}
+        />
+
         {additionalControls}
       </Group>
+      <Divider mt="sm" />
 
       {filteredLogs.length === 0 ? (
-        <Text ta="center" mt="lg" c="dimmed">
-          No logs available
-        </Text>
+        <Stack align="center" justify="center" flex={1} gap="xs">
+          <IconTerminal2 size="2.5rem" opacity={0.3} />
+          <Text ta="center" c="dimmed" fz="sm">
+            {logs.length === 0
+              ? "No logs available yet"
+              : "No logs match the current filter"}
+          </Text>
+        </Stack>
       ) : (
         <ScrollArea flex={1} viewportRef={viewportRef}>
-          <Table
-            withTableBorder
-            withColumnBorders
+          <Box
             style={{
               height: rowVirtualizer.getTotalSize(),
               width: "100%",
               position: "relative",
+              fontFamily: "monospace",
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-              <Table.Tr
+              <LogLine
                 key={virtualRow.index}
+                log={filteredLogs[virtualRow.index]}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -122,26 +150,60 @@ export default function EngineLogsView({
                   height: virtualRow.size,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
-              >
-                <LogLine log={filteredLogs[virtualRow.index]} />
-              </Table.Tr>
+              />
             ))}
-          </Table>
+          </Box>
         </ScrollArea>
       )}
     </Stack>
   );
 }
 
-function LogLine({ log }: { log: EngineLog }) {
+function LogLine({
+  log,
+  style,
+}: {
+  log: EngineLog;
+  style: React.CSSProperties;
+}) {
+  const isGui = log.type === "gui";
   return (
-    <>
-      <Table.Td w="5rem">{log.type.toUpperCase()}</Table.Td>
-      <Table.Td>
-        <Text lineClamp={1} fz="xs">
-          {log.value}
+    <Group
+      gap="xs"
+      wrap="nowrap"
+      align="center"
+      px="xs"
+      style={{
+        ...style,
+        borderBottom: "1px solid var(--mantine-color-dark-5)",
+      }}
+    >
+      <Badge
+        variant="light"
+        color={isGui ? "blue" : "teal"}
+        w="3.5rem"
+        style={{ flexShrink: 0 }}
+      >
+        {isGui ? "GUI" : "ENG"}
+      </Badge>
+      <Tooltip
+        label={log.value.trim()}
+        multiline
+        maw={500}
+        withArrow
+        openDelay={400}
+        styles={{ tooltip: { fontFamily: "monospace", fontSize: "0.75rem" } }}
+      >
+        <Text
+          lineClamp={1}
+          fz="xs"
+          ff="monospace"
+          c={isGui ? "blue.3" : "dimmed"}
+          style={{ userSelect: "text", cursor: "default" }}
+        >
+          {log.value.trim()}
         </Text>
-      </Table.Td>
-    </>
+      </Tooltip>
+    </Group>
   );
 }
