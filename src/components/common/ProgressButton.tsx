@@ -1,12 +1,14 @@
 import { useProgress } from "@/hooks/useProgress";
-import { Box, Button, Progress } from "@mantine/core";
-import { memo, useEffect } from "react";
+import { ActionIcon, Box, Button, Group, Progress } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
+import { memo, useCallback, useEffect } from "react";
 import * as classes from "./ProgressButton.css";
 
 type Props = {
   id: string;
   initInstalled: boolean;
   onClick: (id: string) => void;
+  onCancel?: () => void;
   leftIcon?: React.ReactNode;
   labels: {
     completed: string;
@@ -24,6 +26,7 @@ function ProgressButton({
   id,
   initInstalled,
   onClick,
+  onCancel,
   leftIcon,
   labels,
   disabled,
@@ -31,7 +34,7 @@ function ProgressButton({
   inProgress,
   setInProgress,
 }: Props) {
-  const { progress, finished, isActive } = useProgress(id);
+  const { progress, finished, isActive, clear } = useProgress(id);
   const completed = initInstalled || finished;
 
   const showProgress = isActive || inProgress;
@@ -41,6 +44,14 @@ function ProgressButton({
       setInProgress(false);
     }
   }, [finished, setInProgress]);
+
+  const handleCancel = useCallback(() => {
+    if (onCancel) {
+      onCancel();
+    }
+    clear();
+    setInProgress(false);
+  }, [onCancel, clear, setInProgress]);
 
   let label: string;
   if (completed) {
@@ -52,7 +63,7 @@ function ProgressButton({
   }
 
   return (
-    <>
+    <Group gap="xs" wrap="nowrap">
       <Button
         fullWidth
         onClick={() => {
@@ -73,7 +84,17 @@ function ProgressButton({
           />
         )}
       </Button>
-    </>
+      {showProgress && onCancel && (
+        <ActionIcon
+          variant="default"
+          size="lg"
+          onClick={handleCancel}
+          title="Cancel"
+        >
+          <IconX size="1rem" />
+        </ActionIcon>
+      )}
+    </Group>
   );
 }
 

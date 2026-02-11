@@ -1,3 +1,4 @@
+import { commands } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -10,7 +11,7 @@ import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useCallback, useState } from "react";
 import { memo, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -32,6 +33,10 @@ function ReportPanel() {
   const setInProgress = useStore(store, (s) => s.setReportInProgress);
 
   const stats = useMemo(() => getGameStats(root), [root]);
+
+  const handleCancel = useCallback(() => {
+    commands.cancelAnalysis(`report_${activeTab}`);
+  }, [activeTab]);
 
   return (
     <ScrollArea offsetScrollbars>
@@ -69,6 +74,7 @@ function ReportPanel() {
               disabled={root.children.length === 0}
               leftIcon={<IconZoomCheck size="0.875rem" />}
               onClick={() => toggleReportingMode()}
+              onCancel={handleCancel}
               initInstalled={false}
               labels={{
                 action: t("Board.Analysis.GenerateReport"),

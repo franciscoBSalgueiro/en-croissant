@@ -38,7 +38,8 @@ use tauri::{Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
 use crate::chess::{
-    analyze_game, get_engine_config, get_engine_logs, kill_engine, kill_engines, stop_engine,
+    analyze_game, cancel_analysis, get_engine_config, get_engine_logs, kill_engine, kill_engines,
+    stop_engine,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
@@ -67,6 +68,7 @@ use crate::{
     fs::{download_file, file_exists, get_file_metadata},
     opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
 };
+use std::sync::atomic::AtomicBool;
 use tokio::sync::Semaphore;
 
 #[derive(Derivative)]
@@ -83,6 +85,7 @@ pub struct AppState {
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
+    analysis_cancel_flags: DashMap<String, Arc<AtomicBool>>,
     auth: AuthState,
     game_manager: GameManager,
     progress_state: ProgressStore,
@@ -117,6 +120,7 @@ fn main() {
             close_splashscreen,
             get_best_moves,
             analyze_game,
+            cancel_analysis,
             stop_engine,
             kill_engine,
             kill_engines,

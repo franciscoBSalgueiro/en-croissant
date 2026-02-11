@@ -2,7 +2,6 @@ import { type GoMode, commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { enginesAtom, referenceDbAtom } from "@/state/atoms";
 import type { LocalEngine } from "@/utils/engines";
-import { unwrap } from "@/utils/unwrap";
 import {
   Button,
   Checkbox,
@@ -108,8 +107,9 @@ function ReportModal({
         engineSettings,
       )
       .then((analysis) => {
-        const analysisData = unwrap(analysis);
-        addAnalysis(analysisData);
+        if (analysis.status === "ok") {
+          addAnalysis(analysis.data);
+        }
       })
       .finally(() => setInProgress(false));
   }

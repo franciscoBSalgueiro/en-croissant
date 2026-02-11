@@ -98,6 +98,9 @@ pub enum Error {
 
     #[error("Engine disconnected")]
     EngineDisconnected,
+
+    #[error("Analysis cancelled")]
+    AnalysisCancelled,
 }
 
 impl serde::Serialize for Error {
