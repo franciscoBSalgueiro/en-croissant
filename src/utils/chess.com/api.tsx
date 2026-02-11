@@ -191,7 +191,8 @@ export async function getChesscomGame(gameURL: string) {
       error(`Event URLs are not supported: ${gameURL}`);
       notifications.show({
         title: "Event URLs not supported",
-        message: "Event URLs cannot be imported directly. Please import the PGN instead.",
+        message:
+          "Event URLs cannot be imported directly. Please import the PGN instead.",
         color: "red",
         icon: <IconX />,
       });
@@ -200,7 +201,8 @@ export async function getChesscomGame(gameURL: string) {
     error(`Unsupported Chess.com URL format: ${gameURL}`);
     notifications.show({
       title: "Unsupported URL format",
-      message: "The URL format is not recognized. Please use a direct game link like https://www.chess.com/game/live/12345",
+      message:
+        "The URL format is not recognized. Please use a direct game link like https://www.chess.com/game/live/12345",
       color: "red",
       icon: <IconX />,
     });
