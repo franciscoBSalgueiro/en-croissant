@@ -36,6 +36,7 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import {
   IconBook,
   IconBrush,
@@ -54,7 +55,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import posthog from "posthog-js";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
@@ -151,6 +152,7 @@ function TelemetrySwitch() {
 export default function Page() {
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
@@ -521,16 +523,7 @@ export default function Page() {
     ],
   );
 
-  const filteredSettings = useMemo(() => {
-    if (!searchQuery.trim()) return null;
-    const query = searchQuery.toLowerCase();
-    return settings.filter(
-      (setting) =>
-        setting.title.toLowerCase().includes(query) ||
-        setting.description.toLowerCase().includes(query) ||
-        setting.keywords?.some((kw) => kw.toLowerCase().includes(query)),
-    );
-  }, [searchQuery, settings]);
+  useHotkeys([["mod+f", () => searchInputRef.current?.focus()]]);
 
   const categoryInfo: Record<
     SettingCategory,
@@ -582,6 +575,19 @@ export default function Page() {
       icon: <IconShield size="1rem" />,
     },
   };
+
+  const filteredSettings = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const query = searchQuery.toLowerCase();
+    return settings.filter(
+      (setting) =>
+        setting.title.toLowerCase().includes(query) ||
+        setting.description.toLowerCase().includes(query) ||
+        categoryInfo[setting.category].title.toLowerCase().includes(query) ||
+        setting.id.toLowerCase().includes(query) ||
+        setting.keywords?.some((kw) => kw.toLowerCase().includes(query)),
+    );
+  }, [searchQuery, settings, categoryInfo]);
 
   const renderSearchResults = () => {
     if (!filteredSettings) return null;
@@ -650,10 +656,19 @@ export default function Page() {
     <Stack h="100%" gap={0}>
       <Group px="md" pt="md" pb="sm">
         <TextInput
+          ref={searchInputRef}
           placeholder="Search settings..."
           leftSection={<IconSearch size="1rem" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+            }
+            if (e.key === "Escape") {
+              setSearchQuery("");
+            }
+          }}
           style={{ flex: 1, maxWidth: 400 }}
         />
       </Group>
