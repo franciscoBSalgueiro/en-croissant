@@ -472,6 +472,48 @@ export const deckAtomFamily = atomFamily(
   (a, b) => a.file === b.file && a.game === b.game,
 );
 
+export type PracticePhase =
+  | "idle" // Not practicing
+  | "waiting" // Waiting for user to make a move
+  | "correct" // Move was correct, waiting for quality rating
+  | "incorrect"; // Move was incorrect, showing feedback
+
+export type PracticeState = {
+  phase: PracticePhase;
+  currentFen?: string;
+  answer?: string;
+  playedMove?: string;
+  timeTaken?: number;
+  positionIndex?: number;
+};
+
+export const practiceStateFamily = atomFamily((tab: string) =>
+  atom<PracticeState>({ phase: "idle" }),
+);
+export const practiceStateAtom = tabValue(practiceStateFamily);
+
+export type PracticeSessionStats = {
+  correct: number;
+  incorrect: number;
+  streak: number;
+  bestStreak: number;
+};
+
+const practiceSessionStatsFamily = atomFamily((tab: string) =>
+  atom<PracticeSessionStats>({
+    correct: 0,
+    incorrect: 0,
+    streak: 0,
+    bestStreak: 0,
+  }),
+);
+export const practiceSessionStatsAtom = tabValue(practiceSessionStatsFamily);
+
+const practiceCardStartTimeFamily = atomFamily((tab: string) =>
+  atom<number>(0),
+);
+export const practiceCardStartTimeAtom = tabValue(practiceCardStartTimeFamily);
+
 export const engineMovesFamily = atomFamily(
   ({ tab, engine }: { tab: string; engine: string }) =>
     atom<Map<string, BestMoves[]>>(new Map()),

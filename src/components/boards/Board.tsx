@@ -10,6 +10,9 @@ import {
   forcedEnPassantAtom,
   moveHighlightAtom,
   moveInputAtom,
+  practiceCardStartTimeAtom,
+  practiceSessionStatsAtom,
+  practiceStateAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
@@ -53,7 +56,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useCallback, useContext, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -179,6 +182,10 @@ function Board({
     }),
   );
 
+  const setPracticeState = useSetAtom(practiceStateAtom);
+  const setSessionStats = useSetAtom(practiceSessionStatsAtom);
+  const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
+
   async function makeMove(move: NormalMove) {
     if (!pos) return;
     const san = makeSan(pos, move);
@@ -188,13 +195,24 @@ function Board({
         return;
       }
 
-      let isRecalled = true;
-      if (san !== c?.answer) {
-        isRecalled = false;
-      }
       const i = deck.positions.indexOf(c);
+      const timeTaken = Date.now() - cardStartTime;
 
-      if (!isRecalled) {
+      if (san !== c.answer) {
+        updateCardPerformance(setDeck, i, c.card, 1);
+        setPracticeState({
+          phase: "incorrect",
+          currentFen: c.fen,
+          answer: c.answer,
+          playedMove: san,
+          positionIndex: i,
+          timeTaken,
+        });
+        setSessionStats((prev) => ({
+          ...prev,
+          incorrect: prev.incorrect + 1,
+          streak: 0,
+        }));
         notifications.show({
           title: t("Common.Incorrect"),
           message: t("Board.Practice.CorrectMoveWas", { move: c.answer }),
@@ -207,9 +225,14 @@ function Board({
           payload: move,
         });
         setPendingMove(null);
+        setPracticeState({
+          phase: "correct",
+          currentFen: c.fen,
+          answer: c.answer,
+          positionIndex: i,
+          timeTaken,
+        });
       }
-
-      updateCardPerformance(setDeck, i, c.card, isRecalled ? 4 : 1);
     } else {
       storeMakeMove({
         payload: move,

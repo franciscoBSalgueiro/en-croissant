@@ -5,6 +5,7 @@ import {
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
+  practiceStateAtom,
   triggerAnnotationFocusAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
@@ -99,17 +100,46 @@ function BoardAnalysis() {
 
   const [, triggerAnnotationFocus] = useAtom(triggerAnnotationFocusAtom);
   const keyMap = useAtomValue(keyMapAtom);
+
+  const [currentTabSelected, setCurrentTabSelected] = useAtom(
+    currentTabSelectedAtom,
+  );
+  const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
+  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
+  const practicing =
+    currentTabSelected === "practice" && practiceTabSelected === "train";
+  const practiceState = useAtomValue(practiceStateAtom);
+  const isPracticeRating = practicing && practiceState.phase === "correct";
+
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
   useHotkeys([
-    [keyMap.ANNOTATION_BRILLIANT.keys, () => setAnnotation("!!")],
-    [keyMap.ANNOTATION_GOOD.keys, () => setAnnotation("!")],
-    [keyMap.ANNOTATION_INTERESTING.keys, () => setAnnotation("!?")],
-    [keyMap.ANNOTATION_DUBIOUS.keys, () => setAnnotation("?!")],
-    [keyMap.ANNOTATION_MISTAKE.keys, () => setAnnotation("?")],
-    [keyMap.ANNOTATION_BLUNDER.keys, () => setAnnotation("??")],
+    [
+      keyMap.ANNOTATION_BRILLIANT.keys,
+      () => !isPracticeRating && setAnnotation("!!"),
+    ],
+    [
+      keyMap.ANNOTATION_GOOD.keys,
+      () => !isPracticeRating && setAnnotation("!"),
+    ],
+    [
+      keyMap.ANNOTATION_INTERESTING.keys,
+      () => !isPracticeRating && setAnnotation("!?"),
+    ],
+    [
+      keyMap.ANNOTATION_DUBIOUS.keys,
+      () => !isPracticeRating && setAnnotation("?!"),
+    ],
+    [
+      keyMap.ANNOTATION_MISTAKE.keys,
+      () => !isPracticeRating && setAnnotation("?"),
+    ],
+    [
+      keyMap.ANNOTATION_BLUNDER.keys,
+      () => !isPracticeRating && setAnnotation("??"),
+    ],
     [
       keyMap.PRACTICE_TAB.keys,
       () => {
@@ -134,14 +164,6 @@ function BoardAnalysis() {
       },
     ],
   ]);
-
-  const [currentTabSelected, setCurrentTabSelected] = useAtom(
-    currentTabSelectedAtom,
-  );
-  const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
-  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
-  const practicing =
-    currentTabSelected === "practice" && practiceTabSelected === "train";
 
   return (
     <>
