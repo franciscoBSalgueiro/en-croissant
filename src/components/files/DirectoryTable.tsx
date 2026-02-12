@@ -1,5 +1,10 @@
 import { commands } from "@/bindings";
-import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  currentTabSelectedAtom,
+  deckAtomFamily,
+  tabsAtom,
+} from "@/state/atoms";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
@@ -198,13 +203,14 @@ function Table({
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
+  const setTabSelected = useSetAtom(currentTabSelectedAtom);
 
   const { showContextMenu } = useContextMenu();
 
   const openFile = useCallback(
     async (record: FileMetadata) => {
       const pgn = unwrap(await commands.readGames(record.path, 0, 0));
-      createTab({
+      await createTab({
         tab: {
           name: record?.name || "Untitled",
           type: "analysis",
@@ -215,9 +221,12 @@ function Table({
         fileInfo: record,
         gameNumber: 0,
       });
+      if (record.metadata.type === "repertoire") {
+        setTabSelected("practice");
+      }
       navigate({ to: "/" });
     },
-    [selected, setActiveTab, setTabs, navigate],
+    [setActiveTab, setTabs, navigate, setTabSelected],
   );
 
   return (

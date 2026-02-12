@@ -238,7 +238,6 @@ function PracticePanel() {
             )}
             {stats.total > 0 && (
               <>
-                {/* Progress bar */}
                 <Stack gap={4}>
                   <Group justify="space-between">
                     <Text fz="xs" fw={500}>
