@@ -86,9 +86,9 @@ function AnnotationPanel() {
   }, [focusSignal]);
 
   return (
-    <Stack h="100%" gap={0}>
+    <Stack h="100%" gap={0} py="sm">
       <Stack gap={0}>
-        <Group grow>
+        <Group grow px="sm">
           {BASIC.map((annotation) => {
             return (
               <SymbolButton
@@ -116,7 +116,7 @@ function AnnotationPanel() {
         />
       </Stack>
 
-      <Collapse in={showMoreSymbols}>
+      <Collapse in={showMoreSymbols} px="sm">
         <Stack mb="md">
           <Group grow>
             {ADVANTAGE.map((annotation) => (
@@ -139,7 +139,7 @@ function AnnotationPanel() {
         </Stack>
       </Collapse>
 
-      <ScrollArea offsetScrollbars>
+      <ScrollArea offsetScrollbars pl="sm">
         <AnnotationEditor ref={editorRef} />
       </ScrollArea>
     </Stack>

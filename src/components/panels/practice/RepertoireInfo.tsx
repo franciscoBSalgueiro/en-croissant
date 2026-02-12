@@ -76,7 +76,7 @@ function RepertoireInfo() {
   const stats = useMemo(() => getTreeStats(root), [root]);
 
   return (
-    <Stack style={{ overflow: "hidden" }} h="100%">
+    <Stack style={{ overflow: "hidden" }} h="100%" p="sm">
       <Group>
         <Text>
           {t("Board.Practice.Variations")}: {stats.leafs}

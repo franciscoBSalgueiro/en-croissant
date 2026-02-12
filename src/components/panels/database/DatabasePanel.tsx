@@ -164,8 +164,8 @@ function DatabasePanel() {
   );
 
   return (
-    <Stack h="100%" gap={0}>
-      <Group justify="space-between" w="100%">
+    <Stack h="100%" gap={0} pt="sm">
+      <Group justify="space-between" w="100%" px="sm">
         <SegmentedControl
           data={[
             { label: t("Board.Database.Local"), value: "local" },
@@ -255,7 +255,7 @@ function PanelWithError(props: {
   }
 
   return (
-    <Tabs.Panel pt="xs" value={props.value} flex={1}>
+    <Tabs.Panel py="xs" px="sm" value={props.value} flex={1}>
       {children}
     </Tabs.Panel>
   );

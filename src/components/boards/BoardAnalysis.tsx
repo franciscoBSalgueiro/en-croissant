@@ -157,7 +157,6 @@ function BoardAnalysis() {
       <Portal target="#topRight" style={{ height: "100%" }}>
         <Paper
           withBorder
-          p="xs"
           style={{
             height: "100%",
           }}
@@ -175,7 +174,7 @@ function BoardAnalysis() {
               flexDirection: "column",
             }}
           >
-            <Tabs.List grow mb="1rem">
+            <Tabs.List grow>
               {isRepertoire && (
                 <Tabs.Tab
                   value="practice"

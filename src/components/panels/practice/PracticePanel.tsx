@@ -112,7 +112,7 @@ function PracticePanel() {
         </Tabs.List>
 
         <Tabs.Panel value="train" style={{ overflow: "hidden" }}>
-          <Stack>
+          <Stack p="sm">
             {stats.total === 0 && (
               <Text>
                 {t("Board.Practice.NoPositionForTrain1")} <br />

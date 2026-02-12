@@ -89,7 +89,7 @@ function AnalysisPanel() {
   const navigate = useNavigate();
 
   return (
-    <Stack h="100%">
+    <Stack h="100%" px="sm">
       <Tabs
         h="100%"
         orientation="vertical"
@@ -115,6 +115,7 @@ function AnalysisPanel() {
             display: tab === "engines" ? "flex" : "none",
             flexDirection: "column",
           }}
+          pt="sm"
         >
           <ScrollArea
             offsetScrollbars

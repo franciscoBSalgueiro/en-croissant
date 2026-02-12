@@ -46,7 +46,7 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
   const stats = useMemo(() => getTreeStats(root), [root]);
 
   return (
-    <Stack h="100%">
+    <Stack h="100%" pl="sm" pt="sm">
       <GameSelectorAccordion
         games={games}
         setGames={setGames}
@@ -176,7 +176,7 @@ function GameSelectorAccordion({
           setPage(tempPage, true);
         }}
       />
-      <Accordion>
+      <Accordion pr="sm">
         <Accordion.Item value="game">
           <Accordion.Control>
             <Group justify="space-between" wrap="nowrap" w="100%">
