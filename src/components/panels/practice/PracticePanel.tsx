@@ -48,6 +48,11 @@ function PracticePanel() {
   const headers = useStore(store, (s) => s.headers);
   const goToMove = useStore(store, (s) => s.goToMove);
   const goToNext = useStore(store, (s) => s.goToNext);
+  const setPracticePath = useStore(store, (s) => s.setPracticePath);
+  const setPracticeAnswerRevealed = useStore(
+    store,
+    (s) => s.setPracticeAnswerRevealed,
+  );
 
   const currentTab = useAtomValue(currentTabAtom);
   const [resetModal, toggleResetModal] = useToggle();
@@ -75,12 +80,29 @@ function PracticePanel() {
   const setInvisible = useSetAtom(currentInvisibleAtom);
 
   async function newPractice() {
-    if (deck.positions.length === 0) return;
+    if (deck.positions.length === 0) {
+      setPracticePath(null);
+      return;
+    }
     const c = getCardForReview(deck.positions);
-    if (!c) return;
-    goToMove(findFen(c.fen, root));
+    if (!c) {
+      setPracticePath(null);
+      return;
+    }
+    const positionPath = findFen(c.fen, root);
+    const node = getNodeAtPath(root, positionPath);
+    if (node?.fen !== c.fen) {
+      setPracticePath(null);
+      return;
+    }
+    setPracticePath(positionPath);
+    goToMove(positionPath);
     setInvisible(true);
   }
+
+  useEffect(() => {
+    return () => setPracticePath(null);
+  }, [setPracticePath]);
 
   useEffect(() => {
     if (deck.logs[deck.logs.length - 1]?.rating === 4) {
@@ -224,6 +246,7 @@ function PracticePanel() {
                 variant="default"
                 onClick={() => {
                   setInvisible(false);
+                  setPracticeAnswerRevealed(true);
                   goToNext();
                 }}
               >
