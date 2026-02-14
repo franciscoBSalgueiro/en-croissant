@@ -1,4 +1,9 @@
-import { activeTabAtom, tabFamily, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  addRecentFileAtom,
+  tabFamily,
+  tabsAtom,
+} from "@/state/atoms";
 import { headersToPGN } from "@/utils/chess";
 import { createFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
@@ -77,6 +82,11 @@ export default function CreateRepertoireModal({
     });
 
     store.set(tabFamily(id), "practice");
+    store.set(addRecentFileAtom, {
+      name: trimmedName,
+      path: fileInfo.path,
+      type: "repertoire",
+    });
     navigate({ to: "/" });
 
     setName("");

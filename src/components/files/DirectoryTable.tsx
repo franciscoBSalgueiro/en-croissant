@@ -1,14 +1,6 @@
-import { commands } from "@/bindings";
-import {
-  activeTabAtom,
-  currentTabSelectedAtom,
-  deckAtomFamily,
-  tabFamily,
-  tabsAtom,
-} from "@/state/atoms";
+import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
+import { openFile } from "@/utils/files";
 import { capitalize } from "@/utils/format";
-import { createTab } from "@/utils/tabs";
-import { unwrap } from "@/utils/unwrap";
 import { Badge, Box, Group } from "@mantine/core";
 import {
   IconChevronRight,
@@ -21,7 +13,7 @@ import { remove } from "@tauri-apps/plugin-fs";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import Fuse from "fuse.js";
-import { useAtom, useSetAtom, useStore } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
@@ -204,31 +196,15 @@ function Table({
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
-  const setTabSelected = useSetAtom(currentTabSelectedAtom);
-  const store = useStore();
 
   const { showContextMenu } = useContextMenu();
 
-  const openFile = useCallback(
+  const handleOpenFile = useCallback(
     async (record: FileMetadata) => {
-      const pgn = unwrap(await commands.readGames(record.path, 0, 0));
-      const id = await createTab({
-        tab: {
-          name: record?.name || "Untitled",
-          type: "analysis",
-        },
-        setTabs,
-        setActiveTab,
-        pgn: pgn[0] || "",
-        fileInfo: record,
-        gameNumber: 0,
-      });
-      if (record.metadata.type === "repertoire") {
-        store.set(tabFamily(id), "practice");
-      }
+      await openFile(record, setTabs, setActiveTab);
       navigate({ to: "/" });
     },
-    [setActiveTab, setTabs, navigate, setTabSelected],
+    [setActiveTab, setTabs, navigate],
   );
 
   return (
@@ -249,7 +225,7 @@ function Table({
       sortStatus={sort}
       onRowDoubleClick={({ record }) => {
         if (record.type === "directory") return;
-        openFile(record);
+        handleOpenFile(record);
       }}
       onSortStatusChange={setSort}
       columns={[
@@ -335,7 +311,7 @@ function Table({
             disabled: record.type === "directory",
             onClick: () => {
               if (record.type === "directory") return;
-              openFile(record);
+              handleOpenFile(record);
             },
           },
           {

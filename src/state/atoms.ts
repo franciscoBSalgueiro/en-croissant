@@ -204,6 +204,35 @@ export const telemetryEnabledAtom = atomWithStorage<boolean>(
   { getOnInit: true },
 );
 
+// Recent Files
+
+export type RecentFile = {
+  name: string;
+  path: string;
+  type: "game" | "repertoire" | "tournament" | "puzzle" | "other";
+  lastOpened: number;
+};
+
+const MAX_RECENT_FILES = 10;
+
+export const recentFilesAtom = atomWithStorage<RecentFile[]>(
+  "recent-files",
+  [],
+);
+
+export const addRecentFileAtom = atom(
+  null,
+  (get, set, file: Omit<RecentFile, "lastOpened">) => {
+    const current = get(recentFilesAtom);
+    const filtered = current.filter((f) => f.path !== file.path);
+    const updated = [{ ...file, lastOpened: Date.now() }, ...filtered].slice(
+      0,
+      MAX_RECENT_FILES,
+    );
+    set(recentFilesAtom, updated);
+  },
+);
+
 // Database
 
 export const referenceDbAtom = atomWithStorage<string | null>(

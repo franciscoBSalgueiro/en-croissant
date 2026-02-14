@@ -1,5 +1,6 @@
 import { commands } from "@/bindings";
 import { currentTabAtom } from "@/state/atoms";
+import { addRecentFileAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
@@ -24,7 +25,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { makeFen, parseFen } from "chessops/fen";
-import { useAtom } from "jotai";
+import { useAtom, useStore } from "jotai";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -63,6 +64,7 @@ export default function ImportModal({
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
   const { documentDir } = useLoaderData({ from: "/" });
+  const store = useStore();
 
   async function handleSubmit() {
     setLoading(true);
@@ -115,6 +117,14 @@ export default function ImportModal({
             type: "analysis",
           };
         });
+
+        if (fileInfo?.path) {
+          store.set(addRecentFileAtom, {
+            name: fileInfo.name,
+            path: fileInfo.path,
+            type: fileInfo.metadata.type,
+          });
+        }
       }
     } else if (importType === "Link") {
       if (!link) {

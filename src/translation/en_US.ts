@@ -158,6 +158,12 @@ export const en_US = {
 
     "Home.PuzzleTraining": "Puzzle Training",
 
+    "Home.RecentFiles.Title": "Recent Files",
+    "Home.RecentFiles.NoRecentFiles": "No files open recently",
+    "Home.RecentFiles.Empty": "No recently opened files",
+    "Home.RecentFiles.DueCount": "{{count}} due",
+    "Home.RecentFiles.OpenFile": "Open",
+
     "Home.NewGame": "New Game",
 
     "Home.Accounts.Title": "Accounts",
