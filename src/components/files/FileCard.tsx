@@ -1,5 +1,10 @@
 import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  currentTabSelectedAtom,
+  tabFamily,
+  tabsAtom,
+} from "@/state/atoms";
 import { capitalize } from "@/utils/format";
 import { createTab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
@@ -14,7 +19,7 @@ import {
 } from "@mantine/core";
 import { IconEdit, IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import GamePreview from "../databases/GamePreview";
@@ -36,6 +41,7 @@ function FileCard({
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
+  const store = useStore();
   const navigate = useNavigate();
 
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -55,7 +61,7 @@ function FileCard({
   }, [selected, page]);
 
   async function openGame() {
-    createTab({
+    const id = await createTab({
       tab: {
         name: selected.name || "Untitled",
         type: "analysis",
@@ -66,6 +72,9 @@ function FileCard({
       fileInfo: selected,
       gameNumber: page,
     });
+    if (selected.metadata.type === "repertoire") {
+      store.set(tabFamily(id), "practice");
+    }
     navigate({ to: "/" });
   }
 

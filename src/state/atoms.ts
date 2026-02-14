@@ -328,7 +328,7 @@ export const currentEvalBarDisplayAtom = tabValue(evalBarDisplayFamily);
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
-const tabFamily = atomFamily((tab: string) => atom("info"));
+export const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 export const annotationFocusAtom = atom(0);
 export const triggerAnnotationFocusAtom = atom(null, (_, set) => {

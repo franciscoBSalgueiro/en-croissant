@@ -3,6 +3,7 @@ import {
   activeTabAtom,
   currentTabSelectedAtom,
   deckAtomFamily,
+  tabFamily,
   tabsAtom,
 } from "@/state/atoms";
 import { capitalize } from "@/utils/format";
@@ -20,7 +21,7 @@ import { remove } from "@tauri-apps/plugin-fs";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import Fuse from "fuse.js";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
@@ -204,13 +205,14 @@ function Table({
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
   const setTabSelected = useSetAtom(currentTabSelectedAtom);
+  const store = useStore();
 
   const { showContextMenu } = useContextMenu();
 
   const openFile = useCallback(
     async (record: FileMetadata) => {
       const pgn = unwrap(await commands.readGames(record.path, 0, 0));
-      await createTab({
+      const id = await createTab({
         tab: {
           name: record?.name || "Untitled",
           type: "analysis",
@@ -222,7 +224,7 @@ function Table({
         gameNumber: 0,
       });
       if (record.metadata.type === "repertoire") {
-        setTabSelected("practice");
+        store.set(tabFamily(id), "practice");
       }
       navigate({ to: "/" });
     },
