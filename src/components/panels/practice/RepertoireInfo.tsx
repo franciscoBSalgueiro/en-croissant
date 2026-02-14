@@ -55,7 +55,6 @@ function formatMoveNotation(halfMoves: number, san: string): string {
 
 function RepertoireInfo() {
   const { t } = useTranslation();
-  // biome-ignore lint/style/noNonNullAssertion: context is always provided
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
@@ -129,7 +128,6 @@ function RepertoireInfo() {
     isPrefix(position, startPath);
   const isEmptyTree = root.children.length === 0;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: startPathKey is a stable serialization of startPath
   useEffect(() => {
     if (!referenceDb) {
       setCoverageMap(new Map());
@@ -428,7 +426,6 @@ function MovesView({
   const hasResponses = currentNode.children.length > 0;
   const [showRare, setShowRare] = useState(false);
 
-  // For user-turn: build response rows from tree children + DB stats
   const responsesWithStats = useMemo(() => {
     if (!isUserTurn || !hasResponses) return [];
     return currentNode.children.map((child, idx) => {
@@ -456,7 +453,6 @@ function MovesView({
     coverageMap,
   ]);
 
-  // For opponent-turn: split into relevant and rare
   const relevantMoves = useMemo(
     () =>
       isUserTurn
@@ -490,7 +486,6 @@ function MovesView({
 
   const showCoverage = !isUserTurn || hasResponses;
 
-  // No moves at all
   if (positionMoves.length === 0 && !hasResponses) {
     return (
       <ScrollArea style={{ flex: 1 }} pt="sm">
@@ -552,7 +547,7 @@ function MovesView({
                 %
               </Text>
               <Text fz="xs" c="dimmed" w={50} ta="center">
-                {t("Board.Practice.Build.Games")}
+                {t("Common.Games")}
               </Text>
               <Text fz="xs" c="dimmed" w={80} ta="center">
                 {t("Board.Practice.Build.Results")}
@@ -568,7 +563,6 @@ function MovesView({
             </Group>
           </Group>
 
-          {/* User turn with prepared responses */}
           {isUserTurn &&
             hasResponses &&
             responsesWithStats.map((response) => (
@@ -593,7 +587,6 @@ function MovesView({
               />
             ))}
 
-          {/* User turn without responses: show DB moves to pick from */}
           {isUserTurn &&
             !hasResponses &&
             positionMoves.map((move) => (
@@ -607,7 +600,6 @@ function MovesView({
               />
             ))}
 
-          {/* Opponent turn: relevant moves */}
           {!isUserTurn &&
             relevantMoves.map((move) => (
               <MoveRow
@@ -619,7 +611,6 @@ function MovesView({
               />
             ))}
 
-          {/* Opponent turn: rare divider + rare moves */}
           {!isUserTurn && rareMoves.length > 0 && relevantMoves.length > 0 && (
             <UnstyledButton
               onClick={() => setShowRare((v) => !v)}
@@ -663,7 +654,6 @@ function MovesView({
             ))}
         </Stack>
 
-        {/* Gap navigation */}
         {coverageLoading ? (
           <>
             <Divider />

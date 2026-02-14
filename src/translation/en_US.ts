@@ -317,25 +317,15 @@ export const en_US = {
     "Board.Practice.Variations": "Variations",
     "Board.Practice.MaxDepth": "Max Depth",
     "Board.Practice.TotalMoves": "Total moves",
-    "Board.Practice.LookForMissingMoves": "Look for missing moves",
     "Board.Practice.MarkStart":
       "Play some moves and mark as Start when you reach the starting position of the desired opening.",
-    "Board.Practice.AnalyzingRepertoire": "Analyzing Repertoire",
-    "Board.Practice.NoMissingMovesFound": "No missing moves found",
-    "Board.Practice.MissingMoves": "Missing Moves",
-    "Board.Practice.RefreshMoves": "Refresh moves",
 
     "Board.Practice.Build.YourCoverage": "Your coverage",
     "Board.Practice.Build.Results": "Results",
-    "Board.Practice.Build.NotInRepertoire":
-      "This move is not in your repertoire",
     "Board.Practice.Build.NextGap": "Go to your next gap",
     "Board.Practice.Build.BiggestGap": "Go to your biggest gap",
-    "Board.Practice.Build.AddToRepertoire": "Add to repertoire",
     "Board.Practice.Build.NoRefDb":
-      "Select a reference database in Settings to use the Build view.",
-    "Board.Practice.Build.Games": "Games",
-    "Board.Practice.Build.Remove": "Remove",
+      "Select a reference database to use the Build view.",
     "Board.Practice.Build.NoGapsFound":
       "No gaps found — your repertoire is complete!",
     "Board.Practice.Build.NoMovesFound":

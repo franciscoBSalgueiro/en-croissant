@@ -290,12 +290,7 @@ export const ko_KR = {
     "Board.Practice.Variations": "변형",
     "Board.Practice.MaxDepth": "최대 깊이",
     "Board.Practice.TotalMoves": "총 수",
-    "Board.Practice.LookForMissingMoves": "누락된 수 찾기",
     "Board.Practice.MarkStart": "연습 시작 위치로 표시합니다",
-    "Board.Practice.AnalyzingRepertoire": "레퍼토리 분석 중...",
-    "Board.Practice.NoMissingMovesFound": "누락된 수를 찾지 못했습니다",
-    "Board.Practice.MissingMoves": "누락된 수",
-    "Board.Practice.RefreshMoves": "수 새로고침",
 
     "Board.Annotate.WriteHere": "여기에 작성하세요...",
 
