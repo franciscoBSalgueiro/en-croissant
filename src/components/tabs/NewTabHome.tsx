@@ -4,9 +4,15 @@ import { tabsAtom } from "@/state/atoms";
 import type { Tab } from "@/utils/tabs";
 import { useAtom } from "jotai";
 import { useState } from "react";
+import CreateRepertoireModal from "./CreateRepertoireModal";
 import ImportModal from "./ImportModal";
 
-import { IconChess, IconFileImport, IconPuzzle } from "@tabler/icons-react";
+import {
+  IconChess,
+  IconFileImport,
+  IconPuzzle,
+  IconTargetArrow,
+} from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import Chessboard from "../icons/Chessboard";
 
@@ -14,6 +20,7 @@ export default function NewTabHome({ id }: { id: string }) {
   const { t } = useTranslation();
 
   const [openModal, setOpenModal] = useState(false);
+  const [openRepertoireModal, setOpenRepertoireModal] = useState(false);
   const [, setTabs] = useAtom(tabsAtom);
 
   const cards = [
@@ -48,6 +55,15 @@ export default function NewTabHome({ id }: { id: string }) {
       },
     },
     {
+      icon: <IconTargetArrow size={60} />,
+      title: t("Home.Card.NewRepertoire.Title"),
+      description: t("Home.Card.NewRepertoire.Desc"),
+      label: t("Home.Card.NewRepertoire.Button"),
+      onClick: () => {
+        setOpenRepertoireModal(true);
+      },
+    },
+    {
       icon: <IconFileImport size={60} />,
       title: t("Home.Card.ImportGame.Title"),
       description: t("Home.Card.ImportGame.Desc"),
@@ -76,7 +92,11 @@ export default function NewTabHome({ id }: { id: string }) {
   return (
     <>
       <ImportModal openModal={openModal} setOpenModal={setOpenModal} />
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
+      <CreateRepertoireModal
+        opened={openRepertoireModal}
+        setOpened={setOpenRepertoireModal}
+      />
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
         {cards.map((card) => (
           <Card shadow="sm" p="lg" radius="md" withBorder key={card.title}>
             <Stack align="center" h="100%" justify="space-between">

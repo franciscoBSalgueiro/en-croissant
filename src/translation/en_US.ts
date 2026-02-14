@@ -149,6 +149,13 @@ export const en_US = {
     "Home.Card.Puzzle.Desc": "Train your chess skills",
     "Home.Card.Puzzle.Button": "Train",
 
+    "Home.Card.NewRepertoire.Title": "New Repertoire",
+    "Home.Card.NewRepertoire.Desc":
+      "Build and practice your opening repertoire",
+    "Home.Card.NewRepertoire.Button": "Create",
+    "Home.Card.NewRepertoire.NamePlaceholder": "Enter repertoire name",
+    "Home.Card.NewRepertoire.Color": "For",
+
     "Home.PuzzleTraining": "Puzzle Training",
 
     "Home.NewGame": "New Game",

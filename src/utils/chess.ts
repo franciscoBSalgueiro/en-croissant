@@ -193,7 +193,7 @@ export function getVariationLine(
   return moves;
 }
 
-function headersToPGN(game: GameHeaders): string {
+export function headersToPGN(game: GameHeaders): string {
   let headers = `[Event "${game.event || "?"}"]
 [Site "${game.site || "?"}"]
 [Date "${game.date || "????.??.??"}"]
