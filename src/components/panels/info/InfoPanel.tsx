@@ -2,7 +2,7 @@ import { commands } from "@/bindings";
 import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
-import { currentTabAtom, missingMovesAtom } from "@/state/atoms";
+import { currentTabAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
@@ -21,7 +21,7 @@ import {
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -99,7 +99,6 @@ function GameSelectorAccordion({
   const dirty = useStore(store, (s) => s.dirty);
   const setState = useStore(store, (s) => s.setState);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
-  const setMissingMoves = useSetAtom(missingMovesAtom);
 
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
@@ -150,11 +149,6 @@ function GameSelectorAccordion({
         gameNumber: page,
       };
     });
-
-    setMissingMoves((prev) => ({
-      ...prev,
-      [currentTab?.value]: null,
-    }));
   }
 
   async function deleteGame(index: number) {

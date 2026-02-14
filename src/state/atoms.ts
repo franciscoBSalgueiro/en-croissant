@@ -12,7 +12,7 @@ import {
   lichessGamesOptionsSchema,
   masterOptionsSchema,
 } from "@/utils/lichess/explorer";
-import type { MissingMove } from "@/utils/repertoire";
+
 import { type Tab, genID, tabSchema } from "@/utils/tabs";
 import type { MantineColor } from "@mantine/core";
 
@@ -251,23 +251,6 @@ export const gamePlayer2SettingsAtom = atomWithStorage<OpponentSettings>(
 export const gameSameTimeControlAtom = atomWithStorage<boolean>(
   "game-same-time-control",
   true,
-);
-
-// Opening Report
-
-export const percentageCoverageAtom = atomWithStorage<number>(
-  "percentage-coverage",
-  95,
-);
-
-type TabMap<T> = Record<string, T>;
-
-export const minimumGamesAtom = atomWithStorage<number>("minimum-games", 5);
-
-export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
-  "missing-moves",
-  {},
-  createJSONStorage(() => sessionStorage),
 );
 
 function tabValue<

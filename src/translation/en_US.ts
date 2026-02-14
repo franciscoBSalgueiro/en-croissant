@@ -320,12 +320,31 @@ export const en_US = {
     "Board.Practice.LookForMissingMoves": "Look for missing moves",
     "Board.Practice.MarkStart":
       "Mark a move as Start in order to exclude unwanted moves from the results",
-    "Board.Practice.MarkStartHint":
-      "in order to exclude unwanted moves from the results",
     "Board.Practice.AnalyzingRepertoire": "Analyzing Repertoire",
     "Board.Practice.NoMissingMovesFound": "No missing moves found",
     "Board.Practice.MissingMoves": "Missing Moves",
     "Board.Practice.RefreshMoves": "Refresh moves",
+
+    "Board.Practice.Build.YourCoverage": "Your coverage",
+    "Board.Practice.Build.Results": "Results",
+    "Board.Practice.Build.NotInRepertoire":
+      "This move is not in your repertoire",
+    "Board.Practice.Build.NextGap": "Go to your next gap",
+    "Board.Practice.Build.BiggestGap": "Go to your biggest gap",
+    "Board.Practice.Build.AddToRepertoire": "Add to repertoire",
+    "Board.Practice.Build.NoRefDb":
+      "Select a reference database in Settings to use the Build view.",
+    "Board.Practice.Build.Games": "Games",
+    "Board.Practice.Build.Remove": "Remove",
+    "Board.Practice.Build.NoGapsFound":
+      "No gaps found — your repertoire is complete!",
+    "Board.Practice.Build.NoMovesFound":
+      "No moves found in the reference database for this position.",
+    "Board.Practice.Build.Loading": "Loading position data...",
+    "Board.Practice.Build.RareMoves": "Rare moves",
+    "Board.Practice.Build.RareTooltip": "Too few games to require preparation",
+    "Board.Practice.Build.OpponentMoves": "Opponent's moves",
+    "Board.Practice.Build.YourResponse": "Your response",
 
     "Board.Annotate.WriteHere": "Write here...",
 

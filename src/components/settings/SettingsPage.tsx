@@ -4,13 +4,11 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
-  minimumGamesAtom,
   moveHighlightAtom,
   moveInputAtom,
   moveMethodAtom,
   moveNotationTypeAtom,
   nativeBarAtom,
-  percentageCoverageAtom,
   previewBoardOnHoverAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
@@ -38,7 +36,6 @@ import {
 } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import {
-  IconBook,
   IconBrush,
   IconChess,
   IconFlag,
@@ -63,7 +60,6 @@ import ColorControl from "./ColorControl";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
-import SettingsNumberInput from "./SettingsNumberInput";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
@@ -73,7 +69,6 @@ import VolumeSlider from "./VolumeSlider";
 type SettingCategory =
   | "board"
   | "inputs"
-  | "report"
   | "anarchy"
   | "appearance"
   | "sound"
@@ -325,32 +320,6 @@ export default function Page() {
         keywords: ["spell", "check", "grammar"],
         render: () => <SettingsSwitch atom={spellCheckAtom} />,
       },
-      // Opening Report settings
-      {
-        id: "percent-coverage",
-        category: "report",
-        title: t("Settings.OpeningReport.PercentCoverage"),
-        description: t("Settings.OpeningReport.PercentCoverage.Desc"),
-        keywords: ["coverage", "percent", "opening"],
-        render: () => (
-          <SettingsNumberInput
-            atom={percentageCoverageAtom}
-            min={50}
-            max={100}
-            step={1}
-          />
-        ),
-      },
-      {
-        id: "min-games",
-        category: "report",
-        title: t("Settings.OpeningReport.MinGames"),
-        description: t("Settings.OpeningReport.MinGames.Desc"),
-        keywords: ["games", "minimum", "opening"],
-        render: () => (
-          <SettingsNumberInput atom={minimumGamesAtom} min={0} step={1} />
-        ),
-      },
       // Anarchy settings
       {
         id: "forced-en-passant",
@@ -539,11 +508,6 @@ export default function Page() {
       description: t("Settings.Inputs.Desc"),
       icon: <IconMouse size="1rem" />,
     },
-    report: {
-      title: t("Settings.OpeningReport"),
-      description: t("Settings.OpeningReport.Desc"),
-      icon: <IconBook size="1rem" />,
-    },
     anarchy: {
       title: t("Settings.Anarchy"),
       description: t("Settings.Anarchy.Desc"),
@@ -694,9 +658,6 @@ export default function Page() {
             <Tabs.Tab value="inputs" leftSection={<IconMouse size="1rem" />}>
               {t("Settings.Inputs")}
             </Tabs.Tab>
-            <Tabs.Tab value="report" leftSection={<IconBook size="1rem" />}>
-              {t("Settings.OpeningReport")}
-            </Tabs.Tab>
             <Tabs.Tab value="anarchy" leftSection={<IconFlag size="1rem" />}>
               {t("Settings.Anarchy")}
             </Tabs.Tab>
@@ -746,16 +707,6 @@ export default function Page() {
                     {t("Settings.Inputs.Desc")}
                   </Text>
                   {renderCategorySettings("inputs")}
-                </Tabs.Panel>
-
-                <Tabs.Panel value="report">
-                  <Text size="lg" fw={500} className={classes.title}>
-                    {t("Settings.OpeningReport")}
-                  </Text>
-                  <Text size="xs" c="dimmed" mt={3} mb="lg">
-                    {t("Settings.OpeningReport.Desc")}
-                  </Text>
-                  {renderCategorySettings("report")}
                 </Tabs.Panel>
 
                 <Tabs.Panel value="anarchy">
