@@ -793,13 +793,13 @@ function MoveRow({
           >
             <Progress.Root size="xl" w={100}>
               <Progress.Section value={wPct} color="white">
-                {wPct > 10 && <Progress.Label c="black">{wPct}</Progress.Label>}
+                {wPct > 20 && <Progress.Label c="black">{wPct}</Progress.Label>}
               </Progress.Section>
               <Progress.Section value={dPct} color="gray">
-                {dPct > 10 && <Progress.Label>{dPct}</Progress.Label>}
+                {dPct > 20 && <Progress.Label>{dPct}</Progress.Label>}
               </Progress.Section>
               <Progress.Section value={bPct} color="dark">
-                {bPct > 10 && <Progress.Label>{bPct}</Progress.Label>}
+                {bPct > 20 && <Progress.Label>{bPct}</Progress.Label>}
               </Progress.Section>
             </Progress.Root>
           </Tooltip>
