@@ -35,6 +35,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -280,6 +281,9 @@ function BoardAnalysis() {
           />
         ) : (
           <Stack h="100%" gap="xs">
+            <Suspense fallback={null}>
+              <DetachedEval />
+            </Suspense>
             <GameNotation
               topBar
               controls={

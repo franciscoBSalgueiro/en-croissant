@@ -1,6 +1,7 @@
 import type { BestMoves } from "@/bindings";
 import {
   activeTabAtom,
+  currentDetachedEngineAtom,
   currentThreatAtom,
   engineMovesFamily,
   engineProgressFamily,
@@ -29,6 +30,8 @@ import {
 import { useToggle } from "@mantine/hooks";
 import {
   IconGripVertical,
+  IconPinned,
+  IconPinnedOff,
   IconPlayerPause,
   IconPlayerPlay,
   IconSettings,
@@ -38,7 +41,14 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useDeferredValue, useEffect, useMemo } from "react";
+import {
+  memo,
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import AnalysisRow from "./AnalysisRow";
@@ -119,6 +129,10 @@ function BestMovesComponent({
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, setThreat] = useAtom(currentThreatAtom);
+  const [detachedEngineId, setDetachedEngineId] = useAtom(
+    currentDetachedEngineAtom,
+  );
+  const isDetached = detachedEngineId === engine.id;
   const theme = useMantineTheme();
 
   const [pos, error] = positionFromFen(fen);
@@ -199,6 +213,27 @@ function BestMovesComponent({
               mb="auto"
             >
               <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip
+            label={isDetached ? "Unpin from notation" : "Pin above notation"}
+          >
+            <ActionIcon
+              size="lg"
+              onClick={() =>
+                startTransition(() => {
+                  setDetachedEngineId(isDetached ? null : engine.id);
+                })
+              }
+              variant={isDetached ? "light" : "transparent"}
+              mt="auto"
+              mb="auto"
+            >
+              {isDetached ? (
+                <IconPinnedOff size="1rem" />
+              ) : (
+                <IconPinned size="1rem" />
+              )}
             </ActionIcon>
           </Tooltip>
           <ActionIcon
