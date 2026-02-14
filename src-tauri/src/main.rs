@@ -82,6 +82,8 @@ pub struct AppState {
     db_cache: Mutex<Option<MmapSearchIndex>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
+    #[derivative(Default(value = "DashMap::new()"))]
+    search_collisions: DashMap<(GameQueryJs, PathBuf), Arc<tokio::sync::Mutex<()>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
