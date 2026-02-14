@@ -388,7 +388,10 @@ const expandedEnginesFamily = atomFamily((tab: string) =>
 );
 export const currentExpandedEnginesAtom = tabValue(expandedEnginesFamily);
 
-export const currentDetachedEngineAtom = atom<string | null>(null);
+export const currentDetachedEngineAtom = atomWithStorage<string | null>(
+  "detached-engine",
+  null,
+);
 
 const pgnOptionsFamily = atomFamily((tab: string) =>
   atom({

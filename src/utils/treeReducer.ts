@@ -182,6 +182,19 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
   return currentNode;
 };
 
+export function getTreeStructureHash(node: TreeNode): string {
+  const parts: string[] = [];
+  const stack: TreeNode[] = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    parts.push(`${n.fen}|${n.san ?? ""}|${n.halfMoves}|${n.children.length}`);
+    for (let i = n.children.length - 1; i >= 0; i--) {
+      stack.push(n.children[i]);
+    }
+  }
+  return parts.join(";");
+}
+
 export interface ReportState {
   inProgress: boolean;
 }

@@ -10,7 +10,11 @@ import {
   findNextGap,
   getTreeStats,
 } from "@/utils/repertoire";
-import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
+import {
+  type TreeNode,
+  getNodeAtPath,
+  getTreeStructureHash,
+} from "@/utils/treeReducer";
 import {
   Alert,
   Box,
@@ -71,6 +75,8 @@ function RepertoireInfo() {
   const orientation = headers.orientation || "white";
 
   const stats = useMemo(() => getTreeStats(root), [root]);
+
+  const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
 
   const [rawOpenings, setRawOpenings] = useState<
     { move: string; white: number; draw: number; black: number }[]
@@ -146,7 +152,7 @@ function RepertoireInfo() {
         }
       },
     );
-  }, [root, orientation, referenceDb, startPathKey]);
+  }, [rootStructureHash, orientation, referenceDb, startPathKey]);
 
   const positionMoves = useMemo(() => {
     const total = rawOpenings.reduce(

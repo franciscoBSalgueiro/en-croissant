@@ -169,7 +169,7 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
               </Text>
             </>
           ) : (
-            <Text fz="xs" c="dimmed">
+            <Text fz="xs" c="dimmed" lh={"1.6rem"}>
               {isGameOver ? "Game over" : "—"}
             </Text>
           )}
