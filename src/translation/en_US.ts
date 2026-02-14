@@ -204,9 +204,8 @@ export const en_US = {
     "Board.Practice.Train": "Train",
     "Board.Practice.Build": "Build",
     "Board.Practice.NoPositionForTrain1":
-      "There are no position to practice. Start by adding moves to this PGN file.",
-    "Board.Practice.NoPositionForTrain2":
-      "You'll need to change to Analysis mode to be able to add moves.",
+      "There are no positions to practice. Use the Build tab to add moves to your repertoire.",
+    "Board.Practice.GoToBuild": "Go to Build",
     "Board.Practice.SeeAnser": "See Answer",
     "Board.Practice.Practiced": "Practiced",
     "Board.Practice.Due": "Due",
@@ -341,7 +340,7 @@ export const en_US = {
       "This position is before your Start position",
     "Board.Practice.Build.Presets": "Quick start",
     "Board.Practice.Build.PresetsDesc":
-      "Pick a first move to begin your repertoire",
+      "Choose one of these presets to begin, or start making moves on the board.",
 
     "Board.Annotate.WriteHere": "Write here...",
 

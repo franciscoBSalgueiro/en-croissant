@@ -44,6 +44,7 @@ import {
   IconArrowRight,
   IconCheck,
   IconFlame,
+  IconInfoCircle,
   IconTarget,
   IconX,
 } from "@tabler/icons-react";
@@ -213,10 +214,18 @@ function PracticePanel() {
         <Tabs.Panel value="train" style={{ overflow: "hidden" }}>
           <Stack p="sm" gap="md">
             {stats.total === 0 && (
-              <Text>
-                {t("Board.Practice.NoPositionForTrain1")} <br />
-                {t("Board.Practice.NoPositionForTrain2")}
-              </Text>
+              <Alert icon={<IconInfoCircle />} color="blue">
+                <Stack gap="xs">
+                  <Text fz="sm">{t("Board.Practice.NoPositionForTrain1")}</Text>
+                  <Button
+                    variant="light"
+                    size="xs"
+                    onClick={() => setTab("build")}
+                  >
+                    {t("Board.Practice.GoToBuild")}
+                  </Button>
+                </Stack>
+              </Alert>
             )}
             {syncMessage && (
               <Alert
