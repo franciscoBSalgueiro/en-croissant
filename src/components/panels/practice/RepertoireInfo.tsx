@@ -1,6 +1,7 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { currentTabAtom, referenceDbAtom } from "@/state/atoms";
 import { searchPosition } from "@/utils/db";
+import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
 import {
   COVERAGE_MIN_GAMES,
@@ -50,6 +51,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import * as classes from "./RepertoireInfo.css";
 
 function formatMoveNotation(halfMoves: number, san: string): string {
   const moveNum = Math.ceil(halfMoves / 2);
@@ -543,7 +545,6 @@ function MovesView({
     <ScrollArea style={{ flex: 1 }} pt="sm">
       <Stack gap="md">
         <Stack gap={0}>
-          {/* Column headers */}
           <Group justify="space-between" mb={4} px="xs">
             <Text fz="xs" fw={600} style={{ flex: 1 }}>
               {title}
@@ -552,10 +553,10 @@ function MovesView({
               <Text fz="xs" c="dimmed" w={50} ta="center">
                 %
               </Text>
-              <Text fz="xs" c="dimmed" w={50} ta="center">
+              <Text fz="xs" c="dimmed" w={70} ta="center">
                 {t("Common.Games")}
               </Text>
-              <Text fz="xs" c="dimmed" w={80} ta="center">
+              <Text fz="xs" c="dimmed" w={100} ta="center">
                 {t("Board.Practice.Build.Results")}
               </Text>
               {showCoverage && (
@@ -748,15 +749,18 @@ function MoveRow({
   const coverageColor = getCoverageColor(move.coverage);
   const pct =
     move.frequency > 0 ? `${(move.frequency * 100).toFixed(0)}%` : "—";
-  const wPct = Math.round(move.white * 100);
-  const dPct = Math.round(move.draw * 100);
-  const bPct = Math.round(move.black * 100);
+  const [wPct, dPct, bPct] = roundKeepSum([
+    move.white * 100,
+    move.draw * 100,
+    move.black * 100,
+  ]);
 
   return (
     <UnstyledButton
       onClick={onClick}
       py="sm"
       px="xs"
+      className={classes.moveRow}
       style={{
         borderBottom: "1px solid var(--mantine-color-dark-5)",
         borderRadius: 0,
@@ -779,7 +783,7 @@ function MoveRow({
           <Text fz="sm" c="dimmed" w={50} ta="center">
             {pct}
           </Text>
-          <Text fz="sm" c="dimmed" w={50} ta="center">
+          <Text fz="sm" c="dimmed" w={70} ta="center">
             {move.games > 0 ? move.games.toLocaleString() : "—"}
           </Text>
           <Tooltip
@@ -787,10 +791,16 @@ function MoveRow({
             position="top"
             withArrow
           >
-            <Progress.Root size="lg" w={80} radius="xl">
-              <Progress.Section value={wPct} color="white" />
-              <Progress.Section value={dPct} color="gray" />
-              <Progress.Section value={bPct} color="dark" />
+            <Progress.Root size="xl" w={100}>
+              <Progress.Section value={wPct} color="white">
+                {wPct > 10 && <Progress.Label c="black">{wPct}</Progress.Label>}
+              </Progress.Section>
+              <Progress.Section value={dPct} color="gray">
+                {dPct > 10 && <Progress.Label>{dPct}</Progress.Label>}
+              </Progress.Section>
+              <Progress.Section value={bPct} color="dark">
+                {bPct > 10 && <Progress.Label>{bPct}</Progress.Label>}
+              </Progress.Section>
             </Progress.Root>
           </Tooltip>
           {showCoverage && (

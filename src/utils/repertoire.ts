@@ -126,7 +126,6 @@ export async function computeTreeCoverage(
 
   const startNode = getNodeAtPath(root, startPath);
   await compute(startNode, startPath);
-  console.log(coverageMap);
   return { coverageMap, gamesMap };
 }
 

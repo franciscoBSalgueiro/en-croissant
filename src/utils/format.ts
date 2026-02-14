@@ -91,3 +91,30 @@ export function getInitials(name: string) {
   const initials = names.map((n) => n.charAt(0).toUpperCase()).join("");
   return initials;
 }
+
+export function roundKeepSum(numbers: number[], targetSum = 100): number[] {
+  if (numbers.every((num) => num === 0)) return numbers;
+  const mappedNumbers = numbers.map((num, i) => ({
+    originalValue: num,
+    decimalPart: num - Math.floor(num),
+    index: i,
+    flooredValue: Math.floor(num),
+  }));
+
+  const currentSum = mappedNumbers.reduce(
+    (sum, item) => sum + item.flooredValue,
+    0,
+  );
+
+  const remainder = Math.round(targetSum - currentSum);
+
+  mappedNumbers.sort((a, b) => b.decimalPart - a.decimalPart);
+
+  for (let i = 0; i < remainder; i++) {
+    mappedNumbers[i].flooredValue += 1;
+  }
+
+  return mappedNumbers
+    .sort((a, b) => a.index - b.index)
+    .map((item) => item.flooredValue);
+}
