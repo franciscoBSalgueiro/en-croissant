@@ -98,7 +98,7 @@ function GameNotation({
             <Divider orientation="vertical" />
           </>
         )}
-        <Stack h="100%" pt="md" gap={0} style={{ flex: 1, minWidth: 0 }}>
+        <Stack h="100%" pt="xs" gap={0} style={{ flex: 1, minWidth: 0 }}>
           {topBar && (
             <NotationHeader
               showComments={showComments}
@@ -185,7 +185,7 @@ const NotationHeader = memo(function NotationHeader({
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
-    <Stack>
+    <Stack gap="xs">
       <Group justify="space-between">
         <OpeningName />
         <Group gap="sm">
