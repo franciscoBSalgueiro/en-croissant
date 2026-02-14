@@ -1,6 +1,7 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { currentTabAtom, referenceDbAtom } from "@/state/atoms";
 import { searchPosition } from "@/utils/db";
+import { isPrefix } from "@/utils/misc";
 import {
   COVERAGE_MIN_GAMES,
   type PositionMove,
@@ -13,6 +14,7 @@ import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   Alert,
   Box,
+  Button,
   Divider,
   Group,
   Loader,
@@ -29,7 +31,9 @@ import {
   IconCheck,
   IconChevronDown,
   IconChevronRight,
+  IconFlag,
   IconInfoCircle,
+  IconPlayerPlay,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import {
@@ -59,6 +63,8 @@ function RepertoireInfo() {
   const currentNode = useStore(store, (s) => s.currentNode());
   const goToMove = useStore(store, (s) => s.goToMove);
   const makeMove = useStore(store, (s) => s.makeMove);
+  const makeMoves = useStore(store, (s) => s.makeMoves);
+  const setStart = useStore(store, (s) => s.setStart);
 
   const referenceDb = useAtomValue(referenceDbAtom);
   const currentTab = useAtomValue(currentTabAtom);
@@ -116,6 +122,12 @@ function RepertoireInfo() {
 
   const startPath = headers.start || [];
   const startPathKey = startPath.join(",");
+  const hasStart = headers.start != null && headers.start.length > 0;
+  const isBeforeStart =
+    hasStart &&
+    position.length < startPath.length &&
+    isPrefix(position, startPath);
+  const isEmptyTree = root.children.length === 0;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: startPathKey is a stable serialization of startPath
   useEffect(() => {
@@ -239,10 +251,100 @@ function RepertoireInfo() {
 
   return (
     <Stack h="100%" p="sm" gap={0} style={{ overflow: "hidden" }}>
-      {(!headers.start || headers.start.length === 0) && (
-        <Alert icon={<IconInfoCircle />} color="yellow" p="xs" my="sm">
-          <Text fz="xs">{t("Board.Practice.MarkStart")}</Text>
-        </Alert>
+      {isBeforeStart && (
+        <Paper p="sm" my="sm" withBorder>
+          <Stack gap="xs">
+            <Text fz="xs" c="dimmed">
+              {t("Board.Practice.Build.BeforeStart")}
+            </Text>
+            <Button
+              leftSection={<IconPlayerPlay size={16} />}
+              variant="light"
+              size="xs"
+              onClick={() => goToMove(startPath)}
+            >
+              {t("Board.Practice.Build.GoToStart")}
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
+      {!hasStart && !isEmptyTree && (
+        <Paper p="sm" my="sm" withBorder>
+          <Stack gap="xs">
+            <Text fz="xs" c="dimmed">
+              {t("Board.Practice.MarkStart")}
+            </Text>
+            <Button
+              leftSection={<IconFlag size={16} />}
+              variant="light"
+              size="xs"
+              onClick={() => setStart(position)}
+            >
+              {t("Board.Practice.Build.SetAsStart")}
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
+      {isEmptyTree && position.length === 0 && (
+        <Paper p="sm" my="sm" withBorder>
+          <Stack gap="xs">
+            <Text fz="sm" fw={600}>
+              {t("Board.Practice.Build.Presets")}
+            </Text>
+            <Text fz="xs" c="dimmed">
+              {t("Board.Practice.Build.PresetsDesc")}
+            </Text>
+            <Stack gap={4}>
+              {(orientation === "white"
+                ? [
+                    {
+                      name: "Italian Game",
+                      moves: ["e4", "e5", "Nf3", "Nc6", "Bc4"],
+                    },
+                    {
+                      name: "Ruy Lopez",
+                      moves: ["e4", "e5", "Nf3", "Nc6", "Bb5"],
+                    },
+                    { name: "Catalan", moves: ["d4", "Nf6", "c4", "e6", "g3"] },
+                  ]
+                : [
+                    { name: "French Defense", moves: ["e4", "e6", "d4", "d5"] },
+                    { name: "King's Indian", moves: ["d4", "Nf6", "c4", "g6"] },
+                    {
+                      name: "Najdorf",
+                      moves: [
+                        "e4",
+                        "c5",
+                        "Nf3",
+                        "d6",
+                        "d4",
+                        "cxd4",
+                        "Nxd4",
+                        "Nf6",
+                        "Nc3",
+                        "a6",
+                      ],
+                    },
+                  ]
+              ).map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant="default"
+                  size="xs"
+                  justify="start"
+                  onClick={() => {
+                    makeMoves({ payload: preset.moves });
+                    setStart(Array(preset.moves.length).fill(0));
+                  }}
+                >
+                  {preset.name}
+                </Button>
+              ))}
+            </Stack>
+          </Stack>
+        </Paper>
       )}
 
       {loading ? (

@@ -639,6 +639,9 @@ function deleteMove(state: TreeState, path: number[]) {
       state.position[path.length - 1] = 0;
     }
   }
+  if (state.headers.start && isPrefix(path, state.headers.start)) {
+    state.headers.start = undefined;
+  }
 }
 
 function promoteVariation(state: TreeState, path: number[]) {

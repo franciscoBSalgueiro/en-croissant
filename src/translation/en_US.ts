@@ -319,7 +319,7 @@ export const en_US = {
     "Board.Practice.TotalMoves": "Total moves",
     "Board.Practice.LookForMissingMoves": "Look for missing moves",
     "Board.Practice.MarkStart":
-      "Mark a move as Start in order to exclude unwanted moves from the results",
+      "Play some moves and mark as Start when you reach the starting position of the desired opening.",
     "Board.Practice.AnalyzingRepertoire": "Analyzing Repertoire",
     "Board.Practice.NoMissingMovesFound": "No missing moves found",
     "Board.Practice.MissingMoves": "Missing Moves",
@@ -345,6 +345,13 @@ export const en_US = {
     "Board.Practice.Build.RareTooltip": "Too few games to require preparation",
     "Board.Practice.Build.OpponentMoves": "Opponent's moves",
     "Board.Practice.Build.YourResponse": "Your response",
+    "Board.Practice.Build.GoToStart": "Go to Start position",
+    "Board.Practice.Build.SetAsStart": "Set as Start",
+    "Board.Practice.Build.BeforeStart":
+      "This position is before your Start position",
+    "Board.Practice.Build.Presets": "Quick start",
+    "Board.Practice.Build.PresetsDesc":
+      "Pick a first move to begin your repertoire",
 
     "Board.Annotate.WriteHere": "Write here...",
 
