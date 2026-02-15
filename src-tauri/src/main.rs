@@ -66,7 +66,9 @@ use crate::{
         delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
     },
     fs::{download_file, file_exists, get_file_metadata},
-    opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
+    opening::{
+        get_opening_from_fen, get_opening_from_fens, get_opening_from_name, search_opening_name,
+    },
 };
 use std::sync::atomic::AtomicBool;
 use tokio::sync::Semaphore;
@@ -131,6 +133,7 @@ fn main() {
             get_puzzle,
             search_opening_name,
             get_opening_from_fen,
+            get_opening_from_fens,
             get_opening_from_name,
             get_players_game_info,
             get_engine_config,

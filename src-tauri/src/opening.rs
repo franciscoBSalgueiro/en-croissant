@@ -62,6 +62,17 @@ pub fn get_opening_from_name(name: &str) -> Result<String, Error> {
         .ok_or_else(|| Error::NoOpeningFound)
 }
 
+#[tauri::command]
+#[specta::specta]
+pub fn get_opening_from_fens(fens: Vec<String>) -> Result<String, Error> {
+    for fen in fens.into_iter().rev() {
+        if let Ok(opening) = get_opening_from_fen(&fen) {
+            return Ok(opening);
+        }
+    }
+    Err(Error::NoOpeningFound)
+}
+
 pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
     OPENINGS
         .iter()

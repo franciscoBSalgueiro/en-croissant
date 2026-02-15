@@ -358,18 +358,23 @@ export async function getOpening(
   root: TreeNode,
   position: number[],
 ): Promise<string> {
-  const tree = getNodeAtPath(root, position);
-  if (tree === null) {
-    return "";
-  }
-  const res = await commands.getOpeningFromFen(tree.fen);
-  if (res.status === "error") {
-    if (position.length === 0) {
-      return "";
+  const fens: string[] = [root.fen];
+  let currentNode = root;
+
+  for (const index of position) {
+    if (!currentNode.children || index >= currentNode.children.length) {
+      break;
     }
-    return getOpening(root, position.slice(0, -1));
+    currentNode = currentNode.children[index];
+    fens.push(currentNode.fen);
   }
-  return res.data;
+
+  const res = await commands.getOpeningFromFens(fens);
+  if (res.status !== "error") {
+    return res.data;
+  }
+
+  return "";
 }
 
 function innerParsePGN(
