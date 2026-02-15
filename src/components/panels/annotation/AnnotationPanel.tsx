@@ -1,5 +1,4 @@
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { annotationFocusAtom } from "@/state/atoms";
 import {
   ANNOTATION_INFO,
   type Annotation,
@@ -78,12 +77,6 @@ function AnnotationPanel() {
   const position = useStore(store, (s) => s.position);
   const currentNode = getNodeAtPath(root, position);
   const [showMoreSymbols, setShowMoreSymbols] = useAtom(showMoreSymbolsAtom);
-  const editorRef = useRef<{ focus: () => void }>(null);
-  const focusSignal = useAtomValue(annotationFocusAtom);
-
-  useEffect(() => {
-    editorRef.current?.focus();
-  }, [focusSignal]);
 
   return (
     <Stack h="100%" gap={0} py="sm">
@@ -140,7 +133,7 @@ function AnnotationPanel() {
       </Collapse>
 
       <ScrollArea offsetScrollbars pl="sm">
-        <AnnotationEditor ref={editorRef} />
+        <AnnotationEditor />
       </ScrollArea>
     </Stack>
   );

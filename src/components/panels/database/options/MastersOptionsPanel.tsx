@@ -17,7 +17,7 @@ const MasterOptionsPanel = () => {
         minDate={MIN_DATE}
         maxDate={new Date()}
         onChange={(value) =>
-          setOptions({ ...options, since: value ?? undefined })
+          setOptions({ ...options, since: value ? new Date(value) : undefined })
         }
         clearable
       />
@@ -28,7 +28,7 @@ const MasterOptionsPanel = () => {
         minDate={MIN_DATE}
         maxDate={new Date()}
         onChange={(value) =>
-          setOptions({ ...options, until: value ?? undefined })
+          setOptions({ ...options, until: value ? new Date(value) : undefined })
         }
         clearable
       />
