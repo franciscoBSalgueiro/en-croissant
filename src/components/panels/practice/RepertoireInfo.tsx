@@ -1,9 +1,9 @@
+import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   coverageMinGamesAtom,
   currentTabAtom,
   referenceDbAtom,
 } from "@/state/atoms";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { searchPosition } from "@/utils/db";
 import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
