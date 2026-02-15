@@ -500,8 +500,17 @@ export const en_US = {
     "Settings.Sound": "Sound",
     "Settings.Keybinds": "Keybinds",
     "Settings.Directories": "Directories",
+    "Settings.Repertoire": "Repertoire",
 
     "Settings.Board.Desc": "Customize the analysis board and game controls",
+    "Settings.Repertoire.Desc": "Customize the repertoire settings",
+    "Settings.Repertoire.Depth": "Repertoire Depth",
+    "Settings.Repertoire.Depth.Desc":
+      "Minimum number of games for a move to be considered relevant",
+    "Settings.Repertoire.Essential": "Essential",
+    "Settings.Repertoire.Standard": "Standard",
+    "Settings.Repertoire.Deep": "Deep",
+    "Settings.Repertoire.Custom": "Custom",
     "Settings.PieceDest": "Piece Destinations",
     "Settings.PieceDest.Desc": "Show possible moves for each piece",
     "Settings.MoveHighlight": "Move Highlight",

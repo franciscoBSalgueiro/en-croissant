@@ -15,12 +15,11 @@ export type PositionMove = {
   childIndex: number;
 };
 
-export const COVERAGE_MIN_GAMES = 50;
-
 export async function computeTreeCoverage(
   root: TreeNode,
   userColor: "white" | "black",
   dbPath: string,
+  minGames: number,
   startPath: number[] = [],
 ): Promise<{
   coverageMap: Map<string, number>;
@@ -74,7 +73,7 @@ export async function computeTreeCoverage(
     const { moves: dbMoves, total: totalGames } = await getDbMoves(node.fen);
     gamesMap.set(pathKey, totalGames);
 
-    if (totalGames < COVERAGE_MIN_GAMES) {
+    if (totalGames < minGames) {
       coverageMap.set(pathKey, 1);
       return 1;
     }
@@ -83,13 +82,11 @@ export async function computeTreeCoverage(
 
     if (isOpponentTurn) {
       if (node.children.length === 0) {
-        const partialCoverage = Math.min(COVERAGE_MIN_GAMES / totalGames, 1);
+        const partialCoverage = Math.min(minGames / totalGames, 1);
         coverageMap.set(pathKey, partialCoverage);
         return partialCoverage;
       }
-      const significantMoves = dbMoves.filter(
-        (m) => m.games >= COVERAGE_MIN_GAMES,
-      );
+      const significantMoves = dbMoves.filter((m) => m.games >= minGames);
       const significantTotal = significantMoves.reduce(
         (acc, m) => acc + m.games,
         0,
@@ -135,6 +132,7 @@ export function findNextGap(
   userColor: "white" | "black",
   coverageMap: Map<string, number>,
   gamesMap: Map<string, number>,
+  minGames: number,
 ): number[] | null {
   const userParity = userColor === "white" ? 0 : 1;
   const startNode = getNodeAtPath(root, startPath);
@@ -144,7 +142,7 @@ export function findNextGap(
     const coverage = coverageMap.get(pathKey) ?? 0;
     const games = gamesMap.get(pathKey) ?? 0;
 
-    if (coverage >= 1 || games < COVERAGE_MIN_GAMES) {
+    if (coverage >= 1 || games < minGames) {
       return null;
     }
 
@@ -176,6 +174,7 @@ export function findBiggestGap(
   userColor: "white" | "black",
   coverageMap: Map<string, number>,
   gamesMap: Map<string, number>,
+  minGames: number,
   startPath: number[] = [],
 ): number[] | null {
   const userParity = userColor === "white" ? 0 : 1;
@@ -193,7 +192,7 @@ export function findBiggestGap(
     const coverage = coverageMap.get(pathKey) ?? 0;
     const games = gamesMap.get(pathKey) ?? 0;
 
-    if (coverage >= 1 || games < COVERAGE_MIN_GAMES) {
+    if (coverage >= 1 || games < minGames) {
       continue;
     }
 

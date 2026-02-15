@@ -36,6 +36,7 @@ import {
 } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import {
+  IconBook,
   IconBrush,
   IconChess,
   IconFlag,
@@ -62,6 +63,7 @@ import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
+import RepertoireMinGamesSetting from "./RepertoireMinGamesSetting";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
 import VolumeSlider from "./VolumeSlider";
@@ -74,6 +76,7 @@ type SettingCategory =
   | "sound"
   | "keybinds"
   | "directories"
+  | "repertoire"
   | "privacy";
 
 interface SettingItem {
@@ -428,6 +431,15 @@ export default function Page() {
           </div>
         ),
       },
+      // Repertoire settings
+      {
+        id: "repertoire-depth",
+        category: "repertoire",
+        title: t("Settings.Repertoire.Depth"),
+        description: t("Settings.Repertoire.Depth.Desc"),
+        keywords: ["repertoire", "depth", "games", "min"],
+        render: () => <RepertoireMinGamesSetting />,
+      },
       // Sound settings
       {
         id: "volume",
@@ -532,6 +544,11 @@ export default function Page() {
       title: t("Settings.Directories"),
       description: t("Settings.Directories.Desc"),
       icon: <IconFolder size="1rem" />,
+    },
+    repertoire: {
+      title: t("Settings.Repertoire"),
+      description: t("Settings.Repertoire.Desc"),
+      icon: <IconBook size="1rem" />,
     },
     privacy: {
       title: t("Settings.Privacy"),
@@ -682,6 +699,9 @@ export default function Page() {
             >
               {t("Settings.Directories")}
             </Tabs.Tab>
+            <Tabs.Tab value="repertoire" leftSection={<IconBook size="1rem" />}>
+              {t("Settings.Repertoire")}
+            </Tabs.Tab>
             <Tabs.Tab value="privacy" leftSection={<IconShield size="1rem" />}>
               {t("Settings.Privacy")}
             </Tabs.Tab>
@@ -783,6 +803,16 @@ export default function Page() {
                     {t("Settings.Directories.Desc")}
                   </Text>
                   {renderCategorySettings("directories")}
+                </Tabs.Panel>
+
+                <Tabs.Panel value="repertoire">
+                  <Text size="lg" fw={500} className={classes.title}>
+                    {t("Settings.Repertoire")}
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={3} mb="lg">
+                    {t("Settings.Repertoire.Desc")}
+                  </Text>
+                  {renderCategorySettings("repertoire")}
                 </Tabs.Panel>
 
                 <Tabs.Panel value="privacy">

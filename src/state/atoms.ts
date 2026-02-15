@@ -328,6 +328,11 @@ export const puzzleThemeAtom = atomWithStorage<string | null>(
   null,
 );
 
+export const coverageMinGamesAtom = atomWithStorage<number>(
+  "coverage-min-games",
+  50,
+);
+
 export const puzzleTimerFamily = atomFamily((tab: string) =>
   atom<number | null>(null),
 );

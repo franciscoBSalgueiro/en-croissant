@@ -1,10 +1,13 @@
+import {
+  coverageMinGamesAtom,
+  currentTabAtom,
+  referenceDbAtom,
+} from "@/state/atoms";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { currentTabAtom, referenceDbAtom } from "@/state/atoms";
 import { searchPosition } from "@/utils/db";
 import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
 import {
-  COVERAGE_MIN_GAMES,
   type PositionMove,
   computeTreeCoverage,
   findBiggestGap,
@@ -73,6 +76,7 @@ function RepertoireInfo() {
 
   const referenceDb = useAtomValue(referenceDbAtom);
   const currentTab = useAtomValue(currentTabAtom);
+  const minGames = useAtomValue(coverageMinGamesAtom);
 
   const orientation = headers.orientation || "white";
 
@@ -145,16 +149,20 @@ function RepertoireInfo() {
     }
     const version = ++coverageVersionRef.current;
     setCoverageLoading(true);
-    computeTreeCoverage(root, orientation, referenceDb, startPath).then(
-      (result) => {
-        if (version === coverageVersionRef.current) {
-          setCoverageMap(result.coverageMap);
-          setGamesMap(result.gamesMap);
-          setCoverageLoading(false);
-        }
-      },
-    );
-  }, [rootStructureHash, orientation, referenceDb, startPathKey]);
+    computeTreeCoverage(
+      root,
+      orientation,
+      referenceDb,
+      minGames,
+      startPath,
+    ).then((result) => {
+      if (version === coverageVersionRef.current) {
+        setCoverageMap(result.coverageMap);
+        setGamesMap(result.gamesMap);
+        setCoverageLoading(false);
+      }
+    });
+  }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
 
   const positionMoves = useMemo(() => {
     const total = rawOpenings.reduce(
@@ -233,13 +241,22 @@ function RepertoireInfo() {
   );
 
   const nextGap = useMemo(
-    () => findNextGap(root, position, orientation, coverageMap, gamesMap),
-    [root, position, orientation, coverageMap, gamesMap],
+    () =>
+      findNextGap(root, position, orientation, coverageMap, gamesMap, minGames),
+    [root, position, orientation, coverageMap, gamesMap, minGames],
   );
 
   const biggestGap = useMemo(
-    () => findBiggestGap(root, orientation, coverageMap, gamesMap, startPath),
-    [root, orientation, coverageMap, gamesMap, startPath],
+    () =>
+      findBiggestGap(
+        root,
+        orientation,
+        coverageMap,
+        gamesMap,
+        minGames,
+        startPath,
+      ),
+    [root, orientation, coverageMap, gamesMap, startPath, minGames],
   );
 
   if (!currentTab) return null;
@@ -374,6 +391,7 @@ function RepertoireInfo() {
           goToMove={goToMove}
           onMoveClick={handleMoveClick}
           t={t}
+          minGames={minGames}
         />
       )}
       <Divider pb="sm" />
@@ -417,6 +435,7 @@ function MovesView({
   goToMove,
   onMoveClick,
   t,
+  minGames,
 }: {
   isUserTurn: boolean;
   currentNode: TreeNode;
@@ -430,6 +449,7 @@ function MovesView({
   goToMove: (path: number[]) => void;
   onMoveClick: (move: PositionMove) => void;
   t: ReturnType<typeof useTranslation>["t"];
+  minGames: number;
 }) {
   const hasResponses = currentNode.children.length > 0;
   const [showRare, setShowRare] = useState(false);
@@ -462,18 +482,12 @@ function MovesView({
   ]);
 
   const relevantMoves = useMemo(
-    () =>
-      isUserTurn
-        ? []
-        : positionMoves.filter((m) => m.games >= COVERAGE_MIN_GAMES),
-    [isUserTurn, positionMoves],
+    () => (isUserTurn ? [] : positionMoves.filter((m) => m.games >= minGames)),
+    [isUserTurn, positionMoves, minGames],
   );
   const rareMoves = useMemo(
-    () =>
-      isUserTurn
-        ? []
-        : positionMoves.filter((m) => m.games < COVERAGE_MIN_GAMES),
-    [isUserTurn, positionMoves],
+    () => (isUserTurn ? [] : positionMoves.filter((m) => m.games < minGames)),
+    [isUserTurn, positionMoves, minGames],
   );
 
   const nextGapLabel = useMemo(() => {
@@ -491,8 +505,6 @@ function MovesView({
   const title = isUserTurn
     ? t("Board.Practice.Build.YourResponse")
     : t("Board.Practice.Build.OpponentMoves");
-
-  const showCoverage = !isUserTurn || hasResponses;
 
   if (positionMoves.length === 0 && !hasResponses) {
     return (
@@ -559,7 +571,7 @@ function MovesView({
               <Text fz="xs" c="dimmed" w={100} ta="center">
                 {t("Board.Practice.Build.Results")}
               </Text>
-              {showCoverage && (
+              {hasResponses && (
                 <Group gap={4} w={100} justify="center" wrap="nowrap">
                   <Text fz="xs" c="dimmed" ta="center">
                     {t("Board.Practice.Build.YourCoverage")}
@@ -591,6 +603,7 @@ function MovesView({
                 onClick={() => goToMove(response.childPath)}
                 dimmed={false}
                 showCoverage
+                minGames={minGames}
               />
             ))}
 
@@ -604,6 +617,7 @@ function MovesView({
                 onClick={() => onMoveClick(move)}
                 dimmed={false}
                 showCoverage={false}
+                minGames={minGames}
               />
             ))}
 
@@ -615,6 +629,7 @@ function MovesView({
                 halfMoves={currentNode.halfMoves + 1}
                 onClick={() => onMoveClick(move)}
                 dimmed={false}
+                minGames={minGames}
               />
             ))}
 
@@ -657,6 +672,7 @@ function MovesView({
                 halfMoves={currentNode.halfMoves + 1}
                 onClick={() => onMoveClick(move)}
                 dimmed
+                minGames={minGames}
               />
             ))}
         </Stack>
@@ -737,12 +753,14 @@ function MoveRow({
   onClick,
   dimmed,
   showCoverage = true,
+  minGames,
 }: {
   move: PositionMove;
   halfMoves: number;
   onClick: () => void;
   dimmed: boolean;
   showCoverage?: boolean;
+  minGames: number;
 }) {
   const { t } = useTranslation();
   const notation = formatMoveNotation(halfMoves, move.san);
@@ -805,7 +823,7 @@ function MoveRow({
           </Tooltip>
           {showCoverage && (
             <Box w={100}>
-              {dimmed || move.games < COVERAGE_MIN_GAMES ? (
+              {dimmed || move.games < minGames ? (
                 <Tooltip
                   label={t("Board.Practice.Build.RareTooltip")}
                   withArrow
