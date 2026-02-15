@@ -89,16 +89,16 @@ function GameNotation({
       flex={1}
       style={{ position: "relative", overflow: "hidden" }}
     >
-      <Group h="100%" gap="sm" wrap="nowrap" align="stretch" pr="md" pl="sm">
+      <Group h="100%" wrap="nowrap" align="stretch" gap={0}>
         {controls && (
           <>
-            <ScrollArea type="never" py="md" style={{ flexShrink: 0 }}>
+            <ScrollArea type="never" py="md" mx="xs" style={{ flexShrink: 0 }}>
               {controls}
             </ScrollArea>
             <Divider orientation="vertical" />
           </>
         )}
-        <Stack h="100%" pt="xs" gap={0} style={{ flex: 1, minWidth: 0 }}>
+        <Stack h="100%" gap={0} style={{ flex: 1, minWidth: 0 }}>
           {topBar && (
             <NotationHeader
               showComments={showComments}
@@ -134,7 +134,7 @@ function GameNotation({
                     showComments={showComments}
                   />
                 ) : (
-                  <Box pt="md">
+                  <Box pt="md" px="sm">
                     <RenderVariationTree
                       targetRef={targetRef}
                       nodePath={[]}
@@ -185,8 +185,8 @@ const NotationHeader = memo(function NotationHeader({
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
-    <Stack gap="xs">
-      <Group justify="space-between">
+    <Stack gap="xs" pt="xs">
+      <Group justify="space-between" px="sm">
         <OpeningName />
         <Group gap="sm">
           <Tooltip
