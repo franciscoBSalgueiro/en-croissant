@@ -76,6 +76,7 @@ function PersonalPlayerCard({
               data={players}
               onChange={(e) => setName(e || "")}
               clearable={false}
+              allowDeselect={false}
               fw="bold"
               styles={{
                 input: {

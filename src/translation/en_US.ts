@@ -191,6 +191,9 @@ export const en_US = {
     "Home.Databases.ProcessingGames": "Processing Games...",
     "Home.Databases.ErrorLoading": "Error loading databases: {{error}}",
     "Home.Databases.NoDatabasesFound": "No databases found",
+    "Home.Databases.Empty.Title": "No games found",
+    "Home.Databases.Empty.Description":
+      "It looks like you haven't downloaded any games for this player yet.",
 
     "Board.Action.TakeSnapshot": "Take Snapshot",
     "Board.Action.AnalyzeGame": "Analyze game",

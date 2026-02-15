@@ -8,7 +8,16 @@ import { activeDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, query_players } from "@/utils/db";
 import type { Session } from "@/utils/session";
 import { unwrap } from "@/utils/unwrap";
-import { Flex, Progress, Select, Text } from "@mantine/core";
+import {
+  Center,
+  Progress,
+  Select,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import { IconDatabaseOff } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -154,13 +163,22 @@ function Databases() {
       )}
       {personalInfo &&
         (personalInfo.length === 0 ? (
-          <>
-            <Flex justify="center">
+          <Center h="100%">
+            <Stack align="center" gap="md">
+              <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                <IconDatabaseOff size={40} />
+              </ThemeIcon>
+              <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
+              <Text c="dimmed" ta="center" maw={400}>
+                {t("Home.Databases.Empty.Description")}
+              </Text>
+
               <Select
                 value={name}
                 data={players}
                 onChange={(e) => setName(e || "")}
                 clearable={false}
+                allowDeselect={false}
                 fw="bold"
                 styles={{
                   input: {
@@ -168,12 +186,10 @@ function Databases() {
                     fontSize: "1.25rem",
                   },
                 }}
+                mt="md"
               />
-            </Flex>
-            <Text ta="center" fw="bold" my="auto" fz="lg">
-              {t("Home.Databases.NoDatabasesFound")}
-            </Text>
-          </>
+            </Stack>
+          </Center>
         ) : (
           <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
             <PersonalPlayerCard
