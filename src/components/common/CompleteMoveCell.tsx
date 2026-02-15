@@ -1,4 +1,4 @@
-import { Comment } from "@/components/common/Comment";
+import Comment from "@/components/common/Comment";
 import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { hasMorePriority, stripClock } from "@/utils/chess";

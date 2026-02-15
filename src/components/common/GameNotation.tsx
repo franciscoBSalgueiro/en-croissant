@@ -1,4 +1,4 @@
-import { Comment } from "@/components/common/Comment";
+import Comment from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { currentInvisibleAtom, tableViewAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
