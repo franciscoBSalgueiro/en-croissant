@@ -12,7 +12,6 @@ function AccountsPage() {
   return (
     <Group grow px="lg" pb="lg" h="100%" style={{ overflow: "hidden" }}>
       <Stack h="100%">
-        <Title py="sm">{t("Home.Accounts.Title")}</Title>
         <Accounts />
       </Stack>
 

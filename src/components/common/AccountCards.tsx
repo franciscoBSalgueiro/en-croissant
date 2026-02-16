@@ -1,10 +1,9 @@
 import {
-  Accordion,
   ActionIcon,
   Divider,
   Group,
-  Paper,
   ScrollArea,
+  SimpleGrid,
   Stack,
   Text,
   TextInput,
@@ -89,8 +88,8 @@ function PlayerSession({
   const ref = useRef(null);
 
   return (
-    <Paper withBorder>
-      <Group justify="space-between" py="xs" px="md">
+    <Stack mt="sm">
+      <Group justify="space-between" align="center">
         {edit ? (
           <TextInput
             ref={ref}
@@ -115,6 +114,8 @@ function PlayerSession({
           {edit ? (
             <ActionIcon
               size="sm"
+              variant="subtle"
+              color="green"
               onClick={() => {
                 setEdit(false);
                 setSessions((prev) =>
@@ -135,6 +136,8 @@ function PlayerSession({
           ) : (
             <ActionIcon
               size="sm"
+              variant="subtle"
+              color="gray"
               onClick={() => {
                 setEdit(true);
               }}
@@ -144,6 +147,8 @@ function PlayerSession({
           )}
           <ActionIcon
             size="sm"
+            variant="subtle"
+            color="red"
             onClick={() =>
               setSessions((sessions) =>
                 sessions.filter(
@@ -160,7 +165,7 @@ function PlayerSession({
         </Group>
       </Group>
       <Divider />
-      <Accordion multiple chevronSize={0}>
+      <Group>
         {sessions.map((session, i) => (
           <LichessOrChessCom
             key={i}
@@ -170,8 +175,8 @@ function PlayerSession({
             setSessions={setSessions}
           />
         ))}
-      </Accordion>
-    </Paper>
+      </Group>
+    </Stack>
   );
 }
 

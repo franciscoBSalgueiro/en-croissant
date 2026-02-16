@@ -1,10 +1,10 @@
 import {
-  Accordion,
   ActionIcon,
+  Badge,
   Card,
   Group,
-  Loader,
   Progress,
+  SimpleGrid,
   Stack,
   Text,
   Tooltip,
@@ -15,7 +15,7 @@ import {
   IconArrowUpRight,
   IconDownload,
   IconRefresh,
-  IconX,
+  IconTrash,
   type TablerIconsProps,
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
@@ -30,7 +30,6 @@ import { capitalize } from "@/utils/format";
 import { downloadLichess } from "@/utils/lichess/api";
 import { unwrap } from "@/utils/unwrap";
 import LichessLogo from "./LichessLogo";
-import * as classes from "./styles.css";
 
 interface AccountCardProps {
   type: "lichess" | "chesscom";
@@ -76,24 +75,26 @@ export function AccountCard({
       }
     }
     return (
-      <Card key={stat.label} withBorder p="xs">
-        <Group align="baseline" justify="space-between">
-          <div>
-            <Text fw="bold" fz="sm">
-              {stat.value}
-            </Text>
-            <Text size="xs" c="dimmed">
-              {capitalize(stat.label)}
-            </Text>
-          </div>
-          {stat.diff && (
-            <Text c={color} size="xs" fw={500} className={classes.diff}>
-              <span>{stat.diff}</span>
-              <DiffIcon size="1rem" stroke={1.5} />
-            </Text>
+      <Group key={stat.label} justify="space-between" wrap="nowrap">
+        <Text size="xs" c="dimmed" fw={700} tt="uppercase">
+          {capitalize(stat.label)}
+        </Text>
+        <Group gap={4}>
+          {stat.diff !== undefined && stat.diff !== 0 && (
+            <Badge
+              color={color}
+              variant="light"
+              size="xs"
+              leftSection={<DiffIcon size="0.8rem" />}
+            >
+              {Math.abs(stat.diff)}
+            </Badge>
           )}
+          <Text fw={700} size="sm">
+            {stat.value}
+          </Text>
         </Group>
-      </Card>
+      </Group>
     );
   });
   const [loading, setLoading] = useState(false);
@@ -107,8 +108,8 @@ export function AccountCard({
       "db",
       `${filepath
         .split(/(\\|\/)/g)
-        .pop()!
-        .replace(".pgn", ".db3")}`,
+        .pop()
+        ?.replace(".pgn", ".db3")}`,
     );
     unwrap(
       await commands.convertPgn(
@@ -168,133 +169,115 @@ export function AccountCard({
   }
 
   return (
-    <Accordion.Item value={type + title}>
-      <Group
-        justify="space-between"
-        wrap="nowrap"
-        pos="relative"
-        pl="sm"
-        className={classes.accordion}
-      >
-        <Stack>
-          <Group wrap="nowrap">
+    <Card withBorder radius="md" padding="lg">
+      <Card.Section withBorder inheritPadding py="xs">
+        <Group justify="space-between">
+          <Group>
             {type === "lichess" ? (
               <LichessLogo />
             ) : (
-              <img width={30} height={30} src="/chesscom.png" alt="chess.com" />
+              <img width={20} height={20} src="/chesscom.png" alt="chess.com" />
             )}
-            <div>
-              <Group wrap="nowrap">
-                <Text size="md" fw="bold">
-                  {title}
-                </Text>
-              </Group>
-              <ActionIcon.Group>
-                <Tooltip label={t("Home.Accounts.UpdateStats")}>
-                  <ActionIcon onClick={() => reload()}>
-                    <IconRefresh size="1rem" />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label={t("Home.Accounts.DownloadGames")}>
-                  <ActionIcon
-                    disabled={loading}
-                    onClick={async () => {
-                      setLoading(true);
-                      const lastGameDate = database
-                        ? await getLastGameDate({ database })
-                        : null;
-                      if (type === "lichess") {
-                        await downloadLichess(
-                          title,
-                          lastGameDate,
-                          total - downloadedGames,
-                          setProgress,
-                          token,
-                        );
-                      } else {
-                        await downloadChessCom(title, lastGameDate);
-                      }
-                      const p = await resolve(
-                        await appDataDir(),
-                        "db",
-                        `${title}_${type}.pgn`,
-                      );
-                      try {
-                        await convert(p, lastGameDate);
-                        const dbPath = p.replace(".pgn", ".db3");
-                        await commands.deleteEmptyGames(dbPath);
-                      } catch (e) {
-                        console.error(e);
-                      }
-                      setLoading(false);
-                    }}
-                  >
-                    {loading ? (
-                      <Loader size="1rem" />
-                    ) : (
-                      <IconDownload size="1rem" />
-                    )}
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label={t("Home.Accounts.RemoveAccount")}>
-                  <ActionIcon onClick={() => logout()}>
-                    <IconX size="1rem" />
-                  </ActionIcon>
-                </Tooltip>
-              </ActionIcon.Group>
-            </div>
+            <Text fw={600} size="sm">
+              {title}
+            </Text>
+          </Group>
+          <Group gap={4}>
+            <Tooltip label={t("Home.Accounts.UpdateStats")}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={() => reload()}
+              >
+                <IconRefresh size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={t("Home.Accounts.DownloadGames")}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                loading={loading}
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  const lastGameDate = database
+                    ? await getLastGameDate({ database })
+                    : null;
+                  if (type === "lichess") {
+                    await downloadLichess(
+                      title,
+                      lastGameDate,
+                      total - downloadedGames,
+                      setProgress,
+                      token,
+                    );
+                  } else {
+                    await downloadChessCom(title, lastGameDate);
+                  }
+                  const p = await resolve(
+                    await appDataDir(),
+                    "db",
+                    `${title}_${type}.pgn`,
+                  );
+                  try {
+                    await convert(p, lastGameDate);
+                    const dbPath = p.replace(".pgn", ".db3");
+                    await commands.deleteEmptyGames(dbPath);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  setLoading(false);
+                }}
+              >
+                <IconDownload size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={t("Home.Accounts.RemoveAccount")}>
+              <ActionIcon variant="subtle" color="red" onClick={() => logout()}>
+                <IconTrash size="1rem" />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </Group>
+      </Card.Section>
+
+      <Card.Section inheritPadding py="md">
+        <SimpleGrid cols={1} spacing="xs">
+          {items}
+        </SimpleGrid>
+      </Card.Section>
+
+      <Card.Section inheritPadding pb="sm">
+        <Stack gap={4}>
+          <Group justify="space-between">
+            <Text size="xs" c="dimmed">
+              {t("Common.Games")}
+            </Text>
+            <Text size="xs" fw={500}>
+              {downloadedGames} / {total}
+            </Text>
+          </Group>
+          <Progress
+            value={loading ? 100 : (downloadedGames / total) * 100}
+            size="sm"
+            striped={loading}
+            animated={loading}
+          />
+          <Group justify="space-between" mt={4}>
+            <Text size="xs" c="dimmed">
+              {t("Home.Accounts.LastUpdate", {
+                date: new Date(updatedAt).toLocaleDateString(),
+                interpolation: { escapeValue: false },
+              })}
+            </Text>
+            {loading && progress && (
+              <Text size="xs" c="dimmed">
+                {progress.toFixed(0)}%
+              </Text>
+            )}
           </Group>
         </Stack>
-        <Accordion.Control>
-          <Stack gap="xs">
-            <Group ta="center" justify="right">
-              <div>
-                <Text fw="bold">{total}</Text>
-                <Text size="xs" c="dimmed">
-                  {t("Common.Games")}
-                </Text>
-              </div>
-
-              <div>
-                <Tooltip
-                  label={t("Home.Accounts.DownloadedGamesCount", {
-                    count: downloadedGames,
-                  })}
-                >
-                  <Text fw="bold">{percentage}%</Text>
-                </Tooltip>
-                <Text size="xs" c="dimmed">
-                  {t("Home.Accounts.Downloaded")}
-                </Text>
-              </div>
-            </Group>
-          </Stack>
-        </Accordion.Control>
-
-        {loading && (
-          <Progress
-            pos="absolute"
-            bottom={0}
-            left={0}
-            w="100%"
-            value={progress || 100}
-            animated
-            size="xs"
-          />
-        )}
-      </Group>
-
-      <Accordion.Panel p={0}>
-        <Group grow>{items}</Group>
-        <Text mt="xs" size="xs" c="dimmed" ta="right">
-          (
-          {t("Home.Accounts.LastUpdate", {
-            date: new Date(updatedAt).toLocaleDateString(),
-            interpolation: { escapeValue: false },
-          })}
-          )
-        </Text>
-      </Accordion.Panel>
-    </Accordion.Item>
+      </Card.Section>
+    </Card>
   );
 }
