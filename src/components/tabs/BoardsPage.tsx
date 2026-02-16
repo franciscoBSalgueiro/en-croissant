@@ -166,105 +166,99 @@ export default function BoardsPage() {
   ]);
 
   return (
-    <>
-      <Tabs
-        value={activeTab}
-        onChange={(v) => startTransition(() => setActiveTab(v))}
-        keepMounted={false}
-        className={classes.tabsContainer}
+    <Tabs
+      value={activeTab}
+      onChange={(v) => startTransition(() => setActiveTab(v))}
+      keepMounted={false}
+      className={classes.tabsContainer}
+    >
+      <ScrollArea
+        scrollbarSize={6}
+        scrollbars="x"
+        className={classes.tabsHeader}
       >
-        <ScrollArea
-          scrollbarSize={6}
-          scrollbars="x"
-          className={classes.tabsHeader}
+        <DragDropContext
+          onDragEnd={({ destination, source }) =>
+            destination?.index !== undefined &&
+            setTabs((prev) => {
+              const result = Array.from(prev);
+              const [removed] = result.splice(source.index, 1);
+              result.splice(destination.index, 0, removed);
+              return result;
+            })
+          }
         >
-          <DragDropContext
-            onDragEnd={({ destination, source }) =>
-              destination?.index !== undefined &&
-              setTabs((prev) => {
-                const result = Array.from(prev);
-                const [removed] = result.splice(source.index, 1);
-                result.splice(destination.index, 0, removed);
-                return result;
-              })
-            }
-          >
-            <Droppable droppableId="droppable" direction="horizontal">
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  style={{ display: "flex" }}
+          <Droppable droppableId="droppable" direction="horizontal">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                style={{ display: "flex" }}
+              >
+                {tabs.map((tab, i) => (
+                  <Draggable key={tab.value} draggableId={tab.value} index={i}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                      >
+                        <BoardTab
+                          tab={tab}
+                          setActiveTab={handleSetActiveTab}
+                          closeTab={closeTab}
+                          renameTab={renameTab}
+                          duplicateTab={duplicateTab}
+                          selected={activeTab === tab.value}
+                        />
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+                <ActionIcon
+                  variant="default"
+                  radius={0}
+                  onClick={() =>
+                    createTab({
+                      tab: {
+                        name: t("Tab.NewTab"),
+                        type: "new",
+                      },
+                      setTabs,
+                      setActiveTab,
+                    })
+                  }
+                  classNames={{
+                    root: classes.newTab,
+                  }}
                 >
-                  {tabs.map((tab, i) => (
-                    <Draggable
-                      key={tab.value}
-                      draggableId={tab.value}
-                      index={i}
-                    >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          <BoardTab
-                            tab={tab}
-                            setActiveTab={handleSetActiveTab}
-                            closeTab={closeTab}
-                            renameTab={renameTab}
-                            duplicateTab={duplicateTab}
-                            selected={activeTab === tab.value}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                  <ActionIcon
-                    variant="default"
-                    radius={0}
-                    onClick={() =>
-                      createTab({
-                        tab: {
-                          name: t("Tab.NewTab"),
-                          type: "new",
-                        },
-                        setTabs,
-                        setActiveTab,
-                      })
-                    }
-                    classNames={{
-                      root: classes.newTab,
-                    }}
-                  >
-                    <IconPlus />
-                  </ActionIcon>
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </ScrollArea>
-        {tabs.map((tab) => (
-          <Tabs.Panel
-            key={tab.value}
-            value={tab.value}
-            h="100%"
-            w="100%"
-            pb="sm"
-            px="xs"
-          >
-            <TabSwitch
-              tab={tab}
-              saveModalOpened={saveModalOpened}
-              toggleSaveModal={toggleSaveModal}
-              closeTab={closeTab}
-              activeTab={activeTab}
-            />
-          </Tabs.Panel>
-        ))}
-      </Tabs>
-    </>
+                  <IconPlus />
+                </ActionIcon>
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </ScrollArea>
+      {tabs.map((tab) => (
+        <Tabs.Panel
+          key={tab.value}
+          value={tab.value}
+          h="100%"
+          w="100%"
+          pb="sm"
+          px="xs"
+        >
+          <TabSwitch
+            tab={tab}
+            saveModalOpened={saveModalOpened}
+            toggleSaveModal={toggleSaveModal}
+            closeTab={closeTab}
+            activeTab={activeTab}
+          />
+        </Tabs.Panel>
+      ))}
+    </Tabs>
   );
 }
 

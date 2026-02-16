@@ -78,21 +78,23 @@ function EvalListener() {
     }),
   );
 
-  return engines.map((e) => (
-    <EngineListener
-      key={e.id}
-      engine={e}
-      firstEngineWithLines={firstEngineWithLines}
-      isGameOver={isGameOver}
-      finalFen={finalFen || ""}
-      searchingFen={searchingFen}
-      searchingMoves={searchingMoves}
-      fen={fen}
-      moves={moves}
-      threat={threat}
-      chess960={is960}
-    />
-  ));
+  return engines
+    .filter((e) => e.loaded)
+    .map((e) => (
+      <EngineListener
+        key={e.id}
+        engine={e}
+        firstEngineWithLines={firstEngineWithLines}
+        isGameOver={isGameOver}
+        finalFen={finalFen || ""}
+        searchingFen={searchingFen}
+        searchingMoves={searchingMoves}
+        fen={fen}
+        moves={moves}
+        threat={threat}
+        chess960={is960}
+      />
+    ));
 }
 
 function EngineListener({
