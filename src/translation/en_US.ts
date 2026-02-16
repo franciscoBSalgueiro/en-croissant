@@ -278,6 +278,9 @@ export const en_US = {
     "Board.Analysis.AnnotateNovelties": "Annotate Novelties",
     "Board.Analysis.AnnotateNovelties.Desc":
       "Add a comment to the first position that is not in the reference database.",
+    "Board.Analysis.ShowVariations": "Show variations",
+    "Board.Analysis.ShowVariations.Desc":
+      "Add best continuation lines for mistakes",
     "Board.Analysis.Analyze": "Analyze",
     "Board.Analysis.Advantage": "Advantage",
     "Board.Analysis.Accuracy": "Accuracy",

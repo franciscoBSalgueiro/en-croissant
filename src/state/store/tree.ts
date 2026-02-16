@@ -1,5 +1,5 @@
 import type { DrawShape } from "@lichess-org/chessground/draw";
-import { isNormal, type Move } from "chessops";
+import { isNormal, type Move, parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { type Draft, produce } from "immer";
@@ -78,6 +78,7 @@ export interface TreeStoreState extends TreeState {
       novelty: boolean;
       is_sacrifice: boolean;
     }[],
+    options?: { showVariations: boolean },
   ) => void;
 
   setReportInProgress: (value: boolean) => void;
@@ -466,11 +467,11 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           }
         }),
       ),
-    addAnalysis: (analysis) =>
+    addAnalysis: (analysis, options) =>
       set(
         produce((state) => {
           state.dirty = true;
-          addAnalysis(state, analysis);
+          addAnalysis(state, analysis, options);
         }),
       ),
 
@@ -687,9 +688,12 @@ function addAnalysis(
     novelty: boolean;
     is_sacrifice: boolean;
   }[],
+  options?: { showVariations: boolean },
 ) {
   let cur = state.root;
   let i = 0;
+  let parent: TreeNode | undefined;
+
   while (cur !== undefined && i < analysis.length) {
     const [pos] = positionFromFen(cur.fen);
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
@@ -717,6 +721,69 @@ function addAnalysis(
       );
       if (annotation) {
         cur.annotations = [...cur.annotations, annotation];
+
+        if (
+          options?.showVariations &&
+          (annotation === "??" || annotation === "?" || annotation === "?!") &&
+          parent &&
+          i > 0 &&
+          analysis[i - 1].best.length > 0
+        ) {
+          const bestMoveUci = analysis[i - 1].best[0].uciMoves[0];
+          const [parentPos] = positionFromFen(parent.fen);
+          if (parentPos) {
+            const bestMove = parseUci(bestMoveUci);
+            if (bestMove) {
+              const existingChild = parent.children.find(
+                (c) =>
+                  c.move &&
+                  isNormal(c.move) &&
+                  isNormal(bestMove) &&
+                  c.move.from === bestMove.from &&
+                  c.move.to === bestMove.to &&
+                  c.move.promotion === bestMove.promotion,
+              );
+
+              if (!existingChild) {
+                const san = makeSan(parentPos, bestMove);
+                parentPos.play(bestMove);
+                const newFen = makeFen(parentPos.toSetup());
+                const variationNode = createNode({
+                  fen: newFen,
+                  move: bestMove,
+                  san,
+                  halfMoves: parent.halfMoves + 1,
+                });
+
+                let currentVarNode = variationNode;
+                const currentVarPos = parentPos;
+
+                const pv = analysis[i - 1].best[0].uciMoves;
+                if (pv.length > 1) {
+                  for (let j = 1; j < Math.min(pv.length, 10); j++) {
+                    const nextMoveUci = pv[j];
+                    const nextMove = parseUci(nextMoveUci);
+                    if (nextMove) {
+                      const nextSan = makeSan(currentVarPos, nextMove);
+                      currentVarPos.play(nextMove);
+                      const nextFen = makeFen(currentVarPos.toSetup());
+                      const nextNode = createNode({
+                        fen: nextFen,
+                        move: nextMove,
+                        san: nextSan,
+                        halfMoves: currentVarNode.halfMoves + 1,
+                      });
+                      currentVarNode.children.push(nextNode);
+                      currentVarNode = nextNode;
+                    }
+                  }
+                }
+
+                parent.children.push(variationNode);
+              }
+            }
+          }
+        }
       }
       if (analysis[i].novelty) {
         cur.annotations = [...cur.annotations, "N"];
@@ -726,6 +793,7 @@ function addAnalysis(
         ANNOTATION_INFO[a].nag > ANNOTATION_INFO[b].nag ? 1 : -1,
       );
     }
+    parent = cur;
     cur = cur.children[0];
     i++;
   }

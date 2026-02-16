@@ -21,6 +21,7 @@ import type { LocalEngine } from "@/utils/engines";
 const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
   reversed: true,
+  variations: true,
   goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
   engine: "",
 });
@@ -109,7 +110,9 @@ function ReportModal({
       )
       .then((analysis) => {
         if (analysis.status === "ok") {
-          addAnalysis(analysis.data);
+          addAnalysis(analysis.data, {
+            showVariations: form.values.variations,
+          });
         }
       })
       .finally(() => setInProgress(false));
@@ -179,6 +182,12 @@ function ReportModal({
             label={t("Board.Analysis.AnnotateNovelties")}
             description={t("Board.Analysis.AnnotateNovelties.Desc")}
             {...form.getInputProps("novelty", { type: "checkbox" })}
+          />
+
+          <Checkbox
+            label={t("Board.Analysis.ShowVariations")}
+            description={t("Board.Analysis.ShowVariations.Desc")}
+            {...form.getInputProps("variations", { type: "checkbox" })}
           />
 
           <Group justify="right">
