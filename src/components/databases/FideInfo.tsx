@@ -9,7 +9,6 @@ import {
   Modal,
   Stack,
   Text,
-  Tooltip,
 } from "@mantine/core";
 import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";

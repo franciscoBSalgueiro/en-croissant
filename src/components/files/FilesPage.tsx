@@ -12,7 +12,7 @@ import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { readDir, remove } from "@tauri-apps/plugin-fs";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { capitalize } from "@/utils/format";

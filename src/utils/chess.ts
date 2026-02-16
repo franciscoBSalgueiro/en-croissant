@@ -21,7 +21,6 @@ import {
   createNode,
   defaultTree,
   type GameHeaders,
-  getNodeAtPath,
   type TreeNode,
   type TreeState,
 } from "./treeReducer";

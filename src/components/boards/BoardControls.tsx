@@ -2,8 +2,6 @@ import { ActionIcon, Stack, Tooltip } from "@mantine/core";
 import {
   IconArrowBack,
   IconCamera,
-  IconChess,
-  IconChessFilled,
   IconDeviceFloppy,
   IconEdit,
   IconEditOff,
@@ -23,7 +21,6 @@ import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   autoSaveAtom,
-  currentEvalOpenAtom,
   currentGameStateAtom,
   currentTabAtom,
   eraseDrawablesOnClickAtom,

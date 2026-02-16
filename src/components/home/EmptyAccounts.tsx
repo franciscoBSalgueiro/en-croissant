@@ -1,5 +1,5 @@
 import { Button, Center, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconPlus, IconUserPlus } from "@tabler/icons-react";
+import { IconUserPlus } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
 export function EmptyAccounts({ onAddAccount }: { onAddAccount: () => void }) {

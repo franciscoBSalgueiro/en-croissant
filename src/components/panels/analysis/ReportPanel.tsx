@@ -4,14 +4,7 @@ import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import React, {
-  memo,
-  Suspense,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import React, { memo, Suspense, useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { commands } from "@/bindings";

@@ -1,6 +1,6 @@
-import { Box, SimpleGrid } from "@mantine/core";
+import { SimpleGrid } from "@mantine/core";
 import type { Piece as PieceT } from "chessops";
-import { COLORS, parseSquare, ROLES } from "chessops";
+import { COLORS, ROLES } from "chessops";
 import { makeFen, parseFen } from "chessops/fen";
 import Piece from "../common/Piece";
 

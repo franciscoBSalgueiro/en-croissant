@@ -6,7 +6,7 @@ import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
-import React, {
+import {
   useContext,
   useEffect,
   useLayoutEffect,

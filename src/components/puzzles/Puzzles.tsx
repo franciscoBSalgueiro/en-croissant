@@ -27,7 +27,7 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { Chess, parseUci } from "chessops";
+import { parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState } from "react";

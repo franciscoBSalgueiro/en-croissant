@@ -21,7 +21,6 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import {
   allEnabledAtom,
   autoSaveAtom,
@@ -33,7 +32,7 @@ import {
   triggerAnnotationFocusAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { defaultPGN, getVariationLine } from "@/utils/chess";
+import { defaultPGN } from "@/utils/chess";
 import { saveToFile } from "@/utils/tabs";
 import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";

@@ -5,7 +5,6 @@ import {
   Checkbox,
   Divider,
   Group,
-  Modal,
   Paper,
   Portal,
   ScrollArea,

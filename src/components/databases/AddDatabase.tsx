@@ -21,7 +21,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
-import { commands, type DatabaseInfo, events } from "@/bindings";
+import { commands, type DatabaseInfo } from "@/bindings";
 import {
   getDatabases,
   type SuccessDatabaseInfo,

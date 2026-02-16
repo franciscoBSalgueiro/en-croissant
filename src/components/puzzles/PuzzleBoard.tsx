@@ -1,12 +1,6 @@
 import { Box } from "@mantine/core";
 import { useElementSize, useForceUpdate } from "@mantine/hooks";
-import {
-  Chess,
-  type Move,
-  makeUci,
-  type NormalMove,
-  parseSquare,
-} from "chessops";
+import { type Move, makeUci, type NormalMove, parseSquare } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";

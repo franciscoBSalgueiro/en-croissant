@@ -1,5 +1,4 @@
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
-import { useColorScheme } from "@mantine/hooks";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import cx from "clsx";
 import { useAtom } from "jotai";

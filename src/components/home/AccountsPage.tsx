@@ -1,4 +1,4 @@
-import { Box, Card, Group, SimpleGrid, Stack, Title } from "@mantine/core";
+import { Box, Group, Stack, Title } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import { sessionsAtom } from "@/state/atoms";

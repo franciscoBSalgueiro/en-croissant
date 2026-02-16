@@ -1,7 +1,7 @@
 import type { Color, Piece } from "@lichess-org/chessground/types";
 import type { Square } from "chessops";
 import { squareFromCoords } from "chessops/util";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import Draggable from "react-draggable";
 
 export default function PieceComponent({

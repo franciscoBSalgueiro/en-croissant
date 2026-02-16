@@ -11,7 +11,7 @@ import {
   Tooltip,
   UnstyledButton,
 } from "@mantine/core";
-import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useState } from "react";
 import {
   activeTabAtom,

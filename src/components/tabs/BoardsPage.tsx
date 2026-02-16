@@ -2,7 +2,7 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { atom, useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect, useTransition } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";

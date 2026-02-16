@@ -1,6 +1,6 @@
-import { Box, Group, Stack, Text } from "@mantine/core";
+import { Box, Group, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useContext, useEffect, useState } from "react";
+import { useContext } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";

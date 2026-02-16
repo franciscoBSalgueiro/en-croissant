@@ -16,7 +16,7 @@ import type {
 } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
-import type { BestMoves, DatabaseInfo, GameQuery, GoMode } from "@/bindings";
+import type { BestMoves, GoMode } from "@/bindings";
 import {
   DEFAULT_TIME_CONTROL,
   type OpponentSettings,

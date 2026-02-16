@@ -4,7 +4,6 @@ import {
   Box,
   Center,
   Group,
-  Stack,
   Text,
   useMantineTheme,
 } from "@mantine/core";
@@ -24,7 +23,6 @@ import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useCallback, useContext, useMemo, useState } from "react";
-import { Helmet } from "react-helmet";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -60,8 +58,6 @@ import {
   forceEnPassant,
   positionFromFen,
 } from "@/utils/chessops";
-import { getClockInfo, type TimeControlField } from "@/utils/clock";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
