@@ -172,6 +172,9 @@ export const en_US = {
       "Connect your Lichess or Chess.com account to analyze your games and track your progress.",
     "Home.Accounts.Add": "Add Account",
     "Home.Accounts.SelectPlayer": "Select player",
+    "Home.Accounts.PlayerName": "Player Name",
+    "Home.Accounts.PlayerName.Desc":
+      "Group multiple accounts belonging to one player",
     "Home.Accounts.Website": "Website",
     "Home.Accounts.Username": "Username",
     "Home.Accounts.EnterUsername": "Enter your username",

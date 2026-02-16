@@ -193,7 +193,8 @@ function AccountModal({
       >
         <Stack>
           <Autocomplete
-            label={t("Common.Name")}
+            label={t("Home.Accounts.PlayerName")}
+            description={t("Home.Accounts.PlayerName.Desc")}
             data={Array.from(players)}
             value={player}
             onChange={(value) => setPlayer(value)}
