@@ -50,6 +50,7 @@ export function BoardTab({
           className={cx(classes.tab, { [classes.selected]: selected })}
           variant="default"
           fw="normal"
+          radius={0}
           rightSection={
             <ActionIcon
               component="div"

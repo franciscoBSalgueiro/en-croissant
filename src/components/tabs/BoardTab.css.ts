@@ -4,7 +4,7 @@ import { style } from "@vanilla-extract/css";
 export const tab = style({
   cursor: "unset",
   paddingRight: 9,
-  marginRight: 5,
+  height: "2.2rem",
   [vars.lightSelector]: {
     backgroundColor: "transparent",
     color: vars.colors.gray[9],
@@ -20,6 +20,9 @@ export const tab = style({
     [vars.darkSelector]: {
       backgroundColor: vars.colors.dark[6],
     },
+  },
+  ":active": {
+    transform: "unset",
   },
 });
 

@@ -171,14 +171,13 @@ export default function BoardsPage() {
         value={activeTab}
         onChange={(v) => startTransition(() => setActiveTab(v))}
         keepMounted={false}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          width: "100%",
-        }}
+        className={classes.tabsContainer}
       >
-        <ScrollArea h="3.75rem" px="md" pt="sm" scrollbarSize={8}>
+        <ScrollArea
+          scrollbarSize={6}
+          scrollbars="x"
+          className={classes.tabsHeader}
+        >
           <DragDropContext
             onDragEnd={({ destination, source }) =>
               destination?.index !== undefined &&
@@ -224,6 +223,7 @@ export default function BoardsPage() {
                   {provided.placeholder}
                   <ActionIcon
                     variant="default"
+                    radius={0}
                     onClick={() =>
                       createTab({
                         tab: {
@@ -234,7 +234,6 @@ export default function BoardsPage() {
                         setActiveTab,
                       })
                     }
-                    size="lg"
                     classNames={{
                       root: classes.newTab,
                     }}
@@ -253,7 +252,7 @@ export default function BoardsPage() {
             h="100%"
             w="100%"
             pb="sm"
-            px="sm"
+            px="xs"
           >
             <TabSwitch
               tab={tab}
