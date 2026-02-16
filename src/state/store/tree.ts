@@ -1,3 +1,10 @@
+import type { DrawShape } from "@lichess-org/chessground/draw";
+import { isNormal, type Move } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
+import { makeSan, parseSan } from "chessops/san";
+import { type Draft, produce } from "immer";
+import { createStore, type StateCreator } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { BestMoves, Outcome, Score } from "@/bindings";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { getPGN } from "@/utils/chess";
@@ -6,21 +13,14 @@ import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
 import { playSound } from "@/utils/sound";
 import {
-  type GameHeaders,
-  type TreeNode,
-  type TreeState,
   createNode,
   defaultTree,
+  type GameHeaders,
   getNodeAtPath,
+  type TreeNode,
+  type TreeState,
   treeIteratorMainLine,
 } from "@/utils/treeReducer";
-import type { DrawShape } from "@lichess-org/chessground/draw";
-import { type Move, isNormal } from "chessops";
-import { INITIAL_FEN, makeFen } from "chessops/fen";
-import { makeSan, parseSan } from "chessops/san";
-import { type Draft, produce } from "immer";
-import { type StateCreator, createStore } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface TreeStoreState extends TreeState {
   currentNode: () => TreeNode;

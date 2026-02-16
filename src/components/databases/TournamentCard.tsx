@@ -1,8 +1,3 @@
-import type { Event, NormalizedGame } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import type { DatabaseViewStore } from "@/state/store/database";
-import { getTournamentGames } from "@/utils/db";
-import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
   Paper,
@@ -20,6 +15,11 @@ import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import type { Event, NormalizedGame } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import type { DatabaseViewStore } from "@/state/store/database";
+import { getTournamentGames } from "@/utils/db";
+import { createTab } from "@/utils/tabs";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 
 const gamePoints = (game: NormalizedGame, player: string) => {
@@ -40,7 +40,10 @@ const gamePoints = (game: NormalizedGame, player: string) => {
 function TournamentCard({
   tournament,
   file,
-}: { tournament: Event; file: string }) {
+}: {
+  tournament: Event;
+  file: string;
+}) {
   const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
   const tournamentsActiveTab = useStore(store, (s) => s.tournaments.activeTab);

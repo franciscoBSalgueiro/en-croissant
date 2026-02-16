@@ -1,6 +1,3 @@
-import { type NormalizedGame, commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
   Divider,
@@ -14,6 +11,9 @@ import { IconTrash, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { commands, type NormalizedGame } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { createTab } from "@/utils/tabs";
 import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
 
@@ -21,7 +21,11 @@ function GameCard({
   game,
   file,
   mutate,
-}: { game: NormalizedGame; file: string; mutate: () => void }) {
+}: {
+  game: NormalizedGame;
+  file: string;
+  mutate: () => void;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 

@@ -1,4 +1,3 @@
-import { pieceSetAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,
@@ -11,6 +10,7 @@ import {
 } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { pieceSetAtom } from "@/state/atoms";
 import PieceComponent from "../common/Piece";
 
 type Item = {

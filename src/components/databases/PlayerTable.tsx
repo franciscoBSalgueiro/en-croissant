@@ -1,5 +1,3 @@
-import type { Player, PlayerSort } from "@/bindings";
-import { query_players } from "@/utils/db";
 import {
   ActionIcon,
   Center,
@@ -17,6 +15,8 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
+import type { Player, PlayerSort } from "@/bindings";
+import { query_players } from "@/utils/db";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";

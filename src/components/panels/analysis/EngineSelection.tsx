@@ -1,6 +1,3 @@
-import LocalImage from "@/components/common/LocalImage";
-import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { type Engine, stopEngine } from "@/utils/engines";
 import {
   Center,
   Checkbox,
@@ -15,6 +12,9 @@ import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
 import { Trans } from "react-i18next";
+import LocalImage from "@/components/common/LocalImage";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
+import { type Engine, stopEngine } from "@/utils/engines";
 
 function EngineBox({
   engine,

@@ -1,16 +1,4 @@
 import {
-  type RecentFile,
-  activeTabAtom,
-  addRecentFileAtom,
-  deckAtomFamily,
-  recentFilesAtom,
-  tabFamily,
-  tabsAtom,
-} from "@/state/atoms";
-import { createTab } from "@/utils/tabs";
-import type { Tab } from "@/utils/tabs";
-import { unwrap } from "@/utils/unwrap";
-import {
   Badge,
   Box,
   Button,
@@ -25,11 +13,21 @@ import {
 } from "@mantine/core";
 import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useState } from "react";
+import {
+  activeTabAtom,
+  addRecentFileAtom,
+  deckAtomFamily,
+  type RecentFile,
+  recentFilesAtom,
+  tabFamily,
+  tabsAtom,
+} from "@/state/atoms";
+import type { Tab } from "@/utils/tabs";
+import { createTab } from "@/utils/tabs";
+import { unwrap } from "@/utils/unwrap";
 import CreateRepertoireModal from "./CreateRepertoireModal";
 import ImportModal from "./ImportModal";
 import "./NewTabHome.css";
-import { commands } from "@/bindings";
-import { getStats } from "@/components/files/opening";
 import {
   IconChess,
   IconClock,
@@ -44,6 +42,8 @@ import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { getStats } from "@/components/files/opening";
 import Chessboard from "../icons/Chessboard";
 
 dayjs.extend(relativeTime);

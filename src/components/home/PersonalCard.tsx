@@ -1,6 +1,3 @@
-import type { PlayerGameInfo } from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import type { DatabaseViewStore } from "@/state/store/database";
 import {
   ActionIcon,
   Box,
@@ -16,6 +13,9 @@ import { useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import type { PlayerGameInfo } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import type { DatabaseViewStore } from "@/state/store/database";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import FideInfo from "../databases/FideInfo";
 import OpeningsPanel from "./PersonalCardPanels/OpeningsPanel";

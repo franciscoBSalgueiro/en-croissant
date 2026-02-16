@@ -1,4 +1,3 @@
-import { keyMapAtom } from "@/state/keybinds";
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
 import { useColorScheme } from "@mantine/hooks";
 import { IconCheck, IconX } from "@tabler/icons-react";
@@ -7,6 +6,7 @@ import { useAtom } from "jotai";
 import { useState } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
+import { keyMapAtom } from "@/state/keybinds";
 import * as classes from "./KeybindInput.css";
 
 function KeybindInput({
@@ -40,13 +40,7 @@ function KeybindInput({
   );
 }
 
-function KbdDisplay({
-  keys,
-  hovering,
-}: {
-  keys: string;
-  hovering: boolean;
-}) {
+function KbdDisplay({ keys, hovering }: { keys: string; hovering: boolean }) {
   const splitted = keys.split("+");
   return (
     <Group>

@@ -1,9 +1,9 @@
-import { type Player, commands } from "@/bindings";
-import { query_players } from "@/utils/db";
-import { unwrap } from "@/utils/unwrap";
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { commands, type Player } from "@/bindings";
+import { query_players } from "@/utils/db";
+import { unwrap } from "@/utils/unwrap";
 
 export function PlayerSearchInput({
   label,

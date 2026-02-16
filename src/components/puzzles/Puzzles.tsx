@@ -1,26 +1,3 @@
-import { type PuzzleDatabaseInfo, commands } from "@/bindings";
-import {
-  activeTabAtom,
-  currentPuzzleAtom,
-  currentPuzzleTimerAtom,
-  hidePuzzleRatingAtom,
-  jumpToNextPuzzleAtom,
-  progressivePuzzlesAtom,
-  puzzleRatingRangeAtom,
-  puzzleThemeAtom,
-  selectedPuzzleDbAtom,
-  tabsAtom,
-} from "@/state/atoms";
-import { positionFromFen } from "@/utils/chessops";
-import { formatThemeLabel, formatTime } from "@/utils/format";
-import {
-  type Completion,
-  type Puzzle,
-  getPuzzleDatabases,
-} from "@/utils/puzzles";
-import { createTab } from "@/utils/tabs";
-import { defaultTree } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
 import {
   Accordion,
   ActionIcon,
@@ -56,6 +33,29 @@ import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { commands, type PuzzleDatabaseInfo } from "@/bindings";
+import {
+  activeTabAtom,
+  currentPuzzleAtom,
+  currentPuzzleTimerAtom,
+  hidePuzzleRatingAtom,
+  jumpToNextPuzzleAtom,
+  progressivePuzzlesAtom,
+  puzzleRatingRangeAtom,
+  puzzleThemeAtom,
+  selectedPuzzleDbAtom,
+  tabsAtom,
+} from "@/state/atoms";
+import { positionFromFen } from "@/utils/chessops";
+import { formatThemeLabel, formatTime } from "@/utils/format";
+import {
+  type Completion,
+  getPuzzleDatabases,
+  type Puzzle,
+} from "@/utils/puzzles";
+import { createTab } from "@/utils/tabs";
+import { defaultTree } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import ChallengeHistory from "../common/ChallengeHistory";
 import ConfirmModal from "../common/ConfirmModal";
 import GameNotation from "../common/GameNotation";

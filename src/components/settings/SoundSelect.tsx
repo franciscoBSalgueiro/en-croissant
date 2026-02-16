@@ -1,5 +1,3 @@
-import { soundCollectionAtom } from "@/state/atoms";
-import { playSound } from "@/utils/sound";
 import {
   Combobox,
   Group,
@@ -11,6 +9,8 @@ import {
 } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { soundCollectionAtom } from "@/state/atoms";
+import { playSound } from "@/utils/sound";
 
 type Item = {
   label: string;

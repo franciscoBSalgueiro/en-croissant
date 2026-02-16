@@ -1,16 +1,8 @@
-import type { Dirs } from "@/App";
-import AboutModal from "@/components/About";
-import { SideBar } from "@/components/Sidebar";
-import TopBar from "@/components/TopBar";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { openFile } from "@/utils/files";
-import { createTab } from "@/utils/tabs";
 import { AppShell } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
-  Outlet,
   createRootRouteWithContext,
+  Outlet,
   useNavigate,
 } from "@tanstack/react-router";
 import { TauriEvent } from "@tauri-apps/api/event";
@@ -23,8 +15,7 @@ import {
 import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { exit } from "@tauri-apps/plugin-process";
+import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { open as shellOpen } from "@tauri-apps/plugin-shell";
 import { check } from "@tauri-apps/plugin-updater";
 import { useAtom, useAtomValue } from "jotai";
@@ -33,6 +24,14 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
+import type { Dirs } from "@/App";
+import AboutModal from "@/components/About";
+import { SideBar } from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
+import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { openFile } from "@/utils/files";
+import { createTab } from "@/utils/tabs";
 
 type MenuGroup = {
   label: string;

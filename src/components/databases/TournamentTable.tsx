@@ -1,5 +1,3 @@
-import { type Event, type TournamentSort, commands } from "@/bindings";
-import { unwrap } from "@/utils/unwrap";
 import { Center, Flex, Text, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
@@ -8,10 +6,12 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
+import { commands, type Event, type TournamentSort } from "@/bindings";
+import { unwrap } from "@/utils/unwrap";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
-import TournamentCard from "./TournamentCard";
 import * as classes from "./styles.css";
+import TournamentCard from "./TournamentCard";
 
 function TournamentTable() {
   const { t } = useTranslation();

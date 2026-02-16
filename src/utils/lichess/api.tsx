@@ -1,20 +1,3 @@
-import {
-  type BestMoves,
-  type EngineOptions,
-  type GoMode,
-  type NormalizedGame,
-  commands,
-} from "@/bindings";
-import { parsePGN, uciNormalize } from "@/utils/chess";
-import { positionFromFen } from "@/utils/chessops";
-import { apiHeaders } from "@/utils/http";
-import {
-  type LichessGamesOptions,
-  type MasterGamesOptions,
-  getLichessGamesQueryParams,
-  getMasterGamesQueryParams,
-} from "@/utils/lichess/explorer";
-import { countMainPly } from "@/utils/treeReducer";
 import type { Color } from "@lichess-org/chessground/types";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
@@ -24,7 +7,24 @@ import { error } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
-import { P, match } from "ts-pattern";
+import { match, P } from "ts-pattern";
+import {
+  type BestMoves,
+  commands,
+  type EngineOptions,
+  type GoMode,
+  type NormalizedGame,
+} from "@/bindings";
+import { parsePGN, uciNormalize } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
+import { apiHeaders } from "@/utils/http";
+import {
+  getLichessGamesQueryParams,
+  getMasterGamesQueryParams,
+  type LichessGamesOptions,
+  type MasterGamesOptions,
+} from "@/utils/lichess/explorer";
+import { countMainPly } from "@/utils/treeReducer";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";

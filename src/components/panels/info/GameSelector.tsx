@@ -1,10 +1,3 @@
-import { commands } from "@/bindings";
-import ConfirmModal from "@/components/common/ConfirmModal";
-import { fontSizeAtom } from "@/state/atoms";
-import { parsePGN } from "@/utils/chess";
-import { formatNumber } from "@/utils/format";
-import { getGameName } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
 import { ActionIcon, Box, Group, ScrollArea, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
@@ -12,6 +5,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import cx from "clsx";
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
+import { commands } from "@/bindings";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import { fontSizeAtom } from "@/state/atoms";
+import { parsePGN } from "@/utils/chess";
+import { formatNumber } from "@/utils/format";
+import { getGameName } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import * as classes from "./GameSelector.css";
 
 export default function GameSelector({

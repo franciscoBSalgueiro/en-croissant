@@ -1,4 +1,3 @@
-import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
 import { Chessground as NativeChessground } from "@lichess-org/chessground";
 import type { Api } from "@lichess-org/chessground/api";
 import type { Config } from "@lichess-org/chessground/config";
@@ -11,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
 
 export interface ChessgroundRef {
   playPremove: () => boolean;

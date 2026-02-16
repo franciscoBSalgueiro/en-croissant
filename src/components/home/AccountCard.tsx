@@ -1,10 +1,3 @@
-import { events, commands } from "@/bindings";
-import type { DatabaseInfo } from "@/bindings";
-import { downloadChessCom } from "@/utils/chess.com/api";
-import { getDatabases, query_games } from "@/utils/db";
-import { capitalize } from "@/utils/format";
-import { downloadLichess } from "@/utils/lichess/api";
-import { unwrap } from "@/utils/unwrap";
 import {
   Accordion,
   ActionIcon,
@@ -29,6 +22,13 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { DatabaseInfo } from "@/bindings";
+import { commands, events } from "@/bindings";
+import { downloadChessCom } from "@/utils/chess.com/api";
+import { getDatabases, query_games } from "@/utils/db";
+import { capitalize } from "@/utils/format";
+import { downloadLichess } from "@/utils/lichess/api";
+import { unwrap } from "@/utils/unwrap";
 import LichessLogo from "./LichessLogo";
 import * as classes from "./styles.css";
 
@@ -148,11 +148,7 @@ export function AccountCard({
   const percentage =
     total === 0 ? "0.00" : ((downloadedGames / total) * 100).toFixed(2);
 
-  async function getLastGameDate({
-    database,
-  }: {
-    database: DatabaseInfo;
-  }) {
+  async function getLastGameDate({ database }: { database: DatabaseInfo }) {
     const games = await query_games(database.file, {
       options: {
         page: 1,

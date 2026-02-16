@@ -13,10 +13,9 @@ import {
 } from "@mantine/core";
 import { IconCloud } from "@tabler/icons-react";
 import * as Flags from "mantine-flagpack";
-
-import { getFidePlayer } from "@/utils/lichess/api";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
+import { getFidePlayer } from "@/utils/lichess/api";
 
 import COUNTRIES from "./countries.json";
 

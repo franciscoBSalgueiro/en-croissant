@@ -1,32 +1,8 @@
-import type { BestMoves, DatabaseInfo, GameQuery, GoMode } from "@/bindings";
-import { type Position, positionSchema } from "@/components/files/opening";
-import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import {
-  type Engine,
-  type EngineSettings,
-  engineSchema,
-} from "@/utils/engines";
-import {
-  type LichessGamesOptions,
-  type MasterGamesOptions,
-  lichessGamesOptionsSchema,
-  masterOptionsSchema,
-} from "@/utils/lichess/explorer";
-
-import { type Tab, genID, tabSchema } from "@/utils/tabs";
 import type { MantineColor } from "@mantine/core";
-
-import {
-  DEFAULT_TIME_CONTROL,
-  type OpponentSettings,
-} from "@/components/boards/OpponentForm";
-import { positionFromFen, swapMove } from "@/utils/chessops";
-import type { SuccessDatabaseInfo } from "@/utils/db";
-import { getWinChance, normalizeScore } from "@/utils/score";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
-import { type PrimitiveAtom, atom } from "jotai";
+import { atom, type PrimitiveAtom } from "jotai";
 import {
   atomFamily,
   atomWithStorage,
@@ -40,6 +16,28 @@ import type {
 } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
+import type { BestMoves, DatabaseInfo, GameQuery, GoMode } from "@/bindings";
+import {
+  DEFAULT_TIME_CONTROL,
+  type OpponentSettings,
+} from "@/components/boards/OpponentForm";
+import { type Position, positionSchema } from "@/components/files/opening";
+import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import { positionFromFen, swapMove } from "@/utils/chessops";
+import type { SuccessDatabaseInfo } from "@/utils/db";
+import {
+  type Engine,
+  type EngineSettings,
+  engineSchema,
+} from "@/utils/engines";
+import {
+  type LichessGamesOptions,
+  lichessGamesOptionsSchema,
+  type MasterGamesOptions,
+  masterOptionsSchema,
+} from "@/utils/lichess/explorer";
+import { getWinChance, normalizeScore } from "@/utils/score";
+import { genID, type Tab, tabSchema } from "@/utils/tabs";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 

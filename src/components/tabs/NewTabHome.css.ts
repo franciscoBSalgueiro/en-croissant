@@ -1,5 +1,5 @@
-import { vars } from "@/styles/theme";
 import { globalStyle } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 globalStyle(".recent-file-row:hover", {
   [vars.darkSelector]: {

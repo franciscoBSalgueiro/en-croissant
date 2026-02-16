@@ -1,13 +1,4 @@
 import {
-  activeTabAtom,
-  addRecentFileAtom,
-  tabFamily,
-  tabsAtom,
-} from "@/state/atoms";
-import { headersToPGN } from "@/utils/chess";
-import { createFile } from "@/utils/files";
-import { createTab } from "@/utils/tabs";
-import {
   Button,
   Modal,
   SegmentedControl,
@@ -20,6 +11,15 @@ import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  activeTabAtom,
+  addRecentFileAtom,
+  tabFamily,
+  tabsAtom,
+} from "@/state/atoms";
+import { headersToPGN } from "@/utils/chess";
+import { createFile } from "@/utils/files";
+import { createTab } from "@/utils/tabs";
 
 export default function CreateRepertoireModal({
   opened,

@@ -1,28 +1,4 @@
 import {
-  events,
-  type EngineLog,
-  type GameConfig,
-  type GameResult,
-  type PlayerConfig,
-  commands,
-} from "@/bindings";
-import type { Outcome } from "@/bindings";
-import type { ChessgroundRef } from "@/chessground/Chessground";
-import {
-  activeTabAtom,
-  currentGameIdAtom,
-  currentGameStateAtom,
-  currentPlayersAtom,
-  gameInputColorAtom,
-  gamePlayer1SettingsAtom,
-  gamePlayer2SettingsAtom,
-  gameSameTimeControlAtom,
-  tabsAtom,
-} from "@/state/atoms";
-import { positionFromFen } from "@/utils/chessops";
-import type { GameHeaders } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
-import {
   ActionIcon,
   Box,
   Button,
@@ -45,8 +21,8 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { makeUci, parseUci } from "chessops";
 import type { Piece } from "chessops";
+import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -60,6 +36,30 @@ import {
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import type { Outcome } from "@/bindings";
+import {
+  commands,
+  type EngineLog,
+  events,
+  type GameConfig,
+  type GameResult,
+  type PlayerConfig,
+} from "@/bindings";
+import type { ChessgroundRef } from "@/chessground/Chessground";
+import {
+  activeTabAtom,
+  currentGameIdAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
+  gameInputColorAtom,
+  gamePlayer1SettingsAtom,
+  gamePlayer2SettingsAtom,
+  gameSameTimeControlAtom,
+  tabsAtom,
+} from "@/state/atoms";
+import { positionFromFen } from "@/utils/chessops";
+import type { GameHeaders } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../common/EngineLogsView";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";

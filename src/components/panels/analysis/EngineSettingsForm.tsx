@@ -1,7 +1,3 @@
-import type { GoMode } from "@/bindings";
-import GoModeInput from "@/components/common/GoModeInput";
-import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import {
   ActionIcon,
   Checkbox,
@@ -16,6 +12,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import React, { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { GoMode } from "@/bindings";
+import GoModeInput from "@/components/common/GoModeInput";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
+import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";

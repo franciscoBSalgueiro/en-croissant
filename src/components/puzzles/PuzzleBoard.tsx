@@ -1,3 +1,18 @@
+import { Box } from "@mantine/core";
+import { useElementSize, useForceUpdate } from "@mantine/hooks";
+import {
+  Chess,
+  type Move,
+  makeUci,
+  type NormalMove,
+  parseSquare,
+} from "chessops";
+import { chessgroundDests, chessgroundMove } from "chessops/compat";
+import { parseFen } from "chessops/fen";
+import equal from "fast-deep-equal";
+import { useAtom, useAtomValue } from "jotai";
+import { useContext, useState } from "react";
+import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
 import {
   jumpToNextPuzzleAtom,
@@ -8,21 +23,6 @@ import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
-import { Box } from "@mantine/core";
-import { useElementSize, useForceUpdate } from "@mantine/hooks";
-import {
-  Chess,
-  type Move,
-  type NormalMove,
-  makeUci,
-  parseSquare,
-} from "chessops";
-import { chessgroundDests, chessgroundMove } from "chessops/compat";
-import { parseFen } from "chessops/fen";
-import equal from "fast-deep-equal";
-import { useAtom, useAtomValue } from "jotai";
-import { useContext, useState } from "react";
-import { useStore } from "zustand";
 import PromotionModal from "../boards/PromotionModal";
 import { TreeStateContext } from "../common/TreeStateContext";
 

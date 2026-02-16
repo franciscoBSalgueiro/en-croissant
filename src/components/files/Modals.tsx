@@ -1,17 +1,17 @@
-import { createFile } from "@/utils/files";
 import {
   Button,
   Modal,
   SimpleGrid,
   Stack,
   Text,
-  TextInput,
   Textarea,
+  TextInput,
 } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
 import { rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { createFile } from "@/utils/files";
 import GenericCard from "../common/GenericCard";
 import type { Directory, FileMetadata, FileType } from "./file";
 

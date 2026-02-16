@@ -1,8 +1,3 @@
-import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { openFile } from "@/utils/files";
-import { capitalize } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   ActionIcon,
   Badge,
@@ -17,6 +12,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { openFile } from "@/utils/files";
+import { capitalize } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
 import type { FileMetadata } from "./file";

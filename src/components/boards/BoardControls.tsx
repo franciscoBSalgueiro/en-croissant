@@ -1,12 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  autoSaveAtom,
-  currentEvalOpenAtom,
-  currentGameStateAtom,
-  currentTabAtom,
-  eraseDrawablesOnClickAtom,
-} from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
 import { ActionIcon, Stack, Tooltip } from "@mantine/core";
 import {
   IconArrowBack,
@@ -29,6 +20,15 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  autoSaveAtom,
+  currentEvalOpenAtom,
+  currentGameStateAtom,
+  currentTabAtom,
+  eraseDrawablesOnClickAtom,
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 
 interface BoardControlsProps {
   boardRef: React.MutableRefObject<HTMLDivElement | null>;

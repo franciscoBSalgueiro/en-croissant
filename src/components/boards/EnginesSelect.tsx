@@ -1,8 +1,8 @@
-import { enginesAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
 import { Select } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { Suspense, useEffect } from "react";
+import { enginesAtom } from "@/state/atoms";
+import type { LocalEngine } from "@/utils/engines";
 
 export function EnginesSelect({
   engine,

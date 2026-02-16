@@ -1,5 +1,5 @@
-import { events, type ProgressItem, commands } from "@/bindings";
 import { useCallback, useEffect, useState } from "react";
+import { commands, events, type ProgressItem } from "@/bindings";
 
 export function useProgress(id: string) {
   const [item, setItem] = useState<ProgressItem | null>(null);

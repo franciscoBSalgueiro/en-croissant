@@ -1,10 +1,3 @@
-import ToggleButtonGroup, {
-  type ToggleButtonGroupOption,
-} from "@/components/common/ToggleButtonGroup";
-import { lichessOptionsAtom } from "@/state/atoms";
-import { capitalize } from "@/utils/format";
-import { MIN_DATE } from "@/utils/lichess/api";
-import type { LichessGameSpeed, LichessRating } from "@/utils/lichess/explorer";
 import { Group, Select, Stack, TextInput } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import {
@@ -18,6 +11,13 @@ import {
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
+import ToggleButtonGroup, {
+  type ToggleButtonGroupOption,
+} from "@/components/common/ToggleButtonGroup";
+import { lichessOptionsAtom } from "@/state/atoms";
+import { capitalize } from "@/utils/format";
+import { MIN_DATE } from "@/utils/lichess/api";
+import type { LichessGameSpeed, LichessRating } from "@/utils/lichess/explorer";
 
 const LichessOptionsPanel = () => {
   const { t } = useTranslation();

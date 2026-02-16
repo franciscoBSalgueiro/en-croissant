@@ -1,10 +1,10 @@
-import { commands } from "@/bindings";
-import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
-import type { TreeStoreState } from "@/state/store/tree";
 import { resolve } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
 import { z } from "zod";
 import type { StoreApi } from "zustand";
+import { commands } from "@/bindings";
+import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
+import type { TreeStoreState } from "@/state/store/tree";
 import { getPGN, parsePGN } from "./chess";
 import { type GameHeaders, getGameName } from "./treeReducer";
 

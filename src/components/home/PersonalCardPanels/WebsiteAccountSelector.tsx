@@ -1,7 +1,7 @@
-import { sessionsAtom } from "@/state/atoms";
 import { Group, Select } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { sessionsAtom } from "@/state/atoms";
 
 interface WebsiteAccountSelectorProps {
   playerName: string;

@@ -1,24 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  coverageMinGamesAtom,
-  currentTabAtom,
-  referenceDbAtom,
-} from "@/state/atoms";
-import { searchPosition } from "@/utils/db";
-import { roundKeepSum } from "@/utils/format";
-import { isPrefix } from "@/utils/misc";
-import {
-  type PositionMove,
-  computeTreeCoverage,
-  findBiggestGap,
-  findNextGap,
-  getTreeStats,
-} from "@/utils/repertoire";
-import {
-  type TreeNode,
-  getNodeAtPath,
-  getTreeStructureHash,
-} from "@/utils/treeReducer";
 import {
   Alert,
   Box,
@@ -54,6 +33,27 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  coverageMinGamesAtom,
+  currentTabAtom,
+  referenceDbAtom,
+} from "@/state/atoms";
+import { searchPosition } from "@/utils/db";
+import { roundKeepSum } from "@/utils/format";
+import { isPrefix } from "@/utils/misc";
+import {
+  computeTreeCoverage,
+  findBiggestGap,
+  findNextGap,
+  getTreeStats,
+  type PositionMove,
+} from "@/utils/repertoire";
+import {
+  getNodeAtPath,
+  getTreeStructureHash,
+  type TreeNode,
+} from "@/utils/treeReducer";
 import * as classes from "./RepertoireInfo.css";
 
 function formatMoveNotation(halfMoves: number, san: string): string {

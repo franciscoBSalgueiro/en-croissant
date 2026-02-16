@@ -1,7 +1,3 @@
-import { type PuzzleDatabaseInfo, commands } from "@/bindings";
-import { getDefaultPuzzleDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { getPuzzleDatabases } from "@/utils/puzzles";
 import {
   Alert,
   Box,
@@ -18,6 +14,10 @@ import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
+import { commands, type PuzzleDatabaseInfo } from "@/bindings";
+import { getDefaultPuzzleDatabases } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { getPuzzleDatabases } from "@/utils/puzzles";
 import ProgressButton from "../common/ProgressButton";
 
 function AddPuzzle({

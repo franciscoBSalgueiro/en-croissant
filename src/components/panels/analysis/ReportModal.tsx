@@ -1,7 +1,3 @@
-import { type GoMode, commands } from "@/bindings";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { enginesAtom, referenceDbAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
 import {
   Button,
   Checkbox,
@@ -17,6 +13,10 @@ import { atomWithStorage } from "jotai/utils";
 import { memo, useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { commands, type GoMode } from "@/bindings";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { enginesAtom, referenceDbAtom } from "@/state/atoms";
+import type { LocalEngine } from "@/utils/engines";
 
 const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,

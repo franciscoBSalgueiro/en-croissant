@@ -1,11 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { annotationFocusAtom } from "@/state/atoms";
-import {
-  ANNOTATION_INFO,
-  type Annotation,
-  isBasicAnnotation,
-} from "@/utils/annotation";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Collapse,
@@ -22,6 +14,14 @@ import { atom, useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { annotationFocusAtom } from "@/state/atoms";
+import {
+  ANNOTATION_INFO,
+  type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import AnnotationEditor from "./AnnotationEditor";
 
 const SymbolButton = memo(function SymbolButton({

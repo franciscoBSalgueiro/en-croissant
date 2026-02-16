@@ -1,16 +1,20 @@
-import type { Outcome } from "@/bindings";
-import type { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import cx from "clsx";
 import dayjs from "dayjs";
 import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useStore } from "zustand";
+import { createStore, useStore } from "zustand";
+import type { Outcome } from "@/bindings";
+import type { GameHeaders } from "@/utils/treeReducer";
 import FideInfo from "../databases/FideInfo";
 import { ContentEditable } from "../tabs/ContentEditable";
 import * as classes from "./GameInfo.css";
 import { TreeStateContext } from "./TreeStateContext";
+
+const EMPTY_STORE = createStore(() => ({
+  setHeaders: () => {},
+}));
 
 function GameInfo({
   headers,
@@ -22,10 +26,9 @@ function GameInfo({
   changeTitle?: (title: string) => void;
 }) {
   const { t } = useTranslation();
-  const store = useContext(TreeStateContext);
-  const disabled = store === null;
-  const setHeaders =
-    store !== null ? useStore(store, (s) => s.setHeaders) : () => {};
+  const store = useContext(TreeStateContext) || EMPTY_STORE;
+  const disabled = store === EMPTY_STORE;
+  const setHeaders = useStore(store, (s) => s.setHeaders);
 
   const date = headers.date
     ? dayjs(headers.date, "YYYY.MM.DD").isValid()

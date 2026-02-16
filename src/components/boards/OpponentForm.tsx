@@ -1,8 +1,3 @@
-import type { GoMode } from "@/bindings";
-import TimeInput, { type TimeType } from "@/components/common/TimeInput";
-import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
-import type { TimeControlField } from "@/utils/clock";
-import type { LocalEngine } from "@/utils/engines";
 import {
   Center,
   Divider,
@@ -14,6 +9,11 @@ import {
 } from "@mantine/core";
 import { IconCpu, IconUser } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
+import type { GoMode } from "@/bindings";
+import TimeInput, { type TimeType } from "@/components/common/TimeInput";
+import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
+import type { TimeControlField } from "@/utils/clock";
+import type { LocalEngine } from "@/utils/engines";
 import { EnginesSelect } from "./EnginesSelect";
 
 export type OpponentSettings =

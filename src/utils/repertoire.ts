@@ -1,6 +1,6 @@
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { searchPosition } from "./db";
-import { type TreeNode, getNodeAtPath, treeIterator } from "./treeReducer";
+import { getNodeAtPath, type TreeNode, treeIterator } from "./treeReducer";
 
 export type PositionMove = {
   san: string;

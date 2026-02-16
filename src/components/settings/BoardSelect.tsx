@@ -1,4 +1,3 @@
-import { boardImageAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,
@@ -11,6 +10,7 @@ import {
 } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { boardImageAtom } from "@/state/atoms";
 
 const boardImages: string[] = [
   "purple.svg",

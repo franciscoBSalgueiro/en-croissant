@@ -11,11 +11,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
 
-export default function ErrorComponent({
-  error,
-}: {
-  error: unknown;
-}) {
+export default function ErrorComponent({ error }: { error: unknown }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 

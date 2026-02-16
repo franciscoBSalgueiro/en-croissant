@@ -1,10 +1,3 @@
-import { commands } from "@/bindings";
-import type { DatabaseInfo } from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import { getChessComAccount } from "@/utils/chess.com/api";
-import { getDatabases } from "@/utils/db";
-import { getLichessAccount } from "@/utils/lichess/api";
-import type { ChessComSession, LichessSession } from "@/utils/session";
 import {
   Autocomplete,
   Button,
@@ -20,6 +13,13 @@ import { listen } from "@tauri-apps/api/event";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { DatabaseInfo } from "@/bindings";
+import { commands } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import { getChessComAccount } from "@/utils/chess.com/api";
+import { getDatabases } from "@/utils/db";
+import { getLichessAccount } from "@/utils/lichess/api";
+import type { ChessComSession, LichessSession } from "@/utils/session";
 import AccountCards from "../common/AccountCards";
 import GenericCard from "../common/GenericCard";
 import LichessLogo from "./LichessLogo";

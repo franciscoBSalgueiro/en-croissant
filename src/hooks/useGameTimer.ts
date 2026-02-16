@@ -1,8 +1,8 @@
-import type { Outcome } from "@/bindings";
-import { currentPlayersAtom } from "@/state/atoms";
 import type { Position } from "chessops/chess";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import type { Outcome } from "@/bindings";
+import { currentPlayersAtom } from "@/state/atoms";
 
 export function useGameTimer({
   gameState,

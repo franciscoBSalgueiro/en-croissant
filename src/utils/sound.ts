@@ -1,9 +1,9 @@
-import { commands } from "@/bindings/generated";
-import { soundCollectionAtom, soundVolumeAtom } from "@/state/atoms";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { resolveResource } from "@tauri-apps/api/path";
 import { platform } from "@tauri-apps/plugin-os";
 import { getDefaultStore } from "jotai";
+import { commands } from "@/bindings/generated";
+import { soundCollectionAtom, soundVolumeAtom } from "@/state/atoms";
 
 const POOL_SIZE = 5;
 const audioPool = Array.from({ length: POOL_SIZE }, () => new Audio());

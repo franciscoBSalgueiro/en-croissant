@@ -1,6 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { currentPgnOptionsAtom } from "@/state/atoms";
-import { getPGN, parsePGN } from "@/utils/chess";
 import {
   ActionIcon,
   Box,
@@ -8,11 +5,11 @@ import {
   Checkbox,
   CopyButton,
   Group,
+  rem,
   Stack,
   Text,
   Textarea,
   Tooltip,
-  rem,
 } from "@mantine/core";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 import deepEqual from "fast-deep-equal";
@@ -20,6 +17,9 @@ import { useAtom } from "jotai";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { currentPgnOptionsAtom } from "@/state/atoms";
+import { getPGN, parsePGN } from "@/utils/chess";
 
 function PgnInput() {
   const store = useContext(TreeStateContext)!;

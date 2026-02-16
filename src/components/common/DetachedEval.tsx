@@ -1,17 +1,3 @@
-import type { BestMoves as BestMovesType, GoMode } from "@/bindings";
-import {
-  activeTabAtom,
-  currentDetachedEngineAtom,
-  currentThreatAtom,
-  engineMovesFamily,
-  engineProgressFamily,
-  enginesAtom,
-  tabEngineSettingsFamily,
-} from "@/state/atoms";
-import { getVariationLine } from "@/utils/chess";
-import { positionFromFen, swapMove } from "@/utils/chessops";
-import type { EngineSettings } from "@/utils/engines";
-import { formatScore } from "@/utils/score";
 import {
   ActionIcon,
   Code,
@@ -33,6 +19,20 @@ import { useAtom, useAtomValue } from "jotai";
 import { memo, useContext, useDeferredValue, useMemo } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import type { BestMoves as BestMovesType, GoMode } from "@/bindings";
+import {
+  activeTabAtom,
+  currentDetachedEngineAtom,
+  currentThreatAtom,
+  engineMovesFamily,
+  engineProgressFamily,
+  enginesAtom,
+  tabEngineSettingsFamily,
+} from "@/state/atoms";
+import { getVariationLine } from "@/utils/chess";
+import { positionFromFen, swapMove } from "@/utils/chessops";
+import type { EngineSettings } from "@/utils/engines";
+import { formatScore } from "@/utils/score";
 import ScoreBubble from "../panels/analysis/ScoreBubble";
 import { TreeStateContext } from "./TreeStateContext";
 

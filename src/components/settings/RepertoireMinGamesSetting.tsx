@@ -1,8 +1,8 @@
-import { coverageMinGamesAtom } from "@/state/atoms";
 import { Group, NumberInput, Select } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { coverageMinGamesAtom } from "@/state/atoms";
 
 export default function RepertoireMinGamesSetting() {
   const { t } = useTranslation();

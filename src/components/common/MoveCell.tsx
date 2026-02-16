@@ -1,13 +1,13 @@
+import { Box, rgba, useMantineTheme } from "@mantine/core";
+import { IconFlag } from "@tabler/icons-react";
+import { useAtom } from "jotai";
+import { type ForwardedRef, forwardRef, type ReactNode } from "react";
 import { moveNotationTypeAtom } from "@/state/atoms";
 import {
   ANNOTATION_INFO,
   type Annotation,
   addPieceSymbol,
 } from "@/utils/annotation";
-import { Box, rgba, useMantineTheme } from "@mantine/core";
-import { IconFlag } from "@tabler/icons-react";
-import { useAtom } from "jotai";
-import { type ForwardedRef, type ReactNode, forwardRef } from "react";
 import * as classes from "./MoveCell.css";
 
 interface MoveCellProps {

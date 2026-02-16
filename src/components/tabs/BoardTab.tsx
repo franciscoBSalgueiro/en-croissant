@@ -1,9 +1,9 @@
-import type { Tab } from "@/utils/tabs";
 import { ActionIcon, Button, Menu } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import cx from "clsx";
 import { useEffect } from "react";
+import type { Tab } from "@/utils/tabs";
 import * as classes from "./BoardTab.css";
 import { ContentEditable } from "./ContentEditable";
 

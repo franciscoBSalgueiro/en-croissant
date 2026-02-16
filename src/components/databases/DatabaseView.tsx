@@ -1,10 +1,3 @@
-import GameTable from "@/components/databases/GameTable";
-import PlayerTable from "@/components/databases/PlayerTable";
-import {
-  type DatabaseViewStore,
-  activeDatabaseViewStore,
-  useActiveDatabaseViewStore,
-} from "@/state/store/database";
 import { ActionIcon, Box, Group, Stack, Tabs, Title } from "@mantine/core";
 import {
   IconArrowBackUp,
@@ -14,6 +7,13 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import GameTable from "@/components/databases/GameTable";
+import PlayerTable from "@/components/databases/PlayerTable";
+import {
+  activeDatabaseViewStore,
+  type DatabaseViewStore,
+  useActiveDatabaseViewStore,
+} from "@/state/store/database";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import TournamentTable from "./TournamentTable";
 

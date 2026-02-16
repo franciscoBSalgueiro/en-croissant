@@ -1,25 +1,3 @@
-import ConfirmModal from "@/components/common/ConfirmModal";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  buildFromTree,
-  formatReviewInterval,
-  getCardForReview,
-  getNextReviewTimes,
-  getStats,
-  syncDeck,
-  updateCardPerformance,
-} from "@/components/files/opening";
-import {
-  type PracticeData,
-  currentInvisibleAtom,
-  currentPracticeTabAtom,
-  currentTabAtom,
-  deckAtomFamily,
-  practiceCardStartTimeAtom,
-  practiceSessionStatsAtom,
-  practiceStateAtom,
-} from "@/state/atoms";
-import { findFen, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Alert,
@@ -55,6 +33,28 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "ts-fsrs";
 import { useStore } from "zustand";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  buildFromTree,
+  formatReviewInterval,
+  getCardForReview,
+  getNextReviewTimes,
+  getStats,
+  syncDeck,
+  updateCardPerformance,
+} from "@/components/files/opening";
+import {
+  currentInvisibleAtom,
+  currentPracticeTabAtom,
+  currentTabAtom,
+  deckAtomFamily,
+  type PracticeData,
+  practiceCardStartTimeAtom,
+  practiceSessionStatsAtom,
+  practiceStateAtom,
+} from "@/state/atoms";
+import { findFen, getNodeAtPath } from "@/utils/treeReducer";
 import RepertoireInfo from "./RepertoireInfo";
 
 function PracticePanel() {

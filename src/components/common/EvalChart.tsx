@@ -1,13 +1,3 @@
-import { reportTypeAtom } from "@/state/atoms";
-import { ANNOTATION_INFO } from "@/utils/annotation";
-import { positionFromFen } from "@/utils/chessops";
-import { skipWhile, takeWhile } from "@/utils/misc";
-import { formatScore } from "@/utils/score";
-import {
-  type ListNode,
-  type TreeNode,
-  treeIteratorMainLine,
-} from "@/utils/treeReducer";
 import { AreaChart } from "@mantine/charts";
 import {
   Alert,
@@ -25,6 +15,16 @@ import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
 import { useStore } from "zustand";
+import { reportTypeAtom } from "@/state/atoms";
+import { ANNOTATION_INFO } from "@/utils/annotation";
+import { positionFromFen } from "@/utils/chessops";
+import { skipWhile, takeWhile } from "@/utils/misc";
+import { formatScore } from "@/utils/score";
+import {
+  type ListNode,
+  type TreeNode,
+  treeIteratorMainLine,
+} from "@/utils/treeReducer";
 import * as classes from "./EvalChart.css";
 import { TreeStateContext } from "./TreeStateContext";
 

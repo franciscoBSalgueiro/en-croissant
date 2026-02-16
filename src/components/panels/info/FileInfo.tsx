@@ -1,11 +1,11 @@
-import { commands } from "@/bindings";
-import { currentTabAtom } from "@/state/atoms";
-import { formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import { ActionIcon, Code, Divider, Group, Text, Tooltip } from "@mantine/core";
 import { IconReload } from "@tabler/icons-react";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { currentTabAtom } from "@/state/atoms";
+import { formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 
 function FileInfo({
   setGames,

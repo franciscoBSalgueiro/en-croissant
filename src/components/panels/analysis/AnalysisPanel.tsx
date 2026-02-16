@@ -1,22 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  activeTabAtom,
-  allEnabledAtom,
-  currentAnalysisTabAtom,
-  currentExpandedEnginesAtom,
-  enableAllAtom,
-  engineMovesFamily,
-  enginesAtom,
-} from "@/state/atoms";
-import { getVariationLine } from "@/utils/chess";
-import {
-  getPiecesCount,
-  hasCaptures,
-  isOp1,
-  positionFromFen,
-} from "@/utils/chessops";
-import type { Engine } from "@/utils/engines";
-import { getInitials } from "@/utils/format";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
@@ -44,6 +25,25 @@ import { memo, useContext, useDeferredValue, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  activeTabAtom,
+  allEnabledAtom,
+  currentAnalysisTabAtom,
+  currentExpandedEnginesAtom,
+  enableAllAtom,
+  engineMovesFamily,
+  enginesAtom,
+} from "@/state/atoms";
+import { getVariationLine } from "@/utils/chess";
+import {
+  getPiecesCount,
+  hasCaptures,
+  isOp1,
+  positionFromFen,
+} from "@/utils/chessops";
+import type { Engine } from "@/utils/engines";
+import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";

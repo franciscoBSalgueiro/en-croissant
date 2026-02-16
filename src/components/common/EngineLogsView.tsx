@@ -1,5 +1,3 @@
-import type { EngineLog } from "@/bindings";
-import { fontSizeAtom } from "@/state/atoms";
 import {
   ActionIcon,
   Badge,
@@ -24,6 +22,8 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { EngineLog } from "@/bindings";
+import { fontSizeAtom } from "@/state/atoms";
 
 export type LogsFilter = "all" | "gui" | "engine";
 

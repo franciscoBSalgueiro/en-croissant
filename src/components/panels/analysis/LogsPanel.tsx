@@ -1,11 +1,11 @@
-import { commands } from "@/bindings";
-import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
-import { unwrap } from "@/utils/unwrap";
 import { Select, Stack } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 import useSWR from "swr";
+import { commands } from "@/bindings";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
+import type { LocalEngine } from "@/utils/engines";
+import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../../common/EngineLogsView";
 
 export default function LogsPanel() {

@@ -1,6 +1,3 @@
-import type { PlayerGameInfo } from "@/bindings";
-import type { StatsData } from "@/bindings";
-import { getTimeControl } from "@/utils/timeControl";
 import { Stack, Text } from "@mantine/core";
 import { useState } from "react";
 import {
@@ -17,6 +14,8 @@ import type {
   NameType,
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
+import type { PlayerGameInfo, StatsData } from "@/bindings";
+import { getTimeControl } from "@/utils/timeControl";
 import ResultsChart from "./ResultsChart";
 import TimeControlSelector from "./TimeControlSelector";
 import WebsiteAccountSelector from "./WebsiteAccountSelector";

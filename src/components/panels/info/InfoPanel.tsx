@@ -1,14 +1,3 @@
-import { commands } from "@/bindings";
-import GameInfo from "@/components/common/GameInfo";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
-import { currentTabAtom } from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { parsePGN } from "@/utils/chess";
-import { formatNumber } from "@/utils/format";
-import { getTreeStats } from "@/utils/repertoire";
-import { getNodeAtPath } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
 import {
   Accordion,
   ActionIcon,
@@ -26,6 +15,17 @@ import { useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { commands } from "@/bindings";
+import GameInfo from "@/components/common/GameInfo";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
+import { currentTabAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { parsePGN } from "@/utils/chess";
+import { formatNumber } from "@/utils/format";
+import { getTreeStats } from "@/utils/repertoire";
+import { getNodeAtPath } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
@@ -111,7 +111,10 @@ function GameSelectorAccordion({
 
   useHotkeys(
     keyMap.NEXT_GAME.keys,
-    () => setPage(Math.min(gameNumber + 1, currentTab?.file?.numGames! - 1)),
+    () => {
+      if (!currentTab?.file?.numGames) return;
+      setPage(Math.min(gameNumber + 1, currentTab.file.numGames - 1));
+    },
     {
       enabled: !!currentTab?.file,
     },
@@ -152,7 +155,8 @@ function GameSelectorAccordion({
   }
 
   async function deleteGame(index: number) {
-    await commands.deleteGame(currentTab?.file?.path!, index);
+    if (!currentTab?.file) return;
+    await commands.deleteGame(currentTab.file.path, index);
     setCurrentTab((prev) => {
       if (!prev.file) return prev;
       prev.file.numGames -= 1;

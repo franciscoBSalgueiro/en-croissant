@@ -1,13 +1,3 @@
-import { events, commands } from "@/bindings";
-import type {
-  DatabaseInfo as PlainDatabaseInfo,
-  PlayerGameInfo,
-} from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import { activeDatabaseViewStore } from "@/state/store/database";
-import { getDatabases, query_players } from "@/utils/db";
-import type { Session } from "@/utils/session";
-import { unwrap } from "@/utils/unwrap";
 import {
   Center,
   Progress,
@@ -22,6 +12,16 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
+import type {
+  DatabaseInfo as PlainDatabaseInfo,
+  PlayerGameInfo,
+} from "@/bindings";
+import { commands, events } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import { activeDatabaseViewStore } from "@/state/store/database";
+import { getDatabases, query_players } from "@/utils/db";
+import type { Session } from "@/utils/session";
+import { unwrap } from "@/utils/unwrap";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import PersonalPlayerCard from "./PersonalCard";
 

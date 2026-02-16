@@ -1,8 +1,8 @@
-import { type Player, commands } from "@/bindings";
-import { unwrap } from "@/utils/unwrap";
 import { Center, Loader, Paper, Stack, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
+import { commands, type Player } from "@/bindings";
+import { unwrap } from "@/utils/unwrap";
 import PersonalPlayerCard from "../home/PersonalCard";
 
 function PlayerCard({ player, file }: { player: Player; file: string }) {

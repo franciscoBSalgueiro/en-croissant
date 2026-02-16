@@ -1,14 +1,9 @@
-import Comment from "@/components/common/Comment";
-import { currentTabAtom } from "@/state/atoms";
-import type { Annotation } from "@/utils/annotation";
-import { hasMorePriority, stripClock } from "@/utils/chess";
-import { type TreeNode, treeIterator } from "@/utils/treeReducer";
 import { ActionIcon, Box, Menu, Portal, Text, Tooltip } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import {
   IconArrowsJoin,
-  IconChevronUp,
   IconChevronsUp,
+  IconChevronUp,
   IconCopy,
   IconFlag,
   IconX,
@@ -19,6 +14,11 @@ import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import Comment from "@/components/common/Comment";
+import { currentTabAtom } from "@/state/atoms";
+import type { Annotation } from "@/utils/annotation";
+import { hasMorePriority, stripClock } from "@/utils/chess";
+import { type TreeNode, treeIterator } from "@/utils/treeReducer";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
 

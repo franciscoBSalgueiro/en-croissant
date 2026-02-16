@@ -1,8 +1,3 @@
-import type { DatabaseInfo } from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import { getChessComAccount, getStats } from "@/utils/chess.com/api";
-import { getLichessAccount } from "@/utils/lichess/api";
-import type { Session } from "@/utils/session";
 import {
   Accordion,
   ActionIcon,
@@ -17,6 +12,11 @@ import {
 import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import type { DatabaseInfo } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import { getChessComAccount, getStats } from "@/utils/chess.com/api";
+import { getLichessAccount } from "@/utils/lichess/api";
+import type { Session } from "@/utils/session";
 import { AccountCard } from "../home/AccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
 

@@ -1,10 +1,3 @@
-import { commands } from "@/bindings";
-import type { DatabaseInfo } from "@/bindings";
-import { referenceDbAtom } from "@/state/atoms";
-import { useActiveDatabaseViewStore } from "@/state/store/database";
-import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Box,
   Button,
@@ -20,8 +13,8 @@ import {
   Skeleton,
   Stack,
   Text,
-  TextInput,
   Textarea,
+  TextInput,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -33,6 +26,13 @@ import { useAtom, useStore } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
+import type { DatabaseInfo } from "@/bindings";
+import { commands } from "@/bindings";
+import { referenceDbAtom } from "@/state/atoms";
+import { useActiveDatabaseViewStore } from "@/state/store/database";
+import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -86,7 +86,8 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          commands.deleteDatabase(selectedDatabase?.file!).then(() => {
+          if (!selectedDatabase) return;
+          commands.deleteDatabase(selectedDatabase.file).then(() => {
             mutate();
             setSelected(null);
           });
@@ -369,7 +370,10 @@ export default function DatabasesPage() {
 function GeneralSettings({
   selectedDatabase,
   mutate,
-}: { selectedDatabase: SuccessDatabaseInfo; mutate: () => void }) {
+}: {
+  selectedDatabase: SuccessDatabaseInfo;
+  mutate: () => void;
+}) {
   const { t } = useTranslation();
 
   const [title, setTitle] = useState(selectedDatabase.title);
@@ -408,7 +412,10 @@ function GeneralSettings({
 function AdvancedSettings({
   selectedDatabase,
   reload,
-}: { selectedDatabase: DatabaseInfo; reload: () => void }) {
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
   return (
     <Stack>
       <PlayerMerger selectedDatabase={selectedDatabase} />
@@ -419,7 +426,9 @@ function AdvancedSettings({
 
 function PlayerMerger({
   selectedDatabase,
-}: { selectedDatabase: DatabaseInfo }) {
+}: {
+  selectedDatabase: DatabaseInfo;
+}) {
   const { t } = useTranslation();
 
   const [player1, setPlayer1] = useState<number | undefined>(undefined);
@@ -472,7 +481,10 @@ function PlayerMerger({
 function DuplicateRemover({
   selectedDatabase,
   reload,
-}: { selectedDatabase: DatabaseInfo; reload: () => void }) {
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(false);

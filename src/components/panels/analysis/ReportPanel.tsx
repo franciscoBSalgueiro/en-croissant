@@ -1,3 +1,19 @@
+import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
+import { IconZoomCheck } from "@tabler/icons-react";
+import cx from "clsx";
+import equal from "fast-deep-equal";
+import { useAtomValue } from "jotai";
+import React, {
+  memo,
+  Suspense,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { useStore } from "zustand";
 import { commands } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
@@ -5,16 +21,6 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { activeTabAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getGameStats, getMainLine } from "@/utils/chess";
-import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
-import { IconZoomCheck } from "@tabler/icons-react";
-import cx from "clsx";
-import equal from "fast-deep-equal";
-import { useAtomValue } from "jotai";
-import React, { Suspense, useCallback, useState } from "react";
-import { memo, useContext, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useStore } from "zustand";
 import { label } from "./AnalysisPanel.css";
 import ReportModal from "./ReportModal";
 
@@ -171,7 +177,11 @@ function AccuracyCard({
   color,
   cpl,
   accuracy,
-}: { color: string; cpl: number; accuracy: number }) {
+}: {
+  color: string;
+  cpl: number;
+  accuracy: number;
+}) {
   const { t } = useTranslation();
 
   return (

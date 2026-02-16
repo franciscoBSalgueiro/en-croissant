@@ -1,7 +1,3 @@
-import { Chessground } from "@/chessground/Chessground";
-import PiecesGrid from "@/components/boards/PiecesGrid";
-import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
-import { currentLocalOptionsAtom } from "@/state/atoms";
 import {
   Box,
   Button,
@@ -18,6 +14,10 @@ import dayjs from "dayjs";
 import { useAtom } from "jotai";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Chessground } from "@/chessground/Chessground";
+import PiecesGrid from "@/components/boards/PiecesGrid";
+import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
+import { currentLocalOptionsAtom } from "@/state/atoms";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
   const { t } = useTranslation();

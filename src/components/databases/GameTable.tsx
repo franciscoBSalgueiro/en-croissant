@@ -1,7 +1,3 @@
-import type { GameSort, NormalizedGame, Outcome } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { query_games } from "@/utils/db";
-import { createTab } from "@/utils/tabs";
 import {
   ActionIcon,
   Box,
@@ -26,6 +22,10 @@ import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
+import type { GameSort, NormalizedGame, Outcome } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { query_games } from "@/utils/db";
+import { createTab } from "@/utils/tabs";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";

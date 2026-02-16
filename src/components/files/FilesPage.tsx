@@ -1,4 +1,3 @@
-import { capitalize } from "@/utils/format";
 import {
   Button,
   Center,
@@ -16,16 +15,17 @@ import { readDir, remove } from "@tauri-apps/plugin-fs";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
+import { capitalize } from "@/utils/format";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
-import { CreateModal, EditModal } from "./Modals";
 import {
   type FileMetadata,
   type FileType,
   processEntriesRecursively,
 } from "./file";
+import { CreateModal, EditModal } from "./Modals";
 
 const FILE_TYPES: FileType[] = [
   "game",

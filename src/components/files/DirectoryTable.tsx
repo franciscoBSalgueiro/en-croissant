@@ -1,6 +1,3 @@
-import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
-import { openFile } from "@/utils/files";
-import { capitalize } from "@/utils/format";
 import { Badge, Box, Group } from "@mantine/core";
 import {
   IconChevronRight,
@@ -19,6 +16,9 @@ import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
+import { openFile } from "@/utils/files";
+import { capitalize } from "@/utils/format";
 import * as classes from "./DirectoryTable.css";
 import type { Directory, FileMetadata } from "./file";
 import { getStats } from "./opening";
@@ -54,13 +54,13 @@ function recursiveSort(
         if (sort.columnAccessor === "name") {
           return b.name.localeCompare(a.name);
         }
-        // @ts-ignore
+        // @ts-expect-error
         return b[sort.columnAccessor] > a[sort.columnAccessor] ? 1 : -1;
       }
       if (sort.columnAccessor === "name") {
         return a.name.localeCompare(b.name);
       }
-      // @ts-ignore
+      // @ts-expect-error
       return a[sort.columnAccessor] > b[sort.columnAccessor] ? 1 : -1;
     })
     .sort((a, b) => {

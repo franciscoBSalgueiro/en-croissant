@@ -1,16 +1,3 @@
-import {
-  allEnabledAtom,
-  autoSaveAtom,
-  currentPracticeTabAtom,
-  currentTabAtom,
-  currentTabSelectedAtom,
-  enableAllAtom,
-  practiceStateAtom,
-  triggerAnnotationFocusAtom,
-} from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { defaultPGN, getVariationLine } from "@/utils/chess";
-import { saveToFile } from "@/utils/tabs";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
@@ -35,6 +22,19 @@ import {
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import {
+  allEnabledAtom,
+  autoSaveAtom,
+  currentPracticeTabAtom,
+  currentTabAtom,
+  currentTabSelectedAtom,
+  enableAllAtom,
+  practiceStateAtom,
+  triggerAnnotationFocusAtom,
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { defaultPGN, getVariationLine } from "@/utils/chess";
+import { saveToFile } from "@/utils/tabs";
 import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -82,6 +82,7 @@ function BoardAnalysis() {
   }, [currentTab?.file, saveFile, autoSave, dirty]);
 
   const addGame = useCallback(() => {
+    if (!currentTab?.file) return;
     setCurrentTab((prev) => {
       if (!prev?.file) return prev;
       prev.gameNumber = prev.file.numGames;
@@ -89,7 +90,7 @@ function BoardAnalysis() {
       return { ...prev };
     });
     reset();
-    writeTextFile(currentTab?.file?.path!, `\n\n${defaultPGN()}\n\n`, {
+    writeTextFile(currentTab.file.path, `\n\n${defaultPGN()}\n\n`, {
       append: true,
     });
   }, [setCurrentTab, reset, currentTab?.file?.path]);

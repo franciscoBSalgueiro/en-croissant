@@ -13,7 +13,7 @@
     "test": "vitest run",
     "lint": "tsc --noEmit && biome check ./src",
     "lint:ci": "tsc --noEmit && biome ci ./src --diagnostic-level=error",
-    "lint:fix": "biome check --apply ./src"
+    "lint:fix": "biome check --write ./src"
   },
   "dependencies": {
     "@badrap/result": "^0.2.13",
@@ -85,7 +85,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.0",
+    "@biomejs/biome": "2.4.0",
     "@tanstack/router-vite-plugin": "^1.20.0",
     "@tauri-apps/cli": "2.9.6",
     "@types/lodash": "^4.17.0",

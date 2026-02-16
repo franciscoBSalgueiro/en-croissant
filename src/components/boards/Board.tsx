@@ -1,3 +1,35 @@
+import type { DrawShape } from "@lichess-org/chessground/draw";
+import {
+  ActionIcon,
+  Box,
+  Center,
+  Group,
+  Stack,
+  Text,
+  useMantineTheme,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { IconChevronRight } from "@tabler/icons-react";
+import {
+  makeSquare,
+  makeUci,
+  type NormalMove,
+  type Piece,
+  parseSquare,
+  parseUci,
+  type SquareName,
+} from "chessops";
+import { chessgroundDests, chessgroundMove } from "chessops/compat";
+import { makeFen, parseFen } from "chessops/fen";
+import { makeSan } from "chessops/san";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { Helmet } from "react-helmet";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
+import { match } from "ts-pattern";
+import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { Chessground, type ChessgroundRef } from "@/chessground/Chessground";
 import {
   autoPromoteAtom,
@@ -28,42 +60,8 @@ import {
   forceEnPassant,
   positionFromFen,
 } from "@/utils/chessops";
-import { type TimeControlField, getClockInfo } from "@/utils/clock";
+import { getClockInfo, type TimeControlField } from "@/utils/clock";
 import { getNodeAtPath } from "@/utils/treeReducer";
-import type { DrawShape } from "@lichess-org/chessground/draw";
-import {
-  ActionIcon,
-  Box,
-  Center,
-  Group,
-  Stack,
-  Text,
-  useMantineTheme,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { IconChevronRight } from "@tabler/icons-react";
-
-import {
-  type NormalMove,
-  type Piece,
-  type SquareName,
-  makeSquare,
-  makeUci,
-  parseSquare,
-  parseUci,
-} from "chessops";
-import { chessgroundDests, chessgroundMove } from "chessops/compat";
-import { makeFen, parseFen } from "chessops/fen";
-import { makeSan } from "chessops/san";
-
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
-import { Helmet } from "react-helmet";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useTranslation } from "react-i18next";
-import { match } from "ts-pattern";
-import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";

@@ -1,3 +1,19 @@
+import {
+  Alert,
+  Group,
+  ScrollArea,
+  SegmentedControl,
+  Stack,
+  Tabs,
+  Text,
+} from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
+import { useAtom, useAtomValue } from "jotai";
+import { memo, useContext, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import useSWR from "swr/immutable";
+import { match } from "ts-pattern";
+import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -19,22 +35,6 @@ import type {
   LichessGamesOptions,
   MasterGamesOptions,
 } from "@/utils/lichess/explorer";
-import {
-  Alert,
-  Group,
-  ScrollArea,
-  SegmentedControl,
-  Stack,
-  Tabs,
-  Text,
-} from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import useSWR from "swr/immutable";
-import { match } from "ts-pattern";
-import { useStore } from "zustand";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";

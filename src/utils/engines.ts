@@ -1,13 +1,13 @@
-import {
-  type BestMoves,
-  type EngineOptions,
-  type GoMode,
-  commands,
-} from "@/bindings";
 import { fetch } from "@tauri-apps/plugin-http";
 import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
+import {
+  type BestMoves,
+  commands,
+  type EngineOptions,
+  type GoMode,
+} from "@/bindings";
 import { unwrap } from "./unwrap";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
@@ -112,10 +112,7 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
         throw new Error("Failed to fetch engines");
       }
       return (await data.json()).filter(
-        (e: {
-          os: Platform;
-          bmi2: boolean;
-        }) => e.os === os && e.bmi2 === bmi2,
+        (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
       );
     },
   );

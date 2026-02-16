@@ -1,13 +1,3 @@
-import { commands } from "@/bindings";
-import { currentTabAtom } from "@/state/atoms";
-import { addRecentFileAtom } from "@/state/atoms";
-import { parsePGN } from "@/utils/chess";
-import { getChesscomGame } from "@/utils/chess.com/api";
-import { chessopsError } from "@/utils/chessops";
-import { createFile } from "@/utils/files";
-import { getLichessGame } from "@/utils/lichess/api";
-import { defaultTree, getGameName } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
 import {
   Button,
   Checkbox,
@@ -18,8 +8,8 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  TextInput,
   Textarea,
+  TextInput,
 } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -29,6 +19,15 @@ import { useAtom, useStore } from "jotai";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
+import { commands } from "@/bindings";
+import { addRecentFileAtom, currentTabAtom } from "@/state/atoms";
+import { parsePGN } from "@/utils/chess";
+import { getChesscomGame } from "@/utils/chess.com/api";
+import { chessopsError } from "@/utils/chessops";
+import { createFile } from "@/utils/files";
+import { getLichessGame } from "@/utils/lichess/api";
+import { defaultTree, getGameName } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import GenericCard from "../common/GenericCard";
 import type { FileMetadata, FileType } from "../files/file";
 

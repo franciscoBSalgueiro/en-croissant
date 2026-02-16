@@ -1,6 +1,3 @@
-import { commands } from "@/bindings";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { chessopsError } from "@/utils/chessops";
 import {
   Combobox,
   Group,
@@ -14,6 +11,9 @@ import { type FenError, parseFen } from "chessops/fen";
 import { useContext, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
+import { commands } from "@/bindings";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { chessopsError } from "@/utils/chessops";
 
 export default function FenSearch({ currentFen }: { currentFen: string }) {
   const combobox = useCombobox({

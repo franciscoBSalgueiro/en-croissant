@@ -1,7 +1,7 @@
-import { useProgress } from "@/hooks/useProgress";
 import { ActionIcon, Box, Button, Group, Progress } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { memo, useCallback, useEffect } from "react";
+import { useProgress } from "@/hooks/useProgress";
 import * as classes from "./ProgressButton.css";
 
 type Props = {

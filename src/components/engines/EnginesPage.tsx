@@ -1,10 +1,3 @@
-import { enginesAtom } from "@/state/atoms";
-import {
-  type Engine,
-  type LocalEngine,
-  engineSchema,
-  requiredEngineSettings,
-} from "@/utils/engines";
 import {
   ActionIcon,
   Box,
@@ -27,6 +20,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import {
   IconCloud,
   IconCopy,
@@ -34,26 +28,31 @@ import {
   IconPhotoPlus,
   IconPlus,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
-import OpenFolderButton from "../common/OpenFolderButton";
-import AddEngine from "./AddEngine";
-
+import { match, P } from "ts-pattern";
 import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
 import { Route } from "@/routes/engines";
+import { enginesAtom } from "@/state/atoms";
+import {
+  type Engine,
+  engineSchema,
+  type LocalEngine,
+  requiredEngineSettings,
+} from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
-import { useToggle } from "@mantine/hooks";
-import { useNavigate } from "@tanstack/react-router";
-import { open } from "@tauri-apps/plugin-dialog";
-import { useTranslation } from "react-i18next";
-import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import GoModeInput from "../common/GoModeInput";
 import LocalImage from "../common/LocalImage";
+import OpenFolderButton from "../common/OpenFolderButton";
 import LinesSlider from "../panels/analysis/LinesSlider";
+import AddEngine from "./AddEngine";
 
 export default function EnginesPage() {
   const { t } = useTranslation();
@@ -210,7 +209,10 @@ export default function EnginesPage() {
 function EngineSettings({
   selected,
   setSelected,
-}: { selected: number; setSelected: (v: number | null) => void }) {
+}: {
+  selected: number;
+  setSelected: (v: number | null) => void;
+}) {
   const { t } = useTranslation();
 
   const [engines, setEngines] = useAtom(enginesAtom);
@@ -241,9 +243,11 @@ function EngineSettings({
           const option = options.options.find(
             (option) => option.value.name === field,
           );
-          if (option) {
-            // @ts-ignore
-            settings.push({ name: field, value: option.value.default });
+          if (option && option.type !== "button") {
+            settings.push({
+              name: field,
+              value: option.value.default as string | number | boolean | null,
+            });
           }
         }
       }
@@ -253,7 +257,7 @@ function EngineSettings({
     }
   }, [options]);
 
-  const completeOptions: any =
+  const completeOptions =
     options?.options
       .filter((option) => option.type !== "button")
       .map((option) => {
@@ -267,8 +271,7 @@ function EngineSettings({
             value:
               setting?.value !== undefined
                 ? setting.value
-                : // @ts-ignore
-                  option.value.default,
+                : option.value.default,
           },
         };
       }) || [];
@@ -463,8 +466,8 @@ function EngineSettings({
         </SimpleGrid>
         <SimpleGrid cols={2}>
           {completeOptions
-            .filter((option: any) => option.type === "check")
-            .map((o: any) => {
+            .filter((option) => option.type === "check")
+            .map((o) => {
               return (
                 <Checkbox
                   key={o.value.name}
@@ -474,8 +477,7 @@ function EngineSettings({
                     setSetting(
                       o.value.name,
                       e.currentTarget.checked,
-                      // @ts-ignore
-                      o.value.default,
+                      o.value.default as boolean,
                     )
                   }
                 />
@@ -496,10 +498,14 @@ function EngineSettings({
                   .filter((option) =>
                     requiredEngineSettings.includes(option.value.name),
                   )
+                  .filter((option) => option.type !== "button")
                   .map((option) => ({
                     name: option.value.name,
-                    // @ts-ignore
-                    value: option.value.default,
+                    value: option.value.default as
+                      | string
+                      | number
+                      | boolean
+                      | null,
                   })),
               })
             }

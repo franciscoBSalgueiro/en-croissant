@@ -1,3 +1,19 @@
+import type { Key } from "@lichess-org/chessground/types";
+import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
+import { useForceUpdate } from "@mantine/hooks";
+import { IconChevronDown } from "@tabler/icons-react";
+import { chessgroundMove } from "chessops/compat";
+import { makeFen } from "chessops/fen";
+import { parseSan } from "chessops/san";
+import { useAtom, useAtomValue } from "jotai";
+import React, {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { useStore } from "zustand";
 import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/common/MoveCell";
@@ -8,23 +24,6 @@ import {
   scoreTypeFamily,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
-import type { Key } from "@lichess-org/chessground/types";
-import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
-import { useForceUpdate } from "@mantine/hooks";
-import { IconChevronDown } from "@tabler/icons-react";
-import { chessgroundMove } from "chessops/compat";
-import { makeFen } from "chessops/fen";
-import { parseSan } from "chessops/san";
-import { useAtom, useAtomValue } from "jotai";
-import {
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import React from "react";
-import { useStore } from "zustand";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({

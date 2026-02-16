@@ -1,14 +1,3 @@
-import { commands } from "@/bindings";
-import { enginesAtom } from "@/state/atoms";
-import {
-  type LocalEngine,
-  type RemoteEngine,
-  requiredEngineSettings,
-  useDefaultEngines,
-} from "@/utils/engines";
-import { usePlatform } from "@/utils/files";
-import { formatBytes } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Alert,
   Box,
@@ -30,6 +19,17 @@ import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { enginesAtom } from "@/state/atoms";
+import {
+  type LocalEngine,
+  type RemoteEngine,
+  requiredEngineSettings,
+  useDefaultEngines,
+} from "@/utils/engines";
+import { usePlatform } from "@/utils/files";
+import { formatBytes } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
 

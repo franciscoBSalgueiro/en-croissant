@@ -1,5 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { type TablebaseCategory, getTablebaseInfo } from "@/utils/lichess/api";
 import {
   Accordion,
   Badge,
@@ -13,14 +11,19 @@ import { parseUci } from "chessops";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
-import { P, match } from "ts-pattern";
+import { match, P } from "ts-pattern";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { getTablebaseInfo, type TablebaseCategory } from "@/utils/lichess/api";
 import * as classes from "./TablebaseInfo.css";
 
 function TablebaseInfo({
   fen,
   turn,
-}: { fen: string; turn: "white" | "black" }) {
+}: {
+  fen: string;
+  turn: "white" | "black";
+}) {
   const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);

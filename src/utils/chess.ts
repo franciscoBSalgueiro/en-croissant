@@ -1,29 +1,29 @@
-import { type Outcome, type Score, type Token, commands } from "@/bindings";
 import type { DrawShape } from "@lichess-org/chessground/draw";
 import {
   type Color,
   type Move,
-  type Role,
   makeSquare,
   makeUci,
   parseUci,
+  type Role,
 } from "chessops";
 import { type Chess, castlingSide, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
-import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
+import { commands, type Outcome, type Score, type Token } from "@/bindings";
+import { ANNOTATION_INFO, isBasicAnnotation, NAG_INFO } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
 import { harmonicMean, isPrefix, mean } from "./misc";
-import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
+import { formatScore, getAccuracy, getCPLoss, INITIAL_SCORE } from "./score";
 import {
-  type GameHeaders,
-  type TreeNode,
-  type TreeState,
   createNode,
   defaultTree,
+  type GameHeaders,
   getNodeAtPath,
+  type TreeNode,
+  type TreeState,
 } from "./treeReducer";
 import { unwrap } from "./unwrap";
 

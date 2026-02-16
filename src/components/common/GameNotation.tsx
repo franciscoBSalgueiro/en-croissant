@@ -1,9 +1,3 @@
-import Comment from "@/components/common/Comment";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { currentInvisibleAtom, tableViewAtom } from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { formatScore } from "@/utils/score";
-import { type TreeNode, getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -33,11 +27,16 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useEffect, useRef, useState } from "react";
-import React from "react";
+import React, { memo, useContext, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import Comment from "@/components/common/Comment";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { currentInvisibleAtom, tableViewAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { formatScore } from "@/utils/score";
+import { getNodeAtPath, type TreeNode } from "@/utils/treeReducer";
 import CompleteMoveCell from "./CompleteMoveCell";
 import * as styles from "./GameNotation.css";
 import OpeningName from "./OpeningName";
@@ -45,7 +44,10 @@ import OpeningName from "./OpeningName";
 function GameNotation({
   topBar,
   controls,
-}: { topBar?: boolean; controls?: React.ReactNode }) {
+}: {
+  topBar?: boolean;
+  controls?: React.ReactNode;
+}) {
   const store = useContext(TreeStateContext)!;
   const currentFen = useStore(store, (s) => s.currentNode().fen);
   const headers = useStore(store, (s) => s.headers);
