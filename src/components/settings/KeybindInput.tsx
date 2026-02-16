@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import * as classes from "./KeybindInput.css";
+import { platform } from "@tauri-apps/plugin-os";
 
 function KeybindInput({
   action,
@@ -40,6 +41,26 @@ function KeybindInput({
   );
 }
 
+const mapToOs = (key: string): string => {
+  const isMacos = platform() === "macos";
+
+  if (!isMacos) {
+    return key === "meta" ? "ctrl" : key;
+  }
+
+  if (key === "meta" || key === "cmd") {
+    return "⌘";
+  } else if (key == "ctrl") {
+    return "⌃";
+  } else if (key == "shift") {
+    return "⇧";
+  } else if (key == "alt") {
+    return "⌥";
+  }
+
+  return key;
+};
+
 function KbdDisplay({
   keys,
   hovering,
@@ -50,7 +71,7 @@ function KbdDisplay({
   const splitted = keys.split("+");
   return (
     <Group>
-      {splitted.map((key, i) => (
+      {splitted.map(mapToOs).map((key, i) => (
         <Group key={key}>
           <Kbd className={cx({ [classes.kbd]: hovering })}>{key}</Kbd>
           {i !== splitted.length - 1 && "+"}
