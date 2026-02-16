@@ -1,4 +1,4 @@
-import { Stack, Text } from "@mantine/core";
+import { Group, Stack, Text } from "@mantine/core";
 import { useState } from "react";
 import {
   Bar,
@@ -113,28 +113,21 @@ function OverviewPanel({
 
   return (
     <Stack>
-      {!isDatabase && (
-        <WebsiteAccountSelector
-          playerName={playerName}
-          onWebsiteChange={(website) => {
-            setWebsite(website);
-            if (website === "All websites") {
-              setTimeControl(null);
-            } else if (timeControl === null) {
-              setTimeControl("any");
-            }
-          }}
-          onAccountChange={setAccount}
-          allowAll={true}
-        />
-      )}
-      {website !== "All websites" && (
+      <Group grow>
+        {!isDatabase && (
+          <WebsiteAccountSelector
+            playerName={playerName}
+            onWebsiteChange={(website) => setWebsite(website)}
+            onAccountChange={setAccount}
+            allowAll={true}
+          />
+        )}
         <TimeControlSelector
           website={website}
           onTimeControlChange={setTimeControl}
           allowAll={true}
         />
-      )}
+      </Group>
 
       <Text pt="md" fw="bold" fz="lg" ta="center">
         {total} Games

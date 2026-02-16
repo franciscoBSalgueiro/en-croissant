@@ -111,23 +111,16 @@ function OpeningsPanel({
             playerName={playerName}
             onWebsiteChange={(website) => {
               setWebsite(website);
-              if (website === "All websites") {
-                setTimeControl(null);
-              } else if (timeControl === null) {
-                setTimeControl("any");
-              }
             }}
             onAccountChange={setAccount}
             allowAll={true}
           />
         )}
-        {website !== "All websites" && (
-          <TimeControlSelector
-            website={website}
-            onTimeControlChange={setTimeControl}
-            allowAll={true}
-          />
-        )}
+        <TimeControlSelector
+          website={website}
+          onTimeControlChange={setTimeControl}
+          allowAll={true}
+        />
       </Group>
 
       <Group grow pt="xl">

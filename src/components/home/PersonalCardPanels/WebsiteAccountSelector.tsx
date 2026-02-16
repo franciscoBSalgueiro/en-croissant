@@ -22,11 +22,7 @@ const WebsiteAccountSelector = ({
   if (sessions.some((s) => s.player === playerName && s.chessCom?.username)) {
     websites.push({ value: "Chess.com", label: "Chess.com" });
   }
-  if (
-    sessions.some(
-      (s) => s.lichess?.username && s.lichess?.username === playerName,
-    )
-  ) {
+  if (sessions.some((s) => s.player === playerName && s.lichess?.username)) {
     websites.push({ value: "Lichess", label: "Lichess" });
   }
 
@@ -73,16 +69,17 @@ const WebsiteAccountSelector = ({
         data={websites}
         allowDeselect={false}
       />
-      {website !== "All websites" && (
-        <Select
-          pt="lg"
-          label="Account"
-          value={account}
-          onChange={(value) => setAccount(value)}
-          data={accounts}
-          allowDeselect={false}
-        />
-      )}
+      {website !== "All websites" &&
+        accounts.filter((a) => a !== "All accounts").length > 1 && (
+          <Select
+            pt="lg"
+            label="Account"
+            value={account}
+            onChange={(value) => setAccount(value)}
+            data={accounts}
+            allowDeselect={false}
+          />
+        )}
     </Group>
   );
 };
