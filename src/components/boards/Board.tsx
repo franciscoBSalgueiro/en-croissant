@@ -1,4 +1,4 @@
-import type { DrawShape } from "@lichess-org/chessground/draw";
+import type { DrawBrushes, DrawShape } from "@lichess-org/chessground/draw";
 import {
   ActionIcon,
   Box,
@@ -604,7 +604,7 @@ function Board({
                   autoShapes: shapes,
                   brushes: {
                     variation: { key: 'v', color: '#9b59b6', opacity: 0.8, lineWidth: 10 },
-                  },
+                  } as unknown as DrawBrushes,
                   onChange: (shapes) => {
                     setShapes(shapes);
                   },
