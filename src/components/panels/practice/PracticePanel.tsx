@@ -413,7 +413,12 @@ function PracticePanel() {
                         </Stack>
                       </Paper>
                     ) : (
-                      <Button size="md" fullWidth onClick={startPractice}>
+                      <Button
+                        size="md"
+                        variant="light"
+                        fullWidth
+                        onClick={startPractice}
+                      >
                         {t("Board.Practice.StartPractice")} (
                         {stats.due + stats.unseen})
                       </Button>

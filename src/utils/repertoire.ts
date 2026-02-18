@@ -28,6 +28,7 @@ export async function computeTreeCoverage(
   const userParity = userColor === "white" ? 0 : 1;
   const coverageMap = new Map<string, number>();
   const gamesMap = new Map<string, number>();
+  const fenCoverageCache = new Map<string, Promise<number>>();
 
   async function getDbMoves(
     fen: string,
@@ -68,6 +69,26 @@ export async function computeTreeCoverage(
   }
 
   async function compute(node: TreeNode, path: number[]): Promise<number> {
+    const pathKey = path.join(",");
+
+    if (node.children.length === 0 && fenCoverageCache.has(node.fen)) {
+      const transpositionCoverage = await fenCoverageCache.get(node.fen)!;
+      coverageMap.set(pathKey, transpositionCoverage);
+      const { total: totalGames } = await getDbMoves(node.fen);
+      gamesMap.set(pathKey, totalGames);
+      return transpositionCoverage;
+    }
+
+    if (node.children.length > 0 && !fenCoverageCache.has(node.fen)) {
+      const promise = computeNode(node, path);
+      fenCoverageCache.set(node.fen, promise);
+      return promise;
+    }
+
+    return computeNode(node, path);
+  }
+
+  async function computeNode(node: TreeNode, path: number[]): Promise<number> {
     const pathKey = path.join(",");
 
     const { moves: dbMoves, total: totalGames } = await getDbMoves(node.fen);
