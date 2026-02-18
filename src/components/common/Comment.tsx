@@ -1,4 +1,4 @@
-import { TypographyStylesProvider } from "@mantine/core";
+import { Typography } from "@mantine/core";
 import { memo } from "react";
 
 import Markdown from "react-markdown";
@@ -10,7 +10,7 @@ function Comment({ comment }: { comment: string }) {
     comment.split("\n").filter((v) => v.trim() !== "").length > 1;
 
   return (
-    <TypographyStylesProvider
+    <Typography
       pl={0}
       mx={4}
       style={{
@@ -29,7 +29,7 @@ function Comment({ comment }: { comment: string }) {
       >
         {comment}
       </Markdown>
-    </TypographyStylesProvider>
+    </Typography>
   );
 }
 

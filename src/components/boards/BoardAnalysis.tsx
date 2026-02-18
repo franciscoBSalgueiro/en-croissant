@@ -29,7 +29,6 @@ import {
   currentTabSelectedAtom,
   enableAllAtom,
   practiceStateAtom,
-  triggerAnnotationFocusAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN } from "@/utils/chess";
@@ -99,7 +98,6 @@ function BoardAnalysis() {
   const allEnabled =
     allEnabledLoader.state === "hasData" && allEnabledLoader.data;
 
-  const [, triggerAnnotationFocus] = useAtom(triggerAnnotationFocusAtom);
   const keyMap = useAtomValue(keyMapAtom);
 
   const [currentTabSelected, setCurrentTabSelected] = useAtom(
@@ -149,13 +147,7 @@ function BoardAnalysis() {
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
-    [
-      keyMap.ANNOTATE_TAB.keys,
-      () => {
-        setCurrentTabSelected("annotate");
-        triggerAnnotationFocus();
-      },
-    ],
+    [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
     [
       keyMap.TOGGLE_ALL_ENGINES.keys,
@@ -195,6 +187,16 @@ function BoardAnalysis() {
             style={{
               display: "flex",
               flexDirection: "column",
+            }}
+            styles={{
+              tabLabel: {
+                flex: 0,
+              },
+              tab: {
+                display: "flex",
+                justifyContent: "center",
+                gap: "0.3rem",
+              },
             }}
           >
             <Tabs.List grow>
