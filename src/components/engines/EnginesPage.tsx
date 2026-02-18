@@ -627,7 +627,13 @@ function EngineName({ engine }: { engine: Engine }) {
   return (
     <Group wrap="nowrap">
       {engine.image ? (
-        <LocalImage src={engine.image} alt={engine.name} h="2.5rem" />
+        <LocalImage
+          src={engine.image}
+          alt={engine.name}
+          h="2.5rem"
+          fit="contain"
+          flex={0}
+        />
       ) : engine.type !== "local" ? (
         <IconCloud size="2.5rem" />
       ) : (

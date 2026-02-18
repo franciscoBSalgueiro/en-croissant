@@ -97,7 +97,7 @@ export default function BoardSelect() {
           pointer
           onClick={() => combobox.toggleDropdown()}
           multiline
-          w="10rem"
+          w="12rem"
         >
           {selected ? (
             <SelectOption label={selected} />

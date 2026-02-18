@@ -188,6 +188,16 @@ function BoardAnalysis() {
               display: "flex",
               flexDirection: "column",
             }}
+            styles={{
+              tabLabel: {
+                flex: 0,
+              },
+              tab: {
+                display: "flex",
+                justifyContent: "center",
+                gap: "0.3rem",
+              },
+            }}
           >
             <Tabs.List grow>
               {isRepertoire && (

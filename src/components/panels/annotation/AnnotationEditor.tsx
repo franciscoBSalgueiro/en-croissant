@@ -3,12 +3,12 @@ import { spellCheckAtom } from "@/state/atoms";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { RichTextEditor } from "@mantine/tiptap";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Markdown } from "@tiptap/markdown";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useAtomValue } from "jotai";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Markdown } from "@tiptap/markdown";
 import { useStore } from "zustand";
 
 function AnnotationEditor() {
@@ -34,7 +34,7 @@ function AnnotationEditor() {
         Markdown,
         Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
       ],
-      content: currentNode.comment,
+      content: currentNode.comment || null,
       contentType: "markdown",
       onUpdate: ({ editor }) => {
         setComment(editor.getMarkdown());
