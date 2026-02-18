@@ -2,6 +2,7 @@ import { SimpleGrid } from "@mantine/core";
 import type { Piece as PieceT } from "chessops";
 import { COLORS, ROLES } from "chessops";
 import { makeFen, parseFen } from "chessops/fen";
+import type { RefObject } from "react";
 import Piece from "../common/Piece";
 
 function PiecesGrid({
@@ -14,7 +15,7 @@ function PiecesGrid({
   orientation = "white",
 }: {
   fen: string;
-  boardRef: React.MutableRefObject<HTMLDivElement | null>;
+  boardRef: RefObject<HTMLDivElement | null>;
   onPut: (newFen: string) => void;
   selectedPiece?: PieceT | null;
   onSelectPiece?: (piece: PieceT | null) => void;

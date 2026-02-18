@@ -4,7 +4,7 @@ import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import {
-  forwardRef,
+  type Ref,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -17,10 +17,12 @@ export interface ChessgroundRef {
   cancelPremove: () => void;
 }
 
-export const Chessground = forwardRef<
-  ChessgroundRef,
-  Config & { setBoardFen?: (fen: string) => void }
->(function Chessground(props, ref) {
+interface ChessgroundProps extends Config {
+  setBoardFen?: (fen: string) => void;
+  ref?: Ref<ChessgroundRef>;
+}
+
+export function Chessground({ ref, ...props }: ChessgroundProps) {
   const [api, setApi] = useState<Api | null>(null);
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -109,4 +111,4 @@ export const Chessground = forwardRef<
       ref={boardRef}
     />
   );
-});
+}

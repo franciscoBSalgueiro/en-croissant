@@ -14,9 +14,9 @@ import {
   IconArrowRight,
   IconArrowUpRight,
   IconDownload,
+  type IconProps,
   IconRefresh,
   IconTrash,
-  type TablerIconsProps,
 } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
@@ -63,7 +63,7 @@ export function AccountCard({
   const { t } = useTranslation();
   const items = stats.map((stat) => {
     let color = "gray.5";
-    let DiffIcon: React.FC<TablerIconsProps> = IconArrowRight;
+    let DiffIcon: React.FC<IconProps> = IconArrowRight;
     if (stat.diff) {
       const sign = Math.sign(stat.diff);
       if (sign === 1) {

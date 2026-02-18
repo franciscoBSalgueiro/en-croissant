@@ -3,7 +3,7 @@ import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect, useTransition } from "react";
+import { type ReactNode, useCallback, useEffect, useTransition } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
@@ -264,7 +264,7 @@ export default function BoardsPage() {
 
 type ViewId = "left" | "topRight" | "bottomRight";
 
-const fullLayout: { [viewId: string]: JSX.Element } = {
+const fullLayout: { [viewId: string]: ReactNode } = {
   left: <div id="left" />,
   topRight: <div id="topRight" />,
   bottomRight: <div id="bottomRight" />,

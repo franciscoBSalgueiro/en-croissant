@@ -1,4 +1,5 @@
 import { Box, Group } from "@mantine/core";
+import type { ReactNode } from "react";
 import * as classes from "./GridLayout.css";
 
 function GridLayout({
@@ -6,37 +7,35 @@ function GridLayout({
   table,
   preview,
 }: {
-  search: JSX.Element;
-  table: JSX.Element;
-  preview: JSX.Element;
+  search: ReactNode;
+  table: ReactNode;
+  preview: ReactNode;
 }) {
   return (
-    <>
-      <Group grow h="100%">
-        <Box
-          style={{
-            display: "flex",
-            gap: "1rem",
-            flexDirection: "column",
-            height: "100%",
-          }}
-        >
-          <Box className={classes.search}>{search}</Box>
-          {table}
-        </Box>
+    <Group grow h="100%">
+      <Box
+        style={{
+          display: "flex",
+          gap: "1rem",
+          flexDirection: "column",
+          height: "100%",
+        }}
+      >
+        <Box className={classes.search}>{search}</Box>
+        {table}
+      </Box>
 
-        <Box
-          style={{
-            display: "flex",
-            gap: "1rem",
-            flexDirection: "column",
-            height: "100%",
-          }}
-        >
-          {preview}
-        </Box>
-      </Group>
-    </>
+      <Box
+        style={{
+          display: "flex",
+          gap: "1rem",
+          flexDirection: "column",
+          height: "100%",
+        }}
+      >
+        {preview}
+      </Box>
+    </Group>
   );
 }
 

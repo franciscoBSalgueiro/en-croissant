@@ -13,7 +13,7 @@ import equal from "fast-deep-equal";
 import { useAtom } from "jotai";
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
+import type { CategoricalChartFunc } from "recharts/types/chart/types";
 import { useStore } from "zustand";
 import { reportTypeAtom } from "@/state/atoms";
 import { ANNOTATION_INFO } from "@/utils/annotation";
@@ -154,10 +154,10 @@ function EvalChart(props: EvalChartProps) {
     return dataMax / (dataMax - dataMin);
   }
 
-  const onChartClick: CategoricalChartFunc = (data) => {
-    if (data?.activePayload?.length && data.activePayload[0].payload) {
-      const dataPoint: DataPoint = data.activePayload[0].payload;
-      goToMove(dataPoint.movePath);
+  const onChartClick: CategoricalChartFunc = (e) => {
+    const match = data.find((d) => d.name === e.activeLabel);
+    if (match) {
+      goToMove(match.movePath);
     }
   };
 

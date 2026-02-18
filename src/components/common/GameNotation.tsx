@@ -266,7 +266,7 @@ const RenderVariationTree = memo(
     first?: boolean;
     showVariations: boolean;
     showComments: boolean;
-    targetRef: React.RefObject<HTMLSpanElement>;
+    targetRef: React.RefObject<HTMLSpanElement | null>;
   }) {
     const store = useContext(TreeStateContext)!;
     const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
@@ -354,7 +354,7 @@ const TableNotation = memo(function TableNotation({
   showVariations,
   showComments,
 }: {
-  targetRef: React.RefObject<HTMLSpanElement>;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
   start?: number[];
   showVariations: boolean;
   showComments: boolean;

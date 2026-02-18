@@ -62,7 +62,7 @@ export default function EnginesPage() {
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
-    navigate({ search: { selected: v ?? undefined } });
+    navigate({ to: "/engines", search: { selected: v ?? undefined } });
   };
 
   const selectedEngine = selected !== undefined ? engines[selected] : null;

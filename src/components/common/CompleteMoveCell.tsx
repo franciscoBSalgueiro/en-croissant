@@ -61,7 +61,7 @@ function CompleteMoveCell({
   first?: boolean;
   isStart: boolean;
   movePath: number[];
-  targetRef: React.RefObject<HTMLSpanElement>;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
   tableLayout?: boolean;
   scoreText?: string;
 }) {

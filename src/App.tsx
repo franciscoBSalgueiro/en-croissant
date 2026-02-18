@@ -17,7 +17,6 @@ import posthog from "posthog-js";
 import { useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Helmet } from "react-helmet";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -147,9 +146,7 @@ export default function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <Helmet>
-        <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
-      </Helmet>
+      <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
       <MantineProvider
         colorSchemeManager={colorSchemeManager}
         defaultColorScheme="dark"
