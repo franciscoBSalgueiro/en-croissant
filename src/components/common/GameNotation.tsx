@@ -27,7 +27,7 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import React, { memo, useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -41,7 +41,7 @@ import CompleteMoveCell from "./CompleteMoveCell";
 import * as styles from "./GameNotation.css";
 import OpeningName from "./OpeningName";
 
-function GameNotation({
+export default function GameNotation({
   topBar,
   controls,
 }: {
@@ -172,7 +172,7 @@ function GameNotation({
   );
 }
 
-const NotationHeader = memo(function NotationHeader({
+function NotationHeader({
   showComments,
   toggleComments,
   showVariations,
@@ -248,107 +248,95 @@ const NotationHeader = memo(function NotationHeader({
       <Divider />
     </Stack>
   );
-});
+}
 
-const RenderVariationTree = memo(
-  function RenderVariationTree({
-    nodePath,
-    depth,
-    start,
-    first,
-    showVariations,
-    showComments,
-    targetRef,
-  }: {
-    start?: number[];
-    nodePath: number[];
-    depth: number;
-    first?: boolean;
-    showVariations: boolean;
-    showComments: boolean;
-    targetRef: React.RefObject<HTMLSpanElement | null>;
-  }) {
-    const store = useContext(TreeStateContext)!;
-    const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
-    const variations = node.children;
+function RenderVariationTree({
+  nodePath,
+  depth,
+  start,
+  first,
+  showVariations,
+  showComments,
+  targetRef,
+}: {
+  start?: number[];
+  nodePath: number[];
+  depth: number;
+  first?: boolean;
+  showVariations: boolean;
+  showComments: boolean;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
+}) {
+  const store = useContext(TreeStateContext)!;
+  const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
+  const variations = node.children;
 
-    const variationNodes = showVariations
-      ? variations.slice(1).map((variation, idx) => {
-          const variationIndex = idx + 1;
-          const newPath = [...nodePath, variationIndex];
-          return (
-            <React.Fragment key={variation.fen}>
-              <CompleteMoveCell
-                targetRef={targetRef}
-                annotations={variation.annotations}
-                comment={variation.comment}
-                halfMoves={variation.halfMoves}
-                move={variation.san}
-                fen={variation.fen}
-                movePath={newPath}
-                showComments={showComments}
-                isStart={equal(newPath, start)}
-                first
-              />
-              <RenderVariationTree
-                targetRef={targetRef}
-                nodePath={newPath}
-                depth={depth + 2}
-                showVariations={showVariations}
-                showComments={showComments}
-                start={start}
-              />
-            </React.Fragment>
-          );
-        })
-      : [];
+  const variationNodes = showVariations
+    ? variations.slice(1).map((variation, idx) => {
+        const variationIndex = idx + 1;
+        const newPath = [...nodePath, variationIndex];
+        return (
+          <React.Fragment key={variation.fen}>
+            <CompleteMoveCell
+              targetRef={targetRef}
+              annotations={variation.annotations}
+              comment={variation.comment}
+              halfMoves={variation.halfMoves}
+              move={variation.san}
+              fen={variation.fen}
+              movePath={newPath}
+              showComments={showComments}
+              isStart={equal(newPath, start)}
+              first
+            />
+            <RenderVariationTree
+              targetRef={targetRef}
+              nodePath={newPath}
+              depth={depth + 2}
+              showVariations={showVariations}
+              showComments={showComments}
+              start={start}
+            />
+          </React.Fragment>
+        );
+      })
+    : [];
 
-    const mainLinePath = [...nodePath, 0];
-    return (
-      <>
-        {variations.length > 0 && (
-          <CompleteMoveCell
-            targetRef={targetRef}
-            annotations={variations[0].annotations}
-            comment={variations[0].comment}
-            halfMoves={variations[0].halfMoves}
-            move={variations[0].san}
-            fen={variations[0].fen}
-            movePath={mainLinePath}
-            showComments={showComments}
-            isStart={equal(mainLinePath, start)}
-            first={first}
-          />
-        )}
+  const mainLinePath = [...nodePath, 0];
+  return (
+    <>
+      {variations.length > 0 && (
+        <CompleteMoveCell
+          targetRef={targetRef}
+          annotations={variations[0].annotations}
+          comment={variations[0].comment}
+          halfMoves={variations[0].halfMoves}
+          move={variations[0].san}
+          fen={variations[0].fen}
+          movePath={mainLinePath}
+          showComments={showComments}
+          isStart={equal(mainLinePath, start)}
+          first={first}
+        />
+      )}
 
-        <VariationCell moveNodes={variationNodes} />
+      <VariationCell moveNodes={variationNodes} />
 
-        {node.children.length > 0 && (
-          <RenderVariationTree
-            targetRef={targetRef}
-            nodePath={mainLinePath}
-            depth={depth + 1}
-            showVariations={showVariations}
-            start={start}
-            showComments={showComments}
-          />
-        )}
-      </>
-    );
-  },
-  (prev, next) => {
-    return (
-      equal(prev.nodePath, next.nodePath) &&
-      prev.depth === next.depth &&
-      prev.first === next.first &&
-      prev.showVariations === next.showVariations &&
-      prev.showComments === next.showComments &&
-      equal(prev.start, next.start)
-    );
-  },
-);
+      {node.children.length > 0 && (
+        <RenderVariationTree
+          targetRef={targetRef}
+          nodePath={mainLinePath}
+          depth={depth + 1}
+          showVariations={showVariations}
+          start={start}
+          showComments={showComments}
+        />
+      )}
+    </>
+  );
+}
 
-const TableNotation = memo(function TableNotation({
+function TableNotation({
   targetRef,
   start,
   showVariations,
@@ -659,7 +647,7 @@ const TableNotation = memo(function TableNotation({
       </Table.Tbody>
     </Table>
   );
-});
+}
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   const [expanded, setExpanded] = useState(true);
@@ -678,5 +666,3 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
     </Box>
   );
 }
-
-export default memo(GameNotation);

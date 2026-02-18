@@ -28,7 +28,7 @@ import {
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "ts-fsrs";
@@ -120,7 +120,7 @@ function PracticePanel() {
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const setCardStartTime = useSetAtom(practiceCardStartTimeAtom);
 
-  const newPractice = useCallback(() => {
+  const newPractice = () => {
     if (deck.positions.length === 0) return;
     const c = getCardForReview(deck.positions);
     if (!c) {
@@ -131,14 +131,7 @@ function PracticePanel() {
     setInvisible(true);
     setCardStartTime(Date.now());
     setPracticeState({ phase: "waiting", currentFen: c.fen });
-  }, [
-    deck.positions,
-    root,
-    goToMove,
-    setInvisible,
-    setCardStartTime,
-    setPracticeState,
-  ]);
+  };
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {
     if (

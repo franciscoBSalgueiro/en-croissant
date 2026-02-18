@@ -3,7 +3,7 @@ import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { type ReactNode, useCallback, useEffect, useTransition } from "react";
+import { type ReactNode, useEffect, useTransition } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
@@ -44,34 +44,31 @@ export default function BoardsPage() {
     }
   }, [tabs, setActiveTab, setTabs, t]);
 
-  const closeTab = useCallback(
-    async (value: string | null, forced?: boolean) => {
-      if (value !== null) {
-        const closedTab = tabs.find((tab) => tab.value === value);
-        const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
-          toggleSaveModal();
-          return;
-        }
-        if (value === activeTab) {
-          const index = tabs.findIndex((tab) => tab.value === value);
-          if (tabs.length > 1) {
-            if (index === tabs.length - 1) {
-              startTransition(() => setActiveTab(tabs[index - 1].value));
-            } else {
-              startTransition(() => setActiveTab(tabs[index + 1].value));
-            }
-          } else {
-            startTransition(() => setActiveTab(null));
-          }
-        }
-        setTabs((prev) => prev.filter((tab) => tab.value !== value));
-        unwrap(await commands.killEngines(value));
-        await commands.abortGame(`${value}-game`);
+  const closeTab = async (value: string | null, forced?: boolean) => {
+    if (value !== null) {
+      const closedTab = tabs.find((tab) => tab.value === value);
+      const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
+      if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
+        toggleSaveModal();
+        return;
       }
-    },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab, startTransition],
-  );
+      if (value === activeTab) {
+        const index = tabs.findIndex((tab) => tab.value === value);
+        if (tabs.length > 1) {
+          if (index === tabs.length - 1) {
+            startTransition(() => setActiveTab(tabs[index - 1].value));
+          } else {
+            startTransition(() => setActiveTab(tabs[index + 1].value));
+          }
+        } else {
+          startTransition(() => setActiveTab(null));
+        }
+      }
+      setTabs((prev) => prev.filter((tab) => tab.value !== value));
+      unwrap(await commands.killEngines(value));
+      await commands.abortGame(`${value}-game`);
+    }
+  };
 
   function selectTab(index: number) {
     startTransition(() =>
@@ -96,51 +93,42 @@ export default function BoardsPage() {
     }
   }
 
-  const renameTab = useCallback(
-    (value: string, name: string) => {
-      setTabs((prev) =>
-        prev.map((tab) => {
-          if (tab.value === value) {
-            return { ...tab, name };
-          }
-          return tab;
-        }),
-      );
-    },
-    [setTabs],
-  );
+  const renameTab = (value: string, name: string) => {
+    setTabs((prev) =>
+      prev.map((tab) => {
+        if (tab.value === value) {
+          return { ...tab, name };
+        }
+        return tab;
+      }),
+    );
+  };
 
-  const duplicateTab = useCallback(
-    (value: string) => {
-      const id = genID();
-      const tab = tabs.find((tab) => tab.value === value);
-      if (sessionStorage.getItem(value)) {
-        sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
-      }
+  const duplicateTab = (value: string) => {
+    const id = genID();
+    const tab = tabs.find((tab) => tab.value === value);
+    if (sessionStorage.getItem(value)) {
+      sessionStorage.setItem(id, sessionStorage.getItem(value) || "");
+    }
 
-      if (tab) {
-        setTabs((prev) => [
-          ...prev,
-          {
-            name: tab.name,
-            value: id,
-            type: tab.type,
-          },
-        ]);
-        startTransition(() => setActiveTab(id));
-      }
-    },
-    [tabs, setTabs, setActiveTab, startTransition],
-  );
-
+    if (tab) {
+      setTabs((prev) => [
+        ...prev,
+        {
+          name: tab.name,
+          value: id,
+          type: tab.type,
+        },
+      ]);
+      startTransition(() => setActiveTab(id));
+    }
+  };
   const keyMap = useAtomValue(keyMapAtom);
 
-  const handleSetActiveTab = useCallback(
-    (v: string) => {
-      startTransition(() => setActiveTab(v));
-    },
-    [setActiveTab, startTransition],
-  );
+  const handleSetActiveTab = (v: string) => {
+    startTransition(() => setActiveTab(v));
+  };
+
   useHotkeys([
     [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],
     [keyMap.CYCLE_TABS.keys, () => cycleTabs()],

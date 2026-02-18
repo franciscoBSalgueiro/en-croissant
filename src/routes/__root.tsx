@@ -19,7 +19,7 @@ import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { open as shellOpen } from "@tauri-apps/plugin-shell";
 import { check } from "@tauri-apps/plugin-updater";
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
@@ -94,7 +94,7 @@ function RootLayout() {
 
   const { t } = useTranslation();
 
-  const openNewFile = useCallback(async () => {
+  const openNewFile = async () => {
     const selected = await open({
       multiple: false,
       filters: [{ name: "PGN file", extensions: ["pgn"] }],
@@ -103,18 +103,18 @@ function RootLayout() {
       navigate({ to: "/" });
       openFile(selected, setTabs, setActiveTab);
     }
-  }, [navigate, setActiveTab, setTabs]);
+  };
 
-  const createNewTab = useCallback(() => {
+  const createNewTab = () => {
     navigate({ to: "/" });
     createTab({
       tab: { name: t("Tab.NewTab"), type: "new" },
       setTabs,
       setActiveTab,
     });
-  }, [navigate, setActiveTab, setTabs, t]);
+  };
 
-  const checkForUpdates = useCallback(async () => {
+  const checkForUpdates = async () => {
     const update = await check();
     if (update) {
       const yes = await ask("Do you want to install them now?", {
@@ -127,7 +127,7 @@ function RootLayout() {
     } else {
       await message("No updates available");
     }
-  }, []);
+  };
 
   const [keyMap] = useAtom(keyMapAtom);
 
@@ -135,92 +135,89 @@ function RootLayout() {
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
   const [opened, setOpened] = useState(false);
 
-  const menuActions: MenuGroup[] = useMemo(
-    () => [
-      {
-        label: t("Menu.File"),
-        options: [
-          {
-            label: t("Menu.File.NewTab"),
-            id: "new_tab",
-            shortcut: keyMap.NEW_TAB.keys,
-            action: createNewTab,
+  const menuActions: MenuGroup[] = [
+    {
+      label: t("Menu.File"),
+      options: [
+        {
+          label: t("Menu.File.NewTab"),
+          id: "new_tab",
+          shortcut: keyMap.NEW_TAB.keys,
+          action: createNewTab,
+        },
+        {
+          label: t("Menu.File.OpenFile"),
+          id: "open_file",
+          shortcut: keyMap.OPEN_FILE.keys,
+          action: openNewFile,
+        },
+        {
+          label: t("Menu.File.Exit"),
+          id: "exit",
+          action: () => exit(0),
+        },
+      ],
+    },
+    {
+      label: t("Menu.View"),
+      options: [
+        {
+          label: t("Menu.View.Reload"),
+          id: "reload",
+          shortcut: "Ctrl+R",
+          action: () => location.reload(),
+        },
+      ],
+    },
+    {
+      label: t("Menu.Help"),
+      options: [
+        {
+          label: t("Menu.Help.Documentation"),
+          id: "documentation",
+          action: () => shellOpen("https://encroissant.org/docs/"),
+        },
+        {
+          label: t("Menu.Help.ClearSavedData"),
+          id: "clear_saved_data",
+          action: () => {
+            ask("Are you sure you want to clear all saved data?", {
+              title: "Clear data",
+            }).then((res) => {
+              if (res) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+              }
+            });
           },
-          {
-            label: t("Menu.File.OpenFile"),
-            id: "open_file",
-            shortcut: keyMap.OPEN_FILE.keys,
-            action: openNewFile,
+        },
+        {
+          label: t("Menu.Help.OpenLogs"),
+          id: "logs",
+          action: async () => {
+            const path = await resolve(await appLogDir(), "en-croissant.log");
+            notifications.show({
+              title: "Logs",
+              message: `Opened logs in ${path}`,
+            });
+            await shellOpen(path);
           },
-          {
-            label: t("Menu.File.Exit"),
-            id: "exit",
-            action: () => exit(0),
-          },
-        ],
-      },
-      {
-        label: t("Menu.View"),
-        options: [
-          {
-            label: t("Menu.View.Reload"),
-            id: "reload",
-            shortcut: "Ctrl+R",
-            action: () => location.reload(),
-          },
-        ],
-      },
-      {
-        label: t("Menu.Help"),
-        options: [
-          {
-            label: t("Menu.Help.Documentation"),
-            id: "documentation",
-            action: () => shellOpen("https://encroissant.org/docs/"),
-          },
-          {
-            label: t("Menu.Help.ClearSavedData"),
-            id: "clear_saved_data",
-            action: () => {
-              ask("Are you sure you want to clear all saved data?", {
-                title: "Clear data",
-              }).then((res) => {
-                if (res) {
-                  localStorage.clear();
-                  sessionStorage.clear();
-                  location.reload();
-                }
-              });
-            },
-          },
-          {
-            label: t("Menu.Help.OpenLogs"),
-            id: "logs",
-            action: async () => {
-              const path = await resolve(await appLogDir(), "en-croissant.log");
-              notifications.show({
-                title: "Logs",
-                message: `Opened logs in ${path}`,
-              });
-              await shellOpen(path);
-            },
-          },
-          { label: "divider" },
-          {
-            label: t("Menu.Help.CheckUpdate"),
-            id: "check_for_updates",
-            action: checkForUpdates,
-          },
-          {
-            label: t("Menu.Help.About"),
-            id: "about",
-            action: () => setOpened(true),
-          },
-        ],
-      },
-    ],
-    [t, checkForUpdates, createNewTab, keyMap, openNewFile],
-  );
+        },
+        { label: "divider" },
+        {
+          label: t("Menu.Help.CheckUpdate"),
+          id: "check_for_updates",
+          action: checkForUpdates,
+        },
+        {
+          label: t("Menu.Help.About"),
+          id: "about",
+          action: () => setOpened(true),
+        },
+      ],
+    },
+  ];
 
   const { data: menu } = useSWRImmutable(["menu", menuActions], () =>
     createMenu(menuActions),

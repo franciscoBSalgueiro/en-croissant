@@ -165,344 +165,326 @@ export default function Page() {
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
 
-  const settings: SettingItem[] = useMemo(
-    () => [
-      // Board settings
-      {
-        id: "piece-dest",
-        category: "board",
-        title: t("Settings.PieceDest"),
-        description: t("Settings.PieceDest.Desc"),
-        keywords: ["destination", "moves", "highlight"],
-        render: () => <SettingsSwitch atom={showDestsAtom} />,
-      },
-      {
-        id: "move-highlight",
-        category: "board",
-        title: t("Settings.MoveHighlight"),
-        description: t("Settings.MoveHighlight.Desc"),
-        keywords: ["highlight", "last move"],
-        render: () => <SettingsSwitch atom={moveHighlightAtom} />,
-      },
-      {
-        id: "arrows",
-        category: "board",
-        title: t("Settings.Arrows"),
-        description: t("Settings.Arrows.Desc"),
-        keywords: ["arrows", "analysis"],
-        render: () => <SettingsSwitch atom={showArrowsAtom} />,
-      },
-      {
-        id: "move-notation",
-        category: "board",
-        title: t("Settings.MoveNotation"),
-        description: t("Settings.MoveNotation.Desc"),
-        keywords: ["notation", "letters", "symbols", "pieces"],
-        render: () => (
-          <Select
-            data={[
-              { label: t("Settings.MoveNotation.Letters"), value: "letters" },
-              { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
-            ]}
-            allowDeselect={false}
-            value={moveNotationType}
-            onChange={(val) =>
-              setMoveNotationType(val as "letters" | "symbols")
-            }
-          />
-        ),
-      },
-      {
-        id: "move-method",
-        category: "board",
-        title: t("Settings.MoveMethod"),
-        description: t("Settings.MoveMethod.Desc"),
-        keywords: ["drag", "click", "move", "pieces"],
-        render: () => (
-          <Select
-            data={[
-              { label: t("Settings.MoveMethod.Drag"), value: "drag" },
-              { label: t("Settings.MoveMethod.Click"), value: "select" },
-              { label: t("Settings.MoveMethod.Both"), value: "both" },
-            ]}
-            allowDeselect={false}
-            value={moveMethod}
-            onChange={(val) => setMoveMethod(val as "drag" | "select" | "both")}
-          />
-        ),
-      },
-      {
-        id: "snap-arrows",
-        category: "board",
-        title: t("Settings.SnapArrows"),
-        description: t("Settings.SnapArrows.Desc"),
-        keywords: ["arrows", "snap"],
-        render: () => <SettingsSwitch atom={snapArrowsAtom} />,
-      },
-      {
-        id: "consecutive-arrows",
-        category: "board",
-        title: t("Settings.ConsecutiveArrows"),
-        description: t("Settings.ConsecutiveArrows.Desc"),
-        keywords: ["arrows", "consecutive"],
-        render: () => <SettingsSwitch atom={showConsecutiveArrowsAtom} />,
-      },
-      {
-        id: "erase-drawables",
-        category: "board",
-        title: t("Settings.EraseDrawablesOnClick"),
-        description: t("Settings.EraseDrawablesOnClick.Desc"),
-        keywords: ["erase", "drawables", "click", "arrows"],
-        render: () => <SettingsSwitch atom={eraseDrawablesOnClickAtom} />,
-      },
-      {
-        id: "auto-promote",
-        category: "board",
-        title: t("Settings.AutoPromition"),
-        description: t("Settings.AutoPromition.Desc"),
-        keywords: ["promote", "queen", "pawn"],
-        render: () => <SettingsSwitch atom={autoPromoteAtom} />,
-      },
-      {
-        id: "coordinates",
-        category: "board",
-        title: t("Settings.Coordinates"),
-        description: t("Settings.Coordinates.Desc"),
-        keywords: ["coordinates", "a-h", "1-8"],
-        render: () => (
-          <Select
-            data={[
-              { label: t("Settings.Coordinates.None"), value: "no" },
-              { label: t("Settings.Coordinates.Edge"), value: "edge" },
-              { label: t("Settings.Coordinates.All"), value: "all" },
-            ]}
-            allowDeselect={false}
-            value={showCoordinates}
-            onChange={(val) => setShowCoordinates(val as "no" | "edge" | "all")}
-          />
-        ),
-      },
-      {
-        id: "auto-save",
-        category: "board",
-        title: t("Settings.AutoSave"),
-        description: t("Settings.AutoSave.Desc"),
-        keywords: ["save", "auto"],
-        render: () => <SettingsSwitch atom={autoSaveAtom} />,
-      },
-      {
-        id: "preview-board",
-        category: "board",
-        title: t("Settings.PreviewBoard"),
-        description: t("Settings.PreviewBoard.Desc"),
-        keywords: ["preview", "hover"],
-        render: () => <SettingsSwitch atom={previewBoardOnHoverAtom} />,
-      },
-      {
-        id: "scroll-moves",
-        category: "board",
-        title: t("Settings.ScrollThroughMoves"),
-        description: t("Settings.ScrollThroughMoves.Desc"),
-        keywords: ["scroll", "moves", "wheel"],
-        render: () => <SettingsSwitch atom={enableBoardScrollAtom} />,
-      },
-      // Input settings
-      {
-        id: "text-input",
-        category: "inputs",
-        title: t("Settings.Inputs.TextInput"),
-        description: t("Settings.Inputs.TextInput.Desc"),
-        keywords: ["text", "input", "type"],
-        render: () => <SettingsSwitch atom={moveInputAtom} />,
-      },
-      {
-        id: "spell-check",
-        category: "inputs",
-        title: t("Settings.Inputs.SpellCheck"),
-        description: t("Settings.Inputs.SpellCheck.Desc"),
-        keywords: ["spell", "check", "grammar"],
-        render: () => <SettingsSwitch atom={spellCheckAtom} />,
-      },
-      // Anarchy settings
-      {
-        id: "forced-en-passant",
-        category: "anarchy",
-        title: t("Settings.Anarchy.ForcedEnCroissant"),
-        description: t("Settings.Anarchy.ForcedEnCroissant.Desc"),
-        keywords: ["en passant", "forced", "croissant"],
-        render: () => <SettingsSwitch atom={forcedEnPassantAtom} />,
-      },
-      // Appearance settings
-      {
-        id: "theme",
-        category: "appearance",
-        title: t("Settings.Appearance.Theme"),
-        description: t("Settings.Appearance.Theme.Desc"),
-        keywords: ["theme", "dark", "light", "color"],
-        render: () => <ThemeButton />,
-      },
-      {
-        id: "language",
-        category: "appearance",
-        title: t("Settings.Appearance.Language"),
-        description: t("Settings.Appearance.Language.Desc"),
-        keywords: ["language", "locale", "translation"],
-        render: () => (
-          <Select
-            allowDeselect={false}
-            data={[
-              { value: "be_BY", label: "Belarusian" },
-              { value: "zh_CN", label: "Chinese (Simplified)" },
-              { value: "zh_TW", label: "Chinese (Traditional)" },
-              { value: "en_GB", label: "English (UK)" },
-              { value: "en_US", label: "English (US)" },
-              { value: "fr_FR", label: "Français" },
-              { value: "pl_PL", label: "Polish" },
-              { value: "nb_NO", label: "Norsk bokmål" },
-              { value: "pt_PT", label: "Portuguese" },
-              { value: "ru_RU", label: "Russian" },
-              { value: "es_ES", label: "Spanish" },
-              { value: "it_IT", label: "Italian" },
-              { value: "uk_UA", label: "Ukrainian" },
-              { value: "tr_TR", label: "Türkçe" },
-              { value: "ko_KR", label: "한국어" },
-              { value: "de_DE", label: "Deutsch" },
-            ]}
-            value={i18n.language}
-            onChange={(val) => {
-              i18n.changeLanguage(val || "en_US");
-              localStorage.setItem("lang", val || "en_US");
-            }}
-          />
-        ),
-      },
-      ...(import.meta.env.VITE_PLATFORM === "win32"
-        ? [
-            {
-              id: "title-bar",
-              category: "appearance" as SettingCategory,
-              title: t("Settings.Appearance.TitleBar"),
-              description: t("Settings.Appearance.TitleBar.Desc"),
-              keywords: ["title", "bar", "native", "custom"],
-              render: () => (
-                <Select
-                  allowDeselect={false}
-                  data={["Native", "Custom"]}
-                  value={isNative ? "Native" : "Custom"}
-                  onChange={(val) => setIsNative(val === "Native")}
-                />
-              ),
-            },
-          ]
-        : []),
-      {
-        id: "font-size",
-        category: "appearance",
-        title: t("Settings.Appearance.FontSize"),
-        description: t("Settings.Appearance.FontSize.Desc"),
-        keywords: ["font", "size", "text"],
-        render: () => <FontSizeSlider />,
-      },
-      {
-        id: "piece-set",
-        category: "appearance",
-        title: t("Settings.Appearance.PieceSet"),
-        description: t("Settings.Appearance.PieceSet.Desc"),
-        keywords: ["piece", "set", "style"],
-        render: () => <PiecesSelect />,
-      },
-      {
-        id: "board-image",
-        category: "appearance",
-        title: t("Settings.Appearance.BoardImage"),
-        description: t("Settings.Appearance.BoardImage.Desc"),
-        keywords: ["board", "image", "texture"],
-        render: () => <BoardSelect />,
-      },
-      {
-        id: "accent-color",
-        category: "appearance",
-        title: t("Settings.Appearance.AccentColor"),
-        description: t("Settings.Appearance.AccentColor.Desc"),
-        keywords: ["accent", "color", "primary"],
-        render: () => (
-          <div style={{ width: 200 }}>
-            <ColorControl />
-          </div>
-        ),
-      },
-      // Repertoire settings
-      {
-        id: "repertoire-depth",
-        category: "repertoire",
-        title: t("Settings.Repertoire.Depth"),
-        description: t("Settings.Repertoire.Depth.Desc"),
-        keywords: ["repertoire", "depth", "games", "min"],
-        render: () => <RepertoireMinGamesSetting />,
-      },
-      // Sound settings
-      {
-        id: "volume",
-        category: "sound",
-        title: t("Settings.Sound.Volume"),
-        description: t("Settings.Sound.Volume.Desc"),
-        keywords: ["volume", "audio", "loud"],
-        render: () => <VolumeSlider />,
-      },
-      {
-        id: "sound-collection",
-        category: "sound",
-        title: t("Settings.Sound.Collection"),
-        description: t("Settings.Sound.Collection.Desc"),
-        keywords: ["sound", "collection", "audio", "effects"],
-        render: () => <SoundSelect />,
-      },
-      // Directories settings
-      {
-        id: "files-directory",
-        category: "directories",
-        title: t("Settings.Directories.Files"),
-        description: t("Settings.Directories.Files.Desc"),
-        keywords: ["files", "directory", "folder", "path"],
-        render: () => (
-          <FileInput
-            onClick={async () => {
-              const selected = await open({
-                multiple: false,
-                directory: true,
-              });
-              if (!selected || typeof selected !== "string") return;
-              setFilesDirectory(selected);
-            }}
-            filename={filesDirectory || null}
-          />
-        ),
-      },
-      // Privacy settings
-      {
-        id: "telemetry",
-        category: "privacy",
-        title: t("Settings.Privacy.Telemetry"),
-        description: t("Settings.Privacy.Telemetry.Desc"),
-        keywords: ["telemetry", "privacy", "analytics", "tracking"],
-        render: () => <TelemetrySwitch />,
-      },
-    ],
-    [
-      t,
-      i18n,
-      moveNotationType,
-      moveMethod,
-      isNative,
-      showCoordinates,
-      filesDirectory,
-      setMoveNotationType,
-      setMoveMethod,
-      setIsNative,
-      setFilesDirectory,
-      setShowCoordinates,
-    ],
-  );
+  const settings: SettingItem[] = [
+    // Board settings
+    {
+      id: "piece-dest",
+      category: "board",
+      title: t("Settings.PieceDest"),
+      description: t("Settings.PieceDest.Desc"),
+      keywords: ["destination", "moves", "highlight"],
+      render: () => <SettingsSwitch atom={showDestsAtom} />,
+    },
+    {
+      id: "move-highlight",
+      category: "board",
+      title: t("Settings.MoveHighlight"),
+      description: t("Settings.MoveHighlight.Desc"),
+      keywords: ["highlight", "last move"],
+      render: () => <SettingsSwitch atom={moveHighlightAtom} />,
+    },
+    {
+      id: "arrows",
+      category: "board",
+      title: t("Settings.Arrows"),
+      description: t("Settings.Arrows.Desc"),
+      keywords: ["arrows", "analysis"],
+      render: () => <SettingsSwitch atom={showArrowsAtom} />,
+    },
+    {
+      id: "move-notation",
+      category: "board",
+      title: t("Settings.MoveNotation"),
+      description: t("Settings.MoveNotation.Desc"),
+      keywords: ["notation", "letters", "symbols", "pieces"],
+      render: () => (
+        <Select
+          data={[
+            { label: t("Settings.MoveNotation.Letters"), value: "letters" },
+            { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
+          ]}
+          allowDeselect={false}
+          value={moveNotationType}
+          onChange={(val) => setMoveNotationType(val as "letters" | "symbols")}
+        />
+      ),
+    },
+    {
+      id: "move-method",
+      category: "board",
+      title: t("Settings.MoveMethod"),
+      description: t("Settings.MoveMethod.Desc"),
+      keywords: ["drag", "click", "move", "pieces"],
+      render: () => (
+        <Select
+          data={[
+            { label: t("Settings.MoveMethod.Drag"), value: "drag" },
+            { label: t("Settings.MoveMethod.Click"), value: "select" },
+            { label: t("Settings.MoveMethod.Both"), value: "both" },
+          ]}
+          allowDeselect={false}
+          value={moveMethod}
+          onChange={(val) => setMoveMethod(val as "drag" | "select" | "both")}
+        />
+      ),
+    },
+    {
+      id: "snap-arrows",
+      category: "board",
+      title: t("Settings.SnapArrows"),
+      description: t("Settings.SnapArrows.Desc"),
+      keywords: ["arrows", "snap"],
+      render: () => <SettingsSwitch atom={snapArrowsAtom} />,
+    },
+    {
+      id: "consecutive-arrows",
+      category: "board",
+      title: t("Settings.ConsecutiveArrows"),
+      description: t("Settings.ConsecutiveArrows.Desc"),
+      keywords: ["arrows", "consecutive"],
+      render: () => <SettingsSwitch atom={showConsecutiveArrowsAtom} />,
+    },
+    {
+      id: "erase-drawables",
+      category: "board",
+      title: t("Settings.EraseDrawablesOnClick"),
+      description: t("Settings.EraseDrawablesOnClick.Desc"),
+      keywords: ["erase", "drawables", "click", "arrows"],
+      render: () => <SettingsSwitch atom={eraseDrawablesOnClickAtom} />,
+    },
+    {
+      id: "auto-promote",
+      category: "board",
+      title: t("Settings.AutoPromition"),
+      description: t("Settings.AutoPromition.Desc"),
+      keywords: ["promote", "queen", "pawn"],
+      render: () => <SettingsSwitch atom={autoPromoteAtom} />,
+    },
+    {
+      id: "coordinates",
+      category: "board",
+      title: t("Settings.Coordinates"),
+      description: t("Settings.Coordinates.Desc"),
+      keywords: ["coordinates", "a-h", "1-8"],
+      render: () => (
+        <Select
+          data={[
+            { label: t("Settings.Coordinates.None"), value: "no" },
+            { label: t("Settings.Coordinates.Edge"), value: "edge" },
+            { label: t("Settings.Coordinates.All"), value: "all" },
+          ]}
+          allowDeselect={false}
+          value={showCoordinates}
+          onChange={(val) => setShowCoordinates(val as "no" | "edge" | "all")}
+        />
+      ),
+    },
+    {
+      id: "auto-save",
+      category: "board",
+      title: t("Settings.AutoSave"),
+      description: t("Settings.AutoSave.Desc"),
+      keywords: ["save", "auto"],
+      render: () => <SettingsSwitch atom={autoSaveAtom} />,
+    },
+    {
+      id: "preview-board",
+      category: "board",
+      title: t("Settings.PreviewBoard"),
+      description: t("Settings.PreviewBoard.Desc"),
+      keywords: ["preview", "hover"],
+      render: () => <SettingsSwitch atom={previewBoardOnHoverAtom} />,
+    },
+    {
+      id: "scroll-moves",
+      category: "board",
+      title: t("Settings.ScrollThroughMoves"),
+      description: t("Settings.ScrollThroughMoves.Desc"),
+      keywords: ["scroll", "moves", "wheel"],
+      render: () => <SettingsSwitch atom={enableBoardScrollAtom} />,
+    },
+    // Input settings
+    {
+      id: "text-input",
+      category: "inputs",
+      title: t("Settings.Inputs.TextInput"),
+      description: t("Settings.Inputs.TextInput.Desc"),
+      keywords: ["text", "input", "type"],
+      render: () => <SettingsSwitch atom={moveInputAtom} />,
+    },
+    {
+      id: "spell-check",
+      category: "inputs",
+      title: t("Settings.Inputs.SpellCheck"),
+      description: t("Settings.Inputs.SpellCheck.Desc"),
+      keywords: ["spell", "check", "grammar"],
+      render: () => <SettingsSwitch atom={spellCheckAtom} />,
+    },
+    // Anarchy settings
+    {
+      id: "forced-en-passant",
+      category: "anarchy",
+      title: t("Settings.Anarchy.ForcedEnCroissant"),
+      description: t("Settings.Anarchy.ForcedEnCroissant.Desc"),
+      keywords: ["en passant", "forced", "croissant"],
+      render: () => <SettingsSwitch atom={forcedEnPassantAtom} />,
+    },
+    // Appearance settings
+    {
+      id: "theme",
+      category: "appearance",
+      title: t("Settings.Appearance.Theme"),
+      description: t("Settings.Appearance.Theme.Desc"),
+      keywords: ["theme", "dark", "light", "color"],
+      render: () => <ThemeButton />,
+    },
+    {
+      id: "language",
+      category: "appearance",
+      title: t("Settings.Appearance.Language"),
+      description: t("Settings.Appearance.Language.Desc"),
+      keywords: ["language", "locale", "translation"],
+      render: () => (
+        <Select
+          allowDeselect={false}
+          data={[
+            { value: "be_BY", label: "Belarusian" },
+            { value: "zh_CN", label: "Chinese (Simplified)" },
+            { value: "zh_TW", label: "Chinese (Traditional)" },
+            { value: "en_GB", label: "English (UK)" },
+            { value: "en_US", label: "English (US)" },
+            { value: "fr_FR", label: "Français" },
+            { value: "pl_PL", label: "Polish" },
+            { value: "nb_NO", label: "Norsk bokmål" },
+            { value: "pt_PT", label: "Portuguese" },
+            { value: "ru_RU", label: "Russian" },
+            { value: "es_ES", label: "Spanish" },
+            { value: "it_IT", label: "Italian" },
+            { value: "uk_UA", label: "Ukrainian" },
+            { value: "tr_TR", label: "Türkçe" },
+            { value: "ko_KR", label: "한국어" },
+            { value: "de_DE", label: "Deutsch" },
+          ]}
+          value={i18n.language}
+          onChange={(val) => {
+            i18n.changeLanguage(val || "en_US");
+            localStorage.setItem("lang", val || "en_US");
+          }}
+        />
+      ),
+    },
+    ...(import.meta.env.VITE_PLATFORM === "win32"
+      ? [
+          {
+            id: "title-bar",
+            category: "appearance" as SettingCategory,
+            title: t("Settings.Appearance.TitleBar"),
+            description: t("Settings.Appearance.TitleBar.Desc"),
+            keywords: ["title", "bar", "native", "custom"],
+            render: () => (
+              <Select
+                allowDeselect={false}
+                data={["Native", "Custom"]}
+                value={isNative ? "Native" : "Custom"}
+                onChange={(val) => setIsNative(val === "Native")}
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      id: "font-size",
+      category: "appearance",
+      title: t("Settings.Appearance.FontSize"),
+      description: t("Settings.Appearance.FontSize.Desc"),
+      keywords: ["font", "size", "text"],
+      render: () => <FontSizeSlider />,
+    },
+    {
+      id: "piece-set",
+      category: "appearance",
+      title: t("Settings.Appearance.PieceSet"),
+      description: t("Settings.Appearance.PieceSet.Desc"),
+      keywords: ["piece", "set", "style"],
+      render: () => <PiecesSelect />,
+    },
+    {
+      id: "board-image",
+      category: "appearance",
+      title: t("Settings.Appearance.BoardImage"),
+      description: t("Settings.Appearance.BoardImage.Desc"),
+      keywords: ["board", "image", "texture"],
+      render: () => <BoardSelect />,
+    },
+    {
+      id: "accent-color",
+      category: "appearance",
+      title: t("Settings.Appearance.AccentColor"),
+      description: t("Settings.Appearance.AccentColor.Desc"),
+      keywords: ["accent", "color", "primary"],
+      render: () => (
+        <div style={{ width: 200 }}>
+          <ColorControl />
+        </div>
+      ),
+    },
+    // Repertoire settings
+    {
+      id: "repertoire-depth",
+      category: "repertoire",
+      title: t("Settings.Repertoire.Depth"),
+      description: t("Settings.Repertoire.Depth.Desc"),
+      keywords: ["repertoire", "depth", "games", "min"],
+      render: () => <RepertoireMinGamesSetting />,
+    },
+    // Sound settings
+    {
+      id: "volume",
+      category: "sound",
+      title: t("Settings.Sound.Volume"),
+      description: t("Settings.Sound.Volume.Desc"),
+      keywords: ["volume", "audio", "loud"],
+      render: () => <VolumeSlider />,
+    },
+    {
+      id: "sound-collection",
+      category: "sound",
+      title: t("Settings.Sound.Collection"),
+      description: t("Settings.Sound.Collection.Desc"),
+      keywords: ["sound", "collection", "audio", "effects"],
+      render: () => <SoundSelect />,
+    },
+    // Directories settings
+    {
+      id: "files-directory",
+      category: "directories",
+      title: t("Settings.Directories.Files"),
+      description: t("Settings.Directories.Files.Desc"),
+      keywords: ["files", "directory", "folder", "path"],
+      render: () => (
+        <FileInput
+          onClick={async () => {
+            const selected = await open({
+              multiple: false,
+              directory: true,
+            });
+            if (!selected || typeof selected !== "string") return;
+            setFilesDirectory(selected);
+          }}
+          filename={filesDirectory || null}
+        />
+      ),
+    },
+    // Privacy settings
+    {
+      id: "telemetry",
+      category: "privacy",
+      title: t("Settings.Privacy.Telemetry"),
+      description: t("Settings.Privacy.Telemetry.Desc"),
+      keywords: ["telemetry", "privacy", "analytics", "tracking"],
+      render: () => <TelemetrySwitch />,
+    },
+  ];
 
   useHotkeys([["mod+f", () => searchInputRef.current?.focus()]]);
 

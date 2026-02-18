@@ -25,16 +25,8 @@ import {
 } from "@tabler/icons-react";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
-import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  memo,
-  startTransition,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-} from "react";
+import { startTransition, useDeferredValue, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import type { BestMoves } from "@/bindings";
@@ -72,7 +64,7 @@ interface BestMovesProps {
   orientation: "white" | "black";
 }
 
-function BestMovesComponent({
+export default function BestMovesComponent({
   id,
   engine,
   fen,
@@ -110,22 +102,19 @@ function BestMovesComponent({
     }
   }, [engine.settings, engine.go, settings.synced, setSettings2]);
 
-  const setSettings = useCallback(
-    (fn: (prev: Settings) => Settings) => {
-      const newSettings = fn(settings);
-      setSettings2(newSettings);
-      if (newSettings.synced) {
-        setEngines(async (prev) =>
-          (await prev).map((o) =>
-            o.id === engine.id
-              ? { ...o, settings: newSettings.settings, go: newSettings.go }
-              : o,
-          ),
-        );
-      }
-    },
-    [engine, settings, setSettings2, setEngines],
-  );
+  const setSettings = (fn: (prev: Settings) => Settings) => {
+    const newSettings = fn(settings);
+    setSettings2(newSettings);
+    if (newSettings.synced) {
+      setEngines(async (prev) =>
+        (await prev).map((o) =>
+          o.id === engine.id
+            ? { ...o, settings: newSettings.settings, go: newSettings.go }
+            : o,
+        ),
+      );
+    }
+  };
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, setThreat] = useAtom(currentThreatAtom);
@@ -148,28 +137,21 @@ function BestMovesComponent({
   }
 
   const isGameOver = pos?.isEnd() ?? false;
-  const finalFen = useMemo(() => (pos ? makeFen(pos.toSetup()) : null), [pos]);
+  const finalFen = pos ? makeFen(pos.toSetup()) : null;
 
-  const { searchingFen, searchingMoves } = useMemo(
-    () =>
-      match(threat)
-        .with(true, () => ({
-          searchingFen: swapMove(finalFen || INITIAL_FEN),
-          searchingMoves: [],
-        }))
-        .with(false, () => ({
-          searchingFen: fen,
-          searchingMoves: moves,
-        }))
-        .exhaustive(),
-    [fen, moves, threat, finalFen],
-  );
+  const { searchingFen, searchingMoves } = match(threat)
+    .with(true, () => ({
+      searchingFen: swapMove(finalFen || INITIAL_FEN),
+      searchingMoves: [],
+    }))
+    .with(false, () => ({
+      searchingFen: fen,
+      searchingMoves: moves,
+    }))
+    .exhaustive();
 
   const engineVariations = useDeferredValue(
-    useMemo(
-      () => ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
-      [ev, searchingFen, searchingMoves],
-    ),
+    ev.get(`${searchingFen}:${searchingMoves.join(",")}`),
   );
 
   return (
@@ -431,14 +413,3 @@ function EngineTop({
     </Group>
   );
 }
-
-export default memo(BestMovesComponent, (prev, next) => {
-  return (
-    prev.id === next.id &&
-    prev.engine === next.engine &&
-    prev.fen === next.fen &&
-    equal(prev.moves, next.moves) &&
-    prev.halfMoves === next.halfMoves &&
-    prev.orientation === next.orientation
-  );
-});

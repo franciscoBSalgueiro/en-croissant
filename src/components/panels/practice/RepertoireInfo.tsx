@@ -23,14 +23,7 @@ import {
   IconPlayerPlay,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -80,9 +73,9 @@ function RepertoireInfo() {
 
   const orientation = headers.orientation || "white";
 
-  const stats = useMemo(() => getTreeStats(root), [root]);
+  const stats = getTreeStats(root);
 
-  const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
+  const rootStructureHash = getTreeStructureHash(root);
 
   const [rawOpenings, setRawOpenings] = useState<
     { move: string; white: number; draw: number; black: number }[]
@@ -229,34 +222,30 @@ function RepertoireInfo() {
       ? currentNode.halfMoves % 2 === 0
       : currentNode.halfMoves % 2 === 1;
 
-  const handleMoveClick = useCallback(
-    (move: PositionMove) => {
-      if (move.inRepertoire) {
-        goToMove([...position, move.childIndex]);
-      } else {
-        makeMove({ payload: move.san });
-      }
-    },
-    [position, goToMove, makeMove],
+  const handleMoveClick = (move: PositionMove) => {
+    if (move.inRepertoire) {
+      goToMove([...position, move.childIndex]);
+    } else {
+      makeMove({ payload: move.san });
+    }
+  };
+
+  const nextGap = findNextGap(
+    root,
+    position,
+    orientation,
+    coverageMap,
+    gamesMap,
+    minGames,
   );
 
-  const nextGap = useMemo(
-    () =>
-      findNextGap(root, position, orientation, coverageMap, gamesMap, minGames),
-    [root, position, orientation, coverageMap, gamesMap, minGames],
-  );
-
-  const biggestGap = useMemo(
-    () =>
-      findBiggestGap(
-        root,
-        orientation,
-        coverageMap,
-        gamesMap,
-        minGames,
-        startPath,
-      ),
-    [root, orientation, coverageMap, gamesMap, startPath, minGames],
+  const biggestGap = findBiggestGap(
+    root,
+    orientation,
+    coverageMap,
+    gamesMap,
+    minGames,
+    startPath,
   );
 
   if (!currentTab) return null;
@@ -481,14 +470,13 @@ function MovesView({
     coverageMap,
   ]);
 
-  const relevantMoves = useMemo(
-    () => (isUserTurn ? [] : positionMoves.filter((m) => m.games >= minGames)),
-    [isUserTurn, positionMoves, minGames],
-  );
-  const rareMoves = useMemo(
-    () => (isUserTurn ? [] : positionMoves.filter((m) => m.games < minGames)),
-    [isUserTurn, positionMoves, minGames],
-  );
+  const relevantMoves = isUserTurn
+    ? []
+    : positionMoves.filter((m) => m.games >= minGames);
+
+  const rareMoves = isUserTurn
+    ? []
+    : positionMoves.filter((m) => m.games < minGames);
 
   const nextGapLabel = useMemo(() => {
     if (!nextGap) return null;

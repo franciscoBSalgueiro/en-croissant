@@ -21,7 +21,7 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useDeferredValue, useMemo } from "react";
+import { useContext, useDeferredValue, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -61,7 +61,7 @@ function AnalysisPanel() {
     store,
     useShallow((s) => s.currentNode().fen),
   );
-  const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
+  const is960 = headers.variant === "Chess960";
   const moves = useStore(
     store,
     useShallow((s) => getVariationLine(s.root, s.position, is960)),
@@ -72,10 +72,7 @@ function AnalysisPanel() {
   );
 
   const [engines, setEngines] = useAtom(enginesAtom);
-  const loadedEngines = useMemo(
-    () => engines.filter((e) => e.loaded),
-    [engines],
-  );
+  const loadedEngines = engines.filter((e) => e.loaded);
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabledLoader = useAtomValue(allEnabledAtom);
@@ -340,4 +337,4 @@ function EngineSummary({
   );
 }
 
-export default memo(AnalysisPanel);
+export default AnalysisPanel;

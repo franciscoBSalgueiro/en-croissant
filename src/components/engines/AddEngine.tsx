@@ -17,7 +17,7 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { enginesAtom } from "@/state/atoms";
@@ -206,49 +206,46 @@ function EngineCard({
 
   const [inProgress, setInProgress] = useState<boolean>(false);
   const [, setEngines] = useAtom(enginesAtom);
-  const downloadEngine = useCallback(
-    async (id: number, url: string) => {
-      setInProgress(true);
-      let path = await resolve(
-        await appDataDir(),
-        "engines",
-        `${url.slice(url.lastIndexOf("/") + 1)}`,
-      );
-      if (url.endsWith(".zip") || url.endsWith(".tar")) {
-        path = await resolve(await appDataDir(), "engines");
-      }
-      await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
-      let appDataDirPath = await appDataDir();
-      if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
-        appDataDirPath = appDataDirPath.slice(0, -1);
-      }
-      const enginePath = await join(
-        appDataDirPath,
-        "engines",
-        ...engine.path.split("/"),
-      );
-      await commands.setFileAsExecutable(enginePath);
-      const config = unwrap(await commands.getEngineConfig(enginePath));
-      setEngines(async (prev) => [
-        ...(await prev),
-        {
-          ...engine,
-          id: crypto.randomUUID(),
-          type: "local",
-          path: enginePath,
-          loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
-        },
-      ]);
-    },
-    [engine, setEngines],
-  );
+  const downloadEngine = async (id: number, url: string) => {
+    setInProgress(true);
+    let path = await resolve(
+      await appDataDir(),
+      "engines",
+      `${url.slice(url.lastIndexOf("/") + 1)}`,
+    );
+    if (url.endsWith(".zip") || url.endsWith(".tar")) {
+      path = await resolve(await appDataDir(), "engines");
+    }
+    await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
+    let appDataDirPath = await appDataDir();
+    if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
+      appDataDirPath = appDataDirPath.slice(0, -1);
+    }
+    const enginePath = await join(
+      appDataDirPath,
+      "engines",
+      ...engine.path.split("/"),
+    );
+    await commands.setFileAsExecutable(enginePath);
+    const config = unwrap(await commands.getEngineConfig(enginePath));
+    setEngines(async (prev) => [
+      ...(await prev),
+      {
+        ...engine,
+        id: crypto.randomUUID(),
+        type: "local",
+        path: enginePath,
+        loaded: true,
+        settings: config.options
+          .filter((o) => requiredEngineSettings.includes(o.value.name))
+          .map((o) => ({
+            name: o.value.name,
+            // @ts-expect-error
+            value: o.value.default,
+          })),
+      },
+    ]);
+  };
 
   return (
     <Paper withBorder radius="md" p={0} key={engine.name}>

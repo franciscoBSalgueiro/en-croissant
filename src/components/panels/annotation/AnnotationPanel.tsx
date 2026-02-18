@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { IconChevronDown } from "@tabler/icons-react";
 import { atom, useAtom } from "jotai";
-import { memo, useContext } from "react";
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -23,7 +23,7 @@ import {
 import { getNodeAtPath } from "@/utils/treeReducer";
 import AnnotationEditor from "./AnnotationEditor";
 
-const SymbolButton = memo(function SymbolButton({
+function SymbolButton({
   curAnnotations,
   annotation,
 }: {
@@ -51,7 +51,7 @@ const SymbolButton = memo(function SymbolButton({
       </ActionIcon>
     </Tooltip>
   );
-});
+}
 
 const showMoreSymbolsAtom = atom(false);
 

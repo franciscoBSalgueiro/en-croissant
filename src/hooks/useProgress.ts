@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { commands, events, type ProgressItem } from "@/bindings";
 
 export function useProgress(id: string) {
@@ -27,10 +27,10 @@ export function useProgress(id: string) {
     };
   }, [id]);
 
-  const clear = useCallback(() => {
+  const clear = () => {
     commands.clearProgress(id);
     setItem(null);
-  }, [id]);
+  };
 
   return {
     progress: item?.progress ?? 0,

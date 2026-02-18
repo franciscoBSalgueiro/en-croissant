@@ -10,7 +10,6 @@ import {
 import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
@@ -37,7 +36,7 @@ interface EngineSettingsProps {
   gameMode?: boolean;
 }
 
-function EngineSettingsForm({
+export default function EngineSettingsForm({
   engine,
   settings,
   setSettings,
@@ -53,15 +52,12 @@ function EngineSettingsForm({
   const hash = settings.settings.find((o) => o.name === "Hash");
   const activeTab = useAtomValue(activeTabAtom);
 
-  const setGoMode = useCallback(
-    (v: GoMode) => {
-      setSettings((prev) => ({
-        ...prev,
-        go: v,
-      }));
-    },
-    [setSettings],
-  );
+  const setGoMode = (v: GoMode) => {
+    setSettings((prev) => ({
+      ...prev,
+      go: v,
+    }));
+  };
 
   return (
     <Stack>
@@ -180,10 +176,7 @@ function SyncSettings({
   const { t } = useTranslation();
 
   const engines = useAtomValue(enginesAtom);
-  const engineDefault = useMemo(
-    () => engines.find((o) => o.name === engine)!,
-    [engines, engine],
-  );
+  const engineDefault = engines.find((o) => o.name === engine)!;
 
   return (
     <Checkbox
@@ -232,5 +225,3 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
     </Tooltip>
   );
 }
-
-export default memo(EngineSettingsForm);

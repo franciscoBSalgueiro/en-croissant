@@ -14,7 +14,7 @@ import {
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useDeferredValue, useMemo } from "react";
+import { useContext, useDeferredValue, useMemo } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import type { GoMode } from "@/bindings";
@@ -33,7 +33,7 @@ import type { EngineSettings } from "@/utils/engines";
 import ScoreBubble from "../panels/analysis/ScoreBubble";
 import { TreeStateContext } from "./TreeStateContext";
 
-function DetachedEval() {
+export default function DetachedEval() {
   const [detachedEngineId, setDetachedEngineId] = useAtom(
     currentDetachedEngineAtom,
   );
@@ -57,7 +57,7 @@ function DetachedEval() {
   );
 }
 
-const DetachedEvalInner = memo(function DetachedEvalInner({
+function DetachedEvalInner({
   engineId,
   engineName,
   defaultSettings,
@@ -179,6 +179,4 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
       </Group>
     </Paper>
   );
-});
-
-export default memo(DetachedEval);
+}

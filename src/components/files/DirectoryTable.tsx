@@ -14,7 +14,7 @@ import { useAtom, useSetAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { useContextMenu } from "mantine-contextmenu";
 import { DataTable, type DataTableSortStatus } from "mantine-datatable";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
 import { openFile } from "@/utils/files";
@@ -108,14 +108,10 @@ export default function DirectoryTable({
 }) {
   const [sort, setSort] = useAtom<SortStatus>(sortStatusAtom);
 
-  const flattedFiles = useMemo(() => flattenFiles(files ?? []), [files]);
-  const fuse = useMemo(
-    () =>
-      new Fuse(flattedFiles ?? [], {
-        keys: ["name"],
-      }),
-    [flattedFiles],
-  );
+  const flattedFiles = flattenFiles(files ?? []);
+  const fuse = new Fuse(flattedFiles ?? [], {
+    keys: ["name"],
+  });
 
   let filteredFiles = files ?? [];
 
@@ -199,13 +195,10 @@ function Table({
 
   const { showContextMenu } = useContextMenu();
 
-  const handleOpenFile = useCallback(
-    async (record: FileMetadata) => {
-      await openFile(record, setTabs, setActiveTab);
-      navigate({ to: "/" });
-    },
-    [setActiveTab, setTabs, navigate],
-  );
+  const handleOpenFile = async (record: FileMetadata) => {
+    await openFile(record, setTabs, setActiveTab);
+    navigate({ to: "/" });
+  };
 
   return (
     <DataTable

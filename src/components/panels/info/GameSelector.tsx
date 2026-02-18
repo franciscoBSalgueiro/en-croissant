@@ -4,7 +4,7 @@ import { IconX } from "@tabler/icons-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import cx from "clsx";
 import { useAtomValue } from "jotai";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { commands } from "@/bindings";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { fontSizeAtom } from "@/state/atoms";
@@ -35,20 +35,15 @@ export default function GameSelector({
     return games.has(index);
   }
 
-  const loadMoreRows = useCallback(
-    async (startIndex: number, stopIndex: number) => {
-      const data = unwrap(
-        await commands.readGames(path, startIndex, stopIndex),
-      );
-      const newGames = new Map(games);
-      data.forEach(async (game, index) => {
-        const { headers } = await parsePGN(game);
-        newGames.set(startIndex + index, getGameName(headers));
-      });
-      setGames(newGames);
-    },
-    [games, path, setGames],
-  );
+  const loadMoreRows = async (startIndex: number, stopIndex: number) => {
+    const data = unwrap(await commands.readGames(path, startIndex, stopIndex));
+    const newGames = new Map(games);
+    data.forEach(async (game, index) => {
+      const { headers } = await parsePGN(game);
+      newGames.set(startIndex + index, getGameName(headers));
+    });
+    setGames(newGames);
+  };
 
   const fontSize = useAtomValue(fontSizeAtom);
 

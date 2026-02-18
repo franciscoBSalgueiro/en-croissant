@@ -1,7 +1,7 @@
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { type Setup, SquareSet } from "chessops";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
-import { memo, useCallback, useContext, useEffect, useMemo } from "react";
+import { useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -50,14 +50,10 @@ function getCastlingRights(setup: Setup) {
   };
 }
 
-function FenInput({ currentFen }: { currentFen: string }) {
-  const [setup, error] = useMemo(
-    () =>
-      parseFen(currentFen).unwrap(
-        (v) => [v, null],
-        (e) => [null, e],
-      ),
-    [currentFen],
+export default function FenInput({ currentFen }: { currentFen: string }) {
+  const [setup, error] = parseFen(currentFen).unwrap(
+    (v) => [v, null],
+    (e) => [null, e],
   );
 
   if (!setup) {
@@ -79,26 +75,21 @@ function FenInputInner({
   const store = useContext(TreeStateContext)!;
   const setFen = useStore(store, (s) => s.setFen);
 
-  const { whiteCastling, blackCastling } = useMemo(
-    () => getCastlingRights(setup),
-    [setup],
-  );
+  const { whiteCastling, blackCastling } = getCastlingRights(setup);
 
-  const setCastlingRights = useCallback(
-    (color: "w" | "b", side: "q" | "k", value: boolean) => {
-      if (setup) {
-        const castlingSquare = getCastlingSquare(setup, color, side);
-        if (castlingSquare !== undefined) {
-          setup.castlingRights = setup.castlingRights.set(
-            castlingSquare,
-            value,
-          );
-          setFen(makeFen(setup));
-        }
+  const setCastlingRights = (
+    color: "w" | "b",
+    side: "q" | "k",
+    value: boolean,
+  ) => {
+    if (setup) {
+      const castlingSquare = getCastlingSquare(setup, color, side);
+      if (castlingSquare !== undefined) {
+        setup.castlingRights = setup.castlingRights.set(castlingSquare, value);
+        setFen(makeFen(setup));
       }
-    },
-    [setup, setFen],
-  );
+    }
+  };
 
   useEffect(() => {
     let newCastlingRights = SquareSet.empty();
@@ -216,5 +207,3 @@ function FenInputInner({
     </Stack>
   );
 }
-
-export default memo(FenInput);

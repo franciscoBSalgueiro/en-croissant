@@ -1,7 +1,7 @@
 import { Group, Progress, Text } from "@mantine/core";
 import { useAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { memo, useContext } from "react";
+import { useContext } from "react";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { moveNotationTypeAtom } from "@/state/atoms";
@@ -9,7 +9,7 @@ import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 
-function OpeningsTable({
+export default function OpeningsTable({
   openings,
   loading,
 }: {
@@ -124,5 +124,3 @@ function OpeningsTable({
     />
   );
 }
-
-export default memo(OpeningsTable);
