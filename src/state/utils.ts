@@ -5,6 +5,7 @@ import {
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { warn } from "@tauri-apps/plugin-log";
+import equal from "fast-deep-equal";
 import type {
   AsyncStorage,
   AsyncStringStorage,
@@ -41,7 +42,12 @@ export function createZodStorage<Value>(
         return initialValue;
       }
       try {
-        return schema.parse(JSON.parse(storedValue));
+        const rawValue = JSON.parse(storedValue);
+        const parsedValue = schema.parse(rawValue);
+        if (!equal(rawValue, parsedValue)) {
+          this.setItem(key, parsedValue);
+        }
+        return parsedValue;
       } catch {
         warn(`Invalid value for ${key}: ${storedValue}`);
         this.setItem(key, initialValue);
@@ -68,8 +74,12 @@ export function createAsyncZodStorage<Input, Output>(
         if (storedValue === null) {
           return initialValue;
         }
-        const res = schema.safeParse(JSON.parse(storedValue));
+        const rawValue = JSON.parse(storedValue);
+        const res = schema.safeParse(rawValue);
         if (res.success) {
+          if (!equal(rawValue, res.data)) {
+            await this.setItem(key, res.data);
+          }
           return res.data;
         }
         warn(`Invalid value for ${key}: ${storedValue}\n${res.error}`);
