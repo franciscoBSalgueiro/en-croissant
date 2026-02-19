@@ -24,7 +24,14 @@ import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
@@ -144,7 +151,7 @@ function BoardGame() {
     (players.white.type === "human" && players.black.type === "engine") ||
     (players.black.type === "human" && players.white.type === "engine");
 
-  const fetchEngineLogs = async () => {
+  const fetchEngineLogs = useCallback(async () => {
     if (!gameId || !hasEngine) return;
     let color = logsColor;
     if (players.white.type === "human" && players.black.type === "engine") {
@@ -159,7 +166,7 @@ function BoardGame() {
     if (result.status === "ok") {
       setEngineLogs(result.data);
     }
-  };
+  }, [gameId, logsColor, hasEngine, players.white.type, players.black.type]);
 
   useEffect(() => {
     if (logsOpened) {
@@ -167,54 +174,57 @@ function BoardGame() {
     }
   }, [logsOpened, fetchEngineLogs]);
 
-  const syncTreeWithMoves = (backendMoves: BackendMove[]) => {
-    const treeMoves: string[] = [];
-    let node = root;
-    while (node.children.length > 0) {
-      node = node.children[0];
-      if (node.move) {
-        treeMoves.push(makeUci(node.move));
-      }
-    }
-
-    let needsReset = false;
-    for (let i = 0; i < treeMoves.length; i++) {
-      if (i >= backendMoves.length || treeMoves[i] !== backendMoves[i].uci) {
-        needsReset = true;
-        break;
-      }
-    }
-
-    if (needsReset) {
-      setFen(root.fen);
-      for (const move of backendMoves) {
-        const parsed = parseUci(move.uci);
-        if (parsed) {
-          appendMove({
-            payload: parsed,
-            clock: move.clock !== null ? Number(move.clock) : undefined,
-          });
+  const syncTreeWithMoves = useCallback(
+    (backendMoves: BackendMove[]) => {
+      const treeMoves: string[] = [];
+      let node = root;
+      while (node.children.length > 0) {
+        node = node.children[0];
+        if (node.move) {
+          treeMoves.push(makeUci(node.move));
         }
       }
-      return true;
-    }
 
-    if (backendMoves.length > treeMoves.length) {
-      for (let i = treeMoves.length; i < backendMoves.length; i++) {
-        const move = backendMoves[i];
-        const parsed = parseUci(move.uci);
-        if (parsed) {
-          appendMove({
-            payload: parsed,
-            clock: move.clock !== null ? Number(move.clock) : undefined,
-          });
+      let needsReset = false;
+      for (let i = 0; i < treeMoves.length; i++) {
+        if (i >= backendMoves.length || treeMoves[i] !== backendMoves[i].uci) {
+          needsReset = true;
+          break;
         }
       }
-      return true;
-    }
 
-    return false;
-  };
+      if (needsReset) {
+        setFen(root.fen);
+        for (const move of backendMoves) {
+          const parsed = parseUci(move.uci);
+          if (parsed) {
+            appendMove({
+              payload: parsed,
+              clock: move.clock !== null ? Number(move.clock) : undefined,
+            });
+          }
+        }
+        return true;
+      }
+
+      if (backendMoves.length > treeMoves.length) {
+        for (let i = treeMoves.length; i < backendMoves.length; i++) {
+          const move = backendMoves[i];
+          const parsed = parseUci(move.uci);
+          if (parsed) {
+            appendMove({
+              payload: parsed,
+              clock: move.clock !== null ? Number(move.clock) : undefined,
+            });
+          }
+        }
+        return true;
+      }
+
+      return false;
+    },
+    [root, setFen, appendMove],
+  );
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
@@ -365,15 +375,18 @@ function BoardGame() {
     }
   }
 
-  const handleHumanMove = async (uci: string) => {
-    if (!gameId || gameState !== "playing") return;
+  const handleHumanMove = useCallback(
+    async (uci: string) => {
+      if (!gameId || gameState !== "playing") return;
 
-    try {
-      const result = await commands.makeGameMove(gameId, uci);
-    } catch (err) {
-      console.error("Failed to make move:", err);
-    }
-  };
+      try {
+        const result = await commands.makeGameMove(gameId, uci);
+      } catch (err) {
+        console.error("Failed to make move:", err);
+      }
+    },
+    [gameId, gameState],
+  );
 
   const pendingMovesRef = useRef<
     { uci: string; clock: number | null }[] | null
@@ -388,7 +401,7 @@ function BoardGame() {
   const syncTreeWithMovesRef = useRef(syncTreeWithMoves);
   syncTreeWithMovesRef.current = syncTreeWithMoves;
 
-  const applyPendingUpdates = () => {
+  const applyPendingUpdates = useCallback(() => {
     if (pendingMovesRef.current) {
       syncTreeWithMovesRef.current(pendingMovesRef.current);
       pendingMovesRef.current = null;
@@ -403,18 +416,18 @@ function BoardGame() {
     setTimeout(() => {
       cgRef.current?.playPremove();
     }, 0);
-  };
+  }, []);
 
-  const scheduleUpdate = () => {
+  const scheduleUpdate = useCallback(() => {
     if (!throttleTimerRef.current) {
       throttleTimerRef.current = setTimeout(applyPendingUpdates, THROTTLE_MS);
     }
-  };
+  }, [applyPendingUpdates]);
 
-  const onTakeBack = async () => {
+  const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
     const result = await commands.takeBackGameMove(gameId);
-  };
+  }, [gameId, gameState]);
 
   useEffect(() => {
     if (gameState !== "playing" || !gameId) return;
