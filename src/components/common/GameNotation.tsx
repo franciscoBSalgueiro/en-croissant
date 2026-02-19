@@ -334,6 +334,26 @@ function RenderVariationTree({
   );
 }
 
+type RowItem = {
+  type: "row";
+  moveNumber: number;
+  white: TreeNode | null;
+  whitePath: number[];
+  black: TreeNode | null;
+  blackPath: number[];
+  splitRow?: boolean;
+};
+type VariationItem = {
+  type: "variations";
+  variations: TreeNode[];
+  parentPath: number[];
+};
+type CommentItem = {
+  type: "comment";
+  comment: string;
+};
+type Segment = RowItem | VariationItem | CommentItem;
+
 function TableNotation({
   targetRef,
   start,
@@ -347,26 +367,6 @@ function TableNotation({
 }) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
-
-  type RowItem = {
-    type: "row";
-    moveNumber: number;
-    white: TreeNode | null;
-    whitePath: number[];
-    black: TreeNode | null;
-    blackPath: number[];
-    splitRow?: boolean;
-  };
-  type VariationItem = {
-    type: "variations";
-    variations: TreeNode[];
-    parentPath: number[];
-  };
-  type CommentItem = {
-    type: "comment";
-    comment: string;
-  };
-  type Segment = RowItem | VariationItem | CommentItem;
 
   const segments: Segment[] = [];
 
@@ -580,67 +580,90 @@ function TableNotation({
             );
           }
 
-          const row = seg;
           return (
-            <React.Fragment key={`row-${row.moveNumber}-${idx}`}>
-              <Table.Tr>
-                <Table.Td className={styles.moveTableMoveNumber}>
-                  {row.moveNumber}
-                </Table.Td>
-                <Table.Td className={styles.moveTableCell}>
-                  {row.white ? (
-                    <CompleteMoveCell
-                      targetRef={targetRef}
-                      annotations={row.white.annotations}
-                      comment={row.white.comment}
-                      halfMoves={row.white.halfMoves}
-                      move={row.white.san}
-                      fen={row.white.fen}
-                      movePath={row.whitePath}
-                      showComments={showComments}
-                      tableLayout
-                      scoreText={
-                        row.white.score
-                          ? formatScore(row.white.score.value, 1)
-                          : undefined
-                      }
-                    />
-                  ) : (
-                    <Text c="dimmed" style={{ padding: "5px 8px" }}>
-                      ...
-                    </Text>
-                  )}
-                </Table.Td>
-                <Table.Td className={styles.moveTableCell}>
-                  {row.black ? (
-                    <CompleteMoveCell
-                      targetRef={targetRef}
-                      annotations={row.black.annotations}
-                      comment={row.black.comment}
-                      halfMoves={row.black.halfMoves}
-                      move={row.black.san}
-                      fen={row.black.fen}
-                      movePath={row.blackPath}
-                      showComments={showComments}
-                      tableLayout
-                      scoreText={
-                        row.black.score
-                          ? formatScore(row.black.score.value, 1)
-                          : undefined
-                      }
-                    />
-                  ) : row.splitRow ? (
-                    <Text c="dimmed" style={{ padding: "5px 8px" }}>
-                      ...
-                    </Text>
-                  ) : null}
-                </Table.Td>
-              </Table.Tr>
-            </React.Fragment>
+            <RowSegment
+              key={`row-${idx}`}
+              targetRef={targetRef}
+              showComments={showComments}
+              moveNumber={seg.moveNumber}
+              whitePathStr={seg.whitePath.join(",")}
+              blackPathStr={seg.blackPath.join(",")}
+            />
           );
         })}
       </Table.Tbody>
     </Table>
+  );
+}
+
+function RowSegment({
+  moveNumber,
+  whitePathStr,
+  blackPathStr,
+  splitRow,
+  targetRef,
+  showComments,
+}: {
+  moveNumber: number;
+  whitePathStr: string;
+  blackPathStr: string;
+  splitRow?: boolean;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
+  showComments: boolean;
+}) {
+  const store = useContext(TreeStateContext)!;
+  const whitePath = whitePathStr ? whitePathStr.split(",").map(Number) : [];
+  const white = useStore(store, (s) => s.getNode(whitePath));
+  const blackPath = blackPathStr ? blackPathStr.split(",").map(Number) : [];
+  const black = useStore(store, (s) => s.getNode(blackPath));
+  return (
+    <Table.Tr>
+      <Table.Td className={styles.moveTableMoveNumber}>{moveNumber}</Table.Td>
+      <Table.Td className={styles.moveTableCell}>
+        {white ? (
+          <CompleteMoveCell
+            targetRef={targetRef}
+            annotations={white.annotations}
+            comment={white.comment}
+            halfMoves={white.halfMoves}
+            move={white.san}
+            fen={white.fen}
+            movePath={whitePath}
+            showComments={showComments}
+            tableLayout
+            scoreText={
+              white.score ? formatScore(white.score.value, 1) : undefined
+            }
+          />
+        ) : (
+          <Text c="dimmed" style={{ padding: "5px 8px" }}>
+            ...
+          </Text>
+        )}
+      </Table.Td>
+      <Table.Td className={styles.moveTableCell}>
+        {black ? (
+          <CompleteMoveCell
+            targetRef={targetRef}
+            annotations={black.annotations}
+            comment={black.comment}
+            halfMoves={black.halfMoves}
+            move={black.san}
+            fen={black.fen}
+            movePath={blackPath}
+            showComments={showComments}
+            tableLayout
+            scoreText={
+              black.score ? formatScore(black.score.value, 1) : undefined
+            }
+          />
+        ) : splitRow ? (
+          <Text c="dimmed" style={{ padding: "5px 8px" }}>
+            ...
+          </Text>
+        ) : null}
+      </Table.Td>
+    </Table.Tr>
   );
 }
 
