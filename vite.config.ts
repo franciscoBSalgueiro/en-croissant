@@ -2,7 +2,7 @@
 import { resolve } from "node:path";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react";
-import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
+import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import { defineConfig } from "vite";
 import * as os from "node:os";
 
@@ -11,13 +11,15 @@ const isDebug = !!process.env.TAURI_ENV_DEBUG;
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [
+        tanstackRouter({
+            target: "react"
+        }),
         react({
             babel: {
                 plugins: ["babel-plugin-react-compiler"],
             },
         }),
         vanillaExtractPlugin(),
-        TanStackRouterVite(),
     ],
     server: {
         port: 1420,

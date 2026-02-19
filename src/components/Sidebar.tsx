@@ -1,3 +1,4 @@
+"use no memo";
 import { AppShellSection, Stack, Tooltip } from "@mantine/core";
 import {
   type Icon,
