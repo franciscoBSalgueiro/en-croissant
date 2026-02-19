@@ -132,8 +132,8 @@ importers:
         specifier: ^10.0.4
         version: 10.0.4
       jotai:
-        specifier: ^2.7.0
-        version: 2.7.0(@types/react@19.2.14)(react@19.2.4)
+        specifier: ^2.18.0
+        version: 2.18.0(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4)
       mantine-contextmenu:
         specifier: ^8.3.13
         version: 8.3.13(@mantine/core@8.3.14(@mantine/hooks@8.3.14(react@19.2.4))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@mantine/hooks@8.3.14(react@19.2.4))(clsx@2.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -159,8 +159,8 @@ importers:
         specifier: ^19.2.4
         version: 19.2.4(react@19.2.4)
       react-draggable:
-        specifier: ^4.4.6
-        version: 4.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^4.5.0
+        version: 4.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react-hotkeys-hook:
         specifier: ^4.5.0
         version: 4.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -198,8 +198,8 @@ importers:
         specifier: ^3.22.4
         version: 3.22.4
       zustand:
-        specifier: ^4.5.2
-        version: 4.5.2(@types/react@19.2.14)(immer@10.0.4)(react@19.2.4)
+        specifier: ^5.0.11
+        version: 5.0.11(@types/react@19.2.14)(immer@10.0.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
       '@biomejs/biome':
         specifier: 2.4.0
@@ -1744,10 +1744,6 @@ packages:
   classnames@2.5.1:
     resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
 
-  clsx@1.2.1:
-    resolution: {integrity: sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==}
-    engines: {node: '>=6'}
-
   clsx@2.1.0:
     resolution: {integrity: sha512-m3iNNWpd9rl3jvvcBnu70ylMdrXt8Vlq4HYadnU5fwcOtvkSQWPmj7amUcDT2qYI7risszBjI5AUIUox9D16pg==}
     engines: {node: '>=6'}
@@ -2178,13 +2174,19 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
-  jotai@2.7.0:
-    resolution: {integrity: sha512-4qsyFKu4MprI39rj2uoItyhu24NoCHzkOV7z70PQr65SpzV6CSyhQvVIfbNlNqOIOspNMdf5OK+kTXLvqe63Jw==}
+  jotai@2.18.0:
+    resolution: {integrity: sha512-XI38kGWAvtxAZ+cwHcTgJsd+kJOJGf3OfL4XYaXWZMZ7IIY8e53abpIHvtVn1eAgJ5dlgwlGFnP4psrZ/vZbtA==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
+      '@babel/core': '>=7.0.0'
+      '@babel/template': '>=7.0.0'
       '@types/react': '>=17.0.0'
       react: '>=17.0.0'
     peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      '@babel/template':
+        optional: true
       '@types/react':
         optional: true
       react:
@@ -2659,8 +2661,8 @@ packages:
     peerDependencies:
       react: ^19.2.4
 
-  react-draggable@4.4.6:
-    resolution: {integrity: sha512-LtY5Xw1zTPqHkVmtM3X8MUOxNDOUhv/khTgBgrUvwaS064bwVvxT+q5El0uUFNx5IEPKXuRejr7UqLwBIg5pdw==}
+  react-draggable@4.5.0:
+    resolution: {integrity: sha512-VC+HBLEZ0XJxnOxVAZsdRi8rD04Iz3SiiKOoYzamjylUcju/hP9np/aZdLHf/7WOD268WMoNJMvYfB5yAK45cw==}
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
@@ -3273,19 +3275,22 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zustand@4.5.2:
-    resolution: {integrity: sha512-2cN1tPkDVkwCy5ickKrI7vijSjPksFRfqS6237NzT0vqSsztTNnQdHw9mmN7uBdk3gceVXU0a+21jFzFzAc9+g==}
-    engines: {node: '>=12.7.0'}
+  zustand@5.0.11:
+    resolution: {integrity: sha512-fdZY+dk7zn/vbWNCYmzZULHRrss0jx5pPFiOuMZ/5HJN6Yv3u+1Wswy/4MpZEkEGhtNH+pwxZB8OKgUBPzYAGg==}
+    engines: {node: '>=12.20.0'}
     peerDependencies:
-      '@types/react': '>=16.8'
+      '@types/react': '>=18.0.0'
       immer: '>=9.0.6'
-      react: '>=16.8'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
     peerDependenciesMeta:
       '@types/react':
         optional: true
       immer:
         optional: true
       react:
+        optional: true
+      use-sync-external-store:
         optional: true
 
   zwitch@2.0.4:
@@ -4812,8 +4817,6 @@ snapshots:
 
   classnames@2.5.1: {}
 
-  clsx@1.2.1: {}
-
   clsx@2.1.0: {}
 
   clsx@2.1.1: {}
@@ -5231,8 +5234,10 @@ snapshots:
   jiti@2.6.1:
     optional: true
 
-  jotai@2.7.0(@types/react@19.2.14)(react@19.2.4):
+  jotai@2.18.0(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.14)(react@19.2.4):
     optionalDependencies:
+      '@babel/core': 7.29.0
+      '@babel/template': 7.28.6
       '@types/react': 19.2.14
       react: 19.2.4
 
@@ -5978,9 +5983,9 @@ snapshots:
       react: 19.2.4
       scheduler: 0.27.0
 
-  react-draggable@4.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+  react-draggable@4.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
-      clsx: 1.2.1
+      clsx: 2.1.1
       prop-types: 15.8.1
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -6626,12 +6631,11 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zustand@4.5.2(@types/react@19.2.14)(immer@10.0.4)(react@19.2.4):
-    dependencies:
-      use-sync-external-store: 1.2.0(react@19.2.4)
+  zustand@5.0.11(@types/react@19.2.14)(immer@10.0.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4)):
     optionalDependencies:
       '@types/react': 19.2.14
       immer: 10.0.4
       react: 19.2.4
+      use-sync-external-store: 1.6.0(react@19.2.4)
 
   zwitch@2.0.4: {}

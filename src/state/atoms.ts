@@ -7,7 +7,7 @@ import {
   atomFamily,
   atomWithStorage,
   createJSONStorage,
-  loadable,
+  unwrap,
 } from "jotai/utils";
 import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
 import type {
@@ -54,15 +54,15 @@ const zodArray = <Input, Output>(
   return res as z.ZodType<Output[], z.ZodTypeDef, Input[]>;
 };
 
-export const enginesAtom = atomWithStorage<Engine[]>(
-  "engines/engines.json",
-  [],
-  createAsyncZodStorage(zodArray(engineSchema), fileStorage) as AsyncStorage<
-    Engine[]
-  >,
+export const enginesAtom = unwrap(
+  atomWithStorage<Engine[]>(
+    "engines/engines.json",
+    [],
+    createAsyncZodStorage(zodArray(engineSchema), fileStorage) as AsyncStorage<
+      Engine[]
+    >,
+  ),
 );
-
-const loadableEnginesAtom = loadable(enginesAtom);
 
 // Tabs
 
@@ -547,14 +547,14 @@ export const bestMovesFamily = atomFamily(
     atom<Map<number, { pv: string[]; winChance: number }[]>>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return new Map();
-      const engines = get(loadableEnginesAtom);
-      if (!(engines.state === "hasData")) return new Map();
+      const engines = get(enginesAtom);
+      if (!engines) return new Map();
       const bestMoves = new Map<
         number,
         { pv: string[]; winChance: number }[]
       >();
       let n = 0;
-      for (const engine of engines.data.filter((e) => e.loaded)) {
+      for (const engine of engines.filter((e) => e.loaded)) {
         const engineMoves = get(engineMovesFamily({ tab, engine: engine.id }));
         const [pos] = positionFromFen(fen);
         let finalFen = INITIAL_FEN;
@@ -597,8 +597,8 @@ export const firstEngineWithLinesFamily = atomFamily(
     atom<string | null>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return null;
-      const engines = get(loadableEnginesAtom);
-      if (!(engines.state === "hasData")) return null;
+      const engines = get(enginesAtom);
+      if (!engines) return null;
 
       const [pos] = positionFromFen(fen);
       let finalFen = INITIAL_FEN;
@@ -610,7 +610,7 @@ export const firstEngineWithLinesFamily = atomFamily(
         finalFen = makeFen(pos.toSetup());
       }
 
-      for (const engine of engines.data.filter((e) => e.loaded)) {
+      for (const engine of engines.filter((e) => e.loaded)) {
         const engineMoves = get(engineMovesFamily({ tab, engine: engine.id }));
         const moves =
           engineMoves.get(`${swapMove(finalFen)}:`) ||
@@ -652,32 +652,31 @@ export const tabEngineSettingsFamily = atomFamily(
   (a, b) => a.tab === b.tab && a.engineId === b.engineId,
 );
 
-export const allEnabledAtom = loadable(
-  atom(async (get) => {
-    const engines = await get(enginesAtom);
+export const allEnabledAtom = atom((get) => {
+  const engines = get(enginesAtom);
+  if (!engines) return false;
 
-    const v = engines
-      .filter((e) => e.loaded)
-      .every((engine) => {
-        const atom = tabEngineSettingsFamily({
-          tab: get(activeTabAtom)!,
-          engineId: engine.id,
-          defaultSettings:
-            engine.type === "local" ? engine.settings || [] : undefined,
-          defaultGo: engine.go ?? undefined,
-        });
-        return get(atom).enabled;
+  const v = engines
+    .filter((e) => e.loaded)
+    .every((engine) => {
+      const atom = tabEngineSettingsFamily({
+        tab: get(activeTabAtom)!,
+        engineId: engine.id,
+        defaultSettings:
+          engine.type === "local" ? engine.settings || [] : undefined,
+        defaultGo: engine.go ?? undefined,
       });
+      return get(atom).enabled;
+    });
 
-    return v;
-  }),
-);
+  return v;
+});
 
 export const enableAllAtom = atom(null, (get, set, value: boolean) => {
-  const engines = get(loadableEnginesAtom);
-  if (!(engines.state === "hasData")) return;
+  const engines = get(enginesAtom);
+  if (!engines) return;
 
-  for (const engine of engines.data.filter((e) => e.loaded)) {
+  for (const engine of engines.filter((e) => e.loaded)) {
     const atom = tabEngineSettingsFamily({
       tab: get(activeTabAtom)!,
       engineId: engine.id,

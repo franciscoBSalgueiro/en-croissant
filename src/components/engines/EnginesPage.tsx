@@ -65,6 +65,8 @@ export default function EnginesPage() {
     navigate({ to: "/engines", search: { selected: v ?? undefined } });
   };
 
+  if (!engines) return null;
+
   const selectedEngine = selected !== undefined ? engines[selected] : null;
 
   return (
@@ -216,7 +218,7 @@ function EngineSettings({
   const { t } = useTranslation();
 
   const [engines, setEngines] = useAtom(enginesAtom);
-  const engine = engines[selected] as LocalEngine;
+  const engine = engines![selected] as LocalEngine;
   const { data: options } = useSWRImmutable(
     ["engine-config", engine.path],
     async ([, path]) => {

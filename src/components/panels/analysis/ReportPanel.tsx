@@ -3,7 +3,7 @@ import { useToggle } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import { useAtomValue } from "jotai";
-import React, { Suspense, useContext } from "react";
+import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { commands } from "@/bindings";
@@ -36,17 +36,15 @@ function ReportPanel() {
 
   return (
     <ScrollArea offsetScrollbars>
-      <Suspense>
-        <ReportModal
-          tab={activeTab!}
-          initialFen={root.fen}
-          moves={getMainLine(root, headers.variant === "Chess960")}
-          is960={headers.variant === "Chess960"}
-          reportingMode={reportingMode}
-          toggleReportingMode={toggleReportingMode}
-          setInProgress={setInProgress}
-        />
-      </Suspense>
+      <ReportModal
+        tab={activeTab!}
+        initialFen={root.fen}
+        moves={getMainLine(root, headers.variant === "Chess960")}
+        is960={headers.variant === "Chess960"}
+        reportingMode={reportingMode}
+        toggleReportingMode={toggleReportingMode}
+        setInProgress={setInProgress}
+      />
       <Stack mb="lg" gap="0.4rem" mr="xs">
         <Group grow style={{ textAlign: "center" }}>
           {stats.whiteAccuracy && stats.blackAccuracy && (

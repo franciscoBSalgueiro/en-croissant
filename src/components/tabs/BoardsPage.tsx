@@ -3,7 +3,7 @@ import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { type ReactNode, useEffect, useTransition } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
@@ -28,7 +28,6 @@ import * as classes from "./BoardsPage.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
-  const [, startTransition] = useTransition();
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
@@ -56,12 +55,12 @@ export default function BoardsPage() {
         const index = tabs.findIndex((tab) => tab.value === value);
         if (tabs.length > 1) {
           if (index === tabs.length - 1) {
-            startTransition(() => setActiveTab(tabs[index - 1].value));
+            setActiveTab(tabs[index - 1].value);
           } else {
-            startTransition(() => setActiveTab(tabs[index + 1].value));
+            setActiveTab(tabs[index + 1].value);
           }
         } else {
-          startTransition(() => setActiveTab(null));
+          setActiveTab(null);
         }
       }
       setTabs((prev) => prev.filter((tab) => tab.value !== value));
@@ -71,24 +70,22 @@ export default function BoardsPage() {
   };
 
   function selectTab(index: number) {
-    startTransition(() =>
-      setActiveTab(tabs[Math.min(index, tabs.length - 1)].value),
-    );
+    setActiveTab(tabs[Math.min(index, tabs.length - 1)].value);
   }
 
   function cycleTabs(reverse = false) {
     const index = tabs.findIndex((tab) => tab.value === activeTab);
     if (reverse) {
       if (index === 0) {
-        startTransition(() => setActiveTab(tabs[tabs.length - 1].value));
+        setActiveTab(tabs[tabs.length - 1].value);
       } else {
-        startTransition(() => setActiveTab(tabs[index - 1].value));
+        setActiveTab(tabs[index - 1].value);
       }
     } else {
       if (index === tabs.length - 1) {
-        startTransition(() => setActiveTab(tabs[0].value));
+        setActiveTab(tabs[0].value);
       } else {
-        startTransition(() => setActiveTab(tabs[index + 1].value));
+        setActiveTab(tabs[index + 1].value);
       }
     }
   }
@@ -120,13 +117,13 @@ export default function BoardsPage() {
           type: tab.type,
         },
       ]);
-      startTransition(() => setActiveTab(id));
+      setActiveTab(id);
     }
   };
   const keyMap = useAtomValue(keyMapAtom);
 
   const handleSetActiveTab = (v: string) => {
-    startTransition(() => setActiveTab(v));
+    setActiveTab(v);
   };
 
   useHotkeys([
@@ -156,7 +153,7 @@ export default function BoardsPage() {
   return (
     <Tabs
       value={activeTab}
-      onChange={(v) => startTransition(() => setActiveTab(v))}
+      onChange={(v) => setActiveTab(v)}
       keepMounted={false}
       className={classes.tabsContainer}
     >

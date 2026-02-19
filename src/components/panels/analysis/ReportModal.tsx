@@ -47,7 +47,7 @@ export default function ReportModal({
 
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
-  const localEngines = engines.filter(
+  const localEngines = (engines ?? []).filter(
     (e): e is LocalEngine => e.type === "local",
   );
 

@@ -47,7 +47,6 @@ export default function CompleteMoveCell({
   annotations,
   showComments,
   first,
-  isStart,
   targetRef,
   tableLayout,
   scoreText,
@@ -59,13 +58,14 @@ export default function CompleteMoveCell({
   move?: string | null;
   fen?: string;
   first?: boolean;
-  isStart: boolean;
   movePath: number[];
   targetRef: React.RefObject<HTMLSpanElement | null>;
   tableLayout?: boolean;
   scoreText?: string;
 }) {
   const store = useContext(TreeStateContext)!;
+  const isStart = useStore(store, (s) => equal(movePath, s.headers.start));
+
   const isCurrentVariation = useStore(store, (s) =>
     equal(s.position, movePath),
   );

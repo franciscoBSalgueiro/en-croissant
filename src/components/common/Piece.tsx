@@ -74,6 +74,7 @@ export default function PieceComponent({
 
   return (
     <Draggable
+      nodeRef={pieceRef as RefObject<HTMLElement>}
       position={{ x: 0, y: 0 }}
       onStart={(e) => {
         const { clientX, clientY } = e as MouseEvent;

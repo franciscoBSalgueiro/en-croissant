@@ -19,7 +19,9 @@ export default function EditEngine({
     validate: {
       name: (value) => {
         if (!value) return "Name is required";
-        if (engines.find((e) => e.name === value && e !== initialEngine))
+        if (
+          (engines ?? []).find((e) => e.name === value && e !== initialEngine)
+        )
           return "Name already used";
       },
       path: (value) => {

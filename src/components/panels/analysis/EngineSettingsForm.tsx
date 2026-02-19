@@ -176,7 +176,7 @@ function SyncSettings({
   const { t } = useTranslation();
 
   const engines = useAtomValue(enginesAtom);
-  const engineDefault = engines.find((o) => o.name === engine)!;
+  const engineDefault = (engines ?? []).find((o) => o.name === engine)!;
 
   return (
     <Checkbox
@@ -215,7 +215,7 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
           navigate({
             to: "/engines",
             search: {
-              selected: engines.findIndex((o) => o.name === engineName),
+              selected: (engines ?? []).findIndex((o) => o.name === engineName),
             },
           })
         }

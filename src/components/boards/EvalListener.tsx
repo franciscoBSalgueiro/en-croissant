@@ -74,7 +74,7 @@ function EvalListener() {
     }),
   );
 
-  return engines
+  return (engines ?? [])
     .filter((e) => e.loaded)
     .map((e) => (
       <EngineListener

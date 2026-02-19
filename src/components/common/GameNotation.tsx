@@ -286,7 +286,6 @@ function RenderVariationTree({
               fen={variation.fen}
               movePath={newPath}
               showComments={showComments}
-              isStart={equal(newPath, start)}
               first
             />
             <RenderVariationTree
@@ -315,7 +314,6 @@ function RenderVariationTree({
           fen={variations[0].fen}
           movePath={mainLinePath}
           showComments={showComments}
-          isStart={equal(mainLinePath, start)}
           first={first}
         />
       )}
@@ -563,7 +561,6 @@ function TableNotation({
                             fen={variation.fen}
                             movePath={variationPath}
                             showComments={showComments}
-                            isStart={equal(variationPath, start)}
                             first
                           />
                           <RenderVariationTree
@@ -601,7 +598,6 @@ function TableNotation({
                       fen={row.white.fen}
                       movePath={row.whitePath}
                       showComments={showComments}
-                      isStart={equal(row.whitePath, start)}
                       tableLayout
                       scoreText={
                         row.white.score
@@ -626,7 +622,6 @@ function TableNotation({
                       fen={row.black.fen}
                       movePath={row.blackPath}
                       showComments={showComments}
-                      isStart={equal(row.blackPath, start)}
                       tableLayout
                       scoreText={
                         row.black.score

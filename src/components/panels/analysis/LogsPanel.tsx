@@ -10,7 +10,7 @@ import EngineLogsView from "../../common/EngineLogsView";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
-  const localEngines = engines
+  const localEngines = (engines ?? [])
     .filter((e): e is LocalEngine => e.type === "local")
     .filter((e) => e.loaded);
   const [engine, setEngine] = useState<LocalEngine | undefined>(

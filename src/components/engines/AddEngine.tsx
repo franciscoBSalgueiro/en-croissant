@@ -43,7 +43,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = allEngines.filter(
+  const engines = (allEngines ?? []).filter(
     (e): e is LocalEngine => e.type === "local",
   );
 
@@ -165,7 +165,9 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             {engine.url}
           </Text>
           <Button
-            disabled={engines.find((e) => e.type === engine.type) !== undefined}
+            disabled={
+              (engines ?? []).find((e) => e.type === engine.type) !== undefined
+            }
             fullWidth
             onClick={() => {
               setEngines(async (prev) => [
