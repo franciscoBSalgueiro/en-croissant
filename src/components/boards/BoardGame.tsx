@@ -678,7 +678,12 @@ function BoardGame() {
                     />
 
                     <Group>
-                      <Button onClick={startGame} disabled={error !== null}>
+                      <Button
+                        onClick={startGame}
+                        fullWidth
+                        variant="light"
+                        disabled={error !== null}
+                      >
                         {t("Board.Opponent.StartGame")}
                       </Button>
                     </Group>

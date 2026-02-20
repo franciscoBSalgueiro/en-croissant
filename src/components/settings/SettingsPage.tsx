@@ -667,6 +667,11 @@ export default function Page() {
           orientation="vertical"
           flex={1}
           style={{ overflow: "hidden" }}
+          styles={{
+            tabLabel: {
+              textAlign: "left",
+            },
+          }}
         >
           <Tabs.List h="100%">
             <Tabs.Tab value="board" leftSection={<IconChess size="1rem" />}>
