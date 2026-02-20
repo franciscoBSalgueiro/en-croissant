@@ -1,5 +1,6 @@
 import {
   Center,
+  Loader,
   Progress,
   Select,
   Stack,
@@ -150,13 +151,25 @@ function Databases() {
   return (
     <>
       {isLoading && databases && (
-        <>
-          <Text ta="center" fw="bold" my="auto" fz="lg">
-            {t("Home.Databases.ProcessingGames")}
-          </Text>
-
-          <Progress value={progress} />
-        </>
+        <Center h="100%">
+          <Stack w="100%" maw={400} align="center" gap="md">
+            <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+              <Loader color="blue" type="bars" />
+            </ThemeIcon>
+            <Title order={3}>{t("Home.Databases.ProcessingGames")}</Title>
+            <Progress
+              w="100%"
+              value={progress}
+              animated
+              striped
+              size="md"
+              radius="xl"
+            />
+            <Text fw="bold" fz="sm" c="dimmed">
+              {Math.round(progress)}%
+            </Text>
+          </Stack>
+        </Center>
       )}
       {error && (
         <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>
