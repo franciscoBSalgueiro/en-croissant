@@ -131,7 +131,6 @@ function GameNotation({
                 {tableView ? (
                   <TableNotation
                     targetRef={targetRef}
-                    start={headers.start}
                     showVariations={showVariations}
                     showComments={showComments}
                   />
@@ -142,7 +141,6 @@ function GameNotation({
                       nodePath={[]}
                       depth={0}
                       first
-                      start={headers.start}
                       showVariations={showVariations}
                       showComments={showComments}
                     />
@@ -254,13 +252,11 @@ const RenderVariationTree = memo(
   function RenderVariationTree({
     nodePath,
     depth,
-    start,
     first,
     showVariations,
     showComments,
     targetRef,
   }: {
-    start?: number[];
     nodePath: number[];
     depth: number;
     first?: boolean;
@@ -295,7 +291,6 @@ const RenderVariationTree = memo(
                 depth={depth + 2}
                 showVariations={showVariations}
                 showComments={showComments}
-                start={start}
               />
             </React.Fragment>
           );
@@ -327,7 +322,6 @@ const RenderVariationTree = memo(
             nodePath={mainLinePath}
             depth={depth + 1}
             showVariations={showVariations}
-            start={start}
             showComments={showComments}
           />
         )}
@@ -340,8 +334,7 @@ const RenderVariationTree = memo(
       prev.depth === next.depth &&
       prev.first === next.first &&
       prev.showVariations === next.showVariations &&
-      prev.showComments === next.showComments &&
-      equal(prev.start, next.start)
+      prev.showComments === next.showComments
     );
   },
 );
@@ -368,12 +361,10 @@ type Segment = RowItem | VariationItem | CommentItem;
 
 const TableNotation = memo(function TableNotation({
   targetRef,
-  start,
   showVariations,
   showComments,
 }: {
   targetRef: React.RefObject<HTMLSpanElement | null>;
-  start?: number[];
   showVariations: boolean;
   showComments: boolean;
 }) {
@@ -581,7 +572,6 @@ const TableNotation = memo(function TableNotation({
                             depth={1}
                             showVariations={showVariations}
                             showComments={showComments}
-                            start={start}
                           />
                         </Box>
                       );
