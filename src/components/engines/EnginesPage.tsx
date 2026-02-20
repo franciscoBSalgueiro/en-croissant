@@ -18,6 +18,7 @@ import {
   Stack,
   Text,
   TextInput,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
@@ -127,7 +128,14 @@ export default function EnginesPage() {
         </ScrollArea>
         {!selectedEngine || selected === undefined ? (
           <Center h="100%">
-            <Text>{t("Engines.Settings.NoEngine")}</Text>
+            <Stack align="center" gap="sm">
+              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                <IconCpu size={40} />
+              </ThemeIcon>
+              <Text c="dimmed" fw={500} size="lg">
+                {t("Engines.Settings.NoEngine")}
+              </Text>
+            </Stack>
           </Center>
         ) : (
           <Paper withBorder p="md" h="100%">

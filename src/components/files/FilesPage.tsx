@@ -6,10 +6,16 @@ import {
   Input,
   Stack,
   Text,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
+import {
+  IconFileDescription,
+  IconPlus,
+  IconSearch,
+  IconX,
+} from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { readDir, remove } from "@tauri-apps/plugin-fs";
 import { useEffect, useRef, useState } from "react";
@@ -194,7 +200,14 @@ function FilesPage() {
           </>
         ) : (
           <Center h="100%">
-            <Text>{t("Files.NoSelection")}</Text>
+            <Stack align="center" gap="sm">
+              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                <IconFileDescription size={40} />
+              </ThemeIcon>
+              <Text c="dimmed" fw={500} size="lg">
+                {t("Files.NoSelection")}
+              </Text>
+            </Stack>
           </Center>
         )}
       </Group>

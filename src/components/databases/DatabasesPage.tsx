@@ -15,6 +15,7 @@ import {
   Text,
   Textarea,
   TextInput,
+  ThemeIcon,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -199,7 +200,14 @@ export default function DatabasesPage() {
 
         {selectedDatabase === null ? (
           <Center h="100%">
-            <Text>{t("Databases.NoSelection")}</Text>
+            <Stack align="center" gap="sm">
+              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                <IconDatabase size={40} />
+              </ThemeIcon>
+              <Text c="dimmed" fw={500} size="lg">
+                {t("Databases.NoSelection")}
+              </Text>
+            </Stack>
           </Center>
         ) : (
           <Paper withBorder p="md" h="100%">
