@@ -176,7 +176,7 @@ export function AccountCard({
             {type === "lichess" ? (
               <LichessLogo />
             ) : (
-              <img width={20} height={20} src="/chesscom.png" alt="chess.com" />
+              <img width={30} height={30} src="/chesscom.png" alt="chess.com" />
             )}
             <Text fw={600} size="sm">
               {title}

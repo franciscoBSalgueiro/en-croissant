@@ -1,6 +1,7 @@
 import {
   Center,
   Loader,
+  Paper,
   Progress,
   Select,
   Stack,
@@ -151,58 +152,82 @@ function Databases() {
   return (
     <>
       {isLoading && databases && (
-        <Center h="100%">
-          <Stack w="100%" maw={400} align="center" gap="md">
-            <ThemeIcon size={80} radius="100%" variant="light" color="blue">
-              <Loader color="blue" type="bars" />
-            </ThemeIcon>
-            <Title order={3}>{t("Home.Databases.ProcessingGames")}</Title>
-            <Progress
-              w="100%"
-              value={progress}
-              animated
-              striped
-              size="md"
-              radius="xl"
-            />
-            <Text fw="bold" fz="sm" c="dimmed">
-              {Math.round(progress)}%
-            </Text>
-          </Stack>
-        </Center>
+        <Paper
+          h="100%"
+          shadow="sm"
+          p="md"
+          withBorder
+          style={{
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Center h="100%">
+            <Stack w="100%" maw={400} align="center" gap="md">
+              <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                <Loader color="blue" type="bars" />
+              </ThemeIcon>
+              <Title order={3}>{t("Home.Databases.ProcessingGames")}</Title>
+              <Progress
+                w="100%"
+                value={progress}
+                animated
+                striped
+                size="md"
+                radius="xl"
+              />
+              <Text fw="bold" fz="sm" c="dimmed">
+                {Math.round(progress)}%
+              </Text>
+            </Stack>
+          </Center>
+        </Paper>
       )}
       {error && (
         <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>
       )}
       {personalInfo &&
         (personalInfo.length === 0 ? (
-          <Center h="100%">
-            <Stack align="center" gap="md">
-              <ThemeIcon size={80} radius="100%" variant="light" color="blue">
-                <IconDatabaseOff size={40} />
-              </ThemeIcon>
-              <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
-              <Text c="dimmed" ta="center" maw={400}>
-                {t("Home.Databases.Empty.Description")}
-              </Text>
+          <Paper
+            h="100%"
+            shadow="sm"
+            p="md"
+            withBorder
+            style={{
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Center h="100%">
+              <Stack align="center" gap="md">
+                <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                  <IconDatabaseOff size={40} />
+                </ThemeIcon>
+                <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
+                <Text c="dimmed" ta="center" maw={400}>
+                  {t("Home.Databases.Empty.Description")}
+                </Text>
 
-              <Select
-                value={name}
-                data={players}
-                onChange={(e) => setName(e || "")}
-                clearable={false}
-                allowDeselect={false}
-                fw="bold"
-                styles={{
-                  input: {
-                    textAlign: "center",
-                    fontSize: "1.25rem",
-                  },
-                }}
-                mt="md"
-              />
-            </Stack>
-          </Center>
+                <Select
+                  value={name}
+                  data={players}
+                  onChange={(e) => setName(e || "")}
+                  clearable={false}
+                  allowDeselect={false}
+                  fw="bold"
+                  styles={{
+                    input: {
+                      textAlign: "center",
+                      fontSize: "1.25rem",
+                    },
+                  }}
+                  mt="md"
+                />
+              </Stack>
+            </Center>
+          </Paper>
         ) : (
           <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
             <PersonalPlayerCard
