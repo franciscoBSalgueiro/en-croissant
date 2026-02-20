@@ -81,26 +81,30 @@ export async function processEntriesRecursively(
   parent: string,
   entries: DirEntry[],
 ) {
-  const allEntries: (FileMetadata | Directory)[] = [];
-  for (const entry of entries) {
-    if (entry.isFile) {
-      const metadata = await readFileMetadata(await join(parent, entry.name));
-      if (!metadata) continue;
-      allEntries.push(metadata);
-    }
-    if (entry.isDirectory) {
-      const dir = await join(parent, entry.name);
-      const newEntries = await processEntriesRecursively(
-        dir,
-        await readDir(dir, { baseDir: BaseDirectory.AppLocalData }),
-      );
-      allEntries.push({
-        type: "directory",
-        name: entry.name,
-        path: dir,
-        children: newEntries,
-      });
-    }
-  }
-  return allEntries;
+  const processedEntries = await Promise.all(
+    entries.map(async (entry) => {
+      if (entry.isFile) {
+        return await readFileMetadata(await join(parent, entry.name));
+      }
+      if (entry.isDirectory) {
+        const dir = await join(parent, entry.name);
+        const newEntries = await processEntriesRecursively(
+          dir,
+          await readDir(dir, { baseDir: BaseDirectory.AppLocalData }),
+        );
+        const directory: Directory = {
+          type: "directory",
+          name: entry.name,
+          path: dir,
+          children: newEntries,
+        };
+        return directory;
+      }
+      return null;
+    }),
+  );
+
+  return processedEntries.filter(
+    (entry): entry is FileMetadata | Directory => entry !== null,
+  );
 }
