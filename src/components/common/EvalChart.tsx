@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import equal from "fast-deep-equal";
 import { useAtom } from "jotai";
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { CategoricalChartFunc } from "recharts/types/chart/types";
 import { useStore } from "zustand";
@@ -169,9 +169,11 @@ function EvalChart(props: EvalChartProps) {
 
   const [chartType, setChartType] = useAtom(reportTypeAtom);
 
-  const isWDLDisabled = !data.some(
-    (point) => point.White !== 0 || point.Black !== 0 || point.Draw !== 0,
-  );
+  const isWDLDisabled = useMemo(() => {
+    return !data.some(
+      (point) => point.White !== 0 || point.Black !== 0 || point.Draw !== 0,
+    );
+  }, [data]);
 
   return (
     <Stack>

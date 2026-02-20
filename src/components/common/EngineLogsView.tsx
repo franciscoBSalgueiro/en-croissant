@@ -21,7 +21,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAtomValue } from "jotai";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EngineLog } from "@/bindings";
 import { fontSizeAtom } from "@/state/atoms";
 
@@ -43,13 +43,17 @@ export default function EngineLogsView({
   const viewportRef = useRef<HTMLDivElement>(null);
   const fontSize = useAtomValue(fontSizeAtom);
 
-  const filteredLogs = logs.filter((log) => {
-    if (filter === "gui" && log.type !== "gui") return false;
-    if (filter === "engine" && log.type !== "engine") return false;
-    if (search && !log.value.toLowerCase().includes(search.toLowerCase()))
-      return false;
-    return true;
-  });
+  const filteredLogs = useMemo(
+    () =>
+      logs.filter((log) => {
+        if (filter === "gui" && log.type !== "gui") return false;
+        if (filter === "engine" && log.type !== "engine") return false;
+        if (search && !log.value.toLowerCase().includes(search.toLowerCase()))
+          return false;
+        return true;
+      }),
+    [logs, filter, search],
+  );
 
   useEffect(() => {
     if (viewportRef.current && !search) {

@@ -23,7 +23,7 @@ import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
@@ -52,9 +52,10 @@ export default function DatabasesPage() {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const selectedDatabase =
-    (databases ?? []).find((db) => db.file === selected) ?? null;
-
+  const selectedDatabase = useMemo(
+    () => (databases ?? []).find((db) => db.file === selected) ?? null,
+    [databases, selected],
+  );
   // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const setActiveDatabase = useActiveDatabaseViewStore(
     (store) => store.setDatabase,

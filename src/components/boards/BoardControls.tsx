@@ -15,7 +15,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import domtoimage from "dom-to-image";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useContext } from "react";
+import { memo, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -28,7 +28,7 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 
 interface BoardControlsProps {
-  boardRef: React.RefObject<HTMLDivElement | null>;
+  boardRef: React.MutableRefObject<HTMLDivElement | null>;
   editingMode: boolean;
   toggleEditingMode: () => void;
   dirty: boolean;
@@ -39,7 +39,7 @@ interface BoardControlsProps {
   allowEditing?: boolean;
 }
 
-export default function BoardControls({
+function BoardControls({
   boardRef,
   editingMode,
   toggleEditingMode,
@@ -186,3 +186,5 @@ export default function BoardControls({
     </Stack>
   );
 }
+
+export default memo(BoardControls);

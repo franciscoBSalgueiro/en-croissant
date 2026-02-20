@@ -1,9 +1,11 @@
 import { Typography } from "@mantine/core";
+import { memo } from "react";
+
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
-export default function Comment({ comment }: { comment: string }) {
+function Comment({ comment }: { comment: string }) {
   const multipleLine =
     comment.split("\n").filter((v) => v.trim() !== "").length > 1;
 
@@ -30,3 +32,5 @@ export default function Comment({ comment }: { comment: string }) {
     </Typography>
   );
 }
+
+export default memo(Comment);

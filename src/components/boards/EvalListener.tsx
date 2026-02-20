@@ -2,7 +2,7 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import { startTransition, useContext, useEffect } from "react";
+import { startTransition, useContext, useEffect, useMemo } from "react";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -54,18 +54,22 @@ function EvalListener() {
   }
 
   const isGameOver = pos?.isEnd() ?? false;
-  const finalFen = pos ? makeFen(pos.toSetup()) : null;
+  const finalFen = useMemo(() => (pos ? makeFen(pos.toSetup()) : null), [pos]);
 
-  const { searchingFen, searchingMoves } = match(threat as boolean)
-    .with(true, () => ({
-      searchingFen: swapMove(finalFen || INITIAL_FEN),
-      searchingMoves: [],
-    }))
-    .with(false, () => ({
-      searchingFen: fen,
-      searchingMoves: moves,
-    }))
-    .exhaustive();
+  const { searchingFen, searchingMoves } = useMemo(
+    () =>
+      match(threat as boolean)
+        .with(true, () => ({
+          searchingFen: swapMove(finalFen || INITIAL_FEN),
+          searchingMoves: [],
+        }))
+        .with(false, () => ({
+          searchingFen: fen,
+          searchingMoves: moves,
+        }))
+        .exhaustive(),
+    [fen, moves, threat, finalFen],
+  );
 
   const firstEngineWithLines = useAtomValue(
     firstEngineWithLinesFamily({
@@ -182,15 +186,19 @@ function EngineListener({
     firstEngineWithLines,
   ]);
 
-  const getBestMoves = match(engine.type)
-    .with(
-      "local",
-      () => (fen: string, goMode: GoMode, options: EngineOptions) =>
-        localGetBestMoves(engine as LocalEngine, fen, goMode, options),
-    )
-    .with("chessdb", () => chessdbGetBestMoves)
-    .with("lichess", () => lichessGetBestMoves)
-    .exhaustive();
+  const getBestMoves = useMemo(
+    () =>
+      match(engine.type)
+        .with(
+          "local",
+          () => (fen: string, goMode: GoMode, options: EngineOptions) =>
+            localGetBestMoves(engine as LocalEngine, fen, goMode, options),
+        )
+        .with("chessdb", () => chessdbGetBestMoves)
+        .with("lichess", () => lichessGetBestMoves)
+        .exhaustive(),
+    [engine.type, engine],
+  );
 
   useThrottledEffect(
     () => {

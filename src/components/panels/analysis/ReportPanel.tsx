@@ -2,8 +2,9 @@ import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
+import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import React, { useContext } from "react";
+import React, { memo, useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { commands } from "@/bindings";
@@ -30,9 +31,11 @@ function ReportPanel() {
   const inProgress = useStore(store, (s) => s.report.inProgress);
   const setInProgress = useStore(store, (s) => s.setReportInProgress);
 
-  const stats = getGameStats(root);
+  const stats = useMemo(() => getGameStats(root), [root]);
 
-  const handleCancel = () => commands.cancelAnalysis(`report_${activeTab}`);
+  const handleCancel = useCallback(() => {
+    commands.cancelAnalysis(`report_${activeTab}`);
+  }, [activeTab]);
 
   return (
     <ScrollArea offsetScrollbars>
@@ -96,62 +99,70 @@ function ReportPanel() {
 
 type Stats = ReturnType<typeof getGameStats>;
 
-function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
-  const { t } = useTranslation();
+const GameStats = memo(
+  function GameStats({ whiteAnnotations, blackAnnotations }: Stats) {
+    const { t } = useTranslation();
 
-  const store = useContext(TreeStateContext)!;
-  const goToAnnotation = useStore(store, (s) => s.goToAnnotation);
+    const store = useContext(TreeStateContext)!;
+    const goToAnnotation = useStore(store, (s) => s.goToAnnotation);
 
-  return (
-    <Paper withBorder>
-      <Grid columns={11} justify="space-between" p="md">
-        {Object.keys(ANNOTATION_INFO)
-          .filter((a) => isBasicAnnotation(a))
-          .map((annotation) => {
-            const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
-            const { name, color, translationKey } = ANNOTATION_INFO[s];
-            const w = whiteAnnotations[s];
-            const b = blackAnnotations[s];
-            return (
-              <React.Fragment key={annotation}>
-                <Grid.Col
-                  className={cx(w > 0 && label)}
-                  span={4}
-                  style={{ textAlign: "center" }}
-                  c={w > 0 ? color : undefined}
-                  onClick={() => {
-                    if (w > 0) {
-                      goToAnnotation(s, "white");
-                    }
-                  }}
-                >
-                  {w}
-                </Grid.Col>
-                <Grid.Col span={1} c={w + b > 0 ? color : undefined}>
-                  {annotation}
-                </Grid.Col>
-                <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
-                  {translationKey ? t(`Annotate.${translationKey}`) : name}
-                </Grid.Col>
-                <Grid.Col
-                  className={cx(b > 0 && label)}
-                  span={2}
-                  c={b > 0 ? color : undefined}
-                  onClick={() => {
-                    if (b > 0) {
-                      goToAnnotation(s, "black");
-                    }
-                  }}
-                >
-                  {b}
-                </Grid.Col>
-              </React.Fragment>
-            );
-          })}
-      </Grid>
-    </Paper>
-  );
-}
+    return (
+      <Paper withBorder>
+        <Grid columns={11} justify="space-between" p="md">
+          {Object.keys(ANNOTATION_INFO)
+            .filter((a) => isBasicAnnotation(a))
+            .map((annotation) => {
+              const s = annotation as "??" | "?" | "?!" | "!!" | "!" | "!?";
+              const { name, color, translationKey } = ANNOTATION_INFO[s];
+              const w = whiteAnnotations[s];
+              const b = blackAnnotations[s];
+              return (
+                <React.Fragment key={annotation}>
+                  <Grid.Col
+                    className={cx(w > 0 && label)}
+                    span={4}
+                    style={{ textAlign: "center" }}
+                    c={w > 0 ? color : undefined}
+                    onClick={() => {
+                      if (w > 0) {
+                        goToAnnotation(s, "white");
+                      }
+                    }}
+                  >
+                    {w}
+                  </Grid.Col>
+                  <Grid.Col span={1} c={w + b > 0 ? color : undefined}>
+                    {annotation}
+                  </Grid.Col>
+                  <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
+                    {translationKey ? t(`Annotate.${translationKey}`) : name}
+                  </Grid.Col>
+                  <Grid.Col
+                    className={cx(b > 0 && label)}
+                    span={2}
+                    c={b > 0 ? color : undefined}
+                    onClick={() => {
+                      if (b > 0) {
+                        goToAnnotation(s, "black");
+                      }
+                    }}
+                  >
+                    {b}
+                  </Grid.Col>
+                </React.Fragment>
+              );
+            })}
+        </Grid>
+      </Paper>
+    );
+  },
+  (prev, next) => {
+    return (
+      equal(prev.whiteAnnotations, next.whiteAnnotations) &&
+      equal(prev.blackAnnotations, next.blackAnnotations)
+    );
+  },
+);
 
 function AccuracyCard({
   color,

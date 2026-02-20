@@ -10,7 +10,7 @@ import {
 import { useForm } from "@mantine/form";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-import { useContext, useEffect } from "react";
+import { memo, useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { commands, type GoMode } from "@/bindings";
@@ -26,7 +26,7 @@ const reportSettingsAtom = atomWithStorage("report-settings", {
   engine: "",
 });
 
-export default function ReportModal({
+function ReportModal({
   tab,
   initialFen,
   moves,
@@ -47,10 +47,10 @@ export default function ReportModal({
 
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
-  const localEngines = (engines ?? []).filter(
-    (e): e is LocalEngine => e.type === "local",
+  const localEngines = useMemo(
+    () => (engines ?? []).filter((e): e is LocalEngine => e.type === "local"),
+    [engines],
   );
-
   const store = useContext(TreeStateContext)!;
   const addAnalysis = useStore(store, (s) => s.addAnalysis);
 
@@ -198,3 +198,5 @@ export default function ReportModal({
     </Modal>
   );
 }
+
+export default memo(ReportModal);

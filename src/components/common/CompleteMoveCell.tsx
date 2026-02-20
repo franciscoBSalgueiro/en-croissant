@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import { useContext, useState } from "react";
+import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -38,7 +38,7 @@ function getTranspositions(fen: string, position: number[], root: TreeNode) {
   return transpositions;
 }
 
-export default function CompleteMoveCell({
+function CompleteMoveCell({
   movePath,
   halfMoves,
   move,
@@ -184,3 +184,18 @@ export default function CompleteMoveCell({
     </>
   );
 }
+
+export default memo(CompleteMoveCell, (prev, next) => {
+  return (
+    prev.move === next.move &&
+    prev.fen === next.fen &&
+    prev.comment === next.comment &&
+    equal(prev.annotations, next.annotations) &&
+    prev.showComments === next.showComments &&
+    prev.first === next.first &&
+    equal(prev.movePath, next.movePath) &&
+    prev.halfMoves === next.halfMoves &&
+    prev.tableLayout === next.tableLayout &&
+    prev.scoreText === next.scoreText
+  );
+});

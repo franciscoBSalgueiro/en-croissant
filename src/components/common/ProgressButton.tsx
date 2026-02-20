@@ -1,6 +1,6 @@
 import { ActionIcon, Box, Button, Group, Progress } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import { useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { useProgress } from "@/hooks/useProgress";
 import * as classes from "./ProgressButton.css";
 
@@ -22,7 +22,7 @@ type Props = {
   setInProgress: (inProgress: boolean) => void;
 };
 
-export default function ProgressButton({
+function ProgressButton({
   id,
   initInstalled,
   onClick,
@@ -45,13 +45,13 @@ export default function ProgressButton({
     }
   }, [finished, setInProgress]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (onCancel) {
       onCancel();
     }
     clear();
     setInProgress(false);
-  };
+  }, [onCancel, clear, setInProgress]);
 
   let label: string;
   if (completed) {
@@ -97,3 +97,5 @@ export default function ProgressButton({
     </Group>
   );
 }
+
+export default memo(ProgressButton);

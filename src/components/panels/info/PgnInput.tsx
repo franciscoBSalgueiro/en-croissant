@@ -14,7 +14,7 @@ import {
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 import deepEqual from "fast-deep-equal";
 import { useAtom } from "jotai";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -29,21 +29,29 @@ function PgnInput() {
   const [options, setOptions] = useAtom(currentPgnOptionsAtom);
   const { t } = useTranslation();
 
-  const realPGN = getPGN(root, {
-    headers: headers,
-    glyphs: true,
-    comments: true,
-    variations: true,
-    extraMarkups: true,
-  });
+  const realPGN = useMemo(
+    () =>
+      getPGN(root, {
+        headers: headers,
+        glyphs: true,
+        comments: true,
+        variations: true,
+        extraMarkups: true,
+      }),
+    [root, headers],
+  );
 
-  const pgn = getPGN(root, {
-    headers: headers,
-    glyphs: options.glyphs,
-    comments: options.comments,
-    variations: options.variations,
-    extraMarkups: options.extraMarkups,
-  });
+  const pgn = useMemo(
+    () =>
+      getPGN(root, {
+        headers: headers,
+        glyphs: options.glyphs,
+        comments: options.comments,
+        variations: options.variations,
+        extraMarkups: options.extraMarkups,
+      }),
+    [root, headers, options],
+  );
 
   const [tmp, setTmp] = useState(pgn);
 

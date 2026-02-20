@@ -11,7 +11,7 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -43,7 +43,7 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
 
   const { t } = useTranslation();
 
-  const stats = getTreeStats(root);
+  const stats = useMemo(() => getTreeStats(root), [root]);
 
   return (
     <Stack h="100%" pl="sm" pt="sm">

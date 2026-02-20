@@ -2,7 +2,7 @@ import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import cx from "clsx";
 import dayjs from "dayjs";
-import { useContext, useState } from "react";
+import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createStore, useStore } from "zustand";
 import type { Outcome } from "@/bindings";
@@ -16,7 +16,7 @@ const EMPTY_STORE = createStore(() => ({
   setHeaders: () => {},
 }));
 
-export default function GameInfo({
+function GameInfo({
   headers,
   simplified,
   changeTitle,
@@ -268,3 +268,5 @@ export default function GameInfo({
     </Box>
   );
 }
+
+export default memo(GameInfo);

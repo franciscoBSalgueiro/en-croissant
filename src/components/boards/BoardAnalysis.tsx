@@ -11,7 +11,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import type { Piece } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import {
@@ -58,22 +58,21 @@ function BoardAnalysis() {
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const setAnnotation = useStore(store, (s) => s.setAnnotation);
 
-  const saveFile = async () => {
+  const saveFile = useCallback(async () => {
     saveToFile({
       dir: documentDir,
       setCurrentTab,
       tab: currentTab,
       store,
     });
-  };
-
+  }, [setCurrentTab, currentTab, documentDir, store]);
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
     }
   }, [currentTab?.file, saveFile, autoSave, dirty]);
 
-  const addGame = () => {
+  const addGame = useCallback(() => {
     if (!currentTab?.file) return;
     setCurrentTab((prev) => {
       if (!prev?.file) return prev;
@@ -85,7 +84,7 @@ function BoardAnalysis() {
     writeTextFile(currentTab.file.path, `\n\n${defaultPGN()}\n\n`, {
       append: true,
     });
-  };
+  }, [setCurrentTab, reset, currentTab?.file?.path]);
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabled = useAtomValue(allEnabledAtom);

@@ -3,11 +3,12 @@ import { IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
+import { memo } from "react";
 import type { NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
 
-export default function GamesTable({
+function GamesTable({
   games,
   loading,
 }: {
@@ -85,3 +86,5 @@ export default function GamesTable({
     />
   );
 }
+
+export default memo(GamesTable);

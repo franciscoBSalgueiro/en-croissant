@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useEffect } from "react";
+import { memo, useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
@@ -106,7 +106,7 @@ async function fetchOpening(db: DBType, tab: string) {
     .exhaustive();
 }
 
-export default function DatabasePanel() {
+function DatabasePanel() {
   const { t } = useTranslation();
 
   const store = useContext(TreeStateContext)!;
@@ -260,3 +260,5 @@ function PanelWithError(props: {
     </Tabs.Panel>
   );
 }
+
+export default memo(DatabasePanel);

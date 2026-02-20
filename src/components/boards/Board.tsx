@@ -22,7 +22,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useContext, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -80,7 +80,7 @@ interface ChessboardProps {
   viewOnly?: boolean;
   disableVariations?: boolean;
   movable?: "both" | "white" | "black" | "turn" | "none";
-  boardRef: React.RefObject<HTMLDivElement | null>;
+  boardRef: React.MutableRefObject<HTMLDivElement | null>;
   whiteTime?: number;
   blackTime?: number;
   practicing?: boolean;
@@ -90,7 +90,7 @@ interface ChessboardProps {
   enablePremoves?: boolean;
 }
 
-export default function Board({
+function Board({
   editingMode,
   viewOnly,
   disableVariations,
@@ -312,17 +312,19 @@ export default function Board({
   const practiceLock =
     !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 
-  const movableColor: "white" | "black" | "both" | undefined = practiceLock
-    ? undefined
-    : editingMode
-      ? "both"
-      : match(movable)
-          .with("white", () => "white" as const)
-          .with("black", () => "black" as const)
-          .with("turn", () => turn)
-          .with("both", () => "both" as const)
-          .with("none", () => undefined)
-          .exhaustive();
+  const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
+    return practiceLock
+      ? undefined
+      : editingMode
+        ? "both"
+        : match(movable)
+            .with("white", () => "white" as const)
+            .with("black", () => "black" as const)
+            .with("turn", () => turn)
+            .with("both", () => "both" as const)
+            .with("none", () => undefined)
+            .exhaustive();
+  }, [practiceLock, editingMode, movable, turn]);
 
   const theme = useMantineTheme();
   const color = ANNOTATION_INFO[currentNode.annotations[0]]?.color || "gray";
@@ -332,16 +334,19 @@ export default function Board({
   const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
   const [snapArrows] = useAtom(snapArrowsAtom);
 
-  const setBoardFen = (fen: string) => {
-    if (!fen || !editingMode) {
-      return;
-    }
-    const newFen = `${fen} ${currentNode.fen.split(" ").slice(1).join(" ")}`;
+  const setBoardFen = useCallback(
+    (fen: string) => {
+      if (!fen || !editingMode) {
+        return;
+      }
+      const newFen = `${fen} ${currentNode.fen.split(" ").slice(1).join(" ")}`;
 
-    if (newFen !== currentNode.fen) {
-      setFen(newFen);
-    }
-  };
+      if (newFen !== currentNode.fen) {
+        setFen(newFen);
+      }
+    },
+    [editingMode, currentNode, setFen],
+  );
 
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
@@ -636,3 +641,5 @@ export default function Board({
     </>
   );
 }
+
+export default memo(Board);

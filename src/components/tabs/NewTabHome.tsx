@@ -12,7 +12,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useAtom, useSetAtom, useStore } from "jotai";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   activeTabAtom,
   addRecentFileAtom,
@@ -167,36 +167,39 @@ export default function NewTabHome({ id }: { id: string }) {
     checkFiles();
   }, []);
 
-  const openRecentFile = async (file: RecentFile) => {
-    const pgn = unwrap(await commands.readGames(file.path, 0, 0));
-    const tabId = await createTab({
-      tab: {
-        name: file.name,
-        type: "analysis",
-      },
-      setTabs,
-      setActiveTab,
-      pgn: pgn[0] || "",
-      fileInfo: {
-        type: "file",
+  const openRecentFile = useCallback(
+    async (file: RecentFile) => {
+      const pgn = unwrap(await commands.readGames(file.path, 0, 0));
+      const tabId = await createTab({
+        tab: {
+          name: file.name,
+          type: "analysis",
+        },
+        setTabs,
+        setActiveTab,
+        pgn: pgn[0] || "",
+        fileInfo: {
+          type: "file",
+          name: file.name,
+          path: file.path,
+          numGames: 1,
+          metadata: { type: file.type, tags: [] },
+          lastModified: Math.floor(Date.now() / 1000),
+        },
+        gameNumber: 0,
+      });
+      if (file.type === "repertoire") {
+        store.set(tabFamily(tabId), "practice");
+      }
+      store.set(addRecentFileAtom, {
         name: file.name,
         path: file.path,
-        numGames: 1,
-        metadata: { type: file.type, tags: [] },
-        lastModified: Math.floor(Date.now() / 1000),
-      },
-      gameNumber: 0,
-    });
-    if (file.type === "repertoire") {
-      store.set(tabFamily(tabId), "practice");
-    }
-    store.set(addRecentFileAtom, {
-      name: file.name,
-      path: file.path,
-      type: file.type,
-    });
-    navigate({ to: "/" });
-  };
+        type: file.type,
+      });
+      navigate({ to: "/" });
+    },
+    [setTabs, setActiveTab, store, navigate],
+  );
 
   const cards = [
     {
