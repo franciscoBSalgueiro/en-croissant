@@ -2,7 +2,6 @@ import { style } from "@vanilla-extract/css";
 import { vars } from "@/styles/theme";
 
 export const tab = style({
-  cursor: "unset",
   paddingRight: 9,
   height: "2.2rem",
   [vars.lightSelector]: {
@@ -38,6 +37,7 @@ export const selected = style({
 });
 
 export const input = style({
+  all: "unset",
   minWidth: "5rem",
   fontSize: "0.8rem",
   paddingTop: "0.4rem",

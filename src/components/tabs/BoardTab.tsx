@@ -4,8 +4,8 @@ import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
 import cx from "clsx";
 import { useEffect } from "react";
 import type { Tab } from "@/utils/tabs";
+import { InlineInput } from "../common/InlineInput";
 import * as classes from "./BoardTab.css";
-import { ContentEditable } from "./ContentEditable";
 
 export function BoardTab({
   tab,
@@ -24,6 +24,7 @@ export function BoardTab({
 }) {
   const [open, toggleOpen] = useToggle();
   const [renaming, toggleRenaming] = useToggle();
+
   const ref = useClickOutside(() => {
     toggleOpen(false);
     toggleRenaming(false);
@@ -65,30 +66,29 @@ export function BoardTab({
             </ActionIcon>
           }
           onPointerDown={(e) => {
-            if (e.button === 0) {
-              setActiveTab(tab.value);
-            }
+            if (e.button === 0) setActiveTab(tab.value);
           }}
           onDoubleClick={() => toggleRenaming(true)}
           onAuxClick={(e) => {
-            // middle button click
-            if (e.button === 1) {
-              closeTab(tab.value);
-            }
+            if (e.button === 1) closeTab(tab.value);
           }}
           onContextMenu={(e) => {
             toggleOpen();
             e.preventDefault();
           }}
         >
-          <ContentEditable
-            innerRef={ref}
+          <InlineInput
+            ref={ref}
             disabled={!renaming}
-            html={tab.name}
+            value={tab.name}
             className={classes.input}
             onChange={(e) => renameTab(tab.value, e.target.value)}
+            onFocus={(e) => e.target.select()}
             onKeyDown={(e) => {
-              if (e.key === "Enter") toggleRenaming(false);
+              if (e.key === "Enter") {
+                toggleRenaming(false);
+                e.preventDefault();
+              }
             }}
           />
         </Button>

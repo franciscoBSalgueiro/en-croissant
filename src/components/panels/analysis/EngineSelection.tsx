@@ -59,6 +59,8 @@ function EngineBox({
 function EngineSelection() {
   const [engines, setEngines] = useAtom(enginesAtom);
 
+  if (!engines) return null;
+
   return (
     <>
       {engines.length === 0 && (

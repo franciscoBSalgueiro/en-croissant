@@ -1,7 +1,7 @@
 import { Box, rgba, useMantineTheme } from "@mantine/core";
 import { IconFlag } from "@tabler/icons-react";
 import { useAtom } from "jotai";
-import { type ForwardedRef, forwardRef, type ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { moveNotationTypeAtom } from "@/state/atoms";
 import {
   ANNOTATION_INFO,
@@ -19,12 +19,10 @@ interface MoveCellProps {
   onContextMenu: (e: React.MouseEvent) => void;
   fullWidth?: boolean;
   rightAccessory?: ReactNode;
+  ref?: RefObject<HTMLButtonElement>;
 }
 
-const MoveCell = forwardRef(function MoveCell(
-  props: MoveCellProps,
-  ref: ForwardedRef<HTMLButtonElement>,
-) {
+function MoveCell(props: MoveCellProps) {
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
 
   const color = ANNOTATION_INFO[props.annotations[0]]?.color || "gray";
@@ -53,7 +51,7 @@ const MoveCell = forwardRef(function MoveCell(
 
   return (
     <Box
-      ref={ref}
+      ref={props.ref}
       component="button"
       className={`${classes.cell} ${props.fullWidth ? classes.cellFullWidth : ""}`}
       style={{
@@ -83,6 +81,6 @@ const MoveCell = forwardRef(function MoveCell(
       )}
     </Box>
   );
-});
+}
 
 export default MoveCell;

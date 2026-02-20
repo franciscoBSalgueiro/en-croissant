@@ -1,5 +1,6 @@
 import { Box } from "@mantine/core";
 import type { Color, Square } from "chessops";
+import type { ReactNode } from "react";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { squareToCoordinates } from "@/utils/chessops";
 
@@ -64,7 +65,7 @@ export default function AnnotationHint({
 
 // taken from lichess https://github.com/lichess-org/lila/blob/b7d9abb9f624b1525804aeb49a5b2678f23aae09/ui/analyse/src/glyphs.ts#L49C1-L85
 // added manually drawn path for Miss (⊗)
-const glyphToSvg: Record<Annotation, JSX.Element> = {
+const glyphToSvg: Record<Annotation, ReactNode> = {
   "": <></>,
   "!": (
     <>

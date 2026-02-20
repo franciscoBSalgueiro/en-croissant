@@ -181,7 +181,7 @@ function SyncSettings({
 
   const engines = useAtomValue(enginesAtom);
   const engineDefault = useMemo(
-    () => engines.find((o) => o.name === engine)!,
+    () => (engines ?? []).find((o) => o.name === engine)!,
     [engines, engine],
   );
 
@@ -222,7 +222,7 @@ function AdvancedSettings({ engineName }: { engineName: string }) {
           navigate({
             to: "/engines",
             search: {
-              selected: engines.findIndex((o) => o.name === engineName),
+              selected: (engines ?? []).findIndex((o) => o.name === engineName),
             },
           })
         }

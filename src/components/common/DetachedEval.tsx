@@ -39,7 +39,7 @@ function DetachedEval() {
   );
   const engines = useAtomValue(enginesAtom);
 
-  if (!detachedEngineId) return null;
+  if (!detachedEngineId || !engines) return null;
 
   const engine = engines.find((e) => e.id === detachedEngineId);
   if (!engine || !engine.loaded) {

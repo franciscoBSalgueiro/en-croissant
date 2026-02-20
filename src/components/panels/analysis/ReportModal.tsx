@@ -48,7 +48,7 @@ function ReportModal({
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
   const localEngines = useMemo(
-    () => engines.filter((e): e is LocalEngine => e.type === "local"),
+    () => (engines ?? []).filter((e): e is LocalEngine => e.type === "local"),
     [engines],
   );
   const store = useContext(TreeStateContext)!;

@@ -6,7 +6,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-  type TooltipProps,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
@@ -148,7 +148,7 @@ const DateChartTooltip = ({
   payload,
   label,
   isYearSelected,
-}: TooltipProps<ValueType, NameType> & { isYearSelected: boolean }) => {
+}: TooltipContentProps<ValueType, NameType> & { isYearSelected: boolean }) => {
   if (active && payload && payload.length) {
     return (
       <div
@@ -202,7 +202,7 @@ function DateChart({
       <BarChart
         data={data}
         onClick={(e) => {
-          const year = Number.parseInt(e.activePayload?.[0]?.payload?.name);
+          const year = Number.parseInt(e.activeLabel?.toString() ?? "", 10);
           if (year) {
             setSelectedYear((prev) => (prev === year ? null : year));
           }
@@ -212,7 +212,12 @@ function DateChart({
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip
-          content={<DateChartTooltip isYearSelected={selectedYear === null} />}
+          content={(props) => (
+            <DateChartTooltip
+              {...props}
+              isYearSelected={selectedYear === null}
+            />
+          )}
           cursor={{
             fill: "var(--mantine-color-default-border)",
             stroke: "1px solid var(--chart-grid-color)",

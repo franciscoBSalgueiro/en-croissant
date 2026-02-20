@@ -8,8 +8,8 @@ import { createStore, useStore } from "zustand";
 import type { Outcome } from "@/bindings";
 import type { GameHeaders } from "@/utils/treeReducer";
 import FideInfo from "../databases/FideInfo";
-import { ContentEditable } from "../tabs/ContentEditable";
 import * as classes from "./GameInfo.css";
+import { InlineInput } from "./InlineInput";
 import { TreeStateContext } from "./TreeStateContext";
 
 const EMPTY_STORE = createStore(() => ({
@@ -67,16 +67,11 @@ function GameInfo({
           </Text>
         )}
         <Group wrap="nowrap" justify={simplified ? "start" : "center"} w="100%">
-          <ContentEditable
+          <InlineInput
             disabled={disabled}
-            html={event}
-            data-placeholder={
-              simplified ? "Enter Opening Title" : "Unknown Event"
-            }
-            className={cx(
-              classes.contentEditable,
-              !event && classes.contentEditablePlaceholder,
-            )}
+            value={event}
+            placeholder={simplified ? "Enter Opening Title" : "Unknown Event"}
+            className={classes.input}
             onChange={(e) => {
               setHeaders({
                 ...headers,
@@ -183,13 +178,11 @@ function GameInfo({
                 </Text>
               </a>
             ) : (
-              <ContentEditable
-                className={cx(
-                  classes.contentEditable,
-                  !site && classes.contentEditablePlaceholder,
-                )}
-                data-placeholder="Unknown Site"
-                html={site}
+              <InlineInput
+                className={classes.input}
+                placeholder="Unknown Site"
+                value={site}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setHeaders({
                     ...headers,

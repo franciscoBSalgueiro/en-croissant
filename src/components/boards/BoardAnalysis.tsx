@@ -11,14 +11,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import type { Piece } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  Suspense,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import {
@@ -94,9 +87,7 @@ function BoardAnalysis() {
   }, [setCurrentTab, reset, currentTab?.file?.path]);
 
   const [, enable] = useAtom(enableAllAtom);
-  const allEnabledLoader = useAtomValue(allEnabledAtom);
-  const allEnabled =
-    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+  const allEnabled = useAtomValue(allEnabledAtom);
 
   const keyMap = useAtomValue(keyMapAtom);
 
@@ -239,9 +230,7 @@ function BoardAnalysis() {
                 flex={1}
                 style={{ overflowY: "hidden" }}
               >
-                <Suspense>
-                  <PracticePanel />
-                </Suspense>
+                <PracticePanel />
               </Tabs.Panel>
             )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
@@ -266,9 +255,7 @@ function BoardAnalysis() {
               flex={1}
               style={{ overflowY: "hidden" }}
             >
-              <Suspense>
-                <AnalysisPanel />
-              </Suspense>
+              <AnalysisPanel />
             </Tabs.Panel>
           </Tabs>
         </Paper>
@@ -283,9 +270,7 @@ function BoardAnalysis() {
           />
         ) : (
           <Stack h="100%" gap="xs">
-            <Suspense fallback={null}>
-              <DetachedEval />
-            </Suspense>
+            <DetachedEval />
             <GameNotation
               topBar
               controls={

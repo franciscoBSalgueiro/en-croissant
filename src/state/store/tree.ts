@@ -24,6 +24,7 @@ import {
 
 export interface TreeStoreState extends TreeState {
   currentNode: () => TreeNode;
+  getNode: (path: number[]) => TreeNode | null;
 
   goToNext: () => void;
   goToPrevious: () => void;
@@ -95,6 +96,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
     ...(initialTree ?? defaultTree()),
 
     currentNode: () => getNodeAtPath(get().root, get().position),
+    getNode: (path: number[]) => getNodeAtPath(get().root, path),
 
     setState: (state) => {
       set(() => state);

@@ -276,9 +276,7 @@ export default function DatabasesPage() {
                       {selectedDatabase.type === "success" && (
                         <Button
                           component={Link}
-                          to="/databases/$databaseId"
-                          params={{ databaseId: selectedDatabase.title }}
-                          //onClick={() => setStorageSelected(selectedDatabase)}
+                          to={`/databases/${selectedDatabase.title}`}
                           onClick={() => setActiveDatabase(selectedDatabase)}
                           fullWidth
                           variant="default"

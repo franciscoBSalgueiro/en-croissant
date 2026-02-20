@@ -73,14 +73,12 @@ function AnalysisPanel() {
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const loadedEngines = useMemo(
-    () => engines.filter((e) => e.loaded),
+    () => (engines ?? []).filter((e) => e.loaded),
     [engines],
   );
 
   const [, enable] = useAtom(enableAllAtom);
-  const allEnabledLoader = useAtomValue(allEnabledAtom);
-  const allEnabled =
-    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+  const allEnabled = useAtomValue(allEnabledAtom);
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);

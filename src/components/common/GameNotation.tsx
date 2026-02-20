@@ -131,7 +131,6 @@ function GameNotation({
                 {tableView ? (
                   <TableNotation
                     targetRef={targetRef}
-                    start={headers.start}
                     showVariations={showVariations}
                     showComments={showComments}
                   />
@@ -142,7 +141,6 @@ function GameNotation({
                       nodePath={[]}
                       depth={0}
                       first
-                      start={headers.start}
                       showVariations={showVariations}
                       showComments={showComments}
                     />
@@ -254,19 +252,17 @@ const RenderVariationTree = memo(
   function RenderVariationTree({
     nodePath,
     depth,
-    start,
     first,
     showVariations,
     showComments,
     targetRef,
   }: {
-    start?: number[];
     nodePath: number[];
     depth: number;
     first?: boolean;
     showVariations: boolean;
     showComments: boolean;
-    targetRef: React.RefObject<HTMLSpanElement>;
+    targetRef: React.RefObject<HTMLSpanElement | null>;
   }) {
     const store = useContext(TreeStateContext)!;
     const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
@@ -287,7 +283,6 @@ const RenderVariationTree = memo(
                 fen={variation.fen}
                 movePath={newPath}
                 showComments={showComments}
-                isStart={equal(newPath, start)}
                 first
               />
               <RenderVariationTree
@@ -296,7 +291,6 @@ const RenderVariationTree = memo(
                 depth={depth + 2}
                 showVariations={showVariations}
                 showComments={showComments}
-                start={start}
               />
             </React.Fragment>
           );
@@ -316,7 +310,6 @@ const RenderVariationTree = memo(
             fen={variations[0].fen}
             movePath={mainLinePath}
             showComments={showComments}
-            isStart={equal(mainLinePath, start)}
             first={first}
           />
         )}
@@ -329,7 +322,6 @@ const RenderVariationTree = memo(
             nodePath={mainLinePath}
             depth={depth + 1}
             showVariations={showVariations}
-            start={start}
             showComments={showComments}
           />
         )}
@@ -342,45 +334,42 @@ const RenderVariationTree = memo(
       prev.depth === next.depth &&
       prev.first === next.first &&
       prev.showVariations === next.showVariations &&
-      prev.showComments === next.showComments &&
-      equal(prev.start, next.start)
+      prev.showComments === next.showComments
     );
   },
 );
 
+type RowItem = {
+  type: "row";
+  moveNumber: number;
+  white: TreeNode | null;
+  whitePath: number[];
+  black: TreeNode | null;
+  blackPath: number[];
+  splitRow?: boolean;
+};
+type VariationItem = {
+  type: "variations";
+  variations: TreeNode[];
+  parentPath: number[];
+};
+type CommentItem = {
+  type: "comment";
+  comment: string;
+};
+type Segment = RowItem | VariationItem | CommentItem;
+
 const TableNotation = memo(function TableNotation({
   targetRef,
-  start,
   showVariations,
   showComments,
 }: {
-  targetRef: React.RefObject<HTMLSpanElement>;
-  start?: number[];
+  targetRef: React.RefObject<HTMLSpanElement | null>;
   showVariations: boolean;
   showComments: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
-
-  type RowItem = {
-    type: "row";
-    moveNumber: number;
-    white: TreeNode | null;
-    whitePath: number[];
-    black: TreeNode | null;
-    blackPath: number[];
-    splitRow?: boolean;
-  };
-  type VariationItem = {
-    type: "variations";
-    variations: TreeNode[];
-    parentPath: number[];
-  };
-  type CommentItem = {
-    type: "comment";
-    comment: string;
-  };
-  type Segment = RowItem | VariationItem | CommentItem;
 
   const segments: Segment[] = [];
 
@@ -575,7 +564,6 @@ const TableNotation = memo(function TableNotation({
                             fen={variation.fen}
                             movePath={variationPath}
                             showComments={showComments}
-                            isStart={equal(variationPath, start)}
                             first
                           />
                           <RenderVariationTree
@@ -584,7 +572,6 @@ const TableNotation = memo(function TableNotation({
                             depth={1}
                             showVariations={showVariations}
                             showComments={showComments}
-                            start={start}
                           />
                         </Box>
                       );
@@ -595,71 +582,92 @@ const TableNotation = memo(function TableNotation({
             );
           }
 
-          const row = seg;
           return (
-            <React.Fragment key={`row-${row.moveNumber}-${idx}`}>
-              <Table.Tr>
-                <Table.Td className={styles.moveTableMoveNumber}>
-                  {row.moveNumber}
-                </Table.Td>
-                <Table.Td className={styles.moveTableCell}>
-                  {row.white ? (
-                    <CompleteMoveCell
-                      targetRef={targetRef}
-                      annotations={row.white.annotations}
-                      comment={row.white.comment}
-                      halfMoves={row.white.halfMoves}
-                      move={row.white.san}
-                      fen={row.white.fen}
-                      movePath={row.whitePath}
-                      showComments={showComments}
-                      isStart={equal(row.whitePath, start)}
-                      tableLayout
-                      scoreText={
-                        row.white.score
-                          ? formatScore(row.white.score.value, 1)
-                          : undefined
-                      }
-                    />
-                  ) : (
-                    <Text c="dimmed" style={{ padding: "5px 8px" }}>
-                      ...
-                    </Text>
-                  )}
-                </Table.Td>
-                <Table.Td className={styles.moveTableCell}>
-                  {row.black ? (
-                    <CompleteMoveCell
-                      targetRef={targetRef}
-                      annotations={row.black.annotations}
-                      comment={row.black.comment}
-                      halfMoves={row.black.halfMoves}
-                      move={row.black.san}
-                      fen={row.black.fen}
-                      movePath={row.blackPath}
-                      showComments={showComments}
-                      isStart={equal(row.blackPath, start)}
-                      tableLayout
-                      scoreText={
-                        row.black.score
-                          ? formatScore(row.black.score.value, 1)
-                          : undefined
-                      }
-                    />
-                  ) : row.splitRow ? (
-                    <Text c="dimmed" style={{ padding: "5px 8px" }}>
-                      ...
-                    </Text>
-                  ) : null}
-                </Table.Td>
-              </Table.Tr>
-            </React.Fragment>
+            <RowSegment
+              key={`row-${idx}`}
+              targetRef={targetRef}
+              showComments={showComments}
+              moveNumber={seg.moveNumber}
+              whitePathStr={seg.whitePath.join(",")}
+              blackPathStr={seg.blackPath.join(",")}
+            />
           );
         })}
       </Table.Tbody>
     </Table>
   );
 });
+
+function RowSegment({
+  moveNumber,
+  whitePathStr,
+  blackPathStr,
+  splitRow,
+  targetRef,
+  showComments,
+}: {
+  moveNumber: number;
+  whitePathStr: string;
+  blackPathStr: string;
+  splitRow?: boolean;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
+  showComments: boolean;
+}) {
+  const store = useContext(TreeStateContext)!;
+  const whitePath = whitePathStr ? whitePathStr.split(",").map(Number) : [];
+  const white = useStore(store, (s) => s.getNode(whitePath));
+  const blackPath = blackPathStr ? blackPathStr.split(",").map(Number) : [];
+  const black = useStore(store, (s) => s.getNode(blackPath));
+  return (
+    <Table.Tr>
+      <Table.Td className={styles.moveTableMoveNumber}>{moveNumber}</Table.Td>
+      <Table.Td className={styles.moveTableCell}>
+        {white ? (
+          <CompleteMoveCell
+            targetRef={targetRef}
+            annotations={white.annotations}
+            comment={white.comment}
+            halfMoves={white.halfMoves}
+            move={white.san}
+            fen={white.fen}
+            movePath={whitePath}
+            showComments={showComments}
+            tableLayout
+            scoreText={
+              white.score ? formatScore(white.score.value, 1) : undefined
+            }
+          />
+        ) : (
+          <Text c="dimmed" style={{ padding: "5px 8px" }}>
+            ...
+          </Text>
+        )}
+      </Table.Td>
+      <Table.Td className={styles.moveTableCell}>
+        {black ? (
+          <CompleteMoveCell
+            targetRef={targetRef}
+            annotations={black.annotations}
+            comment={black.comment}
+            halfMoves={black.halfMoves}
+            move={black.san}
+            fen={black.fen}
+            movePath={blackPath}
+            showComments={showComments}
+            tableLayout
+            scoreText={
+              black.score ? formatScore(black.score.value, 1) : undefined
+            }
+          />
+        ) : splitRow ? (
+          <Text c="dimmed" style={{ padding: "5px 8px" }}>
+            ...
+          </Text>
+        ) : null}
+      </Table.Td>
+    </Table.Tr>
+  );
+}
 
 function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
   const [expanded, setExpanded] = useState(true);
