@@ -14,7 +14,7 @@ import { attachConsole, info } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -52,6 +52,9 @@ const colorSchemeManager = localStorageColorSchemeManager({
 
 import { getVersion } from "@tauri-apps/api/app";
 import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check } from "@tauri-apps/plugin-updater";
 import ErrorComponent from "@/components/ErrorComponent";
 import { initUserAgent } from "@/utils/http";
 import { routeTree } from "./routeTree.gen";
@@ -92,10 +95,24 @@ export default function App() {
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
 
+  const checkForUpdates = useCallback(async () => {
+    const update = await check();
+    if (update) {
+      const yes = await ask("Do you want to install them now?", {
+        title: "New version available",
+      });
+      if (yes) {
+        await update.downloadAndInstall();
+        await relaunch();
+      }
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       await commands.closeSplashscreen();
       await initUserAgent();
+      await checkForUpdates();
       const detach = await attachConsole();
       info("React app started successfully");
 
