@@ -296,6 +296,9 @@ export const en_US = {
     "Board.Analysis.Tablebase.Draw": "Draw",
     "Board.Analysis.Tablebase.FiftyMoveRule": "*due to the 50-move rule",
     "Board.Analysis.EngineSpeedHint": "How fast the engine is running",
+    "Board.Analysis.Opening": "Opening",
+    "Board.Analysis.Middlegame": "Middlegame",
+    "Board.Analysis.Endgame": "Endgame",
 
     "Board.Database.Local": "Local",
     "Board.Database.LichessAll": "Lichess All",

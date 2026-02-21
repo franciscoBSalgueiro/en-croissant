@@ -16,9 +16,10 @@ import { useTranslation } from "react-i18next";
 import type { CategoricalChartFunc } from "recharts/types/chart/types";
 import { useStore } from "zustand";
 import { reportTypeAtom } from "@/state/atoms";
-import { ANNOTATION_INFO } from "@/utils/annotation";
+import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { positionFromFen } from "@/utils/chessops";
 import { skipWhile, takeWhile } from "@/utils/misc";
+import { getGamePhases } from "@/utils/phase";
 import { formatScore } from "@/utils/score";
 import {
   type ListNode,
@@ -40,6 +41,7 @@ type DataPoint = {
   yValue: number | "none";
   movePath: number[];
   color: string;
+  annotation?: string;
   White: number;
   Draw: number;
   Black: number;
@@ -133,6 +135,7 @@ function EvalChart(props: EvalChartProps) {
         movePath: currentNode.position,
         color:
           ANNOTATION_INFO[currentNode.node.annotations[0]]?.color || "gray",
+        annotation: currentNode.node.annotations[0],
         White: wdl ? wdl[0] : 0,
         Draw: wdl ? wdl[1] : 0,
         Black: wdl ? wdl[2] : 0,
@@ -162,9 +165,24 @@ function EvalChart(props: EvalChartProps) {
   };
 
   const data = [...getData()];
+  const nodes = getNodes();
+
+  const phases = useMemo(() => {
+    const validBoards = nodes
+      .map((n) => positionFromFen(n.node.fen)[0])
+      .filter((b) => b !== null);
+    return getGamePhases(validBoards);
+  }, [nodes]);
+
   const currentPositionName = data.find((point) =>
     equal(point.movePath, position),
   )?.name;
+
+  const middlegamePositionName =
+    phases.middlegamePly !== null ? data[phases.middlegamePly]?.name : null;
+  const endgamePositionName =
+    phases.endgamePly !== null ? data[phases.endgamePly]?.name : null;
+
   const colouroffset = gradientOffset(data);
 
   const [chartType, setChartType] = useAtom(reportTypeAtom);
@@ -191,9 +209,7 @@ function EvalChart(props: EvalChartProps) {
             curveType="monotone"
             data={data}
             dataKey={"name"}
-            series={[
-              { name: "yValue", color: theme.colors[theme.primaryColor][7] },
-            ]}
+            series={[{ name: "yValue", color: "gray.5" }]}
             connectNulls={false}
             withXAxis={false}
             withYAxis={false}
@@ -209,10 +225,36 @@ function EvalChart(props: EvalChartProps) {
                 x: currentPositionName,
                 color: theme.colors[theme.primaryColor][7],
               },
+              ...(middlegamePositionName
+                ? [
+                    {
+                      x: middlegamePositionName,
+                      color: "gray.5",
+                      strokeDasharray: "5 5",
+                      label: t("Board.Analysis.Middlegame"),
+                      labelPosition: "insideTopLeft" as const,
+                    },
+                  ]
+                : []),
+              ...(endgamePositionName
+                ? [
+                    {
+                      x: endgamePositionName,
+                      color: "gray.5",
+                      strokeDasharray: "5 5",
+                      label: t("Board.Analysis.Endgame"),
+                      labelPosition: "insideTopLeft" as const,
+                    },
+                  ]
+                : []),
             ]}
             areaChartProps={{
               onClick: onChartClick,
               style: { cursor: "pointer" },
+            }}
+            areaProps={{
+              isAnimationActive: false,
+              dot: <CustomDot />,
             }}
             gridAxis="none"
             tooltipProps={{
@@ -245,12 +287,24 @@ function EvalChart(props: EvalChartProps) {
               fillOpacity={0.8}
               activeDotProps={{ r: 3, strokeWidth: 1 }}
               dotProps={{ r: 0 }}
-              referenceLines={[
-                {
-                  x: currentPositionName,
-                  color: theme.colors[theme.primaryColor][7],
-                },
-              ]}
+              referenceLines={
+                [
+                  {
+                    x: currentPositionName,
+                    color: theme.colors[theme.primaryColor][7],
+                  },
+                  ...(endgamePositionName
+                    ? [
+                        {
+                          x: endgamePositionName,
+                          color: "gray.5",
+                          strokeDasharray: "5 5",
+                          label: t("Board.Analysis.Endgame"),
+                        },
+                      ]
+                    : []),
+                ] as any
+              }
               areaChartProps={{
                 onClick: onChartClick,
                 style: { cursor: "pointer" },
@@ -274,11 +328,11 @@ function CustomTooltip({
   type,
 }: {
   active?: boolean;
-  payload: any;
+  payload: readonly { payload: DataPoint }[];
   type: "cp" | "wdl";
 }) {
   if (active && payload && payload.length && payload[0].payload) {
-    const dataPoint: DataPoint = payload[0].payload;
+    const dataPoint = payload[0].payload;
     return (
       <Paper px="md" py="sm" withBorder shadow="md" radius="md">
         <Text
@@ -292,6 +346,23 @@ function CustomTooltip({
     );
   }
   return null;
+}
+
+function CustomDot(props: { cx?: number; cy?: number; payload?: any }) {
+  const { cx, cy, payload } = props;
+  if (!payload || !payload.annotation || !isBasicAnnotation(payload.annotation))
+    return null;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={4}
+      fill={`var(--mantine-color-${payload.color}-7)`}
+      stroke="var(--mantine-color-body)"
+      strokeWidth={1}
+      style={{ pointerEvents: "none" }}
+    />
+  );
 }
 
 export default EvalChart;
