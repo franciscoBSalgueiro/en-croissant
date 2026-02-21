@@ -169,11 +169,7 @@ export default function BoardsPage() {
       keepMounted={false}
       className={classes.tabsContainer}
     >
-      <ScrollArea
-        scrollbarSize={6}
-        scrollbars="x"
-        className={classes.tabsHeader}
-      >
+      <ScrollArea scrollbarSize={6} className={classes.tabsHeader}>
         <DragDropContext
           onDragEnd={({ destination, source }) =>
             destination?.index !== undefined &&
@@ -232,6 +228,7 @@ export default function BoardsPage() {
                 >
                   <IconPlus />
                 </ActionIcon>
+                <div className={classes.tabsFiller} />
               </div>
             )}
           </Droppable>

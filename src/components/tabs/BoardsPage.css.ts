@@ -9,21 +9,26 @@ export const tabsContainer = style({
 });
 
 export const tabsHeader = style({
-  borderBottom: `1px solid ${vars.colors.dark[4]}`,
   marginBottom: "0.5rem",
-  backgroundColor: `${vars.colors.dark[7]}`,
   flexShrink: 0,
+  [vars.lightSelector]: {
+    backgroundColor: vars.colors.gray[1],
+  },
+  [vars.darkSelector]: {
+    backgroundColor: vars.colors.dark[7],
+  },
 });
 
 export const newTab = style({
   height: "2.2rem",
   width: "2.2rem",
-  border: `1px solid ${vars.colors.dark[4]}`,
   padding: "0.5em",
   [vars.lightSelector]: {
-    backgroundColor: vars.colors.gray[0],
+    border: `1px solid ${vars.colors.gray[3]}`,
+    backgroundColor: vars.colors.gray[1],
   },
   [vars.darkSelector]: {
+    border: `1px solid ${vars.colors.dark[4]}`,
     backgroundColor: vars.colors.dark[7],
   },
 
@@ -34,5 +39,15 @@ export const newTab = style({
     [vars.darkSelector]: {
       backgroundColor: vars.colors.dark[6],
     },
+  },
+});
+
+export const tabsFiller = style({
+  flexGrow: 1,
+  [vars.lightSelector]: {
+    borderBottom: `1px solid ${vars.colors.gray[3]}`,
+  },
+  [vars.darkSelector]: {
+    borderBottom: `1px solid ${vars.colors.dark[4]}`,
   },
 });
