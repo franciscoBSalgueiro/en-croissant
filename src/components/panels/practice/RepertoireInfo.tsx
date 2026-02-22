@@ -128,6 +128,9 @@ function RepertoireInfo() {
     new Map(),
   );
   const [gamesMap, setGamesMap] = useState<Map<string, number>>(new Map());
+  const [missingGamesMap, setMissingGamesMap] = useState<Map<string, number>>(
+    new Map(),
+  );
   const [coverageLoading, setCoverageLoading] = useState(false);
   const coverageVersionRef = useRef(0);
 
@@ -144,6 +147,7 @@ function RepertoireInfo() {
     if (!referenceDb) {
       setCoverageMap(new Map());
       setGamesMap(new Map());
+      setMissingGamesMap(new Map());
       setCoverageLoading(false);
       return;
     }
@@ -159,6 +163,7 @@ function RepertoireInfo() {
       if (version === coverageVersionRef.current) {
         setCoverageMap(result.coverageMap);
         setGamesMap(result.gamesMap);
+        setMissingGamesMap(result.missingGamesMap);
         setCoverageLoading(false);
       }
     });
@@ -253,10 +258,19 @@ function RepertoireInfo() {
         orientation,
         coverageMap,
         gamesMap,
+        missingGamesMap,
         minGames,
         startPath,
       ),
-    [root, orientation, coverageMap, gamesMap, startPath, minGames],
+    [
+      root,
+      orientation,
+      coverageMap,
+      gamesMap,
+      missingGamesMap,
+      startPath,
+      minGames,
+    ],
   );
 
   if (!currentTab) return null;
