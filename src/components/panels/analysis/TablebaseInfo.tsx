@@ -67,8 +67,8 @@ function TablebaseInfo({
                 </Group>
               )}
               {error && (
-                <Text ta="center">
-                  {t("Common.Error")}: {error.message}
+                <Text>
+                  {t("Common.Error")}: {error}
                 </Text>
               )}
               {data && (

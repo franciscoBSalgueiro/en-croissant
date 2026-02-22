@@ -429,7 +429,7 @@ export async function getTablebaseInfo(fen: string): Promise<TablebaseData> {
     headers: apiHeaders(),
   });
   if (!res.ok) {
-    throw new Error(`Failed to load tablebase info for ${fen} - ${res.status}`);
+    throw new Error(`Failed to load tablebase info for ${fen}.`);
   }
   return res.json();
 }
