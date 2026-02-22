@@ -5,44 +5,45 @@ import { createRoot } from "react-dom/client";
 import { initReactI18next } from "react-i18next";
 import App from "./App";
 
-import be_BY from "./translation/be_BY.json";
-import de_DE from "./translation/de_DE.json";
-import en_GB from "./translation/en_GB.json";
-import en_US from "./translation/en_US.json";
-import es_ES from "./translation/es_ES.json";
-import fr_FR from "./translation/fr_FR.json";
-import it_IT from "./translation/it_IT.json";
-import ko_KR from "./translation/ko_KR.json";
-import nb_NO from "./translation/nb_NO.json";
-import pl_PL from "./translation/pl_PL.json";
-import pt_PT from "./translation/pt_PT.json";
-import ru_RU from "./translation/ru_RU.json";
-import tr_TR from "./translation/tr_TR.json";
-import uk_UA from "./translation/uk_UA.json";
-import zh_CN from "./translation/zh_CN.json";
-import zh_TW from "./translation/zh_TW.json";
+import be_BY from "./translation/be-BY.json";
+import de_DE from "./translation/de-DE.json";
+import en_GB from "./translation/en-GB.json";
+import en_US from "./translation/en-US.json";
+import es_ES from "./translation/es-ES.json";
+import fr_FR from "./translation/fr-FR.json";
+import it_IT from "./translation/it-IT.json";
+import ko_KR from "./translation/ko-KR.json";
+import nb_NO from "./translation/nb-NO.json";
+import pl_PL from "./translation/pl-PL.json";
+import pt_PT from "./translation/pt-PT.json";
+import ru_RU from "./translation/ru-RU.json";
+import tr_TR from "./translation/tr-TR.json";
+import uk_UA from "./translation/uk-UA.json";
+import zh_CN from "./translation/zh-CN.json";
+import zh_TW from "./translation/zh-TW.json";
 
 i18n.use(initReactI18next).init({
   resources: {
-    en_US: { translation: en_US },
-    en_GB: { translation: en_GB },
-    pt_PT: { translation: pt_PT },
-    zh_CN: { translation: zh_CN },
-    ru_RU: { translation: ru_RU },
-    uk_UA: { translation: uk_UA },
-    be_BY: { translation: be_BY },
-    nb_NO: { translation: nb_NO },
-    pl_PL: { translation: pl_PL },
-    es_ES: { translation: es_ES },
-    it_IT: { translation: it_IT },
-    fr_FR: { translation: fr_FR },
-    tr_TR: { translation: tr_TR },
-    ko_KR: { translation: ko_KR },
-    zh_TW: { translation: zh_TW },
-    de_DE: { translation: de_DE },
+    "en-US": en_US,
+    "en-GB": en_GB,
+    "pt-PT": pt_PT,
+    "zh-CN": zh_CN,
+    "ru-RU": ru_RU,
+    "uk-UA": uk_UA,
+    "be-BY": be_BY,
+    "nb-NO": nb_NO,
+    "pl-PL": pl_PL,
+    "es-ES": es_ES,
+    "it-IT": it_IT,
+    "fr-FR": fr_FR,
+    "tr-TR": tr_TR,
+    "ko-KR": ko_KR,
+    "zh-TW": zh_TW,
+    "de-DE": de_DE,
   },
-  lng: localStorage.getItem("lang") || "en_US",
-  fallbackLng: "en_US",
+  lng: localStorage.getItem("lang") || "en-US",
+  fallbackLng: "en-US",
+  returnEmptyString: false,
 });
 
 dayjs.extend(customParseFormat);

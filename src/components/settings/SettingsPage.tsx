@@ -368,9 +368,9 @@ export default function Page() {
               { value: "ko_KR", label: "한국어" },
               { value: "de_DE", label: "Deutsch" },
             ]}
-            value={i18n.language}
+            value={i18n.language.replace("-", "_")}
             onChange={(val) => {
-              i18n.changeLanguage(val || "en_US");
+              i18n.changeLanguage(val?.replace("_", "-") || "en-US");
               localStorage.setItem("lang", val || "en_US");
             }}
           />

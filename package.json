@@ -12,7 +12,7 @@
     "format": "biome format --write ./src",
     "test": "vitest run",
     "lint": "tsc --noEmit && biome check ./src",
-    "lint:ci": "tsc --noEmit && biome ci ./src --diagnostic-level=error",
+    "lint:ci": "tsc --noEmit && biome ci ./src --diagnostic-level=error && i18next-cli extract --ci",
     "lint:fix": "biome check --write ./src",
     "i18n:extract": "i18next-cli extract",
     "i18n:status": "i18next-cli status",
