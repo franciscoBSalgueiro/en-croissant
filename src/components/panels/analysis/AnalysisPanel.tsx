@@ -164,8 +164,7 @@ function AnalysisPanel() {
                 variant="separated"
                 multiple
                 chevronSize={0}
-                defaultValue={loadedEngines.map((e) => e.name)}
-                value={expanded}
+                value={expanded ?? loadedEngines.map((e) => e.name)}
                 onChange={(v) => setExpanded(v)}
                 styles={{
                   label: {
