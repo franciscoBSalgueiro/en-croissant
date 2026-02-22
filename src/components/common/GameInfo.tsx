@@ -224,13 +224,21 @@ function GameInfo({
           <input
             className={classes.textInput}
             placeholder="Unknown ELO"
-            value={headers.white_elo || ""}
-            onChange={(n) =>
+            value={
+              headers.white_elo === 0 ? "Unrated" : headers.white_elo || ""
+            }
+            onChange={(n) => {
+              const val = n.currentTarget.value;
               setHeaders({
                 ...headers,
-                white_elo: Number.parseInt(n.currentTarget.value),
-              })
-            }
+                white_elo:
+                  val.toLowerCase() === "unrated" || val === "-"
+                    ? 0
+                    : val === "" || Number.isNaN(Number.parseInt(val))
+                      ? undefined
+                      : Number.parseInt(val),
+              });
+            }}
             disabled={disabled}
           />
           <Select
@@ -254,13 +262,21 @@ function GameInfo({
           <input
             className={cx(classes.textInput, classes.right)}
             placeholder="Unknown ELO"
-            value={headers.black_elo || ""}
-            onChange={(n) =>
+            value={
+              headers.black_elo === 0 ? "Unrated" : headers.black_elo || ""
+            }
+            onChange={(n) => {
+              const val = n.currentTarget.value;
               setHeaders({
                 ...headers,
-                black_elo: Number.parseInt(n.currentTarget.value),
-              })
-            }
+                black_elo:
+                  val.toLowerCase() === "unrated" || val === "-"
+                    ? 0
+                    : val === "" || Number.isNaN(Number.parseInt(val))
+                      ? undefined
+                      : Number.parseInt(val),
+              });
+            }}
             disabled={disabled}
           />
         </SimpleGrid>

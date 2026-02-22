@@ -60,7 +60,7 @@ function GamesTable({
                 {white}
               </Text>
               <Text size="xs" c="dimmed">
-                {white_elo}
+                {white_elo === 0 ? "Unrated" : white_elo}
               </Text>
             </div>
           ),
@@ -73,7 +73,7 @@ function GamesTable({
                 {black}
               </Text>
               <Text size="xs" c="dimmed">
-                {black_elo}
+                {black_elo === 0 ? "Unrated" : black_elo}
               </Text>
             </div>
           ),

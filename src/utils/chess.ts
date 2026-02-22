@@ -201,11 +201,11 @@ export function headersToPGN(game: GameHeaders): string {
 [Black "${game.black || "?"}"]
 [Result "${game.result}"]
 `;
-  if (game.white_elo) {
-    headers += `[WhiteElo "${game.white_elo}"]\n`;
+  if (game.white_elo !== undefined && game.white_elo !== null) {
+    headers += `[WhiteElo "${game.white_elo === 0 ? "-" : game.white_elo}"]\n`;
   }
-  if (game.black_elo) {
-    headers += `[BlackElo "${game.black_elo}"]\n`;
+  if (game.black_elo !== undefined && game.black_elo !== null) {
+    headers += `[BlackElo "${game.black_elo === 0 ? "-" : game.black_elo}"]\n`;
   }
   if (game.start && game.start.length > 0) {
     headers += `[Start "${JSON.stringify(game.start)}"]\n`;
@@ -559,8 +559,10 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     black: Black ?? "?",
     white: White ?? "?",
     round: Round ?? "?",
-    black_elo: BlackElo ? Number.parseInt(BlackElo) : 0,
-    white_elo: WhiteElo ? Number.parseInt(WhiteElo) : 0,
+    black_elo:
+      BlackElo === "-" ? 0 : BlackElo ? Number.parseInt(BlackElo) : undefined,
+    white_elo:
+      WhiteElo === "-" ? 0 : WhiteElo ? Number.parseInt(WhiteElo) : undefined,
     date: Date ?? "",
     site: Site ?? "",
     event: Event ?? "",

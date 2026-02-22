@@ -314,9 +314,17 @@ impl Visitor for Importer {
         } else if key == b"Black" {
             self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"WhiteElo" {
-            self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
+            if value.as_bytes() == b"-" {
+                self.game.white_elo = Some(0);
+            } else {
+                self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
+            }
         } else if key == b"BlackElo" {
-            self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
+            if value.as_bytes() == b"-" {
+                self.game.black_elo = Some(0);
+            } else {
+                self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
+            }
         } else if key == b"TimeControl" {
             self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"ECO" {
@@ -1535,10 +1543,18 @@ impl PgnGame {
             writeln!(writer, "[ECO \"{}\"]", eco)?;
         }
         if let Some(white_elo) = self.white_elo.as_deref() {
-            writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
+            if white_elo == "0" {
+                writeln!(writer, "[WhiteElo \"-\"]")?;
+            } else {
+                writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
+            }
         }
         if let Some(black_elo) = self.black_elo.as_deref() {
-            writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
+            if black_elo == "0" {
+                writeln!(writer, "[BlackElo \"-\"]")?;
+            } else {
+                writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
+            }
         }
         if let Some(ply_count) = self.ply_count.as_deref() {
             writeln!(writer, "[PlyCount \"{}\"]", ply_count)?;
