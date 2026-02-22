@@ -22,7 +22,6 @@
 
 En-Croissant is an open-source, cross-platform chess GUI that aims to be powerful, customizable and easy to use.
 
-
 ## Features
 
 - Store and analyze your games from [lichess.org](https://lichess.org) and [chess.com](https://chess.com)
@@ -31,7 +30,7 @@ En-Croissant is an open-source, cross-platform chess GUI that aims to be powerfu
 - Simple engine and database installation and management
 - Absolute or partial position search in the database
 
-<img src="https://github.com/franciscoBSalgueiro/encroisssant-site/blob/master/assets/showcase.webp" />
+<img src="https://github.com/franciscoBSalgueiro/encroisssant-site/blob/master/public/showcase.webp" />
 
 ## Building from source
 
@@ -55,5 +54,7 @@ If you wish to support the development of this GUI, you can do so [here](https:/
 ## Contributing
 
 For contributing to this project please refer to the [Contributing guide](./CONTRIBUTING.md).
+
 ## License
+
 This software is licensed under GPL-3.0 License.
