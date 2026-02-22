@@ -1,5 +1,5 @@
-export const zh_CN = {
-  translation: {
+{
+  "translation": {
     "Common.On": "开启",
     "Common.Off": "关闭",
     "Common.Name": "名称",
@@ -60,12 +60,10 @@ export const zh_CN = {
     "Common.Copied": "已复制",
     "Common.PickValue": "选择值",
     "Common.Date": "日期",
-
     "GoMode.Time": "时间",
     "GoMode.Depth": "深度",
     "GoMode.Nodes": "节点数",
     "GoMode.Infinite": "无限",
-
     "Annotate.Brilliant": "妙着",
     "Annotate.Good": "好着",
     "Annotate.Interesting": "趣味着法",
@@ -90,7 +88,6 @@ export const zh_CN = {
     "Annotate.WithIdea": "意图是",
     "Annotate.OnlyMove": "唯一着法",
     "Annotate.Zugzwang": "楚茨文格",
-
     "RichText.Bold": "粗体",
     "RichText.Italic": "斜体",
     "RichText.Underline": "下划线",
@@ -106,14 +103,12 @@ export const zh_CN = {
     "RichText.NumberedList": "有序列表",
     "RichText.Link": "链接",
     "RichText.RemoveLink": "移除链接",
-
     "TimeControl.UltraBullet": "超子弹棋",
     "TimeControl.Bullet": "子弹棋",
     "TimeControl.Blitz": "超快棋",
     "TimeControl.Rapid": "快棋",
     "TimeControl.Classical": "慢棋",
     "TimeControl.Correspondence": "通讯棋",
-
     "Menu.File": "文件",
     "Menu.File.NewTab": "新建标签页",
     "Menu.File.OpenFile": "打开文件",
@@ -126,16 +121,13 @@ export const zh_CN = {
     "Menu.Help.OpenLogs": "打开日志",
     "Menu.Help.CheckUpdate": "检查更新",
     "Menu.Help.About": "关于",
-
     "SideBar.Board": "棋盘",
     "SideBar.User": "用户",
     "SideBar.Files": "文件",
     "SideBar.Databases": "数据库",
     "SideBar.Engines": "引擎",
     "SideBar.Settings": "设置",
-
     "Tab.NewTab": "新建标签页",
-
     "Home.Card.PlayChess.Title": "对弈",
     "Home.Card.PlayChess.Desc": "与引擎或好友对弈",
     "Home.Card.PlayChess.Button": "对弈",
@@ -148,27 +140,21 @@ export const zh_CN = {
     "Home.Card.Puzzle.Title": "谜题",
     "Home.Card.Puzzle.Desc": "训练国象",
     "Home.Card.Puzzle.Button": "训练",
-
     "Home.Card.NewRepertoire.Title": "新建开局库",
     "Home.Card.NewRepertoire.Desc": "构建并练习开局库",
     "Home.Card.NewRepertoire.Button": "创建",
     "Home.Card.NewRepertoire.NamePlaceholder": "请输入开局库名称",
     "Home.Card.NewRepertoire.Color": "针对",
-
     "Home.PuzzleTraining": "谜题训练",
-
     "Home.RecentFiles.Title": "最近的文件",
     "Home.RecentFiles.NoRecentFiles": "近期未打开任何文件",
     "Home.RecentFiles.Empty": "最近没有打开过的文件",
     "Home.RecentFiles.DueCount": "{{count}} 个待办",
     "Home.RecentFiles.OpenFile": "打开",
-
     "Home.NewGame": "新对局",
-
     "Home.Accounts.Title": "账户",
     "Home.Accounts.Empty.Title": "未连接任何账户",
-    "Home.Accounts.Empty.Description":
-      "关联 Lichess 或 Chess.com 账户，以分析对局并跟踪进度！",
+    "Home.Accounts.Empty.Description": "关联 Lichess 或 Chess.com 账户，以分析对局并跟踪进度！",
     "Home.Accounts.Add": "添加账户",
     "Home.Accounts.SelectPlayer": "选择棋手",
     "Home.Accounts.PlayerName": "棋手姓名",
@@ -184,17 +170,14 @@ export const zh_CN = {
     "Home.Accounts.Downloaded": "已下载",
     "Home.Accounts.DownloadedGamesCount": "{{count}} 场对局",
     "Home.Accounts.LastUpdate": "上次更新：{{date}}",
-
     "Home.Personal.Overview": "概览",
     "Home.Personal.Ratings": "等级分",
     "Home.Personal.Openings": "开局",
-
     "Home.Databases.ProcessingGames": "正在处理对局...",
     "Home.Databases.ErrorLoading": "加载数据库时出错：{{error}}",
     "Home.Databases.NoDatabasesFound": "未找到数据库",
     "Home.Databases.Empty.Title": "未找到对局",
     "Home.Databases.Empty.Description": "您似乎还没为此棋手下载任何对局！",
-
     "Board.Action.TakeSnapshot": "创建快照",
     "Board.Action.AnalyzeGame": "分析对局",
     "Board.Action.PlayFromHere": "从此处开始对弈",
@@ -203,24 +186,20 @@ export const zh_CN = {
     "Board.Action.SavePGN": "保存 PGN ({{key}})",
     "Board.Action.AddGame": "添加对局",
     "Board.Action.FlipBoard": "翻转棋盘 ({{key}})",
-
     "Board.Tabs.Practice": "练习",
     "Board.Tabs.Analysis": "分析",
     "Board.Tabs.Database": "数据库",
     "Board.Tabs.Annotate": "评注",
     "Board.Tabs.Info": "信息",
-
     "Board.Opponent.Human": "人类",
     "Board.Opponent.TimeSettings": "时间设置",
     "Board.Opponent.Unlimited": "不限时",
     "Board.Opponent.Increment": "加时",
     "Board.Opponent.SameTimeControl": "相同时限",
     "Board.Opponent.StartGame": "开始对弈",
-
     "Board.Practice.Train": "训练",
     "Board.Practice.Build": "构建",
-    "Board.Practice.NoPositionForTrain1":
-      "暂无待练习的局面，请使用“构建”标签页向您的开局库中添加着法",
+    "Board.Practice.NoPositionForTrain1": "暂无待练习的局面，请使用“构建”标签页向您的开局库中添加着法",
     "Board.Practice.GoToBuild": "前往构建",
     "Board.Practice.SeeAnser": "查看答案",
     "Board.Practice.Practiced": "已练习",
@@ -255,7 +234,6 @@ export const zh_CN = {
     "Board.Practice.DeckSynced": "卡片组已同步",
     "Board.Practice.SyncAdded": "已添加 {{count}} 个新局面",
     "Board.Practice.SyncRemoved": "已移除 {{count}} 个局面",
-
     "Board.Analysis.Engines": "引擎",
     "Board.Analysis.Report": "报告",
     "Board.Analysis.Logs": "日志",
@@ -268,29 +246,25 @@ export const zh_CN = {
     "Board.Analysis.GeneratingReport": "正在生成报告",
     "Board.Analysis.NotAnalysed": "未分析",
     "Board.Analysis.EngineRequired": "需要引擎",
-    "Board.Analysis.RefDBRequired":
-      "未选择参考数据库，请先在数据库页面中选择一个",
+    "Board.Analysis.RefDBRequired": "未选择参考数据库，请先在数据库页面中选择一个",
     "Board.Analysis.Time": "时间 (毫秒)",
     "Board.Analysis.Reversed": "反向分析",
     "Board.Analysis.Reversed.Desc": "从最后一步开始分析对局",
     "Board.Analysis.AnnotateNovelties": "评注创新着法",
-    "Board.Analysis.AnnotateNovelties.Desc":
-      "为第一个不在参考数据库中的局面添加点评",
+    "Board.Analysis.AnnotateNovelties.Desc": "为第一个不在参考数据库中的局面添加点评",
     "Board.Analysis.ShowVariations": "显示变着",
     "Board.Analysis.ShowVariations.Desc": "为错着添加最佳续着线路",
     "Board.Analysis.Analyze": "分析",
     "Board.Analysis.Advantage": "优势",
     "Board.Analysis.Accuracy": "准确率",
     "Board.Analysis.ManageEngines": "管理引擎",
-    "Board.Analysis.EnableWDL":
-      "您需要先在引擎设置中启用 UCI_ShowWDL 才能使用此功能！",
+    "Board.Analysis.EnableWDL": "您需要先在引擎设置中启用 UCI_ShowWDL 才能使用此功能！",
     "Board.Analysis.Tablebase": "残局库",
     "Board.Analysis.Tablebase.WhiteWins": "白胜",
     "Board.Analysis.Tablebase.BlackWins": "黑胜",
     "Board.Analysis.Tablebase.Draw": "和棋",
     "Board.Analysis.Tablebase.FiftyMoveRule": "*因五十步规则",
     "Board.Analysis.EngineSpeedHint": "引擎的运行速度",
-
     "Board.Database.Local": "本地",
     "Board.Database.LichessAll": "Lichess 所有对局",
     "Board.Database.LichessMaster": "Lichess 大师对局",
@@ -304,7 +278,6 @@ export const zh_CN = {
     "Board.Database.NoReference3": "并将其标记为参考数据库",
     "Board.Database.TimeControl": "时限",
     "Board.Database.AverageRating": "平均等级分",
-
     "Board.Database.Local.Player": "棋手",
     "Board.Database.Local.Color": "棋色",
     "Board.Database.Local.Result": "结果",
@@ -316,10 +289,8 @@ export const zh_CN = {
     "Board.Database.Local.Partial": "部分匹配",
     "Board.Database.Local.CurrentPosition": "当前局面",
     "Board.Database.Local.SimilarStructure": "相似结构",
-
     "Board.Practice.Reset.Title": "重置开局数据",
-    "Board.Practice.Reset.Description":
-      "您确定要重置“{{name}}”的开局数据吗？所有的学习进度都将丢失！",
+    "Board.Practice.Reset.Description": "您确定要重置“{{name}}”的开局数据吗？所有的学习进度都将丢失！",
     "Board.Practice.Positions": "练习局面",
     "Board.Practice.NoPositionsYet": "您尚未添加任何要练习的局面！",
     "Board.Practice.Status": "状态",
@@ -331,9 +302,7 @@ export const zh_CN = {
     "Board.Practice.Variations": "变着",
     "Board.Practice.MaxDepth": "最大深度",
     "Board.Practice.TotalMoves": "总着法",
-    "Board.Practice.MarkStart":
-      "请先走几步棋，当到达所需开局的起始局面时，点击标记为“开始”",
-
+    "Board.Practice.MarkStart": "请先走几步棋，当到达所需开局的起始局面时，点击标记为“开始”",
     "Board.Practice.Build.YourCoverage": "覆盖范围",
     "Board.Practice.Build.Results": "结果",
     "Board.Practice.Build.NextGap": "前往下一个缺口",
@@ -351,9 +320,7 @@ export const zh_CN = {
     "Board.Practice.Build.BeforeStart": "此局面位于您的起始局面之前",
     "Board.Practice.Build.Presets": "快速开始",
     "Board.Practice.Build.PresetsDesc": "从以下预设中选择开始，或在棋盘上走棋",
-
     "Board.Annotate.WriteHere": "请在此输入...",
-
     "Engines.Title": "引擎",
     "Engines.Settings.NoEngine": "未选择引擎",
     "Engines.Settings.SearchSettings": "搜索设置",
@@ -375,9 +342,7 @@ export const zh_CN = {
     "Engines.Add.ImageFile.Desc": "点击选择图标文件 (推荐尺寸：60x60)",
     "Engines.Remove.Title": "移除引擎",
     "Engines.Remove.Message": "您确定要从 En Croissant 中移除此引擎吗？",
-    "Engines.Selection.None":
-      "未安装任何引擎，请先<addEngineLink>添加一个引擎</addEngineLink>！",
-
+    "Engines.Selection.None": "未安装任何引擎，请先<addEngineLink>添加一个引擎</addEngineLink>！",
     "Databases.Title": "数据库",
     "Databases.Card.Games": "对局",
     "Databases.Card.Players": "棋手",
@@ -394,12 +359,10 @@ export const zh_CN = {
     "Databases.Settings.Explore": "探索",
     "Databases.Settings.AdvancedTools": "高级工具",
     "Databases.Settings.MergePlayers": "合并棋手",
-    "Databases.Settings.MergePlayers.Desc":
-      "将数据库中第一位棋手的所有记录替换为第二位棋手",
+    "Databases.Settings.MergePlayers.Desc": "将数据库中第一位棋手的所有记录替换为第二位棋手",
     "Databases.Settings.Merge": "合并",
     "Databases.Settings.BatchDelete": "批量删除",
-    "Databases.Settings.BatchDelete.Desc":
-      "这些操作将不可逆地从数据库中移除对局，请谨慎使用！",
+    "Databases.Settings.BatchDelete.Desc": "这些操作将不可逆地从数据库中移除对局，请谨慎使用！",
     "Databases.Settings.RemoveDup": "删除重复对局",
     "Databases.Settings.RemoveEmpty": "删除空对局",
     "Databases.Settings.Actions": "操作",
@@ -434,7 +397,6 @@ export const zh_CN = {
     "Databases.FIDE.SearchError": "搜索 {{name}} 时出错",
     "Databases.FIDE.PlayerNotFound": "未找到棋手",
     "Databases.Player.ProcessingData": "正在处理棋手数据...",
-
     "Errors.EmptyBoard": "空棋盘",
     "Errors.InvalidKings": "王的数量无效",
     "Errors.OppositeCheck": "被反向将军",
@@ -449,14 +411,12 @@ export const zh_CN = {
     "Errors.InvalidRemainingChecks": "剩余将军次数无效",
     "Errors.InvalidTurn": "走棋方无效",
     "Errors.Unknown": "未知错误",
-
     "Fen.Start": "开始",
     "Fen.Empty": "空局",
     "Fen.White": "白方",
     "Fen.Black": "黑方",
     "Fen.WhiteToMove": "白方走棋",
     "Fen.BlackToMove": "黑方走棋",
-
     "Files.Title": "文件",
     "Files.FileType": "文件类型",
     "Files.FileType.Game": "对局",
@@ -475,13 +435,11 @@ export const zh_CN = {
     "Files.NoSelection": "未选择文件",
     "Files.Reload": "重新加载文件",
     "Files.GameCountSuffix": "对局",
-
     "Menu.MarkAsStart": "标记为起始",
     "Menu.PromoteToMainLine": "升为主变",
     "Menu.PromoteVariation": "提升变着",
     "Menu.CopyVariationPGN": "复制变着 PGN",
     "Menu.DeleteMove": "删除着法",
-
     "Settings.Board": "棋盘",
     "Settings.Inputs": "输入",
     "Settings.OpeningReport": "开局报告",
@@ -491,7 +449,6 @@ export const zh_CN = {
     "Settings.Keybinds": "快捷键",
     "Settings.Directories": "目录",
     "Settings.Repertoire": "开局库",
-
     "Settings.Board.Desc": "自定义分析棋盘与对局控制",
     "Settings.Repertoire.Desc": "自定义开局库设置",
     "Settings.Repertoire.Depth": "开局库深度",
@@ -509,11 +466,9 @@ export const zh_CN = {
     "Settings.SnapArrows": "吸附箭头",
     "Settings.SnapArrows.Desc": "将箭头吸附到有效着法上",
     "Settings.ConsecutiveArrows": "连续箭头",
-    "Settings.ConsecutiveArrows.Desc":
-      "如果最佳线路涉及同一棋子连续移动多次，则显示多个箭头",
+    "Settings.ConsecutiveArrows.Desc": "如果最佳线路涉及同一棋子连续移动多次，则显示多个箭头",
     "Settings.EraseDrawablesOnClick": "点击时清除绘制",
-    "Settings.EraseDrawablesOnClick.Desc":
-      "通过鼠标左键点击清除棋盘上绘制的箭头和圆圈",
+    "Settings.EraseDrawablesOnClick.Desc": "通过鼠标左键点击清除棋盘上绘制的箭头和圆圈",
     "Settings.AutoPromition": "自动升变",
     "Settings.AutoPromition.Desc": "当兵到达底线时，自动升变为后",
     "Settings.Coordinates": "坐标",
@@ -545,12 +500,10 @@ export const zh_CN = {
     "Settings.OpeningReport.PercentCoverage": "覆盖百分比",
     "Settings.OpeningReport.PercentCoverage.Desc": "每个局面中覆盖的着法百分比",
     "Settings.OpeningReport.MinGames": "最少对局数",
-    "Settings.OpeningReport.MinGames.Desc":
-      "每个局面被纳入考虑所需的最少对局数",
+    "Settings.OpeningReport.MinGames.Desc": "每个局面被纳入考虑所需的最少对局数",
     "Settings.Anarchy.Desc": "趣味选项",
     "Settings.Anarchy.ForcedEnCroissant": "强制 En Croissant",
-    "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "如果 En Croissant 是合法着法，则强制您走这一步",
+    "Settings.Anarchy.ForcedEnCroissant.Desc": "如果 En Croissant 是合法着法，则强制您走这一步",
     "Settings.Appearance.Desc": "自定义应用的外观",
     "Settings.Appearance.Theme": "主题",
     "Settings.Appearance.Theme.Desc": "整体配色方案",
@@ -585,16 +538,13 @@ export const zh_CN = {
     "Settings.Privacy": "隐私",
     "Settings.Privacy.Desc": "隐私与数据收集设置",
     "Settings.Privacy.Telemetry": "匿名遥测",
-    "Settings.Privacy.Telemetry.Desc":
-      "通过发送匿名使用数据来帮助改进 En Croissant",
-
+    "Settings.Privacy.Telemetry.Desc": "通过发送匿名使用数据来帮助改进 En Croissant",
     "PgnInput.Comments": "点评",
     "PgnInput.Glyphs": "符号",
     "PgnInput.Variations": "变着",
     "PgnInput.ExtraMarkups": "额外标记",
     "PgnInput.MaxDepth": "最大深度",
     "PgnInput.TotalMoves": "总着法数",
-
     "Notation.ShowMoves": "显示着法",
     "Notation.HideMoves": "隐藏着法",
     "Notation.TableView": "表格视图",
@@ -603,7 +553,6 @@ export const zh_CN = {
     "Notation.HideComments": "隐藏点评",
     "Notation.ShowVariations": "显示变着",
     "Notation.HideVariations": "隐藏变着",
-
     "Puzzle.JumpToNextPuzzleImmediately": "立即跳转至下一个谜题",
     "Puzzle.JumpToNextPuzzleImmediately.Desc": "解题后自动前进",
     "Puzzle.SelectDatabase": "选择数据库",
@@ -623,25 +572,16 @@ export const zh_CN = {
     "Puzzle.ViewSolution": "查看解法",
     "Puzzle.Database": "数据库",
     "Puzzle.Puzzles": "谜题",
-
     "Import.PGN.ClickToSelect": "点击选择一个 PGN 文件",
     "Import.Or": "或",
     "Import.SaveToCollection": "保存到合集",
     "Import.GameURL": "对局链接 (lichess 或 chess.com)",
     "Import.Online": "在线",
     "Import.Importing": "正在导入...",
-
     "Error.Title": "发生错误",
     "Error.Unexpected": "意外错误",
     "Error.CopyStackTrace": "复制堆栈跟踪",
-    "Error.ReportIssue":
-      "请在 <github>GitHub</github> 或 <discord>Discord 服务器</discord> 上报告此问题！",
-
-    "GameInfo.OpeningFor": "针对性开局：",
-  },
-};
-
-/**
- * Chinese language support for En Croissant.
- * Translated by Zhuge Prajna
- */
+    "Error.ReportIssue": "请在 <github>GitHub</github> 或 <discord>Discord 服务器</discord> 上报告此问题！",
+    "GameInfo.OpeningFor": "针对性开局："
+  }
+}

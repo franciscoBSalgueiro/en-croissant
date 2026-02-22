@@ -1,5 +1,5 @@
-export const ru_RU = {
-  translation: {
+{
+  "translation": {
     "Common.On": "ВКЛ",
     "Common.Off": "ВЫКЛ",
     "Common.Name": "Имя",
@@ -46,12 +46,10 @@ export const ru_RU = {
     "Common.Stalemate": "Пат",
     "Common.WHITE": "БЕЛЫЕ",
     "Common.BLACK": "ЧЁРНЫЕ",
-
     "GoMode.Time": "Время",
     "GoMode.Depth": "Глубина",
     "GoMode.Nodes": "Узлы",
     "GoMode.Infinite": "Бесконечно",
-
     "Annotate.Brilliant": "Блестяще",
     "Annotate.Good": "Хорошо",
     "Annotate.Interesting": "Интересно",
@@ -76,7 +74,6 @@ export const ru_RU = {
     "Annotate.WithIdea": "С идеей",
     "Annotate.OnlyMove": "Единственный ход",
     "Annotate.Zugzwang": "Цугцванг",
-
     "RichText.Bold": "Жирный",
     "RichText.Italic": "Курсив",
     "RichText.Underline": "Подчёркнутый",
@@ -92,14 +89,12 @@ export const ru_RU = {
     "RichText.NumberedList": "Нумерованный список",
     "RichText.Link": "Ссылка",
     "RichText.RemoveLink": "Удалить ссылку",
-
     "TimeControl.UltraBullet": "Ультра Буллет",
     "TimeControl.Bullet": "Буллет",
     "TimeControl.Blitz": "Блиц",
     "TimeControl.Rapid": "Рапид",
     "TimeControl.Classical": "Классика",
     "TimeControl.Correspondence": "Переписка",
-
     "Menu.File": "Файл",
     "Menu.File.NewTab": "Новая вкладка",
     "Menu.File.OpenFile": "Открыть файл",
@@ -112,16 +107,13 @@ export const ru_RU = {
     "Menu.Help.OpenLogs": "Открыть логи",
     "Menu.Help.CheckUpdate": "Проверить обновления",
     "Menu.Help.About": "О программе",
-
     "SideBar.Board": "Доска",
     "SideBar.User": "Пользователь",
     "SideBar.Files": "Файлы",
     "SideBar.Databases": "Базы данных",
     "SideBar.Engines": "Движки",
     "SideBar.Settings": "Настройки",
-
     "Tab.NewTab": "Новая вкладка",
-
     "Home.Card.PlayChess.Title": "Играть в шахматы",
     "Home.Card.PlayChess.Desc": "Играйте против движка или друга",
     "Home.Card.PlayChess.Button": "Играть",
@@ -134,7 +126,6 @@ export const ru_RU = {
     "Home.Card.Puzzle.Title": "Головоломки",
     "Home.Card.Puzzle.Desc": "Тренируйте шахматные навыки",
     "Home.Card.Puzzle.Button": "Тренироваться",
-
     "Board.Action.TakeSnapshot": "Сделать скриншот",
     "Board.Action.AnalyzeGame": "Анализировать партию",
     "Board.Action.PlayFromHere": "Играть отсюда",
@@ -143,7 +134,6 @@ export const ru_RU = {
     "Board.Action.SavePGN": "Сохранить PGN ({{key}})",
     "Board.Action.AddGame": "Добавить партию",
     "Board.Action.FlipBoard": "Инвертировать доску ({{key}})",
-
     "Board.Tabs.Practice": "Практика",
     "Board.Tabs.Analysis": "Анализ",
     "Board.Tabs.Database": "База данных",
@@ -151,10 +141,8 @@ export const ru_RU = {
     "Board.Tabs.Info": "Информация",
     "Board.Practice.Train": "Тренировать",
     "Board.Practice.Build": "Создать",
-    "Board.Practice.NoPositionForTrain1":
-      "Нет позиций для тренировки. Сначала добавьте ходы в этот файл PGN.",
-    "Board.Practice.NoPositionForTrain2":
-      "Необходимо переключиться в режим анализа, чтобы добавлять ходы.",
+    "Board.Practice.NoPositionForTrain1": "Нет позиций для тренировки. Сначала добавьте ходы в этот файл PGN.",
+    "Board.Practice.NoPositionForTrain2": "Необходимо переключиться в режим анализа, чтобы добавлять ходы.",
     "Board.Practice.SeeAnser": "Посмотреть ответ",
     "Board.Practice.Practiced": "Отработано",
     "Board.Practice.Due": "Подлежит тренировке",
@@ -176,19 +164,16 @@ export const ru_RU = {
     "Board.Analysis.GeneratingReport": "Создание отчёта",
     "Board.Analysis.NotAnalysed": "Не проанализировано",
     "Board.Analysis.EngineRequired": "Требуется движок",
-    "Board.Analysis.RefDBRequired":
-      "Не выбрана база данных. Сначала выберите базу данных на странице баз данных.",
+    "Board.Analysis.RefDBRequired": "Не выбрана база данных. Сначала выберите базу данных на странице баз данных.",
     "Board.Analysis.Time": "Время (мс)",
     "Board.Analysis.Reversed": "Обратный анализ",
     "Board.Analysis.Reversed.Desc": "Анализировать игру с последней позиции.",
     "Board.Analysis.AnnotateNovelties": "Аннотировать новинки",
-    "Board.Analysis.AnnotateNovelties.Desc":
-      "Добавить комментарий в первой позиции, которая отсутствует в базе данных.",
+    "Board.Analysis.AnnotateNovelties.Desc": "Добавить комментарий в первой позиции, которая отсутствует в базе данных.",
     "Board.Analysis.Analyze": "Анализировать",
     "Board.Analysis.Advantage": "Преимущество",
     "Board.Analysis.Accuracy": "Точность",
-    "Board.Analysis.EnableWDL":
-      "Чтобы использовать эту функцию, нужно включить UCI_ShowWDL в настройках движка.",
+    "Board.Analysis.EnableWDL": "Чтобы использовать эту функцию, нужно включить UCI_ShowWDL в настройках движка.",
     "Board.Database.Local": "Локальная",
     "Board.Database.LichessAll": "Lichess Все",
     "Board.Database.LichessMaster": "Lichess Мастера",
@@ -203,7 +188,6 @@ export const ru_RU = {
     "Board.Database.TimeControl": "Контроль времени",
     "Board.Database.AverageRating": "Средний рейтинг",
     "Board.Annotate.WriteHere": "Пишите здесь...",
-
     "Engines.Title": "Движки",
     "Engines.Settings.NoEngine": "Движок не выбран",
     "Engines.Settings.SearchSettings": "Настройки поиска",
@@ -222,12 +206,9 @@ export const ru_RU = {
     "Engines.Add.Name.Autodetect": "Автоопределение",
     "Engines.Add.Elo.Desc": "Эло движка",
     "Engines.Add.ImageFile": "Файл изображения",
-    "Engines.Add.ImageFile.Desc":
-      "Нажмите для выбора файла изображения (рекомендуется: 60x60)",
+    "Engines.Add.ImageFile.Desc": "Нажмите для выбора файла изображения (рекомендуется: 60x60)",
     "Engines.Remove.Title": "Удалить движок",
-    "Engines.Remove.Message":
-      "Вы уверены, что хотите удалить этот движок из En Croissant?",
-
+    "Engines.Remove.Message": "Вы уверены, что хотите удалить этот движок из En Croissant?",
     "Databases.Title": "Базы данных",
     "Databases.Card.Games": "Игры",
     "Databases.Card.Players": "Игроки",
@@ -239,27 +220,22 @@ export const ru_RU = {
     "Databases.Add.Convert": "Конвертировать",
     "Databases.Settings.ReferenceDatabase": "Справочная база данных",
     "Databases.Settings.Indexed": "Проиндексировано",
-    "Databases.Settings.Indexed.Desc":
-      "Индексы используются для ускорения поиска, но требуют дополнительного места.",
+    "Databases.Settings.Indexed.Desc": "Индексы используются для ускорения поиска, но требуют дополнительного места.",
     "Databases.Settings.Events": "События",
     "Databases.Settings.Explore": "Исследовать",
     "Databases.Settings.AdvancedTools": "Расширенные инструменты",
     "Databases.Settings.MergePlayers": "Объединить игроков",
-    "Databases.Settings.MergePlayers.Desc":
-      "Заменяет все вхождения первого игрока на второго в базе данных.",
+    "Databases.Settings.MergePlayers.Desc": "Заменяет все вхождения первого игрока на второго в базе данных.",
     "Databases.Settings.Merge": "Объединить",
     "Databases.Settings.BatchDelete": "Массовое удаление",
-    "Databases.Settings.BatchDelete.Desc":
-      "Эти действия безвозвратно удалят игры из базы данных. Используйте с осторожностью.",
+    "Databases.Settings.BatchDelete.Desc": "Эти действия безвозвратно удалят игры из базы данных. Используйте с осторожностью.",
     "Databases.Settings.RemoveDup": "Удалить дубликаты",
     "Databases.Settings.RemoveEmpty": "Удалить пустые игры",
     "Databases.Settings.Actions": "Действия",
     "Databases.Settings.AddGames": "Добавить игры",
     "Databases.Settings.ExportPGN": "Экспортировать в PGN",
     "Databases.Delete.Title": "Удалить базу данных",
-    "Databases.Delete.Message":
-      "Вы уверены, что хотите удалить эту базу данных?",
-
+    "Databases.Delete.Message": "Вы уверены, что хотите удалить эту базу данных?",
     "Errors.EmptyBoard": "Пустая доска",
     "Errors.InvalidKings": "Неверное количество королей",
     "Errors.OppositeCheck": "Обе стороны под шахом",
@@ -274,14 +250,12 @@ export const ru_RU = {
     "Errors.InvalidRemainingChecks": "Неверное число оставшихся шахов",
     "Errors.InvalidTurn": "Неверный ход",
     "Errors.Unknown": "Неизвестная ошибка",
-
     "Fen.Start": "Начало",
     "Fen.Empty": "Пусто",
     "Fen.White": "Белые",
     "Fen.Black": "Чёрные",
     "Fen.WhiteToMove": "Ход белых",
     "Fen.BlackToMove": "Ход чёрных",
-
     "Files.Title": "Файлы",
     "Files.FileType": "Тип файла",
     "Files.FileType.Game": "Игра",
@@ -296,13 +270,11 @@ export const ru_RU = {
     "Files.Edit.Title": "Редактировать файл",
     "Files.Create.Title": "Создать файл",
     "Files.Search": "Поиск файлов",
-
     "Menu.MarkAsStart": "Отметить как начало",
     "Menu.PromoteToMainLine": "Повысить до главного варианта",
     "Menu.PromoteVariation": "Повысить вариант",
     "Menu.CopyVariationPGN": "Скопировать PGN варианта",
     "Menu.DeleteMove": "Удалить ход",
-
     "Settings.Board": "Доска",
     "Settings.Inputs": "Ввод",
     "Settings.OpeningReport": "Отчёт по дебютам",
@@ -311,9 +283,7 @@ export const ru_RU = {
     "Settings.Sound": "Звук",
     "Settings.Keybinds": "Горячие клавиши",
     "Settings.Directories": "Каталоги",
-
-    "Settings.Board.Desc":
-      "Настроить доску анализа и игровые элементы управления",
+    "Settings.Board.Desc": "Настроить доску анализа и игровые элементы управления",
     "Settings.PieceDest": "Пункты назначения фигур",
     "Settings.PieceDest.Desc": "Показать возможные ходы для каждой фигуры",
     "Settings.Arrows": "Стрелки",
@@ -321,11 +291,9 @@ export const ru_RU = {
     "Settings.SnapArrows": "Закрепить стрелки",
     "Settings.SnapArrows.Desc": "Закрепить стрелки на допустимые ходы",
     "Settings.ConsecutiveArrows": "Последовательные стрелки",
-    "Settings.ConsecutiveArrows.Desc":
-      "Показывать несколько стрелок для лучшей линии, если она состоит из нескольких ходов одной и той же фигурой",
+    "Settings.ConsecutiveArrows.Desc": "Показывать несколько стрелок для лучшей линии, если она состоит из нескольких ходов одной и той же фигурой",
     "Settings.EraseDrawablesOnClick": "Стереть отметки при клике",
-    "Settings.EraseDrawablesOnClick.Desc":
-      "Очистить доску от нарисованных стрелок и кругов при нажатии левой кнопкой мыши",
+    "Settings.EraseDrawablesOnClick.Desc": "Очистить доску от нарисованных стрелок и кругов при нажатии левой кнопкой мыши",
     "Settings.AutoPromition": "Автоповышение",
     "Settings.AutoPromition.Desc": "Автоматически продвигать до ферзя",
     "Settings.Coordinates": "Координаты",
@@ -333,36 +301,29 @@ export const ru_RU = {
     "Settings.AutoSave": "Автосохранение",
     "Settings.AutoSave.Desc": "Автоматически сохранять после каждого хода",
     "Settings.PreviewBoard": "Предварительный просмотр доски",
-    "Settings.PreviewBoard.Desc":
-      "Показывать доску при наведении курсора на ход в анализе",
+    "Settings.PreviewBoard.Desc": "Показывать доску при наведении курсора на ход в анализе",
     "Settings.ScrollThroughMoves": "Прокрутка ходов",
-    "Settings.ScrollThroughMoves.Desc":
-      "Включить или отключить прокрутку ходов на доске",
+    "Settings.ScrollThroughMoves.Desc": "Включить или отключить прокрутку ходов на доске",
     "Settings.Inputs.Desc": "Настроить ввод",
     "Settings.Inputs.TextInput": "Текстовый ввод",
     "Settings.Inputs.TextInput.Desc": "Ввод ходов текстом",
     "Settings.Inputs.SpellCheck": "Проверка орфографии",
-    "Settings.Inputs.SpellCheck.Desc":
-      "Включить или отключить проверку орфографии при вводе текста",
+    "Settings.Inputs.SpellCheck.Desc": "Включить или отключить проверку орфографии при вводе текста",
     "Settings.OpeningReport.Desc": "Настроить параметры отчёта по дебютам",
     "Settings.OpeningReport.PercentCoverage": "Процент охвата",
-    "Settings.OpeningReport.PercentCoverage.Desc":
-      "Процент охваченных ходов в каждой позиции",
+    "Settings.OpeningReport.PercentCoverage.Desc": "Процент охваченных ходов в каждой позиции",
     "Settings.OpeningReport.MinGames": "Минимальное количество игр",
-    "Settings.OpeningReport.MinGames.Desc":
-      "Минимальное количество игр для каждой позиции, чтобы быть учтённой",
+    "Settings.OpeningReport.MinGames.Desc": "Минимальное количество игр для каждой позиции, чтобы быть учтённой",
     "Settings.Anarchy.Desc": "Весёлые опции",
     "Settings.Anarchy.ForcedEnCroissant": "Принудительный En Croissant",
-    "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Заставляет делать ход En Croissant, если это легальный ход.",
+    "Settings.Anarchy.ForcedEnCroissant.Desc": "Заставляет делать ход En Croissant, если это легальный ход.",
     "Settings.Appearance.Desc": "Настроить внешний вид приложения",
     "Settings.Appearance.Theme": "Тема",
     "Settings.Appearance.Theme.Desc": "Общая цветовая схема",
     "Settings.Appearance.Theme.Light": "Светлая",
     "Settings.Appearance.Theme.Dark": "Тёмная",
     "Settings.Appearance.TitleBar": "Заголовок окна",
-    "Settings.Appearance.TitleBar.Desc":
-      "Выберите между стандартной или настраиваемой панелью заголовка",
+    "Settings.Appearance.TitleBar.Desc": "Выберите между стандартной или настраиваемой панелью заголовка",
     "Settings.Appearance.Language": "Язык",
     "Settings.Appearance.Language.Desc": "Язык приложения",
     "Settings.Appearance.TitleBar.Native": "Стандартная",
@@ -372,8 +333,7 @@ export const ru_RU = {
     "Settings.Appearance.PieceSet": "Набор фигур",
     "Settings.Appearance.PieceSet.Desc": "Фигуры, используемые на доске",
     "Settings.Appearance.BoardImage": "Изображение доски",
-    "Settings.Appearance.BoardImage.Desc":
-      "Изображение, используемое в качестве фона для доски",
+    "Settings.Appearance.BoardImage.Desc": "Изображение, используемое в качестве фона для доски",
     "Settings.Appearance.AccentColor": "Основной цвет",
     "Settings.Appearance.AccentColor.Desc": "Основной цвет приложения",
     "Settings.Sound.Desc": "Настроить параметры звука",
@@ -383,17 +343,13 @@ export const ru_RU = {
     "Settings.Sound.Collection.Desc": "Используемая коллекция звуков",
     "Settings.Directories.Desc": "Настроить каталоги, используемые приложением",
     "Settings.Directories.Files": "Каталог для файлов",
-    "Settings.Directories.Files.Desc":
-      "Здесь хранятся игровые файлы на странице файлов",
-
+    "Settings.Directories.Files.Desc": "Здесь хранятся игровые файлы на странице файлов",
     "PgnInput.Comments": "Комментарии",
     "PgnInput.Glyphs": "Символы",
     "PgnInput.Variations": "Вариации",
     "PgnInput.ExtraMarkups": "Дополнительные аннотации",
     "PgnInput.MaxDepth": "Максимальная глубина",
     "PgnInput.TotalMoves": "Всего ходов",
-
-    "Puzzle.JumpToNextPuzzleImmediately":
-      "Сразу переходить к следующей головоломке",
-  },
-};
+    "Puzzle.JumpToNextPuzzleImmediately": "Сразу переходить к следующей головоломке"
+  }
+}

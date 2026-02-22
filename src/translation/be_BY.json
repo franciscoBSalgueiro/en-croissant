@@ -1,5 +1,5 @@
-export const be_BY = {
-  translation: {
+{
+  "translation": {
     "Common.On": "УКЛ",
     "Common.Off": "ВЫКЛ",
     "Common.Name": "Імя",
@@ -46,12 +46,10 @@ export const be_BY = {
     "Common.Stalemate": "Пат",
     "Common.WHITE": "БЕЛЫЯ",
     "Common.BLACK": "ЧОРНЫЯ",
-
     "GoMode.Time": "Час",
     "GoMode.Depth": "Глыбіня",
     "GoMode.Nodes": "Вузлы",
     "GoMode.Infinite": "Бясконцасць",
-
     "Annotate.Brilliant": "Бліскуча",
     "Annotate.Good": "Добра",
     "Annotate.Interesting": "Цікава",
@@ -76,7 +74,6 @@ export const be_BY = {
     "Annotate.WithIdea": "З ідэяй",
     "Annotate.OnlyMove": "Адзіны ход",
     "Annotate.Zugzwang": "Цугцванг",
-
     "RichText.Bold": "Тлусты",
     "RichText.Italic": "Курсіў",
     "RichText.Underline": "Падкрэслены",
@@ -92,14 +89,12 @@ export const be_BY = {
     "RichText.NumberedList": "Нумараваны спіс",
     "RichText.Link": "Спасылка",
     "RichText.RemoveLink": "Выдаліць спасылку",
-
     "TimeControl.UltraBullet": "Ультра Булет",
     "TimeControl.Bullet": "Булет",
     "TimeControl.Blitz": "Бліц",
     "TimeControl.Rapid": "Рапід",
     "TimeControl.Classical": "Класіка",
     "TimeControl.Correspondence": "Ліставанне",
-
     "Menu.File": "Файл",
     "Menu.File.NewTab": "Новая ўкладка",
     "Menu.File.OpenFile": "Адкрыць файл",
@@ -112,16 +107,13 @@ export const be_BY = {
     "Menu.Help.OpenLogs": "Адкрыць логі",
     "Menu.Help.CheckUpdate": "Праверыць абнаўленні",
     "Menu.Help.About": "Аб праграме",
-
     "SideBar.Board": "Шахматная дошка",
     "SideBar.User": "Карыстальнік",
     "SideBar.Files": "Файлы",
     "SideBar.Databases": "Базы дадзеных",
     "SideBar.Engines": "Рухавікі",
     "SideBar.Settings": "Налады",
-
     "Tab.NewTab": "Новая ўкладка",
-
     "Home.Card.PlayChess.Title": "Гуляць у шахматы",
     "Home.Card.PlayChess.Desc": "Гуляйце супраць рухавіка або сябра",
     "Home.Card.PlayChess.Button": "Гуляць",
@@ -134,7 +126,6 @@ export const be_BY = {
     "Home.Card.Puzzle.Title": "Галаваломкі",
     "Home.Card.Puzzle.Desc": "Трэніруйце шахматныя навыкі",
     "Home.Card.Puzzle.Button": "Трэніравацца",
-
     "Board.Tabs.Practice": "Практыка",
     "Board.Tabs.Analysis": "Аналіз",
     "Board.Tabs.Database": "База дадзеных",
@@ -142,10 +133,8 @@ export const be_BY = {
     "Board.Tabs.Info": "Інфармацыя",
     "Board.Practice.Train": "Трэніравацца",
     "Board.Practice.Build": "Стварыць",
-    "Board.Practice.NoPositionForTrain1":
-      "Няма пазіцый для трэніроўкі. Спачатку дадайце хады ў гэты файл PGN.",
-    "Board.Practice.NoPositionForTrain2":
-      "Неабходна пераключыцца ў рэжым аналізу, каб дадаваць хады.",
+    "Board.Practice.NoPositionForTrain1": "Няма пазіцый для трэніроўкі. Спачатку дадайце хады ў гэты файл PGN.",
+    "Board.Practice.NoPositionForTrain2": "Неабходна пераключыцца ў рэжым аналізу, каб дадаваць хады.",
     "Board.Practice.SeeAnser": "Паглядзець адказ",
     "Board.Practice.Practiced": "Адпрацавана",
     "Board.Practice.Due": "Падлягае трэніроўцы",
@@ -167,14 +156,12 @@ export const be_BY = {
     "Board.Analysis.GeneratingReport": "Стварэнне справаздачы",
     "Board.Analysis.NotAnalysed": "Не прааналізавана",
     "Board.Analysis.EngineRequired": "Патрэбны рухавік",
-    "Board.Analysis.RefDBRequired":
-      "Не абрана база дадзеных. Спачатку выберыце базу дадзеных на старонцы баз дадзеных.",
+    "Board.Analysis.RefDBRequired": "Не абрана база дадзеных. Спачатку выберыце базу дадзеных на старонцы баз дадзеных.",
     "Board.Analysis.Time": "Час (мс)",
     "Board.Analysis.Reversed": "Зваротны аналіз",
     "Board.Analysis.Reversed.Desc": "Аналізаваць гульню з апошняй пазіцыі.",
     "Board.Analysis.AnnotateNovelties": "Анатаваць навінкі",
-    "Board.Analysis.AnnotateNovelties.Desc":
-      "Дадаць каментарый да першай пазіцыі, якой няма ў базе дадзеных.",
+    "Board.Analysis.AnnotateNovelties.Desc": "Дадаць каментарый да першай пазіцыі, якой няма ў базе дадзеных.",
     "Board.Analysis.Analyze": "Аналізаваць",
     "Board.Analysis.Advantage": "Перавага",
     "Board.Analysis.Accuracy": "Дакладнасць",
@@ -192,7 +179,6 @@ export const be_BY = {
     "Board.Database.TimeControl": "Кантроль часу",
     "Board.Database.AverageRating": "Сярэдні рэйтынг",
     "Board.Annotate.WriteHere": "Пішыце тут...",
-
     "Engines.Title": "Рухавікі",
     "Engines.Settings.NoEngine": "Рухавік не абраны",
     "Engines.Settings.SearchSettings": "Налады пошуку",
@@ -211,12 +197,9 @@ export const be_BY = {
     "Engines.Add.Name.Autodetect": "Аўтавызначэнне",
     "Engines.Add.Elo.Desc": "Эла рухавіка",
     "Engines.Add.ImageFile": "Файл выявы",
-    "Engines.Add.ImageFile.Desc":
-      "Націсніце для выбару файла выявы (рэкамендуецца: 60x60)",
+    "Engines.Add.ImageFile.Desc": "Націсніце для выбару файла выявы (рэкамендуецца: 60x60)",
     "Engines.Remove.Title": "Выдаліць рухавік",
-    "Engines.Remove.Message":
-      "Вы ўпэўнены, што хочаце выдаліць гэты рухавік з En Croissant?",
-
+    "Engines.Remove.Message": "Вы ўпэўнены, што хочаце выдаліць гэты рухавік з En Croissant?",
     "Databases.Title": "Базы дадзеных",
     "Databases.Card.Games": "Гульні",
     "Databases.Card.Players": "Гульцы",
@@ -228,27 +211,22 @@ export const be_BY = {
     "Databases.Add.Convert": "Канвертаваць",
     "Databases.Settings.ReferenceDatabase": "Даведачная база дадзеных",
     "Databases.Settings.Indexed": "Праіндэксавана",
-    "Databases.Settings.Indexed.Desc":
-      "Індэксы выкарыстоўваюцца для паскарэння пошуку, але патрабуюць дадатковай прасторы.",
+    "Databases.Settings.Indexed.Desc": "Індэксы выкарыстоўваюцца для паскарэння пошуку, але патрабуюць дадатковай прасторы.",
     "Databases.Settings.Events": "Падзеі",
     "Databases.Settings.Explore": "Даследаваць",
     "Databases.Settings.AdvancedTools": "Пашыраныя інструменты",
     "Databases.Settings.MergePlayers": "Аб'яднаць гульцоў",
-    "Databases.Settings.MergePlayers.Desc":
-      "Замяняе ўсе выпадкі першага гульца на другога ў базе дадзеных.",
+    "Databases.Settings.MergePlayers.Desc": "Замяняе ўсе выпадкі першага гульца на другога ў базе дадзеных.",
     "Databases.Settings.Merge": "Аб'яднаць",
     "Databases.Settings.BatchDelete": "Масавае выдаленне",
-    "Databases.Settings.BatchDelete.Desc":
-      "Гэтыя дзеянні беззваротна выдаляць гульні з базы дадзеных. Выкарыстоўвайце з асцярожнасцю.",
+    "Databases.Settings.BatchDelete.Desc": "Гэтыя дзеянні беззваротна выдаляць гульні з базы дадзеных. Выкарыстоўвайце з асцярожнасцю.",
     "Databases.Settings.RemoveDup": "Выдаліць дублікаты",
     "Databases.Settings.RemoveEmpty": "Выдаліць пустыя гульні",
     "Databases.Settings.Actions": "Дзеянні",
     "Databases.Settings.AddGames": "Дадаць гульні",
     "Databases.Settings.ExportPGN": "Экспартаваць у PGN",
     "Databases.Delete.Title": "Выдаліць базу дадзеных",
-    "Databases.Delete.Message":
-      "Вы ўпэўнены, што хочаце выдаліць гэтую базу дадзеных?",
-
+    "Databases.Delete.Message": "Вы ўпэўнены, што хочаце выдаліць гэтую базу дадзеных?",
     "Files.Title": "Файлы",
     "Files.FileType": "Тып файла",
     "Files.FileType.Game": "Гульня",
@@ -263,7 +241,6 @@ export const be_BY = {
     "Files.Edit.Title": "Рэдагаваць файл",
     "Files.Create.Title": "Стварыць файл",
     "Files.Search": "Пошук файлаў",
-
     "Settings.Board": "Дошка",
     "Settings.Inputs": "Уводы",
     "Settings.OpeningReport": "Справаздача па дэбютах",
@@ -272,9 +249,7 @@ export const be_BY = {
     "Settings.Sound": "Гук",
     "Settings.Keybinds": "Гарачыя клавішы",
     "Settings.Directories": "Каталогі",
-
-    "Settings.Board.Desc":
-      "Наладзіць дошку аналізу і элементы кіравання гульнёй",
+    "Settings.Board.Desc": "Наладзіць дошку аналізу і элементы кіравання гульнёй",
     "Settings.PieceDest": "Месцы прызначэння фігур",
     "Settings.PieceDest.Desc": "Паказаць магчымыя хады для кожнай фігуры",
     "Settings.Arrows": "Стрэлкі",
@@ -282,11 +257,9 @@ export const be_BY = {
     "Settings.SnapArrows": "Замкнуць стрэлкі",
     "Settings.SnapArrows.Desc": "Замкнуць стрэлкі на дапушчальныя хады",
     "Settings.ConsecutiveArrows": "Паслядоўныя стрэлкі",
-    "Settings.ConsecutiveArrows.Desc":
-      "Паказваць некалькі стрэлак для лепшай лініі, калі яна складаецца з некалькіх хадоў адной і той жа фігурай",
+    "Settings.ConsecutiveArrows.Desc": "Паказваць некалькі стрэлак для лепшай лініі, калі яна складаецца з некалькіх хадоў адной і той жа фігурай",
     "Settings.EraseDrawablesOnClick": "Сцерці пазнакі пры кліку",
-    "Settings.EraseDrawablesOnClick.Desc":
-      "Ачысціць дошку ад намаляваных стрэлак і кругоў пры націску левай кнопкі мышы",
+    "Settings.EraseDrawablesOnClick.Desc": "Ачысціць дошку ад намаляваных стрэлак і кругоў пры націску левай кнопкі мышы",
     "Settings.AutoPromition": "Аўтаматычнае павышэнне",
     "Settings.AutoPromition.Desc": "Аўтаматычна павышаць да каралевы",
     "Settings.Coordinates": "Каардынаты",
@@ -294,36 +267,29 @@ export const be_BY = {
     "Settings.AutoSave": "Аўтазахаванне",
     "Settings.AutoSave.Desc": "Аўтаматычна захоўваць пасля кожнага ходу",
     "Settings.PreviewBoard": "Папярэдні прагляд дошкі",
-    "Settings.PreviewBoard.Desc":
-      "Паказваць дошку пры навядзенні курсора на ход у аналізе",
+    "Settings.PreviewBoard.Desc": "Паказваць дошку пры навядзенні курсора на ход у аналізе",
     "Settings.ScrollThroughMoves": "Пракрутка хадоў",
-    "Settings.ScrollThroughMoves.Desc":
-      "Уключыць або выключыць пракрутку хадоў на дошцы",
+    "Settings.ScrollThroughMoves.Desc": "Уключыць або выключыць пракрутку хадоў на дошцы",
     "Settings.Inputs.Desc": "Наладзіць уводы",
     "Settings.Inputs.TextInput": "Тэкставы ўвод",
     "Settings.Inputs.TextInput.Desc": "Уводзіць хады тэкстам",
     "Settings.Inputs.SpellCheck": "Праверка арфаграфіі",
-    "Settings.Inputs.SpellCheck.Desc":
-      "Уключыць або выключыць праверку арфаграфіі пры ўводзе тэксту",
+    "Settings.Inputs.SpellCheck.Desc": "Уключыць або выключыць праверку арфаграфіі пры ўводзе тэксту",
     "Settings.OpeningReport.Desc": "Наладзіць параметры справаздачы па дэбютах",
     "Settings.OpeningReport.PercentCoverage": "Працэнт ахопу",
-    "Settings.OpeningReport.PercentCoverage.Desc":
-      "Працэнт ахопленых хадоў у кожнай пазіцыі",
+    "Settings.OpeningReport.PercentCoverage.Desc": "Працэнт ахопленых хадоў у кожнай пазіцыі",
     "Settings.OpeningReport.MinGames": "Мінімальная колькасць гульняў",
-    "Settings.OpeningReport.MinGames.Desc":
-      "Мінімальная колькасць гульняў для кожнай пазіцыі, каб быць улічанай",
+    "Settings.OpeningReport.MinGames.Desc": "Мінімальная колькасць гульняў для кожнай пазіцыі, каб быць улічанай",
     "Settings.Anarchy.Desc": "Вясёлыя опцыі",
     "Settings.Anarchy.ForcedEnCroissant": "Прымусовы En Croissant",
-    "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Змушае рабіць ход En Croissant, калі гэта легальны ход.",
+    "Settings.Anarchy.ForcedEnCroissant.Desc": "Змушае рабіць ход En Croissant, калі гэта легальны ход.",
     "Settings.Appearance.Desc": "Наладзіць знешні выгляд праграмы",
     "Settings.Appearance.Theme": "Тэма",
     "Settings.Appearance.Theme.Desc": "Агульная каляровая схема",
     "Settings.Appearance.Theme.Light": "Светлая",
     "Settings.Appearance.Theme.Dark": "Цёмная",
     "Settings.Appearance.TitleBar": "Загаловак акна",
-    "Settings.Appearance.TitleBar.Desc":
-      "Выберыце паміж стандартнай або наладжвальнай панэллю загалоўка",
+    "Settings.Appearance.TitleBar.Desc": "Выберыце паміж стандартнай або наладжвальнай панэллю загалоўка",
     "Settings.Appearance.Language": "Мова",
     "Settings.Appearance.Language.Desc": "Мова праграмы",
     "Settings.Appearance.TitleBar.Native": "Стандартная",
@@ -331,11 +297,9 @@ export const be_BY = {
     "Settings.Appearance.FontSize": "Памер шрыфта",
     "Settings.Appearance.FontSize.Desc": "Агульны памер шрыфта",
     "Settings.Appearance.PieceSet": "Набор фігур",
-    "Settings.Appearance.PieceSet.Desc":
-      "Фігуры, што выкарыстоўваюцца на дошцы",
+    "Settings.Appearance.PieceSet.Desc": "Фігуры, што выкарыстоўваюцца на дошцы",
     "Settings.Appearance.BoardImage": "Выява дошкі",
-    "Settings.Appearance.BoardImage.Desc":
-      "Выява, што выкарыстоўваецца як фон для дошкі",
+    "Settings.Appearance.BoardImage.Desc": "Выява, што выкарыстоўваецца як фон для дошкі",
     "Settings.Appearance.AccentColor": "Асноўны колер",
     "Settings.Appearance.AccentColor.Desc": "Асноўны колер праграмы",
     "Settings.Sound.Desc": "Наладзіць параметры гуку",
@@ -343,17 +307,14 @@ export const be_BY = {
     "Settings.Sound.Volume.Desc": "Агульная гучнасць",
     "Settings.Sound.Collection": "Калекцыя гукаў",
     "Settings.Sound.Collection.Desc": "Выкарыстоўваная калекцыя гукаў",
-    "Settings.Directories.Desc":
-      "Наладзіць каталогі, якія выкарыстоўваюцца праграмай",
+    "Settings.Directories.Desc": "Наладзіць каталогі, якія выкарыстоўваюцца праграмай",
     "Settings.Directories.Files": "Каталог для файлаў",
-    "Settings.Directories.Files.Desc":
-      "Тут захоўваюцца гульнявыя файлы на старонцы файлаў",
-
+    "Settings.Directories.Files.Desc": "Тут захоўваюцца гульнявыя файлы на старонцы файлаў",
     "PgnInput.Comments": "Каментарыі",
     "PgnInput.Glyphs": "Сімвалы",
     "PgnInput.Variations": "Варыяцыі",
     "PgnInput.ExtraMarkups": "Дадатковыя пазнакі",
     "PgnInput.MaxDepth": "Максімальная глыбіня",
-    "PgnInput.TotalMoves": "Агульная колькасць хадоў",
-  },
-};
+    "PgnInput.TotalMoves": "Агульная колькасць хадоў"
+  }
+}

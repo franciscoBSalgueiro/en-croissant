@@ -1,5 +1,5 @@
-export const uk_UA = {
-  translation: {
+{
+  "translation": {
     "Common.On": "УВІМК",
     "Common.Off": "ВИМК",
     "Common.Name": "Ім'я",
@@ -46,12 +46,10 @@ export const uk_UA = {
     "Common.Stalemate": "Пат",
     "Common.WHITE": "БІЛІ",
     "Common.BLACK": "ЧОРНІ",
-
     "GoMode.Time": "Час",
     "GoMode.Depth": "Глибина",
     "GoMode.Nodes": "Вузли",
     "GoMode.Infinite": "Нескінченність",
-
     "Annotate.Brilliant": "Блискуче",
     "Annotate.Good": "Добре",
     "Annotate.Interesting": "Цікаво",
@@ -76,7 +74,6 @@ export const uk_UA = {
     "Annotate.WithIdea": "З ідеєю",
     "Annotate.OnlyMove": "Єдиний хід",
     "Annotate.Zugzwang": "Цугцванг",
-
     "RichText.Bold": "Жирний",
     "RichText.Italic": "Курсив",
     "RichText.Underline": "Підкреслений",
@@ -92,14 +89,12 @@ export const uk_UA = {
     "RichText.NumberedList": "Нумерований список",
     "RichText.Link": "Посилання",
     "RichText.RemoveLink": "Видалити посилання",
-
     "TimeControl.UltraBullet": "Ультра Буллет",
     "TimeControl.Bullet": "Буллет",
     "TimeControl.Blitz": "Бліц",
     "TimeControl.Rapid": "Рапід",
     "TimeControl.Classical": "Класика",
     "TimeControl.Correspondence": "Листування",
-
     "Menu.File": "Файл",
     "Menu.File.NewTab": "Нова вкладка",
     "Menu.File.OpenFile": "Відкрити файл",
@@ -112,16 +107,13 @@ export const uk_UA = {
     "Menu.Help.OpenLogs": "Відкрити логи",
     "Menu.Help.CheckUpdate": "Перевірити оновлення",
     "Menu.Help.About": "Про програму",
-
     "SideBar.Board": "Дошка",
     "SideBar.User": "Користувач",
     "SideBar.Files": "Файли",
     "SideBar.Databases": "Бази даних",
     "SideBar.Engines": "Движки",
     "SideBar.Settings": "Налаштування",
-
     "Tab.NewTab": "Нова вкладка",
-
     "Home.Card.PlayChess.Title": "Грати в шахи",
     "Home.Card.PlayChess.Desc": "Грайте проти движка або друга",
     "Home.Card.PlayChess.Button": "Грати",
@@ -134,7 +126,6 @@ export const uk_UA = {
     "Home.Card.Puzzle.Title": "Головоломки",
     "Home.Card.Puzzle.Desc": "Тренуйте шахові навички",
     "Home.Card.Puzzle.Button": "Тренуватися",
-
     "Board.Tabs.Practice": "Практика",
     "Board.Tabs.Analysis": "Аналіз",
     "Board.Tabs.Database": "База даних",
@@ -142,10 +133,8 @@ export const uk_UA = {
     "Board.Tabs.Info": "Інформація",
     "Board.Practice.Train": "Тренуватися",
     "Board.Practice.Build": "Створити",
-    "Board.Practice.NoPositionForTrain1":
-      "Немає позицій для тренування. Спочатку додайте ходи в цей файл PGN.",
-    "Board.Practice.NoPositionForTrain2":
-      "Необхідно перейти в режим аналізу, щоб додати ходи.",
+    "Board.Practice.NoPositionForTrain1": "Немає позицій для тренування. Спочатку додайте ходи в цей файл PGN.",
+    "Board.Practice.NoPositionForTrain2": "Необхідно перейти в режим аналізу, щоб додати ходи.",
     "Board.Practice.SeeAnser": "Подивитися відповідь",
     "Board.Practice.Practiced": "Відпрацьовано",
     "Board.Practice.Due": "Підлягає тренуванню",
@@ -167,14 +156,12 @@ export const uk_UA = {
     "Board.Analysis.GeneratingReport": "Створення звіту",
     "Board.Analysis.NotAnalysed": "Не проаналізовано",
     "Board.Analysis.EngineRequired": "Потрібен движок",
-    "Board.Analysis.RefDBRequired":
-      "Не вибрано базу даних. Спочатку виберіть базу даних на сторінці баз даних.",
+    "Board.Analysis.RefDBRequired": "Не вибрано базу даних. Спочатку виберіть базу даних на сторінці баз даних.",
     "Board.Analysis.Time": "Час (мс)",
     "Board.Analysis.Reversed": "Зворотний аналіз",
     "Board.Analysis.Reversed.Desc": "Аналізувати гру з останньої позиції.",
     "Board.Analysis.AnnotateNovelties": "Анотувати новинки",
-    "Board.Analysis.AnnotateNovelties.Desc":
-      "Додати коментар до першої позиції, якої немає в базі даних.",
+    "Board.Analysis.AnnotateNovelties.Desc": "Додати коментар до першої позиції, якої немає в базі даних.",
     "Board.Analysis.Analyze": "Аналізувати",
     "Board.Analysis.Advantage": "Перевага",
     "Board.Analysis.Accuracy": "Точність",
@@ -192,7 +179,6 @@ export const uk_UA = {
     "Board.Database.TimeControl": "Контроль часу",
     "Board.Database.AverageRating": "Середній рейтинг",
     "Board.Annotate.WriteHere": "Пишіть тут...",
-
     "Engines.Title": "Движки",
     "Engines.Settings.NoEngine": "Движок не вибрано",
     "Engines.Settings.SearchSettings": "Налаштування пошуку",
@@ -211,12 +197,9 @@ export const uk_UA = {
     "Engines.Add.Name.Autodetect": "Автовизначення",
     "Engines.Add.Elo.Desc": "Ело движка",
     "Engines.Add.ImageFile": "Файл зображення",
-    "Engines.Add.ImageFile.Desc":
-      "Натисніть для вибору файлу зображення (рекомендовано: 60x60)",
+    "Engines.Add.ImageFile.Desc": "Натисніть для вибору файлу зображення (рекомендовано: 60x60)",
     "Engines.Remove.Title": "Видалити движок",
-    "Engines.Remove.Message":
-      "Ви впевнені, що хочете видалити цей движок із En Croissant?",
-
+    "Engines.Remove.Message": "Ви впевнені, що хочете видалити цей движок із En Croissant?",
     "Databases.Title": "Бази даних",
     "Databases.Card.Games": "Ігри",
     "Databases.Card.Players": "Гравці",
@@ -228,27 +211,22 @@ export const uk_UA = {
     "Databases.Add.Convert": "Конвертувати",
     "Databases.Settings.ReferenceDatabase": "Довідкова база даних",
     "Databases.Settings.Indexed": "Проіндексовано",
-    "Databases.Settings.Indexed.Desc":
-      "Індекси використовуються для прискорення пошуку, але займають додаткове місце.",
+    "Databases.Settings.Indexed.Desc": "Індекси використовуються для прискорення пошуку, але займають додаткове місце.",
     "Databases.Settings.Events": "Події",
     "Databases.Settings.Explore": "Досліджувати",
     "Databases.Settings.AdvancedTools": "Розширені інструменти",
     "Databases.Settings.MergePlayers": "Об'єднати гравців",
-    "Databases.Settings.MergePlayers.Desc":
-      "Заміняє всі випадки першого гравця на другого в базі даних.",
+    "Databases.Settings.MergePlayers.Desc": "Заміняє всі випадки першого гравця на другого в базі даних.",
     "Databases.Settings.Merge": "Об'єднати",
     "Databases.Settings.BatchDelete": "Масове видалення",
-    "Databases.Settings.BatchDelete.Desc":
-      "Ці дії безповоротно видалять ігри з бази даних. Використовуйте обережно.",
+    "Databases.Settings.BatchDelete.Desc": "Ці дії безповоротно видалять ігри з бази даних. Використовуйте обережно.",
     "Databases.Settings.RemoveDup": "Видалити дублікати",
     "Databases.Settings.RemoveEmpty": "Видалити порожні ігри",
     "Databases.Settings.Actions": "Дії",
     "Databases.Settings.AddGames": "Додати ігри",
     "Databases.Settings.ExportPGN": "Експортувати в PGN",
     "Databases.Delete.Title": "Видалити базу даних",
-    "Databases.Delete.Message":
-      "Ви впевнені, що хочете видалити цю базу даних?",
-
+    "Databases.Delete.Message": "Ви впевнені, що хочете видалити цю базу даних?",
     "Files.Title": "Файли",
     "Files.FileType": "Тип файлу",
     "Files.FileType.Game": "Гра",
@@ -263,7 +241,6 @@ export const uk_UA = {
     "Files.Edit.Title": "Редагувати файл",
     "Files.Create.Title": "Створити файл",
     "Files.Search": "Пошук файлів",
-
     "Settings.Board": "Дошка",
     "Settings.Inputs": "Вводи",
     "Settings.OpeningReport": "Звіт по дебютах",
@@ -272,9 +249,7 @@ export const uk_UA = {
     "Settings.Sound": "Звук",
     "Settings.Keybinds": "Гарячі клавіші",
     "Settings.Directories": "Каталоги",
-
-    "Settings.Board.Desc":
-      "Налаштувати дошку аналізу та елементи керування грою",
+    "Settings.Board.Desc": "Налаштувати дошку аналізу та елементи керування грою",
     "Settings.PieceDest": "Місця призначення фігур",
     "Settings.PieceDest.Desc": "Показати можливі ходи для кожної фігури",
     "Settings.Arrows": "Стрілки",
@@ -282,11 +257,9 @@ export const uk_UA = {
     "Settings.SnapArrows": "Закріпити стрілки",
     "Settings.SnapArrows.Desc": "Закріпити стрілки на допустимі ходи",
     "Settings.ConsecutiveArrows": "Послідовні стрілки",
-    "Settings.ConsecutiveArrows.Desc":
-      "Показувати кілька стрілок для найкращої лінії, якщо вона складається з декількох ходів однією і тією ж фігурою",
+    "Settings.ConsecutiveArrows.Desc": "Показувати кілька стрілок для найкращої лінії, якщо вона складається з декількох ходів однією і тією ж фігурою",
     "Settings.EraseDrawablesOnClick": "Стерти позначки при кліку",
-    "Settings.EraseDrawablesOnClick.Desc":
-      "Очистити дошку від намальованих стрілок і кіл при натисканні лівої кнопки миші",
+    "Settings.EraseDrawablesOnClick.Desc": "Очистити дошку від намальованих стрілок і кіл при натисканні лівої кнопки миші",
     "Settings.AutoPromition": "Автоматичне підвищення",
     "Settings.AutoPromition.Desc": "Автоматично підвищувати до ферзя",
     "Settings.Coordinates": "Координати",
@@ -294,36 +267,29 @@ export const uk_UA = {
     "Settings.AutoSave": "Автозбереження",
     "Settings.AutoSave.Desc": "Автоматично зберігати після кожного ходу",
     "Settings.PreviewBoard": "Попередній перегляд дошки",
-    "Settings.PreviewBoard.Desc":
-      "Показувати дошку при наведенні курсора на хід в аналізі",
+    "Settings.PreviewBoard.Desc": "Показувати дошку при наведенні курсора на хід в аналізі",
     "Settings.ScrollThroughMoves": "Прокрутка ходів",
-    "Settings.ScrollThroughMoves.Desc":
-      "Увімкнути або вимкнути прокрутку ходів на дошці",
+    "Settings.ScrollThroughMoves.Desc": "Увімкнути або вимкнути прокрутку ходів на дошці",
     "Settings.Inputs.Desc": "Налаштувати вводи",
     "Settings.Inputs.TextInput": "Текстовий ввод",
     "Settings.Inputs.TextInput.Desc": "Вводити ходи текстом",
     "Settings.Inputs.SpellCheck": "Перевірка орфографії",
-    "Settings.Inputs.SpellCheck.Desc":
-      "Увімкнути або вимкнути перевірку орфографії при вводі тексту",
+    "Settings.Inputs.SpellCheck.Desc": "Увімкнути або вимкнути перевірку орфографії при вводі тексту",
     "Settings.OpeningReport.Desc": "Налаштувати параметри звіту по дебютах",
     "Settings.OpeningReport.PercentCoverage": "Процент покриття",
-    "Settings.OpeningReport.PercentCoverage.Desc":
-      "Процент охоплених ходів у кожній позиції",
+    "Settings.OpeningReport.PercentCoverage.Desc": "Процент охоплених ходів у кожній позиції",
     "Settings.OpeningReport.MinGames": "Мінімальна кількість ігор",
-    "Settings.OpeningReport.MinGames.Desc":
-      "Мінімальна кількість ігор для кожної позиції, щоб бути врахованою",
+    "Settings.OpeningReport.MinGames.Desc": "Мінімальна кількість ігор для кожної позиції, щоб бути врахованою",
     "Settings.Anarchy.Desc": "Веселі опції",
     "Settings.Anarchy.ForcedEnCroissant": "Примусовий En Croissant",
-    "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "Змушує робити хід En Croissant, якщо це легальний хід.",
+    "Settings.Anarchy.ForcedEnCroissant.Desc": "Змушує робити хід En Croissant, якщо це легальний хід.",
     "Settings.Appearance.Desc": "Налаштувати зовнішній вигляд програми",
     "Settings.Appearance.Theme": "Тема",
     "Settings.Appearance.Theme.Desc": "Загальна кольорова схема",
     "Settings.Appearance.Theme.Light": "Світла",
     "Settings.Appearance.Theme.Dark": "Темна",
     "Settings.Appearance.TitleBar": "Заголовок вікна",
-    "Settings.Appearance.TitleBar.Desc":
-      "Виберіть між стандартною або настроюваною панеллю заголовка",
+    "Settings.Appearance.TitleBar.Desc": "Виберіть між стандартною або настроюваною панеллю заголовка",
     "Settings.Appearance.Language": "Мова",
     "Settings.Appearance.Language.Desc": "Мова програми",
     "Settings.Appearance.TitleBar.Native": "Стандартна",
@@ -333,8 +299,7 @@ export const uk_UA = {
     "Settings.Appearance.PieceSet": "Набір фігур",
     "Settings.Appearance.PieceSet.Desc": "Фігури, що використовуються на дошці",
     "Settings.Appearance.BoardImage": "Зображення дошки",
-    "Settings.Appearance.BoardImage.Desc":
-      "Зображення, яке використовується як фон для дошки",
+    "Settings.Appearance.BoardImage.Desc": "Зображення, яке використовується як фон для дошки",
     "Settings.Appearance.AccentColor": "Основний колір",
     "Settings.Appearance.AccentColor.Desc": "Основний колір програми",
     "Settings.Sound.Desc": "Налаштувати параметри звуку",
@@ -342,17 +307,14 @@ export const uk_UA = {
     "Settings.Sound.Volume.Desc": "Загальна гучність",
     "Settings.Sound.Collection": "Колекція звуків",
     "Settings.Sound.Collection.Desc": "Використовувана колекція звуків",
-    "Settings.Directories.Desc":
-      "Налаштувати каталоги, що використовуються програмою",
+    "Settings.Directories.Desc": "Налаштувати каталоги, що використовуються програмою",
     "Settings.Directories.Files": "Каталог для файлів",
-    "Settings.Directories.Files.Desc":
-      "Тут зберігаються ігрові файли на сторінці файлів",
-
+    "Settings.Directories.Files.Desc": "Тут зберігаються ігрові файли на сторінці файлів",
     "PgnInput.Comments": "Коментарі",
     "PgnInput.Glyphs": "Символи",
     "PgnInput.Variations": "Варіації",
     "PgnInput.ExtraMarkups": "Додаткові позначки",
     "PgnInput.MaxDepth": "Максимальна глибина",
-    "PgnInput.TotalMoves": "Загальна кількість ходів",
-  },
-};
+    "PgnInput.TotalMoves": "Загальна кількість ходів"
+  }
+}

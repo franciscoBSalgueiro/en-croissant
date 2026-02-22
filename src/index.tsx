@@ -5,22 +5,22 @@ import { createRoot } from "react-dom/client";
 import { initReactI18next } from "react-i18next";
 import App from "./App";
 
-import { be_BY } from "./translation/be_BY";
-import { de_DE } from "./translation/de_DE";
-import { en_GB } from "./translation/en_GB";
-import { en_US } from "./translation/en_US";
-import { es_ES } from "./translation/es_ES";
-import { fr_FR } from "./translation/fr_FR";
-import { it_IT } from "./translation/it_IT";
-import { ko_KR } from "./translation/ko_KR";
-import { nb_NO } from "./translation/nb_NO";
-import { pl_PL } from "./translation/pl_PL";
-import { pt_PT } from "./translation/pt_PT";
-import { ru_RU } from "./translation/ru_RU";
-import { tr_TR } from "./translation/tr_TR";
-import { uk_UA } from "./translation/uk_UA";
-import { zh_CN } from "./translation/zh_CN";
-import { zh_TW } from "./translation/zh_TW";
+import be_BY from "./translation/be_BY.json";
+import de_DE from "./translation/de_DE.json";
+import en_GB from "./translation/en_GB.json";
+import en_US from "./translation/en_US.json";
+import es_ES from "./translation/es_ES.json";
+import fr_FR from "./translation/fr_FR.json";
+import it_IT from "./translation/it_IT.json";
+import ko_KR from "./translation/ko_KR.json";
+import nb_NO from "./translation/nb_NO.json";
+import pl_PL from "./translation/pl_PL.json";
+import pt_PT from "./translation/pt_PT.json";
+import ru_RU from "./translation/ru_RU.json";
+import tr_TR from "./translation/tr_TR.json";
+import uk_UA from "./translation/uk_UA.json";
+import zh_CN from "./translation/zh_CN.json";
+import zh_TW from "./translation/zh_TW.json";
 
 i18n.use(initReactI18next).init({
   resources: {
