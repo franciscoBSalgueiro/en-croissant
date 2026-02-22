@@ -153,6 +153,23 @@ function Puzzles({ id }: { id: string }) {
   const solutionAbortRef = useRef<AbortController | null>(null);
 
   function generatePuzzle(db: string) {
+    let nextIndex = puzzles.findIndex(
+      (p, i) => i > currentPuzzle && p.completion === "incomplete",
+    );
+    if (nextIndex === -1) {
+      nextIndex = puzzles.findIndex(
+        (p, i) => i < currentPuzzle && p.completion === "incomplete",
+      );
+    }
+
+    if (nextIndex !== -1) {
+      solutionAbortRef.current?.abort();
+      setCurrentPuzzle(nextIndex);
+      setPuzzle(puzzles[nextIndex]);
+      setTimerStart(Date.now() - (puzzles[nextIndex].timeSpent || 0));
+      return;
+    }
+
     solutionAbortRef.current?.abort();
 
     let range = ratingRange;
