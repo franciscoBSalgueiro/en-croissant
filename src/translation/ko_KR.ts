@@ -7,6 +7,7 @@ export const ko_KR = {
     "Common.Version": "버전",
     "Common.Enabled": "활성화됨",
     "Common.Remove": "제거",
+    "Common.Duplicate": "복제",
     "Common.Delete": "삭제",
     "Common.Add": "추가",
     "Common.Open": "열기",
@@ -148,16 +149,31 @@ export const ko_KR = {
     "Home.Card.Puzzle.Desc": "체스 실력을 훈련하세요",
     "Home.Card.Puzzle.Button": "훈련하기",
 
+    "Home.Card.NewRepertoire.Title": "새 레퍼토리",
+    "Home.Card.NewRepertoire.Desc": "오프닝 레퍼토리를 쌓고 연습하세요",
+    "Home.Card.NewRepertoire.Button": "만들기",
+    "Home.Card.NewRepertoire.NamePlaceholder": "레퍼토리 이름 입력",
+    "Home.Card.NewRepertoire.Color": "다음으로 플레이",
+
     "Home.PuzzleTraining": "퍼즐 훈련",
+
+    "Home.RecentFiles.Title": "최근 파일",
+    "Home.RecentFiles.NoRecentFiles": "최근에 열린 파일이 없습니다",
+    "Home.RecentFiles.Empty": "최근에 열린 파일이 없습니다",
+    "Home.RecentFiles.DueCount": "{{count}}개 예정",
+    "Home.RecentFiles.OpenFile": "열기",
 
     "Home.NewGame": "새 게임",
 
     "Home.Accounts.Title": "계정",
     "Home.Accounts.Empty.Title": "연결된 계정 없음",
     "Home.Accounts.Empty.Description":
-      "Lichess 또는 Chess.com 계정을 연결하여 게임을 분석하고 진행 상황을 추적하세요",
+      "Lichess 또는 Chess.com 계정을 연결하여 게임을 분석하고 진행 상황을 추적하세요.",
     "Home.Accounts.Add": "계정 추가",
     "Home.Accounts.SelectPlayer": "플레이어 선택",
+    "Home.Accounts.PlayerName": "플레이어 이름",
+    "Home.Accounts.PlayerName.Desc":
+      "한 플레이어의 여러 계정은 그룹으로 묶입니다",
     "Home.Accounts.Website": "웹사이트",
     "Home.Accounts.Username": "사용자 이름",
     "Home.Accounts.EnterUsername": "사용자 이름을 입력하세요",
@@ -178,6 +194,9 @@ export const ko_KR = {
     "Home.Databases.ProcessingGames": "게임 처리 중...",
     "Home.Databases.ErrorLoading": "데이터베이스 로드 오류: {{error}}",
     "Home.Databases.NoDatabasesFound": "데이터베이스를 찾을 수 없습니다",
+    "Home.Databases.Empty.Title": "게임을 찾을 수 없습니다.",
+    "Home.Databases.Empty.Description":
+      "이 플레이어의 게임을 아직 다운로드하지 않은 것 같습니다.",
 
     "Board.Action.TakeSnapshot": "스냅샷 찍기",
     "Board.Action.AnalyzeGame": "게임 분석",
@@ -204,18 +223,41 @@ export const ko_KR = {
     "Board.Practice.Train": "훈련",
     "Board.Practice.Build": "구축",
     "Board.Practice.NoPositionForTrain1":
-      "연습할 포지션이 없습니다. 이 PGN 파일에 수를 추가하는 것부터 시작하세요.",
-    "Board.Practice.NoPositionForTrain2":
-      "수를 추가하려면 분석 모드로 변경해야 합니다.",
+      "연습할 포지션이 없습니다. 구축 탭에서 레퍼토리에 수를 추가하세요.",
+    "Board.Practice.GoToBuild": "구축으로 이동",
     "Board.Practice.SeeAnser": "답 보기",
-    "Board.Practice.Practiced": "연습함",
+    "Board.Practice.Practiced": "완료",
     "Board.Practice.Due": "예정",
     "Board.Practice.Unseen": "미확인",
     "Board.Practice.ShowAll": "모든 포지션 보기",
     "Board.Practice.ShowLogs": "로그 보기",
     "Board.Practice.PracticedAll1": "모든 포지션을 연습했습니다.",
-    "Board.Practice.PracticedAll2": "다음 복습은",
+    "Board.Practice.PracticedAll2": "다음 복습 예정은",
     "Board.Practice.CorrectMoveWas": "정답은 {{move}}였습니다",
+    "Board.Practice.StartPractice": "연습 시작",
+    "Board.Practice.MakeYourMove": "보드에 수를 두세요...",
+    "Board.Practice.Correct": "맞아요!",
+    "Board.Practice.HowDifficult": "이 수는 얼마나 어려웠나요?",
+    "Board.Practice.Again": "다시 해야함",
+    "Board.Practice.Hard": "어려움",
+    "Board.Practice.Good": "보통",
+    "Board.Practice.Easy": "쉬움",
+    "Board.Practice.AgainHint": "조금 있다가 다시 보여주세요 (1)",
+    "Board.Practice.HardHint": "기억해 내는 데 애를 먹었어요 (2)",
+    "Board.Practice.GoodHint": "생각을 조금 한 뒤 기억해 냈어요 (3)",
+    "Board.Practice.EasyHint": "보자마자 바로 알았어요 (4)",
+    "Board.Practice.KeyboardHint": "난이도를 빠르게 평가하려면 1~4를 누르세요",
+    "Board.Practice.NextPosition": "다음",
+    "Board.Practice.SessionCorrect": "맞음",
+    "Board.Practice.SessionIncorrect": "틀림",
+    "Board.Practice.Streak": "연속",
+    "Board.Practice.Accuracy": "정확도",
+    "Board.Practice.Progress": "진행 상황",
+    "Board.Practice.NotOnPosition": "연습 포지션에서 벗어났습니다.",
+    "Board.Practice.GoBackToPosition": "포지션으로 돌아가기",
+    "Board.Practice.DeckSynced": "덱 동기화됨",
+    "Board.Practice.SyncAdded": "{{count}}개의 새로운 포지션을 추가함",
+    "Board.Practice.SyncRemoved": "{{count}}개의 포지션을 제거함",
 
     "Board.Analysis.Engines": "엔진",
     "Board.Analysis.Report": "보고서",
@@ -237,6 +279,10 @@ export const ko_KR = {
     "Board.Analysis.AnnotateNovelties": "신수 주석",
     "Board.Analysis.AnnotateNovelties.Desc":
       "참조 데이터베이스에 없는 첫 번째 포지션에 주석을 추가합니다.",
+    "Board.Analysis.ShowVariations": "변형 수순 보기",
+    "Board.Analysis.ShowVariations.Desc":
+      "실수가 있다면 최선 수순을 추가합니다",
+
     "Board.Analysis.Analyze": "분석",
     "Board.Analysis.Advantage": "유리",
     "Board.Analysis.Accuracy": "정확도",
@@ -249,6 +295,9 @@ export const ko_KR = {
     "Board.Analysis.Tablebase.Draw": "무승부",
     "Board.Analysis.Tablebase.FiftyMoveRule": "*50수 규칙 때문에",
     "Board.Analysis.EngineSpeedHint": "엔진이 실행되는 속도",
+    "Board.Analysis.Opening": "오프닝",
+    "Board.Analysis.Middlegame": "미들게임",
+    "Board.Analysis.Endgame": "엔드게임",
 
     "Board.Database.Local": "로컬",
     "Board.Database.LichessAll": "리체스 전체",
@@ -278,19 +327,44 @@ export const ko_KR = {
 
     "Board.Practice.Reset.Title": "연습 기록 초기화",
     "Board.Practice.Reset.Description":
-      "이 포지션의 연습 기록을 초기화하시겠습니까?",
+      '정말로 "{{name}}"의 오프닝 데이터를 초기화하시겠습니까? 모든 학습 진행 상황이 사라집니다.',
     "Board.Practice.Positions": "포지션",
-    "Board.Practice.NoPositionsYet": "아직 포지션이 없습니다",
+    "Board.Practice.NoPositionsYet":
+      "아직 연습할 포지션을 추가하지 않았습니다.",
     "Board.Practice.Status": "상태",
     "Board.Practice.Logs": "로그",
     "Board.Practice.NoLogsYet": "아직 로그가 없습니다",
     "Board.Practice.Rating": "레이팅",
     "Board.Practice.Success": "성공",
     "Board.Practice.Fail": "실패",
-    "Board.Practice.Variations": "변형",
+    "Board.Practice.Variations": "변형 수순",
     "Board.Practice.MaxDepth": "최대 깊이",
-    "Board.Practice.TotalMoves": "총 수",
-    "Board.Practice.MarkStart": "연습 시작 위치로 표시합니다",
+    "Board.Practice.TotalMoves": "전체 수",
+    "Board.Practice.MarkStart":
+      "몇 수를 두고 원하는 오프닝의 시작 포지션에 도달하면 시작으로 표시하세요.",
+
+    "Board.Practice.Build.YourCoverage": "커버리지",
+    "Board.Practice.Build.Results": "결과",
+    "Board.Practice.Build.NextGap": "다음 빈틈으로 이동",
+    "Board.Practice.Build.BiggestGap": "가장 큰 빈틈으로 이동",
+    "Board.Practice.Build.NoRefDb":
+      "구축 보기를 사용하려면 참조 데이터베이스를 선택하세요.",
+    "Board.Practice.Build.NoGapsFound":
+      "빈틈이 없습니다. 레퍼토리가 완성되었습니다!",
+    "Board.Practice.Build.NoMovesFound":
+      "이 포지션에 대한 참조 데이터베이스의 수순이 없습니다.",
+    "Board.Practice.Build.Loading": "포지션 데이터 불러오는 중...",
+    "Board.Practice.Build.RareMoves": "드문 수",
+    "Board.Practice.Build.RareTooltip":
+      "준비가 필요할 만큼 대국 수가 많지 않음",
+    "Board.Practice.Build.OpponentMoves": "상대의 수",
+    "Board.Practice.Build.YourResponse": "나의 대응",
+    "Board.Practice.Build.GoToStart": "시작 포지션으로 이동",
+    "Board.Practice.Build.SetAsStart": "시작으로 설정",
+    "Board.Practice.Build.BeforeStart": "이 포지션은 시작 포지션 이전입니다",
+    "Board.Practice.Build.Presets": "빠른 시작",
+    "Board.Practice.Build.PresetsDesc":
+      "시작하려면 프리셋 중 하나를 선택하거나 보드에서 수를 두기 시작하세요.",
 
     "Board.Annotate.WriteHere": "여기에 작성하세요...",
 
@@ -423,8 +497,8 @@ export const ko_KR = {
 
     "Menu.MarkAsStart": "시작으로 표시",
     "Menu.PromoteToMainLine": "메인 라인으로 승격",
-    "Menu.PromoteVariation": "변형 승격",
-    "Menu.CopyVariationPGN": "변형 PGN 복사",
+    "Menu.PromoteVariation": "변형 수순 승격",
+    "Menu.CopyVariationPGN": "변형 수순 PGN 복사",
     "Menu.DeleteMove": "수 삭제",
 
     "Settings.Board": "보드",
@@ -435,8 +509,17 @@ export const ko_KR = {
     "Settings.Sound": "소리",
     "Settings.Keybinds": "단축키",
     "Settings.Directories": "경로",
+    "Settings.Repertoire": "레퍼토리",
 
     "Settings.Board.Desc": "분석 보드와 조작 방식을 설정합니다",
+    "Settings.Repertoire.Desc": "레퍼토리 설정을 사용자 정의합니다",
+    "Settings.Repertoire.Depth": "레퍼토리 깊이",
+    "Settings.Repertoire.Depth.Desc":
+      "수를 관련 있는 것으로 간주하기 위한 최소 게임 수",
+    "Settings.Repertoire.Essential": "필수",
+    "Settings.Repertoire.Standard": "표준",
+    "Settings.Repertoire.Deep": "깊게",
+    "Settings.Repertoire.Custom": "사용자 정의",
     "Settings.PieceDest": "기물 목적지",
     "Settings.PieceDest.Desc": "각 기물이 도달할 수 있는 칸을 표시합니다",
     "Settings.MoveHighlight": "수 강조 표시",
@@ -491,7 +574,7 @@ export const ko_KR = {
     "Settings.Anarchy.Desc": "재미있는 설정",
     "Settings.Anarchy.ForcedEnCroissant": "강제 En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc":
-      "En Croissant이 가능하다면 강제로 수행합니다.",
+      "En Croissant이 가능하다면 강제로 수행합니다",
     "Settings.Appearance.Desc": "앱의 시각적 요소를 설정합니다",
     "Settings.Appearance.Theme": "테마",
     "Settings.Appearance.Theme.Desc": "전체적인 색상 구성",
@@ -525,19 +608,18 @@ export const ko_KR = {
     "Settings.Keybinds.PressAnyKey": "아무 키나 누르세요",
     "Settings.Keybinds.Desc": "단축키를 설정합니다",
     "Settings.Key": "키",
-    "Settings.Privacy": "개인정보",
-    "Settings.Privacy.Desc": "개인정보 관련 설정",
+    "Settings.Privacy": "프라이버시",
+    "Settings.Privacy.Desc": "프라이버시 설정을 관리합니다",
     "Settings.Privacy.Telemetry": "텔레메트리",
-    "Settings.Privacy.Telemetry.Desc": "익명 사용 통계를 전송합니다",
+    "Settings.Privacy.Telemetry.Desc":
+      "익명 사용 데이터를 보내서 En Croissant을 개선하는데 도움을 주세요",
 
     "PgnInput.Comments": "주석",
     "PgnInput.Glyphs": "글리프",
-    "PgnInput.Variations": "변형",
+    "PgnInput.Variations": "변형 수순",
     "PgnInput.ExtraMarkups": "추가 마크업",
     "PgnInput.MaxDepth": "최대 깊이",
-    "PgnInput.TotalMoves": "총 수",
-
-    "Puzzle.JumpToNextPuzzleImmediately": "즉시 다음 퍼즐로 이동",
+    "PgnInput.TotalMoves": "전체 수",
 
     "Notation.ShowMoves": "수 표시",
     "Notation.HideMoves": "수 숨기기",
@@ -545,9 +627,10 @@ export const ko_KR = {
     "Notation.NormalView": "일반 보기",
     "Notation.ShowComments": "주석 표시",
     "Notation.HideComments": "주석 숨기기",
-    "Notation.ShowVariations": "변형 표시",
-    "Notation.HideVariations": "변형 숨기기",
+    "Notation.ShowVariations": "변형 수순 표시",
+    "Notation.HideVariations": "변형 수순 숨기기",
 
+    "Puzzle.JumpToNextPuzzleImmediately": "즉시 다음 퍼즐로 이동",
     "Puzzle.JumpToNextPuzzleImmediately.Desc":
       "정답/오답 후 즉시 다음 퍼즐로 이동합니다",
     "Puzzle.SelectDatabase": "데이터베이스 선택",
@@ -577,8 +660,9 @@ export const ko_KR = {
 
     "Error.Title": "오류",
     "Error.Unexpected": "예기치 않은 오류가 발생했습니다",
-    "Error.CopyStackTrace": "스택 트레이스 복사",
-    "Error.ReportIssue": "문제 신고",
+    "Error.CopyStackTrace": "스택 추적 복사",
+    "Error.ReportIssue":
+      "이 문제를 <github>GitHub</github> 또는 <discord>Discord 서버</discord>에 보고해주세요",
 
     "GameInfo.OpeningFor": "오프닝",
   },
