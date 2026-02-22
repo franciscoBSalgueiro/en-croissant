@@ -13,7 +13,11 @@
     "test": "vitest run",
     "lint": "tsc --noEmit && biome check ./src",
     "lint:ci": "tsc --noEmit && biome ci ./src --diagnostic-level=error",
-    "lint:fix": "biome check --write ./src"
+    "lint:fix": "biome check --write ./src",
+    "i18n:extract": "i18next-cli extract",
+    "i18n:status": "i18next-cli status",
+    "i18n:types": "i18next-cli types",
+    "i18n:sync": "i18next-cli sync"
   },
   "dependencies": {
     "@badrap/result": "^0.2.13",
@@ -92,6 +96,7 @@
     "@vanilla-extract/css": "^1.18.0",
     "@vanilla-extract/vite-plugin": "^5.1.4",
     "babel-plugin-react-compiler": "^1.0.0",
+    "i18next-cli": "^1.42.12",
     "jsdom": "^28.1.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
