@@ -669,21 +669,31 @@ export function getMaterialDiff(fen: string) {
   const board = res.unwrap().board;
   const { white, black } = board;
 
-  const pieceDiff = (piece: Role) =>
-    white.intersect(board[piece]).size() - black.intersect(board[piece]).size();
+  const startingCounts = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+  const roles: { key: keyof PiecesCount; role: Role }[] = [
+    { key: "p", role: "pawn" },
+    { key: "n", role: "knight" },
+    { key: "b", role: "bishop" },
+    { key: "r", role: "rook" },
+    { key: "q", role: "queen" },
+  ];
 
-  const pieces = {
-    p: pieceDiff("pawn"),
-    n: pieceDiff("knight"),
-    b: pieceDiff("bishop"),
-    r: pieceDiff("rook"),
-    q: pieceDiff("queen"),
-  };
+  const pieces: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+  const whiteCaptured: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+  const blackCaptured: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+
+  for (const { key, role } of roles) {
+    const whiteCount = white.intersect(board[role]).size();
+    const blackCount = black.intersect(board[role]).size();
+    pieces[key] = whiteCount - blackCount;
+    whiteCaptured[key] = Math.max(0, startingCounts[key] - blackCount);
+    blackCaptured[key] = Math.max(0, startingCounts[key] - whiteCount);
+  }
 
   const diff =
     pieces.p * 1 + pieces.n * 3 + pieces.b * 3 + pieces.r * 5 + pieces.q * 9;
 
-  return { pieces, diff };
+  return { pieces, whiteCaptured, blackCaptured, diff };
 }
 
 export function stripClock(fen: string): string {

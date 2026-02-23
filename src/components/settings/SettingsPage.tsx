@@ -39,6 +39,7 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
+  materialDisplayAtom,
   moveHighlightAtom,
   moveInputAtom,
   moveMethodAtom,
@@ -164,6 +165,7 @@ export default function Page() {
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
+  const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -305,6 +307,24 @@ export default function Page() {
         description: t("Settings.ScrollThroughMoves.Desc"),
         keywords: ["scroll", "moves", "wheel"],
         render: () => <SettingsSwitch atom={enableBoardScrollAtom} />,
+      },
+      {
+        id: "material-display",
+        category: "board",
+        title: t("Settings.MaterialDisplay"),
+        description: t("Settings.MaterialDisplay.Desc"),
+        keywords: ["material", "captured", "pieces", "difference"],
+        render: () => (
+          <Select
+            data={[
+              { label: t("Settings.MaterialDisplay.Diff"), value: "diff" },
+              { label: t("Settings.MaterialDisplay.All"), value: "all" },
+            ]}
+            allowDeselect={false}
+            value={materialDisplay}
+            onChange={(val) => setMaterialDisplay(val as "diff" | "all")}
+          />
+        ),
       },
       // Input settings
       {
@@ -504,12 +524,14 @@ export default function Page() {
       moveMethod,
       isNative,
       showCoordinates,
+      materialDisplay,
       filesDirectory,
       setMoveNotationType,
       setMoveMethod,
       setIsNative,
       setFilesDirectory,
       setShowCoordinates,
+      setMaterialDisplay,
     ],
   );
 

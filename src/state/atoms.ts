@@ -159,6 +159,10 @@ export const enableBoardScrollAtom = atomWithStorage<boolean>(
   "board-scroll",
   true,
 );
+export const materialDisplayAtom = atomWithStorage<"diff" | "all">(
+  "material-display",
+  "diff",
+);
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
   "show-coordinates-v2",

@@ -38,6 +38,7 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
+  materialDisplayAtom,
   moveHighlightAtom,
   moveInputAtom,
   practiceCardStartTimeAtom,
@@ -52,7 +53,7 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 import { chessboard } from "@/styles/Chessboard.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
-import { getMaterialDiff, getVariationLine } from "@/utils/chess";
+import { getVariationLine } from "@/utils/chess";
 import {
   chessopsError,
   forceEnPassant,
@@ -145,6 +146,7 @@ function Board({
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
+  const materialDisplay = useAtomValue(materialDisplayAtom);
 
   let dests: Map<SquareName, SquareName[]> = pos
     ? chessgroundDests(pos)
@@ -308,7 +310,6 @@ function Board({
     !!headers.white_time_control ||
     !!headers.black_time_control;
 
-  const materialDiff = getMaterialDiff(currentNode.fen);
   const practiceLock =
     !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 
@@ -398,13 +399,11 @@ function Board({
             }}
             height={BAR_HEIGHT}
           >
-            {materialDiff && (
-              <ShowMaterial
-                diff={materialDiff.diff}
-                pieces={materialDiff.pieces}
-                color={orientation === "white" ? "black" : "white"}
-              />
-            )}
+            <ShowMaterial
+              fen={currentNode.fen}
+              color={orientation === "white" ? "black" : "white"}
+              mode={materialDisplay}
+            />
             {hasClock && (
               <Clock
                 color={orientation === "black" ? "white" : "black"}
@@ -610,13 +609,11 @@ function Board({
 
             {moveInput && <MoveInput currentNode={currentNode} />}
 
-            {materialDiff && (
-              <ShowMaterial
-                diff={materialDiff.diff}
-                pieces={materialDiff.pieces}
-                color={orientation}
-              />
-            )}
+            <ShowMaterial
+              fen={currentNode.fen}
+              color={orientation}
+              mode={materialDisplay}
+            />
             {hasClock && (
               <Clock
                 color={orientation}
