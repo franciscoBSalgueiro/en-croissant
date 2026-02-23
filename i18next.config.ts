@@ -31,6 +31,14 @@ export default defineConfig({
 		primaryLanguage: "en-US",
 		defaultValue: null,
 		removeUnusedKeys: true,
+		preservePatterns: [
+			"Files.FileType.*",
+			"SideBar.*",
+			"TimeControl.*",
+			"Annotate.*",
+			"GoMode.*",
+			"Errors.*"
+		],
 		sort: true,
 	},
 	types: {

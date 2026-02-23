@@ -44,7 +44,27 @@ function AnnotationEditor() {
   );
 
   return (
-    <RichTextEditor editor={editor} spellCheck={spellCheck}>
+    <RichTextEditor
+      editor={editor}
+      spellCheck={spellCheck}
+      labels={{
+        boldControlLabel: t("RichText.Bold"),
+        italicControlLabel: t("RichText.Italic"),
+        underlineControlLabel: t("RichText.Underline"),
+        strikeControlLabel: t("RichText.Strike"),
+        clearFormattingControlLabel: t("RichText.ClearFormatting"),
+        h1ControlLabel: t("RichText.H1"),
+        h2ControlLabel: t("RichText.H2"),
+        h3ControlLabel: t("RichText.H3"),
+        h4ControlLabel: t("RichText.H4"),
+        blockquoteControlLabel: t("RichText.Quote"),
+        hrControlLabel: t("RichText.HLine"),
+        bulletListControlLabel: t("RichText.BulletList"),
+        orderedListControlLabel: t("RichText.NumberedList"),
+        linkControlLabel: t("RichText.Link"),
+        unlinkControlLabel: t("RichText.RemoveLink"),
+      }}
+    >
       <RichTextEditor.Toolbar>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />

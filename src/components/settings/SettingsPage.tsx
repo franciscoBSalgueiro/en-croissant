@@ -387,7 +387,16 @@ export default function Page() {
               render: () => (
                 <Select
                   allowDeselect={false}
-                  data={["Native", "Custom"]}
+                  data={[
+                    {
+                      value: "Native",
+                      label: t("Settings.Appearance.TitleBar.Native"),
+                    },
+                    {
+                      value: "Custom",
+                      label: t("Settings.Appearance.TitleBar.Custom"),
+                    },
+                  ]}
                   value={isNative ? "Native" : "Custom"}
                   onChange={(val) => setIsNative(val === "Native")}
                 />
