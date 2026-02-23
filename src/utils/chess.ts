@@ -228,6 +228,9 @@ export function headersToPGN(game: GameHeaders): string {
   if (game.variant) {
     headers += `[Variant "${game.variant}"]\n`;
   }
+  for (const [key, value] of Object.entries(game.other ?? {})) {
+    headers += `[${key} "${value}"]\n`;
+  }
   return headers;
 }
 
@@ -542,6 +545,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     Orientation,
     TimeControl,
     Variant,
+    ...other
   } = Object.fromEntries(headersN);
 
   const isValidOutcome = (value: string): value is Outcome => {
@@ -570,6 +574,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     orientation: isValidOrientation(Orientation) ? Orientation : "white",
     time_control: TimeControl,
     variant: Variant,
+    other: other,
   };
   return headers;
 }

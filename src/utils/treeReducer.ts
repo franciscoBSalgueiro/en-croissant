@@ -153,6 +153,7 @@ export type GameHeaders = {
   black_time_control?: string | null;
   eco?: string | null;
   variant?: string | null;
+  other?: Record<string, string>;
   // Repertoire headers
   start?: number[];
   orientation?: "white" | "black";
