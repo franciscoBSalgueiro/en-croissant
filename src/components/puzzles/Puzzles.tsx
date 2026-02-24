@@ -141,9 +141,11 @@ function Puzzles({ id }: { id: string }) {
 
   const avgTimeSeconds =
     wonPuzzles.length > 0
-      ? wonPuzzles.filter((p) => p.timeSpent).reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
-      wonPuzzles.length /
-      1000
+      ? wonPuzzles
+          .filter((p) => p.timeSpent)
+          .reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
+        wonPuzzles.length /
+        1000
       : 0;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
@@ -238,10 +240,12 @@ function Puzzles({ id }: { id: string }) {
   const [, setTick] = useState(0);
 
   // for the UI.
-  const isPuzzleIncomplete = puzzles[currentPuzzle]?.completion === "incomplete";
-  const elapsedTime = timerStart && isPuzzleIncomplete && trackTime
-    ? Date.now() - timerStart
-    : (puzzles[currentPuzzle]?.timeSpent || 0);
+  const isPuzzleIncomplete =
+    puzzles[currentPuzzle]?.completion === "incomplete";
+  const elapsedTime =
+    timerStart && isPuzzleIncomplete && trackTime
+      ? Date.now() - timerStart
+      : puzzles[currentPuzzle]?.timeSpent || 0;
 
   // set timer start
   useEffect(() => {
@@ -450,14 +454,13 @@ function Puzzles({ id }: { id: string }) {
                       description={t("Puzzle.TrackPuzzleTime.Desc")}
                       checked={trackTime}
                       onChange={(event) => {
-                          if (!event.currentTarget.checked) {
-                            setTimerStart(null);
-                            setTrackTime(false);
-                          } else {
-                            setTrackTime(true);
-                          }
+                        if (!event.currentTarget.checked) {
+                          setTimerStart(null);
+                          setTrackTime(false);
+                        } else {
+                          setTrackTime(true);
                         }
-                      }
+                      }}
                     />
                   </SimpleGrid>
                 </Stack>
@@ -470,26 +473,40 @@ function Puzzles({ id }: { id: string }) {
                 {t("Puzzle.Rating")}
               </Text>
               <Text fw={700} size="lg">
-                {(isPuzzleIncomplete && hideRating && puzzles[currentPuzzle]?.rating)
+                {isPuzzleIncomplete &&
+                hideRating &&
+                puzzles[currentPuzzle]?.rating
                   ? "?"
-                  : (puzzles[currentPuzzle]?.rating || "-")}
+                  : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
             </Paper>
 
-            {trackTime && (<Paper withBorder p="xs">
-              <Text size="xs" c="dimmed">
-                {t("Puzzle.Time")}
-              </Text>
-              <Text fw={700} size="lg" ff="monospace">
-                {formatTime(elapsedTime)}
-              </Text>
-            </Paper>)}
+            {trackTime && (
+              <Paper withBorder p="xs">
+                <Text size="xs" c="dimmed">
+                  {t("Puzzle.Time")}
+                </Text>
+                <Text fw={700} size="lg" ff="monospace">
+                  {formatTime(elapsedTime)}
+                </Text>
+              </Paper>
+            )}
 
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
                 {t("Puzzle.Accuracy")}
               </Text>
-              <Text fw={700} size="lg" c={accuracy === null ? "dimmed" : accuracy >= 50 ? "teal" : "orange"}>
+              <Text
+                fw={700}
+                size="lg"
+                c={
+                  accuracy === null
+                    ? "dimmed"
+                    : accuracy >= 50
+                      ? "teal"
+                      : "orange"
+                }
+              >
                 {accuracy !== null ? `${accuracy}%` : "-"}
               </Text>
             </Paper>
@@ -562,7 +579,7 @@ function Puzzles({ id }: { id: string }) {
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
                           parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
-                            "white"
+                          "white"
                             ? "black"
                             : "white",
                       },
