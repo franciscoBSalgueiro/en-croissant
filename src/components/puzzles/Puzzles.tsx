@@ -40,12 +40,12 @@ import {
   currentPuzzleTimerAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
-  trackPuzzleTimeAtom,
   progressivePuzzlesAtom,
   puzzleRatingRangeAtom,
   puzzleThemeAtom,
   selectedPuzzleDbAtom,
   tabsAtom,
+  trackPuzzleTimeAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatThemeLabel, formatTime } from "@/utils/format";
