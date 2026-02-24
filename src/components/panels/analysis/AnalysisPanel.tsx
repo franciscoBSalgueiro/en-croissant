@@ -87,7 +87,7 @@ function AnalysisPanel() {
   const navigate = useNavigate();
 
   return (
-    <Stack h="100%" px="sm">
+    <Stack h="100%" pl="sm">
       <Tabs
         h="100%"
         orientation="vertical"
