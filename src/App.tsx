@@ -39,7 +39,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
 import { getMatches } from "@tauri-apps/plugin-cli";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { attachConsole, info } from "@tauri-apps/plugin-log";
+import { attachConsole, info, warn, error } from "@tauri-apps/plugin-log";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 
@@ -116,8 +116,8 @@ const checkForUpdates = async () => {
         await relaunch();
       }
     }
-  } catch (error) {
-    console.error("Failed to check for updates:", error);
+  } catch (e) {
+    error(`Failed to check for updates: ${e}`);
   }
 };
 
@@ -152,7 +152,7 @@ function useAppStartup() {
       info("React app started successfully");
 
       // 3. Updates
-      await checkForUpdates();
+      checkForUpdates();
 
       // 4. State & Analytics
       const store = getDefaultStore();
@@ -181,7 +181,7 @@ function useAppStartup() {
           }
         }
       } catch (e) {
-        console.warn("Failed to parse CLI args", e);
+        warn(`Failed to parse CLI args: ${e}`);
       }
 
       // 6. DB Preload
