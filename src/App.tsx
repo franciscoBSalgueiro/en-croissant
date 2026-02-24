@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Autocomplete,
+  createTheme,
   Input,
   localStorageColorSchemeManager,
   MantineProvider,
@@ -10,11 +11,11 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
-import { attachConsole, info } from "@tauri-apps/plugin-log";
+import { attachConsole, error, info, warn } from "@tauri-apps/plugin-log";
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
-import { useCallback, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -70,15 +71,17 @@ const router = createRouter({
     loadDirs: async () => {
       const store = getDefaultStore();
       let doc = store.get(storedDocumentDirAtom);
+
       if (!doc) {
         try {
-          doc = await resolve(await documentDir(), "EnCroissant");
+          const docDir = await documentDir();
+          doc = await resolve(docDir, "EnCroissant");
         } catch (e) {
-          doc = await resolve(await homeDir(), "EnCroissant");
+          const hDir = await homeDir();
+          doc = await resolve(hDir, "EnCroissant");
         }
       }
-      const dirs: Dirs = { documentDir: doc };
-      return dirs;
+      return { documentDir: doc } as Dirs;
     },
   },
 });
@@ -89,16 +92,11 @@ declare module "@tanstack/react-router" {
   }
 }
 
-export default function App() {
-  const primaryColor = useAtomValue(primaryColorAtom);
-  const pieceSet = useAtomValue(pieceSetAtom);
-  const [, setTabs] = useAtom(tabsAtom);
-  const [, setActiveTab] = useAtom(activeTabAtom);
-
-  const checkForUpdates = useCallback(async () => {
+const checkForUpdates = async () => {
+  try {
     const update = await check();
     if (update) {
-      const yes = await ask("Do you want to install them now?", {
+      const yes = await ask("Do you want to install the new version now?", {
         title: "New version available",
       });
       if (yes) {
@@ -106,18 +104,44 @@ export default function App() {
         await relaunch();
       }
     }
-  }, []);
+  } catch (e) {
+    error(`Failed to check for updates: ${e}`);
+  }
+};
+
+const preloadReferenceDb = async (
+  store: ReturnType<typeof getDefaultStore>,
+) => {
+  const referenceDb = store.get(referenceDbAtom);
+  if (referenceDb) {
+    info(`Preloading reference database: ${referenceDb}`);
+    commands.preloadReferenceDb(referenceDb).catch((e: unknown) => {
+      info(`Failed to preload reference database: ${e}`);
+    });
+  }
+};
+
+function useAppStartup() {
+  const initialized = useRef(false);
+  const [, setTabs] = useAtom(tabsAtom);
+  const [, setActiveTab] = useAtom(activeTabAtom);
 
   useEffect(() => {
-    (async () => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const startupSequence = async () => {
       await commands.closeSplashscreen();
       await initUserAgent();
-      await checkForUpdates();
+
       const detach = await attachConsole();
       info("React app started successfully");
 
+      checkForUpdates();
+
       const store = getDefaultStore();
       const telemetryEnabled = store.get(telemetryEnabledAtom);
+
       posthog.init("phc_kgEBtifs0EgWlrl4ROYEbnsQ1b7BS2W5BKLNyXe7f8z", {
         api_host: "https://app.posthog.com",
         autocapture: false,
@@ -125,94 +149,94 @@ export default function App() {
         capture_pageleave: false,
         disable_session_recording: true,
       });
+
       if (telemetryEnabled) {
         posthog.capture("app_started", { version: await getVersion() });
       }
-      const matches = await getMatches();
-      if (matches.args.file.occurrences > 0) {
-        info(`Opening file from command line: ${matches.args.file.value}`);
-        if (typeof matches.args.file.value === "string") {
-          const file = matches.args.file.value;
-          openFile(file, setTabs, setActiveTab);
+      try {
+        const matches = await getMatches();
+        if (matches.args.file.occurrences > 0) {
+          info(`Opening file from command line: ${matches.args.file.value}`);
+          if (typeof matches.args.file.value === "string") {
+            const file = matches.args.file.value;
+            openFile(file, setTabs, setActiveTab);
+          }
         }
+      } catch (e) {
+        warn(`Failed to parse CLI args: ${e}`);
       }
 
-      return () => {
-        detach();
-      };
-    })();
-  }, []);
+      await preloadReferenceDb(store);
 
+      return detach;
+    };
+
+    let detachFn: (() => void) | undefined;
+    startupSequence().then((fn) => {
+      detachFn = fn;
+    });
+
+    return () => {
+      if (detachFn) detachFn();
+    };
+  }, [setTabs, setActiveTab]);
+}
+
+export default function App() {
+  const primaryColor = useAtomValue(primaryColorAtom);
+  const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
+
+  useAppStartup();
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, [fontSize]);
 
-  useEffect(() => {
-    const store = getDefaultStore();
-    const referenceDb = store.get(referenceDbAtom);
-    if (referenceDb) {
-      info(`Preloading reference database: ${referenceDb}`);
-      commands.preloadReferenceDb(referenceDb).catch((e: unknown) => {
-        info(`Failed to preload reference database: ${e}`);
-      });
-    }
-  }, []);
+  const theme = createTheme({
+    primaryColor,
+    colors: {
+      dark: [
+        "#C1C2C5",
+        "#A6A7AB",
+        "#909296",
+        "#5c5f66",
+        "#373A40",
+        "#2C2E33",
+        "#25262b",
+        "#1A1B1E",
+        "#141517",
+        "#101113",
+      ],
+    },
+    components: {
+      ActionIcon: ActionIcon.extend({
+        defaultProps: {
+          variant: "transparent",
+          color: "gray",
+        },
+      }),
+      TextInput: TextInput.extend({ defaultProps: { spellCheck } }),
+      Autocomplete: Autocomplete.extend({ defaultProps: { spellCheck } }),
+      Textarea: Textarea.extend({ defaultProps: { spellCheck } }),
+      Input: Input.extend({
+        defaultProps: {
+          // @ts-expect-error - Solve mantine input type check
+          spellCheck,
+        },
+      }),
+    },
+  });
 
   return (
     <DndProvider backend={HTML5Backend}>
       <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+
       <MantineProvider
         colorSchemeManager={colorSchemeManager}
         defaultColorScheme="dark"
-        theme={{
-          primaryColor,
-          components: {
-            ActionIcon: ActionIcon.extend({
-              defaultProps: {
-                variant: "transparent",
-                color: "gray",
-              },
-            }),
-            TextInput: TextInput.extend({
-              defaultProps: {
-                spellCheck: spellCheck,
-              },
-            }),
-            Autocomplete: Autocomplete.extend({
-              defaultProps: {
-                spellCheck: spellCheck,
-              },
-            }),
-            Textarea: Textarea.extend({
-              defaultProps: {
-                spellCheck: spellCheck,
-              },
-            }),
-            Input: Input.extend({
-              defaultProps: {
-                // @ts-expect-error
-                spellCheck: spellCheck,
-              },
-            }),
-          },
-          colors: {
-            dark: [
-              "#C1C2C5",
-              "#A6A7AB",
-              "#909296",
-              "#5c5f66",
-              "#373A40",
-              "#2C2E33",
-              "#25262b",
-              "#1A1B1E",
-              "#141517",
-              "#101113",
-            ],
-          },
-        }}
+        theme={theme}
       >
         <ContextMenuProvider>
           <Notifications />
