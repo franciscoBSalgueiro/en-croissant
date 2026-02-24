@@ -1,4 +1,4 @@
-import type { DrawShape } from "@lichess-org/chessground/draw";
+import type { DrawBrushes, DrawShape } from "@lichess-org/chessground/draw";
 import {
   ActionIcon,
   Box,
@@ -299,6 +299,27 @@ function Board({
     }
   }
 
+  // Variation arrows: show all children moves when there are alternatives
+  if (currentNode.children.length > 1) {
+    for (const child of currentNode.children) {
+      if (child.move) {
+        const m = child.move as NormalMove;
+        const from = makeSquare(m.from);
+        const to = makeSquare(m.to);
+        if (from && to && !shapes.find((s) => s.orig === from && s.dest === to)) {
+          shapes.push({
+            orig: from,
+            dest: to,
+            brush: "variation",
+            modifiers: {
+              lineWidth: MEDIUM_BRUSH,
+            },
+          });
+        }
+      }
+    }
+  }
+
   if (currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);
   }
@@ -580,6 +601,9 @@ function Board({
                   visible: true,
                   defaultSnapToValidMove: snapArrows,
                   autoShapes: shapes,
+                  brushes: {
+                    variation: { key: 'v', color: '#9b59b6', opacity: 0.8, lineWidth: 10 },
+                  } as unknown as DrawBrushes,
                   onChange: (shapes) => {
                     setShapes(shapes);
                   },
