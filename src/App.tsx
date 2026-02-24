@@ -1,4 +1,3 @@
-// UI & Styles
 import {
   ActionIcon,
   Autocomplete,
@@ -10,28 +9,15 @@ import {
   TextInput,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
-// Routing
 import { createRouter, RouterProvider } from "@tanstack/react-router";
-// Tauri & System
-import { getVersion } from "@tauri-apps/api/app";
-import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
 import { getMatches } from "@tauri-apps/plugin-cli";
-import { ask } from "@tauri-apps/plugin-dialog";
 import { attachConsole, error, info, warn } from "@tauri-apps/plugin-log";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { check } from "@tauri-apps/plugin-updater";
-// State Management
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
-// Analytics & Utils
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import ErrorComponent from "@/components/ErrorComponent";
-import { initUserAgent } from "@/utils/http";
-import { commands } from "./bindings";
-import { routeTree } from "./routeTree.gen";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -43,31 +29,40 @@ import {
   tabsAtom,
   telemetryEnabledAtom,
 } from "./state/atoms";
-import { openFile } from "./utils/files";
 
-// CSS Imports
+import "@/styles/chessgroundBaseOverride.css";
+import "@/styles/chessgroundColorsOverride.css";
+
 import "@mantine/charts/styles.css";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/tiptap/styles.css";
+
 import "mantine-contextmenu/styles.css";
 import "mantine-datatable/styles.css";
-import "@/styles/global.css";
-import "@/styles/chessgroundBaseOverride.css";
-import "@/styles/chessgroundColorsOverride.css";
 
-// --- Configuration ---
+import "@/styles/global.css";
+
+import { commands } from "./bindings";
+import { openFile } from "./utils/files";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
 });
 
+import { getVersion } from "@tauri-apps/api/app";
+import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check } from "@tauri-apps/plugin-updater";
+import ErrorComponent from "@/components/ErrorComponent";
+import { initUserAgent } from "@/utils/http";
+import { routeTree } from "./routeTree.gen";
+
 export type Dirs = {
   documentDir: string;
 };
-
-// --- Router Setup ---
 
 const router = createRouter({
   routeTree,
@@ -96,8 +91,6 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
-
-// --- Logic Extractors ---
 
 const checkForUpdates = async () => {
   try {
@@ -128,8 +121,6 @@ const preloadReferenceDb = async (
   }
 };
 
-// --- Hook: App Initialization ---
-
 function useAppStartup() {
   const initialized = useRef(false);
   const [, setTabs] = useAtom(tabsAtom);
@@ -140,18 +131,14 @@ function useAppStartup() {
     initialized.current = true;
 
     const startupSequence = async () => {
-      // 1. Core System Init
       await commands.closeSplashscreen();
       await initUserAgent();
 
-      // 2. Logging
       const detach = await attachConsole();
       info("React app started successfully");
 
-      // 3. Updates
       checkForUpdates();
 
-      // 4. State & Analytics
       const store = getDefaultStore();
       const telemetryEnabled = store.get(telemetryEnabledAtom);
 
@@ -166,8 +153,6 @@ function useAppStartup() {
       if (telemetryEnabled) {
         posthog.capture("app_started", { version: await getVersion() });
       }
-
-      // 5. CLI Arguments / File Opening
       try {
         const matches = await getMatches();
         if (matches.args.file.occurrences > 0) {
@@ -181,7 +166,6 @@ function useAppStartup() {
         warn(`Failed to parse CLI args: ${e}`);
       }
 
-      // 6. DB Preload
       await preloadReferenceDb(store);
 
       return detach;
@@ -198,23 +182,18 @@ function useAppStartup() {
   }, [setTabs, setActiveTab]);
 }
 
-// --- Component: App ---
-
 export default function App() {
   const primaryColor = useAtomValue(primaryColorAtom);
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
 
-  // Run startup logic
   useAppStartup();
 
-  // Handle global font size
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, [fontSize]);
 
-  // Create theme dynamically based on state
   const theme = createTheme({
     primaryColor,
     colors: {
