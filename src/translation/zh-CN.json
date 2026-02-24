@@ -440,6 +440,8 @@
     "Puzzle.SelectDatabase": "选择数据库",
     "Puzzle.Streak": "连胜记录",
     "Puzzle.Time": "时间",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "查看解法",
     "RichText.Bold": "粗体",
     "RichText.BulletList": "无序列表",

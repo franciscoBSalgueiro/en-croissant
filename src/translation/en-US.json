@@ -442,6 +442,8 @@
     "Puzzle.SelectDatabase": "Select database",
     "Puzzle.Streak": "Streak",
     "Puzzle.Time": "Time",
+    "Puzzle.TrackPuzzleTime": "Track Time",
+    "Puzzle.TrackPuzzleTime.Desc": "Show time spent & average time spent",
     "Puzzle.ViewSolution": "View Solution",
     "RichText.Bold": "Bold",
     "RichText.BulletList": "Bullet list",
