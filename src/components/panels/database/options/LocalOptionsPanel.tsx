@@ -4,6 +4,7 @@ import {
   Group,
   SegmentedControl,
   Select,
+  SimpleGrid,
   Stack,
   Text,
 } from "@mantine/core";
@@ -37,9 +38,11 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
 
   return (
     <Stack>
-      <Group>
-        <Group>
-          <Text fw="bold">{t("Board.Database.Local.Player")}:</Text>
+      <SimpleGrid cols={2}>
+        <Stack gap={4}>
+          <Text fw="bold" fz="sm">
+            {t("Board.Database.Local.Player")}
+          </Text>
           {options.path && (
             <PlayerSearchInput
               label={t("Common.Search")}
@@ -48,9 +51,11 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
               setValue={(v) => setOptions((q) => ({ ...q, player: v || null }))}
             />
           )}
-        </Group>
-        <Group>
-          <Text fw="bold">{t("Board.Database.Local.Color")}:</Text>
+        </Stack>
+        <Stack gap={4}>
+          <Text fw="bold" fz="sm">
+            {t("Board.Database.Local.Color")}
+          </Text>
           <SegmentedControl
             data={[
               { value: "white", label: t("Fen.White") },
@@ -61,9 +66,57 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
               setOptions({ ...options, color: v as "white" | "black" })
             }
           />
-        </Group>
-        <Group>
-          <Text fw="bold">{t("Board.Database.Local.Result")}:</Text>
+        </Stack>
+
+        <Stack gap={4}>
+          <Text fw="bold" fz="sm">
+            {t("Common.From")}
+          </Text>
+          <DateInput
+            placeholder={t("Common.StartDate")}
+            valueFormat="YYYY-MM-DD"
+            clearable
+            value={
+              options.start_date
+                ? dayjs(options.start_date, "YYYY.MM.DD").toDate()
+                : undefined
+            }
+            onChange={(value) =>
+              setOptions({
+                ...options,
+                start_date: value
+                  ? dayjs(value).format("YYYY.MM.DD")
+                  : undefined,
+              })
+            }
+          />
+        </Stack>
+        <Stack gap={4}>
+          <Text fw="bold" fz="sm">
+            {t("Common.To")}
+          </Text>
+          <DateInput
+            placeholder={t("Common.EndDate")}
+            valueFormat="YYYY-MM-DD"
+            clearable
+            value={
+              options.end_date
+                ? dayjs(options.end_date, "YYYY.MM.DD").toDate()
+                : null
+            }
+            onChange={(value) =>
+              setOptions({
+                ...options,
+                end_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
+              })
+            }
+          />
+        </Stack>
+
+        <Stack gap={4}>
+          <Text fw="bold" fz="sm">
+            {t("Board.Database.Local.Result")}
+          </Text>
           <Select
             data={[
               { value: "any", label: t("Board.Database.Local.Result.Any") },
@@ -85,49 +138,13 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
               })
             }
           />
-        </Group>
-        <Group>
-          <DateInput
-            label={t("Common.From")}
-            placeholder={t("Common.StartDate")}
-            valueFormat="YYYY-MM-DD"
-            clearable
-            value={
-              options.start_date
-                ? dayjs(options.start_date, "YYYY.MM.DD").toDate()
-                : undefined
-            }
-            onChange={(value) =>
-              setOptions({
-                ...options,
-                start_date: value
-                  ? dayjs(value).format("YYYY.MM.DD")
-                  : undefined,
-              })
-            }
-          />
-          <DateInput
-            label={t("Common.To")}
-            placeholder={t("Common.EndDate")}
-            valueFormat="YYYY-MM-DD"
-            clearable
-            value={
-              options.end_date
-                ? dayjs(options.end_date, "YYYY.MM.DD").toDate()
-                : null
-            }
-            onChange={(value) =>
-              setOptions({
-                ...options,
-                end_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
-              })
-            }
-          />
-        </Group>
-      </Group>
+        </Stack>
+      </SimpleGrid>
 
-      <Group>
-        <Text fw="bold">{t("Board.Database.Local.Position")}:</Text>
+      <Stack gap={4}>
+        <Text fw="bold" fz="sm">
+          {t("Board.Database.Local.Position")}
+        </Text>
         <SegmentedControl
           data={[
             { value: "exact", label: t("Board.Database.Local.Exact") },
@@ -138,7 +155,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             setOptions({ ...options, type: v as "exact" | "partial" })
           }
         />
-      </Group>
+      </Stack>
 
       <Group>
         <Stack>
