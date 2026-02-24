@@ -121,7 +121,9 @@ const checkForUpdates = async () => {
   }
 };
 
-const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => {
+const preloadReferenceDb = async (
+  store: ReturnType<typeof getDefaultStore>,
+) => {
   const referenceDb = store.get(referenceDbAtom);
   if (referenceDb) {
     info(`Preloading reference database: ${referenceDb}`);
@@ -256,7 +258,7 @@ export default function App() {
   return (
     <DndProvider backend={HTML5Backend}>
       <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
-      
+
       <MantineProvider
         colorSchemeManager={colorSchemeManager}
         defaultColorScheme="dark"
