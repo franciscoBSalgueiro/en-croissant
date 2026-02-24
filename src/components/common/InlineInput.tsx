@@ -1,4 +1,4 @@
-import { type ComponentProps } from "react";
+import type { ComponentProps } from "react";
 
 interface InlineInputProps extends ComponentProps<"input"> {
   value: string;

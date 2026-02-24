@@ -1,5 +1,3 @@
-import { useEffect, useRef } from "react";
-
 // UI & Styles
 import {
   ActionIcon,
@@ -12,16 +10,28 @@ import {
   TextInput,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
-import { ContextMenuProvider } from "mantine-contextmenu";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-
 // Routing
 import { createRouter, RouterProvider } from "@tanstack/react-router";
-import { routeTree } from "./routeTree.gen";
-
+// Tauri & System
+import { getVersion } from "@tauri-apps/api/app";
+import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
+import { getMatches } from "@tauri-apps/plugin-cli";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { attachConsole, error, info, warn } from "@tauri-apps/plugin-log";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check } from "@tauri-apps/plugin-updater";
 // State Management
 import { getDefaultStore, useAtom, useAtomValue } from "jotai";
+import { ContextMenuProvider } from "mantine-contextmenu";
+// Analytics & Utils
+import posthog from "posthog-js";
+import { useEffect, useRef } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import ErrorComponent from "@/components/ErrorComponent";
+import { initUserAgent } from "@/utils/http";
+import { commands } from "./bindings";
+import { routeTree } from "./routeTree.gen";
 import {
   activeTabAtom,
   fontSizeAtom,
@@ -33,22 +43,7 @@ import {
   tabsAtom,
   telemetryEnabledAtom,
 } from "./state/atoms";
-
-// Tauri & System
-import { getVersion } from "@tauri-apps/api/app";
-import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
-import { getMatches } from "@tauri-apps/plugin-cli";
-import { ask } from "@tauri-apps/plugin-dialog";
-import { attachConsole, info, warn, error } from "@tauri-apps/plugin-log";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { check } from "@tauri-apps/plugin-updater";
-
-// Analytics & Utils
-import posthog from "posthog-js";
-import { commands } from "./bindings";
-import ErrorComponent from "@/components/ErrorComponent";
 import { openFile } from "./utils/files";
-import { initUserAgent } from "@/utils/http";
 
 // CSS Imports
 import "@mantine/charts/styles.css";
