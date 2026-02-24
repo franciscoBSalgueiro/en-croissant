@@ -44,7 +44,7 @@ export const InlineInput = ({
       onKeyDown={onKeyDown}
       className={className}
       style={{
-        fieldSizing: "content", 
+        fieldSizing: "content",
         display: "inline-block",
         cursor: "text",
         ...style,

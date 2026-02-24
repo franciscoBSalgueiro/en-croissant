@@ -117,7 +117,7 @@ function RootLayout() {
   const checkForUpdates = useCallback(async () => {
     const update = await check();
     if (update) {
-      const yes = await ask("Do you want to install them now?", {
+      const yes = await ask("Do you want to install the new version now?", {
         title: "New version available",
       });
       if (yes) {
