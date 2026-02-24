@@ -545,6 +545,8 @@
     "Settings.Sound.Desc": "Налаштувати параметри звуку",
     "Settings.Sound.Volume": "Гучність",
     "Settings.Sound.Volume.Desc": "Загальна гучність",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "Дошка",
     "SideBar.Databases": "Бази даних",
     "SideBar.Engines": "Движки",

@@ -541,6 +541,8 @@
     "Settings.Sound.Desc": "Passe die Toneinstellungen an",
     "Settings.Sound.Volume": "Lautstärke",
     "Settings.Sound.Volume.Desc": "Allgemeine Lautstärke",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "Brett",
     "SideBar.Databases": "Datenbanken",
     "SideBar.Engines": "Engines",

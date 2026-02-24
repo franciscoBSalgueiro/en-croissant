@@ -545,6 +545,8 @@
     "Settings.Sound.Desc": "Dostosuj ustawienia dźwięku",
     "Settings.Sound.Volume": "Głośność",
     "Settings.Sound.Volume.Desc": "Ogólna głośność",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "Szachownica",
     "SideBar.Databases": "Bazy danych",
     "SideBar.Engines": "Silniki",

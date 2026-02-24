@@ -145,6 +145,10 @@ export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
   "show-consecutive-arrows",
   false,
 );
+export const showVariationArrowsAtom = atomWithStorage<boolean>(
+  "show-variation-arrows",
+  false,
+);
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
   "erase-drawables-on-click",
   false,

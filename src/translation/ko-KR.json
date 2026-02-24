@@ -553,6 +553,8 @@
     "Settings.Sound.Desc": "소리를 설정합니다",
     "Settings.Sound.Volume": "볼륨",
     "Settings.Sound.Volume.Desc": "전체적인 볼륨",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "보드",
     "SideBar.Databases": "데이터베이스",
     "SideBar.Engines": "엔진",

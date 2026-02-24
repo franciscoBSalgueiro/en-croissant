@@ -555,6 +555,8 @@
     "Settings.Sound.Desc": "Customize the sound settings",
     "Settings.Sound.Volume": "Volume",
     "Settings.Sound.Volume.Desc": "Overall volume",
+    "Settings.VariationArrows": "Variation Arrows",
+    "Settings.VariationArrows.Desc": "Show arrows for alternative moves in the current position",
     "SideBar.Board": "Board",
     "SideBar.Databases": "Databases",
     "SideBar.Engines": "Engines",

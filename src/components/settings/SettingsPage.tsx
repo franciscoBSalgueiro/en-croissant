@@ -50,6 +50,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  showVariationArrowsAtom,
   snapArrowsAtom,
   spellCheckAtom,
   storedDocumentDirAtom,
@@ -193,6 +194,14 @@ export default function Page() {
         description: t("Settings.Arrows.Desc"),
         keywords: ["arrows", "analysis"],
         render: () => <SettingsSwitch atom={showArrowsAtom} />,
+      },
+      {
+        id: "variation-arrows",
+        category: "board",
+        title: t("Settings.VariationArrows"),
+        description: t("Settings.VariationArrows.Desc"),
+        keywords: ["arrows", "variations", "alternative"],
+        render: () => <SettingsSwitch atom={showVariationArrowsAtom} />,
       },
       {
         id: "move-notation",

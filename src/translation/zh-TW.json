@@ -539,6 +539,8 @@
     "Settings.Sound.Desc": "自訂聲音設定",
     "Settings.Sound.Volume": "音量",
     "Settings.Sound.Volume.Desc": "整體音量",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "棋盤",
     "SideBar.Databases": "資料庫",
     "SideBar.Engines": "引擎",

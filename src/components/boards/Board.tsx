@@ -48,6 +48,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  showVariationArrowsAtom,
   snapArrowsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
@@ -141,6 +142,7 @@ function Board({
   const showDests = useAtomValue(showDestsAtom);
   const moveHighlight = useAtomValue(moveHighlightAtom);
   const showArrows = useAtomValue(showArrowsAtom);
+  const showVariationArrows = useAtomValue(showVariationArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
@@ -300,13 +302,17 @@ function Board({
   }
 
   // Variation arrows: show all children moves when there are alternatives
-  if (currentNode.children.length > 1) {
+  if (showVariationArrows && currentNode.children.length > 1) {
     for (const child of currentNode.children) {
       if (child.move) {
         const m = child.move as NormalMove;
         const from = makeSquare(m.from);
         const to = makeSquare(m.to);
-        if (from && to && !shapes.find((s) => s.orig === from && s.dest === to)) {
+        if (
+          from &&
+          to &&
+          !shapes.find((s) => s.orig === from && s.dest === to)
+        ) {
           shapes.push({
             orig: from,
             dest: to,
@@ -602,7 +608,12 @@ function Board({
                   defaultSnapToValidMove: snapArrows,
                   autoShapes: shapes,
                   brushes: {
-                    variation: { key: 'v', color: '#9b59b6', opacity: 0.8, lineWidth: 10 },
+                    variation: {
+                      key: "v",
+                      color: "#9b59b6",
+                      opacity: 0.8,
+                      lineWidth: 10,
+                    },
                   } as unknown as DrawBrushes,
                   onChange: (shapes) => {
                     setShapes(shapes);

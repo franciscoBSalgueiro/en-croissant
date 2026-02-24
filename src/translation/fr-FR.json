@@ -557,6 +557,8 @@
     "Settings.Sound.Desc": "Personnalisation des paramètres de son",
     "Settings.Sound.Volume": "Volume",
     "Settings.Sound.Volume.Desc": "Volume principal",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "Échiquier",
     "SideBar.Databases": "Bases de données",
     "SideBar.Engines": "Moteurs",

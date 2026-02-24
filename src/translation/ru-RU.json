@@ -559,6 +559,8 @@
     "Settings.Sound.Desc": "Настроить параметры звука",
     "Settings.Sound.Volume": "Громкость",
     "Settings.Sound.Volume.Desc": "Общая громкость",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "Доска",
     "SideBar.Databases": "Базы данных",
     "SideBar.Engines": "Движки",

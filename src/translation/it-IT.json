@@ -543,6 +543,8 @@
     "Settings.Sound.Desc": "Personalizza le impostazioni del suono",
     "Settings.Sound.Volume": "Volume",
     "Settings.Sound.Volume.Desc": "Volume generale",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "Scacchiera",
     "SideBar.Databases": "Database",
     "SideBar.Engines": "Motori",

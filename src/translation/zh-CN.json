@@ -553,6 +553,8 @@
     "Settings.Sound.Desc": "自定义声音设置",
     "Settings.Sound.Volume": "音量",
     "Settings.Sound.Volume.Desc": "整体音量",
+    "Settings.VariationArrows": "",
+    "Settings.VariationArrows.Desc": "",
     "SideBar.Board": "棋盘",
     "SideBar.Databases": "数据库",
     "SideBar.Engines": "引擎",
