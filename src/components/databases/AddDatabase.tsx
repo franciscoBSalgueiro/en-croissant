@@ -1,11 +1,3 @@
-import { events, type DatabaseInfo, commands } from "@/bindings";
-import {
-  type SuccessDatabaseInfo,
-  getDatabases,
-  useDefaultDatabases,
-} from "@/utils/db";
-import { capitalize, formatBytes, formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Alert,
   Box,
@@ -29,6 +21,14 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
+import { commands, type DatabaseInfo } from "@/bindings";
+import {
+  getDatabases,
+  type SuccessDatabaseInfo,
+  useDefaultDatabases,
+} from "@/utils/db";
+import { capitalize, formatBytes, formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
@@ -172,7 +172,7 @@ function AddDatabase({
             />
 
             <Button fullWidth mt="xl" type="submit">
-              Convert
+              {t("Databases.Add.Convert")}
             </Button>
           </form>
         </Tabs.Panel>

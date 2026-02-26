@@ -7,7 +7,10 @@ use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, FromSetup, Posi
 use specta::Type;
 use std::{
     path::PathBuf,
-    sync::atomic::{AtomicI32, AtomicUsize, Ordering},
+    sync::{
+        atomic::{AtomicI32, AtomicUsize, Ordering},
+        Arc,
+    },
     time::Instant,
 };
 use tauri::Emitter;
@@ -217,11 +220,20 @@ pub async fn search_position(
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
+    let collision_lock = {
+        let entry = state
+            .search_collisions
+            .entry((query.clone(), file.clone()))
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+        entry.value().clone()
+    };
+
+    let _guard = collision_lock.lock().await;
+
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
         return Ok(pos.clone());
     }
 
-    // start counting the time
     let start = Instant::now();
     info!("start loading games");
 
@@ -293,8 +305,16 @@ pub async fn search_position(
     info!("start search on {tab_id}");
 
     let process_entry = |entry: SearchGameEntryRef<'_>| {
-        if state.new_request.available_permits() == 0 {
-            return;
+        let index = processed.fetch_add(1, Ordering::Relaxed) + 1;
+        if index.is_multiple_of(50000) {
+            let _ = app.emit(
+                "search_progress",
+                ProgressPayload {
+                    progress: (index as f64 / game_count as f64) * 100.0,
+                    id: tab_id.clone(),
+                    finished: false,
+                },
+            );
         }
 
         if let Some(white) = query.player1 {
@@ -329,18 +349,6 @@ pub async fn search_position(
                     return;
                 }
             }
-        }
-
-        let index = processed.fetch_add(1, Ordering::Relaxed) + 1;
-        if index.is_multiple_of(50000) {
-            let _ = app.emit(
-                "search_progress",
-                ProgressPayload {
-                    progress: (index as f64 / game_count as f64) * 100.0,
-                    id: tab_id.clone(),
-                    finished: false,
-                },
-            );
         }
 
         if let Some(position_query) = &parsed_position_query {
@@ -395,11 +403,6 @@ pub async fn search_position(
 
     info!("finished search in {:?}", start.elapsed());
 
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err(Error::SearchStopped);
-    }
-
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
     let games: Vec<(Game, Player, Player, Event, Site)> = games::table
         .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
@@ -409,10 +412,14 @@ pub async fn search_position(
         .filter(games::id.eq_any(ids))
         .load(db)?;
     let normalized_games = normalize_games(games);
+    let file_path = file.clone();
 
-    state
-        .line_cache
-        .insert((query, file), (openings.clone(), normalized_games.clone()));
+    state.line_cache.insert(
+        (query.clone(), file),
+        (openings.clone(), normalized_games.clone()),
+    );
+
+    state.search_collisions.remove(&(query, file_path));
 
     Ok((openings, normalized_games))
 }
@@ -422,6 +429,16 @@ pub async fn is_position_in_db(
     query: GameQueryJs,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
+    let collision_lock = {
+        let entry = state
+            .search_collisions
+            .entry((query.clone(), file.clone()))
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+        entry.value().clone()
+    };
+
+    let _guard = collision_lock.lock().await;
+
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
         return Ok(!pos.0.is_empty());
     }
@@ -432,7 +449,6 @@ pub async fn is_position_in_db(
         None
     };
 
-    // start counting the time
     let start = Instant::now();
     info!("start loading games for is_position_in_db");
 
@@ -474,9 +490,6 @@ pub async fn is_position_in_db(
     };
 
     let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
-        if state.new_request.available_permits() == 0 {
-            return false;
-        }
         let end_material: MaterialCount = ByColor {
             white: entry.white_material,
             black: entry.black_material,
@@ -494,16 +507,15 @@ pub async fn is_position_in_db(
     let exists = mmap_index.par_iter().any(check_entry);
 
     info!("finished search in {:?}", start.elapsed());
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err(Error::SearchStopped);
-    }
 
     if !exists {
-        state.line_cache.insert((query, file), (vec![], vec![]));
+        state
+            .line_cache
+            .insert((query.clone(), file.clone()), (vec![], vec![]));
     }
 
-    drop(permit);
+    state.search_collisions.remove(&(query, file));
+
     Ok(exists)
 }
 

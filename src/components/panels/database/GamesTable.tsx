@@ -1,12 +1,12 @@
-import type { NormalizedGame } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { createTab } from "@/utils/tabs";
 import { ActionIcon, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { memo } from "react";
+import type { NormalizedGame } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { createTab } from "@/utils/tabs";
 
 function GamesTable({
   games,
@@ -60,7 +60,7 @@ function GamesTable({
                 {white}
               </Text>
               <Text size="xs" c="dimmed">
-                {white_elo}
+                {white_elo === 0 ? "Unrated" : white_elo}
               </Text>
             </div>
           ),
@@ -73,7 +73,7 @@ function GamesTable({
                 {black}
               </Text>
               <Text size="xs" c="dimmed">
-                {black_elo}
+                {black_elo === 0 ? "Unrated" : black_elo}
               </Text>
             </div>
           ),

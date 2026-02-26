@@ -1,3 +1,10 @@
+import type { DrawShape } from "@lichess-org/chessground/draw";
+import { isNormal, type Move, parseUci } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
+import { makeSan, parseSan } from "chessops/san";
+import { type Draft, produce } from "immer";
+import { createStore, type StateCreator } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { BestMoves, Outcome, Score } from "@/bindings";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { getPGN } from "@/utils/chess";
@@ -6,24 +13,18 @@ import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
 import { playSound } from "@/utils/sound";
 import {
-  type GameHeaders,
-  type TreeNode,
-  type TreeState,
   createNode,
   defaultTree,
+  type GameHeaders,
   getNodeAtPath,
+  type TreeNode,
+  type TreeState,
   treeIteratorMainLine,
 } from "@/utils/treeReducer";
-import type { DrawShape } from "@lichess-org/chessground/draw";
-import { type Move, isNormal } from "chessops";
-import { INITIAL_FEN, makeFen } from "chessops/fen";
-import { makeSan, parseSan } from "chessops/san";
-import { type Draft, produce } from "immer";
-import { type StateCreator, createStore } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface TreeStoreState extends TreeState {
   currentNode: () => TreeNode;
+  getNode: (path: number[]) => TreeNode | null;
 
   goToNext: () => void;
   goToPrevious: () => void;
@@ -78,6 +79,7 @@ export interface TreeStoreState extends TreeState {
       novelty: boolean;
       is_sacrifice: boolean;
     }[],
+    options?: { showVariations: boolean },
   ) => void;
 
   setReportInProgress: (value: boolean) => void;
@@ -94,6 +96,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
     ...(initialTree ?? defaultTree()),
 
     currentNode: () => getNodeAtPath(get().root, get().position),
+    getNode: (path: number[]) => getNodeAtPath(get().root, path),
 
     setState: (state) => {
       set(() => state);
@@ -466,11 +469,11 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           }
         }),
       ),
-    addAnalysis: (analysis) =>
+    addAnalysis: (analysis, options) =>
       set(
         produce((state) => {
           state.dirty = true;
-          addAnalysis(state, analysis);
+          addAnalysis(state, analysis, options);
         }),
       ),
 
@@ -639,6 +642,9 @@ function deleteMove(state: TreeState, path: number[]) {
       state.position[path.length - 1] = 0;
     }
   }
+  if (state.headers.start && isPrefix(path, state.headers.start)) {
+    state.headers.start = undefined;
+  }
 }
 
 function promoteVariation(state: TreeState, path: number[]) {
@@ -684,9 +690,12 @@ function addAnalysis(
     novelty: boolean;
     is_sacrifice: boolean;
   }[],
+  options?: { showVariations: boolean },
 ) {
   let cur = state.root;
   let i = 0;
+  let parent: TreeNode | undefined;
+
   while (cur !== undefined && i < analysis.length) {
     const [pos] = positionFromFen(cur.fen);
     if (pos && !pos.isEnd() && analysis[i].best.length > 0) {
@@ -714,6 +723,69 @@ function addAnalysis(
       );
       if (annotation) {
         cur.annotations = [...cur.annotations, annotation];
+
+        if (
+          options?.showVariations &&
+          (annotation === "??" || annotation === "?" || annotation === "?!") &&
+          parent &&
+          i > 0 &&
+          analysis[i - 1].best.length > 0
+        ) {
+          const bestMoveUci = analysis[i - 1].best[0].uciMoves[0];
+          const [parentPos] = positionFromFen(parent.fen);
+          if (parentPos) {
+            const bestMove = parseUci(bestMoveUci);
+            if (bestMove) {
+              const existingChild = parent.children.find(
+                (c) =>
+                  c.move &&
+                  isNormal(c.move) &&
+                  isNormal(bestMove) &&
+                  c.move.from === bestMove.from &&
+                  c.move.to === bestMove.to &&
+                  c.move.promotion === bestMove.promotion,
+              );
+
+              if (!existingChild) {
+                const san = makeSan(parentPos, bestMove);
+                parentPos.play(bestMove);
+                const newFen = makeFen(parentPos.toSetup());
+                const variationNode = createNode({
+                  fen: newFen,
+                  move: bestMove,
+                  san,
+                  halfMoves: parent.halfMoves + 1,
+                });
+
+                let currentVarNode = variationNode;
+                const currentVarPos = parentPos;
+
+                const pv = analysis[i - 1].best[0].uciMoves;
+                if (pv.length > 1) {
+                  for (let j = 1; j < Math.min(pv.length, 10); j++) {
+                    const nextMoveUci = pv[j];
+                    const nextMove = parseUci(nextMoveUci);
+                    if (nextMove) {
+                      const nextSan = makeSan(currentVarPos, nextMove);
+                      currentVarPos.play(nextMove);
+                      const nextFen = makeFen(currentVarPos.toSetup());
+                      const nextNode = createNode({
+                        fen: nextFen,
+                        move: nextMove,
+                        san: nextSan,
+                        halfMoves: currentVarNode.halfMoves + 1,
+                      });
+                      currentVarNode.children.push(nextNode);
+                      currentVarNode = nextNode;
+                    }
+                  }
+                }
+
+                parent.children.push(variationNode);
+              }
+            }
+          }
+        }
       }
       if (analysis[i].novelty) {
         cur.annotations = [...cur.annotations, "N"];
@@ -723,6 +795,7 @@ function addAnalysis(
         ANNOTATION_INFO[a].nag > ANNOTATION_INFO[b].nag ? 1 : -1,
       );
     }
+    parent = cur;
     cur = cur.children[0];
     i++;
   }

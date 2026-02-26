@@ -1,10 +1,3 @@
-import GameTable from "@/components/databases/GameTable";
-import PlayerTable from "@/components/databases/PlayerTable";
-import {
-  type DatabaseViewStore,
-  activeDatabaseViewStore,
-  useActiveDatabaseViewStore,
-} from "@/state/store/database";
 import { ActionIcon, Box, Group, Stack, Tabs, Title } from "@mantine/core";
 import {
   IconArrowBackUp,
@@ -13,10 +6,19 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import GameTable from "@/components/databases/GameTable";
+import PlayerTable from "@/components/databases/PlayerTable";
+import {
+  activeDatabaseViewStore,
+  type DatabaseViewStore,
+  useActiveDatabaseViewStore,
+} from "@/state/store/database";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import TournamentTable from "./TournamentTable";
 
 function DatabaseView() {
+  const { t } = useTranslation();
   const database = useActiveDatabaseViewStore((s) => s.database);
   const databaseTitle = useActiveDatabaseViewStore((s) => s.database?.title)!;
   const mode = useActiveDatabaseViewStore((s) => s.activeTab);
@@ -52,19 +54,19 @@ function DatabaseView() {
             >
               <Tabs.List>
                 <Tabs.Tab leftSection={<IconChess size="1rem" />} value="games">
-                  Games
+                  {t("Common.Games")}
                 </Tabs.Tab>
                 <Tabs.Tab
                   leftSection={<IconUser size="1rem" />}
                   value="players"
                 >
-                  Players
+                  {t("Databases.Card.Players")}
                 </Tabs.Tab>
                 <Tabs.Tab
                   leftSection={<IconTrophy size="1rem" />}
                   value="tournaments"
                 >
-                  Tournaments
+                  {t("Databases.Settings.Events")}
                 </Tabs.Tab>
               </Tabs.List>
               <Tabs.Panel

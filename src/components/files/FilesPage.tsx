@@ -1,4 +1,3 @@
-import { capitalize } from "@/utils/format";
 import {
   Button,
   Center,
@@ -7,31 +6,32 @@ import {
   Input,
   Stack,
   Text,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
-import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
-import { useLoaderData } from "@tanstack/react-router";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
-  BaseDirectory,
-  type DirEntry,
-  type FileInfo,
-  readDir,
-  remove,
-} from "@tauri-apps/plugin-fs";
-import React, { useEffect, useState } from "react";
+  IconFileDescription,
+  IconPlus,
+  IconSearch,
+  IconX,
+} from "@tabler/icons-react";
+import { useLoaderData } from "@tanstack/react-router";
+import { readDir, remove } from "@tauri-apps/plugin-fs";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
+import { capitalize } from "@/utils/format";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
-import { CreateModal, EditModal } from "./Modals";
 import {
   type FileMetadata,
   type FileType,
   processEntriesRecursively,
 } from "./file";
+import { CreateModal, EditModal } from "./Modals";
 
 const FILE_TYPES: FileType[] = [
   "game",
@@ -75,6 +75,10 @@ function FilesPage() {
   const [createModal, toggleCreateModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useHotkeys([["mod+f", () => searchInputRef.current?.focus()]]);
+
   useEffect(() => {
     setGames(new Map());
   }, [selected]);
@@ -110,10 +114,20 @@ function FilesPage() {
           <Group>
             <Input
               style={{ flexGrow: 1 }}
-              rightSection={<IconSearch size="1rem" />}
+              leftSection={<IconSearch size="1rem" />}
               placeholder={t("Files.Search")}
               value={search}
               onChange={(e) => setSearch(e.currentTarget.value)}
+              ref={searchInputRef}
+              onKeyDown={(e) => {
+                if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                }
+                if (e.key === "Escape") {
+                  setSearch("");
+                  searchInputRef.current?.blur();
+                }
+              }}
             />
             <Button
               size="xs"
@@ -186,7 +200,14 @@ function FilesPage() {
           </>
         ) : (
           <Center h="100%">
-            <Text>No file selected</Text>
+            <Stack align="center" gap="sm">
+              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                <IconFileDescription size={40} />
+              </ThemeIcon>
+              <Text c="dimmed" fw={500} size="lg">
+                {t("Files.NoSelection")}
+              </Text>
+            </Stack>
           </Center>
         )}
       </Group>

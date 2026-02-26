@@ -1,39 +1,18 @@
 import {
-  autoPromoteAtom,
-  autoSaveAtom,
-  enableBoardScrollAtom,
-  eraseDrawablesOnClickAtom,
-  forcedEnPassantAtom,
-  minimumGamesAtom,
-  moveHighlightAtom,
-  moveInputAtom,
-  moveMethodAtom,
-  moveNotationTypeAtom,
-  nativeBarAtom,
-  percentageCoverageAtom,
-  previewBoardOnHoverAtom,
-  showArrowsAtom,
-  showConsecutiveArrowsAtom,
-  showCoordinatesAtom,
-  showDestsAtom,
-  snapArrowsAtom,
-  spellCheckAtom,
-  storedDocumentDirAtom,
-} from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import {
   ActionIcon,
   Card,
   Group,
   ScrollArea,
   Select,
   Stack,
+  Switch,
   Table,
   Tabs,
   Text,
   TextInput,
   Tooltip,
 } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import {
   IconBook,
   IconBrush,
@@ -44,21 +23,47 @@ import {
   IconMouse,
   IconReload,
   IconSearch,
+  IconShield,
   IconVolume,
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import { useMemo, useState } from "react";
+import posthog from "posthog-js";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  autoPromoteAtom,
+  autoSaveAtom,
+  enableBoardScrollAtom,
+  eraseDrawablesOnClickAtom,
+  forcedEnPassantAtom,
+  materialDisplayAtom,
+  moveHighlightAtom,
+  moveInputAtom,
+  moveMethodAtom,
+  moveNotationTypeAtom,
+  nativeBarAtom,
+  previewBoardOnHoverAtom,
+  showArrowsAtom,
+  showConsecutiveArrowsAtom,
+  showCoordinatesAtom,
+  showDestsAtom,
+  showVariationArrowsAtom,
+  snapArrowsAtom,
+  spellCheckAtom,
+  storedDocumentDirAtom,
+  telemetryEnabledAtom,
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
-import SettingsNumberInput from "./SettingsNumberInput";
+import RepertoireMinGamesSetting from "./RepertoireMinGamesSetting";
 import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
@@ -68,12 +73,13 @@ import VolumeSlider from "./VolumeSlider";
 type SettingCategory =
   | "board"
   | "inputs"
-  | "report"
   | "anarchy"
   | "appearance"
   | "sound"
   | "keybinds"
-  | "directories";
+  | "directories"
+  | "repertoire"
+  | "privacy";
 
 interface SettingItem {
   id: string;
@@ -118,9 +124,35 @@ function SettingRow({
   );
 }
 
+function TelemetrySwitch() {
+  const { t } = useTranslation();
+  const [enabled, setEnabled] = useAtom(telemetryEnabledAtom);
+  return (
+    <Switch
+      onLabel={t("Common.On")}
+      offLabel={t("Common.Off")}
+      size="lg"
+      checked={enabled}
+      onChange={(event) => {
+        const newValue = event.currentTarget.checked;
+        setEnabled(newValue);
+        if (newValue) {
+          posthog.opt_in_capturing();
+        } else {
+          posthog.opt_out_capturing();
+        }
+      }}
+      styles={{
+        track: { cursor: "pointer" },
+      }}
+    />
+  );
+}
+
 export default function Page() {
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
@@ -134,6 +166,7 @@ export default function Page() {
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
+  const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -163,16 +196,24 @@ export default function Page() {
         render: () => <SettingsSwitch atom={showArrowsAtom} />,
       },
       {
+        id: "variation-arrows",
+        category: "board",
+        title: t("Settings.VariationArrows"),
+        description: t("Settings.VariationArrows.Desc"),
+        keywords: ["arrows", "variations", "alternative"],
+        render: () => <SettingsSwitch atom={showVariationArrowsAtom} />,
+      },
+      {
         id: "move-notation",
         category: "board",
-        title: "Move Notation",
-        description: "Choose how to display pieces in notation",
+        title: t("Settings.MoveNotation"),
+        description: t("Settings.MoveNotation.Desc"),
         keywords: ["notation", "letters", "symbols", "pieces"],
         render: () => (
           <Select
             data={[
-              { label: "Letters (K Q R B N)", value: "letters" },
-              { label: "Symbols (♔♕♖♗♘)", value: "symbols" },
+              { label: t("Settings.MoveNotation.Letters"), value: "letters" },
+              { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
             ]}
             allowDeselect={false}
             value={moveNotationType}
@@ -185,15 +226,15 @@ export default function Page() {
       {
         id: "move-method",
         category: "board",
-        title: "Ways to Move Pieces",
-        description: "Move pieces by dragging, clicking, or both",
+        title: t("Settings.MoveMethod"),
+        description: t("Settings.MoveMethod.Desc"),
         keywords: ["drag", "click", "move", "pieces"],
         render: () => (
           <Select
             data={[
-              { label: "Drag", value: "drag" },
-              { label: "Click", value: "select" },
-              { label: "Both", value: "both" },
+              { label: t("Settings.MoveMethod.Drag"), value: "drag" },
+              { label: t("Settings.MoveMethod.Click"), value: "select" },
+              { label: t("Settings.MoveMethod.Both"), value: "both" },
             ]}
             allowDeselect={false}
             value={moveMethod}
@@ -242,9 +283,9 @@ export default function Page() {
         render: () => (
           <Select
             data={[
-              { label: "No", value: "no" },
-              { label: "On the edge", value: "edge" },
-              { label: "On all squares", value: "all" },
+              { label: t("Settings.Coordinates.None"), value: "no" },
+              { label: t("Settings.Coordinates.Edge"), value: "edge" },
+              { label: t("Settings.Coordinates.All"), value: "all" },
             ]}
             allowDeselect={false}
             value={showCoordinates}
@@ -276,6 +317,24 @@ export default function Page() {
         keywords: ["scroll", "moves", "wheel"],
         render: () => <SettingsSwitch atom={enableBoardScrollAtom} />,
       },
+      {
+        id: "material-display",
+        category: "board",
+        title: t("Settings.MaterialDisplay"),
+        description: t("Settings.MaterialDisplay.Desc"),
+        keywords: ["material", "captured", "pieces", "difference"],
+        render: () => (
+          <Select
+            data={[
+              { label: t("Settings.MaterialDisplay.Diff"), value: "diff" },
+              { label: t("Settings.MaterialDisplay.All"), value: "all" },
+            ]}
+            allowDeselect={false}
+            value={materialDisplay}
+            onChange={(val) => setMaterialDisplay(val as "diff" | "all")}
+          />
+        ),
+      },
       // Input settings
       {
         id: "text-input",
@@ -292,32 +351,6 @@ export default function Page() {
         description: t("Settings.Inputs.SpellCheck.Desc"),
         keywords: ["spell", "check", "grammar"],
         render: () => <SettingsSwitch atom={spellCheckAtom} />,
-      },
-      // Opening Report settings
-      {
-        id: "percent-coverage",
-        category: "report",
-        title: t("Settings.OpeningReport.PercentCoverage"),
-        description: t("Settings.OpeningReport.PercentCoverage.Desc"),
-        keywords: ["coverage", "percent", "opening"],
-        render: () => (
-          <SettingsNumberInput
-            atom={percentageCoverageAtom}
-            min={50}
-            max={100}
-            step={1}
-          />
-        ),
-      },
-      {
-        id: "min-games",
-        category: "report",
-        title: t("Settings.OpeningReport.MinGames"),
-        description: t("Settings.OpeningReport.MinGames.Desc"),
-        keywords: ["games", "minimum", "opening"],
-        render: () => (
-          <SettingsNumberInput atom={minimumGamesAtom} min={0} step={1} />
-        ),
       },
       // Anarchy settings
       {
@@ -364,9 +397,9 @@ export default function Page() {
               { value: "ko_KR", label: "한국어" },
               { value: "de_DE", label: "Deutsch" },
             ]}
-            value={i18n.language}
+            value={i18n.language.replace("-", "_")}
             onChange={(val) => {
-              i18n.changeLanguage(val || "en_US");
+              i18n.changeLanguage(val?.replace("_", "-") || "en-US");
               localStorage.setItem("lang", val || "en_US");
             }}
           />
@@ -383,7 +416,16 @@ export default function Page() {
               render: () => (
                 <Select
                   allowDeselect={false}
-                  data={["Native", "Custom"]}
+                  data={[
+                    {
+                      value: "Native",
+                      label: t("Settings.Appearance.TitleBar.Native"),
+                    },
+                    {
+                      value: "Custom",
+                      label: t("Settings.Appearance.TitleBar.Custom"),
+                    },
+                  ]}
                   value={isNative ? "Native" : "Custom"}
                   onChange={(val) => setIsNative(val === "Native")}
                 />
@@ -427,6 +469,15 @@ export default function Page() {
           </div>
         ),
       },
+      // Repertoire settings
+      {
+        id: "repertoire-depth",
+        category: "repertoire",
+        title: t("Settings.Repertoire.Depth"),
+        description: t("Settings.Repertoire.Depth.Desc"),
+        keywords: ["repertoire", "depth", "games", "min"],
+        render: () => <RepertoireMinGamesSetting />,
+      },
       // Sound settings
       {
         id: "volume",
@@ -465,6 +516,15 @@ export default function Page() {
           />
         ),
       },
+      // Privacy settings
+      {
+        id: "telemetry",
+        category: "privacy",
+        title: t("Settings.Privacy.Telemetry"),
+        description: t("Settings.Privacy.Telemetry.Desc"),
+        keywords: ["telemetry", "privacy", "analytics", "tracking"],
+        render: () => <TelemetrySwitch />,
+      },
     ],
     [
       t,
@@ -473,25 +533,18 @@ export default function Page() {
       moveMethod,
       isNative,
       showCoordinates,
+      materialDisplay,
       filesDirectory,
       setMoveNotationType,
       setMoveMethod,
       setIsNative,
       setFilesDirectory,
       setShowCoordinates,
+      setMaterialDisplay,
     ],
   );
 
-  const filteredSettings = useMemo(() => {
-    if (!searchQuery.trim()) return null;
-    const query = searchQuery.toLowerCase();
-    return settings.filter(
-      (setting) =>
-        setting.title.toLowerCase().includes(query) ||
-        setting.description.toLowerCase().includes(query) ||
-        setting.keywords?.some((kw) => kw.toLowerCase().includes(query)),
-    );
-  }, [searchQuery, settings]);
+  useHotkeys([["mod+f", () => searchInputRef.current?.focus()]]);
 
   const categoryInfo: Record<
     SettingCategory,
@@ -506,11 +559,6 @@ export default function Page() {
       title: t("Settings.Inputs"),
       description: t("Settings.Inputs.Desc"),
       icon: <IconMouse size="1rem" />,
-    },
-    report: {
-      title: t("Settings.OpeningReport"),
-      description: t("Settings.OpeningReport.Desc"),
-      icon: <IconBook size="1rem" />,
     },
     anarchy: {
       title: t("Settings.Anarchy"),
@@ -528,8 +576,8 @@ export default function Page() {
       icon: <IconVolume size="1rem" />,
     },
     keybinds: {
-      title: "Keybinds",
-      description: "Customize keyboard shortcuts",
+      title: t("Settings.Keybinds"),
+      description: t("Settings.Keybinds.Desc"),
       icon: <IconKeyboard size="1rem" />,
     },
     directories: {
@@ -537,7 +585,30 @@ export default function Page() {
       description: t("Settings.Directories.Desc"),
       icon: <IconFolder size="1rem" />,
     },
+    repertoire: {
+      title: t("Settings.Repertoire"),
+      description: t("Settings.Repertoire.Desc"),
+      icon: <IconBook size="1rem" />,
+    },
+    privacy: {
+      title: t("Settings.Privacy"),
+      description: t("Settings.Privacy.Desc"),
+      icon: <IconShield size="1rem" />,
+    },
   };
+
+  const filteredSettings = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const query = searchQuery.toLowerCase();
+    return settings.filter(
+      (setting) =>
+        setting.title.toLowerCase().includes(query) ||
+        setting.description.toLowerCase().includes(query) ||
+        categoryInfo[setting.category].title.toLowerCase().includes(query) ||
+        setting.id.toLowerCase().includes(query) ||
+        setting.keywords?.some((kw) => kw.toLowerCase().includes(query)),
+    );
+  }, [searchQuery, settings, categoryInfo]);
 
   const renderSearchResults = () => {
     if (!filteredSettings) return null;
@@ -606,10 +677,20 @@ export default function Page() {
     <Stack h="100%" gap={0}>
       <Group px="md" pt="md" pb="sm">
         <TextInput
+          ref={searchInputRef}
           placeholder="Search settings..."
           leftSection={<IconSearch size="1rem" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+            }
+            if (e.key === "Escape") {
+              setSearchQuery("");
+              searchInputRef.current?.blur();
+            }
+          }}
           style={{ flex: 1, maxWidth: 400 }}
         />
       </Group>
@@ -626,6 +707,11 @@ export default function Page() {
           orientation="vertical"
           flex={1}
           style={{ overflow: "hidden" }}
+          styles={{
+            tabLabel: {
+              textAlign: "left",
+            },
+          }}
         >
           <Tabs.List h="100%">
             <Tabs.Tab value="board" leftSection={<IconChess size="1rem" />}>
@@ -633,9 +719,6 @@ export default function Page() {
             </Tabs.Tab>
             <Tabs.Tab value="inputs" leftSection={<IconMouse size="1rem" />}>
               {t("Settings.Inputs")}
-            </Tabs.Tab>
-            <Tabs.Tab value="report" leftSection={<IconBook size="1rem" />}>
-              {t("Settings.OpeningReport")}
             </Tabs.Tab>
             <Tabs.Tab value="anarchy" leftSection={<IconFlag size="1rem" />}>
               {t("Settings.Anarchy")}
@@ -661,6 +744,12 @@ export default function Page() {
             >
               {t("Settings.Directories")}
             </Tabs.Tab>
+            <Tabs.Tab value="repertoire" leftSection={<IconBook size="1rem" />}>
+              {t("Settings.Repertoire")}
+            </Tabs.Tab>
+            <Tabs.Tab value="privacy" leftSection={<IconShield size="1rem" />}>
+              {t("Settings.Privacy")}
+            </Tabs.Tab>
           </Tabs.List>
           <Stack flex={1} px="md">
             <ScrollArea>
@@ -683,16 +772,6 @@ export default function Page() {
                     {t("Settings.Inputs.Desc")}
                   </Text>
                   {renderCategorySettings("inputs")}
-                </Tabs.Panel>
-
-                <Tabs.Panel value="report">
-                  <Text size="lg" fw={500} className={classes.title}>
-                    {t("Settings.OpeningReport")}
-                  </Text>
-                  <Text size="xs" c="dimmed" mt={3} mb="lg">
-                    {t("Settings.OpeningReport.Desc")}
-                  </Text>
-                  {renderCategorySettings("report")}
                 </Tabs.Panel>
 
                 <Tabs.Panel value="anarchy">
@@ -728,22 +807,22 @@ export default function Page() {
                 <Tabs.Panel value="keybinds">
                   <Group>
                     <Text size="lg" fw={500} className={classes.title}>
-                      Keybinds
+                      {t("Settings.Keybinds")}
                     </Text>
-                    <Tooltip label="Reset">
+                    <Tooltip label={t("Common.Reset")}>
                       <ActionIcon onClick={() => setKeyMap(RESET)}>
                         <IconReload size="1rem" />
                       </ActionIcon>
                     </Tooltip>
                   </Group>
                   <Text size="xs" c="dimmed" mt={3} mb="lg">
-                    Customize keyboard shortcuts
+                    {t("Settings.Keybinds.Desc")}
                   </Text>
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th>Description</Table.Th>
-                        <Table.Th>Key</Table.Th>
+                        <Table.Th>{t("Common.Description")}</Table.Th>
+                        <Table.Th>{t("Settings.Key")}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -769,6 +848,26 @@ export default function Page() {
                     {t("Settings.Directories.Desc")}
                   </Text>
                   {renderCategorySettings("directories")}
+                </Tabs.Panel>
+
+                <Tabs.Panel value="repertoire">
+                  <Text size="lg" fw={500} className={classes.title}>
+                    {t("Settings.Repertoire")}
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={3} mb="lg">
+                    {t("Settings.Repertoire.Desc")}
+                  </Text>
+                  {renderCategorySettings("repertoire")}
+                </Tabs.Panel>
+
+                <Tabs.Panel value="privacy">
+                  <Text size="lg" fw={500} className={classes.title}>
+                    {t("Settings.Privacy")}
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={3} mb="lg">
+                    {t("Settings.Privacy.Desc")}
+                  </Text>
+                  {renderCategorySettings("privacy")}
                 </Tabs.Panel>
               </Card>
             </ScrollArea>

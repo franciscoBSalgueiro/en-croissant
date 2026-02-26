@@ -1,17 +1,29 @@
-import { events, commands } from "@/bindings";
+import {
+  Center,
+  Loader,
+  Paper,
+  Progress,
+  Select,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import { IconDatabaseOff } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import useSWRImmutable from "swr/immutable";
 import type {
   DatabaseInfo as PlainDatabaseInfo,
   PlayerGameInfo,
 } from "@/bindings";
+import { commands, events } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { activeDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, query_players } from "@/utils/db";
 import type { Session } from "@/utils/session";
 import { unwrap } from "@/utils/unwrap";
-import { Flex, Progress, Select, Text } from "@mantine/core";
-import { useAtomValue } from "jotai";
-import { useEffect, useState } from "react";
-import useSWRImmutable from "swr/immutable";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import PersonalPlayerCard from "./PersonalCard";
 
@@ -45,6 +57,7 @@ interface PersonalInfo {
 }
 
 function Databases() {
+  const { t } = useTranslation();
   const sessions = useAtomValue(sessionsAtom);
 
   const players = Array.from(
@@ -139,37 +152,82 @@ function Databases() {
   return (
     <>
       {isLoading && databases && (
-        <>
-          <Text ta="center" fw="bold" my="auto" fz="lg">
-            Processing Games...
-          </Text>
-
-          <Progress value={progress} />
-        </>
+        <Paper
+          h="100%"
+          shadow="sm"
+          p="md"
+          withBorder
+          style={{
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Center h="100%">
+            <Stack w="100%" maw={400} align="center" gap="md">
+              <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                <Loader color="blue" type="bars" />
+              </ThemeIcon>
+              <Title order={3}>{t("Home.Databases.ProcessingGames")}</Title>
+              <Progress
+                w="100%"
+                value={progress}
+                animated
+                striped
+                size="md"
+                radius="xl"
+              />
+              <Text fw="bold" fz="sm" c="dimmed">
+                {Math.round(progress)}%
+              </Text>
+            </Stack>
+          </Center>
+        </Paper>
       )}
-      {error && <Text ta="center">Error loading databases: {error}</Text>}
+      {error && (
+        <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>
+      )}
       {personalInfo &&
         (personalInfo.length === 0 ? (
-          <>
-            <Flex justify="center">
-              <Select
-                value={name}
-                data={players}
-                onChange={(e) => setName(e || "")}
-                clearable={false}
-                fw="bold"
-                styles={{
-                  input: {
-                    textAlign: "center",
-                    fontSize: "1.25rem",
-                  },
-                }}
-              />
-            </Flex>
-            <Text ta="center" fw="bold" my="auto" fz="lg">
-              No databases found
-            </Text>
-          </>
+          <Paper
+            h="100%"
+            shadow="sm"
+            p="md"
+            withBorder
+            style={{
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Center h="100%">
+              <Stack align="center" gap="md">
+                <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                  <IconDatabaseOff size={40} />
+                </ThemeIcon>
+                <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
+                <Text c="dimmed" ta="center" maw={400}>
+                  {t("Home.Databases.Empty.Description")}
+                </Text>
+
+                <Select
+                  value={name}
+                  data={players}
+                  onChange={(e) => setName(e || "")}
+                  clearable={false}
+                  allowDeselect={false}
+                  fw="bold"
+                  styles={{
+                    input: {
+                      textAlign: "center",
+                      fontSize: "1.25rem",
+                    },
+                  }}
+                  mt="md"
+                />
+              </Stack>
+            </Center>
+          </Paper>
         ) : (
           <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
             <PersonalPlayerCard

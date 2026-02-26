@@ -1,16 +1,3 @@
-import type { BestMoves } from "@/bindings";
-import {
-  activeTabAtom,
-  currentThreatAtom,
-  engineMovesFamily,
-  engineProgressFamily,
-  enginesAtom,
-  tabEngineSettingsFamily,
-} from "@/state/atoms";
-import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
-import type { Engine } from "@/utils/engines";
-import { formatNodes } from "@/utils/format";
-import { formatScore } from "@/utils/score";
 import {
   Accordion,
   ActionIcon,
@@ -29,6 +16,8 @@ import {
 import { useToggle } from "@mantine/hooks";
 import {
   IconGripVertical,
+  IconPinned,
+  IconPinnedOff,
   IconPlayerPause,
   IconPlayerPlay,
   IconSettings,
@@ -38,9 +27,30 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useDeferredValue, useEffect, useMemo } from "react";
+import {
+  memo,
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
+import type { BestMoves } from "@/bindings";
+import {
+  activeTabAtom,
+  currentDetachedEngineAtom,
+  currentThreatAtom,
+  engineMovesFamily,
+  engineProgressFamily,
+  enginesAtom,
+  tabEngineSettingsFamily,
+} from "@/state/atoms";
+import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
+import type { Engine } from "@/utils/engines";
+import { formatNodes } from "@/utils/format";
+import { formatScore } from "@/utils/score";
 import AnalysisRow from "./AnalysisRow";
 import * as classes from "./BestMoves.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
@@ -75,15 +85,15 @@ function BestMovesComponent({
 
   const activeTab = useAtomValue(activeTabAtom);
   const ev = useAtomValue(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
   const progress = useAtomValue(
-    engineProgressFamily({ engine: engine.name, tab: activeTab! }),
+    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
   );
   const [, setEngines] = useAtom(enginesAtom);
   const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
-      engineName: engine.name,
+      engineId: engine.id,
       defaultSettings: engine.settings ?? undefined,
       defaultGo: engine.go ?? undefined,
       tab: activeTab!,
@@ -107,7 +117,7 @@ function BestMovesComponent({
       if (newSettings.synced) {
         setEngines(async (prev) =>
           (await prev).map((o) =>
-            o.name === engine.name
+            o.id === engine.id
               ? { ...o, settings: newSettings.settings, go: newSettings.go }
               : o,
           ),
@@ -119,6 +129,10 @@ function BestMovesComponent({
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, setThreat] = useAtom(currentThreatAtom);
+  const [detachedEngineId, setDetachedEngineId] = useAtom(
+    currentDetachedEngineAtom,
+  );
+  const isDetached = detachedEngineId === engine.id;
   const theme = useMantineTheme();
 
   const [pos, error] = positionFromFen(fen);
@@ -199,6 +213,27 @@ function BestMovesComponent({
               mb="auto"
             >
               <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip
+            label={isDetached ? "Unpin from notation" : "Pin above notation"}
+          >
+            <ActionIcon
+              size="lg"
+              onClick={() =>
+                startTransition(() => {
+                  setDetachedEngineId(isDetached ? null : engine.id);
+                })
+              }
+              variant={isDetached ? "light" : "transparent"}
+              mt="auto"
+              mb="auto"
+            >
+              {isDetached ? (
+                <IconPinnedOff size="1rem" />
+              ) : (
+                <IconPinned size="1rem" />
+              )}
             </ActionIcon>
           </Tooltip>
           <ActionIcon
@@ -337,6 +372,7 @@ function EngineTop({
   progress: number;
   error: any;
 }) {
+  const { t } = useTranslation();
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
@@ -348,14 +384,14 @@ function EngineTop({
           {name}
         </Text>
         {enabled && !isGameOver && !error && !engineVariations && (
-          <Code fz="xs">Loading...</Code>
+          <Code fz="xs">{t("Common.Loading")}</Code>
         )}
         {progress < 100 &&
           enabled &&
           !isGameOver &&
           engineVariations &&
           engineVariations.length > 0 && (
-            <Tooltip label={"How fast the engine is running"}>
+            <Tooltip label={t("Board.Analysis.EngineSpeedHint")}>
               <Code fz="xs">{nps}n/s</Code>
             </Tooltip>
           )}

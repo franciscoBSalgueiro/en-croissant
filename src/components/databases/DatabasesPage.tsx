@@ -1,10 +1,3 @@
-import { commands } from "@/bindings";
-import type { DatabaseInfo } from "@/bindings";
-import { referenceDbAtom } from "@/state/atoms";
-import { useActiveDatabaseViewStore } from "@/state/store/database";
-import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Box,
   Button,
@@ -20,8 +13,9 @@ import {
   Skeleton,
   Stack,
   Text,
-  TextInput,
   Textarea,
+  TextInput,
+  ThemeIcon,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -29,10 +23,17 @@ import { useDebouncedValue, useToggle } from "@mantine/hooks";
 import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
-import { useAtom, useStore } from "jotai";
+import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
+import type { DatabaseInfo } from "@/bindings";
+import { commands } from "@/bindings";
+import { referenceDbAtom } from "@/state/atoms";
+import { useActiveDatabaseViewStore } from "@/state/store/database";
+import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -86,7 +87,8 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          commands.deleteDatabase(selectedDatabase?.file!).then(() => {
+          if (!selectedDatabase) return;
+          commands.deleteDatabase(selectedDatabase.file).then(() => {
             mutate();
             setSelected(null);
           });
@@ -198,7 +200,14 @@ export default function DatabasesPage() {
 
         {selectedDatabase === null ? (
           <Center h="100%">
-            <Text>No database selected</Text>
+            <Stack align="center" gap="sm">
+              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                <IconDatabase size={40} />
+              </ThemeIcon>
+              <Text c="dimmed" fw={500} size="lg">
+                {t("Databases.NoSelection")}
+              </Text>
+            </Stack>
           </Center>
         ) : (
           <Paper withBorder p="md" h="100%">
@@ -207,19 +216,17 @@ export default function DatabasesPage() {
                 {selectedDatabase.type === "error" ? (
                   <>
                     <Text fz="lg" fw="bold">
-                      There was an error loading this database
+                      {t("Databases.LoadError.Title")}
                     </Text>
 
                     <Text>
                       <Text td="underline" span>
-                        Reason:
+                        {t("Common.Reason")}:
                       </Text>
                       {` ${selectedDatabase.error}`}
                     </Text>
 
-                    <Text>
-                      Check if the file exists and that it is not corrupted.
-                    </Text>
+                    <Text>{t("Databases.LoadError.Description")}</Text>
                   </>
                 ) : (
                   <>
@@ -277,9 +284,7 @@ export default function DatabasesPage() {
                       {selectedDatabase.type === "success" && (
                         <Button
                           component={Link}
-                          to="/databases/$databaseId"
-                          params={{ databaseId: selectedDatabase.title }}
-                          //onClick={() => setStorageSelected(selectedDatabase)}
+                          to={`/databases/${selectedDatabase.title}`}
                           onClick={() => setActiveDatabase(selectedDatabase)}
                           fullWidth
                           variant="default"
@@ -371,7 +376,10 @@ export default function DatabasesPage() {
 function GeneralSettings({
   selectedDatabase,
   mutate,
-}: { selectedDatabase: SuccessDatabaseInfo; mutate: () => void }) {
+}: {
+  selectedDatabase: SuccessDatabaseInfo;
+  mutate: () => void;
+}) {
   const { t } = useTranslation();
 
   const [title, setTitle] = useState(selectedDatabase.title);
@@ -410,7 +418,10 @@ function GeneralSettings({
 function AdvancedSettings({
   selectedDatabase,
   reload,
-}: { selectedDatabase: DatabaseInfo; reload: () => void }) {
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
   return (
     <Stack>
       <PlayerMerger selectedDatabase={selectedDatabase} />
@@ -421,7 +432,9 @@ function AdvancedSettings({
 
 function PlayerMerger({
   selectedDatabase,
-}: { selectedDatabase: DatabaseInfo }) {
+}: {
+  selectedDatabase: DatabaseInfo;
+}) {
   const { t } = useTranslation();
 
   const [player1, setPlayer1] = useState<number | undefined>(undefined);
@@ -450,7 +463,7 @@ function PlayerMerger({
       <Text fz="sm">{t("Databases.Settings.MergePlayers.Desc")}</Text>
       <Group grow>
         <PlayerSearchInput
-          label="Player 1"
+          label={t("Databases.Player.One")}
           file={selectedDatabase.file}
           setValue={setPlayer1}
         />
@@ -462,7 +475,7 @@ function PlayerMerger({
           {t("Databases.Settings.Merge")}
         </Button>
         <PlayerSearchInput
-          label="Player 2"
+          label={t("Databases.Player.Two")}
           file={selectedDatabase.file}
           setValue={setPlayer2}
         />
@@ -474,7 +487,10 @@ function PlayerMerger({
 function DuplicateRemover({
   selectedDatabase,
   reload,
-}: { selectedDatabase: DatabaseInfo; reload: () => void }) {
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(false);

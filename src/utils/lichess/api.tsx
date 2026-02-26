@@ -1,19 +1,3 @@
-import {
-  type BestMoves,
-  type EngineOptions,
-  type GoMode,
-  type NormalizedGame,
-  commands,
-} from "@/bindings";
-import { parsePGN, uciNormalize } from "@/utils/chess";
-import { positionFromFen } from "@/utils/chessops";
-import {
-  type LichessGamesOptions,
-  type MasterGamesOptions,
-  getLichessGamesQueryParams,
-  getMasterGamesQueryParams,
-} from "@/utils/lichess/explorer";
-import { countMainPly } from "@/utils/treeReducer";
 import type { Color } from "@lichess-org/chessground/types";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
@@ -23,7 +7,24 @@ import { error } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
-import { P, match } from "ts-pattern";
+import { match, P } from "ts-pattern";
+import {
+  type BestMoves,
+  commands,
+  type EngineOptions,
+  type GoMode,
+  type NormalizedGame,
+} from "@/bindings";
+import { parsePGN, uciNormalize } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
+import { apiHeaders } from "@/utils/http";
+import {
+  getLichessGamesQueryParams,
+  getMasterGamesQueryParams,
+  type LichessGamesOptions,
+  type MasterGamesOptions,
+} from "@/utils/lichess/explorer";
+import { countMainPly } from "@/utils/treeReducer";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
@@ -216,11 +217,11 @@ export async function getLichessAccount({
   if (token) {
     response = await fetch(`${baseURL}/account`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: apiHeaders({ Authorization: `Bearer ${token}` }),
     });
   } else {
     const url = `${baseURL}/user/${username}`;
-    response = await fetch(url);
+    response = await fetch(url, { headers: apiHeaders() });
   }
   if (!response.ok) {
     error(
@@ -331,7 +332,7 @@ async function getCloudEvaluation(
   url.searchParams.append("fen", fen);
   url.searchParams.append("multiPv", multipv.toString());
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), { headers: apiHeaders() });
   const data = (await response.json()) as LichessCloudData;
   cache.set(`${fen}-${multipv}`, data);
   return data;
@@ -350,7 +351,7 @@ export async function getLichessGames(
     .otherwise(
       () => `${explorerURL}/player?${getLichessGamesQueryParams(fen, options)}`,
     );
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: apiHeaders() });
   const data = await res.json();
 
   if (!res.ok) {
@@ -367,7 +368,7 @@ export async function getMasterGames(
     fen,
     options,
   )}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: apiHeaders() });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(`${data}`);
@@ -383,6 +384,7 @@ export async function getPlayerGames(
   return (
     await fetch(
       `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`,
+      { headers: apiHeaders() },
     )
   ).json();
 }
@@ -394,7 +396,7 @@ export async function downloadLichess(
   setProgress: (progress: number) => void,
   token?: string,
 ) {
-  let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true`;
+  let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true&sort=dateAsc`;
   if (timestamp) {
     url += `&since=${timestamp}`;
   }
@@ -411,7 +413,7 @@ export async function downloadLichess(
 }
 
 export async function getLichessGame(gameId: string): Promise<string> {
-  const response = await window.fetch(
+  const response = await fetch(
     `https://lichess.org/game/export/${gameId.slice(0, 8)}`,
   );
   if (!response.ok) {
@@ -423,9 +425,11 @@ export async function getLichessGame(gameId: string): Promise<string> {
 }
 
 export async function getTablebaseInfo(fen: string): Promise<TablebaseData> {
-  const res = await fetch(`${tablebaseURL}/standard?fen=${fen}`);
+  const res = await fetch(`${tablebaseURL}/standard?fen=${fen}`, {
+    headers: apiHeaders(),
+  });
   if (!res.ok) {
-    throw new Error(`Failed to load tablebase info for ${fen} - ${res.status}`);
+    throw new Error(`Failed to load tablebase info for ${fen}.`);
   }
   return res.json();
 }
@@ -433,18 +437,18 @@ export async function getTablebaseInfo(fen: string): Promise<TablebaseData> {
 export async function getFidePlayer(query: string) {
   if (!Number.isNaN(Number(query))) {
     const res = await fetch(`${baseURL}/fide/player/${query}`, {
-      headers: {
+      headers: apiHeaders({
         Accept: "application/json",
-      },
+      }),
     });
     if (res.ok) {
       return await res.json();
     }
   } else {
     const res = await fetch(`${baseURL}/fide/player?q=${query}`, {
-      headers: {
+      headers: apiHeaders({
         Accept: "application/json",
-      },
+      }),
     });
     if (res.ok) {
       const data = await res.json();

@@ -1009,14 +1009,22 @@ async fn request_engine_move(
         let moves: Vec<String> = ctrl.moves.iter().map(|m| m.uci.clone()).collect();
         let (white_time, black_time) = ctrl.get_current_times();
 
-        let go_mode = if let (Some(wt), Some(bt)) = (white_time, black_time) {
+        let current_time = if turn == Color::White {
+            white_time
+        } else {
+            black_time
+        };
+
+        let go_mode = if current_time.is_some() {
             let (winc, binc) = ctrl
                 .clock
                 .as_ref()
                 .map(|c| (c.white_increment as u32, c.black_increment as u32))
                 .unwrap_or((0, 0));
 
-            GoMode::PlayersTime(PlayersTime::new(wt as u32, bt as u32, winc, binc))
+            let wt = white_time.unwrap_or(u64::MAX) as u32;
+            let bt = black_time.unwrap_or(u64::MAX) as u32;
+            GoMode::PlayersTime(PlayersTime::new(wt, bt, winc, binc))
         } else {
             go.unwrap_or(GoMode::Depth(20))
         };

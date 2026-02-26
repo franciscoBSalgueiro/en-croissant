@@ -1,7 +1,7 @@
-import type { Outcome, Score } from "@/bindings";
 import type { DrawShape } from "@lichess-org/chessground/draw";
 import type { Move } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
+import type { Outcome, Score } from "@/bindings";
 import type { Annotation } from "./annotation";
 import { positionFromFen } from "./chessops";
 
@@ -153,6 +153,7 @@ export type GameHeaders = {
   black_time_control?: string | null;
   eco?: string | null;
   variant?: string | null;
+  other?: Record<string, string>;
   // Repertoire headers
   start?: number[];
   orientation?: "white" | "black";
@@ -181,6 +182,19 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
   }
   return currentNode;
 };
+
+export function getTreeStructureHash(node: TreeNode): string {
+  const parts: string[] = [];
+  const stack: TreeNode[] = [node];
+  while (stack.length > 0) {
+    const n = stack.pop()!;
+    parts.push(`${n.fen}|${n.san ?? ""}|${n.halfMoves}|${n.children.length}`);
+    for (let i = n.children.length - 1; i >= 0; i--) {
+      stack.push(n.children[i]);
+    }
+  }
+  return parts.join(";");
+}
 
 export interface ReportState {
   inProgress: boolean;

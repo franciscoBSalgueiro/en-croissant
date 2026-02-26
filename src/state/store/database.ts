@@ -1,8 +1,8 @@
-import type { GameQuery, PlayerQuery, TournamentQuery } from "@/bindings";
-import type { SuccessDatabaseInfo } from "@/utils/db";
 import { type Draft, produce } from "immer";
 import { createStore, useStore } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { GameQuery, PlayerQuery, TournamentQuery } from "@/bindings";
+import type { SuccessDatabaseInfo } from "@/utils/db";
 
 export interface DatabaseViewStore {
   database?: SuccessDatabaseInfo;

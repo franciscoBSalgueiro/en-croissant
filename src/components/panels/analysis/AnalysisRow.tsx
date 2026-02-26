@@ -1,13 +1,3 @@
-import type { Score } from "@/bindings";
-import { Chessground } from "@/chessground/Chessground";
-import MoveCell from "@/components/common/MoveCell";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  moveHighlightAtom,
-  previewBoardOnHoverAtom,
-  scoreTypeFamily,
-} from "@/state/atoms";
-import { positionFromFen } from "@/utils/chessops";
 import type { Key } from "@lichess-org/chessground/types";
 import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
@@ -23,8 +13,17 @@ import {
   useRef,
   useState,
 } from "react";
-import React from "react";
 import { useStore } from "zustand";
+import type { Score } from "@/bindings";
+import { Chessground } from "@/chessground/Chessground";
+import MoveCell from "@/components/common/MoveCell";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  moveHighlightAtom,
+  previewBoardOnHoverAtom,
+  scoreTypeFamily,
+} from "@/state/atoms";
+import { positionFromFen } from "@/utils/chessops";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({

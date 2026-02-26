@@ -1,5 +1,3 @@
-import type { PlayerGameInfo } from "@/bindings";
-import { getTimeControl } from "@/utils/timeControl";
 import { Group, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -11,8 +9,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import DateRangeTabs from "./DateRangeTabs";
-import { DateRange } from "./DateRangeTabs";
+import type { PlayerGameInfo } from "@/bindings";
+import { getTimeControl } from "@/utils/timeControl";
+import DateRangeTabs, { DateRange } from "./DateRangeTabs";
 import {
   gradientStops,
   linearGradientProps,

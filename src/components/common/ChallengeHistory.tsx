@@ -1,9 +1,9 @@
-import { hidePuzzleRatingAtom } from "@/state/atoms";
-import type { Completion } from "@/utils/puzzles";
 import { ActionIcon, Group, Stack, Text } from "@mantine/core";
 import { IconCheck, IconDots, IconX } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { match } from "ts-pattern";
+import { hidePuzzleRatingAtom } from "@/state/atoms";
+import type { Completion } from "@/utils/puzzles";
 
 type Challenge = {
   completion: Completion;

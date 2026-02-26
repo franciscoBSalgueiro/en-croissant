@@ -1,15 +1,9 @@
-import type { DatabaseInfo } from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import { getChessComAccount, getStats } from "@/utils/chess.com/api";
-import { getLichessAccount } from "@/utils/lichess/api";
-import type { Session } from "@/utils/session";
 import {
-  Accordion,
   ActionIcon,
   Divider,
   Group,
-  Paper,
   ScrollArea,
+  SimpleGrid,
   Stack,
   Text,
   TextInput,
@@ -17,14 +11,22 @@ import {
 import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import type { DatabaseInfo } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import { getChessComAccount, getStats } from "@/utils/chess.com/api";
+import { getLichessAccount } from "@/utils/lichess/api";
+import type { Session } from "@/utils/session";
 import { AccountCard } from "../home/AccountCard";
+import { EmptyAccounts } from "../home/EmptyAccounts";
 
 function AccountCards({
   databases,
   setDatabases,
+  onAddAccount,
 }: {
   databases: DatabaseInfo[];
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
+  onAddAccount: () => void;
 }) {
   const sessions = useAtomValue(sessionsAtom);
   const playerNames = Array.from(
@@ -44,6 +46,10 @@ function AccountCards({
         s.chessCom?.username === name,
     ),
   }));
+
+  if (sessions.length === 0) {
+    return <EmptyAccounts onAddAccount={onAddAccount} />;
+  }
 
   return (
     <ScrollArea offsetScrollbars>
@@ -82,8 +88,8 @@ function PlayerSession({
   const ref = useRef(null);
 
   return (
-    <Paper withBorder>
-      <Group justify="space-between" py="xs" px="md">
+    <Stack mt="sm">
+      <Group justify="space-between" align="center">
         {edit ? (
           <TextInput
             ref={ref}
@@ -108,6 +114,8 @@ function PlayerSession({
           {edit ? (
             <ActionIcon
               size="sm"
+              variant="subtle"
+              color="green"
               onClick={() => {
                 setEdit(false);
                 setSessions((prev) =>
@@ -128,6 +136,8 @@ function PlayerSession({
           ) : (
             <ActionIcon
               size="sm"
+              variant="subtle"
+              color="gray"
               onClick={() => {
                 setEdit(true);
               }}
@@ -137,6 +147,8 @@ function PlayerSession({
           )}
           <ActionIcon
             size="sm"
+            variant="subtle"
+            color="red"
             onClick={() =>
               setSessions((sessions) =>
                 sessions.filter(
@@ -153,7 +165,7 @@ function PlayerSession({
         </Group>
       </Group>
       <Divider />
-      <Accordion multiple chevronSize={0}>
+      <Group>
         {sessions.map((session, i) => (
           <LichessOrChessCom
             key={i}
@@ -163,8 +175,8 @@ function PlayerSession({
             setSessions={setSessions}
           />
         ))}
-      </Accordion>
-    </Paper>
+      </Group>
+    </Stack>
   );
 }
 

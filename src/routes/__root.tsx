@@ -1,18 +1,11 @@
-import type { Dirs } from "@/App";
-import AboutModal from "@/components/About";
-import { SideBar } from "@/components/Sidebar";
-import TopBar from "@/components/TopBar";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { openFile } from "@/utils/files";
-import { createTab } from "@/utils/tabs";
 import { AppShell } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
-  Outlet,
   createRootRouteWithContext,
+  Outlet,
   useNavigate,
 } from "@tanstack/react-router";
+import { TauriEvent } from "@tauri-apps/api/event";
 import {
   Menu,
   MenuItem,
@@ -23,8 +16,7 @@ import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
 import { platform } from "@tauri-apps/plugin-os";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { exit } from "@tauri-apps/plugin-process";
+import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { open as shellOpen } from "@tauri-apps/plugin-shell";
 import { check } from "@tauri-apps/plugin-updater";
 import { useAtom, useAtomValue } from "jotai";
@@ -32,7 +24,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
-import { match, P } from "ts-pattern";
+import { match } from "ts-pattern";
+import type { Dirs } from "@/App";
+import AboutModal from "@/components/About";
+import { SideBar } from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
+import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { openFile } from "@/utils/files";
+import { createTab } from "@/utils/tabs";
 
 type MenuGroup = {
   label: string;
@@ -126,7 +126,7 @@ function RootLayout() {
   const checkForUpdates = useCallback(async () => {
     const update = await check();
     if (update) {
-      const yes = await ask("Do you want to install them now?", {
+      const yes = await ask("Do you want to install the new version now?", {
         title: "New version available",
       });
       if (yes) {
@@ -318,6 +318,31 @@ function RootLayout() {
       getCurrentWindow().setDecorations(false);
     }
   }, [menu, isNative]);
+
+  useEffect(() => {
+    const unlisten = getCurrentWindow().listen(
+      TauriEvent.DRAG_DROP,
+      (event) => {
+        const payload = event.payload as { paths: string[] };
+        if (payload?.paths) {
+          const pgnFiles = payload.paths.filter((path) =>
+            path.toLowerCase().endsWith(".pgn"),
+          );
+
+          if (pgnFiles.length > 0) {
+            navigate({ to: "/" });
+            for (const file of pgnFiles) {
+              openFile(file, setTabs, setActiveTab);
+            }
+          }
+        }
+      },
+    );
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [navigate, setTabs, setActiveTab]);
 
   return (
     <AppShell

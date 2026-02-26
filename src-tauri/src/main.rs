@@ -16,6 +16,7 @@ mod opening;
 mod pgn;
 mod progress;
 mod puzzle;
+mod sound;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -37,7 +38,8 @@ use tauri::{Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
 use crate::chess::{
-    analyze_game, get_engine_config, get_engine_logs, kill_engine, kill_engines, stop_engine,
+    analyze_game, cancel_analysis, get_engine_config, get_engine_logs, kill_engine, kill_engines,
+    stop_engine,
 };
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
@@ -53,16 +55,23 @@ use crate::fs::set_file_as_executable;
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
-use crate::puzzle::{get_puzzle, get_puzzle_db_info};
+use crate::puzzle::{
+    delete_puzzle_database, get_puzzle, get_puzzle_db_info, get_puzzle_themes,
+    get_themes_for_puzzle,
+};
+use crate::sound::get_sound_server_port;
 use crate::{
     chess::get_best_moves,
     db::{
         delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
     },
     fs::{download_file, file_exists, get_file_metadata},
-    opening::{get_opening_from_fen, get_opening_from_name, search_opening_name},
+    opening::{
+        get_opening_from_fen, get_opening_from_fens, get_opening_from_name, search_opening_name,
+    },
 };
-use tokio::sync::{RwLock, Semaphore};
+use std::sync::atomic::AtomicBool;
+use tokio::sync::Semaphore;
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -75,9 +84,12 @@ pub struct AppState {
     db_cache: Mutex<Option<MmapSearchIndex>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
+    #[derivative(Default(value = "DashMap::new()"))]
+    search_collisions: DashMap<(GameQueryJs, PathBuf), Arc<tokio::sync::Mutex<()>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
+    analysis_cancel_flags: DashMap<String, Arc<AtomicBool>>,
     auth: AuthState,
     game_manager: GameManager,
     progress_state: ProgressStore,
@@ -112,6 +124,7 @@ fn main() {
             close_splashscreen,
             get_best_moves,
             analyze_game,
+            cancel_analysis,
             stop_engine,
             kill_engine,
             kill_engines,
@@ -120,6 +133,7 @@ fn main() {
             get_puzzle,
             search_opening_name,
             get_opening_from_fen,
+            get_opening_from_fens,
             get_opening_from_name,
             get_players_game_info,
             get_engine_config,
@@ -152,6 +166,9 @@ fn main() {
             search_position,
             get_players,
             get_puzzle_db_info,
+            get_puzzle_themes,
+            get_themes_for_puzzle,
+            delete_puzzle_database,
             start_game,
             get_game_state,
             make_game_move,
@@ -161,7 +178,8 @@ fn main() {
             get_game_engine_logs,
             preload_reference_db,
             get_progress,
-            clear_progress
+            clear_progress,
+            get_sound_server_port
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
@@ -233,6 +251,18 @@ fn main() {
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();
 
             specta_builder.mount_events(app);
+
+            #[cfg(target_os = "linux")]
+            {
+                let sound_dir = app
+                    .path()
+                    .resolve("sound", BaseDirectory::Resource)
+                    .expect("failed to resolve sound resource directory");
+                let port = sound::start_sound_server(sound_dir);
+                app.manage(sound::SoundServerPort(port));
+            }
+            #[cfg(not(target_os = "linux"))]
+            app.manage(sound::SoundServerPort(0));
 
             #[cfg(desktop)]
             app.handle().plugin(tauri_plugin_cli::init())?;

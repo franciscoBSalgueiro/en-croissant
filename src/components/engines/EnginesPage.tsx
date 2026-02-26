@@ -1,10 +1,3 @@
-import { enginesAtom } from "@/state/atoms";
-import {
-  type Engine,
-  type LocalEngine,
-  engineSchema,
-  requiredEngineSettings,
-} from "@/utils/engines";
 import {
   ActionIcon,
   Box,
@@ -25,34 +18,42 @@ import {
   Stack,
   Text,
   TextInput,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import {
   IconCloud,
+  IconCopy,
   IconCpu,
   IconPhotoPlus,
   IconPlus,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
-import OpenFolderButton from "../common/OpenFolderButton";
-import AddEngine from "./AddEngine";
-
+import { match, P } from "ts-pattern";
 import { commands } from "@/bindings";
 import * as classes from "@/components/common/GenericCard.css";
 import { Route } from "@/routes/engines";
+import { enginesAtom } from "@/state/atoms";
+import {
+  type Engine,
+  engineSchema,
+  type LocalEngine,
+  requiredEngineSettings,
+} from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
-import { useToggle } from "@mantine/hooks";
-import { useNavigate } from "@tanstack/react-router";
-import { open } from "@tauri-apps/plugin-dialog";
-import { useTranslation } from "react-i18next";
-import { P, match } from "ts-pattern";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import GoModeInput from "../common/GoModeInput";
 import LocalImage from "../common/LocalImage";
+import OpenFolderButton from "../common/OpenFolderButton";
 import LinesSlider from "../panels/analysis/LinesSlider";
+import AddEngine from "./AddEngine";
 
 export default function EnginesPage() {
   const { t } = useTranslation();
@@ -62,8 +63,10 @@ export default function EnginesPage() {
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
-    navigate({ search: { selected: v ?? undefined } });
+    navigate({ to: "/engines", search: { selected: v ?? undefined } });
   };
+
+  if (!engines) return null;
 
   const selectedEngine = selected !== undefined ? engines[selected] : null;
 
@@ -99,7 +102,7 @@ export default function EnginesPage() {
               return (
                 <GenericCard
                   id={i}
-                  key={item.name}
+                  key={item.id}
                   isSelected={selected === i}
                   setSelected={setSelected}
                   error={undefined}
@@ -125,7 +128,14 @@ export default function EnginesPage() {
         </ScrollArea>
         {!selectedEngine || selected === undefined ? (
           <Center h="100%">
-            <Text>{t("Engines.Settings.NoEngine")}</Text>
+            <Stack align="center" gap="sm">
+              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                <IconCpu size={40} />
+              </ThemeIcon>
+              <Text c="dimmed" fw={500} size="lg">
+                {t("Engines.Settings.NoEngine")}
+              </Text>
+            </Stack>
           </Center>
         ) : (
           <Paper withBorder p="md" h="100%">
@@ -143,19 +153,6 @@ export default function EnginesPage() {
                     setEngines(async (prev) => {
                       const copy = [...(await prev)];
                       copy[selected].name = e.currentTarget.value;
-                      return copy;
-                    });
-                  }}
-                />
-
-                <Checkbox
-                  label={t("Common.Enabled")}
-                  checked={!!selectedEngine.loaded}
-                  onChange={(e) => {
-                    const checked = e.currentTarget.checked;
-                    setEngines(async (prev) => {
-                      const copy = [...(await prev)];
-                      copy[selected].loaded = checked;
                       return copy;
                     });
                   }}
@@ -222,11 +219,14 @@ export default function EnginesPage() {
 function EngineSettings({
   selected,
   setSelected,
-}: { selected: number; setSelected: (v: number | null) => void }) {
+}: {
+  selected: number;
+  setSelected: (v: number | null) => void;
+}) {
   const { t } = useTranslation();
 
   const [engines, setEngines] = useAtom(enginesAtom);
-  const engine = engines[selected] as LocalEngine;
+  const engine = engines![selected] as LocalEngine;
   const { data: options } = useSWRImmutable(
     ["engine-config", engine.path],
     async ([, path]) => {
@@ -253,9 +253,11 @@ function EngineSettings({
           const option = options.options.find(
             (option) => option.value.name === field,
           );
-          if (option) {
-            // @ts-ignore
-            settings.push({ name: field, value: option.value.default });
+          if (option && option.type !== "button") {
+            settings.push({
+              name: field,
+              value: option.value.default as string | number | boolean | null,
+            });
           }
         }
       }
@@ -265,7 +267,7 @@ function EngineSettings({
     }
   }, [options]);
 
-  const completeOptions: any =
+  const completeOptions =
     options?.options
       .filter((option) => option.type !== "button")
       .map((option) => {
@@ -279,8 +281,7 @@ function EngineSettings({
             value:
               setting?.value !== undefined
                 ? setting.value
-                : // @ts-ignore
-                  option.value.default,
+                : option.value.default,
           },
         };
       }) || [];
@@ -362,13 +363,6 @@ function EngineSettings({
                 }
               />
             </Group>
-            <Checkbox
-              label={t("Common.Enabled")}
-              checked={!!engine.loaded}
-              onChange={(e) =>
-                setEngine({ ...engine, loaded: e.currentTarget.checked })
-              }
-            />
           </Stack>
           <Center>
             {engine.image ? (
@@ -482,8 +476,8 @@ function EngineSettings({
         </SimpleGrid>
         <SimpleGrid cols={2}>
           {completeOptions
-            .filter((option: any) => option.type === "check")
-            .map((o: any) => {
+            .filter((option) => option.type === "check")
+            .map((o) => {
               return (
                 <Checkbox
                   key={o.value.name}
@@ -493,8 +487,7 @@ function EngineSettings({
                     setSetting(
                       o.value.name,
                       e.currentTarget.checked,
-                      // @ts-ignore
-                      o.value.default,
+                      o.value.default as boolean,
                     )
                   }
                 />
@@ -515,15 +508,38 @@ function EngineSettings({
                   .filter((option) =>
                     requiredEngineSettings.includes(option.value.name),
                   )
+                  .filter((option) => option.type !== "button")
                   .map((option) => ({
                     name: option.value.name,
-                    // @ts-ignore
-                    value: option.value.default,
+                    value: option.value.default as
+                      | string
+                      | number
+                      | boolean
+                      | null,
                   })),
               })
             }
           >
             {t("Engines.Settings.Reset")}
+          </Button>
+          <Button
+            leftSection={<IconCopy size="1rem" />}
+            variant="default"
+            onClick={() => {
+              const duplicatedEngine: LocalEngine = {
+                ...engine,
+                id: crypto.randomUUID(),
+                name: `${engine.name} (Copy)`,
+              };
+              setEngines(async (prev) => {
+                const copy = [...(await prev)];
+                copy.splice(selected + 1, 0, duplicatedEngine);
+                return copy;
+              });
+              setSelected(selected + 1);
+            }}
+          >
+            {t("Common.Duplicate")}
           </Button>
           <Button color="red" onClick={() => toggleDeleteModal()}>
             {t("Common.Remove")}
@@ -627,7 +643,13 @@ function EngineName({ engine }: { engine: Engine }) {
   return (
     <Group wrap="nowrap">
       {engine.image ? (
-        <LocalImage src={engine.image} alt={engine.name} h="2.5rem" />
+        <LocalImage
+          src={engine.image}
+          alt={engine.name}
+          h="2.5rem"
+          fit="contain"
+          flex={0}
+        />
       ) : engine.type !== "local" ? (
         <IconCloud size="2.5rem" />
       ) : (

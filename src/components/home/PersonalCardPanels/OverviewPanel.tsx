@@ -1,12 +1,4 @@
-import type { PlayerGameInfo } from "@/bindings";
-import type { StatsData } from "@/bindings";
-import { getTimeControl } from "@/utils/timeControl";
-import {
-  Stack,
-  Text,
-  useMantineColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
+import { Group, Stack, Text } from "@mantine/core";
 import { useState } from "react";
 import {
   Bar,
@@ -14,7 +6,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-  type TooltipProps,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
@@ -22,6 +14,8 @@ import type {
   NameType,
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
+import type { PlayerGameInfo, StatsData } from "@/bindings";
+import { getTimeControl } from "@/utils/timeControl";
 import ResultsChart from "./ResultsChart";
 import TimeControlSelector from "./TimeControlSelector";
 import WebsiteAccountSelector from "./WebsiteAccountSelector";
@@ -119,28 +113,21 @@ function OverviewPanel({
 
   return (
     <Stack>
-      {!isDatabase && (
-        <WebsiteAccountSelector
-          playerName={playerName}
-          onWebsiteChange={(website) => {
-            setWebsite(website);
-            if (website === "All websites") {
-              setTimeControl(null);
-            } else if (timeControl === null) {
-              setTimeControl("any");
-            }
-          }}
-          onAccountChange={setAccount}
-          allowAll={true}
-        />
-      )}
-      {website !== "All websites" && (
+      <Group grow>
+        {!isDatabase && (
+          <WebsiteAccountSelector
+            playerName={playerName}
+            onWebsiteChange={(website) => setWebsite(website)}
+            onAccountChange={setAccount}
+            allowAll={true}
+          />
+        )}
         <TimeControlSelector
           website={website}
           onTimeControlChange={setTimeControl}
           allowAll={true}
         />
-      )}
+      </Group>
 
       <Text pt="md" fw="bold" fz="lg" ta="center">
         {total} Games
@@ -161,7 +148,7 @@ const DateChartTooltip = ({
   payload,
   label,
   isYearSelected,
-}: TooltipProps<ValueType, NameType> & { isYearSelected: boolean }) => {
+}: TooltipContentProps<ValueType, NameType> & { isYearSelected: boolean }) => {
   if (active && payload && payload.length) {
     return (
       <div
@@ -215,7 +202,7 @@ function DateChart({
       <BarChart
         data={data}
         onClick={(e) => {
-          const year = Number.parseInt(e.activePayload?.[0]?.payload?.name);
+          const year = Number.parseInt(e.activeLabel?.toString() ?? "", 10);
           if (year) {
             setSelectedYear((prev) => (prev === year ? null : year));
           }
@@ -225,7 +212,12 @@ function DateChart({
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip
-          content={<DateChartTooltip isYearSelected={selectedYear === null} />}
+          content={(props) => (
+            <DateChartTooltip
+              {...props}
+              isYearSelected={selectedYear === null}
+            />
+          )}
           cursor={{
             fill: "var(--mantine-color-default-border)",
             stroke: "1px solid var(--chart-grid-color)",

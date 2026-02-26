@@ -1,4 +1,3 @@
-import { events } from "@/bindings";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
@@ -8,18 +7,17 @@ import { error, info } from "@tauri-apps/plugin-log";
 import { Chess } from "chessops";
 import {
   ChildNode,
-  type PgnNodeData,
   defaultGame,
   makePgn,
+  type PgnNodeData,
 } from "chessops/pgn";
 import { makeSan } from "chessops/san";
 import { z } from "zod";
+import { events } from "@/bindings";
+import { apiHeaders } from "@/utils/http";
 import { decodeTCN } from "./tcn";
 
 const baseURL = "https://api.chess.com";
-const headers = {
-  "User-Agent": "EnCroissant",
-};
 
 const ChessComPerf = z.object({
   last: z.object({
@@ -73,7 +71,7 @@ export async function getChessComAccount(
   player: string,
 ): Promise<ChessComStats | null> {
   const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
-  const response = await fetch(url, { headers, method: "GET" });
+  const response = await fetch(url, { headers: apiHeaders(), method: "GET" });
   if (!response.ok) {
     error(
       `Failed to fetch Chess.com account: ${response.status} ${response.url}`,
@@ -105,7 +103,7 @@ export async function getChessComAccount(
 
 async function getGameArchives(player: string) {
   const url = `${baseURL}/pub/player/${player}/games/archives`;
-  const response = await fetch(url, { headers, method: "GET" });
+  const response = await fetch(url, { headers: apiHeaders(), method: "GET" });
   return (await response.json()) as Archive;
 }
 
@@ -141,7 +139,7 @@ export async function downloadChessCom(
   for (const archive of filteredArchives) {
     info(`Fetching games for ${player} from ${archive}`);
     const response = await fetch(archive, {
-      headers,
+      headers: apiHeaders(),
       method: "GET",
     });
     const games = ChessComGames.safeParse(await response.json());
@@ -177,8 +175,10 @@ export async function downloadChessCom(
 }
 
 const chessComGameSchema = z.object({
-  moveList: z.string(),
-  pgnHeaders: z.record(z.string(), z.string()),
+  game: z.object({
+    moveList: z.string(),
+    pgnHeaders: z.record(z.string(), z.union([z.string(), z.number()])),
+  }),
 });
 
 export async function getChesscomGame(gameURL: string) {
@@ -186,7 +186,27 @@ export async function getChesscomGame(gameURL: string) {
   const match = gameURL.match(regex);
 
   if (!match) {
-    return "";
+    const eventRegex = /chess.com\/events/;
+    if (gameURL.match(eventRegex)) {
+      error(`Event URLs are not supported: ${gameURL}`);
+      notifications.show({
+        title: "Event URLs not supported",
+        message:
+          "Event URLs cannot be imported directly. Please import the PGN instead.",
+        color: "red",
+        icon: <IconX />,
+      });
+      return null;
+    }
+    error(`Unsupported Chess.com URL format: ${gameURL}`);
+    notifications.show({
+      title: "Unsupported URL format",
+      message:
+        "The URL format is not recognized. Please use a direct game link like https://www.chess.com/game/live/12345",
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
   }
 
   const gameType = match[1];
@@ -195,7 +215,7 @@ export async function getChesscomGame(gameURL: string) {
   const response = await fetch(
     `https://www.chess.com/callback/${gameType}/game/${gameId}`,
     {
-      headers,
+      headers: apiHeaders(),
       method: "GET",
     },
   );
@@ -226,8 +246,8 @@ export async function getChesscomGame(gameURL: string) {
     return null;
   }
 
-  const moveList = gameData.data.moveList;
-  const pgnHeaders = gameData.data.pgnHeaders;
+  const moveList = gameData.data.game.moveList;
+  const pgnHeaders = gameData.data.game.pgnHeaders;
   const moves = moveList.match(/.{1,2}/g);
   if (!moves) {
     return "";

@@ -52,6 +52,10 @@ globalStyle("*", {
   WebkitUserSelect: "none",
 });
 
+globalStyle(":focus", {
+  outline: "none",
+});
+
 globalStyle("html, body", {
   overscrollBehavior: "none",
   overflow: "auto",

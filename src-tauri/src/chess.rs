@@ -1,4 +1,12 @@
-use std::{fmt::Display, path::PathBuf, sync::Arc, time::Instant};
+use std::{
+    fmt::Display,
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Instant,
+};
 
 use derivative::Derivative;
 use governor::{Quota, RateLimiter};
@@ -304,7 +312,7 @@ pub async fn get_best_moves(
 ) -> Result<Option<(f32, Vec<BestMoves>)>, Error> {
     let path = PathBuf::from(&engine);
 
-    let key = (tab.clone(), engine.clone());
+    let key = (tab.clone(), id.clone());
 
     if state.engine_processes.contains_key(&key) {
         {
@@ -346,6 +354,11 @@ pub async fn get_best_moves(
                 if let Ok(best_moves) =
                     parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves)
                 {
+                    if best_moves.score.lower_bound == Some(true)
+                        || best_moves.score.upper_bound == Some(true)
+                    {
+                        continue;
+                    }
                     let multipv = best_moves.multipv;
                     let cur_depth = best_moves.depth;
                     let cur_nodes = best_moves.nodes;
@@ -428,6 +441,15 @@ pub struct AnalysisOptions {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn cancel_analysis(id: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+    if let Some(flag) = state.analysis_cancel_flags.get(&id) {
+        flag.store(true, Ordering::SeqCst);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn analyze_game(
     id: String,
     engine: String,
@@ -437,6 +459,11 @@ pub async fn analyze_game(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, Error> {
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    state
+        .analysis_cancel_flags
+        .insert(id.clone(), cancel_flag.clone());
+
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
@@ -476,6 +503,12 @@ pub async fn analyze_game(
     let mut novelty_found = false;
 
     for (i, (_, moves, _)) in fens.iter().enumerate() {
+        if cancel_flag.load(Ordering::SeqCst) {
+            proc.kill().await?;
+            state.analysis_cancel_flags.remove(&id);
+            return Err(Error::AnalysisCancelled);
+        }
+
         update_progress(
             &state.progress_state,
             &app,
@@ -571,6 +604,7 @@ pub async fn analyze_game(
         }
     }
     update_progress(&state.progress_state, &app, id.clone(), 100.0, true)?;
+    state.analysis_cancel_flags.remove(&id);
     Ok(analysis)
 }
 

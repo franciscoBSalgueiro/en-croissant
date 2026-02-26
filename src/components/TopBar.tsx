@@ -1,9 +1,9 @@
 import { Box, Button, Center, Group, Image, Menu, Text } from "@mantine/core";
+import { useColorScheme } from "@mantine/hooks";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useEffect, useState } from "react";
 import * as classes from "./TopBar.css";
 
-import { useColorScheme } from "@mantine/hooks";
 const appWindow = getCurrentWebviewWindow();
 
 function IconMinimize() {
@@ -99,98 +99,96 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
   }, []);
 
   return (
-    <>
-      <Group>
-        <Box style={{ flexGrow: 1 }}>
-          <Group data-tauri-drag-region gap="xs" px="sm">
-            <Box h="1.25rem" w="1.25rem">
-              <Image src="/logo.png" fit="fill" />
-            </Box>
-            <Group gap={0}>
-              {menuActions.map((action) => (
-                <Menu
-                  key={action.label}
-                  offset={2}
-                  shadow="md"
-                  width={200}
-                  position="bottom-start"
-                  transitionProps={{ duration: 0 }}
-                >
-                  <Menu.Target>
-                    <Button
-                      styles={{
-                        root: {
-                          transform: "none",
-                        },
-                        label: {
-                          fontWeight: "normal",
-                        },
-                      }}
-                      fz="0.8rem"
-                      variant="subtle"
-                      color={colorScheme === "dark" ? "gray" : "dark"}
-                      size="compact-xs"
-                    >
-                      {action.label}
-                    </Button>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    {action.options.map((option, i) =>
-                      option.label === "divider" ? (
-                        <Menu.Divider key={i} />
-                      ) : (
-                        <Menu.Item
-                          fz="0.8rem"
-                          key={option.label}
-                          rightSection={
-                            option.shortcut && (
-                              <Text size="xs" c="dimmed">
-                                {option.shortcut}
-                              </Text>
-                            )
-                          }
-                          onClick={option.action}
-                        >
-                          {option.label}
-                        </Menu.Item>
-                      ),
-                    )}
-                  </Menu.Dropdown>
-                </Menu>
-              ))}
-            </Group>
+    <Group>
+      <Box style={{ flexGrow: 1 }}>
+        <Group data-tauri-drag-region gap="xs" px="sm">
+          <Box h="1.25rem" w="1.25rem">
+            <Image src="/logo.png" fit="fill" />
+          </Box>
+          <Group gap={0}>
+            {menuActions.map((action) => (
+              <Menu
+                key={action.label}
+                offset={2}
+                shadow="md"
+                width={200}
+                position="bottom-start"
+                transitionProps={{ duration: 0 }}
+              >
+                <Menu.Target>
+                  <Button
+                    styles={{
+                      root: {
+                        transform: "none",
+                      },
+                      label: {
+                        fontWeight: "normal",
+                      },
+                    }}
+                    fz="0.8rem"
+                    variant="subtle"
+                    color={colorScheme === "dark" ? "gray" : "dark"}
+                    size="compact-xs"
+                  >
+                    {action.label}
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  {action.options.map((option, i) =>
+                    option.label === "divider" ? (
+                      <Menu.Divider key={i} />
+                    ) : (
+                      <Menu.Item
+                        fz="0.8rem"
+                        key={option.label}
+                        rightSection={
+                          option.shortcut && (
+                            <Text size="xs" c="dimmed">
+                              {option.shortcut}
+                            </Text>
+                          )
+                        }
+                        onClick={option.action}
+                      >
+                        {option.label}
+                      </Menu.Item>
+                    ),
+                  )}
+                </Menu.Dropdown>
+              </Menu>
+            ))}
           </Group>
-        </Box>
-        <Box>
-          <Group gap={0} data-tauri-drag-region>
-            <Center
-              h="2.25rem"
-              w={45}
-              onClick={() => appWindow.minimize()}
-              className={classes.icon}
-            >
-              <IconMinimize />
-            </Center>
-            <Center
-              h="2.25rem"
-              w={45}
-              onClick={() => appWindow.toggleMaximize()}
-              className={classes.icon}
-            >
-              {isMaximized ? <IconMaximize /> : <IconSquare />}
-            </Center>
-            <Center
-              h="2.25rem"
-              w={45}
-              onClick={() => appWindow.close()}
-              className={classes.close}
-            >
-              <IconX />
-            </Center>
-          </Group>
-        </Box>
-      </Group>
-    </>
+        </Group>
+      </Box>
+      <Box>
+        <Group gap={0} data-tauri-drag-region>
+          <Center
+            h="2.25rem"
+            w={45}
+            onClick={() => appWindow.minimize()}
+            className={classes.icon}
+          >
+            <IconMinimize />
+          </Center>
+          <Center
+            h="2.25rem"
+            w={45}
+            onClick={() => appWindow.toggleMaximize()}
+            className={classes.icon}
+          >
+            {isMaximized ? <IconMaximize /> : <IconSquare />}
+          </Center>
+          <Center
+            h="2.25rem"
+            w={45}
+            onClick={() => appWindow.close()}
+            className={classes.close}
+          >
+            <IconX />
+          </Center>
+        </Group>
+      </Box>
+    </Group>
   );
 }
 

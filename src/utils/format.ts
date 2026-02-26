@@ -49,6 +49,27 @@ export function capitalize(str: string) {
   return `${str.charAt(0).toUpperCase()}${str.slice(1)}`;
 }
 
+export function formatThemeLabel(theme: string) {
+  const normalized = theme
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/([a-zA-Z])([0-9])/g, "$1 $2")
+    .replace(/([0-9])([a-zA-Z])/g, "$1 $2")
+    .trim();
+
+  if (!normalized) return theme;
+
+  return normalized
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => {
+      if (/^\d+$/.test(word)) return word;
+      return capitalize(word.toLowerCase());
+    })
+    .join(" ");
+}
+
 export function formatNodes(nodes: number) {
   if (nodes < 1000) return nodes.toFixed(0);
   return `${(nodes / 1000).toFixed(0)}k`;
@@ -69,4 +90,31 @@ export function getInitials(name: string) {
   const names = name.split(" ");
   const initials = names.map((n) => n.charAt(0).toUpperCase()).join("");
   return initials;
+}
+
+export function roundKeepSum(numbers: number[], targetSum = 100): number[] {
+  if (numbers.every((num) => num === 0)) return numbers;
+  const mappedNumbers = numbers.map((num, i) => ({
+    originalValue: num,
+    decimalPart: num - Math.floor(num),
+    index: i,
+    flooredValue: Math.floor(num),
+  }));
+
+  const currentSum = mappedNumbers.reduce(
+    (sum, item) => sum + item.flooredValue,
+    0,
+  );
+
+  const remainder = Math.round(targetSum - currentSum);
+
+  mappedNumbers.sort((a, b) => b.decimalPart - a.decimalPart);
+
+  for (let i = 0; i < remainder; i++) {
+    mappedNumbers[i].flooredValue += 1;
+  }
+
+  return mappedNumbers
+    .sort((a, b) => a.index - b.index)
+    .map((item) => item.flooredValue);
 }

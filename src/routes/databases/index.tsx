@@ -1,8 +1,6 @@
-import DatabasesPage from "@/components/databases/DatabasesPage";
-import { selectedDatabaseAtom } from "@/state/atoms";
-import { activeDatabaseViewStore } from "@/state/store/database";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getDefaultStore } from "jotai";
+import DatabasesPage from "@/components/databases/DatabasesPage";
+import { activeDatabaseViewStore } from "@/state/store/database";
 
 export const Route = createFileRoute("/databases/")({
   component: DatabasesPage,

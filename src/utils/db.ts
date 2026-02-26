@@ -1,4 +1,9 @@
+import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
+import { fetch } from "@tauri-apps/plugin-http";
+import useSWR from "swr";
 import {
+  commands,
   type DatabaseInfo,
   type GameQuery,
   type NormalizedGame,
@@ -6,13 +11,8 @@ import {
   type PlayerQuery,
   type PuzzleDatabaseInfo,
   type QueryResponse,
-  commands,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
-import { fetch } from "@tauri-apps/plugin-http";
-import useSWR from "swr";
 import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;

@@ -54,7 +54,9 @@ pub use self::search_index::{get_index_path, MmapSearchIndex, SearchGameEntry, S
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
+pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
+pub use self::schema::themes;
 pub use self::search::{
     is_position_in_db, search_position, PositionQuery, PositionQueryJs, PositionStats,
 };
@@ -166,6 +168,20 @@ fn get_db_or_create(
     };
 
     Ok(pool.get()?)
+}
+
+fn update_info_count(
+    db: &mut SqliteConnection,
+    name: &str,
+    value: i64,
+) -> Result<(), diesel::result::Error> {
+    diesel::insert_into(info::table)
+        .values((info::name.eq(name), info::value.eq(value.to_string())))
+        .on_conflict(info::name)
+        .do_update()
+        .set(info::value.eq(value.to_string()))
+        .execute(db)?;
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -298,9 +314,17 @@ impl Visitor for Importer {
         } else if key == b"Black" {
             self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"WhiteElo" {
-            self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
+            if value.as_bytes() == b"-" {
+                self.game.white_elo = Some(0);
+            } else {
+                self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
+            }
         } else if key == b"BlackElo" {
-            self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
+            if value.as_bytes() == b"-" {
+                self.game.black_elo = Some(0);
+            } else {
+                self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
+            }
         } else if key == b"TimeControl" {
             self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"ECO" {
@@ -609,27 +633,26 @@ pub async fn get_db_info(
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let player_count = players::table.count().get_result::<i64>(db)? as i32;
-    let game_count = games::table.count().get_result::<i64>(db)? as i32;
-    let event_count = events::table.count().get_result::<i64>(db)? as i32;
+    let info_records: Vec<Info> = info::table.load(db)?;
 
-    let title = match info::table
-        .filter(info::name.eq("Title"))
-        .first(db)
-        .map(|title_info: Info| title_info.value)
-    {
-        Ok(Some(title)) => title,
-        _ => "Untitled".to_string(),
+    let get_info_value = |key: &str| -> Option<String> {
+        info_records
+            .iter()
+            .find(|i| i.name == key)
+            .and_then(|i| i.value.clone())
     };
 
-    let description = match info::table
-        .filter(info::name.eq("Description"))
-        .first(db)
-        .map(|description_info: Info| description_info.value)
-    {
-        Ok(Some(description)) => description,
-        _ => "".to_string(),
-    };
+    let title = get_info_value("Title").unwrap_or_else(|| "Untitled".to_string());
+    let description = get_info_value("Description").unwrap_or_default();
+    let player_count = get_info_value("PlayerCount")
+        .and_then(|v| v.parse::<i32>().ok())
+        .unwrap_or(0);
+    let game_count = get_info_value("GameCount")
+        .and_then(|v| v.parse::<i32>().ok())
+        .unwrap_or(0);
+    let event_count = get_info_value("EventCount")
+        .and_then(|v| v.parse::<i32>().ok())
+        .unwrap_or(0);
 
     let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
@@ -1445,6 +1468,9 @@ pub async fn delete_duplicated_games(
         ",
     )?;
 
+    let game_count: i64 = games::table.count().get_result(db)?;
+    update_info_count(db, "GameCount", game_count)?;
+
     Ok(())
 }
 
@@ -1457,6 +1483,9 @@ pub async fn delete_empty_games(
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
+
+    let game_count: i64 = games::table.count().get_result(db)?;
+    update_info_count(db, "GameCount", game_count)?;
 
     Ok(())
 }
@@ -1514,10 +1543,18 @@ impl PgnGame {
             writeln!(writer, "[ECO \"{}\"]", eco)?;
         }
         if let Some(white_elo) = self.white_elo.as_deref() {
-            writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
+            if white_elo == "0" {
+                writeln!(writer, "[WhiteElo \"-\"]")?;
+            } else {
+                writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
+            }
         }
         if let Some(black_elo) = self.black_elo.as_deref() {
-            writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
+            if black_elo == "0" {
+                writeln!(writer, "[BlackElo \"-\"]")?;
+            } else {
+                writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
+            }
         }
         if let Some(ply_count) = self.ply_count.as_deref() {
             writeln!(writer, "[PlyCount \"{}\"]", ply_count)?;
@@ -1614,6 +1651,9 @@ pub async fn delete_db_game(
 
     diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
 
+    let game_count: i64 = games::table.count().get_result(db)?;
+    update_info_count(db, "GameCount", game_count)?;
+
     Ok(())
 }
 
@@ -1649,15 +1689,7 @@ pub async fn merge_players(
     diesel::delete(players::table.filter(players::id.eq(player1))).execute(db)?;
 
     let player_count: i64 = players::table.count().get_result(db)?;
-    diesel::insert_into(info::table)
-        .values((
-            info::name.eq("PlayerCount"),
-            info::value.eq(player_count.to_string()),
-        ))
-        .on_conflict(info::name)
-        .do_update()
-        .set(info::value.eq(player_count.to_string()))
-        .execute(db)?;
+    update_info_count(db, "PlayerCount", player_count)?;
 
     Ok(())
 }

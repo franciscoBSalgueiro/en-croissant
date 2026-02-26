@@ -1,6 +1,3 @@
-import LocalImage from "@/components/common/LocalImage";
-import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { type Engine, stopEngine } from "@/utils/engines";
 import {
   Center,
   Checkbox,
@@ -14,6 +11,10 @@ import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
 import { memo } from "react";
+import { Trans } from "react-i18next";
+import LocalImage from "@/components/common/LocalImage";
+import { activeTabAtom, enginesAtom } from "@/state/atoms";
+import { type Engine, stopEngine } from "@/utils/engines";
 
 function EngineBox({
   engine,
@@ -58,13 +59,19 @@ function EngineBox({
 function EngineSelection() {
   const [engines, setEngines] = useAtom(enginesAtom);
 
+  if (!engines) return null;
+
   return (
     <>
       {engines.length === 0 && (
         <Center>
           <Text>
-            No engines installed. Please{" "}
-            <Link to="/engines">Add an engine</Link> first.
+            <Trans
+              i18nKey="Engines.Selection.None"
+              components={{
+                addEngineLink: <Link to="/engines" />,
+              }}
+            />
           </Text>
         </Center>
       )}

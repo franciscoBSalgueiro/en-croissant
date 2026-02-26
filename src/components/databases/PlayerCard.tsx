@@ -1,10 +1,12 @@
-import { type Player, commands } from "@/bindings";
-import { unwrap } from "@/utils/unwrap";
 import { Center, Loader, Paper, Stack, Text } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
+import { commands, type Player } from "@/bindings";
+import { unwrap } from "@/utils/unwrap";
 import PersonalPlayerCard from "../home/PersonalCard";
 
 function PlayerCard({ player, file }: { player: Player; file: string }) {
+  const { t } = useTranslation();
   const { data: info, isLoading } = useSWRImmutable(
     ["player-game-info", file, player.id],
     async ([key, file, id]) => {
@@ -19,7 +21,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
         <Paper withBorder h="100%">
           <Center h="100%">
             <Stack align="center">
-              <Text fw="bold">Processing player data...</Text>
+              <Text fw="bold">{t("Databases.Player.ProcessingData")}</Text>
               <Loader />
             </Stack>
           </Center>

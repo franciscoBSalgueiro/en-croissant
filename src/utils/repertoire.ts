@@ -1,13 +1,280 @@
+import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { searchPosition } from "./db";
-import { isPrefix } from "./misc";
-import { type TreeNode, treeIterator } from "./treeReducer";
+import { getNodeAtPath, type TreeNode, treeIterator } from "./treeReducer";
 
-export type MissingMove = {
-  position: number[];
+export type PositionMove = {
+  san: string;
   games: number;
-  percentage: number;
-  move: string;
+  totalGames: number;
+  frequency: number;
+  white: number;
+  draw: number;
+  black: number;
+  inRepertoire: boolean;
+  coverage: number;
+  childIndex: number;
 };
+
+export async function computeTreeCoverage(
+  root: TreeNode,
+  userColor: "white" | "black",
+  dbPath: string,
+  minGames: number,
+  startPath: number[] = [],
+): Promise<{
+  coverageMap: Map<string, number>;
+  gamesMap: Map<string, number>;
+  missingGamesMap: Map<string, number>;
+}> {
+  const userParity = userColor === "white" ? 0 : 1;
+  const coverageMap = new Map<string, number>();
+  const gamesMap = new Map<string, number>();
+  const missingGamesMap = new Map<string, number>();
+  const fenCoverageCache = new Map<string, Promise<number>>();
+  const fenMissingCache = new Map<string, number>();
+
+  async function getDbMoves(
+    fen: string,
+  ): Promise<{ moves: { move: string; games: number }[]; total: number }> {
+    try {
+      const [openings] = await searchPosition(
+        {
+          path: dbPath,
+          type: "exact",
+          fen,
+          color: "white",
+          player: null,
+          result: "any",
+        } as LocalOptions,
+        "coverage-calc",
+      );
+
+      const summary = openings.find((op) => op.move === "*");
+      const moves = openings
+        .filter((op) => op.move !== "*")
+        .map((op) => ({
+          move: op.move,
+          games: op.white + op.draw + op.black,
+        }));
+
+      const gamesEndingHere = summary
+        ? summary.white + summary.draw + summary.black
+        : 0;
+
+      const gamesContinuing = moves.reduce((acc, m) => acc + m.games, 0);
+
+      const total = gamesEndingHere + gamesContinuing;
+
+      return { moves, total };
+    } catch {
+      return { moves: [], total: 0 };
+    }
+  }
+
+  async function compute(node: TreeNode, path: number[]): Promise<number> {
+    const pathKey = path.join(",");
+
+    if (node.children.length === 0 && fenCoverageCache.has(node.fen)) {
+      const transpositionCoverage = await fenCoverageCache.get(node.fen)!;
+      coverageMap.set(pathKey, transpositionCoverage);
+      const { total: totalGames } = await getDbMoves(node.fen);
+      gamesMap.set(pathKey, totalGames);
+      missingGamesMap.set(pathKey, fenMissingCache.get(node.fen) ?? 0);
+      return transpositionCoverage;
+    }
+
+    if (node.children.length > 0 && !fenCoverageCache.has(node.fen)) {
+      const promise = computeNode(node, path);
+      fenCoverageCache.set(node.fen, promise);
+      return promise;
+    }
+
+    return computeNode(node, path);
+  }
+
+  async function computeNode(node: TreeNode, path: number[]): Promise<number> {
+    const pathKey = path.join(",");
+
+    const { moves: dbMoves, total: totalGames } = await getDbMoves(node.fen);
+    gamesMap.set(pathKey, totalGames);
+
+    if (totalGames < minGames) {
+      coverageMap.set(pathKey, 1);
+      missingGamesMap.set(pathKey, 0);
+      fenMissingCache.set(node.fen, 0);
+      return 1;
+    }
+
+    const isOpponentTurn = node.halfMoves % 2 !== userParity;
+
+    if (isOpponentTurn) {
+      if (node.children.length === 0) {
+        const partialCoverage = Math.min(minGames / totalGames, 1);
+        coverageMap.set(pathKey, partialCoverage);
+        const maxMissing = dbMoves
+          .filter((m) => m.games >= minGames)
+          .reduce((max, m) => Math.max(max, m.games), 0);
+        missingGamesMap.set(pathKey, maxMissing);
+        fenMissingCache.set(node.fen, maxMissing);
+        return partialCoverage;
+      }
+      const significantMoves = dbMoves.filter((m) => m.games >= minGames);
+      const significantTotal = significantMoves.reduce(
+        (acc, m) => acc + m.games,
+        0,
+      );
+
+      if (significantTotal === 0) {
+        coverageMap.set(pathKey, 1);
+        missingGamesMap.set(pathKey, 0);
+        fenMissingCache.set(node.fen, 0);
+        return 1;
+      }
+
+      let coverage = 0;
+      let maxMissingChildGames = 0;
+      for (const dbMove of significantMoves) {
+        const childIdx = node.children.findIndex((c) => c.san === dbMove.move);
+        if (childIdx !== -1) {
+          const frequency = dbMove.games / significantTotal;
+          const childCoverage = await compute(node.children[childIdx], [
+            ...path,
+            childIdx,
+          ]);
+          coverage += frequency * childCoverage;
+        } else {
+          if (dbMove.games > maxMissingChildGames) {
+            maxMissingChildGames = dbMove.games;
+          }
+        }
+      }
+      coverageMap.set(pathKey, coverage);
+      missingGamesMap.set(pathKey, maxMissingChildGames);
+      fenMissingCache.set(node.fen, maxMissingChildGames);
+      return coverage;
+    }
+    if (node.children.length === 0) {
+      coverageMap.set(pathKey, 0);
+      missingGamesMap.set(pathKey, totalGames);
+      fenMissingCache.set(node.fen, totalGames);
+      return 0;
+    }
+    const childCoverage = await compute(node.children[0], [...path, 0]);
+    coverageMap.set(pathKey, childCoverage);
+    missingGamesMap.set(pathKey, 0);
+    fenMissingCache.set(node.fen, 0);
+    return childCoverage;
+  }
+
+  const startNode = getNodeAtPath(root, startPath);
+  await compute(startNode, startPath);
+  return { coverageMap, gamesMap, missingGamesMap };
+}
+
+export function findNextGap(
+  root: TreeNode,
+  startPath: number[],
+  userColor: "white" | "black",
+  coverageMap: Map<string, number>,
+  gamesMap: Map<string, number>,
+  minGames: number,
+): number[] | null {
+  const userParity = userColor === "white" ? 0 : 1;
+  const startNode = getNodeAtPath(root, startPath);
+
+  function findNextInSubtree(node: TreeNode, path: number[]): number[] | null {
+    const pathKey = path.join(",");
+    const coverage = coverageMap.get(pathKey) ?? 0;
+    const games = gamesMap.get(pathKey) ?? 0;
+
+    if (coverage >= 1 || games < minGames) {
+      return null;
+    }
+
+    const isUserTurn = node.halfMoves % 2 === userParity;
+
+    for (let i = 0; i < node.children.length; i++) {
+      const result = findNextInSubtree(node.children[i], [...path, i]);
+      if (result) return result;
+    }
+
+    if (path.length > startPath.length) {
+      if (isUserTurn && node.children.length === 0) {
+        return path;
+      }
+
+      if (!isUserTurn) {
+        return path;
+      }
+    }
+
+    return null;
+  }
+
+  return findNextInSubtree(startNode, startPath);
+}
+
+export function findBiggestGap(
+  root: TreeNode,
+  userColor: "white" | "black",
+  coverageMap: Map<string, number>,
+  gamesMap: Map<string, number>,
+  missingGamesMap: Map<string, number>,
+  minGames: number,
+  startPath: number[] = [],
+): number[] | null {
+  const userParity = userColor === "white" ? 0 : 1;
+  const startNode = getNodeAtPath(root, startPath);
+
+  let maxMissing = -1;
+  let bestPath: number[] | null = null;
+
+  function traverse(node: TreeNode, path: number[]): boolean {
+    const pathKey = path.join(",");
+    const coverage = coverageMap.get(pathKey) ?? 0;
+    const games = gamesMap.get(pathKey) ?? 0;
+    const missing = missingGamesMap.get(pathKey) ?? 0;
+
+    if (coverage >= 1 || games < minGames) {
+      return false;
+    }
+
+    const isUserTurn = node.halfMoves % 2 === userParity;
+
+    let childHasGap = false;
+    for (let i = 0; i < node.children.length; i++) {
+      const hasGap = traverse(node.children[i], [...path, i]);
+      if (hasGap) {
+        childHasGap = true;
+      }
+    }
+
+    if (path.length > startPath.length) {
+      let isGap = false;
+      if (isUserTurn && node.children.length === 0) {
+        isGap = true;
+      } else if (!isUserTurn && !childHasGap) {
+        isGap = true;
+      }
+
+      if (isGap) {
+        if (missing > maxMissing) {
+          maxMissing = missing;
+          bestPath = path;
+        } else if (missing === maxMissing && bestPath !== null) {
+          if (path.length < bestPath.length) {
+            bestPath = path;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  traverse(startNode, startPath);
+  return bestPath;
+}
 
 export function getTreeStats(root: TreeNode) {
   const iterator = treeIterator(root);
@@ -21,93 +288,4 @@ export function getTreeStats(root: TreeNode) {
     return acc;
   }, 0);
   return { total, leafs, depth };
-}
-
-export async function openingReport({
-  color,
-  start,
-  root,
-  referenceDb,
-  setProgress,
-  minimumGames,
-  percentageCoverage,
-}: {
-  color: "white" | "black";
-  start: number[];
-  root: TreeNode;
-  referenceDb: string;
-  setProgress: React.Dispatch<React.SetStateAction<number>>;
-  minimumGames: number;
-  percentageCoverage: number;
-}): Promise<MissingMove[]> {
-  const iterator = treeIterator(root);
-  const tree = Array.from(iterator);
-  const missingMoves: MissingMove[] = [];
-  const ignoredPositions = new Set<number[]>();
-
-  let i = 0;
-
-  for (const item of tree) {
-    setProgress((i++ / tree.length) * 100);
-    let isIgnored = false;
-    for (const p of ignoredPositions) {
-      if (isPrefix(p, item.position)) {
-        isIgnored = true;
-        break;
-      }
-    }
-    if (isIgnored) {
-      continue;
-    }
-
-    if (
-      (color === "white" && item.node.halfMoves % 2 === 0) ||
-      (color === "black" && item.node.halfMoves % 2 === 1) ||
-      (isPrefix(item.position, start) && item.position.length < start.length)
-    ) {
-      continue;
-    }
-    const [openings] = await searchPosition(
-      {
-        path: referenceDb,
-        type: "exact",
-        fen: item.node.fen,
-        color: "white",
-        player: null,
-        result: "any",
-      },
-      "opening",
-    );
-    const total = openings.reduce(
-      (acc, opening) => acc + opening.black + opening.white + opening.draw,
-      0,
-    );
-
-    if (total < minimumGames) {
-      ignoredPositions.add(item.position);
-      continue;
-    }
-
-    const filteredOpenings = openings.filter(
-      (opening) =>
-        (opening.black + opening.white + opening.draw) / total >
-        1 - percentageCoverage / 100,
-    );
-
-    // Check if there's any opening with a 5% or more frequency that isn't a child of item.node
-    for (const opening of filteredOpenings) {
-      const child = item.node.children.find(
-        (child) => child.san === opening.move,
-      );
-      if (!child && opening.move !== "*") {
-        missingMoves.push({
-          position: item.position,
-          move: opening.move,
-          games: opening.black + opening.white + opening.draw,
-          percentage: (opening.black + opening.white + opening.draw) / total,
-        });
-      }
-    }
-  }
-  return missingMoves;
 }

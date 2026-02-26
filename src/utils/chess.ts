@@ -1,29 +1,28 @@
-import { type Outcome, type Score, type Token, commands } from "@/bindings";
 import type { DrawShape } from "@lichess-org/chessground/draw";
 import {
   type Color,
   type Move,
-  type Role,
   makeSquare,
   makeUci,
   parseUci,
+  type Role,
 } from "chessops";
 import { type Chess, castlingSide, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
 import { makeSan, parseSan } from "chessops/san";
 import { match } from "ts-pattern";
-import { ANNOTATION_INFO, NAG_INFO, isBasicAnnotation } from "./annotation";
+import { commands, type Outcome, type Score, type Token } from "@/bindings";
+import { ANNOTATION_INFO, isBasicAnnotation, NAG_INFO } from "./annotation";
 import { parseSanOrUci, positionFromFen } from "./chessops";
 import { harmonicMean, isPrefix, mean } from "./misc";
-import { INITIAL_SCORE, formatScore, getAccuracy, getCPLoss } from "./score";
+import { formatScore, getAccuracy, getCPLoss, INITIAL_SCORE } from "./score";
 import {
+  createNode,
+  defaultTree,
   type GameHeaders,
   type TreeNode,
   type TreeState,
-  createNode,
-  defaultTree,
-  getNodeAtPath,
 } from "./treeReducer";
 import { unwrap } from "./unwrap";
 
@@ -193,7 +192,7 @@ export function getVariationLine(
   return moves;
 }
 
-function headersToPGN(game: GameHeaders): string {
+export function headersToPGN(game: GameHeaders): string {
   let headers = `[Event "${game.event || "?"}"]
 [Site "${game.site || "?"}"]
 [Date "${game.date || "????.??.??"}"]
@@ -202,11 +201,11 @@ function headersToPGN(game: GameHeaders): string {
 [Black "${game.black || "?"}"]
 [Result "${game.result}"]
 `;
-  if (game.white_elo) {
-    headers += `[WhiteElo "${game.white_elo}"]\n`;
+  if (game.white_elo !== undefined && game.white_elo !== null) {
+    headers += `[WhiteElo "${game.white_elo === 0 ? "-" : game.white_elo}"]\n`;
   }
-  if (game.black_elo) {
-    headers += `[BlackElo "${game.black_elo}"]\n`;
+  if (game.black_elo !== undefined && game.black_elo !== null) {
+    headers += `[BlackElo "${game.black_elo === 0 ? "-" : game.black_elo}"]\n`;
   }
   if (game.start && game.start.length > 0) {
     headers += `[Start "${JSON.stringify(game.start)}"]\n`;
@@ -228,6 +227,9 @@ function headersToPGN(game: GameHeaders): string {
   }
   if (game.variant) {
     headers += `[Variant "${game.variant}"]\n`;
+  }
+  for (const [key, value] of Object.entries(game.other ?? {})) {
+    headers += `[${key} "${value}"]\n`;
   }
   return headers;
 }
@@ -358,18 +360,23 @@ export async function getOpening(
   root: TreeNode,
   position: number[],
 ): Promise<string> {
-  const tree = getNodeAtPath(root, position);
-  if (tree === null) {
-    return "";
-  }
-  const res = await commands.getOpeningFromFen(tree.fen);
-  if (res.status === "error") {
-    if (position.length === 0) {
-      return "";
+  const fens: string[] = [root.fen];
+  let currentNode = root;
+
+  for (const index of position) {
+    if (!currentNode.children || index >= currentNode.children.length) {
+      break;
     }
-    return getOpening(root, position.slice(0, -1));
+    currentNode = currentNode.children[index];
+    fens.push(currentNode.fen);
   }
-  return res.data;
+
+  const res = await commands.getOpeningFromFens(fens);
+  if (res.status !== "error") {
+    return res.data;
+  }
+
+  return "";
 }
 
 function innerParsePGN(
@@ -538,6 +545,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     Orientation,
     TimeControl,
     Variant,
+    ...other
   } = Object.fromEntries(headersN);
 
   const isValidOutcome = (value: string): value is Outcome => {
@@ -555,8 +563,10 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     black: Black ?? "?",
     white: White ?? "?",
     round: Round ?? "?",
-    black_elo: BlackElo ? Number.parseInt(BlackElo) : 0,
-    white_elo: WhiteElo ? Number.parseInt(WhiteElo) : 0,
+    black_elo:
+      BlackElo === "-" ? 0 : BlackElo ? Number.parseInt(BlackElo) : undefined,
+    white_elo:
+      WhiteElo === "-" ? 0 : WhiteElo ? Number.parseInt(WhiteElo) : undefined,
     date: Date ?? "",
     site: Site ?? "",
     event: Event ?? "",
@@ -564,6 +574,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
     orientation: isValidOrientation(Orientation) ? Orientation : "white",
     time_control: TimeControl,
     variant: Variant,
+    other: other,
   };
   return headers;
 }
@@ -663,21 +674,31 @@ export function getMaterialDiff(fen: string) {
   const board = res.unwrap().board;
   const { white, black } = board;
 
-  const pieceDiff = (piece: Role) =>
-    white.intersect(board[piece]).size() - black.intersect(board[piece]).size();
+  const startingCounts = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+  const roles: { key: keyof PiecesCount; role: Role }[] = [
+    { key: "p", role: "pawn" },
+    { key: "n", role: "knight" },
+    { key: "b", role: "bishop" },
+    { key: "r", role: "rook" },
+    { key: "q", role: "queen" },
+  ];
 
-  const pieces = {
-    p: pieceDiff("pawn"),
-    n: pieceDiff("knight"),
-    b: pieceDiff("bishop"),
-    r: pieceDiff("rook"),
-    q: pieceDiff("queen"),
-  };
+  const pieces: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+  const whiteCaptured: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+  const blackCaptured: PiecesCount = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+
+  for (const { key, role } of roles) {
+    const whiteCount = white.intersect(board[role]).size();
+    const blackCount = black.intersect(board[role]).size();
+    pieces[key] = whiteCount - blackCount;
+    whiteCaptured[key] = Math.max(0, startingCounts[key] - blackCount);
+    blackCaptured[key] = Math.max(0, startingCounts[key] - whiteCount);
+  }
 
   const diff =
     pieces.p * 1 + pieces.n * 3 + pieces.b * 3 + pieces.r * 5 + pieces.q * 9;
 
-  return { pieces, diff };
+  return { pieces, whiteCaptured, blackCaptured, diff };
 }
 
 export function stripClock(fen: string): string {

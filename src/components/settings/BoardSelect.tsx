@@ -1,4 +1,3 @@
-import { boardImageAtom } from "@/state/atoms";
 import {
   Box,
   Combobox,
@@ -10,6 +9,8 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
+import { useTranslation } from "react-i18next";
+import { boardImageAtom } from "@/state/atoms";
 
 const boardImages: string[] = [
   "purple.svg",
@@ -65,6 +66,7 @@ function SelectOption({ label }: { label: string }) {
 }
 
 export default function BoardSelect() {
+  const { t } = useTranslation();
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
   });
@@ -95,12 +97,12 @@ export default function BoardSelect() {
           pointer
           onClick={() => combobox.toggleDropdown()}
           multiline
-          w="10rem"
+          w="12rem"
         >
           {selected ? (
             <SelectOption label={selected} />
           ) : (
-            <Input.Placeholder>Pick value</Input.Placeholder>
+            <Input.Placeholder>{t("Common.PickValue")}</Input.Placeholder>
           )}
         </InputBase>
       </Combobox.Target>

@@ -1,5 +1,4 @@
-import type { PiecesCount } from "@/utils/chess";
-import { Group } from "@mantine/core";
+import { Group, Text } from "@mantine/core";
 import {
   IconChessBishopFilled,
   IconChessFilled,
@@ -9,16 +8,37 @@ import {
 } from "@tabler/icons-react";
 import type { Color } from "chessops";
 import { match } from "ts-pattern";
+import { getMaterialDiff } from "@/utils/chess";
 
 export default function ShowMaterial({
-  pieces,
-  diff,
+  fen,
   color,
+  mode = "diff",
 }: {
-  pieces: PiecesCount;
+  fen: string;
   color: Color;
-  diff: number;
+  mode?: "diff" | "all";
 }) {
+  const materialDiff = getMaterialDiff(fen);
+
+  if (!materialDiff) {
+    return null;
+  }
+
+  const pieces =
+    mode === "all"
+      ? materialDiff[color === "white" ? "whiteCaptured" : "blackCaptured"]
+      : materialDiff.pieces;
+  const { diff } = materialDiff;
+
+  const shouldShow =
+    mode === "all"
+      ? (v: number) => v > 0
+      : match(color)
+          .with("white", () => (v: number) => v > 0)
+          .with("black", () => (v: number) => v < 0)
+          .exhaustive();
+
   const compare = match(color)
     .with("white", () => (v: number) => v > 0)
     .with("black", () => (v: number) => v < 0)
@@ -57,15 +77,19 @@ export default function ShowMaterial({
   ));
 
   return (
-    <Group gap="xs" h="1.3rem">
-      <Group gap={"xs"}>
-        {compare(pieces.p) && <Group gap="0">{pawns}</Group>}
-        {compare(pieces.n) && <Group gap="0">{knights}</Group>}
-        {compare(pieces.b) && <Group gap="0">{bishops}</Group>}
-        {compare(pieces.r) && <Group gap="0">{rooks}</Group>}
-        {compare(pieces.q) && <Group gap="0">{queens}</Group>}
+    <Group gap="xs">
+      <Group gap="xs">
+        {shouldShow(pieces.p) && <Group gap="0">{pawns}</Group>}
+        {shouldShow(pieces.n) && <Group gap="0">{knights}</Group>}
+        {shouldShow(pieces.b) && <Group gap="0">{bishops}</Group>}
+        {shouldShow(pieces.r) && <Group gap="0">{rooks}</Group>}
+        {shouldShow(pieces.q) && <Group gap="0">{queens}</Group>}
       </Group>
-      {compare(diff) && `+${Math.abs(diff)}`}
+      {compare(diff) && (
+        <Text fz="sm" lh={1}>
+          +{Math.abs(diff)}
+        </Text>
+      )}
     </Group>
   );
 }

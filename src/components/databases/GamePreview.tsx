@@ -1,15 +1,15 @@
+import { Box, Group, Stack } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
+import { useContext } from "react";
+import useSWRImmutable from "swr/immutable";
+import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
 import { parsePGN } from "@/utils/chess";
 import {
   type GameHeaders,
-  type TreeState,
   getNodeAtPath,
+  type TreeState,
 } from "@/utils/treeReducer";
-import { Box, Group, Stack, Text } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
-import { useContext, useEffect, useState } from "react";
-import useSWRImmutable from "swr/immutable";
-import { useStore } from "zustand";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import OpeningName from "../common/OpeningName";

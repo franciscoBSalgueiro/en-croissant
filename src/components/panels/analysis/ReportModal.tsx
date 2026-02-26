@@ -1,8 +1,3 @@
-import { type GoMode, commands } from "@/bindings";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { enginesAtom, referenceDbAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
-import { unwrap } from "@/utils/unwrap";
 import {
   Button,
   Checkbox,
@@ -15,13 +10,18 @@ import {
 import { useForm } from "@mantine/form";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
-import { memo, useContext, useEffect } from "react";
+import { memo, useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { commands, type GoMode } from "@/bindings";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { enginesAtom, referenceDbAtom } from "@/state/atoms";
+import type { LocalEngine } from "@/utils/engines";
 
 const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
   reversed: true,
+  variations: true,
   goMode: { t: "Time", c: 500 } as Exclude<GoMode, { t: "Infinite" }>,
   engine: "",
 });
@@ -47,8 +47,9 @@ function ReportModal({
 
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
-  const localEngines = engines.filter(
-    (e): e is LocalEngine => e.type === "local",
+  const localEngines = useMemo(
+    () => (engines ?? []).filter((e): e is LocalEngine => e.type === "local"),
+    [engines],
   );
   const store = useContext(TreeStateContext)!;
   const addAnalysis = useStore(store, (s) => s.addAnalysis);
@@ -72,18 +73,18 @@ function ReportModal({
       localEngines.length === 0
         ? ""
         : !reportSettings.engine ||
-            !localEngines.some((l) => l.path === reportSettings.engine)
-          ? localEngines[0].path
+            !localEngines.some((l) => l.id === reportSettings.engine)
+          ? localEngines[0].id
           : reportSettings.engine;
 
     form.setValues({ ...reportSettings, engine });
-  }, [localEngines.length, reportSettings]);
+  }, [localEngines, reportSettings]);
 
   function analyze() {
     setReportSettings(form.values);
     setInProgress(true);
     toggleReportingMode();
-    const engine = localEngines.find((e) => e.path === form.values.engine);
+    const engine = localEngines.find((e) => e.id === form.values.engine);
     const engineSettings = (engine?.settings ?? []).map((s) => ({
       ...s,
       value: s.value?.toString() ?? "",
@@ -96,7 +97,7 @@ function ReportModal({
     commands
       .analyzeGame(
         `report_${tab}`,
-        form.values.engine,
+        engine?.path ?? "",
         form.values.goMode,
         {
           annotateNovelties: form.values.novelty,
@@ -108,8 +109,11 @@ function ReportModal({
         engineSettings,
       )
       .then((analysis) => {
-        const analysisData = unwrap(analysis);
-        addAnalysis(analysisData);
+        if (analysis.status === "ok") {
+          addAnalysis(analysis.data, {
+            showVariations: form.values.variations,
+          });
+        }
       })
       .finally(() => setInProgress(false));
   }
@@ -130,7 +134,7 @@ function ReportModal({
             data={
               localEngines.map((engine) => {
                 return {
-                  value: engine.path,
+                  value: engine.id,
                   label: engine.name,
                 };
               }) ?? []
@@ -178,6 +182,12 @@ function ReportModal({
             label={t("Board.Analysis.AnnotateNovelties")}
             description={t("Board.Analysis.AnnotateNovelties.Desc")}
             {...form.getInputProps("novelty", { type: "checkbox" })}
+          />
+
+          <Checkbox
+            label={t("Board.Analysis.ShowVariations")}
+            description={t("Board.Analysis.ShowVariations.Desc")}
+            {...form.getInputProps("variations", { type: "checkbox" })}
           />
 
           <Group justify="right">

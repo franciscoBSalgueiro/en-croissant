@@ -1,7 +1,7 @@
 import type { Color, Piece } from "@lichess-org/chessground/types";
 import type { Square } from "chessops";
 import { squareFromCoords } from "chessops/util";
-import { useRef, useState } from "react";
+import { type RefObject, useRef } from "react";
 import Draggable from "react-draggable";
 
 export default function PieceComponent({
@@ -14,7 +14,7 @@ export default function PieceComponent({
   onClick,
 }: {
   piece: Piece;
-  boardRef?: React.RefObject<HTMLDivElement>;
+  boardRef?: RefObject<HTMLDivElement | null>;
   putPiece?: (square: Square, piece: Piece) => void;
   size?: number | string;
   orientation?: Color;
@@ -74,6 +74,7 @@ export default function PieceComponent({
 
   return (
     <Draggable
+      nodeRef={pieceRef as RefObject<HTMLElement>}
       position={{ x: 0, y: 0 }}
       onStart={(e) => {
         const { clientX, clientY } = e as MouseEvent;

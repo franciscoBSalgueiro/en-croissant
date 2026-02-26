@@ -1,11 +1,12 @@
-import { type PuzzleDatabaseInfo, commands } from "@/bindings";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
+import { commands, type PuzzleDatabaseInfo } from "@/bindings";
 import { unwrap } from "./unwrap";
 
 export type Completion = "correct" | "incorrect" | "incomplete";
 
 export interface Puzzle {
+  id: number;
   fen: string;
   moves: string[];
   rating: number;
@@ -14,6 +15,7 @@ export interface Puzzle {
   nb_plays: number;
   completion: Completion;
   timeSpent?: number;
+  themes?: string[];
 }
 
 async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo> {

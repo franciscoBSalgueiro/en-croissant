@@ -1,15 +1,3 @@
-import {
-  allEnabledAtom,
-  autoSaveAtom,
-  currentPracticeTabAtom,
-  currentTabAtom,
-  currentTabSelectedAtom,
-  enableAllAtom,
-  triggerAnnotationFocusAtom,
-} from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { defaultPGN, getVariationLine } from "@/utils/chess";
-import { saveToFile } from "@/utils/tabs";
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
@@ -23,17 +11,22 @@ import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import type { Piece } from "chessops";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  Suspense,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
+import {
+  allEnabledAtom,
+  autoSaveAtom,
+  currentPracticeTabAtom,
+  currentTabAtom,
+  currentTabSelectedAtom,
+  enableAllAtom,
+  practiceStateAtom,
+} from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { defaultPGN } from "@/utils/chess";
+import { saveToFile } from "@/utils/tabs";
+import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -43,6 +36,7 @@ import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
 import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
+import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
 
@@ -79,6 +73,7 @@ function BoardAnalysis() {
   }, [currentTab?.file, saveFile, autoSave, dirty]);
 
   const addGame = useCallback(() => {
+    if (!currentTab?.file) return;
     setCurrentTab((prev) => {
       if (!prev?.file) return prev;
       prev.gameNumber = prev.file.numGames;
@@ -86,29 +81,55 @@ function BoardAnalysis() {
       return { ...prev };
     });
     reset();
-    writeTextFile(currentTab?.file?.path!, `\n\n${defaultPGN()}\n\n`, {
+    writeTextFile(currentTab.file.path, `\n\n${defaultPGN()}\n\n`, {
       append: true,
     });
   }, [setCurrentTab, reset, currentTab?.file?.path]);
 
   const [, enable] = useAtom(enableAllAtom);
-  const allEnabledLoader = useAtomValue(allEnabledAtom);
-  const allEnabled =
-    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+  const allEnabled = useAtomValue(allEnabledAtom);
 
-  const [, triggerAnnotationFocus] = useAtom(triggerAnnotationFocusAtom);
   const keyMap = useAtomValue(keyMapAtom);
+
+  const [currentTabSelected, setCurrentTabSelected] = useAtom(
+    currentTabSelectedAtom,
+  );
+  const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
+  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
+  const practicing =
+    currentTabSelected === "practice" && practiceTabSelected === "train";
+  const practiceState = useAtomValue(practiceStateAtom);
+  const isPracticeRating = practicing && practiceState.phase === "correct";
+
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
   useHotkeys([
-    [keyMap.ANNOTATION_BRILLIANT.keys, () => setAnnotation("!!")],
-    [keyMap.ANNOTATION_GOOD.keys, () => setAnnotation("!")],
-    [keyMap.ANNOTATION_INTERESTING.keys, () => setAnnotation("!?")],
-    [keyMap.ANNOTATION_DUBIOUS.keys, () => setAnnotation("?!")],
-    [keyMap.ANNOTATION_MISTAKE.keys, () => setAnnotation("?")],
-    [keyMap.ANNOTATION_BLUNDER.keys, () => setAnnotation("??")],
+    [
+      keyMap.ANNOTATION_BRILLIANT.keys,
+      () => !isPracticeRating && setAnnotation("!!"),
+    ],
+    [
+      keyMap.ANNOTATION_GOOD.keys,
+      () => !isPracticeRating && setAnnotation("!"),
+    ],
+    [
+      keyMap.ANNOTATION_INTERESTING.keys,
+      () => !isPracticeRating && setAnnotation("!?"),
+    ],
+    [
+      keyMap.ANNOTATION_DUBIOUS.keys,
+      () => !isPracticeRating && setAnnotation("?!"),
+    ],
+    [
+      keyMap.ANNOTATION_MISTAKE.keys,
+      () => !isPracticeRating && setAnnotation("?"),
+    ],
+    [
+      keyMap.ANNOTATION_BLUNDER.keys,
+      () => !isPracticeRating && setAnnotation("??"),
+    ],
     [
       keyMap.PRACTICE_TAB.keys,
       () => {
@@ -117,13 +138,7 @@ function BoardAnalysis() {
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
-    [
-      keyMap.ANNOTATE_TAB.keys,
-      () => {
-        setCurrentTabSelected("annotate");
-        triggerAnnotationFocus();
-      },
-    ],
+    [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
     [
       keyMap.TOGGLE_ALL_ENGINES.keys,
@@ -134,33 +149,20 @@ function BoardAnalysis() {
     ],
   ]);
 
-  const [currentTabSelected, setCurrentTabSelected] = useAtom(
-    currentTabSelectedAtom,
-  );
-  const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
-  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
-  const practicing =
-    currentTabSelected === "practice" && practiceTabSelected === "train";
-
   return (
     <>
       <EvalListener />
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
           practicing={practicing}
-          dirty={dirty}
           editingMode={editingMode}
-          toggleEditingMode={toggleEditingMode}
           boardRef={boardRef}
-          saveFile={saveFile}
-          addGame={addGame}
           selectedPiece={selectedPiece}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
         <Paper
           withBorder
-          p="xs"
           style={{
             height: "100%",
           }}
@@ -177,8 +179,18 @@ function BoardAnalysis() {
               display: "flex",
               flexDirection: "column",
             }}
+            styles={{
+              tabLabel: {
+                flex: 0,
+              },
+              tab: {
+                display: "flex",
+                justifyContent: "center",
+                gap: "0.3rem",
+              },
+            }}
           >
-            <Tabs.List grow mb="1rem">
+            <Tabs.List grow>
               {isRepertoire && (
                 <Tabs.Tab
                   value="practice"
@@ -218,13 +230,11 @@ function BoardAnalysis() {
                 flex={1}
                 style={{ overflowY: "hidden" }}
               >
-                <Suspense>
-                  <PracticePanel />
-                </Suspense>
+                <PracticePanel />
               </Tabs.Panel>
             )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
-              <InfoPanel />
+              <InfoPanel addGame={addGame} />
             </Tabs.Panel>
             <Tabs.Panel
               value="database"
@@ -245,9 +255,7 @@ function BoardAnalysis() {
               flex={1}
               style={{ overflowY: "hidden" }}
             >
-              <Suspense>
-                <AnalysisPanel />
-              </Suspense>
+              <AnalysisPanel />
             </Tabs.Panel>
           </Tabs>
         </Paper>
@@ -262,7 +270,19 @@ function BoardAnalysis() {
           />
         ) : (
           <Stack h="100%" gap="xs">
-            <GameNotation topBar />
+            <DetachedEval />
+            <GameNotation
+              topBar
+              controls={
+                <BoardControls
+                  boardRef={boardRef}
+                  editingMode={editingMode}
+                  toggleEditingMode={toggleEditingMode}
+                  dirty={dirty}
+                  saveFile={saveFile}
+                />
+              }
+            />
             <MoveControls />
           </Stack>
         )}

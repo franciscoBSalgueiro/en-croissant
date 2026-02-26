@@ -4,14 +4,14 @@ import {
   remove,
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
+import { warn } from "@tauri-apps/plugin-log";
+import equal from "fast-deep-equal";
 import type {
   AsyncStorage,
   AsyncStringStorage,
   SyncStorage,
   SyncStringStorage,
 } from "jotai/vanilla/utils/atomWithStorage";
-
-import { warn } from "@tauri-apps/plugin-log";
 import type { z } from "zod";
 
 const options = { baseDir: BaseDirectory.AppData };
@@ -42,7 +42,12 @@ export function createZodStorage<Value>(
         return initialValue;
       }
       try {
-        return schema.parse(JSON.parse(storedValue));
+        const rawValue = JSON.parse(storedValue);
+        const parsedValue = schema.parse(rawValue);
+        if (!equal(rawValue, parsedValue)) {
+          this.setItem(key, parsedValue);
+        }
+        return parsedValue;
       } catch {
         warn(`Invalid value for ${key}: ${storedValue}`);
         this.setItem(key, initialValue);
@@ -58,10 +63,10 @@ export function createZodStorage<Value>(
   };
 }
 
-export function createAsyncZodStorage<Value>(
-  schema: z.ZodType<Value>,
+export function createAsyncZodStorage<Input, Output>(
+  schema: z.ZodType<Output, z.ZodTypeDef, Input>,
   storage: AsyncStringStorage,
-): AsyncStorage<Value> {
+): AsyncStorage<Output> {
   return {
     async getItem(key, initialValue) {
       try {
@@ -69,8 +74,12 @@ export function createAsyncZodStorage<Value>(
         if (storedValue === null) {
           return initialValue;
         }
-        const res = schema.safeParse(JSON.parse(storedValue));
+        const rawValue = JSON.parse(storedValue);
+        const res = schema.safeParse(rawValue);
         if (res.success) {
+          if (!equal(rawValue, res.data)) {
+            await this.setItem(key, res.data);
+          }
           return res.data;
         }
         warn(`Invalid value for ${key}: ${storedValue}\n${res.error}`);

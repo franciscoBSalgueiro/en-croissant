@@ -1,14 +1,3 @@
-import { commands } from "@/bindings";
-import { enginesAtom } from "@/state/atoms";
-import {
-  type LocalEngine,
-  type RemoteEngine,
-  requiredEngineSettings,
-  useDefaultEngines,
-} from "@/utils/engines";
-import { usePlatform } from "@/utils/files";
-import { formatBytes } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Alert,
   Box,
@@ -30,6 +19,17 @@ import { appDataDir, join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { enginesAtom } from "@/state/atoms";
+import {
+  type LocalEngine,
+  type RemoteEngine,
+  requiredEngineSettings,
+  useDefaultEngines,
+} from "@/utils/engines";
+import { usePlatform } from "@/utils/files";
+import { formatBytes } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
 
@@ -43,7 +43,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = allEngines.filter(
+  const engines = (allEngines ?? []).filter(
     (e): e is LocalEngine => e.type === "local",
   );
 
@@ -54,6 +54,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      id: crypto.randomUUID(),
       version: "",
       name: "",
       path: "",
@@ -117,6 +118,7 @@ function AddEngine({
           <Stack>
             <CloudCard
               engine={{
+                id: crypto.randomUUID(),
                 name: "ChessDB",
                 type: "chessdb",
                 url: "https://chessdb.cn",
@@ -124,6 +126,7 @@ function AddEngine({
             />
             <CloudCard
               engine={{
+                id: crypto.randomUUID(),
                 name: "Lichess Cloud",
                 type: "lichess",
                 url: "https://lichess.org",
@@ -162,13 +165,16 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             {engine.url}
           </Text>
           <Button
-            disabled={engines.find((e) => e.type === engine.type) !== undefined}
+            disabled={
+              (engines ?? []).find((e) => e.type === engine.type) !== undefined
+            }
             fullWidth
             onClick={() => {
               setEngines(async (prev) => [
                 ...(await prev),
                 {
                   ...engine,
+                  id: crypto.randomUUID(),
                   type: engine.type,
                   loaded: true,
                   settings: [
@@ -229,6 +235,7 @@ function EngineCard({
         ...(await prev),
         {
           ...engine,
+          id: crypto.randomUUID(),
           type: "local",
           path: enginePath,
           loaded: true,

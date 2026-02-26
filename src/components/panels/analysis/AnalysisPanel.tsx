@@ -1,17 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  activeTabAtom,
-  allEnabledAtom,
-  currentAnalysisTabAtom,
-  currentExpandedEnginesAtom,
-  enableAllAtom,
-  engineMovesFamily,
-  enginesAtom,
-} from "@/state/atoms";
-import { getVariationLine } from "@/utils/chess";
-import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
-import type { Engine } from "@/utils/engines";
-import { getInitials } from "@/utils/format";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
@@ -39,6 +25,25 @@ import { memo, useContext, useDeferredValue, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  activeTabAtom,
+  allEnabledAtom,
+  currentAnalysisTabAtom,
+  currentExpandedEnginesAtom,
+  enableAllAtom,
+  engineMovesFamily,
+  enginesAtom,
+} from "@/state/atoms";
+import { getVariationLine } from "@/utils/chess";
+import {
+  getPiecesCount,
+  hasCaptures,
+  isOp1,
+  positionFromFen,
+} from "@/utils/chessops";
+import type { Engine } from "@/utils/engines";
+import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -68,14 +73,12 @@ function AnalysisPanel() {
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const loadedEngines = useMemo(
-    () => engines.filter((e) => e.loaded),
+    () => (engines ?? []).filter((e) => e.loaded),
     [engines],
   );
 
   const [, enable] = useAtom(enableAllAtom);
-  const allEnabledLoader = useAtomValue(allEnabledAtom);
-  const allEnabled =
-    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+  const allEnabled = useAtomValue(allEnabledAtom);
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
@@ -84,7 +87,7 @@ function AnalysisPanel() {
   const navigate = useNavigate();
 
   return (
-    <Stack h="100%">
+    <Stack h="100%" pl="sm">
       <Tabs
         h="100%"
         orientation="vertical"
@@ -110,6 +113,7 @@ function AnalysisPanel() {
             display: tab === "engines" ? "flex" : "none",
             flexDirection: "column",
           }}
+          pt="sm"
         >
           <ScrollArea
             offsetScrollbars
@@ -119,7 +123,8 @@ function AnalysisPanel() {
           >
             {pos &&
               (getPiecesCount(pos) <= 7 ||
-                (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
+                (getPiecesCount(pos) === 8 &&
+                  (hasCaptures(pos) || isOp1(pos)))) && (
                 <>
                   <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
                   <Space h="sm" />
@@ -159,8 +164,7 @@ function AnalysisPanel() {
                 variant="separated"
                 multiple
                 chevronSize={0}
-                defaultValue={loadedEngines.map((e) => e.name)}
-                value={expanded}
+                value={expanded ?? loadedEngines.map((e) => e.name)}
                 onChange={(v) => setExpanded(v)}
                 styles={{
                   label: {
@@ -239,7 +243,7 @@ function AnalysisPanel() {
                   }}
                   leftSection={<IconSettings size="0.875rem" />}
                 >
-                  Manage Engines
+                  {t("Board.Analysis.ManageEngines")}
                 </Button>
                 <Popover width={250} position="top-end" shadow="md">
                   <Popover.Target>
@@ -298,7 +302,7 @@ function EngineSummary({
 }) {
   const activeTab = useAtomValue(activeTabAtom);
   const [ev] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
 
   const curEval = useDeferredValue(

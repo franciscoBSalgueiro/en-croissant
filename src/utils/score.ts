@@ -1,7 +1,7 @@
-import type { BestMoves, Score, ScoreValue } from "@/bindings";
 import { minMax } from "@tiptap/react";
 import type { Color } from "chessops";
 import { match } from "ts-pattern";
+import type { BestMoves, Score, ScoreValue } from "@/bindings";
 import type { Annotation } from "./annotation";
 
 export const INITIAL_SCORE: Score = {

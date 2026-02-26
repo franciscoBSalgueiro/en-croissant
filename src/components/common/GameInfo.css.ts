@@ -1,5 +1,5 @@
-import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 export const colorHover = style({
   ":hover": {
@@ -8,22 +8,9 @@ export const colorHover = style({
   },
 });
 
-export const contentEditable = style({
-  outline: "none",
-  ":disabled": {
-    cursor: "default",
-    backgroundColor: "transparent",
-    userSelect: "none",
-  },
-});
-
-export const contentEditablePlaceholder = style({
-  ":before": {
-    content: "attr(data-placeholder)",
-    fontStyle: "italic",
-    cursor: "text",
-  },
-  color: vars.colors.gray[6],
+export const input = style({
+  all: "unset",
+  textAlign: "center",
 });
 
 export const textInput = style({

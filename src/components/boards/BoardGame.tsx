@@ -1,34 +1,10 @@
 import {
-  events,
-  type EngineLog,
-  type GameConfig,
-  type GameResult,
-  type PlayerConfig,
-  commands,
-} from "@/bindings";
-import type { Outcome } from "@/bindings";
-import {
-  activeTabAtom,
-  currentGameIdAtom,
-  currentGameStateAtom,
-  currentPlayersAtom,
-  gameInputColorAtom,
-  gamePlayer1SettingsAtom,
-  gamePlayer2SettingsAtom,
-  gameSameTimeControlAtom,
-  tabsAtom,
-} from "@/state/atoms";
-import { positionFromFen } from "@/utils/chessops";
-import type { GameHeaders } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
-import {
   ActionIcon,
   Box,
   Button,
   Checkbox,
   Divider,
   Group,
-  Modal,
   Paper,
   Portal,
   ScrollArea,
@@ -44,8 +20,8 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { makeUci, parseUci } from "chessops";
 import type { Piece } from "chessops";
+import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
 import {
@@ -56,14 +32,40 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import type { Outcome } from "@/bindings";
+import {
+  commands,
+  type EngineLog,
+  events,
+  type GameConfig,
+  type GameResult,
+  type PlayerConfig,
+} from "@/bindings";
+import type { ChessgroundRef } from "@/chessground/Chessground";
+import {
+  activeTabAtom,
+  currentGameIdAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
+  gameInputColorAtom,
+  gamePlayer1SettingsAtom,
+  gamePlayer2SettingsAtom,
+  gameSameTimeControlAtom,
+  tabsAtom,
+} from "@/state/atoms";
+import { positionFromFen } from "@/utils/chessops";
+import type { GameHeaders } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../common/EngineLogsView";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import Board from "./Board";
+import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
 
@@ -85,6 +87,7 @@ function mapBackendMoves(
 }
 
 function BoardGame() {
+  const { t } = useTranslation();
   const activeTab = useAtomValue(activeTabAtom);
 
   const [editingMode, toggleEditingMode] = useToggle();
@@ -129,6 +132,7 @@ function BoardGame() {
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
+  const cgRef = useRef<ChessgroundRef>(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
   const [players, setPlayers] = useAtom(currentPlayersAtom);
 
@@ -142,6 +146,10 @@ function BoardGame() {
 
   const hasEngine =
     players.white.type === "engine" || players.black.type === "engine";
+
+  const isPlayerVsEngine =
+    (players.white.type === "human" && players.black.type === "engine") ||
+    (players.black.type === "human" && players.white.type === "engine");
 
   const fetchEngineLogs = useCallback(async () => {
     if (!gameId || !hasEngine) return;
@@ -304,24 +312,49 @@ function BoardGame() {
 
       setGameState("playing");
 
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ".");
+      const timeStr = now.toISOString().slice(11, 19);
+
+      const whiteIsEngine = playerSettings.white.type === "engine";
+      const blackIsEngine = playerSettings.black.type === "engine";
+      let eventStr = "Casual Game";
+      if (whiteIsEngine && blackIsEngine) {
+        eventStr = "Engine Match";
+      } else if (whiteIsEngine || blackIsEngine) {
+        eventStr = "Player vs Engine";
+      } else {
+        eventStr = "Player Match";
+      }
+
+      const formatTimeControl = (settings: OpponentSettings): string => {
+        if (!settings.timeControl) return "-";
+        const seconds = settings.timeControl.seconds / 1000;
+        const increment = (settings.timeControl.increment ?? 0) / 1000;
+        return increment ? `${seconds}+${increment}` : `${seconds}`;
+      };
+
+      const whiteTimeControl = formatTimeControl(playerSettings.white);
+      const blackTimeControl = formatTimeControl(playerSettings.black);
+      const sameTimeControl = whiteTimeControl === blackTimeControl;
+
       const newHeaders: Partial<GameHeaders> = {
         white: state.whitePlayer,
         black: state.blackPlayer,
+        event: eventStr,
+        site: "En Croissant",
+        date: dateStr,
+        time: timeStr,
         time_control: undefined,
       };
 
-      if (
-        playerSettings.white.timeControl ||
-        playerSettings.black.timeControl
-      ) {
-        if (playerSettings.white.timeControl) {
-          const seconds = playerSettings.white.timeControl.seconds / 1000;
-          const increment =
-            (playerSettings.white.timeControl.increment ?? 0) / 1000;
-          newHeaders.time_control = increment
-            ? `${seconds}+${increment}`
-            : `${seconds}`;
+      if (sameTimeControl) {
+        if (whiteTimeControl !== "-") {
+          newHeaders.time_control = whiteTimeControl;
         }
+      } else {
+        newHeaders.white_time_control = whiteTimeControl;
+        newHeaders.black_time_control = blackTimeControl;
       }
 
       setHeaders({
@@ -379,6 +412,10 @@ function BoardGame() {
       pendingTimesRef.current = null;
     }
     throttleTimerRef.current = null;
+
+    setTimeout(() => {
+      cgRef.current?.playPremove();
+    }, 0);
   }, []);
 
   const scheduleUpdate = useCallback(() => {
@@ -535,14 +572,10 @@ function BoardGame() {
     <>
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
-          dirty={false}
           editingMode={gameState === "settingUp" && editingMode}
-          toggleEditingMode={toggleEditingMode}
           viewOnly={gameState !== "playing" && !editingMode}
           disableVariations
-          allowEditing={gameState === "settingUp"}
           boardRef={boardRef}
-          canTakeBack={onePlayerIsEngine}
           movable={gameState === "settingUp" && editingMode ? "none" : movable}
           whiteTime={
             gameState === "playing" ? (whiteTime ?? undefined) : undefined
@@ -551,8 +584,9 @@ function BoardGame() {
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
           onMove={handleHumanMove}
-          onTakeBack={onTakeBack}
           selectedPiece={selectedPiece}
+          cgRef={cgRef}
+          enablePremoves={isPlayerVsEngine && gameState === "playing"}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
@@ -562,7 +596,7 @@ function BoardGame() {
               logs={engineLogs}
               onRefresh={fetchEngineLogs}
               additionalControls={
-                <Group grow justify="space-between">
+                <>
                   {players.white.type === "engine" &&
                   players.black.type === "engine" ? (
                     <SegmentedControl
@@ -581,7 +615,7 @@ function BoardGame() {
                   <ActionIcon flex={0} onClick={() => toggleLogsOpened()}>
                     <IconX size="1.2rem" />
                   </ActionIcon>
-                </Group>
+                </>
               }
             />
           ) : (
@@ -627,7 +661,7 @@ function BoardGame() {
                     </Box>
 
                     <Checkbox
-                      label="Same time control"
+                      label={t("Board.Opponent.SameTimeControl")}
                       checked={sameTimeControl}
                       onChange={(e) => {
                         const checked = e.target.checked;
@@ -644,8 +678,13 @@ function BoardGame() {
                     />
 
                     <Group>
-                      <Button onClick={startGame} disabled={error !== null}>
-                        Start game
+                      <Button
+                        onClick={startGame}
+                        fullWidth
+                        variant="light"
+                        disabled={error !== null}
+                      >
+                        {t("Board.Opponent.StartGame")}
                       </Button>
                     </Group>
                   </Stack>
@@ -710,7 +749,21 @@ function BoardGame() {
           />
         ) : (
           <Stack h="100%" gap="xs">
-            <GameNotation topBar />
+            <GameNotation
+              topBar
+              controls={
+                <BoardControls
+                  boardRef={boardRef}
+                  editingMode={gameState === "settingUp" && editingMode}
+                  toggleEditingMode={toggleEditingMode}
+                  dirty={false}
+                  canTakeBack={onePlayerIsEngine}
+                  onTakeBack={onTakeBack}
+                  disableVariations
+                  allowEditing={gameState === "settingUp"}
+                />
+              }
+            />
             <MoveControls />
           </Stack>
         )}

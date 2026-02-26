@@ -1,4 +1,12 @@
-import { events, type EngineOptions, type GoMode } from "@/bindings";
+import { parseUci } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
+import equal from "fast-deep-equal";
+import { useAtom, useAtomValue } from "jotai";
+import { startTransition, useContext, useEffect, useMemo } from "react";
+import { match } from "ts-pattern";
+import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
+import { type EngineOptions, events, type GoMode } from "@/bindings";
 import {
   activeTabAtom,
   currentThreatAtom,
@@ -19,14 +27,6 @@ import {
 } from "@/utils/engines";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
 import { useThrottledEffect } from "@/utils/misc";
-import { parseUci } from "chessops";
-import { INITIAL_FEN, makeFen } from "chessops/fen";
-import equal from "fast-deep-equal";
-import { useAtom, useAtomValue } from "jotai";
-import { startTransition, useContext, useEffect, useMemo } from "react";
-import { match } from "ts-pattern";
-import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import { TreeStateContext } from "../common/TreeStateContext";
 
 function EvalListener() {
@@ -78,21 +78,23 @@ function EvalListener() {
     }),
   );
 
-  return engines.map((e) => (
-    <EngineListener
-      key={e.name}
-      engine={e}
-      firstEngineWithLines={firstEngineWithLines}
-      isGameOver={isGameOver}
-      finalFen={finalFen || ""}
-      searchingFen={searchingFen}
-      searchingMoves={searchingMoves}
-      fen={fen}
-      moves={moves}
-      threat={threat}
-      chess960={is960}
-    />
-  ));
+  return (engines ?? [])
+    .filter((e) => e.loaded)
+    .map((e) => (
+      <EngineListener
+        key={e.id}
+        engine={e}
+        firstEngineWithLines={firstEngineWithLines}
+        isGameOver={isGameOver}
+        finalFen={finalFen || ""}
+        searchingFen={searchingFen}
+        searchingMoves={searchingMoves}
+        fen={fen}
+        moves={moves}
+        threat={threat}
+        chess960={is960}
+      />
+    ));
 }
 
 function EngineListener({
@@ -123,15 +125,15 @@ function EngineListener({
   const activeTab = useAtomValue(activeTabAtom);
 
   const [, setProgress] = useAtom(
-    engineProgressFamily({ engine: engine.name, tab: activeTab! }),
+    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
   );
 
   const [, setEngineVariation] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
   const [settings] = useAtom(
     tabEngineSettingsFamily({
-      engineName: engine.name,
+      engineId: engine.id,
       defaultSettings: engine.settings ?? undefined,
       defaultGo: engine.go ?? undefined,
       tab: activeTab!,
@@ -142,7 +144,7 @@ function EngineListener({
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       const ev = payload.bestLines;
       if (
-        payload.engine === engine.name &&
+        payload.engine === engine.id &&
         payload.tab === activeTab &&
         payload.fen === searchingFen &&
         equal(payload.moves, searchingMoves) &&
@@ -162,8 +164,7 @@ function EngineListener({
           });
           setProgress(payload.progress);
           const shouldSetScore =
-            firstEngineWithLines === engine.name ||
-            firstEngineWithLines === null;
+            firstEngineWithLines === engine.id || firstEngineWithLines === null;
           if (shouldSetScore) {
             setScore(ev[0].score);
           }
@@ -180,7 +181,7 @@ function EngineListener({
     isGameOver,
     searchingFen,
     JSON.stringify(searchingMoves),
-    engine.name,
+    engine.id,
     setEngineVariation,
     firstEngineWithLines,
   ]);

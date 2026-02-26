@@ -1,14 +1,9 @@
-import { Comment } from "@/components/common/Comment";
-import { currentTabAtom } from "@/state/atoms";
-import type { Annotation } from "@/utils/annotation";
-import { hasMorePriority, stripClock } from "@/utils/chess";
-import { type TreeNode, treeIterator } from "@/utils/treeReducer";
-import { ActionIcon, Box, Menu, Portal, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Menu, Portal, Text, Tooltip } from "@mantine/core";
 import { useClickOutside } from "@mantine/hooks";
 import {
   IconArrowsJoin,
-  IconChevronUp,
   IconChevronsUp,
+  IconChevronUp,
   IconCopy,
   IconFlag,
   IconX,
@@ -19,23 +14,47 @@ import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
+import Comment from "@/components/common/Comment";
+import { currentTabAtom } from "@/state/atoms";
+import type { Annotation } from "@/utils/annotation";
+import { hasMorePriority, stripClock } from "@/utils/chess";
+import { type TreeNode, treeIterator } from "@/utils/treeReducer";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
 
+const transpositionCache = new WeakMap<TreeNode, Map<string, number[][]>>();
+
+function getTranspositionMap(root: TreeNode) {
+  if (transpositionCache.has(root)) {
+    return transpositionCache.get(root)!;
+  }
+
+  const map = new Map<string, number[][]>();
+  const iterator = treeIterator(root);
+
+  for (const item of iterator) {
+    const strippedFen = stripClock(item.node.fen);
+    if (!map.has(strippedFen)) {
+      map.set(strippedFen, []);
+    }
+    map.get(strippedFen)!.push(item.position);
+  }
+
+  transpositionCache.set(root, map);
+  return map;
+}
+
 function getTranspositions(fen: string, position: number[], root: TreeNode) {
   if (position.length === 0 || position.every((v) => v === 0)) return [];
-  const transpositions: number[][] = [];
+
+  const map = getTranspositionMap(root);
   const strippedFen = stripClock(fen);
-  const iterator = treeIterator(root);
-  for (const item of iterator) {
-    if (hasMorePriority(position, item.position)) {
-      continue;
-    }
-    if (stripClock(item.node.fen) === strippedFen) {
-      transpositions.push(item.position);
-    }
-  }
-  return transpositions;
+
+  const matchingPositions = map.get(strippedFen) || [];
+
+  return matchingPositions.filter(
+    (targetPosition) => !hasMorePriority(position, targetPosition),
+  );
 }
 
 function CompleteMoveCell({
@@ -47,8 +66,9 @@ function CompleteMoveCell({
   annotations,
   showComments,
   first,
-  isStart,
   targetRef,
+  tableLayout,
+  scoreText,
 }: {
   halfMoves: number;
   comment: string;
@@ -57,11 +77,14 @@ function CompleteMoveCell({
   move?: string | null;
   fen?: string;
   first?: boolean;
-  isStart: boolean;
   movePath: number[];
-  targetRef: React.RefObject<HTMLSpanElement>;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
+  tableLayout?: boolean;
+  scoreText?: string;
 }) {
   const store = useContext(TreeStateContext)!;
+  const isStart = useStore(store, (s) => equal(movePath, s.headers.start));
+
   const isCurrentVariation = useStore(store, (s) =>
     equal(s.position, movePath),
   );
@@ -79,7 +102,7 @@ function CompleteMoveCell({
 
   const moveNumber = Math.ceil(halfMoves / 2);
   const isWhite = halfMoves % 2 === 1;
-  const hasNumber = halfMoves > 0 && (first || isWhite);
+  const hasNumber = !tableLayout && halfMoves > 0 && (first || isWhite);
   const ref = useClickOutside(() => {
     setOpen(false);
   });
@@ -94,9 +117,10 @@ function CompleteMoveCell({
         ref={isCurrentVariation ? targetRef : undefined}
         component="span"
         style={{
-          display: "inline-block",
+          display: tableLayout ? "block" : "inline-block",
           marginLeft: hasNumber ? 6 : 0,
           fontSize: "80%",
+          width: tableLayout ? "100%" : undefined,
         }}
       >
         {hasNumber && `${moveNumber.toString()}${isWhite ? "." : "..."}`}
@@ -114,6 +138,14 @@ function CompleteMoveCell({
                   setOpen((v) => !v);
                   e.preventDefault();
                 }}
+                fullWidth={tableLayout}
+                rightAccessory={
+                  tableLayout && scoreText ? (
+                    <Text component="span" size="xs" c="dimmed">
+                      {scoreText}
+                    </Text>
+                  ) : undefined
+                }
               />
             </Menu.Target>
 
@@ -167,7 +199,7 @@ function CompleteMoveCell({
           </Tooltip>
         )}
       </Box>
-      {showComments && comment && <Comment comment={comment} />}
+      {showComments && !tableLayout && comment && <Comment comment={comment} />}
     </>
   );
 }
@@ -180,8 +212,9 @@ export default memo(CompleteMoveCell, (prev, next) => {
     equal(prev.annotations, next.annotations) &&
     prev.showComments === next.showComments &&
     prev.first === next.first &&
-    prev.isStart === next.isStart &&
     equal(prev.movePath, next.movePath) &&
-    prev.halfMoves === next.halfMoves
+    prev.halfMoves === next.halfMoves &&
+    prev.tableLayout === next.tableLayout &&
+    prev.scoreText === next.scoreText
   );
 });

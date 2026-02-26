@@ -29,6 +29,14 @@ async analyzeGame(id: string, engine: string, goMode: GoMode, options: AnalysisO
     else return { status: "error", error: e  as any };
 }
 },
+async cancelAnalysis(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_analysis", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async stopEngine(engine: string, tab: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("stop_engine", { engine, tab }) };
@@ -64,9 +72,9 @@ async getEngineLogs(engine: string, tab: string) : Promise<Result<EngineLog[], s
 async memorySize() : Promise<number> {
     return await TAURI_INVOKE("memory_size");
 },
-async getPuzzle(file: string, minRating: number, maxRating: number) : Promise<Result<Puzzle, string>> {
+async getPuzzle(file: string, minRating: number, maxRating: number, theme: string | null) : Promise<Result<Puzzle, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating, theme }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -83,6 +91,14 @@ async searchOpeningName(query: string) : Promise<Result<OutOpening[], string>> {
 async getOpeningFromFen(fen: string) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_opening_from_fen", { fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getOpeningFromFens(fens: string[]) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_opening_from_fens", { fens }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -334,6 +350,30 @@ async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo, string>
     else return { status: "error", error: e  as any };
 }
 },
+async getPuzzleThemes(file: string) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle_themes", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getThemesForPuzzle(file: string, puzzleId: number) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_themes_for_puzzle", { file, puzzleId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deletePuzzleDatabase(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_puzzle_database", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async startGame(gameId: string, config: GameConfig) : Promise<Result<GameState, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("start_game", { gameId, config }) };
@@ -403,6 +443,14 @@ async getProgress(id: string) : Promise<ProgressItem | null> {
 },
 async clearProgress(id: string) : Promise<void> {
     await TAURI_INVOKE("clear_progress", { id });
+},
+async getSoundServerPort() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_sound_server_port") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

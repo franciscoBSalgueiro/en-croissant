@@ -1,8 +1,8 @@
-import { parseKeyboardMove } from "@/utils/chess";
-import type { TreeNode } from "@/utils/treeReducer";
 import { Input } from "@mantine/core";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
+import { parseKeyboardMove } from "@/utils/chess";
+import type { TreeNode } from "@/utils/treeReducer";
 import { TreeStateContext } from "../common/TreeStateContext";
 
 export default function MoveInput({ currentNode }: { currentNode: TreeNode }) {
@@ -14,7 +14,7 @@ export default function MoveInput({ currentNode }: { currentNode: TreeNode }) {
   return (
     <Input
       placeholder="Enter move"
-      size="sm"
+      size="xs"
       onChange={(e) => {
         setMove(e.currentTarget.value);
         setError("");

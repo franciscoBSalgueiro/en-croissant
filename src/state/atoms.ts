@@ -1,6 +1,30 @@
-import type { BestMoves, DatabaseInfo, GameQuery, GoMode } from "@/bindings";
+import type { MantineColor } from "@mantine/core";
+import { parseUci } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
+import equal from "fast-deep-equal";
+import { atom, type PrimitiveAtom } from "jotai";
+import {
+  atomFamily,
+  atomWithStorage,
+  createJSONStorage,
+  unwrap,
+} from "jotai/utils";
+import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
+import type {
+  AsyncStorage,
+  SyncStorage,
+} from "jotai/vanilla/utils/atomWithStorage";
+import type { ReviewLog } from "ts-fsrs";
+import { z } from "zod";
+import type { BestMoves, GoMode } from "@/bindings";
+import {
+  DEFAULT_TIME_CONTROL,
+  type OpponentSettings,
+} from "@/components/boards/OpponentForm";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import { positionFromFen, swapMove } from "@/utils/chessops";
+import type { SuccessDatabaseInfo } from "@/utils/db";
 import {
   type Engine,
   type EngineSettings,
@@ -8,56 +32,37 @@ import {
 } from "@/utils/engines";
 import {
   type LichessGamesOptions,
-  type MasterGamesOptions,
   lichessGamesOptionsSchema,
+  type MasterGamesOptions,
   masterOptionsSchema,
 } from "@/utils/lichess/explorer";
-import type { MissingMove } from "@/utils/repertoire";
-import { type Tab, genID, tabSchema } from "@/utils/tabs";
-import type { MantineColor } from "@mantine/core";
-
-import {
-  DEFAULT_TIME_CONTROL,
-  type OpponentSettings,
-} from "@/components/boards/OpponentForm";
-import { positionFromFen, swapMove } from "@/utils/chessops";
-import type { SuccessDatabaseInfo } from "@/utils/db";
 import { getWinChance, normalizeScore } from "@/utils/score";
-import { parseUci } from "chessops";
-import { INITIAL_FEN, makeFen } from "chessops/fen";
-import equal from "fast-deep-equal";
-import { type PrimitiveAtom, atom } from "jotai";
-import {
-  atomFamily,
-  atomWithStorage,
-  createJSONStorage,
-  loadable,
-} from "jotai/utils";
-import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
-import type { SyncStorage } from "jotai/vanilla/utils/atomWithStorage";
-import type { ReviewLog } from "ts-fsrs";
-import { z } from "zod";
+import { genID, type Tab, tabSchema } from "@/utils/tabs";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
 
-const zodArray = <S>(itemSchema: z.ZodType<S>) => {
+const zodArray = <Input, Output>(
+  itemSchema: z.ZodType<Output, z.ZodTypeDef, Input>,
+) => {
   const catchValue = {} as never;
 
   const res = z
     .array(itemSchema.catch(catchValue))
-    .transform((a) => a.filter((o) => o !== catchValue))
+    .transform((a) => a.filter((o): o is Output => o !== catchValue))
     .catch([]);
 
-  return res as z.ZodType<S[]>;
+  return res as z.ZodType<Output[], z.ZodTypeDef, Input[]>;
 };
 
-export const enginesAtom = atomWithStorage<Engine[]>(
-  "engines/engines.json",
-  [],
-  createAsyncZodStorage(zodArray(engineSchema), fileStorage),
+export const enginesAtom = unwrap(
+  atomWithStorage<Engine[]>(
+    "engines/engines.json",
+    [],
+    createAsyncZodStorage(zodArray(engineSchema), fileStorage) as AsyncStorage<
+      Engine[]
+    >,
+  ),
 );
-
-const loadableEnginesAtom = loadable(enginesAtom);
 
 // Tabs
 
@@ -112,6 +117,8 @@ export const storedDocumentDirAtom = atomWithStorage<string>(
 
 // Settings
 
+export const tableViewAtom = atomWithStorage<boolean>("table-view", false);
+
 export const fontSizeAtom = atomWithStorage(
   "font-size",
   Number.parseInt(document.documentElement.style.fontSize) || 100,
@@ -123,7 +130,7 @@ export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols">(
 );
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">(
   "move-method",
-  "drag",
+  "both",
 );
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
@@ -136,6 +143,10 @@ export const snapArrowsAtom = atomWithStorage<boolean>("snap-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const showConsecutiveArrowsAtom = atomWithStorage<boolean>(
   "show-consecutive-arrows",
+  false,
+);
+export const showVariationArrowsAtom = atomWithStorage<boolean>(
+  "show-variation-arrows",
   false,
 );
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
@@ -151,6 +162,10 @@ export const previewBoardOnHoverAtom = atomWithStorage<boolean>(
 export const enableBoardScrollAtom = atomWithStorage<boolean>(
   "board-scroll",
   true,
+);
+export const materialDisplayAtom = atomWithStorage<"diff" | "all">(
+  "material-display",
+  "diff",
 );
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
@@ -188,6 +203,41 @@ export const primaryColorAtom = atomWithStorage<MantineColor>(
 );
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
+export const telemetryEnabledAtom = atomWithStorage<boolean>(
+  "telemetry-enabled",
+  true,
+  undefined,
+  { getOnInit: true },
+);
+
+// Recent Files
+
+export type RecentFile = {
+  name: string;
+  path: string;
+  type: "game" | "repertoire" | "tournament" | "puzzle" | "other";
+  lastOpened: number;
+};
+
+const MAX_RECENT_FILES = 10;
+
+export const recentFilesAtom = atomWithStorage<RecentFile[]>(
+  "recent-files",
+  [],
+);
+
+export const addRecentFileAtom = atom(
+  null,
+  (get, set, file: Omit<RecentFile, "lastOpened">) => {
+    const current = get(recentFilesAtom);
+    const filtered = current.filter((f) => f.path !== file.path);
+    const updated = [{ ...file, lastOpened: Date.now() }, ...filtered].slice(
+      0,
+      MAX_RECENT_FILES,
+    );
+    set(recentFilesAtom, updated);
+  },
+);
 
 // Database
 
@@ -238,23 +288,6 @@ export const gameSameTimeControlAtom = atomWithStorage<boolean>(
   true,
 );
 
-// Opening Report
-
-export const percentageCoverageAtom = atomWithStorage<number>(
-  "percentage-coverage",
-  95,
-);
-
-type TabMap<T> = Record<string, T>;
-
-export const minimumGamesAtom = atomWithStorage<number>("minimum-games", 5);
-
-export const missingMovesAtom = atomWithStorage<TabMap<MissingMove[] | null>>(
-  "missing-moves",
-  {},
-  createJSONStorage(() => sessionStorage),
-);
-
 function tabValue<
   T extends object | string | boolean | number | null | undefined,
 >(family: AtomFamily<string, PrimitiveAtom<T>>) {
@@ -296,6 +329,16 @@ export const puzzleRatingRangeAtom = atomWithStorage<[number, number]>(
   [1000, 1500],
 );
 
+export const puzzleThemeAtom = atomWithStorage<string | null>(
+  "puzzle-theme",
+  null,
+);
+
+export const coverageMinGamesAtom = atomWithStorage<number>(
+  "coverage-min-games",
+  50,
+);
+
 export const puzzleTimerFamily = atomFamily((tab: string) =>
   atom<number | null>(null),
 );
@@ -325,12 +368,8 @@ export const currentEvalBarDisplayAtom = tabValue(evalBarDisplayFamily);
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
-const tabFamily = atomFamily((tab: string) => atom("info"));
+export const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
-export const annotationFocusAtom = atom(0);
-export const triggerAnnotationFocusAtom = atom(null, (_, set) => {
-  set(annotationFocusAtom, (n) => n + 1);
-});
 
 const localOptionsFamily = atomFamily((tab: string) =>
   atom<LocalOptions>({
@@ -384,6 +423,11 @@ const expandedEnginesFamily = atomFamily((tab: string) =>
   atom<string[] | undefined>(undefined),
 );
 export const currentExpandedEnginesAtom = tabValue(expandedEnginesFamily);
+
+export const currentDetachedEngineAtom = atomWithStorage<string | null>(
+  "detached-engine",
+  null,
+);
 
 const pgnOptionsFamily = atomFamily((tab: string) =>
   atom({
@@ -452,6 +496,48 @@ export const deckAtomFamily = atomFamily(
   (a, b) => a.file === b.file && a.game === b.game,
 );
 
+export type PracticePhase =
+  | "idle" // Not practicing
+  | "waiting" // Waiting for user to make a move
+  | "correct" // Move was correct, waiting for quality rating
+  | "incorrect"; // Move was incorrect, showing feedback
+
+export type PracticeState = {
+  phase: PracticePhase;
+  currentFen?: string;
+  answer?: string;
+  playedMove?: string;
+  timeTaken?: number;
+  positionIndex?: number;
+};
+
+export const practiceStateFamily = atomFamily((tab: string) =>
+  atom<PracticeState>({ phase: "idle" }),
+);
+export const practiceStateAtom = tabValue(practiceStateFamily);
+
+export type PracticeSessionStats = {
+  correct: number;
+  incorrect: number;
+  streak: number;
+  bestStreak: number;
+};
+
+const practiceSessionStatsFamily = atomFamily((tab: string) =>
+  atom<PracticeSessionStats>({
+    correct: 0,
+    incorrect: 0,
+    streak: 0,
+    bestStreak: 0,
+  }),
+);
+export const practiceSessionStatsAtom = tabValue(practiceSessionStatsFamily);
+
+const practiceCardStartTimeFamily = atomFamily((tab: string) =>
+  atom<number>(0),
+);
+export const practiceCardStartTimeAtom = tabValue(practiceCardStartTimeFamily);
+
 export const engineMovesFamily = atomFamily(
   ({ tab, engine }: { tab: string; engine: string }) =>
     atom<Map<string, BestMoves[]>>(new Map()),
@@ -469,17 +555,15 @@ export const bestMovesFamily = atomFamily(
     atom<Map<number, { pv: string[]; winChance: number }[]>>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return new Map();
-      const engines = get(loadableEnginesAtom);
-      if (!(engines.state === "hasData")) return new Map();
+      const engines = get(enginesAtom);
+      if (!engines) return new Map();
       const bestMoves = new Map<
         number,
         { pv: string[]; winChance: number }[]
       >();
       let n = 0;
-      for (const engine of engines.data.filter((e) => e.loaded)) {
-        const engineMoves = get(
-          engineMovesFamily({ tab, engine: engine.name }),
-        );
+      for (const engine of engines.filter((e) => e.loaded)) {
+        const engineMoves = get(engineMovesFamily({ tab, engine: engine.id }));
         const [pos] = positionFromFen(fen);
         let finalFen = INITIAL_FEN;
         if (pos) {
@@ -521,8 +605,8 @@ export const firstEngineWithLinesFamily = atomFamily(
     atom<string | null>((get) => {
       const tab = get(activeTabAtom);
       if (!tab) return null;
-      const engines = get(loadableEnginesAtom);
-      if (!(engines.state === "hasData")) return null;
+      const engines = get(enginesAtom);
+      if (!engines) return null;
 
       const [pos] = positionFromFen(fen);
       let finalFen = INITIAL_FEN;
@@ -534,16 +618,14 @@ export const firstEngineWithLinesFamily = atomFamily(
         finalFen = makeFen(pos.toSetup());
       }
 
-      for (const engine of engines.data.filter((e) => e.loaded)) {
-        const engineMoves = get(
-          engineMovesFamily({ tab, engine: engine.name }),
-        );
+      for (const engine of engines.filter((e) => e.loaded)) {
+        const engineMoves = get(engineMovesFamily({ tab, engine: engine.id }));
         const moves =
           engineMoves.get(`${swapMove(finalFen)}:`) ||
           engineMoves.get(`${fen}:${gameMoves.join(",")}`);
 
         if (moves && moves.length > 0) {
-          return engine.name;
+          return engine.id;
         }
       }
       return null;
@@ -554,12 +636,12 @@ export const firstEngineWithLinesFamily = atomFamily(
 export const tabEngineSettingsFamily = atomFamily(
   ({
     tab,
-    engineName,
+    engineId,
     defaultSettings,
     defaultGo,
   }: {
     tab: string;
-    engineName: string;
+    engineId: string;
     defaultSettings?: EngineSettings;
     defaultGo?: GoMode;
   }) => {
@@ -575,38 +657,37 @@ export const tabEngineSettingsFamily = atomFamily(
       synced: true,
     });
   },
-  (a, b) => a.tab === b.tab && a.engineName === b.engineName,
+  (a, b) => a.tab === b.tab && a.engineId === b.engineId,
 );
 
-export const allEnabledAtom = loadable(
-  atom(async (get) => {
-    const engines = await get(enginesAtom);
+export const allEnabledAtom = atom((get) => {
+  const engines = get(enginesAtom);
+  if (!engines) return false;
 
-    const v = engines
-      .filter((e) => e.loaded)
-      .every((engine) => {
-        const atom = tabEngineSettingsFamily({
-          tab: get(activeTabAtom)!,
-          engineName: engine.name,
-          defaultSettings:
-            engine.type === "local" ? engine.settings || [] : undefined,
-          defaultGo: engine.go ?? undefined,
-        });
-        return get(atom).enabled;
+  const v = engines
+    .filter((e) => e.loaded)
+    .every((engine) => {
+      const atom = tabEngineSettingsFamily({
+        tab: get(activeTabAtom)!,
+        engineId: engine.id,
+        defaultSettings:
+          engine.type === "local" ? engine.settings || [] : undefined,
+        defaultGo: engine.go ?? undefined,
       });
+      return get(atom).enabled;
+    });
 
-    return v;
-  }),
-);
+  return v;
+});
 
 export const enableAllAtom = atom(null, (get, set, value: boolean) => {
-  const engines = get(loadableEnginesAtom);
-  if (!(engines.state === "hasData")) return;
+  const engines = get(enginesAtom);
+  if (!engines) return;
 
-  for (const engine of engines.data.filter((e) => e.loaded)) {
+  for (const engine of engines.filter((e) => e.loaded)) {
     const atom = tabEngineSettingsFamily({
       tab: get(activeTabAtom)!,
-      engineName: engine.name,
+      engineId: engine.id,
       defaultSettings:
         engine.type === "local" ? engine.settings || [] : undefined,
       defaultGo: engine.go ?? undefined,

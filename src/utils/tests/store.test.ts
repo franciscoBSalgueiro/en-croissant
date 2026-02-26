@@ -1,7 +1,7 @@
-import { createTreeStore } from "@/state/store/tree";
-import { type TreeState, defaultTree } from "@/utils/treeReducer";
 import { parseUci } from "chessops";
 import { beforeEach, expect, test } from "vitest";
+import { createTreeStore } from "@/state/store/tree";
+import { defaultTree, type TreeState } from "@/utils/treeReducer";
 
 const store = createTreeStore();
 

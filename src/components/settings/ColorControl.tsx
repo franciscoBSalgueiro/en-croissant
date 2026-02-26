@@ -1,18 +1,18 @@
-import { primaryColorAtom } from "@/state/atoms";
 import {
   CheckIcon,
   ColorSwatch,
   Group,
   Input,
-  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
+import { useColorScheme } from "@mantine/hooks";
 import { useAtom } from "jotai";
+import { primaryColorAtom } from "@/state/atoms";
 
 export default function ColorControl() {
   const [primaryColor, setPrimaryColor] = useAtom(primaryColorAtom);
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useColorScheme();
 
   const colors = Object.keys(theme.colors).map((color) => (
     <ColorSwatch

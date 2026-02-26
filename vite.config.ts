@@ -1,8 +1,8 @@
 /// <reference types="vitest" />
 import { resolve } from "node:path";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import react from "@vitejs/plugin-react-swc";
-import { TanStackRouterVite } from "@tanstack/router-vite-plugin";
+import react from "@vitejs/plugin-react";
+import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import { defineConfig } from "vite";
 import * as os from "node:os";
 
@@ -10,28 +10,38 @@ const isDebug = !!process.env.TAURI_ENV_DEBUG;
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), vanillaExtractPlugin(), TanStackRouterVite()],
-  server: {
-    port: 1420,
-  },
-  build: {
-    minify: isDebug ? false : "esbuild",
-    sourcemap: isDebug ? "inline" : false,
-    rollupOptions: {
-      output: {
-        entryFileNames: "assets/[name].js",
-        chunkFileNames: "assets/[name].js",
-        assetFileNames: "assets/[name].[ext]",
-      },
+    plugins: [
+        tanstackRouter({
+            target: "react"
+        }),
+        react({
+            babel: {
+                plugins: ["babel-plugin-react-compiler"],
+            },
+        }),
+        vanillaExtractPlugin(),
+    ],
+    server: {
+        port: 1420,
     },
-  },
-  resolve: {
-    alias: [{ find: "@", replacement: resolve(__dirname, "./src") }],
-  },
-  test: {
-    environment: "jsdom",
-  },
-  define: {
-    "import.meta.env.VITE_PLATFORM": JSON.stringify(os.platform()),
-  },
+    build: {
+        minify: isDebug ? false : "esbuild",
+        sourcemap: isDebug ? "inline" : false,
+        rollupOptions: {
+            output: {
+                entryFileNames: "assets/[name].js",
+                chunkFileNames: "assets/[name].js",
+                assetFileNames: "assets/[name].[ext]",
+            },
+        },
+    },
+    resolve: {
+        alias: [{ find: "@", replacement: resolve(__dirname, "./src") }],
+    },
+    test: {
+        environment: "jsdom",
+    },
+    define: {
+        "import.meta.env.VITE_PLATFORM": JSON.stringify(os.platform()),
+    },
 });

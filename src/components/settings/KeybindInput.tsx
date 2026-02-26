@@ -1,11 +1,11 @@
-import { keyMapAtom } from "@/state/keybinds";
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
-import { useColorScheme } from "@mantine/hooks";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import cx from "clsx";
 import { useAtom } from "jotai";
 import { useState } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
+import { useTranslation } from "react-i18next";
+import { keyMapAtom } from "@/state/keybinds";
 import * as classes from "./KeybindInput.css";
 import { platform } from "@tauri-apps/plugin-os";
 
@@ -89,13 +89,14 @@ function ShortcutInput({
   action: string;
   stop: () => void;
 }) {
+  const { t } = useTranslation();
   const [, setKeymap] = useAtom(keyMapAtom);
   const stringed = Array.from(keys).join("+");
 
   return (
     <Group>
       {stringed === "" ? (
-        <Kbd>Press any key</Kbd>
+        <Kbd>{t("Settings.Keybinds.PressAnyKey")}</Kbd>
       ) : (
         <KbdDisplay keys={stringed} hovering={false} />
       )}
