@@ -18,10 +18,12 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useAtom } from "jotai";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
+import { storedDatabasesDirAtom } from "@/state/atoms";
 import {
   getDatabases,
   type SuccessDatabaseInfo,
@@ -46,11 +48,13 @@ function AddDatabase({
   setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
   const { t } = useTranslation();
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
+
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
-    const dbPath = await resolve(await appDataDir(), "db", `${title}.db3`);
+    const dbPath = await resolve(databaseDir, `${title}.db3`);
     unwrap(
       await commands.convertPgn(path, dbPath, null, title, description ?? null),
     );
@@ -193,12 +197,13 @@ function DatabaseCard({
   initInstalled: boolean;
 }) {
   const { t } = useTranslation();
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
 
   const [inProgress, setInProgress] = useState<boolean>(false);
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(await appDataDir(), "db", `${name}.db3`);
+    const path = await resolve(databaseDir, `${name}.db3`);
     await commands.downloadFile(`db_${id}`, url, path, null, null, null);
     setDatabases(await getDatabases());
   }

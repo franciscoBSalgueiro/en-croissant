@@ -25,6 +25,7 @@ import {
   primaryColorAtom,
   referenceDbAtom,
   spellCheckAtom,
+  storedDatabasesDirAtom,
   storedDocumentDirAtom,
   tabsAtom,
   telemetryEnabledAtom,
@@ -52,7 +53,12 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 import { getVersion } from "@tauri-apps/api/app";
-import { documentDir, homeDir, resolve } from "@tauri-apps/api/path";
+import {
+  appDataDir,
+  documentDir,
+  homeDir,
+  resolve,
+} from "@tauri-apps/api/path";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
@@ -81,6 +87,17 @@ const router = createRouter({
           doc = await resolve(hDir, "EnCroissant");
         }
       }
+
+      if (!store.get(storedDatabasesDirAtom)) {
+        try {
+          const appData = await appDataDir();
+          const dbDir = await resolve(appData, "db");
+          store.set(storedDatabasesDirAtom, dbDir);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       return { documentDir: doc } as Dirs;
     },
   },

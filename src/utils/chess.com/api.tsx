@@ -1,6 +1,6 @@
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { resolve } from "@tauri-apps/api/path";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import { error, info } from "@tauri-apps/plugin-log";
@@ -14,6 +14,7 @@ import {
 import { makeSan } from "chessops/san";
 import { z } from "zod";
 import { events } from "@/bindings";
+import { getDbDir } from "@/utils/db";
 import { apiHeaders } from "@/utils/http";
 import { decodeTCN } from "./tcn";
 
@@ -118,11 +119,7 @@ export async function downloadChessCom(
     1,
   );
   const archives = await getGameArchives(player);
-  const file = await resolve(
-    await appDataDir(),
-    "db",
-    `${player}_chesscom.pgn`,
-  );
+  const file = await resolve(await getDbDir(), `${player}_chesscom.pgn`);
   info(`Found ${archives.archives.length} archives for ${player}`);
   writeTextFile(file, "", {
     append: false,

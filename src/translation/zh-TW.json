@@ -495,6 +495,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "目錄",
+    "Settings.Directories.Databases": "資料庫目錄",
+    "Settings.Directories.Databases.Desc": "這是您的資料庫儲存的位置",
     "Settings.Directories.Desc": "自訂應用程式使用的目錄",
     "Settings.Directories.Files": "檔案目錄",
     "Settings.Directories.Files.Desc": "這是您的對局檔案儲存的位置",

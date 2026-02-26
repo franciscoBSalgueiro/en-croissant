@@ -501,6 +501,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Katalogi",
+    "Settings.Directories.Databases": "Katalog baz danych",
+    "Settings.Directories.Databases.Desc": "To miejsce, gdzie są przechowywane twoje bazy danych",
     "Settings.Directories.Desc": "Dostosuj katalogi używane przez aplikację",
     "Settings.Directories.Files": "Katalog plików",
     "Settings.Directories.Files.Desc": "To miejsce, gdzie są przechowywane twoje gry na stronie Pliki",

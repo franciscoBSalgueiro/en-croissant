@@ -511,6 +511,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Directories",
+    "Settings.Directories.Databases": "Databases directory",
+    "Settings.Directories.Databases.Desc": "This is where your databases are stored",
     "Settings.Directories.Desc": "Customise the directories used by the app",
     "Settings.Directories.Files": "Files directory",
     "Settings.Directories.Files.Desc": "This is where your games in the Files page are stored",

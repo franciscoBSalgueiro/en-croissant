@@ -499,6 +499,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Directorios",
+    "Settings.Directories.Databases": "Directorio de bases de datos",
+    "Settings.Directories.Databases.Desc": "Este es el lugar donde se almacenan sus bases de datos",
     "Settings.Directories.Desc": "Personalizar los directorios utilizados por la aplicación",
     "Settings.Directories.Files": "Directorio de archivos",
     "Settings.Directories.Files.Desc": "Este es el lugar donde se almacenan sus partidas de la página de archivos",

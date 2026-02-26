@@ -497,6 +497,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Mapper",
+    "Settings.Directories.Databases": "Databasekatalog",
+    "Settings.Directories.Databases.Desc": "Dette er hvor databasene dine blir lagret",
     "Settings.Directories.Desc": "Tilpass mappene brukt av appen",
     "Settings.Directories.Files": "Filmappe",
     "Settings.Directories.Files.Desc": "Dette er hvor partiene fra Fil-siden blir lagret",

@@ -501,6 +501,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Каталоги",
+    "Settings.Directories.Databases": "Каталог для баз даних",
+    "Settings.Directories.Databases.Desc": "Тут зберігаються бази даних на сторінці баз даних",
     "Settings.Directories.Desc": "Налаштувати каталоги, що використовуються програмою",
     "Settings.Directories.Files": "Каталог для файлів",
     "Settings.Directories.Files.Desc": "Тут зберігаються ігрові файли на сторінці файлів",

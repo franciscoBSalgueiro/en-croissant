@@ -497,6 +497,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Klasörler",
+    "Settings.Directories.Databases": "Veritabanları Klasörü",
+    "Settings.Directories.Databases.Desc": "Veritabanları sayfasındaki veritabanları burada saklanır",
     "Settings.Directories.Desc": "Uygulama tarafından kullanılan klasörleri düzenleyin",
     "Settings.Directories.Files": "Dosyalar Klasörü",
     "Settings.Directories.Files.Desc": "Dosyalar sayfasındaki oyunlarınız burada saklanır",

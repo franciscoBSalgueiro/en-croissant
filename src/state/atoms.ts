@@ -114,6 +114,12 @@ export const storedDocumentDirAtom = atomWithStorage<string>(
   undefined,
   { getOnInit: true },
 );
+export const storedDatabasesDirAtom = atomWithStorage<string>(
+  "databases-dir",
+  "",
+  undefined,
+  { getOnInit: true },
+);
 
 // Settings
 

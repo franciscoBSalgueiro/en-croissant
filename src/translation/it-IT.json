@@ -499,6 +499,8 @@
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
     "Settings.Directories": "Cartelle",
+    "Settings.Directories.Databases": "Directory dei Database",
+    "Settings.Directories.Databases.Desc": "Qui vengono archiviati i tuoi database",
     "Settings.Directories.Desc": "Personalizza le directory utilizzate dall'app",
     "Settings.Directories.Files": "Directory dei File",
     "Settings.Directories.Files.Desc": "Qui vengono archiviati i tuoi giochi nella pagina File",

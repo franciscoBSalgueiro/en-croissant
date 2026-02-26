@@ -1,7 +1,7 @@
 import type { Color } from "@lichess-org/chessground/types";
 import { notifications } from "@mantine/notifications";
 import { IconX } from "@tabler/icons-react";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { resolve } from "@tauri-apps/api/path";
 import { fetch } from "@tauri-apps/plugin-http";
 import { error } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
@@ -17,6 +17,7 @@ import {
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
+import { getDbDir } from "@/utils/db";
 import { apiHeaders } from "@/utils/http";
 import {
   getLichessGamesQueryParams,
@@ -400,7 +401,7 @@ export async function downloadLichess(
   if (timestamp) {
     url += `&since=${timestamp}`;
   }
-  const path = await resolve(await appDataDir(), "db", `${player}_lichess.pgn`);
+  const path = await resolve(await getDbDir(), `${player}_lichess.pgn`);
 
   await commands.downloadFile(
     `lichess_${player}`,
