@@ -1,14 +1,24 @@
+import { platform } from "@tauri-apps/plugin-os";
 import { atomWithStorage } from "jotai/utils";
 import type {
   SyncStorage,
   SyncStringStorage,
 } from "jotai/vanilla/utils/atomWithStorage";
 
-const keys = {
-  NEW_TAB: { name: "New tab", keys: "ctrl+t" },
-  CLOSE_TAB: { name: "Close tab", keys: "ctrl+w" },
-  OPEN_FILE: { name: "Open File", keys: "ctrl+o" },
-  SAVE_FILE: { name: "Save File", keys: "ctrl+s" },
+const meta = platform() === "macos" ? "cmd" : "ctrl";
+
+type Keybind = {
+  name: string;
+  keys: string;
+};
+
+type KeyMap = { [key: string]: Keybind };
+
+const keys: KeyMap = {
+  NEW_TAB: { name: "New tab", keys: `${meta}+t` },
+  CLOSE_TAB: { name: "Close tab", keys: `${meta}+w` },
+  OPEN_FILE: { name: "Open File", keys: `${meta}+o` },
+  SAVE_FILE: { name: "Save File", keys: `${meta}+s` },
   SWAP_ORIENTATION: { name: "Swap orientation", keys: "f" },
   CLEAR_SHAPES: { name: "Clear shapes", keys: "ctrl+l" },
   NEXT_MOVE: { name: "Next move", keys: "arrowright" },
@@ -54,10 +64,10 @@ export const keyMapAtom = atomWithStorage(
   defaultStorage(keys, localStorage),
 );
 
-function defaultStorage<T>(
-  keys: T,
+function defaultStorage(
+  defaults: KeyMap,
   storage: SyncStringStorage,
-): SyncStorage<T> {
+): SyncStorage<KeyMap> {
   return {
     getItem(key, initialValue) {
       const storedValue = storage.getItem(key);
@@ -65,14 +75,18 @@ function defaultStorage<T>(
         return initialValue;
       }
       const parsed = JSON.parse(storedValue);
-      for (const key in keys) {
+      for (const key in defaults) {
         if (!(key in parsed)) {
-          parsed[key] = keys[key];
+          parsed[key] = defaults[key];
         }
       }
       return parsed;
     },
     setItem(key, value) {
+      for (const subkey in value) {
+        value[subkey].keys = value[subkey].keys.replace("meta", meta);
+      }
+
       storage.setItem(key, JSON.stringify(value));
     },
     removeItem(key) {
