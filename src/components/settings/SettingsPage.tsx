@@ -163,10 +163,10 @@ export default function Page() {
   } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
   filesDirectory = filesDirectory || documentDir;
-  let [databasesDirectory, setDatabasesDirectory] = useAtom(storedDatabasesDirAtom);
+  let [databasesDirectory, setDatabasesDirectory] = useAtom(
+    storedDatabasesDirAtom,
+  );
   databasesDirectory = databasesDirectory || documentDir;
-
-
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
@@ -520,7 +520,8 @@ export default function Page() {
             filename={filesDirectory || null}
           />
         ),
-      },{
+      },
+      {
         id: "databases-directory",
         category: "directories",
         title: t("Settings.Directories.Databases"),

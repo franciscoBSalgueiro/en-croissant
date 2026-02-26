@@ -18,10 +18,12 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useAtom } from "jotai";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
+import { storedDatabasesDirAtom } from "@/state/atoms";
 import {
   getDatabases,
   type SuccessDatabaseInfo,
@@ -31,8 +33,6 @@ import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
-import { useAtom } from "jotai";
-import { storedDatabasesDirAtom } from "@/state/atoms";
 
 function AddDatabase({
   databases,
@@ -203,7 +203,7 @@ function DatabaseCard({
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(databaseDir ,`${name}.db3`);
+    const path = await resolve(databaseDir, `${name}.db3`);
     await commands.downloadFile(`db_${id}`, url, path, null, null, null);
     setDatabases(await getDatabases());
   }

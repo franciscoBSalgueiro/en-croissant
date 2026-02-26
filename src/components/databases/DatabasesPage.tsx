@@ -50,7 +50,7 @@ export default function DatabasesPage() {
     isLoading,
     mutate,
   } = useSWR("databases", () => getDatabases());
-  
+
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const selectedDatabase = useMemo(

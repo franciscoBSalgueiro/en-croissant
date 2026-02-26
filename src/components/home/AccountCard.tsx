@@ -216,10 +216,7 @@ export function AccountCard({
                   } else {
                     await downloadChessCom(title, lastGameDate);
                   }
-                  const p = await resolve(
-                    databaseDir,
-                    `${title}_${type}.pgn`,
-                  );
+                  const p = await resolve(databaseDir, `${title}_${type}.pgn`);
                   try {
                     await convert(p, lastGameDate);
                     const dbPath = p.replace(".pgn", ".db3");

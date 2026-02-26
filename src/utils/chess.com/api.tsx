@@ -119,10 +119,7 @@ export async function downloadChessCom(
     1,
   );
   const archives = await getGameArchives(player);
-  const file = await resolve(
-    await getDbDir(),
-    `${player}_chesscom.pgn`,
-  );
+  const file = await resolve(await getDbDir(), `${player}_chesscom.pgn`);
   info(`Found ${archives.archives.length} archives for ${player}`);
   writeTextFile(file, "", {
     append: false,

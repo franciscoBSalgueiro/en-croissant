@@ -1,9 +1,8 @@
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { BaseDirectory, exists, mkdir, readDir } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
-import useSWR from "swr";
 import { getDefaultStore } from "jotai";
-import { storedDatabasesDirAtom } from "@/state/atoms";
+import useSWR from "swr";
 import {
   commands,
   type DatabaseInfo,
@@ -15,6 +14,7 @@ import {
   type QueryResponse,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
+import { storedDatabasesDirAtom } from "@/state/atoms";
 import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
