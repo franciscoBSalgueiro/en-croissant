@@ -498,6 +498,8 @@
     "Settings.Directories.Desc": "Uygulama tarafından kullanılan klasörleri düzenleyin",
     "Settings.Directories.Files": "Dosyalar Klasörü",
     "Settings.Directories.Files.Desc": "Dosyalar sayfasındaki oyunlarınız burada saklanır",
+    "Settings.Directories.Databases": "Veritabanları Klasörü",
+    "Settings.Directories.Databases.Desc": "Veritabanları sayfasındaki veritabanları burada saklanır",
     "Settings.EraseDrawablesOnClick": "Tıklandığında Çizilenleri Sil",
     "Settings.EraseDrawablesOnClick.Desc": "Tahtadaki okları ve yuvarlakları sol tıklandığında sil",
     "Settings.Inputs": "Girdiler",

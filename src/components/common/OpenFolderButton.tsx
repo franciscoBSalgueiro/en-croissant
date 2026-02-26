@@ -1,3 +1,4 @@
+import { getDbDir } from "@/utils/db";
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconFolder } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
@@ -8,7 +9,7 @@ function OpenFolderButton({
   base,
   folder,
 }: {
-  base?: "AppDir" | "Document";
+  base?: "AppDir" | "Database" | "Document";
   folder: string;
 }) {
   const { t } = useTranslation();
@@ -17,6 +18,9 @@ function OpenFolderButton({
     let dir = folder;
     if (base === "AppDir") {
       dir = await resolve(await appDataDir(), folder);
+    }
+    if (base === "Database") {
+      dir = await getDbDir();
     }
     open(dir);
   }

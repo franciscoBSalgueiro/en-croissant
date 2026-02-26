@@ -53,6 +53,7 @@ import {
   showVariationArrowsAtom,
   snapArrowsAtom,
   spellCheckAtom,
+  storedDatabasesDirAtom,
   storedDocumentDirAtom,
   telemetryEnabledAtom,
 } from "@/state/atoms";
@@ -162,6 +163,10 @@ export default function Page() {
   } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
   filesDirectory = filesDirectory || documentDir;
+  let [databasesDirectory, setDatabasesDirectory] = useAtom(storedDatabasesDirAtom);
+  databasesDirectory = databasesDirectory || documentDir;
+
+
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
@@ -515,6 +520,25 @@ export default function Page() {
             filename={filesDirectory || null}
           />
         ),
+      },{
+        id: "databases-directory",
+        category: "directories",
+        title: t("Settings.Directories.Databases"),
+        description: t("Settings.Directories.Databases.Desc"),
+        keywords: ["databases", "directory", "folder", "path"],
+        render: () => (
+          <FileInput
+            onClick={async () => {
+              const selected = await open({
+                multiple: false,
+                directory: true,
+              });
+              if (!selected || typeof selected !== "string") return;
+              setDatabasesDirectory(selected);
+            }}
+            filename={databasesDirectory || null}
+          />
+        ),
       },
       // Privacy settings
       {
@@ -535,10 +559,12 @@ export default function Page() {
       showCoordinates,
       materialDisplay,
       filesDirectory,
+      databasesDirectory,
       setMoveNotationType,
       setMoveMethod,
       setIsNative,
       setFilesDirectory,
+      setDatabasesDirectory,
       setShowCoordinates,
       setMaterialDisplay,
     ],

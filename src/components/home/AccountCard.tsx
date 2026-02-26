@@ -18,12 +18,14 @@ import {
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DatabaseInfo } from "@/bindings";
 import { commands, events } from "@/bindings";
+import { storedDatabasesDirAtom } from "@/state/atoms";
 import { downloadChessCom } from "@/utils/chess.com/api";
 import { getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
@@ -99,13 +101,13 @@ export function AccountCard({
   });
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
 
   async function convert(filepath: string, timestamp: number | null) {
     info(`converting ${filepath} ${timestamp}`);
     const filename = title + (type === "lichess" ? " Lichess" : " Chess.com");
     const dbPath = await resolve(
-      await appDataDir(),
-      "db",
+      databaseDir,
       `${filepath
         .split(/(\\|\/)/g)
         .pop()
@@ -215,8 +217,7 @@ export function AccountCard({
                     await downloadChessCom(title, lastGameDate);
                   }
                   const p = await resolve(
-                    await appDataDir(),
-                    "db",
+                    databaseDir,
                     `${title}_${type}.pgn`,
                   );
                   try {

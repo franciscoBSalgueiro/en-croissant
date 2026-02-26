@@ -512,6 +512,8 @@
     "Settings.Directories.Desc": "Customise the directories used by the app",
     "Settings.Directories.Files": "Files directory",
     "Settings.Directories.Files.Desc": "This is where your games in the Files page are stored",
+    "Settings.Directories.Databases": "Databases directory",
+    "Settings.Directories.Databases.Desc": "This is where your databases are stored",
     "Settings.EraseDrawablesOnClick": "Erase Drawables On Click",
     "Settings.EraseDrawablesOnClick.Desc": "Clear the board of drawn arrows & circles by left-clicking the mouse",
     "Settings.Inputs": "Inputs",

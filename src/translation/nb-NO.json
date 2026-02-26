@@ -498,6 +498,8 @@
     "Settings.Directories.Desc": "Tilpass mappene brukt av appen",
     "Settings.Directories.Files": "Filmappe",
     "Settings.Directories.Files.Desc": "Dette er hvor partiene fra Fil-siden blir lagret",
+    "Settings.Directories.Databases": "Databasekatalog",
+    "Settings.Directories.Databases.Desc": "Dette er hvor databasene dine blir lagret",
     "Settings.EraseDrawablesOnClick": "Slett tegninger ved klikk",
     "Settings.EraseDrawablesOnClick.Desc": "Fjern piler og sirkler fra brette med venstre museklikk",
     "Settings.Inputs": "Inputs",

@@ -29,7 +29,7 @@ import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
-import { referenceDbAtom } from "@/state/atoms";
+import { referenceDbAtom, storedDatabasesDirAtom } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
@@ -50,13 +50,14 @@ export default function DatabasesPage() {
     isLoading,
     mutate,
   } = useSWR("databases", () => getDatabases());
-
+  
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const selectedDatabase = useMemo(
     () => (databases ?? []).find((db) => db.file === selected) ?? null,
     [databases, selected],
   );
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
   // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const setActiveDatabase = useActiveDatabaseViewStore(
     (store) => store.setDatabase,
@@ -106,7 +107,7 @@ export default function DatabasesPage() {
 
       <Group align="baseline" pl="lg" py="sm">
         <Title>{t("Databases.Title")}</Title>
-        <OpenFolderButton base="AppDir" folder="db" />
+        <OpenFolderButton base="Database" folder={databaseDir} />
       </Group>
 
       <Group

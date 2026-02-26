@@ -500,6 +500,8 @@
     "Settings.Directories.Desc": "Personalizza le directory utilizzate dall'app",
     "Settings.Directories.Files": "Directory dei File",
     "Settings.Directories.Files.Desc": "Qui vengono archiviati i tuoi giochi nella pagina File",
+    "Settings.Directories.Databases": "Directory dei Database",
+    "Settings.Directories.Databases.Desc": "Qui vengono archiviati i tuoi database",
     "Settings.EraseDrawablesOnClick": "Cancella annotazioni grafiche con un Click",
     "Settings.EraseDrawablesOnClick.Desc": "Pulisci la scacchiera da frecce e cerchi disegnati cliccando con il tasto sinistro del mouse",
     "Settings.Inputs": "Input",

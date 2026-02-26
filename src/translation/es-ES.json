@@ -500,6 +500,8 @@
     "Settings.Directories.Desc": "Personalizar los directorios utilizados por la aplicación",
     "Settings.Directories.Files": "Directorio de archivos",
     "Settings.Directories.Files.Desc": "Este es el lugar donde se almacenan sus partidas de la página de archivos",
+    "Settings.Directories.Databases": "Directorio de bases de datos",
+    "Settings.Directories.Databases.Desc": "Este es el lugar donde se almacenan sus bases de datos",
     "Settings.EraseDrawablesOnClick": "Borrar dibujos al hacer clic",
     "Settings.EraseDrawablesOnClick.Desc": "Borrar el tablero de las flechas y círculos dibujados al hacer clic izquierdo en el ratón",
     "Settings.Inputs": "Entradas",

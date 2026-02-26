@@ -500,6 +500,8 @@
     "Settings.Directories.Desc": "Customizar diretorias usadas pela aplicação",
     "Settings.Directories.Files": "Diretoria para ficheiros",
     "Settings.Directories.Files.Desc": "Aqui é onde os ficheiros de jogos estão armazenados na página de ficheiros",
+    "Settings.Directories.Databases": "Diretoria para bases de dados",
+    "Settings.Directories.Databases.Desc": "Aqui é onde os ficheiros de bases de dados estão armazenados na página de bases de dados",
     "Settings.EraseDrawablesOnClick": "Apagar desenhos ao clicar",
     "Settings.EraseDrawablesOnClick.Desc": "Limpar o tabuleiro das setas e círculos desenhados ao clicar com o botão esquerdo do rato",
     "Settings.Inputs": "Inputs",

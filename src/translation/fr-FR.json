@@ -514,6 +514,8 @@
     "Settings.Directories.Desc": "Personnalisation des dossiers utilisés par l'application",
     "Settings.Directories.Files": "Dossier des fichiers de l'application",
     "Settings.Directories.Files.Desc": "C'est ici que vos fichiers de parties seront sauvegardés",
+    "Settings.Directories.Databases": "Dossier des bases de données",
+    "Settings.Directories.Databases.Desc": "C'est ici que vos bases de données seront sauvegardées",
     "Settings.EraseDrawablesOnClick": "Effacer les indications au clic",
     "Settings.EraseDrawablesOnClick.Desc": "Efface toutes les indications de l'échiquier en cliquant avec la souris",
     "Settings.Inputs": "Entrées",

@@ -498,6 +498,8 @@
     "Settings.Directories.Desc": "Passe die Verzeichnisse der App an",
     "Settings.Directories.Files": "Dateienverzeichnis",
     "Settings.Directories.Files.Desc": "Hier werden deine Spiele auf der Dateien-Seite gespeichert",
+    "Settings.Directories.Databases": "Datenbankverzeichnis",
+    "Settings.Directories.Databases.Desc": "Hier werden deine Datenbanken gespeichert",
     "Settings.EraseDrawablesOnClick": "Zeichnungen mit Klick löschen",
     "Settings.EraseDrawablesOnClick.Desc": "Lösche Pfeile und Kreise auf dem Brett durch Linksklick",
     "Settings.Inputs": "Eingaben",
