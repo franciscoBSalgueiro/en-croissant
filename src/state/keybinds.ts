@@ -8,13 +8,13 @@ import type {
 const meta = platform() === "macos" ? "cmd" : "ctrl";
 
 type Keybind = {
-    name: string,
-    keys: string
-}
+  name: string;
+  keys: string;
+};
 
-type KeyMap = {[key: string]: Keybind};
+type KeyMap = { [key: string]: Keybind };
 
-const keys: KeyMap  = {
+const keys: KeyMap = {
   NEW_TAB: { name: "New tab", keys: `${meta}+t` },
   CLOSE_TAB: { name: "Close tab", keys: `${meta}+w` },
   OPEN_FILE: { name: "Open File", keys: `${meta}+o` },
@@ -63,8 +63,6 @@ export const keyMapAtom = atomWithStorage(
   keys,
   defaultStorage(keys, localStorage),
 );
-
-
 
 function defaultStorage(
   defaults: KeyMap,

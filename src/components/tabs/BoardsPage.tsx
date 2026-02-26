@@ -23,9 +23,9 @@ import NewTabHome from "./NewTabHome";
 import "react-mosaic-component/react-mosaic-component.css";
 
 import "@/styles/react-mosaic.css";
+import { platform } from "@tauri-apps/plugin-os";
 import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
-import { platform } from "@tauri-apps/plugin-os";
 
 export default function BoardsPage() {
   const { t } = useTranslation();

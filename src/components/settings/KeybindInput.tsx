@@ -1,5 +1,6 @@
 import { ActionIcon, Box, Group, Kbd } from "@mantine/core";
 import { IconCheck, IconX } from "@tabler/icons-react";
+import { platform } from "@tauri-apps/plugin-os";
 import cx from "clsx";
 import { useAtom } from "jotai";
 import { useState } from "react";
@@ -7,7 +8,6 @@ import { useRecordHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { keyMapAtom } from "@/state/keybinds";
 import * as classes from "./KeybindInput.css";
-import { platform } from "@tauri-apps/plugin-os";
 
 function KeybindInput({
   action,
@@ -49,24 +49,18 @@ const mapToOs = (key: string): string => {
 
   if (key === "meta" || key === "cmd") {
     return "⌘";
-  } else if (key == "ctrl") {
+  } else if (key === "ctrl") {
     return "⌃";
-  } else if (key == "shift") {
+  } else if (key === "shift") {
     return "⇧";
-  } else if (key == "alt") {
+  } else if (key === "alt") {
     return "⌥";
   }
 
   return key;
 };
 
-function KbdDisplay({
-  keys,
-  hovering,
-}: {
-  keys: string;
-  hovering: boolean;
-}) {
+function KbdDisplay({ keys, hovering }: { keys: string; hovering: boolean }) {
   const splitted = keys.split("+");
   return (
     <Group>
@@ -118,7 +112,6 @@ function ShortcutInput({
           setKeymap((prev) => ({
             ...prev,
             [action]: {
-              /// @ts-expect-error action is key of keymap
               name: prev[action].name,
               keys: stringed,
             },

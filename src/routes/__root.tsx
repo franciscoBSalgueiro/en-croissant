@@ -44,7 +44,15 @@ type MenuAction = {
   label: string;
   shortcut?: string;
   action?: () => void;
-  item?: 'Hide' | 'Copy' | 'Cut' | 'Paste' | 'SelectAll' | 'Undo' | 'Redo' | 'Quit'
+  item?:
+    | "Hide"
+    | "Copy"
+    | "Cut"
+    | "Paste"
+    | "SelectAll"
+    | "Undo"
+    | "Redo"
+    | "Quit";
 };
 
 async function createMenu(menuActions: MenuGroup[]) {
@@ -62,8 +70,8 @@ async function createMenu(menuActions: MenuGroup[]) {
               if (option.item) {
                 return PredefinedMenuItem.new({
                   text: option.label,
-                  item: option.item
-                })
+                  item: option.item,
+                });
               }
 
               return MenuItem.new({
@@ -148,7 +156,7 @@ function RootLayout() {
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
   const [opened, setOpened] = useState(false);
 
-  const isMacOS = platform() == "macos";
+  const isMacOS = platform() === "macos";
 
   const aboutOption = {
     label: t("Menu.Help.About"),
@@ -166,9 +174,11 @@ function RootLayout() {
     label: "Application Menu",
     options: [
       {
-        label: t("Menu.Application.About", { defaultValue: t("Menu.Help.About")}),
+        label: t("Menu.Application.About", {
+          defaultValue: t("Menu.Help.About"),
+        }),
         id: aboutOption.id,
-        action: aboutOption.action
+        action: aboutOption.action,
       },
       checkForUpdatesOption,
       { label: "divider" },
@@ -176,7 +186,7 @@ function RootLayout() {
         label: t("SideBar.Settings") + "...",
         id: "settings",
         shortcut: "cmd+,",
-        action: openSettings
+        action: openSettings,
       },
       {
         label: t("Menu.Application.Hide"),
@@ -184,7 +194,9 @@ function RootLayout() {
       },
       { label: "divider" },
       {
-        label: t("Menu.Application.Quit", { defaultValue: t("Menu.File.Exit")}),
+        label: t("Menu.Application.Quit", {
+          defaultValue: t("Menu.File.Exit"),
+        }),
         item: "Quit",
       },
     ],
