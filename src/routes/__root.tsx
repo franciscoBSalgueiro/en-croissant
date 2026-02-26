@@ -202,6 +202,38 @@ function RootLayout() {
     ],
   };
 
+  const macOSEditMenu: MenuGroup = {
+    label: t("Menu.Edit"),
+    options: [
+      {
+        label: t("Menu.Edit.Undo"),
+        item: "Undo",
+      },
+      {
+        label: t("Menu.Edit.Redo"),
+        item: "Redo",
+      },
+      { label: "divider" },
+      {
+        label: t("Menu.Edit.Copy"),
+        item: "Copy",
+      },
+      {
+        label: t("Menu.Edit.Cut"),
+        item: "Cut",
+      },
+      {
+        label: t("Menu.Edit.Paste"),
+        item: "Paste",
+      },
+      { label: "divider" },
+      {
+        label: t("Menu.Edit.SelectAll"),
+        item: "SelectAll",
+      },
+    ],
+  };
+
   const menuActions: MenuGroup[] = useMemo(
     () => [
       ...(isMacOS ? [appMenu] : []),
@@ -231,37 +263,7 @@ function RootLayout() {
             : []),
         ],
       },
-      {
-        label: t("Menu.Edit"),
-        options: [
-          {
-            label: t("Menu.Edit.Undo"),
-            item: "Undo",
-          },
-          {
-            label: t("Menu.Edit.Redo"),
-            item: "Redo",
-          },
-          { label: "divider" },
-          {
-            label: t("Menu.Edit.Copy"),
-            item: "Copy",
-          },
-          {
-            label: t("Menu.Edit.Cut"),
-            item: "Cut",
-          },
-          {
-            label: t("Menu.Edit.Paste"),
-            item: "Paste",
-          },
-          { label: "divider" },
-          {
-            label: t("Menu.Edit.SelectAll"),
-            item: "SelectAll",
-          },
-        ],
-      },
+      ...(!isMacOS ? [] : [macOSEditMenu]),
       {
         label: t("Menu.View"),
         options: [
