@@ -45,6 +45,7 @@ import {
   puzzleThemeAtom,
   selectedPuzzleDbAtom,
   tabsAtom,
+  trackPuzzleTimeAtom,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatThemeLabel, formatTime } from "@/utils/format";
@@ -130,7 +131,7 @@ function Puzzles({ id }: { id: string }) {
   const accuracy =
     totalCompleted > 0
       ? Math.round((wonPuzzles.length / totalCompleted) * 100)
-      : 0;
+      : null;
 
   let currentStreak = 0;
   for (let i = puzzles.length - 1; i >= 0; i--) {
@@ -166,7 +167,9 @@ function Puzzles({ id }: { id: string }) {
       solutionAbortRef.current?.abort();
       setCurrentPuzzle(nextIndex);
       setPuzzle(puzzles[nextIndex]);
-      setTimerStart(Date.now() - (puzzles[nextIndex].timeSpent || 0));
+      if (trackTime) {
+        setTimerStart(Date.now() - (puzzles[nextIndex].timeSpent || 0));
+      }
       return;
     }
 
@@ -194,7 +197,9 @@ function Puzzles({ id }: { id: string }) {
         });
         setCurrentPuzzle(puzzles.length);
         setPuzzle(newPuzzle);
-        setTimerStart(Date.now());
+        if (trackTime) {
+          setTimerStart(Date.now());
+        }
       });
   }
 
@@ -225,44 +230,47 @@ function Puzzles({ id }: { id: string }) {
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
+  const [trackTime, setTrackTime] = useAtom(trackPuzzleTimeAtom);
 
   const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
   const [, setTick] = useState(0);
-
-  const elapsedTime = timerStart !== null ? Date.now() - timerStart : 0;
+  const isPuzzleIncomplete =
+    puzzles[currentPuzzle]?.completion === "incomplete";
+  const elapsedTime =
+    timerStart && isPuzzleIncomplete && trackTime
+      ? Date.now() - timerStart
+      : puzzles[currentPuzzle]?.timeSpent || 0;
 
   useEffect(() => {
-    const currentPuzzleData = puzzles[currentPuzzle];
-    if (!currentPuzzleData || currentPuzzleData.completion !== "incomplete") {
-      return;
-    }
-
-    if (timerStart === null) {
+    if (trackTime && isPuzzleIncomplete && timerStart === null) {
       setTimerStart(Date.now());
     }
+  }, [trackTime, isPuzzleIncomplete, timerStart, setTimerStart]);
+
+  useEffect(() => {
+    if (!trackTime || !isPuzzleIncomplete || timerStart === null) return;
 
     const displayInterval = setInterval(() => {
       setTick((t) => t + 1);
     }, 100);
 
-    const saveInterval = setInterval(() => {
-      if (timerStart !== null) {
-        const elapsed = Date.now() - timerStart;
-        setPuzzles((puzzles) => {
-          if (puzzles[currentPuzzle]?.completion === "incomplete") {
-            puzzles[currentPuzzle].timeSpent = elapsed;
-            return [...puzzles];
+    return () => clearInterval(displayInterval);
+  }, [trackTime, isPuzzleIncomplete, timerStart]);
+
+  useEffect(() => {
+    return () => {
+      if (trackTime && timerStart !== null && isPuzzleIncomplete) {
+        const finalElapsed = Date.now() - timerStart;
+        setPuzzles((prev) => {
+          const newPuzzles = [...prev];
+          if (newPuzzles[currentPuzzle]) {
+            newPuzzles[currentPuzzle].timeSpent = finalElapsed;
           }
-          return puzzles;
+          return newPuzzles;
         });
       }
-    }, 1000);
-
-    return () => {
-      clearInterval(displayInterval);
-      clearInterval(saveInterval);
     };
-  }, [currentPuzzle, puzzles, timerStart, setTimerStart, setPuzzles]);
+  }, [trackTime, timerStart, currentPuzzle, isPuzzleIncomplete, setPuzzles]);
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -431,6 +439,19 @@ function Puzzles({ id }: { id: string }) {
                         )
                       }
                     />
+                    <Switch
+                      label={t("Puzzle.TrackPuzzleTime")}
+                      description={t("Puzzle.TrackPuzzleTime.Desc")}
+                      checked={trackTime}
+                      onChange={(event) => {
+                        if (!event.currentTarget.checked) {
+                          setTimerStart(null);
+                          setTrackTime(false);
+                        } else {
+                          setTrackTime(true);
+                        }
+                      }}
+                    />
                   </SimpleGrid>
                 </Stack>
               </Accordion.Panel>
@@ -442,33 +463,41 @@ function Puzzles({ id }: { id: string }) {
                 {t("Puzzle.Rating")}
               </Text>
               <Text fw={700} size="lg">
-                {puzzles[currentPuzzle]?.completion === "incomplete"
-                  ? hideRating
-                    ? "?"
-                    : puzzles[currentPuzzle]?.rating
+                {isPuzzleIncomplete &&
+                hideRating &&
+                puzzles[currentPuzzle]?.rating
+                  ? "?"
                   : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
             </Paper>
 
-            <Paper withBorder p="xs">
-              <Text size="xs" c="dimmed">
-                {t("Puzzle.Time")}
-              </Text>
-              <Text fw={700} size="lg" ff="monospace">
-                {puzzles[currentPuzzle]?.completion === "incomplete"
-                  ? formatTime(elapsedTime)
-                  : puzzles[currentPuzzle]?.timeSpent
-                    ? formatTime(puzzles[currentPuzzle].timeSpent!)
-                    : "-"}
-              </Text>
-            </Paper>
+            {trackTime && (
+              <Paper withBorder p="xs">
+                <Text size="xs" c="dimmed">
+                  {t("Puzzle.Time")}
+                </Text>
+                <Text fw={700} size="lg" ff="monospace">
+                  {formatTime(elapsedTime)}
+                </Text>
+              </Paper>
+            )}
 
             <Paper withBorder p="xs">
               <Text size="xs" c="dimmed">
                 {t("Puzzle.Accuracy")}
               </Text>
-              <Text fw={700} size="lg" c={accuracy >= 50 ? "teal" : "orange"}>
-                {accuracy}%
+              <Text
+                fw={700}
+                size="lg"
+                c={
+                  accuracy === null
+                    ? "dimmed"
+                    : accuracy >= 50
+                      ? "teal"
+                      : "orange"
+                }
+              >
+                {accuracy !== null ? `${accuracy}%` : "-"}
               </Text>
             </Paper>
 
@@ -484,7 +513,7 @@ function Puzzles({ id }: { id: string }) {
               </Group>
             </Paper>
 
-            {avgTimeSeconds > 0 && (
+            {trackTime && avgTimeSeconds > 0 && (
               <Paper withBorder p="xs">
                 <Text size="xs" c="dimmed">
                   {t("Puzzle.AvgTime")}
@@ -496,7 +525,7 @@ function Puzzles({ id }: { id: string }) {
             )}
           </Group>
           <Divider my="sm" />
-          {puzzles[currentPuzzle]?.completion !== "incomplete" &&
+          {!isPuzzleIncomplete &&
             (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
               <Group gap="xs" mb="sm">
                 {puzzles[currentPuzzle]?.themes?.map((theme) => (
@@ -599,10 +628,11 @@ function Puzzles({ id }: { id: string }) {
               <ChallengeHistory
                 challenges={puzzles.map((p) => ({
                   ...p,
-                  label: p.rating.toString(),
+                  label: p.rating?.toString() ?? "-",
                 }))}
                 current={currentPuzzle}
                 select={(i) => {
+                  if (i === currentPuzzle) return;
                   solutionAbortRef.current?.abort();
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);

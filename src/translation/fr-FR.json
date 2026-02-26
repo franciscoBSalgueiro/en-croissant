@@ -454,6 +454,8 @@
     "Puzzle.SelectDatabase": "",
     "Puzzle.Streak": "",
     "Puzzle.Time": "",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
     "RichText.Bold": "Gras",
     "RichText.BulletList": "Liste non ordonnée",

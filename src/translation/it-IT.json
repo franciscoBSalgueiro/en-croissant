@@ -440,6 +440,8 @@
     "Puzzle.SelectDatabase": "",
     "Puzzle.Streak": "",
     "Puzzle.Time": "",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
     "RichText.Bold": "Grassetto",
     "RichText.BulletList": "Elenco puntato",

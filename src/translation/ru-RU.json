@@ -456,6 +456,8 @@
     "Puzzle.SelectDatabase": "",
     "Puzzle.Streak": "",
     "Puzzle.Time": "",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
     "RichText.Bold": "Жирный",
     "RichText.BulletList": "Маркированный список",

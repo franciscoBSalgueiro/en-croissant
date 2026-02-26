@@ -436,6 +436,8 @@
     "Puzzle.SelectDatabase": "",
     "Puzzle.Streak": "",
     "Puzzle.Time": "",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
     "RichText.Bold": "粗體",
     "RichText.BulletList": "項目符號清單",

@@ -438,6 +438,8 @@
     "Puzzle.SelectDatabase": "",
     "Puzzle.Streak": "",
     "Puzzle.Time": "",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
     "RichText.Bold": "Kalın",
     "RichText.BulletList": "Sırasız liste",

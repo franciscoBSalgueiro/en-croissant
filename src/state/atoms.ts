@@ -324,6 +324,10 @@ export const jumpToNextPuzzleAtom = atomWithStorage<boolean>(
   "puzzle-jump-immediately",
   true,
 );
+export const trackPuzzleTimeAtom = atomWithStorage<boolean>(
+  "track-puzzle-time",
+  true,
+);
 export const puzzleRatingRangeAtom = atomWithStorage<[number, number]>(
   "puzzle-ratings",
   [1000, 1500],

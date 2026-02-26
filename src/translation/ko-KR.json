@@ -450,6 +450,8 @@
     "Puzzle.SelectDatabase": "데이터베이스 선택",
     "Puzzle.Streak": "연속 정답",
     "Puzzle.Time": "시간",
+    "Puzzle.TrackPuzzleTime": "",
+    "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "정답 보기",
     "RichText.Bold": "굵게",
     "RichText.BulletList": "글머리 기호 목록",
