@@ -146,8 +146,11 @@ export function AccountCard({
 
   const downloadedGames =
     database?.type === "success" ? database.game_count : 0;
+  const effectiveTotal = Math.max(total, downloadedGames);
   const percentage =
-    total === 0 ? "0.00" : ((downloadedGames / total) * 100).toFixed(2);
+    effectiveTotal === 0
+      ? "0.00"
+      : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
 
   async function getLastGameDate({ database }: { database: DatabaseInfo }) {
     const games = await query_games(database.file, {
@@ -254,11 +257,11 @@ export function AccountCard({
               {t("Common.Games")}
             </Text>
             <Text size="xs" fw={500}>
-              {downloadedGames} / {total}
+              {downloadedGames} / {effectiveTotal}
             </Text>
           </Group>
           <Progress
-            value={loading ? 100 : (downloadedGames / total) * 100}
+            value={loading ? 100 : (downloadedGames / effectiveTotal) * 100}
             size="sm"
             striped={loading}
             animated={loading}
