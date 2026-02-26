@@ -141,9 +141,7 @@ function Puzzles({ id }: { id: string }) {
 
   const avgTimeSeconds =
     wonPuzzles.length > 0
-      ? wonPuzzles
-          .filter((p) => p.timeSpent)
-          .reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
+      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
         wonPuzzles.length /
         1000
       : 0;
@@ -169,7 +167,6 @@ function Puzzles({ id }: { id: string }) {
       solutionAbortRef.current?.abort();
       setCurrentPuzzle(nextIndex);
       setPuzzle(puzzles[nextIndex]);
-      // Only start the timer if tracking is on
       if (trackTime) {
         setTimerStart(Date.now() - (puzzles[nextIndex].timeSpent || 0));
       }
@@ -196,14 +193,13 @@ function Puzzles({ id }: { id: string }) {
           completion: "incomplete",
         };
         setPuzzles((puzzles) => {
-          setCurrentPuzzle(puzzles.length);
-          setPuzzle(newPuzzle);
-          // Only start the timer if tracking is on
-          if (trackTime) {
-            setTimerStart(Date.now());
-          }
           return [...puzzles, newPuzzle];
         });
+        setCurrentPuzzle(puzzles.length);
+        setPuzzle(newPuzzle);
+        if (trackTime) {
+          setTimerStart(Date.now());
+        }
       });
   }
 
@@ -238,8 +234,6 @@ function Puzzles({ id }: { id: string }) {
 
   const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
   const [, setTick] = useState(0);
-
-  // for the UI.
   const isPuzzleIncomplete =
     puzzles[currentPuzzle]?.completion === "incomplete";
   const elapsedTime =
@@ -247,28 +241,24 @@ function Puzzles({ id }: { id: string }) {
       ? Date.now() - timerStart
       : puzzles[currentPuzzle]?.timeSpent || 0;
 
-  // set timer start
   useEffect(() => {
     if (trackTime && isPuzzleIncomplete && timerStart === null) {
       setTimerStart(Date.now());
     }
   }, [trackTime, isPuzzleIncomplete, timerStart, setTimerStart]);
 
-  // UI Ticks
   useEffect(() => {
     if (!trackTime || !isPuzzleIncomplete || timerStart === null) return;
 
     const displayInterval = setInterval(() => {
-      setTick((t) => t + 1); // Forces a re-render so the UI updates
+      setTick((t) => t + 1);
     }, 100);
 
     return () => clearInterval(displayInterval);
   }, [trackTime, isPuzzleIncomplete, timerStart]);
 
-  // saving on unmount or puzzle change
   useEffect(() => {
     return () => {
-      // when the user leaves or switches puzzles
       if (trackTime && timerStart !== null && isPuzzleIncomplete) {
         const finalElapsed = Date.now() - timerStart;
         setPuzzles((prev) => {
