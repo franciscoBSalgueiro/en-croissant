@@ -48,11 +48,11 @@ function AddDatabase({
   setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
   const { t } = useTranslation();
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
 
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
-    const [databaseDir] = useAtom(storedDatabasesDirAtom);
     setLoading(true);
     const dbPath = await resolve(databaseDir, `${title}.db3`);
     unwrap(
