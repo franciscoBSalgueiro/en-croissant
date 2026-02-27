@@ -153,7 +153,7 @@ function Puzzles({ id }: { id: string }) {
 
   const solutionAbortRef = useRef<AbortController | null>(null);
 
-  function generatePuzzle(db: string) {
+  function generatePuzzle(db: string, force: boolean = false) {
     let nextIndex = puzzles.findIndex(
       (p, i) => i > currentPuzzle && p.completion === "incomplete",
     );
@@ -163,7 +163,7 @@ function Puzzles({ id }: { id: string }) {
       );
     }
 
-    if (nextIndex !== -1) {
+    if (nextIndex !== -1 && !force) {
       solutionAbortRef.current?.abort();
       setCurrentPuzzle(nextIndex);
       setPuzzle(puzzles[nextIndex]);
@@ -547,7 +547,7 @@ function Puzzles({ id }: { id: string }) {
               <Tooltip label={t("Puzzle.NewPuzzle")}>
                 <ActionIcon
                   disabled={!selectedDb}
-                  onClick={() => generatePuzzle(selectedDb!)}
+                  onClick={() => generatePuzzle(selectedDb!, true)}
                 >
                   <IconPlus />
                 </ActionIcon>
