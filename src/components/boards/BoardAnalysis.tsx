@@ -275,7 +275,6 @@ function BoardAnalysis() {
               topBar
               controls={
                 <BoardControls
-                  boardRef={boardRef}
                   editingMode={editingMode}
                   toggleEditingMode={toggleEditingMode}
                   dirty={dirty}

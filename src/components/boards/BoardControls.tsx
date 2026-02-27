@@ -28,7 +28,6 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 
 interface BoardControlsProps {
-  boardRef: React.MutableRefObject<HTMLDivElement | null>;
   editingMode: boolean;
   toggleEditingMode: () => void;
   dirty: boolean;
@@ -40,7 +39,6 @@ interface BoardControlsProps {
 }
 
 function BoardControls({
-  boardRef,
   editingMode,
   toggleEditingMode,
   dirty,
@@ -86,13 +84,12 @@ function BoardControls({
   }
 
   const takeSnapshot = async () => {
-    const ref = boardRef?.current;
-    if (ref == null) return;
+    const snapshotTarget = document.querySelector(
+      ".cg-wrap",
+    ) as HTMLElement | null;
+    if (!snapshotTarget) return;
 
-    const refChildNode = ref.children[0].children[0].children[0] as HTMLElement;
-    if (refChildNode == null) return;
-
-    domtoimage.toBlob(refChildNode).then(async (blob) => {
+    domtoimage.toBlob(snapshotTarget).then(async (blob) => {
       if (blob == null) return;
 
       const filePath = await save({
