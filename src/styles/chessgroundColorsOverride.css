@@ -36,19 +36,10 @@ cg-board square.current-premove {
   background-color: rgba(20, 30, 85, 0.5);
 }
 
-/** Alternating colors in rank/file labels */
-.cg-wrap.orientation-white coords.ranks coord:nth-child(2n),
-.cg-wrap.orientation-white coords.files coord:nth-child(2n),
-.cg-wrap.orientation-black coords.ranks coord:nth-child(2n + 1),
-.cg-wrap.orientation-black coords.files coord:nth-child(2n + 1) {
+/** Edge coordinate colors - uniform color for readability */
+.cg-wrap coords.ranks coord,
+.cg-wrap coords.files coord {
   color: rgba(72, 72, 72, 0.8);
-}
-
-.cg-wrap.orientation-black coords.ranks coord:nth-child(2n),
-.cg-wrap.orientation-black coords.files coord:nth-child(2n),
-.cg-wrap.orientation-white coords.ranks coord:nth-child(2n + 1),
-.cg-wrap.orientation-white coords.files coord:nth-child(2n + 1) {
-  color: rgba(255, 255, 255, 0.8);
 }
 
 .cg-wrap.orientation-white coords.rank1 coord:nth-child(2n + 1),

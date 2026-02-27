@@ -181,7 +181,7 @@ piece.fading {
 }
 
 .cg-wrap coords.ranks {
-  left: 1%;
+  right: 1%;
   top: -4%;
   flex-flow: column-reverse;
   height: 100%;
@@ -199,11 +199,11 @@ piece.fading {
 
 .cg-wrap coords.files {
   bottom: 1%;
-  left: 4.5%;
+  left: 0.5%;
   flex-flow: row;
   width: 100%;
   height: 1rem;
-  text-align: center;
+  text-align: left;
 }
 
 .cg-wrap coords.files.black {
