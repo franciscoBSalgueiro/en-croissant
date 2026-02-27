@@ -65,6 +65,8 @@
     "Board.Analysis.Time": "Süre (ms)",
     "Board.Annotate.WriteHere": "Buraya yazın...",
     "Board.Database.AverageRating": "Ortalama puan",
+    "Board.Database.ExplorerAuthRequired1": "",
+    "Board.Database.ExplorerAuthRequired2": "",
     "Board.Database.Games": "Oyunlar",
     "Board.Database.LichessAll": "Lichess Herkes",
     "Board.Database.LichessMaster": "Lichess Ustalar",

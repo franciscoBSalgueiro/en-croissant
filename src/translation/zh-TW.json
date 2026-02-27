@@ -65,6 +65,8 @@
     "Board.Analysis.Time": "時間 (ms)",
     "Board.Annotate.WriteHere": "在此輸入...",
     "Board.Database.AverageRating": "平均等級分",
+    "Board.Database.ExplorerAuthRequired1": "",
+    "Board.Database.ExplorerAuthRequired2": "",
     "Board.Database.Games": "對局",
     "Board.Database.LichessAll": "Lichess 全部對局",
     "Board.Database.LichessMaster": "Lichess 大師對局",

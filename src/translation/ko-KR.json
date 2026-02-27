@@ -65,6 +65,8 @@
     "Board.Analysis.Time": "시간 (ms)",
     "Board.Annotate.WriteHere": "여기에 작성하세요...",
     "Board.Database.AverageRating": "평균 레이팅",
+    "Board.Database.ExplorerAuthRequired1": "",
+    "Board.Database.ExplorerAuthRequired2": "",
     "Board.Database.Games": "게임",
     "Board.Database.LichessAll": "리체스 전체",
     "Board.Database.LichessMaster": "리체스 마스터",

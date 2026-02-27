@@ -65,6 +65,8 @@
     "Board.Analysis.Time": "Час (мс)",
     "Board.Annotate.WriteHere": "Пішыце тут...",
     "Board.Database.AverageRating": "Сярэдні рэйтынг",
+    "Board.Database.ExplorerAuthRequired1": "",
+    "Board.Database.ExplorerAuthRequired2": "",
     "Board.Database.Games": "Гульні",
     "Board.Database.LichessAll": "Lichess Усе",
     "Board.Database.LichessMaster": "Lichess Майстры",

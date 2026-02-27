@@ -65,6 +65,8 @@
     "Board.Analysis.Time": "Time (ms)",
     "Board.Annotate.WriteHere": "Write here...",
     "Board.Database.AverageRating": "Average rating",
+    "Board.Database.ExplorerAuthRequired1": "Lichess Explorer now requires authentication. Add a Lichess account with OAuth in the",
+    "Board.Database.ExplorerAuthRequired2": "page to continue.",
     "Board.Database.Games": "Games",
     "Board.Database.LichessAll": "Lichess All",
     "Board.Database.LichessMaster": "Lichess Masters",
