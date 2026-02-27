@@ -345,6 +345,7 @@
     "GoMode.Nodes": "노드",
     "GoMode.Time": "시간",
     "Home.Accounts.Add": "계정 추가",
+    "Home.Accounts.Authenticated": "",
     "Home.Accounts.DownloadGames": "게임 다운로드",
     "Home.Accounts.Empty.Description": "Lichess 또는 Chess.com 계정을 연결하여 게임을 분석하고 진행 상황을 추적하세요.",
     "Home.Accounts.Empty.Title": "연결된 계정 없음",

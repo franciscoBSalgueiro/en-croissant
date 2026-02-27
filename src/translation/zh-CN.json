@@ -347,6 +347,7 @@
     "GoMode.Nodes": "节点数",
     "GoMode.Time": "时间",
     "Home.Accounts.Add": "添加账户",
+    "Home.Accounts.Authenticated": "",
     "Home.Accounts.DownloadGames": "下载对局",
     "Home.Accounts.Empty.Description": "关联 Lichess 或 Chess.com 账户，以分析对局并跟踪进度！",
     "Home.Accounts.Empty.Title": "未连接任何账户",

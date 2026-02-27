@@ -347,6 +347,7 @@
     "GoMode.Nodes": "Nodes",
     "GoMode.Time": "Time",
     "Home.Accounts.Add": "Add Account",
+    "Home.Accounts.Authenticated": "Authenticated",
     "Home.Accounts.DownloadGames": "Download games",
     "Home.Accounts.Empty.Description": "Connect your Lichess or Chess.com account to analyze your games and track your progress.",
     "Home.Accounts.Empty.Title": "No accounts connected",
