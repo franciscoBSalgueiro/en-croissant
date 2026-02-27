@@ -10,12 +10,13 @@ import {
   Text,
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { resolve } from "@tauri-apps/api/path";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { commands, type PuzzleDatabaseInfo } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
+import { getPuzzlesDir } from "@/utils/directories";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { getPuzzleDatabases } from "@/utils/puzzles";
 import ProgressButton from "../common/ProgressButton";
@@ -87,7 +88,8 @@ function PuzzleDbCard({
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(await appDataDir(), "puzzles", `${name}.db3`);
+    const puzzlesDir = await getPuzzlesDir();
+    const path = await resolve(puzzlesDir, `${name}.db3`);
     await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
     setPuzzleDbs(await getPuzzleDatabases());
   }
@@ -130,13 +132,14 @@ function PuzzleDbCard({
               inProgress: t("Common.Downloading"),
               finalizing: t("Common.Extracting"),
             }}
-            onClick={() =>
+            onClick={() => {
+              if (!puzzleDb.downloadLink) return;
               downloadDatabase(
                 databaseId,
-                puzzleDb.downloadLink!,
+                puzzleDb.downloadLink,
                 puzzleDb.title,
-              )
-            }
+              );
+            }}
             inProgress={inProgress}
             setInProgress={setInProgress}
           />

@@ -15,12 +15,13 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
-import { appDataDir, join, resolve } from "@tauri-apps/api/path";
+import { join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { enginesAtom } from "@/state/atoms";
+import { getEnginesDir } from "@/utils/directories";
 import {
   type LocalEngine,
   type RemoteEngine,
@@ -211,24 +212,20 @@ function EngineCard({
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
+      const enginesDir = await getEnginesDir();
       let path = await resolve(
-        await appDataDir(),
-        "engines",
+        enginesDir,
         `${url.slice(url.lastIndexOf("/") + 1)}`,
       );
       if (url.endsWith(".zip") || url.endsWith(".tar")) {
-        path = await resolve(await appDataDir(), "engines");
+        path = enginesDir;
       }
       await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
-      let appDataDirPath = await appDataDir();
-      if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
-        appDataDirPath = appDataDirPath.slice(0, -1);
+      let enginesDirPath = enginesDir;
+      if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
+        enginesDirPath = enginesDirPath.slice(0, -1);
       }
-      const enginePath = await join(
-        appDataDirPath,
-        "engines",
-        ...engine.path.split("/"),
-      );
+      const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
@@ -284,7 +281,10 @@ function EngineCard({
               inProgress: t("Common.Downloading"),
               finalizing: t("Common.Extracting"),
             }}
-            onClick={() => downloadEngine(engineId, engine.downloadLink!)}
+            onClick={() => {
+              if (!engine.downloadLink) return;
+              downloadEngine(engineId, engine.downloadLink);
+            }}
             inProgress={inProgress}
             setInProgress={setInProgress}
           />

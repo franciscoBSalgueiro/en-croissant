@@ -43,7 +43,6 @@ use std::{
     io::{BufWriter, Write},
     str::FromStr,
 };
-use tauri::{path::BaseDirectory, Manager};
 use tauri::{Emitter, State};
 
 use log::info;
@@ -622,14 +621,11 @@ fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
 #[specta::specta]
 pub async fn get_db_info(
     file: PathBuf,
-    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<DatabaseInfo, Error> {
-    let db_path = PathBuf::from("db").join(file);
+    info!("get_db_info {:?}", file);
 
-    info!("get_db_info {:?}", db_path);
-
-    let path = app.path().resolve(db_path, BaseDirectory::AppData)?;
+    let path = file;
 
     let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
 

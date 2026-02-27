@@ -753,7 +753,6 @@ function BoardGame() {
               topBar
               controls={
                 <BoardControls
-                  boardRef={boardRef}
                   editingMode={gameState === "settingUp" && editingMode}
                   toggleEditingMode={toggleEditingMode}
                   dirty={false}

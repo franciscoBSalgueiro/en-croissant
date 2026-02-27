@@ -13,6 +13,7 @@ import {
   IconArrowDownRight,
   IconArrowRight,
   IconArrowUpRight,
+  IconCircleCheckFilled,
   IconDownload,
   type IconProps,
   IconRefresh,
@@ -186,6 +187,13 @@ export function AccountCard({
             <Text fw={600} size="sm">
               {title}
             </Text>
+            {type === "lichess" && token && (
+              <Tooltip label={t("Home.Accounts.Authenticated")}>
+                <Text c="green" lh={0} style={{ cursor: "default" }}>
+                  <IconCircleCheckFilled size="1.1rem" />
+                </Text>
+              </Tooltip>
+            )}
           </Group>
           <Group gap={4}>
             <Tooltip label={t("Home.Accounts.UpdateStats")}>

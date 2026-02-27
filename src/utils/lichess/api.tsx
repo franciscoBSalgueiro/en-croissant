@@ -17,7 +17,6 @@ import {
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { getDbDir } from "@/utils/db";
 import { apiHeaders } from "@/utils/http";
 import {
   getLichessGamesQueryParams,
@@ -26,10 +25,11 @@ import {
   type MasterGamesOptions,
 } from "@/utils/lichess/explorer";
 import { countMainPly } from "@/utils/treeReducer";
+import { getDatabasesDir } from "../directories";
 
 const baseURL = "https://lichess.org/api";
-const explorerURL = "https://explorer.lichess.ovh";
-const tablebaseURL = "https://tablebase.lichess.ovh";
+const explorerURL = "https://explorer.lichess.org";
+const tablebaseURL = "https://tablebase.lichess.org";
 
 export const MIN_DATE = new Date(1952, 0, 1);
 
@@ -342,6 +342,7 @@ async function getCloudEvaluation(
 export async function getLichessGames(
   fen: string,
   options: LichessGamesOptions,
+  token?: string,
 ): Promise<PositionData> {
   const url = match(options.player)
     .with(
@@ -352,7 +353,15 @@ export async function getLichessGames(
     .otherwise(
       () => `${explorerURL}/player?${getLichessGamesQueryParams(fen, options)}`,
     );
-  const res = await fetch(url, { headers: apiHeaders() });
+  const res = await fetch(url, {
+    headers: apiHeaders(
+      token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : undefined,
+    ),
+  });
   const data = await res.json();
 
   if (!res.ok) {
@@ -364,12 +373,21 @@ export async function getLichessGames(
 export async function getMasterGames(
   fen: string,
   options: MasterGamesOptions,
+  token?: string,
 ): Promise<PositionData> {
   const url = `${explorerURL}/masters?${getMasterGamesQueryParams(
     fen,
     options,
   )}`;
-  const res = await fetch(url, { headers: apiHeaders() });
+  const res = await fetch(url, {
+    headers: apiHeaders(
+      token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : undefined,
+    ),
+  });
   const data = await res.json();
   if (!res.ok) {
     throw new Error(`${data}`);
@@ -381,11 +399,20 @@ export async function getPlayerGames(
   fen: string,
   player: string,
   color: Color,
+  token?: string,
 ) {
   return (
     await fetch(
       `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`,
-      { headers: apiHeaders() },
+      {
+        headers: apiHeaders(
+          token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        ),
+      },
     )
   ).json();
 }
@@ -401,7 +428,7 @@ export async function downloadLichess(
   if (timestamp) {
     url += `&since=${timestamp}`;
   }
-  const path = await resolve(await getDbDir(), `${player}_lichess.pgn`);
+  const path = await resolve(await getDatabasesDir(), `${player}_lichess.pgn`);
 
   await commands.downloadFile(
     `lichess_${player}`,

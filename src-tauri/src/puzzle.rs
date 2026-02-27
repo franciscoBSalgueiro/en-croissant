@@ -4,7 +4,6 @@ use diesel::{dsl::sql, sql_types::Bool, Connection, ExpressionMethods, QueryDsl,
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use specta::Type;
-use tauri::{path::BaseDirectory, Manager};
 
 use crate::{
     db::{puzzle_themes, puzzles, themes, Puzzle},
@@ -114,13 +113,8 @@ pub struct PuzzleDatabaseInfo {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_puzzle_db_info(
-    file: PathBuf,
-    app: tauri::AppHandle,
-) -> Result<PuzzleDatabaseInfo, Error> {
-    let db_path = PathBuf::from("puzzles").join(file);
-
-    let path = app.path().resolve(db_path, BaseDirectory::AppData)?;
+pub async fn get_puzzle_db_info(file: PathBuf) -> Result<PuzzleDatabaseInfo, Error> {
+    let path = file;
 
     let mut db =
         diesel::SqliteConnection::establish(&path.to_string_lossy()).expect("open database");
