@@ -15,7 +15,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.9.5", features = ["protocol-asset"] }
+tauri = { version = "2.10.2", features = ["protocol-asset"] }
 zip = "2.1.6"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
@@ -56,13 +56,13 @@ sysinfo = "0.29.10"
 governor = "0.6.3"
 nonzero_ext = "0.3.0"
 specta-typescript = "0.0.9"
-tauri-plugin-shell = "2.3.4"
-tauri-plugin-http = "2.5.6"
+tauri-plugin-shell = "2.3.5"
+tauri-plugin-http = "2.5.7"
 tauri-plugin-fs = "2.4.5"
 tauri-plugin-dialog = "2.6.0"
 tauri-plugin-os = "2.3.2"
 tauri-plugin-cli = "2.4.1"
-tauri-plugin-updater = "2.9.0"
+tauri-plugin-updater = "2.10.0"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-log = "2.8.0"
 tauri-plugin-window-state = "2.4.1"
