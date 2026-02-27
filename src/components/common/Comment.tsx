@@ -5,9 +5,14 @@ import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
+function normalizeTiptapMarkdown(comment: string) {
+  return comment.replace(/\+\+([\s\S]+?)\+\+/g, "<u>$1</u>");
+}
+
 function Comment({ comment }: { comment: string }) {
+  const normalizedComment = normalizeTiptapMarkdown(comment);
   const multipleLine =
-    comment.split("\n").filter((v) => v.trim() !== "").length > 1;
+    normalizedComment.split("\n").filter((v) => v.trim() !== "").length > 1;
 
   return (
     <Typography
@@ -27,7 +32,7 @@ function Comment({ comment }: { comment: string }) {
         }}
         rehypePlugins={[rehypeRaw, remarkGfm]}
       >
-        {comment}
+        {normalizedComment}
       </Markdown>
     </Typography>
   );
