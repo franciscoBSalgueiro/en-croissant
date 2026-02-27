@@ -55,16 +55,16 @@ const colorSchemeManager = localStorageColorSchemeManager({
 });
 
 import { getVersion } from "@tauri-apps/api/app";
-import {
-  appDataDir,
-  documentDir,
-  homeDir,
-  resolve,
-} from "@tauri-apps/api/path";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import ErrorComponent from "@/components/ErrorComponent";
+import {
+  getDatabasesDir,
+  getDocumentDir,
+  getEnginesDir,
+  getPuzzlesDir,
+} from "@/utils/directories";
 import { initUserAgent } from "@/utils/http";
 import { routeTree } from "./routeTree.gen";
 
@@ -81,53 +81,33 @@ const router = createRouter({
   context: {
     loadDirs: async () => {
       const store = getDefaultStore();
-      let doc = store.get(storedDocumentDirAtom);
 
-      if (!doc) {
-        try {
-          const docDir = await documentDir();
-          doc = await resolve(docDir, "EnCroissant");
-        } catch {
-          const hDir = await homeDir();
-          doc = await resolve(hDir, "EnCroissant");
-        }
+      const documentDir = await getDocumentDir();
+      const databasesDir = await getDatabasesDir();
+      const enginesDir = await getEnginesDir();
+      const puzzlesDir = await getPuzzlesDir();
+
+      if (!store.get(storedDocumentDirAtom)) {
+        store.set(storedDocumentDirAtom, documentDir);
       }
 
       if (!store.get(storedDatabasesDirAtom)) {
-        try {
-          const appData = await appDataDir();
-          const dbDir = await resolve(appData, "db");
-          store.set(storedDatabasesDirAtom, dbDir);
-        } catch (e) {
-          console.error(e);
-        }
+        store.set(storedDatabasesDirAtom, databasesDir);
       }
 
       if (!store.get(storedEnginesDirAtom)) {
-        try {
-          const appData = await appDataDir();
-          const enginesDir = await resolve(appData, "engines");
-          store.set(storedEnginesDirAtom, enginesDir);
-        } catch (e) {
-          console.error(e);
-        }
+        store.set(storedEnginesDirAtom, enginesDir);
       }
 
       if (!store.get(storedPuzzlesDirAtom)) {
-        try {
-          const appData = await appDataDir();
-          const puzzlesDir = await resolve(appData, "puzzles");
-          store.set(storedPuzzlesDirAtom, puzzlesDir);
-        } catch (e) {
-          console.error(e);
-        }
+        store.set(storedPuzzlesDirAtom, puzzlesDir);
       }
 
       return {
-        documentDir: doc,
-        databasesDir: store.get(storedDatabasesDirAtom) || "",
-        enginesDir: store.get(storedEnginesDirAtom) || "",
-        puzzlesDir: store.get(storedPuzzlesDirAtom) || "",
+        documentDir,
+        databasesDir,
+        enginesDir,
+        puzzlesDir,
       } as Dirs;
     },
   },

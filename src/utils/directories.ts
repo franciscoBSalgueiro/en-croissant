@@ -1,4 +1,9 @@
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import {
+  appDataDir,
+  documentDir,
+  homeDir,
+  resolve,
+} from "@tauri-apps/api/path";
 import { exists, mkdir } from "@tauri-apps/plugin-fs";
 
 function getStoredDirectory(key: string): string | null {
@@ -27,6 +32,19 @@ export async function getDatabasesDir(): Promise<string> {
   }
 
   return ensureDirectory(await resolve(await appDataDir(), "db"));
+}
+
+export async function getDocumentDir(): Promise<string> {
+  const customDir = getStoredDirectory("document-dir");
+  if (customDir) {
+    return ensureDirectory(customDir);
+  }
+
+  try {
+    return ensureDirectory(await resolve(await documentDir(), "EnCroissant"));
+  } catch {
+    return ensureDirectory(await resolve(await homeDir(), "EnCroissant"));
+  }
 }
 
 export async function getEnginesDir(): Promise<string> {
