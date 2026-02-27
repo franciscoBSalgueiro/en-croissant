@@ -75,7 +75,7 @@ export default function EnginesPage() {
       <AddEngine opened={opened} setOpened={setOpened} />
       <Group align="baseline" py="sm">
         <Title>{t("Engines.Title")}</Title>
-        <OpenFolderButton base="AppDir" folder="engines" />
+        <OpenFolderButton base="Engines" folder="engines" />
       </Group>
       <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
         <ScrollArea h="100%" offsetScrollbars>

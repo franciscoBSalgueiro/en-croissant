@@ -27,6 +27,8 @@ import {
   spellCheckAtom,
   storedDatabasesDirAtom,
   storedDocumentDirAtom,
+  storedEnginesDirAtom,
+  storedPuzzlesDirAtom,
   tabsAtom,
   telemetryEnabledAtom,
 } from "./state/atoms";
@@ -68,6 +70,9 @@ import { routeTree } from "./routeTree.gen";
 
 export type Dirs = {
   documentDir: string;
+  databasesDir: string;
+  enginesDir: string;
+  puzzlesDir: string;
 };
 
 const router = createRouter({
@@ -82,7 +87,7 @@ const router = createRouter({
         try {
           const docDir = await documentDir();
           doc = await resolve(docDir, "EnCroissant");
-        } catch (e) {
+        } catch {
           const hDir = await homeDir();
           doc = await resolve(hDir, "EnCroissant");
         }
@@ -98,7 +103,32 @@ const router = createRouter({
         }
       }
 
-      return { documentDir: doc } as Dirs;
+      if (!store.get(storedEnginesDirAtom)) {
+        try {
+          const appData = await appDataDir();
+          const enginesDir = await resolve(appData, "engines");
+          store.set(storedEnginesDirAtom, enginesDir);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (!store.get(storedPuzzlesDirAtom)) {
+        try {
+          const appData = await appDataDir();
+          const puzzlesDir = await resolve(appData, "puzzles");
+          store.set(storedPuzzlesDirAtom, puzzlesDir);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      return {
+        documentDir: doc,
+        databasesDir: store.get(storedDatabasesDirAtom) || "",
+        enginesDir: store.get(storedEnginesDirAtom) || "",
+        puzzlesDir: store.get(storedPuzzlesDirAtom) || "",
+      } as Dirs;
     },
   },
 });

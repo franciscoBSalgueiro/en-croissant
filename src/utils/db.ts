@@ -1,7 +1,6 @@
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { BaseDirectory, exists, mkdir, readDir } from "@tauri-apps/plugin-fs";
+import { resolve } from "@tauri-apps/api/path";
+import { readDir } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
-import { getDefaultStore } from "jotai";
 import useSWR from "swr";
 import {
   commands,
@@ -14,7 +13,7 @@ import {
   type QueryResponse,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { storedDatabasesDirAtom } from "@/state/atoms";
+import { getDatabasesDir } from "@/utils/directories";
 import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
@@ -34,18 +33,6 @@ export type Speed =
   | "Classical"
   | "Correspondence"
   | "Unknown";
-
-export async function getDbDir(): Promise<string> {
-  const store = getDefaultStore();
-  const customDir = store.get(storedDatabasesDirAtom);
-  if (customDir) {
-    if (!(await exists(customDir))) {
-      await mkdir(customDir, { recursive: true });
-    }
-    return customDir;
-  }
-  return await resolve(await appDataDir(), "db");
-}
 
 function normalizeRange(
   range?: [number, number] | null,
@@ -103,7 +90,7 @@ export async function query_players(
 }
 
 export async function getDatabases(): Promise<DatabaseInfo[]> {
-  const dbDir = await getDbDir();
+  const dbDir = await getDatabasesDir();
   const files = await readDir(dbDir);
   const dbs = files.filter((file) => file.name?.endsWith(".db3"));
   return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
@@ -112,7 +99,7 @@ export async function getDatabases(): Promise<DatabaseInfo[]> {
 }
 
 async function getDatabase(name: string): Promise<DatabaseInfo> {
-  const dbDir = await getDbDir();
+  const dbDir = await getDatabasesDir();
   const path = await resolve(dbDir, name);
   const res = await commands.getDbInfo(path);
   if (res.status === "ok") {

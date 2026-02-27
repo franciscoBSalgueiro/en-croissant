@@ -14,8 +14,8 @@ import {
 import { makeSan } from "chessops/san";
 import { z } from "zod";
 import { events } from "@/bindings";
-import { getDbDir } from "@/utils/db";
 import { apiHeaders } from "@/utils/http";
+import { getDatabasesDir } from "../directories";
 import { decodeTCN } from "./tcn";
 
 const baseURL = "https://api.chess.com";
@@ -119,7 +119,7 @@ export async function downloadChessCom(
     1,
   );
   const archives = await getGameArchives(player);
-  const file = await resolve(await getDbDir(), `${player}_chesscom.pgn`);
+  const file = await resolve(await getDatabasesDir(), `${player}_chesscom.pgn`);
   info(`Found ${archives.archives.length} archives for ${player}`);
   writeTextFile(file, "", {
     append: false,
