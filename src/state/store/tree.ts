@@ -12,6 +12,7 @@ import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
 import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
 import { playSound } from "@/utils/sound";
+import { isAutoNarrateEnabled, speakComment, speakMoveNarration, stopSpeaking } from "@/utils/tts";
 import {
   createNode,
   defaultTree,
@@ -131,6 +132,20 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         const san = makeSan(pos, node.children[0].move);
         playSound(san.includes("x"), san.includes("+"));
         if (node && node.children.length > 0) {
+          const nextNode = node.children[0];
+          if (isAutoNarrateEnabled()) {
+            // At root position, speak the game intro comment first
+            if (state.position.length === 0 && node.comment) {
+              speakComment(node.comment);
+            } else if (nextNode.comment) {
+              speakMoveNarration(
+                nextNode.san,
+                nextNode.comment,
+                nextNode.annotations,
+                nextNode.halfMoves,
+              );
+            }
+          }
           return {
             ...state,
             position: [...state.position, 0],
@@ -139,10 +154,13 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         return state;
       }),
     goToPrevious: () =>
-      set((state) => ({
-        ...state,
-        position: state.position.slice(0, -1),
-      })),
+      set((state) => {
+        stopSpeaking();
+        return {
+          ...state,
+          position: state.position.slice(0, -1),
+        };
+      }),
 
     goToAnnotation: (annotation, color) =>
       set(

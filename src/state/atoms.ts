@@ -262,6 +262,30 @@ export const soundVolumeAtom = atomWithStorage<number>(
   },
 );
 
+// TTS (Text-to-Speech) Settings
+export const ttsEnabledAtom = atomWithStorage<boolean>("tts-enabled", false);
+export const ttsAutoNarrateAtom = atomWithStorage<boolean>(
+  "tts-auto-narrate",
+  false,
+);
+export const ttsApiKeyAtom = atomWithStorage<string>("tts-api-key", "");
+export const ttsVoiceIdAtom = atomWithStorage<string>(
+  "tts-voice-id",
+  "pNInz6obpgDQGcFmaJgB",
+);
+export const ttsVolumeAtom = atomWithStorage<number>(
+  "tts-volume",
+  0.8,
+  undefined,
+  { getOnInit: true },
+);
+export const ttsSpeedAtom = atomWithStorage<number>(
+  "tts-speed",
+  1.0,
+  undefined,
+  { getOnInit: true },
+);
+
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const boardImageAtom = atomWithStorage<string>(
   "board-image",

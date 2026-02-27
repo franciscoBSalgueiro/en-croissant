@@ -71,6 +71,15 @@ import * as classes from "./SettingsPage.css";
 import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
+import {
+  TTSApiKeyInput,
+  TTSAutoNarrateSwitch,
+  TTSClearCacheButton,
+  TTSEnabledSwitch,
+  TTSSpeedSlider,
+  TTSVoiceSelect,
+  TTSVolumeSlider,
+} from "./TTSSettings";
 import VolumeSlider from "./VolumeSlider";
 
 type SettingCategory =
@@ -510,6 +519,68 @@ export default function Page() {
         description: t("Settings.Sound.Collection.Desc"),
         keywords: ["sound", "collection", "audio", "effects"],
         render: () => <SoundSelect />,
+      },
+      // TTS settings
+      {
+        id: "tts-enabled",
+        category: "sound",
+        title: "Text-to-Speech",
+        description:
+          "Enable ElevenLabs TTS narration for PGN annotations and comments",
+        keywords: ["tts", "speech", "narrate", "elevenlabs", "voice", "read"],
+        render: () => <TTSEnabledSwitch />,
+      },
+      {
+        id: "tts-auto-narrate",
+        category: "sound",
+        title: "Auto-Narrate on Move",
+        description:
+          "Automatically read annotations aloud when stepping through moves",
+        keywords: ["tts", "auto", "narrate", "step", "move"],
+        render: () => <TTSAutoNarrateSwitch />,
+      },
+      {
+        id: "tts-api-key",
+        category: "sound",
+        title: "ElevenLabs API Key",
+        description: "Your ElevenLabs API key for text-to-speech generation",
+        keywords: ["tts", "api", "key", "elevenlabs"],
+        render: () => <TTSApiKeyInput />,
+      },
+      {
+        id: "tts-voice",
+        category: "sound",
+        title: "TTS Voice",
+        description:
+          "Select the ElevenLabs voice for narration and test playback",
+        keywords: ["tts", "voice", "select", "elevenlabs"],
+        render: () => <TTSVoiceSelect />,
+      },
+      {
+        id: "tts-volume",
+        category: "sound",
+        title: "TTS Volume",
+        description: "Volume level for text-to-speech narration",
+        keywords: ["tts", "volume", "loud"],
+        render: () => <TTSVolumeSlider />,
+      },
+      {
+        id: "tts-speed",
+        category: "sound",
+        title: "TTS Speed",
+        description:
+          "Playback speed for narration. Adjusts in real-time without re-generating audio.",
+        keywords: ["tts", "speed", "rate", "fast", "slow", "playback"],
+        render: () => <TTSSpeedSlider />,
+      },
+      {
+        id: "tts-clear-cache",
+        category: "sound",
+        title: "TTS Audio Cache",
+        description:
+          "Clear cached narration audio. Use this after editing annotations to force re-generation.",
+        keywords: ["tts", "cache", "clear", "reset", "audio"],
+        render: () => <TTSClearCacheButton />,
       },
       // Directories settings
       {
