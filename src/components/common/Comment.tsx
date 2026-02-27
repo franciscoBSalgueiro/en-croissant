@@ -24,7 +24,12 @@ function Comment({ comment }: { comment: string }) {
   }, [comment]);
 
   return (
-    <Group gap={2} align="flex-start" display={multipleLine ? "flex" : "inline-flex"} wrap="nowrap">
+    <Group
+      gap={2}
+      align="flex-start"
+      display={multipleLine ? "flex" : "inline-flex"}
+      wrap="nowrap"
+    >
       <Typography
         pl={0}
         mx={4}

@@ -167,7 +167,7 @@ export function cleanCommentForTTS(comment: string): string {
   text = text.replace(/\[%(?:eval|csl|cal|clk)\s+[^\]]*\]/g, "");
 
   // Strip annotation symbols that might appear in text
-  text = text.replace(/^(?:\?\?|\?\!|\!\?|\!\!|\?|\!)\s*/g, "");
+  text = text.replace(/^(?:\?\?|\?!|!\?|!!|\?|!)\s*/g, "");
 
   // Strip leading quality words that duplicate annotation spoken form
   // e.g. when ?? annotation says "Blunder", strip "BLUNDER." from comment start
@@ -317,7 +317,12 @@ export async function speakText(text: string): Promise<void> {
     let blobUrl = audioCache.get(cacheKey);
 
     if (!blobUrl) {
-      const audioData = await generateSpeech(text, apiKey, voiceId, abort.signal);
+      const audioData = await generateSpeech(
+        text,
+        apiKey,
+        voiceId,
+        abort.signal,
+      );
       if (thisGeneration !== requestGeneration) return;
 
       const blob = new Blob([audioData], { type: "audio/mpeg" });
@@ -438,9 +443,7 @@ export interface ElevenLabsVoice {
   category: string;
 }
 
-export async function listVoices(
-  apiKey: string,
-): Promise<ElevenLabsVoice[]> {
+export async function listVoices(apiKey: string): Promise<ElevenLabsVoice[]> {
   const response = await fetch("https://api.elevenlabs.io/v1/voices", {
     headers: { "xi-api-key": apiKey },
   });

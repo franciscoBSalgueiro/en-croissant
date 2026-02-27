@@ -12,7 +12,6 @@ import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
 import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
 import { playSound } from "@/utils/sound";
-import { isAutoNarrateEnabled, speakComment, speakMoveNarration, stopSpeaking } from "@/utils/tts";
 import {
   createNode,
   defaultTree,
@@ -22,6 +21,12 @@ import {
   type TreeState,
   treeIteratorMainLine,
 } from "@/utils/treeReducer";
+import {
+  isAutoNarrateEnabled,
+  speakComment,
+  speakMoveNarration,
+  stopSpeaking,
+} from "@/utils/tts";
 
 export interface TreeStoreState extends TreeState {
   currentNode: () => TreeNode;
