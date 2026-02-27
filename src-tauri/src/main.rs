@@ -20,7 +20,6 @@ mod sound;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::{fs::create_dir_all, path::Path};
 
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
@@ -33,7 +32,6 @@ use log::LevelFilter;
 use oauth::AuthState;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use sysinfo::SystemExt;
-use tauri::path::BaseDirectory;
 use tauri::{Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
@@ -94,18 +92,6 @@ pub struct AppState {
     game_manager: GameManager,
     progress_state: ProgressStore,
 }
-
-const REQUIRED_DIRS: &[(BaseDirectory, &str)] = &[
-    (BaseDirectory::AppData, "engines"),
-    (BaseDirectory::AppData, "db"),
-    (BaseDirectory::AppData, "presets"),
-    (BaseDirectory::AppData, "puzzles"),
-    (BaseDirectory::AppData, "documents"),
-    (BaseDirectory::Document, "EnCroissant"),
-];
-
-const REQUIRED_FILES: &[(BaseDirectory, &str, &str)] =
-    &[(BaseDirectory::AppData, "engines/engines.json", "[]")];
 
 #[tauri::command]
 #[specta::specta]
@@ -226,26 +212,6 @@ fn main() {
         .plugin(tauri_plugin_os::init())
         .setup(move |app| {
             log::info!("Setting up application");
-
-            log::info!("Checking for required directories");
-            for (dir, path) in REQUIRED_DIRS.iter() {
-                let path = app.path().resolve(path, *dir);
-                if let Ok(path) = path {
-                    if !Path::new(&path).exists() {
-                        log::info!("Creating directory {}", path.to_string_lossy());
-                        create_dir_all(&path).unwrap();
-                    }
-                };
-            }
-
-            log::info!("Checking for required files");
-            for (dir, path, contents) in REQUIRED_FILES.iter() {
-                let path = app.path().resolve(path, *dir).unwrap();
-                if !Path::new(&path).exists() {
-                    log::info!("Creating file {}", path.to_string_lossy());
-                    std::fs::write(&path, contents).unwrap();
-                }
-            }
 
             // #[cfg(any(windows, target_os = "macos"))]
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();

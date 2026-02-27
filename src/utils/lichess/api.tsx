@@ -17,7 +17,6 @@ import {
 } from "@/bindings";
 import { parsePGN, uciNormalize } from "@/utils/chess";
 import { positionFromFen } from "@/utils/chessops";
-import { getDbDir } from "@/utils/db";
 import { apiHeaders } from "@/utils/http";
 import {
   getLichessGamesQueryParams,
@@ -26,6 +25,7 @@ import {
   type MasterGamesOptions,
 } from "@/utils/lichess/explorer";
 import { countMainPly } from "@/utils/treeReducer";
+import { getDatabasesDir } from "../directories";
 
 const baseURL = "https://lichess.org/api";
 const explorerURL = "https://explorer.lichess.ovh";
@@ -401,7 +401,7 @@ export async function downloadLichess(
   if (timestamp) {
     url += `&since=${timestamp}`;
   }
-  const path = await resolve(await getDbDir(), `${player}_lichess.pgn`);
+  const path = await resolve(await getDatabasesDir(), `${player}_lichess.pgn`);
 
   await commands.downloadFile(
     `lichess_${player}`,

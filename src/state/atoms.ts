@@ -1,4 +1,11 @@
 import type { MantineColor } from "@mantine/core";
+import { resolve } from "@tauri-apps/api/path";
+import {
+  exists,
+  mkdir,
+  readTextFile,
+  writeTextFile,
+} from "@tauri-apps/plugin-fs";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
@@ -12,6 +19,7 @@ import {
 import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
 import type {
   AsyncStorage,
+  AsyncStringStorage,
   SyncStorage,
 } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
@@ -38,8 +46,9 @@ import {
 } from "@/utils/lichess/explorer";
 import { getWinChance, normalizeScore } from "@/utils/score";
 import { genID, type Tab, tabSchema } from "@/utils/tabs";
+import { getEnginesDir } from "../utils/directories";
 import type { Session } from "../utils/session";
-import { createAsyncZodStorage, createZodStorage, fileStorage } from "./utils";
+import { createAsyncZodStorage, createZodStorage } from "./utils";
 
 const zodArray = <Input, Output>(
   itemSchema: z.ZodType<Output, z.ZodTypeDef, Input>,
@@ -53,16 +62,6 @@ const zodArray = <Input, Output>(
 
   return res as z.ZodType<Output[], z.ZodTypeDef, Input[]>;
 };
-
-export const enginesAtom = unwrap(
-  atomWithStorage<Engine[]>(
-    "engines/engines.json",
-    [],
-    createAsyncZodStorage(zodArray(engineSchema), fileStorage) as AsyncStorage<
-      Engine[]
-    >,
-  ),
-);
 
 // Tabs
 
@@ -119,6 +118,71 @@ export const storedDatabasesDirAtom = atomWithStorage<string>(
   "",
   undefined,
   { getOnInit: true },
+);
+export const storedEnginesDirAtom = atomWithStorage<string>(
+  "engines-dir",
+  "",
+  undefined,
+  { getOnInit: true },
+);
+export const storedPuzzlesDirAtom = atomWithStorage<string>(
+  "puzzles-dir",
+  "",
+  undefined,
+  { getOnInit: true },
+);
+
+async function ensureParentDir(path: string): Promise<void> {
+  const separator = path.includes("\\") ? "\\" : "/";
+  const lastSeparator = path.lastIndexOf(separator);
+  if (lastSeparator === -1) return;
+
+  const parentDir = path.slice(0, lastSeparator);
+  if (!parentDir) return;
+
+  if (!(await exists(parentDir))) {
+    await mkdir(parentDir, { recursive: true });
+  }
+}
+
+async function getEnginesStoragePath(key: string): Promise<string> {
+  const enginesDir = await getEnginesDir();
+  const filename = key.replace(/^engines[\\/]/, "");
+  return resolve(enginesDir, filename);
+}
+
+const enginesFileStorage: AsyncStringStorage = {
+  async getItem(key) {
+    try {
+      return await readTextFile(await getEnginesStoragePath(key));
+    } catch {
+      return null;
+    }
+  },
+  async setItem(key, newValue) {
+    const path = await getEnginesStoragePath(key);
+    await ensureParentDir(path);
+    await writeTextFile(path, newValue);
+  },
+  async removeItem(key) {
+    const path = await getEnginesStoragePath(key);
+    try {
+      await writeTextFile(path, "[]");
+    } catch {
+      // no-op
+    }
+  },
+};
+
+export const enginesAtom = unwrap(
+  atomWithStorage<Engine[]>(
+    "engines/engines.json",
+    [],
+    createAsyncZodStorage(
+      zodArray(engineSchema),
+      enginesFileStorage,
+    ) as AsyncStorage<Engine[]>,
+  ),
 );
 
 // Settings

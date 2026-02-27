@@ -55,6 +55,8 @@ import {
   spellCheckAtom,
   storedDatabasesDirAtom,
   storedDocumentDirAtom,
+  storedEnginesDirAtom,
+  storedPuzzlesDirAtom,
   telemetryEnabledAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
@@ -158,7 +160,12 @@ export default function Page() {
   const [keyMap, setKeyMap] = useAtom(keyMapAtom);
   const [isNative, setIsNative] = useAtom(nativeBarAtom);
   const {
-    dirs: { documentDir },
+    dirs: {
+      documentDir,
+      databasesDir: defaultDatabasesDir,
+      enginesDir: defaultEnginesDir,
+      puzzlesDir: defaultPuzzlesDir,
+    },
     version,
   } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
@@ -166,7 +173,11 @@ export default function Page() {
   let [databasesDirectory, setDatabasesDirectory] = useAtom(
     storedDatabasesDirAtom,
   );
-  databasesDirectory = databasesDirectory || documentDir;
+  databasesDirectory = databasesDirectory || defaultDatabasesDir;
+  let [enginesDirectory, setEnginesDirectory] = useAtom(storedEnginesDirAtom);
+  enginesDirectory = enginesDirectory || defaultEnginesDir;
+  let [puzzlesDirectory, setPuzzlesDirectory] = useAtom(storedPuzzlesDirAtom);
+  puzzlesDirectory = puzzlesDirectory || defaultPuzzlesDir;
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
@@ -541,6 +552,46 @@ export default function Page() {
           />
         ),
       },
+      {
+        id: "engines-directory",
+        category: "directories",
+        title: t("Settings.Directories.Engines"),
+        description: t("Settings.Directories.Engines.Desc"),
+        keywords: ["engines", "directory", "folder", "path"],
+        render: () => (
+          <FileInput
+            onClick={async () => {
+              const selected = await open({
+                multiple: false,
+                directory: true,
+              });
+              if (!selected || typeof selected !== "string") return;
+              setEnginesDirectory(selected);
+            }}
+            filename={enginesDirectory || null}
+          />
+        ),
+      },
+      {
+        id: "puzzles-directory",
+        category: "directories",
+        title: t("Settings.Directories.Puzzles"),
+        description: t("Settings.Directories.Puzzles.Desc"),
+        keywords: ["puzzles", "directory", "folder", "path"],
+        render: () => (
+          <FileInput
+            onClick={async () => {
+              const selected = await open({
+                multiple: false,
+                directory: true,
+              });
+              if (!selected || typeof selected !== "string") return;
+              setPuzzlesDirectory(selected);
+            }}
+            filename={puzzlesDirectory || null}
+          />
+        ),
+      },
       // Privacy settings
       {
         id: "telemetry",
@@ -561,11 +612,15 @@ export default function Page() {
       materialDisplay,
       filesDirectory,
       databasesDirectory,
+      enginesDirectory,
+      puzzlesDirectory,
       setMoveNotationType,
       setMoveMethod,
       setIsNative,
       setFilesDirectory,
       setDatabasesDirectory,
+      setEnginesDirectory,
+      setPuzzlesDirectory,
       setShowCoordinates,
       setMaterialDisplay,
     ],
@@ -576,53 +631,56 @@ export default function Page() {
   const categoryInfo: Record<
     SettingCategory,
     { title: string; description: string; icon: React.ReactNode }
-  > = {
-    board: {
-      title: t("Settings.Board"),
-      description: t("Settings.Board.Desc"),
-      icon: <IconChess size="1rem" />,
-    },
-    inputs: {
-      title: t("Settings.Inputs"),
-      description: t("Settings.Inputs.Desc"),
-      icon: <IconMouse size="1rem" />,
-    },
-    anarchy: {
-      title: t("Settings.Anarchy"),
-      description: t("Settings.Anarchy.Desc"),
-      icon: <IconFlag size="1rem" />,
-    },
-    appearance: {
-      title: t("Settings.Appearance"),
-      description: t("Settings.Appearance.Desc"),
-      icon: <IconBrush size="1rem" />,
-    },
-    sound: {
-      title: t("Settings.Sound"),
-      description: t("Settings.Sound.Desc"),
-      icon: <IconVolume size="1rem" />,
-    },
-    keybinds: {
-      title: t("Settings.Keybinds"),
-      description: t("Settings.Keybinds.Desc"),
-      icon: <IconKeyboard size="1rem" />,
-    },
-    directories: {
-      title: t("Settings.Directories"),
-      description: t("Settings.Directories.Desc"),
-      icon: <IconFolder size="1rem" />,
-    },
-    repertoire: {
-      title: t("Settings.Repertoire"),
-      description: t("Settings.Repertoire.Desc"),
-      icon: <IconBook size="1rem" />,
-    },
-    privacy: {
-      title: t("Settings.Privacy"),
-      description: t("Settings.Privacy.Desc"),
-      icon: <IconShield size="1rem" />,
-    },
-  };
+  > = useMemo(
+    () => ({
+      board: {
+        title: t("Settings.Board"),
+        description: t("Settings.Board.Desc"),
+        icon: <IconChess size="1rem" />,
+      },
+      inputs: {
+        title: t("Settings.Inputs"),
+        description: t("Settings.Inputs.Desc"),
+        icon: <IconMouse size="1rem" />,
+      },
+      anarchy: {
+        title: t("Settings.Anarchy"),
+        description: t("Settings.Anarchy.Desc"),
+        icon: <IconFlag size="1rem" />,
+      },
+      appearance: {
+        title: t("Settings.Appearance"),
+        description: t("Settings.Appearance.Desc"),
+        icon: <IconBrush size="1rem" />,
+      },
+      sound: {
+        title: t("Settings.Sound"),
+        description: t("Settings.Sound.Desc"),
+        icon: <IconVolume size="1rem" />,
+      },
+      keybinds: {
+        title: t("Settings.Keybinds"),
+        description: t("Settings.Keybinds.Desc"),
+        icon: <IconKeyboard size="1rem" />,
+      },
+      directories: {
+        title: t("Settings.Directories"),
+        description: t("Settings.Directories.Desc"),
+        icon: <IconFolder size="1rem" />,
+      },
+      repertoire: {
+        title: t("Settings.Repertoire"),
+        description: t("Settings.Repertoire.Desc"),
+        icon: <IconBook size="1rem" />,
+      },
+      privacy: {
+        title: t("Settings.Privacy"),
+        description: t("Settings.Privacy.Desc"),
+        icon: <IconShield size="1rem" />,
+      },
+    }),
+    [t],
+  );
 
   const filteredSettings = useMemo(() => {
     if (!searchQuery.trim()) return null;
