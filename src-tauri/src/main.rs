@@ -222,7 +222,7 @@ fn main() {
             {
                 let sound_dir = app
                     .path()
-                    .resolve("sound", BaseDirectory::Resource)
+                    .resolve("sound", tauri::path::BaseDirectory::Resource)
                     .expect("failed to resolve sound resource directory");
                 let port = sound::start_sound_server(sound_dir);
                 app.manage(sound::SoundServerPort(port));
