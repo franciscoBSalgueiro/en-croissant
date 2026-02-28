@@ -33,6 +33,7 @@ import {
   autoPromoteAtom,
   bestMovesFamily,
   currentEvalOpenAtom,
+  currentShowCommentsAtom,
   currentTabAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
@@ -361,6 +362,8 @@ function Board({
 
   const [enableBoardScroll] = useAtom(enableBoardScrollAtom);
   const [snapArrows] = useAtom(snapArrowsAtom);
+  const showComments = useAtomValue(currentShowCommentsAtom);
+  const visualAnnotation = showComments ? currentNode.annotations[0] : "";
 
   const setBoardFen = useCallback(
     (fen: string) => {
@@ -447,7 +450,8 @@ function Board({
             }}
             gap="sm"
           >
-            {currentNode.annotations.length > 0 &&
+            {showComments &&
+              currentNode.annotations.length > 0 &&
               currentNode.move &&
               square !== undefined && (
                 <Box pl="2.5rem" w="100%" h="100%" pos="absolute">
@@ -489,7 +493,7 @@ function Board({
             </Box>
             <Box
               style={
-                isBasicAnnotation(currentNode.annotations[0])
+                isBasicAnnotation(visualAnnotation)
                   ? {
                       "--light-color": lightColor,
                       "--dark-color": darkColor,

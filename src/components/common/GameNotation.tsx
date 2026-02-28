@@ -166,7 +166,9 @@ function NotationHeader() {
   const { t } = useTranslation();
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   const [showComments, setShowComments] = useAtom(currentShowCommentsAtom);
-  const [showVariations, setShowVariations] = useAtom(currentShowVariationsAtom);
+  const [showVariations, setShowVariations] = useAtom(
+    currentShowVariationsAtom,
+  );
   const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
     <Stack gap="xs" pt="xs">
@@ -230,7 +232,7 @@ function NotationHeader() {
       <Divider />
     </Stack>
   );
-};
+}
 
 const RenderVariationTree = memo(
   function RenderVariationTree({
@@ -604,7 +606,9 @@ function RowSegment({
             showComments={showComments}
             tableLayout
             scoreText={
-              white.score ? formatScore(white.score.value, 1) : undefined
+              showComments && white.score
+                ? formatScore(white.score.value, 1)
+                : undefined
             }
           />
         ) : (
@@ -626,7 +630,9 @@ function RowSegment({
             showComments={showComments}
             tableLayout
             scoreText={
-              black.score ? formatScore(black.score.value, 1) : undefined
+              showComments && black.score
+                ? formatScore(black.score.value, 1)
+                : undefined
             }
           />
         ) : splitRow ? (
