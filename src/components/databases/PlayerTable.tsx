@@ -33,7 +33,7 @@ function PlayerTable() {
   const selectedPlayer = useStore(store, (s) => s.players.selectedPlayer);
   const setSelectedPlayer = useStore(store, (s) => s.setPlayersSelectedPlayer);
 
-  const { data, isLoading } = useSWR(["players", query], () =>
+  const { data, error, isLoading } = useSWR(["players", file, query], () =>
     query_players(file, query),
   );
   const players = data?.data ?? [];
@@ -136,7 +136,11 @@ function PlayerTable() {
           rowClassName={(r) =>
             r.id === selectedPlayer ? classes.selected : ""
           }
-          noRecordsText={t("Databases.Player.NoPlayersFound")}
+          noRecordsText={
+            error
+              ? `${t("Common.Error")}: ${error instanceof Error ? error.message : String(error)}`
+              : t("Databases.Player.NoPlayersFound")
+          }
           totalRecords={count!}
           recordsPerPage={query.options.pageSize ?? 25}
           page={query.options?.page ?? 1}

@@ -54,8 +54,9 @@ function GameTable() {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
-  const { data, isLoading, mutate } = useSWR(["games", query], () =>
-    query_games(file, query),
+  const { data, error, isLoading, mutate } = useSWR(
+    ["games", file, query],
+    () => query_games(file, query),
   );
 
   const games = data?.data ?? [];
@@ -282,7 +283,11 @@ function GameTable() {
             { accessor: "site" },
           ]}
           rowClassName={(_, i) => (i === selectedGame ? classes.selected : "")}
-          noRecordsText="No games found"
+          noRecordsText={
+            error
+              ? `${t("Common.Error")}: ${error instanceof Error ? error.message : String(error)}`
+              : "No games found"
+          }
           totalRecords={count!}
           recordsPerPage={query.options?.pageSize ?? 25}
           page={query.options?.page ?? 1}

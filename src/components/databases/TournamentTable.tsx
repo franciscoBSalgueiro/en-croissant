@@ -23,7 +23,7 @@ function TournamentTable() {
   const setQuery = useStore(store, (s) => s.setTournamentsQuery);
   const setSelected = useStore(store, (s) => s.setTournamentsSelectedTournamet);
 
-  const { data, isLoading } = useSWR(["tournaments", query], () =>
+  const { data, error, isLoading } = useSWR(["tournaments", file, query], () =>
     commands.getTournaments(file, query).then(unwrap),
   );
   const tournaments = data?.data ?? [];
@@ -78,7 +78,11 @@ function TournamentTable() {
             { accessor: "name", sortable: true },
           ]}
           rowClassName={(t) => (t.id === selected ? classes.selected : "")}
-          noRecordsText={t("Databases.Tournament.NoneFound")}
+          noRecordsText={
+            error
+              ? `${t("Common.Error")}: ${error instanceof Error ? error.message : String(error)}`
+              : t("Databases.Tournament.NoneFound")
+          }
           totalRecords={count!}
           recordsPerPage={query.options.pageSize ?? 25}
           page={query.options.page ?? 1}
