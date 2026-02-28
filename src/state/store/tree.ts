@@ -555,7 +555,7 @@ function makeMove({
 
   if (
     (changeHeaders && isThreeFoldRepetition(state, newFen)) ||
-    is50MoveRule(state)
+    is50MoveRule(newFen)
   ) {
     state.headers.result = "1/2-1/2";
   }
@@ -607,25 +607,9 @@ function isThreeFoldRepetition(state: TreeState, fen: string) {
   return fens.filter((f) => f === fen.split(" - ")[0]).length >= 2;
 }
 
-function is50MoveRule(state: TreeState) {
-  let node = state.root;
-  let count = 0;
-  for (const i of state.position) {
-    count += 1;
-    const [pos] = positionFromFen(node.fen);
-    if (!pos) return false;
-    if (
-      node.move &&
-      isNormal(node.move) &&
-      (node.move.promotion ||
-        node.san?.includes("x") ||
-        pos.board.get(node.move.from)?.role === "pawn")
-    ) {
-      count = 0;
-    }
-    node = node.children[i];
-  }
-  return count >= 100;
+function is50MoveRule(fen: string) {
+  const halfmoveClock = Number.parseInt(fen.trim().split(/\s+/)[4], 10);
+  return halfmoveClock >= 100;
 }
 
 function deleteMove(state: TreeState, path: number[]) {
