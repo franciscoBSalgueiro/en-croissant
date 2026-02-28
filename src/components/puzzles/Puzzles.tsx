@@ -94,9 +94,12 @@ function Puzzles({ id }: { id: string }) {
   const [selectedTheme, setSelectedTheme] = useAtom(puzzleThemeAtom);
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [themesTableMissing, setThemesTableMissing] = useState(false);
+  const effectiveSelectedTheme =
+    selectedTheme && availableThemes.includes(selectedTheme)
+      ? selectedTheme
+      : null;
 
   useEffect(() => {
-    setSelectedTheme(null);
     setThemesTableMissing(false);
 
     if (!selectedDb) {
@@ -119,7 +122,7 @@ function Puzzles({ id }: { id: string }) {
         setThemesTableMissing(true);
       }
     });
-  }, [selectedDb, setSelectedTheme]);
+  }, [selectedDb]);
 
   const [jumpToNextPuzzleImmediately, setJumpToNextPuzzleImmediately] =
     useAtom(jumpToNextPuzzleAtom);
@@ -184,7 +187,7 @@ function Puzzles({ id }: { id: string }) {
       }
     }
     commands
-      .getPuzzle(db, range[0], range[1], selectedTheme ?? null)
+      .getPuzzle(db, range[0], range[1], effectiveSelectedTheme)
       .then((res) => {
         const puzzle = unwrap(res);
         const newPuzzle: Puzzle = {
@@ -407,7 +410,7 @@ function Puzzles({ id }: { id: string }) {
                       label: formatThemeLabel(theme),
                       value: theme,
                     }))}
-                    value={selectedTheme}
+                    value={effectiveSelectedTheme}
                     onChange={setSelectedTheme}
                     clearable
                     searchable
