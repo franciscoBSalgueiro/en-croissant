@@ -2,7 +2,7 @@ import { Select } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect } from "react";
 import { enginesAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
+import { isLocalEngine, type LocalEngine } from "@/utils/engines";
 
 export function EnginesSelect({
   engine,
@@ -12,9 +12,7 @@ export function EnginesSelect({
   setEngine: (engine: LocalEngine | null) => void;
 }) {
   const allEngines = useAtomValue(enginesAtom);
-  const engines = (allEngines ?? []).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
+  const engines = (allEngines ?? []).filter(isLocalEngine);
 
   useEffect(() => {
     if (engines.length > 0 && engine === null) {

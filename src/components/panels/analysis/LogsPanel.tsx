@@ -4,14 +4,14 @@ import { useState } from "react";
 import useSWR from "swr";
 import { commands } from "@/bindings";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
+import { isLocalEngine, type LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../../common/EngineLogsView";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
   const localEngines = (engines ?? [])
-    .filter((e): e is LocalEngine => e.type === "local")
+    .filter(isLocalEngine)
     .filter((e) => e.loaded);
   const [engine, setEngine] = useState<LocalEngine | undefined>(
     localEngines[0],
