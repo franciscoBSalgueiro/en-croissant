@@ -442,6 +442,12 @@ export const currentEvalBarDisplayAtom = tabValue(evalBarDisplayFamily);
 const invisibleFamily = atomFamily((tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
+const showCommentsFamily = atomFamily((tab: string) => atom(true));
+export const currentShowCommentsAtom = tabValue(showCommentsFamily);
+
+const showVariationsFamily = atomFamily((tab: string) => atom(true));
+export const currentShowVariationsAtom = tabValue(showVariationsFamily);
+
 export const tabFamily = atomFamily((tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 

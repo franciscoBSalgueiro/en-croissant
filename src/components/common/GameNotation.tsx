@@ -11,7 +11,7 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { useColorScheme, useToggle } from "@mantine/hooks";
+import { useColorScheme } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
@@ -33,7 +33,12 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import Comment from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { currentInvisibleAtom, tableViewAtom } from "@/state/atoms";
+import {
+  currentInvisibleAtom,
+  currentShowCommentsAtom,
+  currentShowVariationsAtom,
+  tableViewAtom,
+} from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { formatScore } from "@/utils/score";
 import { getNodeAtPath, type TreeNode } from "@/utils/treeReducer";
@@ -77,8 +82,8 @@ function GameNotation({
 
   const [invisibleValue, setInvisible] = useAtom(currentInvisibleAtom);
   const invisible = topBar && invisibleValue;
-  const [showVariations, toggleVariations] = useToggle([true, false]);
-  const [showComments, toggleComments] = useToggle([true, false]);
+  const showVariations = useAtomValue(currentShowVariationsAtom);
+  const showComments = useAtomValue(currentShowCommentsAtom);
   const [tableView, setTableView] = useAtom(tableViewAtom);
   const colorScheme = useColorScheme();
 
@@ -101,14 +106,7 @@ function GameNotation({
           </>
         )}
         <Stack h="100%" gap={0} style={{ flex: 1, minWidth: 0 }}>
-          {topBar && (
-            <NotationHeader
-              showComments={showComments}
-              toggleComments={toggleComments}
-              showVariations={showVariations}
-              toggleVariations={toggleVariations}
-            />
-          )}
+          {topBar && <NotationHeader />}
           <ScrollArea
             flex={1}
             offsetScrollbars
@@ -129,11 +127,7 @@ function GameNotation({
                   <Comment comment={rootComment} />
                 )}
                 {tableView ? (
-                  <TableNotation
-                    targetRef={targetRef}
-                    showVariations={showVariations}
-                    showComments={showComments}
-                  />
+                  <TableNotation targetRef={targetRef} />
                 ) : (
                   <Box pt="md" px="sm">
                     <RenderVariationTree
@@ -141,8 +135,6 @@ function GameNotation({
                       nodePath={[]}
                       depth={0}
                       first
-                      showVariations={showVariations}
-                      showComments={showComments}
                     />
                   </Box>
                 )}
@@ -170,19 +162,11 @@ function GameNotation({
   );
 }
 
-const NotationHeader = memo(function NotationHeader({
-  showComments,
-  toggleComments,
-  showVariations,
-  toggleVariations,
-}: {
-  showComments: boolean;
-  toggleComments: () => void;
-  showVariations: boolean;
-  toggleVariations: () => void;
-}) {
+function NotationHeader() {
   const { t } = useTranslation();
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
+  const [showComments, setShowComments] = useAtom(currentShowCommentsAtom);
+  const [showVariations, setShowVariations] = useAtom(currentShowVariationsAtom);
   const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
     <Stack gap="xs" pt="xs">
@@ -218,7 +202,7 @@ const NotationHeader = memo(function NotationHeader({
                 : t("Notation.ShowComments")
             }
           >
-            <ActionIcon onClick={() => toggleComments()}>
+            <ActionIcon onClick={() => setShowComments((v) => !v)}>
               {showComments ? (
                 <IconArticle size="1rem" />
               ) : (
@@ -233,7 +217,7 @@ const NotationHeader = memo(function NotationHeader({
                 : t("Notation.ShowVariations")
             }
           >
-            <ActionIcon onClick={() => toggleVariations()}>
+            <ActionIcon onClick={() => setShowVariations((v) => !v)}>
               {showVariations ? (
                 <IconArrowsSplit size="1rem" />
               ) : (
@@ -246,25 +230,23 @@ const NotationHeader = memo(function NotationHeader({
       <Divider />
     </Stack>
   );
-});
+};
 
 const RenderVariationTree = memo(
   function RenderVariationTree({
     nodePath,
     depth,
     first,
-    showVariations,
-    showComments,
     targetRef,
   }: {
     nodePath: number[];
     depth: number;
     first?: boolean;
-    showVariations: boolean;
-    showComments: boolean;
     targetRef: React.RefObject<HTMLSpanElement | null>;
   }) {
     const store = useContext(TreeStateContext)!;
+    const showVariations = useAtomValue(currentShowVariationsAtom);
+    const showComments = useAtomValue(currentShowCommentsAtom);
     const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
     const variations = node.children;
 
@@ -289,8 +271,6 @@ const RenderVariationTree = memo(
                 targetRef={targetRef}
                 nodePath={newPath}
                 depth={depth + 2}
-                showVariations={showVariations}
-                showComments={showComments}
               />
             </React.Fragment>
           );
@@ -321,8 +301,6 @@ const RenderVariationTree = memo(
             targetRef={targetRef}
             nodePath={mainLinePath}
             depth={depth + 1}
-            showVariations={showVariations}
-            showComments={showComments}
           />
         )}
       </>
@@ -332,9 +310,7 @@ const RenderVariationTree = memo(
     return (
       equal(prev.nodePath, next.nodePath) &&
       prev.depth === next.depth &&
-      prev.first === next.first &&
-      prev.showVariations === next.showVariations &&
-      prev.showComments === next.showComments
+      prev.first === next.first
     );
   },
 );
@@ -361,14 +337,12 @@ type Segment = RowItem | VariationItem | CommentItem;
 
 const TableNotation = memo(function TableNotation({
   targetRef,
-  showVariations,
-  showComments,
 }: {
   targetRef: React.RefObject<HTMLSpanElement | null>;
-  showVariations: boolean;
-  showComments: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
+  const showVariations = useAtomValue(currentShowVariationsAtom);
+  const showComments = useAtomValue(currentShowCommentsAtom);
   const root = useStore(store, (s) => s.root);
 
   const segments: Segment[] = [];
@@ -570,8 +544,6 @@ const TableNotation = memo(function TableNotation({
                             targetRef={targetRef}
                             nodePath={variationPath}
                             depth={1}
-                            showVariations={showVariations}
-                            showComments={showComments}
                           />
                         </Box>
                       );
@@ -586,7 +558,6 @@ const TableNotation = memo(function TableNotation({
             <RowSegment
               key={`row-${idx}`}
               targetRef={targetRef}
-              showComments={showComments}
               moveNumber={seg.moveNumber}
               whitePathStr={seg.whitePath.join(",")}
               blackPathStr={seg.blackPath.join(",")}
@@ -604,16 +575,15 @@ function RowSegment({
   blackPathStr,
   splitRow,
   targetRef,
-  showComments,
 }: {
   moveNumber: number;
   whitePathStr: string;
   blackPathStr: string;
   splitRow?: boolean;
   targetRef: React.RefObject<HTMLSpanElement | null>;
-  showComments: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
+  const showComments = useAtomValue(currentShowCommentsAtom);
   const whitePath = whitePathStr ? whitePathStr.split(",").map(Number) : [];
   const white = useStore(store, (s) => s.getNode(whitePath));
   const blackPath = blackPathStr ? blackPathStr.split(",").map(Number) : [];
