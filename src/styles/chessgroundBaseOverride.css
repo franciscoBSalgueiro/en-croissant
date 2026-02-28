@@ -126,7 +126,7 @@ piece.fading {
   position: absolute;
   display: flex;
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 1;
   font-family: sans-serif;
   font-size: 1rem;
   font-weight: bold;

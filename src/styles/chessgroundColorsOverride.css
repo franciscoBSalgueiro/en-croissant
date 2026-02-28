@@ -41,14 +41,14 @@ cg-board square.current-premove {
 .cg-wrap.orientation-white coords.files coord:nth-child(2n),
 .cg-wrap.orientation-black coords.ranks coord:nth-child(2n + 1),
 .cg-wrap.orientation-black coords.files coord:nth-child(2n + 1) {
-  color: rgba(72, 72, 72, 0.8);
+  color: var(--board-coord-color-black, rgba(72, 72, 72, 0.8));
 }
 
 .cg-wrap.orientation-black coords.ranks coord:nth-child(2n),
 .cg-wrap.orientation-black coords.files coord:nth-child(2n),
 .cg-wrap.orientation-white coords.ranks coord:nth-child(2n + 1),
 .cg-wrap.orientation-white coords.files coord:nth-child(2n + 1) {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--board-coord-color-white, rgba(255, 255, 255, 0.8));
 }
 
 .cg-wrap.orientation-white coords.rank1 coord:nth-child(2n + 1),
@@ -67,7 +67,7 @@ cg-board square.current-premove {
 .cg-wrap.orientation-black coords.rank6 coord:nth-child(2n + 1),
 .cg-wrap.orientation-black coords.rank7 coord:nth-child(2n),
 .cg-wrap.orientation-black coords.rank8 coord:nth-child(2n + 1) {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--board-coord-color-white, rgba(72, 72, 72, 0.8));
 }
 
 .cg-wrap.orientation-white coords.rank1 coord:nth-child(2n),
@@ -86,5 +86,5 @@ cg-board square.current-premove {
 .cg-wrap.orientation-black coords.rank6 coord:nth-child(2n),
 .cg-wrap.orientation-black coords.rank7 coord:nth-child(2n + 1),
 .cg-wrap.orientation-black coords.rank8 coord:nth-child(2n) {
-  color: rgba(72, 72, 72, 0.8);
+  color: var(--board-coord-color-black, rgba(72, 72, 72, 0.8));
 }

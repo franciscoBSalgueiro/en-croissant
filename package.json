@@ -22,7 +22,7 @@
   "dependencies": {
     "@badrap/result": "^0.2.13",
     "@hello-pangea/dnd": "^18.0.1",
-    "@lichess-org/chessground": "^9.9.0",
+    "@lichess-org/chessground": "^10.0.2",
     "@mantine/charts": "^8.3.14",
     "@mantine/core": "^8.3.14",
     "@mantine/dates": "^8.3.14",
