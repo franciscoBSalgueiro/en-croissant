@@ -17,7 +17,7 @@ use tauri::Emitter;
 
 use crate::{
     db::{
-        encoding::decode_move,
+        encoding::{decode_move, iter_mainline_move_bytes},
         get_db_or_create, get_material_count, get_pawn_home,
         models::*,
         normalize_games,
@@ -169,16 +169,26 @@ fn get_move_after_match(
     };
 
     if query.matches(&chess) {
-        if move_blob.is_empty() {
+        let mut mainline = iter_mainline_move_bytes(move_blob).peekable();
+        if mainline.peek().is_none() {
             return Ok(Some("*".to_string()));
         }
-        let next_move = decode_move(move_blob[0], &chess).unwrap();
+        let Some(next_byte) = mainline.peek().copied() else {
+            return Ok(Some("*".to_string()));
+        };
+        let Some(next_move) = decode_move(next_byte, &chess) else {
+            return Ok(None);
+        };
         let san = SanPlus::from_move(chess, &next_move);
         return Ok(Some(san.to_string()));
     }
 
-    for (i, byte) in move_blob.iter().enumerate() {
-        let m = decode_move(*byte, &chess).unwrap();
+    let mut mainline = iter_mainline_move_bytes(move_blob).peekable();
+
+    while let Some(byte) = mainline.next() {
+        let Some(m) = decode_move(byte, &chess) else {
+            return Ok(None);
+        };
         chess.play_unchecked(&m);
 
         let is_irreversible =
@@ -191,10 +201,15 @@ fn get_move_after_match(
             }
         }
         if query.matches(&chess) {
-            if i == move_blob.len() - 1 {
+            if mainline.peek().is_none() {
                 return Ok(Some("*".to_string()));
             }
-            let next_move = decode_move(move_blob[i + 1], &chess).unwrap();
+            let Some(next_byte) = mainline.peek().copied() else {
+                return Ok(Some("*".to_string()));
+            };
+            let Some(next_move) = decode_move(next_byte, &chess) else {
+                return Ok(None);
+            };
             let san = SanPlus::from_move(chess, &next_move);
             return Ok(Some(san.to_string()));
         }
@@ -372,12 +387,16 @@ pub async fn search_position(
                             GameResult::WhiteWin => opening.white += 1,
                             GameResult::BlackWin => opening.black += 1,
                             GameResult::Draw => opening.draw += 1,
-                            _ => (),
+                            GameResult::Other | GameResult::None => opening.draw += 1,
                         })
                         .or_insert_with(|| PositionStats {
                             black: i32::from(entry.result == GameResult::BlackWin),
                             white: i32::from(entry.result == GameResult::WhiteWin),
-                            draw: i32::from(entry.result == GameResult::Draw),
+                            draw: i32::from(
+                                entry.result == GameResult::Draw
+                                    || entry.result == GameResult::Other
+                                    || entry.result == GameResult::None,
+                            ),
                             move_: String::new(),
                         });
                 }
