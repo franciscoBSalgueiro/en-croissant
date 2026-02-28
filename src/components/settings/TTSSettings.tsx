@@ -14,6 +14,10 @@ import {
   ttsApiKeyAtom,
   ttsAutoNarrateAtom,
   ttsEnabledAtom,
+  ttsGoogleApiKeyAtom,
+  ttsGoogleGenderAtom,
+  ttsLanguageAtom,
+  ttsProviderAtom,
   ttsSpeedAtom,
   ttsVoiceIdAtom,
   ttsVolumeAtom,
@@ -46,6 +50,43 @@ export function TTSAutoNarrateSwitch() {
   );
 }
 
+export function TTSProviderSelect() {
+  const [provider, setProvider] = useAtom(ttsProviderAtom);
+  return (
+    <Select
+      w="14rem"
+      data={[
+        { value: "elevenlabs", label: "ElevenLabs" },
+        { value: "google", label: "Google Cloud" },
+      ]}
+      value={provider}
+      onChange={(v) => v && setProvider(v)}
+      allowDeselect={false}
+    />
+  );
+}
+
+export function TTSGoogleApiKeyInput() {
+  const [apiKey, setApiKey] = useAtom(ttsGoogleApiKeyAtom);
+  const [tempKey, setTempKey] = useState(apiKey);
+
+  useEffect(() => {
+    setTempKey(apiKey);
+  }, [apiKey]);
+
+  return (
+    <Group gap="xs">
+      <PasswordInput
+        w="20rem"
+        placeholder="AIza..."
+        value={tempKey}
+        onChange={(e) => setTempKey(e.currentTarget.value)}
+        onBlur={() => setApiKey(tempKey)}
+      />
+    </Group>
+  );
+}
+
 export function TTSApiKeyInput() {
   const [apiKey, setApiKey] = useAtom(ttsApiKeyAtom);
   const [tempKey, setTempKey] = useState(apiKey);
@@ -70,11 +111,13 @@ export function TTSApiKeyInput() {
 export function TTSVoiceSelect() {
   const [voiceId, setVoiceId] = useAtom(ttsVoiceIdAtom);
   const [apiKey] = useAtom(ttsApiKeyAtom);
+  const [provider] = useAtom(ttsProviderAtom);
+  const [language] = useAtom(ttsLanguageAtom);
   const [voices, setVoices] = useState<ElevenLabsVoice[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchVoices = useCallback(async () => {
-    if (!apiKey) return;
+    if (!apiKey || provider !== "elevenlabs") return;
     setLoading(true);
     try {
       const v = await listVoices(apiKey);
@@ -84,11 +127,40 @@ export function TTSVoiceSelect() {
     } finally {
       setLoading(false);
     }
-  }, [apiKey]);
+  }, [apiKey, provider]);
 
   useEffect(() => {
     fetchVoices();
   }, [fetchVoices]);
+
+  const [gender, setGender] = useAtom(ttsGoogleGenderAtom);
+  const testPhrase = getTestPhrase(language);
+
+  if (provider === "google") {
+    return (
+      <Group gap="xs">
+        <Select
+          w="10rem"
+          data={[
+            { value: "MALE", label: "Male" },
+            { value: "FEMALE", label: "Female" },
+          ]}
+          value={gender}
+          onChange={(v) => v && setGender(v)}
+          allowDeselect={false}
+        />
+        <Button
+          size="xs"
+          variant="light"
+          onClick={() => {
+            speakText(testPhrase);
+          }}
+        >
+          Test
+        </Button>
+      </Group>
+    );
+  }
 
   const voiceOptions = voices.map((v) => ({
     value: v.voice_id,
@@ -111,12 +183,50 @@ export function TTSVoiceSelect() {
         variant="light"
         disabled={!apiKey || !voiceId}
         onClick={() => {
-          speakText("Knight to f3, check. A strong developing move.");
+          speakText(testPhrase);
         }}
       >
         Test
       </Button>
     </Group>
+  );
+}
+
+const TTS_TEST_PHRASES: Record<string, string> = {
+  en: "Knight to f3, check. A strong developing move.",
+  fr: "Cavalier f3, échec. Un coup de développement fort qui contrôle le centre.",
+  es: "Caballo f3, jaque. Un fuerte movimiento de desarrollo que controla el centro.",
+  de: "Springer f3, Schach. Ein starker Entwicklungszug, der das Zentrum kontrolliert.",
+  ja: "ナイト f3、チェック。センターを支配する強い展開の手。",
+  ru: "Конь f3, шах. Сильный развивающий ход, контролирующий центр.",
+  zh: "马 f3，将军。一步控制中心的强力出子。",
+};
+
+function getTestPhrase(lang: string): string {
+  return TTS_TEST_PHRASES[lang] || TTS_TEST_PHRASES.en;
+}
+
+const TTS_LANGUAGE_OPTIONS = [
+  { value: "en", label: "English" },
+  { value: "fr", label: "Français" },
+  { value: "es", label: "Español" },
+  { value: "de", label: "Deutsch" },
+  { value: "ja", label: "日本語" },
+  { value: "ru", label: "Русский" },
+  { value: "zh", label: "中文" },
+];
+
+export function TTSLanguageSelect() {
+  const [language, setLanguage] = useAtom(ttsLanguageAtom);
+
+  return (
+    <Select
+      w="12rem"
+      data={TTS_LANGUAGE_OPTIONS}
+      value={language}
+      onChange={(v) => v && setLanguage(v)}
+      allowDeselect={false}
+    />
   );
 }
 

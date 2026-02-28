@@ -131,6 +131,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
     goToNext: () =>
       set((state) => {
+        stopSpeaking();
         const node = getNodeAtPath(state.root, state.position);
         const [pos] = positionFromFen(node.fen);
         if (!pos || !node.children[0]?.move) return state;
@@ -255,7 +256,8 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           }
         }),
       ),
-    goToEnd: () =>
+    goToEnd: () => {
+      stopSpeaking();
       set(
         produce((state) => {
           const endPosition: number[] = [];
@@ -266,17 +268,22 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
           }
           state.position = endPosition;
         }),
-      ),
-    goToStart: () =>
+      );
+    },
+    goToStart: () => {
+      stopSpeaking();
       set((state) => ({
         ...state,
         position: state.headers.start || [],
-      })),
-    goToMove: (move) =>
+      }));
+    },
+    goToMove: (move) => {
+      stopSpeaking();
       set((state) => ({
         ...state,
         position: move,
-      })),
+      }));
+    },
     goToBranchStart: () => {
       set(
         produce((state) => {

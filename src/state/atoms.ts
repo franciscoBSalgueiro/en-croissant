@@ -263,15 +263,31 @@ export const soundVolumeAtom = atomWithStorage<number>(
 );
 
 // TTS (Text-to-Speech) Settings
-export const ttsEnabledAtom = atomWithStorage<boolean>("tts-enabled", false);
+// All TTS atoms need getOnInit: true because tts.ts reads them imperatively
+// via store.get() before any React component subscribes.
+export const ttsEnabledAtom = atomWithStorage<boolean>(
+  "tts-enabled",
+  false,
+  undefined,
+  { getOnInit: true },
+);
 export const ttsAutoNarrateAtom = atomWithStorage<boolean>(
   "tts-auto-narrate",
   false,
+  undefined,
+  { getOnInit: true },
 );
-export const ttsApiKeyAtom = atomWithStorage<string>("tts-api-key", "");
+export const ttsApiKeyAtom = atomWithStorage<string>(
+  "tts-api-key",
+  "",
+  undefined,
+  { getOnInit: true },
+);
 export const ttsVoiceIdAtom = atomWithStorage<string>(
   "tts-voice-id",
   "pNInz6obpgDQGcFmaJgB",
+  undefined,
+  { getOnInit: true },
 );
 export const ttsVolumeAtom = atomWithStorage<number>(
   "tts-volume",
@@ -282,6 +298,30 @@ export const ttsVolumeAtom = atomWithStorage<number>(
 export const ttsSpeedAtom = atomWithStorage<number>(
   "tts-speed",
   1.0,
+  undefined,
+  { getOnInit: true },
+);
+export const ttsLanguageAtom = atomWithStorage<string>(
+  "tts-language",
+  "en",
+  undefined,
+  { getOnInit: true },
+);
+export const ttsProviderAtom = atomWithStorage<string>(
+  "tts-provider",
+  "elevenlabs",
+  undefined,
+  { getOnInit: true },
+);
+export const ttsGoogleApiKeyAtom = atomWithStorage<string>(
+  "tts-google-api-key",
+  "",
+  undefined,
+  { getOnInit: true },
+);
+export const ttsGoogleGenderAtom = atomWithStorage<string>(
+  "tts-google-gender",
+  "MALE",
   undefined,
   { getOnInit: true },
 );

@@ -76,6 +76,9 @@ import {
   TTSAutoNarrateSwitch,
   TTSClearCacheButton,
   TTSEnabledSwitch,
+  TTSGoogleApiKeyInput,
+  TTSLanguageSelect,
+  TTSProviderSelect,
   TTSSpeedSlider,
   TTSVoiceSelect,
   TTSVolumeSlider,
@@ -526,7 +529,7 @@ export default function Page() {
         category: "sound",
         title: "Text-to-Speech",
         description:
-          "Enable ElevenLabs TTS narration for PGN annotations and comments",
+          "Enable text-to-speech narration for PGN annotations and comments",
         keywords: ["tts", "speech", "narrate", "elevenlabs", "voice", "read"],
         render: () => <TTSEnabledSwitch />,
       },
@@ -540,21 +543,65 @@ export default function Page() {
         render: () => <TTSAutoNarrateSwitch />,
       },
       {
+        id: "tts-provider",
+        category: "sound",
+        title: "TTS Provider",
+        description:
+          "Choose between ElevenLabs (premium voices) or Google Cloud (WaveNet voices, 1M chars/mo free)",
+        keywords: [
+          "tts",
+          "provider",
+          "elevenlabs",
+          "google",
+          "cloud",
+          "engine",
+        ],
+        render: () => <TTSProviderSelect />,
+      },
+      {
         id: "tts-api-key",
         category: "sound",
         title: "ElevenLabs API Key",
-        description: "Your ElevenLabs API key for text-to-speech generation",
+        description:
+          "API key for ElevenLabs provider. Get one at elevenlabs.io",
         keywords: ["tts", "api", "key", "elevenlabs"],
         render: () => <TTSApiKeyInput />,
+      },
+      {
+        id: "tts-google-api-key",
+        category: "sound",
+        title: "Google Cloud API Key",
+        description:
+          "API key for Google Cloud TTS provider. Enable the Text-to-Speech API in Google Cloud Console",
+        keywords: ["tts", "api", "key", "google", "cloud"],
+        render: () => <TTSGoogleApiKeyInput />,
       },
       {
         id: "tts-voice",
         category: "sound",
         title: "TTS Voice",
         description:
-          "Select the ElevenLabs voice for narration and test playback",
+          "Select the voice for narration. ElevenLabs: choose from your voices. Google: auto-selected by language.",
         keywords: ["tts", "voice", "select", "elevenlabs"],
         render: () => <TTSVoiceSelect />,
+      },
+      {
+        id: "tts-language",
+        category: "sound",
+        title: "TTS Language",
+        description:
+          "Language for narration. Chess terms are translated; comments are spoken in this language.",
+        keywords: [
+          "tts",
+          "language",
+          "french",
+          "spanish",
+          "german",
+          "japanese",
+          "russian",
+          "chinese",
+        ],
+        render: () => <TTSLanguageSelect />,
       },
       {
         id: "tts-volume",
