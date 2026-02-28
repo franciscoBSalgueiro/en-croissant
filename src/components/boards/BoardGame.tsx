@@ -112,13 +112,16 @@ function BoardGame() {
   );
 
   function getPlayers() {
-    let white = inputColor === "white" ? player1Settings : player2Settings;
-    let black = inputColor === "black" ? player1Settings : player2Settings;
+    let isPlayer1White = inputColor === "white";
+
     if (inputColor === "random") {
-      white = Math.random() > 0.5 ? player1Settings : player2Settings;
-      black = white === player1Settings ? player2Settings : player1Settings;
+      isPlayer1White = Math.random() > 0.5;
     }
-    return { white, black };
+
+    return {
+      white: isPlayer1White ? player1Settings : player2Settings,
+      black: isPlayer1White ? player2Settings : player1Settings,
+    };
   }
 
   const store = useContext(TreeStateContext)!;
@@ -533,10 +536,6 @@ function BoardGame() {
     players.white.type === "engine" && players.black.type === "engine";
 
   function getResignationLosingColor(): "white" | "black" {
-    const isPlayerVsEngine =
-      (players.white.type === "human" && players.black.type === "engine") ||
-      (players.black.type === "human" && players.white.type === "engine");
-
     if (isPlayerVsEngine) {
       return players.white.type === "human" ? "white" : "black";
     }
