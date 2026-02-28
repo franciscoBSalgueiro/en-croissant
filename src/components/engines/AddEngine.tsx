@@ -23,6 +23,7 @@ import { commands } from "@/bindings";
 import { enginesAtom } from "@/state/atoms";
 import { getEnginesDir } from "@/utils/directories";
 import {
+  isLocalEngine,
   type LocalEngine,
   type RemoteEngine,
   requiredEngineSettings,
@@ -44,9 +45,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = (allEngines ?? []).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
+  const engines = (allEngines ?? []).filter(isLocalEngine);
 
   const { os } = usePlatform();
 
@@ -55,6 +54,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      runtime: "uci",
       id: crypto.randomUUID(),
       version: "",
       name: "",

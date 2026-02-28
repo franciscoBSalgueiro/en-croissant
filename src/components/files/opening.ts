@@ -18,7 +18,7 @@ const f = fsrs(params);
 export const positionSchema = z.object({
   fen: z.string(),
   answer: z.string(),
-  card: z.object({}).passthrough(),
+  card: z.looseObject({}),
 });
 
 export type Position = {

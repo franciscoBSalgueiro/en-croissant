@@ -10,9 +10,9 @@ import {
 } from "@/bindings";
 import { unwrap } from "./unwrap";
 
-export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
+export const requiredEngineSettings:string[] = []; // "MultiPV", "Threads", "Hash"
 
-const goModeSchema: z.ZodSchema<GoMode> = z.union([
+const goModeSchema: z.ZodType<GoMode> = z.union([
   z.object({
     t: z.literal("Depth"),
     c: z.number(),
@@ -39,9 +39,9 @@ const engineSettingsSchema = z.array(
 
 export type EngineSettings = z.infer<typeof engineSettingsSchema>;
 
-const localEngineSchema = z.object({
+const localEngineBaseSchema = z.object({
   type: z.literal("local"),
-  id: z.string().default(() => crypto.randomUUID()),
+  id: z.string().prefault(() => crypto.randomUUID()),
   name: z.string(),
   version: z.string(),
   path: z.string(),
@@ -50,11 +50,26 @@ const localEngineSchema = z.object({
   downloadSize: z.number().nullish(),
   downloadLink: z.string().nullish(),
   loaded: z.boolean().nullish(),
-  go: goModeSchema.nullish(),
   enabled: z.boolean().nullish(),
   settings: engineSettingsSchema.nullish(),
 });
 
+const localUciEngineSchema = z.object({
+  ...localEngineBaseSchema.shape,
+  runtime: z.literal("uci"),
+  go: goModeSchema.nullish(),
+});
+export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
+const localMaiaEngineSchema = z.object({
+  ...localEngineBaseSchema.shape,
+  runtime: z.literal("maia"),
+});
+export type LocalMaiaEngine = z.output<typeof localMaiaEngineSchema>;
+
+const localEngineSchema = z.discriminatedUnion("runtime", [
+  localUciEngineSchema,
+  localMaiaEngineSchema,
+]);
 export type LocalEngine = z.output<typeof localEngineSchema>;
 
 const remoteEngineSchema = z.object({
@@ -71,7 +86,10 @@ const remoteEngineSchema = z.object({
 
 export type RemoteEngine = z.output<typeof remoteEngineSchema>;
 
-export const engineSchema = z.union([localEngineSchema, remoteEngineSchema]);
+export const engineSchema = z.discriminatedUnion("type", [
+  localEngineSchema,
+  remoteEngineSchema,
+]);
 export type Engine = z.output<typeof engineSchema>;
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
@@ -121,4 +139,14 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     error,
     isLoading,
   };
+}
+export function isLocalEngine(engine: Engine): engine is LocalEngine {
+  return engine.type === "local";
+}
+export function isUciEngine(engine: LocalEngine): engine is LocalUciEngine {
+  return engine.runtime === "uci";
+}
+
+export function isMaiaEngine(engine: LocalEngine): engine is LocalMaiaEngine {
+  return engine.runtime === "maia";
 }

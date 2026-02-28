@@ -543,11 +543,9 @@ export const currentGameIdAtom = tabValue(gameIdFamily);
 
 // Practice
 
-const reviewLogSchema = z
-  .object({
+const reviewLogSchema = z.looseObject({
     fen: z.string(),
-  })
-  .passthrough();
+  });
 
 const practiceDataSchema = z.object({
   positions: positionSchema.array(),
