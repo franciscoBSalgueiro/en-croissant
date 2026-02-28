@@ -139,7 +139,12 @@ export default function ImportModal({
         }
         pgn = res;
       } else if (link.includes("lichess")) {
-        const gameId = link.split("/")[3];
+        const excludedPathParts = ['game', 'export', 'white', 'black'];
+        const gameId = new URL(link).pathname.split('/').find(x => x && !excludedPathParts.includes(x))
+        if (!gameId) {
+          setLoading(false);
+          return;
+        }
         pgn = await getLichessGame(gameId);
       }
 
