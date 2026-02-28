@@ -133,51 +133,53 @@ piece.fading {
 }
 
 .cg-wrap coords.squares {
-  width: 100%;
+  bottom: 0;
+  left: 0;
+  text-transform: uppercase;
+  text-align: right;
+  flex-flow: column-reverse;
   height: 100%;
-  margin-left: 4px;
-  margin-top: 2px;
-  font-size: 0.9rem;
+  width: 12.5%;
 }
 
-.cg-wrap.orientation-white coords.squares {
-  flex-flow: row;
+.cg-wrap coords.squares.black {
+  flex-flow: column;
 }
 
-.cg-wrap.orientation-black coords.squares {
-  flex-flow: row-reverse;
+.cg-wrap coords.squares.left {
+  text-align: left;
 }
 
-.cg-wrap coords.rank8 {
-  bottom: 0%;
+.cg-wrap coords.squares coord {
+  padding: 6% 4%;
 }
 
-.cg-wrap coords.rank7 {
-  top: 12.5%;
+.cg-wrap coords.squares.rank2 {
+  transform: translateX(100%);
 }
 
-.cg-wrap coords.rank6 {
-  top: 25%;
+.cg-wrap coords.squares.rank3 {
+  transform: translateX(200%);
 }
 
-.cg-wrap coords.rank5 {
-  top: 37.5%;
+.cg-wrap coords.squares.rank4 {
+  transform: translateX(300%);
 }
 
-.cg-wrap coords.rank4 {
-  top: 50%;
+.cg-wrap coords.squares.rank5 {
+  transform: translateX(400%);
 }
 
-.cg-wrap coords.rank3 {
-  top: 62.5%;
+.cg-wrap coords.squares.rank6 {
+  transform: translateX(500%);
 }
 
-.cg-wrap coords.rank2 {
-  top: 75%;
+.cg-wrap coords.squares.rank7 {
+  transform: translateX(600%);
 }
 
-.cg-wrap coords.rank1 {
-  top: 87.5%;
+.cg-wrap coords.squares.rank8 {
+  transform: translateX(700%);
 }
 
 .cg-wrap coords.ranks {
