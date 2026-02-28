@@ -21,7 +21,14 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useDeferredValue, useMemo } from "react";
+import {
+  memo,
+  startTransition,
+  useContext,
+  useDeferredValue,
+  useMemo,
+  useOptimistic,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -72,9 +79,14 @@ function AnalysisPanel() {
   );
 
   const [engines, setEngines] = useAtom(enginesAtom);
+  const [optimisticEngines, setOptimisticEngines] = useOptimistic<
+    Engine[],
+    Engine[]
+  >(engines ?? [], (_, newEngines) => newEngines);
+
   const loadedEngines = useMemo(
-    () => (engines ?? []).filter((e) => e.loaded),
-    [engines],
+    () => optimisticEngines.filter((e) => e.loaded),
+    [optimisticEngines],
   );
 
   const [, enable] = useAtom(enableAllAtom);
@@ -177,22 +189,18 @@ function AnalysisPanel() {
                 }}
               >
                 <DragDropContext
-                  onDragEnd={({ destination, source }) =>
-                    destination?.index !== undefined &&
-                    setEngines(async (prev) => {
-                      const result = Array.from(await prev);
-                      const prevLoaded = result.filter((e) => e.loaded);
-                      const [removed] = prevLoaded.splice(source.index, 1);
-                      prevLoaded.splice(destination.index, 0, removed);
-
-                      result.forEach((e, i) => {
-                        if (e.loaded) {
-                          result[i] = prevLoaded.shift()!;
-                        }
-                      });
-                      return result;
-                    })
-                  }
+                  onDragEnd={({ destination, source }) => {
+                    if (destination?.index === undefined) return;
+                    startTransition(async () => {
+                      const reordered = reorderEngines(
+                        optimisticEngines,
+                        source.index,
+                        destination!.index,
+                      );
+                      setOptimisticEngines(reordered);
+                      await setEngines(reordered);
+                    });
+                  }}
                 >
                   <Droppable droppableId="droppable" direction="vertical">
                     {(provided) => (
@@ -285,6 +293,25 @@ function AnalysisPanel() {
       </Tabs>
     </Stack>
   );
+}
+
+function reorderEngines(
+  engines: Engine[],
+  sourceIndex: number,
+  destinationIndex: number,
+): Engine[] {
+  const result = Array.from(engines);
+  const loaded = result.filter((e) => e.loaded);
+  const [removed] = loaded.splice(sourceIndex, 1);
+  loaded.splice(destinationIndex, 0, removed);
+
+  result.forEach((e, i) => {
+    if (e.loaded) {
+      result[i] = loaded.shift()!;
+    }
+  });
+
+  return result;
 }
 
 function EngineSummary({
