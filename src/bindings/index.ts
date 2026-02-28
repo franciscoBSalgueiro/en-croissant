@@ -1,7 +1,7 @@
 import type {
   BestMoves as BestMovesT,
   DatabaseInfo as DatabaseInfoT,
-  GameQueryJs,
+  GameQuery,
   Score as ScoreT,
   ScoreValue as ScoreValueT,
 } from "./generated";
@@ -27,5 +27,3 @@ export type DatabaseInfo =
       error: string;
       indexed: boolean;
     };
-
-export type GameQuery = GameQueryJs;

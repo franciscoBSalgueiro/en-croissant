@@ -29,7 +29,7 @@ use crate::{
     AppState,
 };
 
-use super::GameQueryJs;
+use super::GameQuery;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
@@ -213,7 +213,7 @@ pub struct ProgressPayload {
 #[specta::specta]
 pub async fn search_position(
     file: PathBuf,
-    query: GameQueryJs,
+    query: GameQuery,
     app: tauri::AppHandle,
     tab_id: String,
     state: tauri::State<'_, AppState>,
@@ -421,12 +421,14 @@ pub async fn search_position(
 
     state.search_collisions.remove(&(query, file_path));
 
+    drop(permit);
+
     Ok((openings, normalized_games))
 }
 
 pub async fn is_position_in_db(
     file: PathBuf,
-    query: GameQueryJs,
+    query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
     let collision_lock = {
@@ -515,6 +517,8 @@ pub async fn is_position_in_db(
     }
 
     state.search_collisions.remove(&(query, file));
+
+    drop(permit);
 
     Ok(exists)
 }

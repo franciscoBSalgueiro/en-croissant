@@ -68,16 +68,6 @@ pub enum GameResult {
     Draw { reason: DrawReason },
 }
 
-impl GameResult {
-    pub fn to_outcome_string(&self) -> String {
-        match self {
-            GameResult::WhiteWins { .. } => "1-0".to_string(),
-            GameResult::BlackWins { .. } => "0-1".to_string(),
-            GameResult::Draw { .. } => "1/2-1/2".to_string(),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, Type, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum GameEndReason {
@@ -314,11 +304,9 @@ impl GameController {
                     *wt = wt.saturating_sub(elapsed);
                     *wt += clock_state.white_increment;
                 }
-            } else {
-                if let Some(ref mut bt) = clock_state.black_time {
-                    *bt = bt.saturating_sub(elapsed);
-                    *bt += clock_state.black_increment;
-                }
+            } else if let Some(ref mut bt) = clock_state.black_time {
+                *bt = bt.saturating_sub(elapsed);
+                *bt += clock_state.black_increment;
             }
 
             clock_state.last_tick = Instant::now();
@@ -560,18 +548,6 @@ impl GameManager {
 
         let mut controller = GameController::new(game_id.clone(), config.clone())?;
 
-        let white_player = match &controller.config.white {
-            PlayerConfig::Human { name } => name.clone(),
-            PlayerConfig::Engine { name, .. } => name.clone(),
-        };
-
-        let black_player = match &controller.config.black {
-            PlayerConfig::Human { name } => name.clone(),
-            PlayerConfig::Engine { name, .. } => name.clone(),
-        };
-
-        let (white_time, black_time) = controller.get_current_times();
-
         if let PlayerConfig::Engine { path, options, .. } = &config.white {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
@@ -658,10 +634,8 @@ impl GameManager {
                 moves: controller.moves.clone(),
             }
             .emit(app)?;
-        } else {
-            if let Some(tx) = &controller.move_notify_tx {
-                let _ = tx.try_send(());
-            }
+        } else if let Some(tx) = &controller.move_notify_tx {
+            let _ = tx.try_send(());
         }
 
         Ok(controller.get_state())

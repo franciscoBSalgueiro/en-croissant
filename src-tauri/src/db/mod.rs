@@ -56,9 +56,7 @@ pub use self::models::Puzzle;
 pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
 pub use self::schema::themes;
-pub use self::search::{
-    is_position_in_db, search_position, PositionQuery, PositionQueryJs, PositionStats,
-};
+pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
 
 const DATABASE_VERSION: &str = "1.0.0";
 
@@ -196,13 +194,6 @@ impl Default for MaterialColor {
             black: 39,
         }
     }
-}
-
-#[derive(Default, Debug, Serialize)]
-pub struct TempPlayer {
-    id: usize,
-    name: Option<String>,
-    rating: Option<i32>,
 }
 
 #[derive(Default, Debug)]
@@ -763,23 +754,8 @@ pub struct QueryOptions<SortT> {
     pub direction: SortDirection,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-pub struct GameQuery {
-    pub options: Option<QueryOptions<GameSort>>,
-    pub player1: Option<i32>,
-    pub player2: Option<i32>,
-    pub tournament_id: Option<i32>,
-    pub start_date: Option<String>,
-    pub end_date: Option<String>,
-    pub range1: Option<(i32, i32)>,
-    pub range2: Option<(i32, i32)>,
-    pub sides: Option<Sides>,
-    pub outcome: Option<String>,
-    pub position: Option<PositionQuery>,
-}
-
 #[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, Hash, Type)]
-pub struct GameQueryJs {
+pub struct GameQuery {
     #[specta(optional)]
     pub options: Option<QueryOptions<GameSort>>,
     #[specta(optional)]
@@ -806,7 +782,7 @@ pub struct GameQueryJs {
     pub wanted_result: Option<String>,
 }
 
-impl GameQueryJs {
+impl GameQuery {
     pub fn new() -> Self {
         Self::default()
     }
@@ -826,7 +802,7 @@ pub struct QueryResponse<T> {
 #[specta::specta]
 pub async fn get_games(
     file: PathBuf,
-    query: GameQueryJs,
+    query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;

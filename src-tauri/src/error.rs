@@ -57,20 +57,11 @@ pub enum Error {
     #[error("No moves found")]
     NoMovesFound,
 
-    #[error("Lower or upper bound")]
-    LowerOrUpperBound,
-
-    #[error("Search stopped")]
-    SearchStopped,
-
     #[error("Missing reference database")]
     MissingReferenceDatabase,
 
     #[error("No opening found")]
     NoOpeningFound,
-
-    #[error("No match found")]
-    NoMatchFound,
 
     #[error("No puzzles")]
     NoPuzzles,

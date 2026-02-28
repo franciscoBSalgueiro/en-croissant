@@ -318,7 +318,7 @@ async getDbInfo(file: string) : Promise<Result<DatabaseInfo, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getGames(file: string, query: GameQueryJs) : Promise<Result<QueryResponse<NormalizedGame[]>, string>> {
+async getGames(file: string, query: GameQuery) : Promise<Result<QueryResponse<NormalizedGame[]>, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_games", { file, query }) };
 } catch (e) {
@@ -326,7 +326,7 @@ async getGames(file: string, query: GameQueryJs) : Promise<Result<QueryResponse<
     else return { status: "error", error: e  as any };
 }
 },
-async searchPosition(file: string, query: GameQueryJs, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
+async searchPosition(file: string, query: GameQuery, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search_position", { file, query, tabId }) };
 } catch (e) {
@@ -498,7 +498,7 @@ export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigi
 export type GameMoveEvent = { gameId: string; moves: GameMove[]; fen: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameOutcome = "Won" | "Drawn" | "Lost"
 export type GameOverEvent = { gameId: string; result: GameResult; moves: GameMove[] }
-export type GameQueryJs = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
+export type GameQuery = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
 export type GameResult = { type: "whiteWins"; reason: GameEndReason } | { type: "blackWins"; reason: GameEndReason } | { type: "draw"; reason: DrawReason }
 export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }

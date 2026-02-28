@@ -27,7 +27,7 @@ use vampirc_uci::{
 };
 
 use crate::{
-    db::{is_position_in_db, GameQueryJs, PositionQueryJs},
+    db::{is_position_in_db, GameQuery, PositionQueryJs},
     engine::{
         parse_fen_and_apply_moves, BaseEngine, EngineLog, EngineOption, EngineReader, GoMode,
     },
@@ -591,7 +591,7 @@ pub async fn analyze_game(
             if let Some(reference) = options.reference_db.clone() {
                 analysis.novelty = !is_position_in_db(
                     reference,
-                    GameQueryJs::new().position(query.clone()).clone(),
+                    GameQuery::new().position(query.clone()).clone(),
                     state.clone(),
                 )
                 .await?;
