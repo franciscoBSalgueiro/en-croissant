@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { boardImageAtom } from "@/state/atoms";
 
 const boardImages: string[] = [
-  "blue.svg",
+  "blue.png",
   "blue2.jpg",
   "blue3.jpg",
   "blue-marble.jpg",
@@ -25,8 +25,8 @@ const boardImages: string[] = [
   "maple.jpg",
   "maple2.jpg",
   "leather.jpg",
-  "green.svg",
-  "brown.svg",
+  "green.png",
+  "brown.png",
   "pink-pyramid.png",
   "marble.jpg",
   "green-plastic.png",
@@ -34,9 +34,9 @@ const boardImages: string[] = [
   "metal.jpg",
   "olive.jpg",
   "newspaper.svg",
-  "purple.svg",
+  "purple.png",
   "purple-diag.png",
-  "ic.svg",
+  "ic.png",
   "horsey.jpg",
   "gray.svg",
 ];
