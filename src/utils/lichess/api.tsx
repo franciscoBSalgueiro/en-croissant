@@ -362,12 +362,12 @@ export async function getLichessGames(
         : undefined,
     ),
   });
-  const data = await res.json();
-
   if (!res.ok) {
-    throw new Error(`${data}`);
+    throw new Error(
+      `Failed to fetch Lichess games: ${res.status} ${res.statusText}`,
+    );
   }
-  return data;
+  return await res.json();
 }
 
 export async function getMasterGames(
@@ -388,11 +388,12 @@ export async function getMasterGames(
         : undefined,
     ),
   });
-  const data = await res.json();
   if (!res.ok) {
-    throw new Error(`${data}`);
+    throw new Error(
+      `Failed to fetch master games: ${res.status} ${res.statusText}`,
+    );
   }
-  return data;
+  return await res.json();
 }
 
 export async function getPlayerGames(
@@ -401,20 +402,24 @@ export async function getPlayerGames(
   color: Color,
   token?: string,
 ) {
-  return (
-    await fetch(
-      `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`,
-      {
-        headers: apiHeaders(
-          token
-            ? {
-                Authorization: `Bearer ${token}`,
-              }
-            : undefined,
-        ),
-      },
-    )
-  ).json();
+  const res = await fetch(
+    `${explorerURL}/player?fen=${fen}&player=${player}&color=${color}`,
+    {
+      headers: apiHeaders(
+        token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      ),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch player games: ${res.status} ${res.statusText}`,
+    );
+  }
+  return await res.json();
 }
 
 export async function downloadLichess(
