@@ -203,6 +203,7 @@ impl SearchGameEntry {
 
 #[derive(Clone)]
 pub struct MmapSearchIndex {
+    #[allow(dead_code)] // mmap must be kept alive to back the archived reference
     mmap: Arc<Mmap>,
     archived: &'static ArchivedSearchIndex,
 }
@@ -233,15 +234,18 @@ impl MmapSearchIndex {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.archived.entries.is_empty()
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn get_entry_ref(&self, index: usize) -> Option<SearchGameEntryRef<'_>> {
         self.archived.entries.get(index).map(SearchGameEntryRef::from)
     }
 
+    #[allow(dead_code)]
     pub fn iter(&self) -> impl Iterator<Item = SearchGameEntryRef<'_>> + ExactSizeIterator {
         self.archived.entries.iter().map(SearchGameEntryRef::from)
     }
@@ -272,6 +276,7 @@ impl MmapSearchIndex {
         verify_header(&header).is_ok()
     }
 
+    #[allow(dead_code)]
     pub fn is_up_to_date<P: AsRef<Path>>(db_path: P) -> bool {
         let db_path = db_path.as_ref();
         let index_path = get_index_path(db_path);

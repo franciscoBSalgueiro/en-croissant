@@ -343,6 +343,7 @@ pub fn decode_game_to_movetext(moves_bytes: &[u8], initial_fen: Fen) -> Result<S
     Ok(render_nodes(&decoded.nodes, &mut state))
 }
 
+#[allow(dead_code)]
 pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<Vec<String>, Error> {
     let mut chess = Chess::from_setup(initial_fen.into(), CastlingMode::Chess960)
         .or_else(PositionError::ignore_too_much_material)

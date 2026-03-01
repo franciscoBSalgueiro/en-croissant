@@ -33,7 +33,9 @@ pub struct NewPlayer<'a> {
     pub elo: Option<i32>,
 }
 
+#[allow(dead_code)]
 struct White(pub Player);
+#[allow(dead_code)]
 struct Black(pub Player);
 
 #[derive(Default, Queryable, Serialize, Deserialize, Identifiable, Associations)]
