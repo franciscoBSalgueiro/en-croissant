@@ -43,6 +43,7 @@ import { enginesAtom } from "@/state/atoms";
 import {
   type Engine,
   engineSchema,
+  isUciEngine,
   type LocalEngine,
   requiredEngineSettings,
 } from "@/utils/engines";
@@ -395,14 +396,18 @@ function EngineSettings({
             )}
           </Center>
         </Group>
-        <Divider
-          variant="dashed"
-          label={t("Engines.Settings.SearchSettings")}
-        />
-        <GoModeInput
-          goMode={engine.go || null}
+        {isUciEngine(engine) && (
+          <>
+          <Divider
+            variant="dashed"
+            label={t("Engines.Settings.SearchSettings")}
+          />
+          <GoModeInput
+          goMode={engine.go}
           setGoMode={(v) => setEngine({ ...engine, go: v })}
         />
+          </>
+          )}
 
         <Divider
           variant="dashed"
