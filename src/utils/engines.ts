@@ -89,10 +89,23 @@ const remoteEngineSchema = z.object({
 
 export type RemoteEngine = z.output<typeof remoteEngineSchema>;
 
-export const engineSchema = z.discriminatedUnion("type", [
+const rawEngineSchema = z.discriminatedUnion("type", [
   localEngineSchema,
   remoteEngineSchema,
 ]);
+export const engineSchema = z.preprocess((val) => {
+  // Migration logic: default to 'uci' for old local engine missing 'runtime'
+  if (
+    val && 
+    typeof val === "object" && 
+    "type" in val &&
+    val.type === "local" &&
+    !("runtime" in val)
+  ) {
+    return { ...val, runtime: "uci" };
+  }
+  return val;
+}, rawEngineSchema);
 export type Engine = z.output<typeof engineSchema>;
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {

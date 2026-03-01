@@ -49,12 +49,17 @@ import { genID, type Tab, tabSchema } from "@/utils/tabs";
 import { getEnginesDir } from "../utils/directories";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage } from "./utils";
+import { warn } from "@tauri-apps/plugin-log";
 
 const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, Input>) => {
   const catchValue = {} as never;
 
   const res = z
-    .array(itemSchema.catch(catchValue))
+    .array(itemSchema.catch((ctx) => {
+        // Log the actual Zod error here
+        warn(`Dropped invalid item: ${ctx.issues}`); 
+        return catchValue;
+      }))
     .transform((a) => a.filter((o): o is Output => o !== catchValue))
     .catch([]);
 
