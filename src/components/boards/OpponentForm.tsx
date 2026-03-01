@@ -208,7 +208,6 @@ export function OpponentForm({
           {opponent.engine && !opponent.timeControl && (
             <EngineSettingsForm
               engine={opponent.engine}
-              remote={false}
               gameMode
               settings={{
                 go: opponent.go,

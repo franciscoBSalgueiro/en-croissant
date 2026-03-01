@@ -41,7 +41,7 @@ export type EngineSettings = z.infer<typeof engineSettingsSchema>;
 
 const localEngineBaseSchema = z.object({
   type: z.literal("local"),
-  id: z.string().prefault(() => crypto.randomUUID()),
+  id: z.string().default(() => crypto.randomUUID()),
   name: z.string(),
   version: z.string(),
   path: z.string(),
@@ -57,12 +57,15 @@ const localEngineBaseSchema = z.object({
 const localUciEngineSchema = z.object({
   ...localEngineBaseSchema.shape,
   runtime: z.literal("uci"),
-  go: goModeSchema.nullish(),
+  go: goModeSchema.optional(),
 });
 export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
 const localMaiaEngineSchema = z.object({
   ...localEngineBaseSchema.shape,
   runtime: z.literal("maia"),
+  // maia does not support time control. Put null field here to make accessing localEngine's goMode when needed easier. 
+  // Also in case future ONNX models supports time control
+  go: z.null(), 
 });
 export type LocalMaiaEngine = z.output<typeof localMaiaEngineSchema>;
 
@@ -80,7 +83,7 @@ const remoteEngineSchema = z.object({
   image: z.string().nullish(),
   loaded: z.boolean().nullish(),
   enabled: z.boolean().nullish(),
-  go: goModeSchema.nullish(),
+  go: goModeSchema.optional(),
   settings: engineSettingsSchema.nullish(),
 });
 

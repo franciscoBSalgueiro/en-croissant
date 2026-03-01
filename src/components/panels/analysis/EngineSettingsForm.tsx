@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
+import { type Engine, type EngineSettings, isUciEngine, killEngine } from "@/utils/engines";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
@@ -33,7 +33,6 @@ interface EngineSettingsProps {
   setSettings: (fn: (prev: Settings) => Settings) => void;
   color?: MantineColor;
   minimal?: boolean;
-  remote: boolean;
   gameMode?: boolean;
 }
 
@@ -43,7 +42,6 @@ function EngineSettingsForm({
   setSettings,
   color,
   minimal,
-  remote,
   gameMode,
 }: EngineSettingsProps) {
   const { t } = useTranslation();
@@ -52,7 +50,8 @@ function EngineSettingsForm({
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
   const activeTab = useAtomValue(activeTabAtom);
-
+  const local = engine.type === "local";
+  
   const setGoMode = useCallback(
     (v: GoMode) => {
       setSettings((prev) => ({
@@ -65,7 +64,7 @@ function EngineSettingsForm({
 
   return (
     <Stack>
-      {!remote && (
+      {local && isUciEngine(engine) && (
         <GoModeInput
           gameMode={gameMode}
           goMode={settings.go}
@@ -95,7 +94,7 @@ function EngineSettingsForm({
         </Group>
       )}
 
-      {!remote && threads && (
+      {local && threads && (
         <>
           <Group grow>
             <Text size="sm" fw="bold">
@@ -144,7 +143,7 @@ function EngineSettingsForm({
             setSettings={setSettings}
           />
           <ActionIcon.Group>
-            {engine.type === "local" && (
+            {local && (
               <Tooltip label="Kill engine">
                 <ActionIcon
                   variant="default"

@@ -48,7 +48,7 @@ import {
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
-import type { Engine } from "@/utils/engines";
+import { isUciEngine, type Engine } from "@/utils/engines";
 import { formatNodes } from "@/utils/format";
 import { formatScore } from "@/utils/score";
 import AnalysisRow from "./AnalysisRow";
@@ -116,11 +116,16 @@ function BestMovesComponent({
       setSettings2(newSettings);
       if (newSettings.synced) {
         setEngines(async (prev) =>
-          (await prev).map((o) =>
-            o.id === engine.id
-              ? { ...o, settings: newSettings.settings, go: newSettings.go }
-              : o,
-          ),
+          (await prev).map((o) =>{
+            if (o.id !== engine.id) {
+              return o;
+            }
+            let newEngine = {...o, settings: newSettings.settings};
+            if (newEngine.type == "local" && isUciEngine(newEngine)) {
+              newEngine.go = newSettings.go;
+            }
+            return newEngine;
+          }),
         );
       }
     },
@@ -264,7 +269,6 @@ function BestMovesComponent({
           settings={settings}
           setSettings={setSettings}
           color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
-          remote={engine.type !== "local"}
         />
       </Collapse>
 
