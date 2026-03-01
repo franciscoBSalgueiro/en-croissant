@@ -15,7 +15,12 @@ import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { type Engine, type EngineSettings, isUciEngine, killEngine } from "@/utils/engines";
+import {
+  type Engine,
+  type EngineSettings,
+  isUciEngine,
+  killEngine,
+} from "@/utils/engines";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
@@ -51,7 +56,7 @@ function EngineSettingsForm({
   const hash = settings.settings.find((o) => o.name === "Hash");
   const activeTab = useAtomValue(activeTabAtom);
   const local = engine.type === "local";
-  
+
   const setGoMode = useCallback(
     (v: GoMode) => {
       setSettings((prev) => ({

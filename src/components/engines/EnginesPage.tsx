@@ -398,16 +398,16 @@ function EngineSettings({
         </Group>
         {isUciEngine(engine) && (
           <>
-          <Divider
-            variant="dashed"
-            label={t("Engines.Settings.SearchSettings")}
-          />
-          <GoModeInput
-          goMode={engine.go}
-          setGoMode={(v) => setEngine({ ...engine, go: v })}
-        />
+            <Divider
+              variant="dashed"
+              label={t("Engines.Settings.SearchSettings")}
+            />
+            <GoModeInput
+              goMode={engine.go}
+              setGoMode={(v) => setEngine({ ...engine, go: v })}
+            />
           </>
-          )}
+        )}
 
         <Divider
           variant="dashed"

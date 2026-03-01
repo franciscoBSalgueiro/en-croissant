@@ -10,7 +10,7 @@ import {
 } from "@/bindings";
 import { unwrap } from "./unwrap";
 
-export const requiredEngineSettings:string[] = []; // "MultiPV", "Threads", "Hash"
+export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
 const goModeSchema: z.ZodType<GoMode> = z.union([
   z.object({
@@ -63,9 +63,9 @@ export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
 const localMaiaEngineSchema = z.object({
   ...localEngineBaseSchema.shape,
   runtime: z.literal("maia"),
-  // maia does not support time control. Put null field here to make accessing localEngine's goMode when needed easier. 
+  // maia does not support time control. Put null field here to make accessing localEngine's goMode when needed easier.
   // Also in case future ONNX models supports time control
-  go: z.null(), 
+  go: z.null(),
 });
 export type LocalMaiaEngine = z.output<typeof localMaiaEngineSchema>;
 
