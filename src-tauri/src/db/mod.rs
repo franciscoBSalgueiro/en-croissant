@@ -7,7 +7,7 @@ mod search_index;
 
 use crate::{
     db::{
-        encoding::{decode_move, decode_moves},
+        encoding::{decode_game_to_movetext, decode_move, iter_mainline_move_bytes},
         models::*,
         ops::*,
         schema::*,
@@ -26,7 +26,7 @@ use diesel::{
     sql_query,
     sql_types::Text,
 };
-use pgn_reader::{BufferedReader, RawHeader, SanPlus, Skip, Visitor};
+use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -48,7 +48,9 @@ use tauri::{Emitter, State};
 use log::info;
 use tauri_specta::Event as _;
 
-use self::encoding::encode_move;
+use self::encoding::{
+    encode_comment, encode_move, encode_nag, VARIATION_END_MARKER, VARIATION_START_MARKER,
+};
 pub use self::search_index::{get_index_path, MmapSearchIndex, SearchGameEntry, SearchIndex};
 
 pub use self::models::NormalizedGame;
@@ -243,7 +245,7 @@ impl TempGame {
             0
         };
 
-        let ply_count = (self.moves.len()) as i32;
+        let ply_count = iter_mainline_move_bytes(&self.moves).count() as i32;
         let final_material = get_material_count(self.position.board());
         let minimal_white_material = self.material_count.white.min(final_material.white) as i32;
         let minimal_black_material = self.material_count.black.min(final_material.black) as i32;
@@ -279,6 +281,21 @@ struct Importer {
     game: TempGame,
     timestamp: Option<i64>,
     skip: bool,
+    frames: Vec<ImportFrame>,
+}
+
+struct ImportFrame {
+    position: Chess,
+    pre_move_positions: Vec<Chess>,
+}
+
+impl ImportFrame {
+    fn new(position: Chess) -> Self {
+        Self {
+            position,
+            pre_move_positions: Vec::new(),
+        }
+    }
 }
 
 impl Importer {
@@ -287,6 +304,7 @@ impl Importer {
             game: TempGame::default(),
             timestamp,
             skip: false,
+            frames: Vec::new(),
         }
     }
 }
@@ -295,7 +313,9 @@ impl Visitor for Importer {
     type Result = Option<TempGame>;
 
     fn begin_game(&mut self) {
+        self.game = TempGame::default();
         self.skip = false;
+        self.frames.clear();
     }
 
     fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
@@ -373,14 +393,28 @@ impl Visitor for Importer {
 
         // Skip games without ELO
         // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
+
+        self.frames.clear();
+        self.frames
+            .push(ImportFrame::new(self.game.position.clone()));
+
         Skip(self.skip)
     }
 
     fn san(&mut self, san: SanPlus) {
-        let m = san.san.to_move(&self.game.position).ok();
+        if self.frames.is_empty() {
+            self.frames
+                .push(ImportFrame::new(self.game.position.clone()));
+        }
+
+        let is_mainline = self.frames.len() == 1;
+        let frame = self.frames.last_mut().unwrap();
+        let pre_move_position = frame.position.clone();
+
+        let m = san.san.to_move(&frame.position).ok();
         if let Some(m) = m {
-            if m.is_promotion() {
-                let cur_material = get_material_count(self.game.position.board());
+            if is_mainline && m.is_promotion() {
+                let cur_material = get_material_count(frame.position.board());
                 if cur_material.white < self.game.material_count.white {
                     self.game.material_count.white = cur_material.white;
                 }
@@ -390,18 +424,60 @@ impl Visitor for Importer {
             }
             self.game
                 .moves
-                .push(encode_move(&m, &self.game.position).unwrap());
-            self.game.position.play_unchecked(&m);
+                .push(encode_move(&m, &frame.position).unwrap());
+            frame.pre_move_positions.push(pre_move_position);
+            frame.position.play_unchecked(&m);
+
+            if is_mainline {
+                self.game.position = frame.position.clone();
+            }
         } else {
             self.skip = true;
         }
     }
 
     fn begin_variation(&mut self) -> Skip {
-        Skip(true) // stay in the mainline
+        if self.frames.is_empty() {
+            self.frames
+                .push(ImportFrame::new(self.game.position.clone()));
+        }
+
+        let parent = self.frames.last().unwrap();
+        let variation_start = parent
+            .pre_move_positions
+            .last()
+            .cloned()
+            .unwrap_or_else(|| parent.position.clone());
+
+        self.game.moves.push(VARIATION_START_MARKER);
+        self.frames.push(ImportFrame::new(variation_start));
+        Skip(false)
+    }
+
+    fn end_variation(&mut self) {
+        self.game.moves.push(VARIATION_END_MARKER);
+        if self.frames.len() > 1 {
+            self.frames.pop();
+        } else {
+            self.skip = true;
+        }
+
+        if let Some(root) = self.frames.first() {
+            self.game.position = root.position.clone();
+        }
+    }
+
+    fn comment(&mut self, comment: pgn_reader::RawComment<'_>) {
+        let comment = String::from_utf8_lossy(comment.as_bytes());
+        encode_comment(comment.as_ref(), &mut self.game.moves);
+    }
+
+    fn nag(&mut self, nag: Nag) {
+        encode_nag(&nag.to_string(), &mut self.game.moves);
     }
 
     fn end_game(&mut self) -> Self::Result {
+        self.frames.clear();
         if self.skip {
             self.game = TempGame::default();
             None
@@ -1008,6 +1084,12 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
                 .fen
                 .map(|f| Fen::from_ascii(f.as_bytes()).unwrap())
                 .unwrap_or_default();
+            let game_result = game.result.clone().unwrap_or_default();
+            let result_token = if game_result.is_empty() {
+                "*".to_string()
+            } else {
+                game_result.clone()
+            };
 
             NormalizedGame {
                 id: game.id,
@@ -1024,12 +1106,19 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
                 black: black.name.unwrap_or_default(),
                 black_id: game.black_id,
                 black_elo: game.black_elo,
-                result: Outcome::from_str(&game.result.unwrap_or_default()).unwrap_or_default(),
+                result: Outcome::from_str(&game_result).unwrap_or_default(),
                 time_control: game.time_control,
                 eco: game.eco,
                 ply_count: game.ply_count,
                 fen: fen.to_string(),
-                moves: decode_moves(game.moves, fen).unwrap_or_default().join(" "),
+                moves: {
+                    let movetext = decode_game_to_movetext(&game.moves, fen).unwrap_or_default();
+                    if movetext.is_empty() {
+                        result_token
+                    } else {
+                        format!("{} {}", movetext, result_token)
+                    }
+                },
             }
         })
         .collect()
@@ -1335,12 +1424,14 @@ pub async fn get_players_game_info(
 
                 let mut setups = vec![];
                 let mut chess = Chess::default();
-                for (i, byte) in moves.iter().enumerate() {
+                for (i, byte) in iter_mainline_move_bytes(moves).enumerate() {
                     if i > 54 {
                         // max length of opening in data
                         break;
                     }
-                    let m = decode_move(*byte, &chess).unwrap();
+                    let Some(m) = decode_move(byte, &chess) else {
+                        break;
+                    };
                     chess.play_unchecked(&m);
                     setups.push(chess.clone().into_setup(EnPassantMode::Legal));
                 }
@@ -1476,7 +1567,7 @@ struct PgnGame {
     black_elo: Option<String>,
     ply_count: Option<String>,
     fen: Option<String>,
-    moves: Option<Vec<String>>,
+    moves: Option<String>,
 }
 
 impl PgnGame {
@@ -1536,11 +1627,10 @@ impl PgnGame {
             writeln!(writer, "[FEN \"{}\"]", fen)?;
         }
         writeln!(writer)?;
-        for (i, move_) in self.moves.as_ref().unwrap().iter().enumerate() {
-            if i % 2 == 0 {
-                write!(writer, "{}. ", i / 2 + 1)?;
+        if let Some(moves) = self.moves.as_deref() {
+            if !moves.is_empty() {
+                write!(writer, "{} ", moves)?;
             }
-            write!(writer, "{} ", move_)?;
         }
         match self.result.as_deref() {
             Some("1-0") => writeln!(writer, "1-0"),
@@ -1593,8 +1683,8 @@ pub async fn export_to_pgn(
                 black_elo: game.black_elo.map(|e| e.to_string()),
                 ply_count: game.ply_count.map(|e| e.to_string()),
                 fen: game.fen.clone(),
-                moves: decode_moves(
-                    game.moves,
+                moves: decode_game_to_movetext(
+                    &game.moves,
                     if let Some(fen) = game.fen {
                         Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
                     } else {
@@ -1706,6 +1796,7 @@ pub async fn preload_reference_db(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pgn_reader::BufferedReader;
 
     #[test]
     fn home_row() {
@@ -1721,5 +1812,56 @@ mod tests {
 
         let pawn_home = get_pawn_home(&Board::from_ascii_board_fen(b"8/8/8/8/8/8/8/8").unwrap());
         assert_eq!(pawn_home, 0b0000000000000000);
+    }
+
+    #[test]
+    fn importer_handles_nested_variations() {
+        let pgn = r#"[Event "T"]
+[Site "S"]
+[Date "2026.02.27"]
+[UTCTime "12:00:00"]
+[White "W"]
+[Black "B"]
+[Result "*"]
+
+1. e4 (1. d4 d5 (1... Nf6) {inner}) e5 *
+"#;
+
+        let mut importer = Importer::new(None);
+        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
+            .into_iter(&mut importer)
+            .flatten()
+            .flatten()
+            .collect();
+
+        assert_eq!(games.len(), 1);
+        let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
+
+        assert_eq!(movetext, "1. e4 (1. d4 d5 (1... Nf6) {inner}) 1... e5");
+    }
+
+    #[test]
+    fn importer_handles_symbolic_and_numeric_nags() {
+        let pgn = r#"[Event "T"]
+[Site "S"]
+[Date "2026.02.27"]
+[UTCTime "12:00:00"]
+[White "W"]
+[Black "B"]
+[Result "*"]
+
+1. e4! (1. d4 $2) e5 $1 *
+"#;
+
+        let mut importer = Importer::new(None);
+        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
+            .into_iter(&mut importer)
+            .flatten()
+            .flatten()
+            .collect();
+
+        assert_eq!(games.len(), 1);
+        let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
+        assert_eq!(movetext, "1. e4! (1. d4?) 1... e5!");
     }
 }
