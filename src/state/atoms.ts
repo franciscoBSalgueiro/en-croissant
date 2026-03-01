@@ -50,9 +50,7 @@ import { getEnginesDir } from "../utils/directories";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage } from "./utils";
 
-const zodArray = <Input, Output>(
-  itemSchema: z.ZodType<Output, Input>,
-) => {
+const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, Input>) => {
   const catchValue = {} as never;
 
   const res = z
@@ -544,8 +542,8 @@ export const currentGameIdAtom = tabValue(gameIdFamily);
 // Practice
 
 const reviewLogSchema = z.looseObject({
-    fen: z.string(),
-  });
+  fen: z.string(),
+});
 
 const practiceDataSchema = z.object({
   positions: positionSchema.array(),
