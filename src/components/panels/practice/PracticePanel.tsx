@@ -64,6 +64,7 @@ function PracticePanel() {
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
   const goToMove = useStore(store, (s) => s.goToMove);
+  const setPracticePath = useStore(store, (s) => s.setPracticePath);
   const currentFen = useStore(store, (s) => s.currentNode().fen);
 
   const currentTab = useAtomValue(currentTabAtom);
@@ -125,9 +126,12 @@ function PracticePanel() {
     const c = getCardForReview(deck.positions);
     if (!c) {
       setPracticeState({ phase: "idle" });
+      setPracticePath(null);
       return;
     }
-    goToMove(findFen(c.fen, root));
+    const path = findFen(c.fen, root);
+    goToMove(path);
+    setPracticePath(path);
     setInvisible(true);
     setCardStartTime(Date.now());
     setPracticeState({ phase: "waiting", currentFen: c.fen });
@@ -135,6 +139,7 @@ function PracticePanel() {
     deck.positions,
     root,
     goToMove,
+    setPracticePath,
     setInvisible,
     setCardStartTime,
     setPracticeState,
@@ -545,6 +550,7 @@ function PracticePanel() {
           );
           setDeck({ positions: cards, logs: [] });
           setPracticeState({ phase: "idle" });
+          setPracticePath(null);
           setSessionStats({
             correct: 0,
             incorrect: 0,
