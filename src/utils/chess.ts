@@ -430,7 +430,10 @@ function innerParsePGN(
         root.clock = comment.clock;
       }
 
-      root.comment = comment.text;
+      // Strip [%timestamp N] annotations (chess.com export format) from comment text
+      root.comment = comment.text
+        .replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ")
+        .trim();
     } else if (token.type === "ParenOpen") {
       const variation = [];
       let subvariations = 0;
