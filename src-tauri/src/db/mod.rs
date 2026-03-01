@@ -404,14 +404,16 @@ impl Visitor for Importer {
         // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
 
         self.frames.clear();
-        self.frames.push(ImportFrame::new(self.game.position.clone()));
+        self.frames
+            .push(ImportFrame::new(self.game.position.clone()));
 
         Skip(self.skip)
     }
 
     fn san(&mut self, san: SanPlus) {
         if self.frames.is_empty() {
-            self.frames.push(ImportFrame::new(self.game.position.clone()));
+            self.frames
+                .push(ImportFrame::new(self.game.position.clone()));
         }
 
         let is_mainline = self.frames.len() == 1;
@@ -445,7 +447,8 @@ impl Visitor for Importer {
 
     fn begin_variation(&mut self) -> Skip {
         if self.frames.is_empty() {
-            self.frames.push(ImportFrame::new(self.game.position.clone()));
+            self.frames
+                .push(ImportFrame::new(self.game.position.clone()));
         }
 
         let parent = self.frames.last().unwrap();
@@ -1858,7 +1861,7 @@ mod tests {
         assert_eq!(games.len(), 1);
         let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
 
-        assert_eq!(movetext, "e4 (d4 d5 (Nf6) {inner}) e5");
+        assert_eq!(movetext, "1. e4 (1. d4 d5 (1... Nf6) {inner}) 1... e5");
     }
 
     #[test]
@@ -1883,6 +1886,6 @@ mod tests {
 
         assert_eq!(games.len(), 1);
         let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
-        assert_eq!(movetext, "e4! (d4?) e5!");
+        assert_eq!(movetext, "1. e4! (1. d4?) 1... e5!");
     }
 }

@@ -70,10 +70,9 @@ impl Iterator for MainlineMoveBytesIter<'_> {
                     if self.cursor + 2 > self.bytes.len() {
                         return None;
                     }
-                    let len = u16::from_le_bytes([
-                        self.bytes[self.cursor],
-                        self.bytes[self.cursor + 1],
-                    ]) as usize;
+                    let len =
+                        u16::from_le_bytes([self.bytes[self.cursor], self.bytes[self.cursor + 1]])
+                            as usize;
                     self.cursor += 2;
                     self.cursor = self.cursor.saturating_add(len).min(self.bytes.len());
                 }
@@ -81,10 +80,9 @@ impl Iterator for MainlineMoveBytesIter<'_> {
                     if self.cursor + 2 > self.bytes.len() {
                         return None;
                     }
-                    let len = u16::from_le_bytes([
-                        self.bytes[self.cursor],
-                        self.bytes[self.cursor + 1],
-                    ]) as usize;
+                    let len =
+                        u16::from_le_bytes([self.bytes[self.cursor], self.bytes[self.cursor + 1]])
+                            as usize;
                     self.cursor += 2;
                     self.cursor = self.cursor.saturating_add(len).min(self.bytes.len());
                 }
@@ -173,8 +171,8 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
                 if cursor + 2 > moves_bytes.len() {
                     return Err(invalid_data("Truncated comment length marker"));
                 }
-                let len = u16::from_le_bytes([moves_bytes[cursor], moves_bytes[cursor + 1]])
-                    as usize;
+                let len =
+                    u16::from_le_bytes([moves_bytes[cursor], moves_bytes[cursor + 1]]) as usize;
                 cursor += 2;
                 if cursor + len > moves_bytes.len() {
                     return Err(invalid_data("Truncated comment payload"));
@@ -191,8 +189,8 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
                 if cursor + 2 > moves_bytes.len() {
                     return Err(invalid_data("Truncated NAG length marker"));
                 }
-                let len = u16::from_le_bytes([moves_bytes[cursor], moves_bytes[cursor + 1]])
-                    as usize;
+                let len =
+                    u16::from_le_bytes([moves_bytes[cursor], moves_bytes[cursor + 1]]) as usize;
                 cursor += 2;
                 if cursor + len > moves_bytes.len() {
                     return Err(invalid_data("Truncated NAG payload"));
@@ -229,16 +227,62 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
     Ok(DecodedGame { nodes: root.nodes })
 }
 
-fn render_nodes(nodes: &[DecodedGameNode]) -> String {
+#[derive(Clone, Copy)]
+struct RenderState {
+    move_number: u32,
+    white_to_move: bool,
+}
+
+fn parse_initial_render_state(initial_fen: &Fen) -> RenderState {
+    let fen_string = initial_fen.to_string();
+    let mut fields = fen_string.split_whitespace();
+
+    let _board = fields.next();
+    let side_to_move = fields.next().unwrap_or("w");
+    let move_number = fields
+        .nth(3)
+        .and_then(|field| field.parse::<u32>().ok())
+        .unwrap_or(1);
+
+    RenderState {
+        move_number,
+        white_to_move: side_to_move == "w",
+    }
+}
+
+fn render_nodes(nodes: &[DecodedGameNode], state: &mut RenderState) -> String {
     let mut out = String::new();
     let mut prev_was_move = false;
+    let mut last_pre_move_state = None;
+    let mut has_emitted_move = false;
+    let mut force_black_prefix = false;
     for node in nodes {
         match node {
             DecodedGameNode::Move(san) => {
                 if !out.is_empty() {
                     out.push(' ');
                 }
-                out.push_str(san);
+
+                let pre_move_state = *state;
+
+                if state.white_to_move {
+                    out.push_str(&state.move_number.to_string());
+                    out.push_str(". ");
+                    out.push_str(san);
+                    state.white_to_move = false;
+                } else {
+                    if !has_emitted_move || force_black_prefix {
+                        out.push_str(&state.move_number.to_string());
+                        out.push_str("... ");
+                    }
+                    out.push_str(san);
+                    state.white_to_move = true;
+                    state.move_number = state.move_number.saturating_add(1);
+                }
+
+                last_pre_move_state = Some(pre_move_state);
+                has_emitted_move = true;
+                force_black_prefix = false;
                 prev_was_move = true;
             }
             DecodedGameNode::Nag(nag) => {
@@ -281,8 +325,10 @@ fn render_nodes(nodes: &[DecodedGameNode]) -> String {
                     out.push(' ');
                 }
                 out.push('(');
-                out.push_str(&render_nodes(children));
+                let mut variation_state = last_pre_move_state.unwrap_or(*state);
+                out.push_str(&render_nodes(children, &mut variation_state));
                 out.push(')');
+                force_black_prefix = true;
                 prev_was_move = false;
             }
         }
@@ -291,8 +337,10 @@ fn render_nodes(nodes: &[DecodedGameNode]) -> String {
 }
 
 pub fn decode_game_to_movetext(moves_bytes: &[u8], initial_fen: Fen) -> Result<String, Error> {
+    let render_state = parse_initial_render_state(&initial_fen);
     let decoded = decode_game(moves_bytes, initial_fen)?;
-    Ok(render_nodes(&decoded.nodes))
+    let mut state = render_state;
+    Ok(render_nodes(&decoded.nodes, &mut state))
 }
 
 pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<Vec<String>, Error> {
@@ -403,7 +451,107 @@ mod tests {
         encode_nag("$1", &mut bytes);
 
         let movetext = decode_game_to_movetext(&bytes, Fen::default()).unwrap();
-        assert_eq!(movetext, "e4! (e4?) e5!");
+        assert_eq!(movetext, "1. e4! (1. e4?) 1... e5!");
+    }
+
+    #[test]
+    fn test_decode_game_plain_mainline() {
+        let mut chess = Chess::default();
+        let mut bytes = Vec::new();
+
+        let first = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E2,
+            to: Square::E4,
+            capture: None,
+            promotion: None,
+        };
+        bytes.push(encode_move(&first, &chess).unwrap());
+        chess.play_unchecked(&first);
+
+        let second = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E7,
+            to: Square::E5,
+            capture: None,
+            promotion: None,
+        };
+        bytes.push(encode_move(&second, &chess).unwrap());
+        chess.play_unchecked(&second);
+
+        let third = Move::Normal {
+            role: Role::Knight,
+            from: Square::G1,
+            to: Square::F3,
+            capture: None,
+            promotion: None,
+        };
+        bytes.push(encode_move(&third, &chess).unwrap());
+        chess.play_unchecked(&third);
+
+        let fourth = Move::Normal {
+            role: Role::Knight,
+            from: Square::B8,
+            to: Square::C6,
+            capture: None,
+            promotion: None,
+        };
+        bytes.push(encode_move(&fourth, &chess).unwrap());
+
+        let movetext = decode_game_to_movetext(&bytes, Fen::default()).unwrap();
+        assert_eq!(movetext, "1. e4 e5 2. Nf3 Nc6");
+    }
+
+    #[test]
+    fn test_decode_game_comment_does_not_force_black_ellipsis() {
+        let mut chess = Chess::default();
+        let mut bytes = Vec::new();
+
+        let white_move = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E2,
+            to: Square::E4,
+            capture: None,
+            promotion: None,
+        };
+        bytes.push(encode_move(&white_move, &chess).unwrap());
+        chess.play_unchecked(&white_move);
+
+        encode_comment("mainline", &mut bytes);
+
+        let black_move = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E7,
+            to: Square::E5,
+            capture: None,
+            promotion: None,
+        };
+        bytes.push(encode_move(&black_move, &chess).unwrap());
+
+        let movetext = decode_game_to_movetext(&bytes, Fen::default()).unwrap();
+        assert_eq!(movetext, "1. e4 {mainline} e5");
+    }
+
+    #[test]
+    fn test_decode_game_starts_with_black_move_numbering() {
+        let initial_fen: Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"
+            .parse()
+            .unwrap();
+        let chess = Chess::from_setup(initial_fen.clone().into(), CastlingMode::Chess960)
+            .or_else(PositionError::ignore_too_much_material)
+            .unwrap();
+
+        let black_pawn_push = Move::Normal {
+            role: Role::Pawn,
+            from: Square::E7,
+            to: Square::E5,
+            capture: None,
+            promotion: None,
+        };
+        let bytes = vec![encode_move(&black_pawn_push, &chess).unwrap()];
+
+        let movetext = decode_game_to_movetext(&bytes, initial_fen).unwrap();
+        assert_eq!(movetext, "1... e5");
     }
 
     #[test]
