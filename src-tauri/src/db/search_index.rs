@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use rkyv::{Archive, Deserialize, Serialize};
 
 const MAGIC: &[u8; 4] = b"ECSI";
-const VERSION: u32 = 3;
+const VERSION: u32 = 4;
 const HEADER_SIZE: usize = 8;
 
 fn verify_header(header: &[u8]) -> io::Result<()> {
@@ -83,6 +83,8 @@ pub struct SearchGameEntry {
     pub pawn_home: u16,
     pub white_material: u8,
     pub black_material: u8,
+    pub white_elo: i16,
+    pub black_elo: i16,
     pub fen: Option<String>,
     pub moves: Vec<u8>,
 }
@@ -146,6 +148,8 @@ pub struct SearchGameEntryRef<'a> {
     pub pawn_home: u16,
     pub white_material: u8,
     pub black_material: u8,
+    pub white_elo: i16,
+    pub black_elo: i16,
     pub fen: Option<&'a str>,
     pub moves: &'a [u8],
 }
@@ -167,6 +171,8 @@ impl<'a> From<&'a ArchivedSearchGameEntry> for SearchGameEntryRef<'a> {
             pawn_home: archived.pawn_home.into(),
             white_material: archived.white_material,
             black_material: archived.black_material,
+            white_elo: archived.white_elo.into(),
+            black_elo: archived.black_elo.into(),
             fen: archived.fen.as_ref().map(|s| s.as_str()),
             moves: &archived.moves,
         }
@@ -185,6 +191,8 @@ impl SearchGameEntry {
         pawn_home: i32,
         white_material: i32,
         black_material: i32,
+        white_elo: Option<i32>,
+        black_elo: Option<i32>,
     ) -> Self {
         Self {
             id,
@@ -195,6 +203,8 @@ impl SearchGameEntry {
             pawn_home: pawn_home as u16,
             white_material: white_material as u8,
             black_material: black_material as u8,
+            white_elo: white_elo.unwrap_or(0) as i16,
+            black_elo: black_elo.unwrap_or(0) as i16,
             fen,
             moves,
         }
@@ -328,6 +338,8 @@ mod tests {
                 pawn_home: 0xFFFF,
                 white_material: 39,
                 black_material: 39,
+                white_elo: 2700,
+                black_elo: 2650,
                 fen: None,
                 moves: vec![12, 12, 9, 9], // e4 e5 Nf3 Nc6
             },
@@ -340,6 +352,8 @@ mod tests {
                 pawn_home: 0xF0F0,
                 white_material: 30,
                 black_material: 28,
+                white_elo: 0,
+                black_elo: 2400,
                 fen: Some(
                     "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2".to_string(),
                 ),
@@ -419,6 +433,8 @@ mod tests {
                 pawn_home: 0xFFFF,
                 white_material: 39,
                 black_material: 39,
+                white_elo: 2000 + (i % 800) as i16,
+                black_elo: 1900 + (i % 700) as i16,
                 fen: if i % 3 == 0 {
                     Some("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string())
                 } else {
@@ -456,6 +472,8 @@ mod tests {
                 pawn_home: 0,
                 white_material: 0,
                 black_material: 0,
+                white_elo: 0,
+                black_elo: 0,
                 fen: None,
                 moves: vec![],
             });
