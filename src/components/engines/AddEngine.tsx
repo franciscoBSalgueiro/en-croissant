@@ -26,7 +26,6 @@ import {
   isLocalEngine,
   type LocalEngine,
   type RemoteEngine,
-  requiredEngineSettings,
   useDefaultEngines,
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
@@ -236,13 +235,7 @@ function EngineCard({
           type: "local",
           path: enginePath,
           loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
+          settings: [],
         },
       ]);
     },

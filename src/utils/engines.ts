@@ -10,8 +10,6 @@ import {
 } from "@/bindings";
 import { unwrap } from "./unwrap";
 
-export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
-
 const goModeSchema: z.ZodType<GoMode> = z.union([
   z.object({
     t: z.literal("Depth"),
@@ -96,8 +94,8 @@ const rawEngineSchema = z.discriminatedUnion("type", [
 export const engineSchema = z.preprocess((val) => {
   // Migration logic: default to 'uci' for old local engine missing 'runtime'
   if (
-    val && 
-    typeof val === "object" && 
+    val &&
+    typeof val === "object" &&
     "type" in val &&
     val.type === "local" &&
     !("runtime" in val)

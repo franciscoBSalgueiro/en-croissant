@@ -45,7 +45,6 @@ import {
   engineSchema,
   isUciEngine,
   type LocalEngine,
-  requiredEngineSettings,
 } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
@@ -243,31 +242,6 @@ function EngineSettings({
     });
   }
 
-  useEffect(() => {
-    if (options) {
-      const settings = [...(engine.settings || [])];
-      const missing = requiredEngineSettings.filter(
-        (field) => !settings.find((setting) => setting.name === field),
-      );
-      for (const field of requiredEngineSettings) {
-        if (!settings.find((setting) => setting.name === field)) {
-          const option = options.options.find(
-            (option) => option.value.name === field,
-          );
-          if (option && option.type !== "button") {
-            settings.push({
-              name: field,
-              value: option.value.default as string | number | boolean | null,
-            });
-          }
-        }
-      }
-      if (missing.length > 0) {
-        setEngine({ ...engine, settings });
-      }
-    }
-  }, [options]);
-
   const completeOptions =
     options?.options
       .filter((option) => option.type !== "button")
@@ -309,7 +283,7 @@ function EngineSettings({
     } else {
       newSettings.push({ name, value });
     }
-    if (value !== def || requiredEngineSettings.includes(name)) {
+    if (value !== def) {
       setEngine({
         ...engine,
         settings: newSettings,
@@ -509,19 +483,7 @@ function EngineSettings({
             onClick={() =>
               setEngine({
                 ...engine,
-                settings: options?.options
-                  .filter((option) =>
-                    requiredEngineSettings.includes(option.value.name),
-                  )
-                  .filter((option) => option.type !== "button")
-                  .map((option) => ({
-                    name: option.value.name,
-                    value: option.value.default as
-                      | string
-                      | number
-                      | boolean
-                      | null,
-                  })),
+                settings: [],
               })
             }
           >
