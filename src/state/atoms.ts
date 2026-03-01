@@ -6,6 +6,7 @@ import {
   readTextFile,
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
+import { warn } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
@@ -49,17 +50,18 @@ import { genID, type Tab, tabSchema } from "@/utils/tabs";
 import { getEnginesDir } from "../utils/directories";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage } from "./utils";
-import { warn } from "@tauri-apps/plugin-log";
 
 const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, Input>) => {
   const catchValue = {} as never;
 
   const res = z
-    .array(itemSchema.catch((ctx) => {
+    .array(
+      itemSchema.catch((ctx) => {
         // Log the actual Zod error here
-        warn(`Dropped invalid item: ${ctx.issues}`); 
+        warn(`Dropped invalid item: ${ctx.issues}`);
         return catchValue;
-      }))
+      }),
+    )
     .transform((a) => a.filter((o): o is Output => o !== catchValue))
     .catch([]);
 
