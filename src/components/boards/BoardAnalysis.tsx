@@ -101,6 +101,13 @@ function BoardAnalysis() {
   const practiceState = useAtomValue(practiceStateAtom);
   const isPracticeRating = practicing && practiceState.phase === "correct";
 
+  const setPracticePath = useStore(store, (s) => s.setPracticePath);
+  useEffect(() => {
+    if (!practicing) {
+      setPracticePath(null);
+    }
+  }, [practicing, setPracticePath]);
+
   useHotkeys([
     [keyMap.SAVE_FILE.keys, () => saveFile()],
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
