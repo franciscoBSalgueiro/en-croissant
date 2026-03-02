@@ -13,49 +13,11 @@ import { useAtomValue } from "jotai";
 import { memo, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import Comment from "@/components/common/Comment";
 import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
-import { hasMorePriority, stripClock } from "@/utils/chess";
-import { type TreeNode, treeIterator } from "@/utils/treeReducer";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
-
-const transpositionCache = new WeakMap<TreeNode, Map<string, number[][]>>();
-
-function getTranspositionMap(root: TreeNode) {
-  if (transpositionCache.has(root)) {
-    return transpositionCache.get(root)!;
-  }
-
-  const map = new Map<string, number[][]>();
-  const iterator = treeIterator(root);
-
-  for (const item of iterator) {
-    const strippedFen = stripClock(item.node.fen);
-    if (!map.has(strippedFen)) {
-      map.set(strippedFen, []);
-    }
-    map.get(strippedFen)!.push(item.position);
-  }
-
-  transpositionCache.set(root, map);
-  return map;
-}
-
-function getTranspositions(fen: string, position: number[], root: TreeNode) {
-  if (position.length === 0 || position.every((v) => v === 0)) return [];
-
-  const map = getTranspositionMap(root);
-  const strippedFen = stripClock(fen);
-
-  const matchingPositions = map.get(strippedFen) || [];
-
-  return matchingPositions.filter(
-    (targetPosition) => !hasMorePriority(position, targetPosition),
-  );
-}
 
 function CompleteMoveCell({
   movePath,
@@ -65,6 +27,9 @@ function CompleteMoveCell({
   comment,
   annotations,
   showComments,
+  isCurrentVariation,
+  isStart,
+  transpositions,
   first,
   targetRef,
   tableLayout,
@@ -74,6 +39,9 @@ function CompleteMoveCell({
   comment: string;
   annotations: Annotation[];
   showComments: boolean;
+  isCurrentVariation: boolean;
+  isStart: boolean;
+  transpositions: number[][];
   move?: string | null;
   fen?: string;
   first?: boolean;
@@ -83,16 +51,6 @@ function CompleteMoveCell({
   scoreText?: string;
 }) {
   const store = useContext(TreeStateContext)!;
-  const isStart = useStore(store, (s) => equal(movePath, s.headers.start));
-
-  const isCurrentVariation = useStore(store, (s) =>
-    equal(s.position, movePath),
-  );
-  const transpositions = useStoreWithEqualityFn(
-    store,
-    (s) => (fen ? getTranspositions(fen, movePath, s.root) : []),
-    (a, b) => equal(a, b),
-  );
   const goToMove = useStore(store, (s) => s.goToMove);
   const deleteMove = useStore(store, (s) => s.deleteMove);
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
@@ -211,6 +169,9 @@ export default memo(CompleteMoveCell, (prev, next) => {
     prev.comment === next.comment &&
     equal(prev.annotations, next.annotations) &&
     prev.showComments === next.showComments &&
+    prev.isCurrentVariation === next.isCurrentVariation &&
+    prev.isStart === next.isStart &&
+    equal(prev.transpositions, next.transpositions) &&
     prev.first === next.first &&
     equal(prev.movePath, next.movePath) &&
     prev.halfMoves === next.halfMoves &&
