@@ -132,6 +132,10 @@ impl EngineProcess {
         self.running = false;
         Ok(())
     }
+
+    pub fn kill_sync(&mut self) {
+        self.base.kill_sync();
+    }
 }
 
 #[derive(Clone, Serialize, Debug, Derivative, Type)]
