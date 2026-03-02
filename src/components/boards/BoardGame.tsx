@@ -256,7 +256,7 @@ function BoardGame() {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
       path: settings.engine?.path ?? "",
-      options: (settings.engine?.settings ?? [])
+      options: (settings.engineSettings ?? settings.engine?.settings ?? [])
         .filter((s) => s.name !== "MultiPV")
         .map((s) => ({
           name: s.name,
