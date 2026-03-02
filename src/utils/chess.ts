@@ -330,14 +330,11 @@ export function getPGN(
 
 export function parseKeyboardMove(san: string, fen: string) {
   function cleanSan(san: string) {
-    if (san.length > 2) {
-      const cleanedSan = san
-        .replace(/^([kqbnr])/i, (_, match) => match.toUpperCase())
-        .replace("o-o-o", "O-O-O")
-        .replace("o-o", "O-O");
-      return cleanedSan;
-    }
-    return san;
+    // Normalize castling: O, o, or 0 with optional hyphens
+    if (/^[oO0]-?[oO0]-?[oO0]$/.test(san)) return "O-O-O";
+    if (/^[oO0]-?[oO0]$/.test(san)) return "O-O";
+    // Uppercase piece letters for non-castling moves
+    return san.replace(/^([kqbnr])/i, (_, match) => match.toUpperCase());
   }
 
   const [pos] = positionFromFen(fen);
@@ -433,7 +430,10 @@ function innerParsePGN(
         root.clock = comment.clock;
       }
 
-      root.comment = comment.text;
+      // Strip [%timestamp N] annotations (chess.com export format) from comment text
+      root.comment = comment.text
+        .replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ")
+        .trim();
     } else if (token.type === "ParenOpen") {
       const variation = [];
       let subvariations = 0;

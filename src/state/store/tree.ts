@@ -84,6 +84,9 @@ export interface TreeStoreState extends TreeState {
 
   setReportInProgress: (value: boolean) => void;
 
+  practicePath: number[] | null;
+  setPracticePath: (path: number[] | null) => void;
+
   setState: (state: TreeState) => void;
   reset: () => void;
   save: () => void;
@@ -97,6 +100,9 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
     currentNode: () => getNodeAtPath(get().root, get().position),
     getNode: (path: number[]) => getNodeAtPath(get().root, path),
+
+    practicePath: null,
+    setPracticePath: (path) => set({ practicePath: path }),
 
     setState: (state) => {
       set(() => state);
@@ -125,18 +131,28 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
     goToNext: () =>
       set((state) => {
-        const node = getNodeAtPath(state.root, state.position);
-        const [pos] = positionFromFen(node.fen);
-        if (!pos || !node.children[0]?.move) return state;
-        const san = makeSan(pos, node.children[0].move);
-        playSound(san.includes("x"), san.includes("+"));
-        if (node && node.children.length > 0) {
-          return {
-            ...state,
-            position: [...state.position, 0],
-          };
+        const { practicePath } = state;
+
+        // In practice mode, block navigation past the drill position
+        if (practicePath && state.position.length >= practicePath.length) {
+          return state;
         }
-        return state;
+
+        // In practice mode, follow the drill path; otherwise take first child
+        const childIndex = practicePath
+          ? practicePath[state.position.length]
+          : 0;
+
+        const node = getNodeAtPath(state.root, state.position);
+        if (!node || !node.children[childIndex]?.move) return state;
+        const [pos] = positionFromFen(node.fen);
+        if (!pos) return state;
+        const san = makeSan(pos, node.children[childIndex].move);
+        playSound(san.includes("x"), san.includes("+"));
+        return {
+          ...state,
+          position: [...state.position, childIndex],
+        };
       }),
     goToPrevious: () =>
       set((state) => ({
