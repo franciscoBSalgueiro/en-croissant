@@ -159,4 +159,14 @@ impl BaseEngine {
         }
         Err(Error::EngineDisconnected)
     }
+
+    pub fn kill_sync(&mut self) {
+        let _ = self.child.start_kill();
+    }
+}
+
+impl Drop for BaseEngine {
+    fn drop(&mut self) {
+        let _ = self.child.start_kill();
+    }
 }
