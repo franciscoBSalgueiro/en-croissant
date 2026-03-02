@@ -1508,6 +1508,33 @@ pub async fn delete_database(
     Ok(())
 }
 
+fn delete_orphaned_data(db: &mut SqliteConnection) -> Result<(), Error> {
+    db.batch_execute(
+        "
+        DELETE FROM Players WHERE ID != 0 AND ID NOT IN (
+            SELECT WhiteID FROM Games UNION SELECT BlackID FROM Games
+        );
+        DELETE FROM Events WHERE ID != 0 AND ID NOT IN (
+            SELECT EventID FROM Games
+        );
+        DELETE FROM Sites WHERE ID != 0 AND ID NOT IN (
+            SELECT SiteID FROM Games
+        );
+        ",
+    )?;
+
+    let player_count: i64 = players::table.count().get_result(db)?;
+    update_info_count(db, "PlayerCount", player_count)?;
+
+    let event_count: i64 = events::table.count().get_result(db)?;
+    update_info_count(db, "EventCount", event_count)?;
+
+    let site_count: i64 = sites::table.count().get_result(db)?;
+    update_info_count(db, "SiteCount", site_count)?;
+
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_duplicated_games(
@@ -1533,6 +1560,7 @@ pub async fn delete_duplicated_games(
 
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
+    delete_orphaned_data(db)?;
 
     Ok(())
 }
@@ -1549,6 +1577,7 @@ pub async fn delete_empty_games(
 
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
+    delete_orphaned_data(db)?;
 
     Ok(())
 }
@@ -1715,6 +1744,7 @@ pub async fn delete_db_game(
 
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
+    delete_orphaned_data(db)?;
 
     Ok(())
 }
