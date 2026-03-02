@@ -1894,4 +1894,187 @@ mod tests {
         let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
         assert_eq!(movetext, "1. e4! (1. d4?) 1... e5!");
     }
+
+    fn setup_test_db() -> SqliteConnection {
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
+        conn.batch_execute(CREATE_TABLES_SQL).unwrap();
+        conn
+    }
+
+    #[test]
+    fn delete_orphaned_data_removes_unreferenced_players_events_sites() {
+        let db = &mut setup_test_db();
+
+        // Create players, events, sites
+        let player1 = create_player(db, "Magnus").unwrap();
+        let player2 = create_player(db, "Hikaru").unwrap();
+        let event = create_event(db, "World Championship").unwrap();
+        let site = create_site(db, "Reykjavik").unwrap();
+
+        // Insert a game referencing them
+        let game = create_game(
+            db,
+            NewGame {
+                event_id: event.id,
+                site_id: site.id,
+                white_id: player1.id,
+                black_id: player2.id,
+                white_elo: None,
+                black_elo: None,
+                white_material: 0,
+                black_material: 0,
+                date: None,
+                time: None,
+                round: None,
+                result: None,
+                time_control: None,
+                eco: None,
+                ply_count: 10,
+                fen: None,
+                moves: &[],
+                pawn_home: 0,
+            },
+        )
+        .unwrap();
+
+        // Verify everything exists: 3 players (Unknown + 2), 2 events, 2 sites
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 3);
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 2);
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 2);
+
+        // Delete the game
+        diesel::delete(games::table.filter(games::id.eq(game.id)))
+            .execute(db)
+            .unwrap();
+
+        // Before fix: orphans would remain. Call our cleanup function.
+        delete_orphaned_data(db).unwrap();
+
+        // Players: only the sentinel "Unknown" (ID=0) should remain
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 1, "Orphaned players should be deleted");
+
+        let remaining_player: Player = players::table.first(db).unwrap();
+        assert_eq!(remaining_player.id, 0, "Only the Unknown player should remain");
+
+        // Events: only the sentinel should remain
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 1, "Orphaned events should be deleted");
+
+        // Sites: only the sentinel should remain
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 1, "Orphaned sites should be deleted");
+
+        // Info table counts should be updated
+        let pc: String = info::table
+            .filter(info::name.eq("PlayerCount"))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
+            .unwrap();
+        assert_eq!(pc, "1");
+
+        let ec: String = info::table
+            .filter(info::name.eq("EventCount"))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
+            .unwrap();
+        assert_eq!(ec, "1");
+
+        let sc: String = info::table
+            .filter(info::name.eq("SiteCount"))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
+            .unwrap();
+        assert_eq!(sc, "1");
+    }
+
+    #[test]
+    fn delete_orphaned_data_preserves_referenced_records() {
+        let db = &mut setup_test_db();
+
+        // Create players, events, sites for two games
+        let magnus = create_player(db, "Magnus").unwrap();
+        let hikaru = create_player(db, "Hikaru").unwrap();
+        let fabiano = create_player(db, "Fabiano").unwrap();
+        let event1 = create_event(db, "World Championship").unwrap();
+        let event2 = create_event(db, "Candidates").unwrap();
+        let site1 = create_site(db, "Reykjavik").unwrap();
+        let site2 = create_site(db, "Toronto").unwrap();
+
+        let make_game = |db: &mut SqliteConnection, w: i32, b: i32, e: i32, s: i32| {
+            create_game(
+                db,
+                NewGame {
+                    event_id: e,
+                    site_id: s,
+                    white_id: w,
+                    black_id: b,
+                    white_elo: None,
+                    black_elo: None,
+                    white_material: 0,
+                    black_material: 0,
+                    date: None,
+                    time: None,
+                    round: None,
+                    result: None,
+                    time_control: None,
+                    eco: None,
+                    ply_count: 10,
+                    fen: None,
+                    moves: &[],
+                    pawn_home: 0,
+                },
+            )
+            .unwrap()
+        };
+
+        // Game 1: Magnus vs Hikaru at World Championship in Reykjavik
+        let game1 = make_game(db, magnus.id, hikaru.id, event1.id, site1.id);
+        // Game 2: Fabiano vs Hikaru at Candidates in Toronto
+        let game2 = make_game(db, fabiano.id, hikaru.id, event2.id, site2.id);
+
+        // Delete only game 1
+        diesel::delete(games::table.filter(games::id.eq(game1.id)))
+            .execute(db)
+            .unwrap();
+        delete_orphaned_data(db).unwrap();
+
+        // Magnus should be gone (only in game 1), but Hikaru and Fabiano should remain
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 3, "Unknown + Hikaru + Fabiano should remain");
+
+        let magnus_exists: i64 = players::table
+            .filter(players::name.eq("Magnus"))
+            .count()
+            .get_result(db)
+            .unwrap();
+        assert_eq!(magnus_exists, 0, "Magnus should be deleted (orphaned)");
+
+        // Event1 and Site1 should be gone, Event2 and Site2 should remain
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 2, "Unknown + Candidates should remain");
+
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 2, "Unknown + Toronto should remain");
+
+        // Delete game 2 — now everything should be orphaned
+        diesel::delete(games::table.filter(games::id.eq(game2.id)))
+            .execute(db)
+            .unwrap();
+        delete_orphaned_data(db).unwrap();
+
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 1, "Only Unknown should remain");
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 1, "Only Unknown should remain");
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 1, "Only Unknown should remain");
+    }
 }
