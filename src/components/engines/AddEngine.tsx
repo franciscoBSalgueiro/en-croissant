@@ -226,7 +226,6 @@ function EngineCard({
       }
       const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
-      const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
         ...(await prev),
         {
