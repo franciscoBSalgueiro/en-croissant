@@ -1,7 +1,16 @@
 import type { Key } from "@lichess-org/chessground/types";
-import { ActionIcon, Box, Flex, Portal, Table } from "@mantine/core";
+import {
+  ActionIcon,
+  Box,
+  CopyButton,
+  Flex,
+  Portal,
+  rem,
+  Table,
+  Tooltip,
+} from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
-import { IconChevronDown } from "@tabler/icons-react";
+import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
@@ -13,6 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
@@ -24,6 +34,7 @@ import {
   scoreTypeFamily,
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
+import { formatScore } from "@/utils/score";
 import ScoreBubble from "./ScoreBubble";
 
 function AnalysisRow({
@@ -44,14 +55,18 @@ function AnalysisRow({
   orientation: "white" | "black";
 }) {
   const [open, setOpen] = useState<boolean>(false);
+  const { t } = useTranslation();
 
-  if (!open) {
-    moves = moves.slice(0, 12);
-  }
+  const allMoves = moves;
+  const visibleMoves = open ? allMoves : allMoves.slice(0, 12);
+  const engineOutput = [engine, formatScore(score.value), allMoves.join(" ")]
+    .filter(Boolean)
+    .join(" ");
+
   const [pos] = positionFromFen(fen);
   const moveInfo = [];
   if (pos) {
-    for (const san of moves) {
+    for (const san of visibleMoves) {
       const move = parseSan(pos, san);
       if (!move) break;
       pos.play(move);
@@ -105,7 +120,7 @@ function AnalysisRow({
                 key={index}
                 san={san}
                 index={index}
-                moves={moves}
+                moves={allMoves}
                 halfMoves={halfMoves}
                 threat={threat}
                 fen={fen}
@@ -116,16 +131,44 @@ function AnalysisRow({
             ))}
           </Flex>
         </Table.Td>
-        <Table.Th w={10}>
-          <ActionIcon
-            style={{
-              transition: "transform 200ms ease",
-              transform: open ? "rotate(180deg)" : "none",
-            }}
-            onClick={() => setOpen(!open)}
-          >
-            <IconChevronDown size={16} />
-          </ActionIcon>
+        <Table.Th>
+          <Flex direction="column" align="center" gap={4}>
+            <ActionIcon
+              style={{
+                transition: "transform 200ms ease",
+                transform: open ? "rotate(180deg)" : "none",
+              }}
+              onClick={() => setOpen(!open)}
+            >
+              <IconChevronDown size={16} />
+            </ActionIcon>
+            {open && (
+              <CopyButton value={engineOutput} timeout={2000}>
+                {({ copied, copy }) => (
+                  <Tooltip
+                    label={copied ? t("Common.Copied") : t("Menu.Edit.Copy")}
+                    withArrow
+                    position="right"
+                  >
+                    <ActionIcon
+                      color={copied ? "teal" : undefined}
+                      variant="subtle"
+                      onClick={copy}
+                      aria-label={
+                        copied ? t("Common.Copied") : t("Menu.Edit.Copy")
+                      }
+                    >
+                      {copied ? (
+                        <IconCheck style={{ width: rem(16) }} />
+                      ) : (
+                        <IconCopy style={{ width: rem(16) }} />
+                      )}
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+            )}
+          </Flex>
         </Table.Th>
       </Table.Tr>
       <Table.Tr ref={ref} />
