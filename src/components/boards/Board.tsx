@@ -182,7 +182,7 @@ function Board({
   );
 
   const setPracticeState = useSetAtom(practiceStateAtom);
-  const setSessionStats = useSetAtom(practiceSessionStatsAtom);
+  const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
 
   async function makeMove(move: NormalMove) {
@@ -198,7 +198,9 @@ function Board({
       const timeTaken = Date.now() - cardStartTime;
 
       if (san !== c.answer) {
-        updateCardPerformance(setDeck, i, c.card, 1);
+        if (sessionStats.mode !== "full") {
+          updateCardPerformance(setDeck, i, c.card, 1);
+        }
         setPracticeState({
           phase: "incorrect",
           currentFen: c.fen,

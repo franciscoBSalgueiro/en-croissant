@@ -607,6 +607,8 @@ export const practiceStateFamily = atomFamily((tab: string) =>
 export const practiceStateAtom = tabValue(practiceStateFamily);
 
 export type PracticeSessionStats = {
+  mode: "anki" | "full";
+  remainingPositions: number[];
   correct: number;
   incorrect: number;
   streak: number;
@@ -615,6 +617,8 @@ export type PracticeSessionStats = {
 
 const practiceSessionStatsFamily = atomFamily((tab: string) =>
   atom<PracticeSessionStats>({
+    mode: "anki",
+    remainingPositions: [],
     correct: 0,
     incorrect: 0,
     streak: 0,
