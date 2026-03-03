@@ -147,30 +147,18 @@ export function getLastMainlinePosition(root: TreeNode): number[] {
   return position;
 }
 
-export function getMainLine(root: TreeNode, is960: boolean): string[] {
-  return getVariationLine(root, getLastMainlinePosition(root), is960, true);
+export function getMainLine(root: TreeNode): string[] {
+  return getVariationLine(root, getLastMainlinePosition(root), true);
 }
 
-// outputs the correct uci move for castling in chess960 and standard chess
-export function uciNormalize(chess: Chess, move: Move, chess960?: boolean) {
-  const side = castlingSide(chess, move);
+export function uciNormalize(chess: Chess, move: Move) {
   const frcMove = normalizeMove(chess, move);
-  if (side && !chess960) {
-    const standardMove = match(makeUci(frcMove))
-      .with("e1h1", () => "e1g1")
-      .with("e1a1", () => "e1c1")
-      .with("e8h8", () => "e8g8")
-      .with("e8a8", () => "e8c8")
-      .otherwise((v) => v);
-    return standardMove;
-  }
   return makeUci(frcMove);
 }
 
 export function getVariationLine(
   root: TreeNode,
   position: number[],
-  chess960?: boolean,
   includeLastMove = false,
 ): string[] {
   const moves = [];
@@ -182,12 +170,12 @@ export function getVariationLine(
   for (const pos of position) {
     node = node.children[pos];
     if (node.move) {
-      moves.push(uciNormalize(chess, node.move, chess960));
+      moves.push(uciNormalize(chess, node.move));
       chess.play(node.move);
     }
   }
   if (includeLastMove && node.children.length > 0) {
-    moves.push(uciNormalize(chess, node.children[0].move!, chess960));
+    moves.push(uciNormalize(chess, node.children[0].move!));
   }
   return moves;
 }

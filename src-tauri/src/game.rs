@@ -1,9 +1,20 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader},
+    path::PathBuf,
+    sync::Arc,
+    time::Instant,
+};
 
 use dashmap::DashMap;
 use log::{error, info};
+use pgn_reader::{BufferedReader, RawHeader, Skip, Visitor};
+use rand::{seq::IteratorRandom, Rng};
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, Chess, Color, EnPassantMode, Position};
+use shakmaty::{
+    fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position,
+};
 use specta::Type;
 use tauri::AppHandle;
 use tauri_specta::Event;
@@ -51,6 +62,13 @@ pub struct GameConfig {
     pub initial_fen: Option<String>,
     #[serde(default)]
     pub initial_moves: Vec<String>,
+    pub opening_book: Option<OpeningBookConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OpeningBookConfig {
+    pub path: String,
 }
 
 #[derive(Clone, Debug, Serialize, Type, PartialEq)]
@@ -546,13 +564,32 @@ impl GameManager {
             }
         }
 
+        let config = apply_opening_book(config)?;
+        let castling_mode = CastlingMode::detect(
+            config
+                .clone()
+                .initial_fen
+                .unwrap_or_default()
+                .parse::<Fen>()
+                .unwrap_or_default()
+                .as_setup(),
+        );
+
         let mut controller = GameController::new(game_id.clone(), config.clone())?;
 
         if let PlayerConfig::Engine { path, options, .. } = &config.white {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
             for opt in options {
+                if opt.name == "UCI_Chess960" {
+                    continue;
+                }
                 engine.set_option(&opt.name, &opt.value).await?;
+            }
+            if castling_mode.is_chess960() {
+                engine.set_option("UCI_Chess960", "true").await?;
+            } else {
+                engine.set_option("UCI_Chess960", "false").await?;
             }
             controller.white_engine = Some(Arc::new(Mutex::new(engine)));
         }
@@ -561,7 +598,15 @@ impl GameManager {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
             for opt in options {
+                if opt.name == "UCI_Chess960" {
+                    continue;
+                }
                 engine.set_option(&opt.name, &opt.value).await?;
+            }
+            if castling_mode.is_chess960() {
+                engine.set_option("UCI_Chess960", "true").await?;
+            } else {
+                engine.set_option("UCI_Chess960", "false").await?;
             }
             controller.black_engine = Some(Arc::new(Mutex::new(engine)));
         }
@@ -786,6 +831,191 @@ impl Default for GameManager {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Clone, Debug)]
+struct OpeningBookSelection {
+    initial_fen: String,
+    initial_moves: Vec<String>,
+}
+
+fn select_random_epd_entry(path: &str) -> Result<OpeningBookSelection, Error> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let mut rng = rand::thread_rng();
+
+    let selected_line = reader
+        .lines()
+        .map_while(Result::ok)
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .choose(&mut rng)
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Opening book EPD has no entries",
+            )
+        })?;
+
+    Ok(OpeningBookSelection {
+        initial_fen: selected_line,
+        initial_moves: Vec::new(),
+    })
+}
+
+struct OpeningBookPgnVisitor {
+    selected: Option<OpeningBookSelection>,
+    seen: usize,
+    current_position: Chess,
+    initial_position: Chess,
+    castling_mode: CastlingMode,
+    initial_fen: Option<String>,
+    moves: Vec<String>,
+    skip: bool,
+}
+
+impl OpeningBookPgnVisitor {
+    fn new() -> Self {
+        let start = Chess::default();
+        Self {
+            selected: None,
+            seen: 0,
+            current_position: start.clone(),
+            initial_position: start,
+            castling_mode: CastlingMode::Standard,
+            initial_fen: None,
+            moves: Vec::new(),
+            skip: false,
+        }
+    }
+}
+
+impl Visitor for OpeningBookPgnVisitor {
+    type Result = Option<OpeningBookSelection>;
+
+    fn begin_game(&mut self) {
+        let start = Chess::default();
+        self.current_position = start.clone();
+        self.initial_position = start;
+        self.castling_mode = CastlingMode::Standard;
+        self.initial_fen = None;
+        self.moves.clear();
+        self.skip = false;
+    }
+
+    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
+        if key == b"FEN" {
+            let fen_text = value.decode_utf8_lossy().into_owned();
+            match parse_fen_to_position(&fen_text) {
+                Ok(position) => {
+                    let parsed_fen: Fen = match fen_text.parse() {
+                        Ok(fen) => fen,
+                        Err(_) => {
+                            self.skip = true;
+                            return;
+                        }
+                    };
+                    self.current_position = position.clone();
+                    self.initial_position = position;
+                    self.castling_mode = CastlingMode::detect(parsed_fen.as_setup());
+                    self.initial_fen = Some(fen_text);
+                }
+                Err(_) => {
+                    self.skip = true;
+                }
+            }
+        }
+    }
+
+    fn end_headers(&mut self) -> Skip {
+        Skip(self.skip)
+    }
+
+    fn san(&mut self, san: SanPlus) {
+        if self.skip {
+            return;
+        }
+
+        let mv = match san.san.to_move(&self.current_position) {
+            Ok(mv) => mv,
+            Err(_) => {
+                self.skip = true;
+                return;
+            }
+        };
+
+        let uci = UciMove::from_move(&mv, self.castling_mode).to_string();
+        self.moves.push(uci);
+        self.current_position.play_unchecked(&mv);
+    }
+
+    fn end_game(&mut self) -> Self::Result {
+        if self.skip || self.moves.is_empty() {
+            return None;
+        }
+
+        let initial_fen = self.initial_fen.clone().unwrap_or_else(|| {
+            Fen::from_position(self.initial_position.clone(), EnPassantMode::Legal).to_string()
+        });
+
+        let candidate = OpeningBookSelection {
+            initial_fen,
+            initial_moves: self.moves.clone(),
+        };
+
+        self.seen += 1;
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0..self.seen) == 0 {
+            self.selected = Some(candidate.clone());
+        }
+
+        Some(candidate)
+    }
+}
+
+fn select_random_pgn_entry(path: &str) -> Result<OpeningBookSelection, Error> {
+    let file = File::open(path)?;
+    let mut reader = BufferedReader::new(file);
+    let mut visitor = OpeningBookPgnVisitor::new();
+
+    while reader.read_game(&mut visitor)?.is_some() {}
+
+    visitor.selected.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Opening book PGN has no valid games",
+        )
+        .into()
+    })
+}
+
+fn apply_opening_book(config: GameConfig) -> Result<GameConfig, Error> {
+    let Some(opening_book) = &config.opening_book else {
+        return Ok(config);
+    };
+
+    let ext = PathBuf::from(&opening_book.path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase());
+
+    let selection = match ext.as_deref() {
+        Some("epd") => select_random_epd_entry(&opening_book.path)?,
+        Some("pgn") => select_random_pgn_entry(&opening_book.path)?,
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Unsupported opening book format. Use .pgn or .epd",
+            )
+            .into())
+        }
+    };
+
+    let mut next = config;
+    next.initial_fen = Some(selection.initial_fen);
+    next.initial_moves = selection.initial_moves;
+    Ok(next)
 }
 
 fn spawn_engine_task(

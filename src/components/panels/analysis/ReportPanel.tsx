@@ -42,8 +42,7 @@ function ReportPanel() {
       <ReportModal
         tab={activeTab!}
         initialFen={root.fen}
-        moves={getMainLine(root, headers.variant === "Chess960")}
-        is960={headers.variant === "Chess960"}
+        moves={getMainLine(root)}
         reportingMode={reportingMode}
         toggleReportingMode={toggleReportingMode}
         setInProgress={setInProgress}

@@ -3,7 +3,9 @@ use diesel::prelude::*;
 use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, FromSetup, Position, Setup};
+use shakmaty::{
+    fen::Fen, san::SanPlus, Bitboard, ByColor, CastlingMode, Chess, FromSetup, Position, Setup,
+};
 use specta::Type;
 use std::{
     cmp::Reverse,
@@ -55,8 +57,10 @@ pub enum PositionQuery {
 
 impl PositionQuery {
     pub fn exact_from_fen(fen: &str) -> Result<PositionQuery, Error> {
-        let position: Chess =
-            Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Chess960)?;
+        let fen = Fen::from_ascii(fen.as_bytes())?;
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        let position: Chess = setup.position(castling_mode)?;
         let pawn_home = get_pawn_home(position.board());
         let material = get_material_count(position.board());
         Ok(PositionQuery::Exact(ExactData {
@@ -165,7 +169,9 @@ fn get_move_after_match(
 ) -> Result<Option<String>, Error> {
     let mut chess = if let Some(fen) = fen {
         let fen = Fen::from_ascii(fen.as_bytes())?;
-        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)?
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        Chess::from_setup(setup, castling_mode)?
     } else {
         Chess::default()
     };

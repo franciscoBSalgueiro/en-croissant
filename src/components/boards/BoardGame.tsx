@@ -20,6 +20,7 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
@@ -51,6 +52,7 @@ import {
   currentGameStateAtom,
   currentPlayersAtom,
   gameInputColorAtom,
+  gameOpeningBookPathAtom,
   gamePlayer1SettingsAtom,
   gamePlayer2SettingsAtom,
   gameSameTimeControlAtom,
@@ -60,6 +62,7 @@ import { positionFromFen } from "@/utils/chessops";
 import type { GameHeaders } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../common/EngineLogsView";
+import FileInput from "../common/FileInput";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -146,6 +149,9 @@ function BoardGame() {
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
   const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
+  const [openingBookPath, setOpeningBookPath] = useAtom(
+    gameOpeningBookPathAtom,
+  );
 
   const hasEngine =
     players.white.type === "engine" || players.black.type === "engine";
@@ -304,6 +310,7 @@ function BoardGame() {
         : null,
       initialFen: root.fen === INITIAL_FEN ? null : root.fen,
       initialMoves,
+      openingBook: openingBookPath ? { path: openingBookPath } : null,
     } as GameConfig;
 
     try {
@@ -314,6 +321,17 @@ function BoardGame() {
       setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
 
       setGameState("playing");
+
+      setFen(state.initialFen);
+      for (const move of mapBackendMoves(state.moves)) {
+        const parsed = parseUci(move.uci);
+        if (parsed) {
+          appendMove({
+            payload: parsed,
+            clock: move.clock ?? undefined,
+          });
+        }
+      }
 
       const now = new Date();
       const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ".");
@@ -363,7 +381,7 @@ function BoardGame() {
       setHeaders({
         ...headers,
         ...newHeaders,
-        fen: root.fen,
+        fen: state.initialFen,
       });
 
       setTabs((prev) =>
@@ -567,6 +585,22 @@ function BoardGame() {
     });
   }
 
+  async function handleSelectOpeningBook() {
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Opening Book",
+          extensions: ["pgn", "epd"],
+        },
+      ],
+    });
+
+    if (typeof selected === "string") {
+      setOpeningBookPath(selected);
+    }
+  }
+
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -674,6 +708,13 @@ function BoardGame() {
                           }));
                         }
                       }}
+                    />
+
+                    <FileInput
+                      label="Opening book (.pgn/.epd)"
+                      description={t("Import.PGN.ClickToSelect")}
+                      filename={openingBookPath}
+                      onClick={handleSelectOpeningBook}
                     />
 
                     <Group>

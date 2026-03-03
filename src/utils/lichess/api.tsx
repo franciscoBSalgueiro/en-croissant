@@ -271,15 +271,7 @@ export async function getBestMoves(
       const sanMoves = uciMoves.map((m) => {
         const move = parseUci(m)!;
         const san = makeSan(posCopy, move);
-        normalizedUciMoves.push(
-          uciNormalize(
-            posCopy,
-            move,
-            options.extraOptions.some(
-              (o) => o.name === "UCI_Chess960" && o.value === "true",
-            ),
-          ),
-        );
+        normalizedUciMoves.push(uciNormalize(posCopy, move));
         posCopy.play(move);
         return san;
       });

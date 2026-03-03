@@ -483,6 +483,7 @@ function EngineSettings({
                   key={o.value.name}
                   label={o.value.name}
                   checked={!!o.value.value}
+                  disabled={o.value.name === "UCI_Chess960"}
                   onChange={(e) =>
                     setSetting(
                       o.value.name,

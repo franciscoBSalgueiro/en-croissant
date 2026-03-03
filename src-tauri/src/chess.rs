@@ -80,7 +80,20 @@ impl EngineProcess {
     }
 
     async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
+        let fen_changed = options.fen != self.options.fen;
+        let fen: Fen = options.fen.parse()?;
+        let setup = fen.as_setup();
+        let castling_mode = CastlingMode::detect(setup);
         let pos = parse_fen_and_apply_moves(&options.fen, &options.moves)?;
+
+        if fen_changed {
+            if castling_mode.is_chess960() {
+                self.set_option("UCI_Chess960", "true").await?;
+            } else {
+                self.set_option("UCI_Chess960", "false").await?;
+            }
+        }
+
         let multipv = options
             .extra_options
             .iter()
@@ -91,12 +104,12 @@ impl EngineProcess {
         self.real_multipv = multipv.min(pos.legal_moves().len() as u16);
 
         for option in &options.extra_options {
-            if !self.options.extra_options.contains(option) {
+            if !self.options.extra_options.contains(option) && option.name != "UCI_Chess960" {
                 self.set_option(&option.name, &option.value).await?;
             }
         }
 
-        if options.fen != self.options.fen || options.moves != self.options.moves {
+        if fen_changed || options.moves != self.options.moves {
             self.set_position(&options.fen, &options.moves).await?;
         }
         self.last_depth = 0;

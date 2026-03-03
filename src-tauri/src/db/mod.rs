@@ -30,7 +30,8 @@ use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
+    fen::Fen, Board, ByColor, CastlingMode, Chess, EnPassantMode, FromSetup, Piece, Position,
+    PositionError,
 };
 use specta::Type;
 use std::{
@@ -358,9 +359,10 @@ impl Visitor for Importer {
                 let fen = Fen::from_ascii(value.as_bytes());
                 if let Ok(fen) = fen {
                     self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                    if let Ok(setup) =
-                        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)
-                            .or_else(PositionError::ignore_too_much_material)
+                    let setup = fen.into_setup();
+                    let castling_mode = CastlingMode::detect(&setup);
+                    if let Ok(setup) = Chess::from_setup(setup, castling_mode)
+                        .or_else(PositionError::ignore_too_much_material)
                     {
                         self.game.position = setup;
                     } else {
@@ -1967,7 +1969,10 @@ mod tests {
         assert_eq!(player_count, 1, "Orphaned players should be deleted");
 
         let remaining_player: Player = players::table.first(db).unwrap();
-        assert_eq!(remaining_player.id, 0, "Only the Unknown player should remain");
+        assert_eq!(
+            remaining_player.id, 0,
+            "Only the Unknown player should remain"
+        );
 
         // Events: only the sentinel should remain
         let event_count: i64 = events::table.count().get_result(db).unwrap();
