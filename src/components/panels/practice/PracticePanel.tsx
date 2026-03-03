@@ -45,8 +45,10 @@ import {
   updateCardPerformance,
 } from "@/components/files/opening";
 import {
+  currentEvalOpenAtom,
   currentInvisibleAtom,
   currentPracticeTabAtom,
+  currentShowCommentsAtom,
   currentTabAtom,
   deckAtomFamily,
   type PracticeData,
@@ -117,6 +119,8 @@ function PracticePanel() {
   const stats = getStats(deck.positions);
 
   const setInvisible = useSetAtom(currentInvisibleAtom);
+  const setShowComments = useSetAtom(currentShowCommentsAtom);
+  const setEvalOpen = useSetAtom(currentEvalOpenAtom);
   const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const setCardStartTime = useSetAtom(practiceCardStartTimeAtom);
@@ -127,12 +131,17 @@ function PracticePanel() {
     if (!c) {
       setPracticeState({ phase: "idle" });
       setPracticePath(null);
+      setInvisible(false);
+      setShowComments(true);
+      setEvalOpen(true);
       return;
     }
     const path = findFen(c.fen, root);
     goToMove(path);
     setPracticePath(path);
     setInvisible(true);
+    setShowComments(false);
+    setEvalOpen(false);
     setCardStartTime(Date.now());
     setPracticeState({ phase: "waiting", currentFen: c.fen });
   }, [
@@ -141,6 +150,8 @@ function PracticePanel() {
     goToMove,
     setPracticePath,
     setInvisible,
+    setShowComments,
+    setEvalOpen,
     setCardStartTime,
     setPracticeState,
   ]);
@@ -452,9 +463,31 @@ function PracticePanel() {
                         </Button>
                       </Stack>
                     ) : (
-                      <Text ta="center" fz="sm" c="dimmed">
-                        {t("Board.Practice.MakeYourMove")}
-                      </Text>
+                      <Group gap="xs" justify="center">
+                        <Text ta="center" fz="sm" c="dimmed">
+                          {t("Board.Practice.MakeYourMove")}
+                        </Text>
+                        <Button
+                          variant="light"
+                          size="compact-xs"
+                          color="red"
+                          onClick={() => {
+                            setPracticeState({ phase: "idle" });
+                            setPracticePath(null);
+                            setInvisible(false);
+                            setShowComments(true);
+                            setEvalOpen(true);
+                            setSessionStats({
+                              correct: 0,
+                              incorrect: 0,
+                              streak: 0,
+                              bestStreak: 0,
+                            });
+                          }}
+                        >
+                          {t("Common.Stop")}
+                        </Button>
+                      </Group>
                     )}
                   </Paper>
                 )}
@@ -551,6 +584,9 @@ function PracticePanel() {
           setDeck({ positions: cards, logs: [] });
           setPracticeState({ phase: "idle" });
           setPracticePath(null);
+          setInvisible(false);
+          setShowComments(true);
+          setEvalOpen(true);
           setSessionStats({
             correct: 0,
             incorrect: 0,
