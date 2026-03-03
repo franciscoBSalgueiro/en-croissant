@@ -403,9 +403,12 @@ pub async fn get_best_moves(
                             }
                         }
                     }
-                    Err(e) => {
-                        warn!("Failed to parse info line: {}, error: {:?}", line, e);
-                    }
+                    Err(e) => match e {
+                        Error::NoMovesFound => {}
+                        _ => {
+                            warn!("Failed to parse info line: {}, error: {:?}", line, e);
+                        }
+                    },
                 }
             }
             UciMessage::BestMove { .. } => {
@@ -477,8 +480,11 @@ pub async fn analyze_game(
     let (mut proc, mut reader) = EngineProcess::new(path).await?;
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
+    let setup = fen.as_setup().clone();
+    let castling_mode = CastlingMode::detect(&setup);
+    println!("Castling mode: {:?}", castling_mode);
 
-    let mut chess: Chess = fen.clone().into_position(CastlingMode::Chess960)?;
+    let mut chess: Chess = setup.position(castling_mode)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
     options
