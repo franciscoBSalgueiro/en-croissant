@@ -127,16 +127,22 @@ export default function EnginesPage() {
           </SimpleGrid>
         </ScrollArea>
         {!selectedEngine || selected === undefined ? (
-          <Center h="100%">
-            <Stack align="center" gap="sm">
-              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
-                <IconCpu size={40} />
-              </ThemeIcon>
-              <Text c="dimmed" fw={500} size="lg">
-                {t("Engines.Settings.NoEngine")}
-              </Text>
-            </Stack>
-          </Center>
+          <Paper
+            style={{ borderLeft: "2px solid var(--mantine-color-gray-7)" }}
+            p="md"
+            h="100%"
+          >
+            <Center h="100%">
+              <Stack align="center" gap="sm">
+                <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                  <IconCpu size={40} />
+                </ThemeIcon>
+                <Text c="dimmed" fw={500} size="lg">
+                  {t("Engines.Settings.NoEngine")}
+                </Text>
+              </Stack>
+            </Center>
+          </Paper>
         ) : (
           <Paper withBorder p="md" h="100%">
             {selectedEngine.type === "local" ? (
