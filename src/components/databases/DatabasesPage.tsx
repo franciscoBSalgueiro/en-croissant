@@ -200,11 +200,7 @@ export default function DatabasesPage() {
         </ScrollArea>
 
         {selectedDatabase === null ? (
-          <Paper
-            style={{ borderLeft: "2px solid var(--mantine-color-gray-7)" }}
-            p="md"
-            h="100%"
-          >
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             <Center h="100%">
               <Stack align="center" gap="sm">
                 <ThemeIcon size={80} radius="100%" variant="light" color="gray">
@@ -217,7 +213,7 @@ export default function DatabasesPage() {
             </Center>
           </Paper>
         ) : (
-          <Paper withBorder p="md" h="100%">
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 {selectedDatabase.type === "error" ? (
