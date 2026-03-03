@@ -591,7 +591,7 @@ function BoardGame() {
       filters: [
         {
           name: "Opening Book",
-          extensions: ["pgn", "epd"],
+          extensions: ["pgn", "epd", "zip"],
         },
       ],
     });
@@ -711,7 +711,7 @@ function BoardGame() {
                     />
 
                     <FileInput
-                      label="Opening book (.pgn/.epd)"
+                      label="Opening book (.pgn/.epd/.zip)"
                       description={t("Import.PGN.ClickToSelect")}
                       filename={openingBookPath}
                       onClick={handleSelectOpeningBook}

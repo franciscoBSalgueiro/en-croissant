@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Cursor, Read},
     path::PathBuf,
     sync::Arc,
     time::Instant,
@@ -839,10 +839,7 @@ struct OpeningBookSelection {
     initial_moves: Vec<String>,
 }
 
-fn select_random_epd_entry(path: &str) -> Result<OpeningBookSelection, Error> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-
+fn select_random_epd_entry(reader: impl BufRead) -> Result<OpeningBookSelection, Error> {
     let mut rng = rand::thread_rng();
 
     let selected_line = reader
@@ -974,9 +971,8 @@ impl Visitor for OpeningBookPgnVisitor {
     }
 }
 
-fn select_random_pgn_entry(path: &str) -> Result<OpeningBookSelection, Error> {
-    let file = File::open(path)?;
-    let mut reader = BufferedReader::new(file);
+fn select_random_pgn_entry(input: impl Read) -> Result<OpeningBookSelection, Error> {
+    let mut reader = BufferedReader::new(input);
     let mut visitor = OpeningBookPgnVisitor::new();
 
     while reader.read_game(&mut visitor)?.is_some() {}
@@ -990,23 +986,66 @@ fn select_random_pgn_entry(path: &str) -> Result<OpeningBookSelection, Error> {
     })
 }
 
+fn read_zip_inner(path: &str) -> Result<(String, Vec<u8>), Error> {
+    let file = File::open(path)?;
+    let mut archive = zip::ZipArchive::new(BufReader::new(file))?;
+    if archive.len() != 1 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Opening book zip must contain exactly one file",
+        )
+        .into());
+    }
+    let mut inner = archive.by_index(0)?;
+    let name = inner.name().to_string();
+    let mut buf = Vec::new();
+    inner.read_to_end(&mut buf)?;
+    Ok((name, buf))
+}
+
+fn opening_book_ext(name: &str) -> Option<&str> {
+    let lower = name.to_ascii_lowercase();
+    if lower.ends_with(".epd") {
+        Some("epd")
+    } else if lower.ends_with(".pgn") {
+        Some("pgn")
+    } else {
+        None
+    }
+}
+
 fn apply_opening_book(config: GameConfig) -> Result<GameConfig, Error> {
     let Some(opening_book) = &config.opening_book else {
         return Ok(config);
     };
 
-    let ext = PathBuf::from(&opening_book.path)
+    let path = &opening_book.path;
+    let ext = PathBuf::from(path)
         .extension()
         .and_then(|e| e.to_str())
         .map(|e| e.to_ascii_lowercase());
 
     let selection = match ext.as_deref() {
-        Some("epd") => select_random_epd_entry(&opening_book.path)?,
-        Some("pgn") => select_random_pgn_entry(&opening_book.path)?,
+        Some("epd") => select_random_epd_entry(BufReader::new(File::open(path)?))?,
+        Some("pgn") => select_random_pgn_entry(File::open(path)?)?,
+        Some("zip") => {
+            let (inner_name, data) = read_zip_inner(path)?;
+            match opening_book_ext(&inner_name) {
+                Some("epd") => select_random_epd_entry(BufReader::new(Cursor::new(data)))?,
+                Some("pgn") => select_random_pgn_entry(Cursor::new(data))?,
+                _ => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "Zip must contain a .pgn or .epd file",
+                    )
+                    .into())
+                }
+            }
+        }
         _ => {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "Unsupported opening book format. Use .pgn or .epd",
+                "Unsupported opening book format. Use .pgn, .epd, or .zip",
             )
             .into())
         }
