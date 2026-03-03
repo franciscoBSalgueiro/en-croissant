@@ -135,6 +135,7 @@ function BoardGame() {
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const setResult = useStore(store, (s) => s.setResult);
   const appendMove = useStore(store, (s) => s.appendMove);
+  const resetTree = useStore(store, (s) => s.reset);
 
   const [, setTabs] = useAtom(tabsAtom);
 
@@ -585,11 +586,7 @@ function BoardGame() {
     setGameState("settingUp");
     setWhiteTime(null);
     setBlackTime(null);
-    setFen(INITIAL_FEN);
-    setHeaders({
-      ...headers,
-      result: "*",
-    });
+    resetTree();
   }
 
   async function handleSelectOpeningBook() {
