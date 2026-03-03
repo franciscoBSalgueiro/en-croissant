@@ -368,6 +368,11 @@ export const gameOpeningBookEnabledAtom = atomWithStorage<boolean>(
   false,
 );
 
+export const gameOpeningBookMaxPlyAtom = atomWithStorage<number>(
+  "game-opening-book-max-ply",
+  40,
+);
+
 function tabValue<
   T extends object | string | boolean | number | null | undefined,
 >(family: AtomFamily<string, PrimitiveAtom<T>>) {

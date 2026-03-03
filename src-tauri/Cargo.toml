@@ -68,6 +68,7 @@ tauri-plugin-log = "2.8.0"
 tauri-plugin-window-state = "2.4.1"
 memmap2 = "0.9"
 rkyv = { version = "0.8", features = ["bytecheck"] }
+polyglot-book-rs = "0.1.0"
 
 [features]
 # by default Tauri runs in production mode

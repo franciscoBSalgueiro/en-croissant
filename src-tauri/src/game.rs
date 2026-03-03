@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufRead, BufReader, Cursor, Read},
+    io::{BufRead, BufReader, Cursor, Read, Write},
     path::PathBuf,
     sync::Arc,
     time::Instant,
@@ -10,6 +10,7 @@ use std::{
 use dashmap::DashMap;
 use log::{error, info};
 use pgn_reader::{BufferedReader, RawHeader, Skip, Visitor};
+use polyglot_book_rs::PolyglotBook;
 use rand::{seq::IteratorRandom, Rng};
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -69,6 +70,12 @@ pub struct GameConfig {
 #[serde(rename_all = "camelCase")]
 pub struct OpeningBookConfig {
     pub path: String,
+    #[serde(default = "default_opening_book_max_ply")]
+    pub max_ply: usize,
+}
+
+fn default_opening_book_max_ply() -> usize {
+    40
 }
 
 #[derive(Clone, Debug, Serialize, Type, PartialEq)]
@@ -1009,9 +1016,118 @@ fn opening_book_ext(name: &str) -> Option<&str> {
         Some("epd")
     } else if lower.ends_with(".pgn") {
         Some("pgn")
+    } else if lower.ends_with(".bin") {
+        Some("bin")
     } else {
         None
     }
+}
+
+fn normalize_polyglot_uci(uci: &str) -> String {
+    match uci {
+        "e1h1" => "e1g1".to_string(),
+        "e1a1" => "e1c1".to_string(),
+        "e8h8" => "e8g8".to_string(),
+        "e8a8" => "e8c8".to_string(),
+        _ => uci.to_string(),
+    }
+}
+
+fn choose_weighted_index(weights: &[u16], rng: &mut impl Rng) -> usize {
+    let total: u64 = weights.iter().map(|w| *w as u64).sum();
+    if total == 0 {
+        return rng.gen_range(0..weights.len());
+    }
+
+    let mut target = rng.gen_range(0..total);
+    for (index, weight) in weights.iter().enumerate() {
+        let weight = *weight as u64;
+        if target < weight {
+            return index;
+        }
+        target -= weight;
+    }
+
+    weights.len().saturating_sub(1)
+}
+
+fn select_random_polyglot_entry_from_book(
+    book: &PolyglotBook,
+    max_ply: usize,
+) -> Result<OpeningBookSelection, Error> {
+    let mut rng = rand::thread_rng();
+    let mut position = Chess::default();
+    let initial_fen = Fen::from_position(position.clone(), EnPassantMode::Legal).to_string();
+    let mut initial_moves = Vec::new();
+
+    for _ in 0..max_ply {
+        let fen = Fen::from_position(position.clone(), EnPassantMode::Legal).to_string();
+        let entries = book.get_all_moves_from_fen(&fen);
+
+        if entries.is_empty() {
+            break;
+        }
+
+        let legal_moves = entries
+            .into_iter()
+            .filter_map(|entry| {
+                let uci = normalize_polyglot_uci(&entry.move_string);
+                let parsed = UciMove::from_ascii(uci.as_bytes()).ok()?;
+                parsed.to_move(&position).ok()?;
+                Some((uci, entry.weight))
+            })
+            .collect::<Vec<_>>();
+
+        if legal_moves.is_empty() {
+            break;
+        }
+
+        let weights = legal_moves.iter().map(|(_, w)| *w).collect::<Vec<_>>();
+        let selected = choose_weighted_index(&weights, &mut rng);
+        let selected_uci = &legal_moves[selected].0;
+
+        let parsed = UciMove::from_ascii(selected_uci.as_bytes())?;
+        let mv = parsed.to_move(&position)?;
+        initial_moves.push(UciMove::from_move(&mv, CastlingMode::Standard).to_string());
+        position.play_unchecked(&mv);
+    }
+
+    if initial_moves.is_empty() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Opening book .bin has no entries for the initial position",
+        )
+        .into());
+    }
+
+    Ok(OpeningBookSelection {
+        initial_fen,
+        initial_moves,
+    })
+}
+
+fn select_random_polyglot_entry(path: &str, max_ply: usize) -> Result<OpeningBookSelection, Error> {
+    let book = PolyglotBook::load(path)?;
+    select_random_polyglot_entry_from_book(&book, max_ply)
+}
+
+fn select_random_polyglot_entry_from_bytes(
+    data: &[u8],
+    max_ply: usize,
+) -> Result<OpeningBookSelection, Error> {
+    let mut temp = tempfile::NamedTempFile::new()?;
+    temp.write_all(data)?;
+    temp.flush()?;
+
+    let path = temp.path().to_str().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Temporary Polyglot book path is not valid UTF-8",
+        )
+    })?;
+
+    let book = PolyglotBook::load(path)?;
+    select_random_polyglot_entry_from_book(&book, max_ply)
 }
 
 fn apply_opening_book(config: GameConfig) -> Result<GameConfig, Error> {
@@ -1028,15 +1144,19 @@ fn apply_opening_book(config: GameConfig) -> Result<GameConfig, Error> {
     let selection = match ext.as_deref() {
         Some("epd") => select_random_epd_entry(BufReader::new(File::open(path)?))?,
         Some("pgn") => select_random_pgn_entry(File::open(path)?)?,
+        Some("bin") => select_random_polyglot_entry(path, opening_book.max_ply.max(1))?,
         Some("zip") => {
             let (inner_name, data) = read_zip_inner(path)?;
             match opening_book_ext(&inner_name) {
                 Some("epd") => select_random_epd_entry(BufReader::new(Cursor::new(data)))?,
                 Some("pgn") => select_random_pgn_entry(Cursor::new(data))?,
+                Some("bin") => {
+                    select_random_polyglot_entry_from_bytes(&data, opening_book.max_ply.max(1))?
+                }
                 _ => {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
-                        "Zip must contain a .pgn or .epd file",
+                        "Zip must contain a .pgn, .epd, or .bin file",
                     )
                     .into())
                 }
@@ -1045,7 +1165,7 @@ fn apply_opening_book(config: GameConfig) -> Result<GameConfig, Error> {
         _ => {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "Unsupported opening book format. Use .pgn, .epd, or .zip",
+                "Unsupported opening book format. Use .pgn, .epd, .bin, or .zip",
             )
             .into())
         }

@@ -1281,6 +1281,7 @@ dependencies = [
  "oauth2",
  "once_cell",
  "pgn-reader",
+ "polyglot-book-rs",
  "rand 0.8.5",
  "rayon",
  "reqwest 0.12.5",
@@ -3768,6 +3769,12 @@ dependencies = [
  "flate2",
  "miniz_oxide",
 ]
+
+[[package]]
+name = "polyglot-book-rs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2800f836be0e33f035784fb1dba3e44204fc78098e232a7d67ea1a63db3c79d"
 
 [[package]]
 name = "portable-atomic"

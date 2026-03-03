@@ -5,6 +5,7 @@ import {
   Checkbox,
   Divider,
   Group,
+  NumberInput,
   Paper,
   Portal,
   ScrollArea,
@@ -53,6 +54,7 @@ import {
   currentPlayersAtom,
   gameInputColorAtom,
   gameOpeningBookEnabledAtom,
+  gameOpeningBookMaxPlyAtom,
   gameOpeningBookPathAtom,
   gamePlayer1SettingsAtom,
   gamePlayer2SettingsAtom,
@@ -156,6 +158,9 @@ function BoardGame() {
   );
   const [openingBookEnabled, setOpeningBookEnabled] = useAtom(
     gameOpeningBookEnabledAtom,
+  );
+  const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(
+    gameOpeningBookMaxPlyAtom,
   );
 
   const hasEngine =
@@ -317,7 +322,7 @@ function BoardGame() {
       initialMoves,
       openingBook:
         openingBookEnabled && openingBookPath
-          ? { path: openingBookPath }
+          ? { path: openingBookPath, maxPly: Math.max(1, openingBookMaxPly) }
           : null,
     } as GameConfig;
 
@@ -595,7 +600,7 @@ function BoardGame() {
       filters: [
         {
           name: "Opening Book",
-          extensions: ["pgn", "epd", "zip"],
+          extensions: ["pgn", "epd", "bin", "zip"],
         },
       ],
     });
@@ -727,12 +732,30 @@ function BoardGame() {
                         />
 
                         {openingBookEnabled && (
-                          <FileInput
-                            label="Opening book (.pgn/.epd/.zip)"
-                            description={t("Import.PGN.ClickToSelect")}
-                            filename={openingBookPath}
-                            onClick={handleSelectOpeningBook}
-                          />
+                          <>
+                            <FileInput
+                              label="Opening book (.pgn/.epd/.bin/.zip)"
+                              description={t("Import.PGN.ClickToSelect")}
+                              filename={openingBookPath}
+                              onClick={handleSelectOpeningBook}
+                            />
+                            <NumberInput
+                              label="Polyglot max plies"
+                              description="Maximum number of plies from the starting position that the opening book will be used for."
+                              min={1}
+                              value={openingBookMaxPly}
+                              onChange={(value) => {
+                                if (
+                                  typeof value === "number" &&
+                                  Number.isFinite(value)
+                                ) {
+                                  setOpeningBookMaxPly(
+                                    Math.max(1, Math.trunc(value)),
+                                  );
+                                }
+                              }}
+                            />
+                          </>
                         )}
                       </Stack>
                     </Paper>
