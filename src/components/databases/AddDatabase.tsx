@@ -10,6 +10,7 @@ import {
   Paper,
   ScrollArea,
   Stack,
+  SimpleGrid,
   Tabs,
   Text,
   TextInput,
@@ -88,6 +89,7 @@ function AddDatabase({
       opened={opened}
       onClose={() => setOpened(false)}
       title={t("Databases.Add.Title")}
+      size="80%"
     >
       <Tabs defaultValue="web">
         <Tabs.List>
@@ -101,7 +103,7 @@ function AddDatabase({
             </Center>
           )}
           <ScrollArea.Autosize h={500} offsetScrollbars>
-            <Stack>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
               {defaultDatabases?.map((db, i) => (
                 <DatabaseCard
                   database={db}
@@ -122,7 +124,7 @@ function AddDatabase({
                   {"Failed to fetch the database's info from the server."}
                 </Alert>
               )}
-            </Stack>
+            </SimpleGrid>
           </ScrollArea.Autosize>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
