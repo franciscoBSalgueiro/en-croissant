@@ -269,7 +269,12 @@ export default function NewTabHome({ id }: { id: string }) {
 
   return (
     <>
-      <ImportModal openModal={openModal} setOpenModal={setOpenModal} />
+      <ImportModal
+        openModal={openModal}
+        setOpenModal={setOpenModal}
+        setTabs={setTabs}
+        setActiveTab={setActiveTab}
+      />
       <CreateRepertoireModal
         opened={openRepertoireModal}
         setOpened={setOpenRepertoireModal}

@@ -1,5 +1,6 @@
-import { resolve } from "@tauri-apps/api/path";
+import { resolve, tempDir } from "@tauri-apps/api/path";
 import { save } from "@tauri-apps/plugin-dialog";
+import { copyFile } from "@tauri-apps/plugin-fs";
 import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { commands } from "@/bindings";
@@ -114,19 +115,29 @@ export async function createTab({
   return id;
 }
 
+export async function isInTempDir(filePath: string): Promise<boolean> {
+  const tmp = await tempDir();
+  const normalize = (p: string) => p.replace(/[\\/]+/g, "/").toLowerCase();
+  return normalize(filePath).startsWith(normalize(tmp));
+}
+
 export async function saveToFile({
   dir,
   tab,
   setCurrentTab,
   store,
+  isUserSave,
 }: {
   dir: string;
   tab: Tab | undefined;
   setCurrentTab: React.Dispatch<React.SetStateAction<Tab>>;
   store: StoreApi<TreeStoreState>;
+  isUserSave?: boolean;
 }) {
   let filePath: string;
-  if (tab?.file) {
+  const isTempFile = tab?.file && (await isInTempDir(tab.file.path));
+
+  if (tab?.file && !(isTempFile && isUserSave)) {
     filePath = tab.file.path;
   } else {
     const headers = store.getState().headers;
@@ -151,6 +162,12 @@ export async function saveToFile({
       // so userChoice can end without 'pgn' extension
       filePath = userChoice.concat(".pgn");
     }
+
+    if (isTempFile) {
+      await copyFile(tab!.file!.path, filePath);
+    }
+
+    const numGames = isTempFile ? tab!.file!.numGames : 1;
     setCurrentTab((prev) => {
       return {
         ...prev,
@@ -158,7 +175,7 @@ export async function saveToFile({
           type: "file",
           name: filePath,
           path: filePath,
-          numGames: 1,
+          numGames,
           metadata: {
             tags: [],
             type: "game",

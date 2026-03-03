@@ -25,6 +25,7 @@ function ConfirmChangesModal({
       setCurrentTab,
       tab: currentTab,
       store,
+      isUserSave: true,
     });
   }
 

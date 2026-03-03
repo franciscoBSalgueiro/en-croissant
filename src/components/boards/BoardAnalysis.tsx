@@ -66,6 +66,15 @@ function BoardAnalysis() {
       store,
     });
   }, [setCurrentTab, currentTab, documentDir, store]);
+  const userSaveFile = useCallback(async () => {
+    saveToFile({
+      dir: documentDir,
+      setCurrentTab,
+      tab: currentTab,
+      store,
+      isUserSave: true,
+    });
+  }, [setCurrentTab, currentTab, documentDir, store]);
   useEffect(() => {
     if (currentTab?.file && autoSave && dirty) {
       saveFile();
@@ -109,7 +118,7 @@ function BoardAnalysis() {
   }, [practicing, setPracticePath]);
 
   useHotkeys([
-    [keyMap.SAVE_FILE.keys, () => saveFile()],
+    [keyMap.SAVE_FILE.keys, () => userSaveFile()],
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
   useHotkeys([
@@ -285,7 +294,7 @@ function BoardAnalysis() {
                   editingMode={editingMode}
                   toggleEditingMode={toggleEditingMode}
                   dirty={dirty}
-                  saveFile={saveFile}
+                  saveFile={userSaveFile}
                 />
               }
             />
