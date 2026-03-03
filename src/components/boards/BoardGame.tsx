@@ -52,6 +52,7 @@ import {
   currentGameStateAtom,
   currentPlayersAtom,
   gameInputColorAtom,
+  gameOpeningBookEnabledAtom,
   gameOpeningBookPathAtom,
   gamePlayer1SettingsAtom,
   gamePlayer2SettingsAtom,
@@ -151,6 +152,9 @@ function BoardGame() {
   const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
   const [openingBookPath, setOpeningBookPath] = useAtom(
     gameOpeningBookPathAtom,
+  );
+  const [openingBookEnabled, setOpeningBookEnabled] = useAtom(
+    gameOpeningBookEnabledAtom,
   );
 
   const hasEngine =
@@ -310,7 +314,10 @@ function BoardGame() {
         : null,
       initialFen: root.fen === INITIAL_FEN ? null : root.fen,
       initialMoves,
-      openingBook: openingBookPath ? { path: openingBookPath } : null,
+      openingBook:
+        openingBookEnabled && openingBookPath
+          ? { path: openingBookPath }
+          : null,
     } as GameConfig;
 
     try {
@@ -693,29 +700,45 @@ function BoardGame() {
                       </Group>
                     </Box>
 
-                    <Checkbox
-                      label={t("Board.Opponent.SameTimeControl")}
-                      checked={sameTimeControl}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setSameTimeControl(checked);
-                        if (checked) {
-                          setPlayer2Settings((prev) => ({
-                            ...prev,
-                            timeControl: player1Settings.timeControl,
-                            timeUnit: player1Settings.timeUnit,
-                            incrementUnit: player1Settings.incrementUnit,
-                          }));
-                        }
-                      }}
-                    />
+                    <Paper withBorder p="sm">
+                      <Stack>
+                        <Checkbox
+                          label={t("Board.Opponent.SameTimeControl")}
+                          checked={sameTimeControl}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSameTimeControl(checked);
+                            if (checked) {
+                              setPlayer2Settings((prev) => ({
+                                ...prev,
+                                timeControl: player1Settings.timeControl,
+                                timeUnit: player1Settings.timeUnit,
+                                incrementUnit: player1Settings.incrementUnit,
+                              }));
+                            }
+                          }}
+                        />
 
-                    <FileInput
-                      label="Opening book (.pgn/.epd/.zip)"
-                      description={t("Import.PGN.ClickToSelect")}
-                      filename={openingBookPath}
-                      onClick={handleSelectOpeningBook}
-                    />
+                        <Divider variant="dashed" />
+
+                        <Checkbox
+                          label="Enable Opening Book"
+                          checked={openingBookEnabled}
+                          onChange={(e) =>
+                            setOpeningBookEnabled(e.currentTarget.checked)
+                          }
+                        />
+
+                        {openingBookEnabled && (
+                          <FileInput
+                            label="Opening book (.pgn/.epd/.zip)"
+                            description={t("Import.PGN.ClickToSelect")}
+                            filename={openingBookPath}
+                            onClick={handleSelectOpeningBook}
+                          />
+                        )}
+                      </Stack>
+                    </Paper>
 
                     <Group>
                       <Button

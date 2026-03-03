@@ -363,6 +363,11 @@ export const gameOpeningBookPathAtom = atomWithStorage<string | null>(
   null,
 );
 
+export const gameOpeningBookEnabledAtom = atomWithStorage<boolean>(
+  "game-opening-book-enabled",
+  false,
+);
+
 function tabValue<
   T extends object | string | boolean | number | null | undefined,
 >(family: AtomFamily<string, PrimitiveAtom<T>>) {
