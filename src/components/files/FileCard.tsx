@@ -2,12 +2,13 @@ import {
   ActionIcon,
   Badge,
   Box,
+  Divider,
   Group,
   Stack,
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconEdit, IconEye } from "@tabler/icons-react";
+import { IconEdit, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
@@ -72,16 +73,17 @@ function FileCard({
           {t(`Files.FileType.${capitalize(selected.metadata.type)}`)}
         </Badge>
       </Stack>
+      <Divider />
 
-      <Group align="center" grow>
+      <Group align="center" grow px="xs">
         <Group>
           <Tooltip label={t("Common.Open")}>
-            <ActionIcon onClick={openGame}>
-              <IconEye />
+            <ActionIcon size="sm" onClick={openGame}>
+              <IconZoomCheck />
             </ActionIcon>
           </Tooltip>
           <Tooltip label={t("Files.EditMetadata")}>
-            <ActionIcon onClick={() => toggleEditModal()}>
+            <ActionIcon size="sm" onClick={() => toggleEditModal()}>
               <IconEdit />
             </ActionIcon>
           </Tooltip>
@@ -95,6 +97,7 @@ function FileCard({
       {selectedGame && (
         <>
           <Box h={0} flex={1}>
+            <Divider />
             <GameSelector
               setGames={setGames}
               games={games}
@@ -103,8 +106,9 @@ function FileCard({
               setPage={setPage}
               total={selected.numGames}
             />
+            <Divider />
           </Box>
-          <Box h="55%">
+          <Box h="55%" px="xs" pb="xs">
             <GamePreview pgn={selectedGame} />
           </Box>
         </>

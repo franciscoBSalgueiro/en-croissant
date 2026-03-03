@@ -4,6 +4,7 @@ import {
   Chip,
   Group,
   Input,
+  Paper,
   Stack,
   Text,
   ThemeIcon,
@@ -191,24 +192,28 @@ function FilesPage() {
                 setSelected(null);
               }}
             />
-            <FileCard
-              selected={selected}
-              games={games}
-              setGames={setGames}
-              toggleEditModal={toggleEditModal}
-            />
+            <Paper withBorder style={{ borderWidth: 2 }} pt="md" h="100%">
+              <FileCard
+                selected={selected}
+                games={games}
+                setGames={setGames}
+                toggleEditModal={toggleEditModal}
+              />
+            </Paper>
           </>
         ) : (
-          <Center h="100%">
-            <Stack align="center" gap="sm">
-              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
-                <IconFileDescription size={40} />
-              </ThemeIcon>
-              <Text c="dimmed" fw={500} size="lg">
-                {t("Files.NoSelection")}
-              </Text>
-            </Stack>
-          </Center>
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
+            <Center h="100%">
+              <Stack align="center" gap="sm">
+                <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                  <IconFileDescription size={40} />
+                </ThemeIcon>
+                <Text c="dimmed" fw={500} size="lg">
+                  {t("Files.NoSelection")}
+                </Text>
+              </Stack>
+            </Center>
+          </Paper>
         )}
       </Group>
     </Stack>
