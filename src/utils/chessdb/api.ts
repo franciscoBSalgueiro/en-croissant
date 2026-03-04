@@ -140,6 +140,7 @@ async function queryBest(fen: string) {
   const url = new URL(endpoint);
   url.searchParams.append("action", "querypv");
   url.searchParams.append("json", "1");
+  url.searchParams.append("stable", "1");
   url.searchParams.append("board", fen);
   const res = (await (await fetch(url.toString())).json()) as BestResponse;
 
