@@ -1761,6 +1761,81 @@ pub async fn delete_db_game(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn write_db_game(
+    file: PathBuf,
+    game_id: i32,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let mut importer = Importer::new(None);
+    let mut parsed = BufferedReader::new(pgn.as_bytes())
+        .into_iter(&mut importer)
+        .flatten()
+        .flatten();
+    let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
+
+    let white_id = if let Some(name) = temp_game.white_name.as_deref() {
+        create_player(db, name)?.id
+    } else {
+        0
+    };
+    let black_id = if let Some(name) = temp_game.black_name.as_deref() {
+        create_player(db, name)?.id
+    } else {
+        0
+    };
+    let event_id = if let Some(name) = temp_game.event_name.as_deref() {
+        create_event(db, name)?.id
+    } else {
+        0
+    };
+    let site_id = if let Some(name) = temp_game.site_name.as_deref() {
+        create_site(db, name)?.id
+    } else {
+        0
+    };
+
+    let final_material = get_material_count(temp_game.position.board());
+    let minimal_white_material = temp_game.material_count.white.min(final_material.white) as i32;
+    let minimal_black_material = temp_game.material_count.black.min(final_material.black) as i32;
+    let pawn_home = get_pawn_home(temp_game.position.board()) as i32;
+    let ply_count = iter_mainline_move_bytes(&temp_game.moves).count() as i32;
+
+    let updated_rows = diesel::update(games::table.filter(games::id.eq(game_id)))
+        .set((
+            games::event_id.eq(event_id),
+            games::site_id.eq(site_id),
+            games::date.eq(temp_game.date),
+            games::time.eq(temp_game.time),
+            games::round.eq(temp_game.round),
+            games::white_id.eq(white_id),
+            games::white_elo.eq(temp_game.white_elo),
+            games::black_id.eq(black_id),
+            games::black_elo.eq(temp_game.black_elo),
+            games::white_material.eq(minimal_white_material),
+            games::black_material.eq(minimal_black_material),
+            games::result.eq(temp_game.result),
+            games::time_control.eq(temp_game.time_control),
+            games::eco.eq(temp_game.eco),
+            games::ply_count.eq(ply_count),
+            games::fen.eq(temp_game.fen),
+            games::moves.eq(temp_game.moves),
+            games::pawn_home.eq(pawn_home),
+        ))
+        .execute(db)?;
+
+    if updated_rows == 0 {
+        return Err(Error::GameNotFound(game_id.to_string()));
+    }
+
+    delete_orphaned_data(db)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn merge_players(
     file: PathBuf,
     player1: i32,

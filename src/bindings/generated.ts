@@ -262,6 +262,14 @@ async deleteDbGame(file: string, gameId: number) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
+async writeDbGame(file: string, gameId: number, pgn: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("write_db_game", { file, gameId, pgn }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async deleteDatabase(file: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_database", { file }) };

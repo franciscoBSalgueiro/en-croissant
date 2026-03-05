@@ -52,6 +52,11 @@ const gameOriginSchema = z.discriminatedUnion("kind", [
     file: fileMetadataSchema,
     gameNumber: z.number(),
   }),
+  z.object({
+    kind: z.literal("database"),
+    database: z.string(),
+    gameId: z.number(),
+  }),
 ]);
 
 export const tabSchema = z.object({
@@ -78,6 +83,11 @@ export function getTabGameNumber(tab?: Tab | null): number {
     return tab.gameOrigin.gameNumber;
   }
   return 0;
+}
+
+export function isPersistentGameOrigin(tab?: Tab | null): boolean {
+  if (!tab) return false;
+  return tab.gameOrigin.kind !== "none";
 }
 
 export function genID() {
@@ -160,7 +170,26 @@ export async function saveToFile({
     currentOrigin?.kind === "file" || currentOrigin?.kind === "temp_file"
       ? currentOrigin
       : undefined;
+  const databaseOrigin =
+    currentOrigin?.kind === "database" ? currentOrigin : undefined;
   const isTempFile = currentOrigin?.kind === "temp_file";
+  const pgn = `${getPGN(store.getState().root, {
+    headers: store.getState().headers,
+    comments: true,
+    extraMarkups: true,
+    glyphs: true,
+    variations: true,
+  })}\n\n`;
+
+  if (databaseOrigin) {
+    await commands.writeDbGame(
+      databaseOrigin.database,
+      databaseOrigin.gameId,
+      pgn,
+    );
+    store.getState().save();
+    return;
+  }
 
   if (fileOrigin && !(isTempFile && isUserSave)) {
     filePath = fileOrigin.file.path;
@@ -215,16 +244,6 @@ export async function saveToFile({
       };
     });
   }
-  await commands.writeGame(
-    filePath,
-    fileOrigin?.gameNumber ?? 0,
-    `${getPGN(store.getState().root, {
-      headers: store.getState().headers,
-      comments: true,
-      extraMarkups: true,
-      glyphs: true,
-      variations: true,
-    })}\n\n`,
-  );
+  await commands.writeGame(filePath, fileOrigin?.gameNumber ?? 0, pgn);
   store.getState().save();
 }

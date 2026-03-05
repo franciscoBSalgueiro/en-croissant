@@ -11,9 +11,11 @@ import { createTab } from "@/utils/tabs";
 function GamesTable({
   games,
   loading,
+  databasePath,
 }: {
   games: NormalizedGame[];
   loading: boolean;
+  databasePath?: string | null;
 }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -44,6 +46,13 @@ function GamesTable({
                   setActiveTab,
                   pgn: game.moves,
                   headers: game,
+                  gameOrigin: databasePath
+                    ? {
+                        kind: "database",
+                        database: databasePath,
+                        gameId: game.id,
+                      }
+                    : undefined,
                 });
                 navigate({ to: "/" });
               }}

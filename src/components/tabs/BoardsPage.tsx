@@ -10,7 +10,13 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { createTab, genID, getTabFile, type Tab } from "@/utils/tabs";
+import {
+  createTab,
+  genID,
+  getTabFile,
+  isPersistentGameOrigin,
+  type Tab,
+} from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -51,7 +57,7 @@ export default function BoardsPage() {
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
         if (
           tabState &&
-          getTabFile(closedTab) &&
+          isPersistentGameOrigin(closedTab) &&
           tabState.state.dirty &&
           !forced
         ) {

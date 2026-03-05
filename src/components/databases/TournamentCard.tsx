@@ -177,6 +177,11 @@ function TournamentCard({
                           setActiveTab,
                           pgn: game.moves,
                           headers: game,
+                          gameOrigin: {
+                            kind: "database",
+                            database: file,
+                            gameId: game.id,
+                          },
                         });
                         navigate({ to: "/" });
                       }}

@@ -47,6 +47,7 @@ function BoardAnalysis() {
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const tabFile = getTabFile(currentTab);
+  const hasPersistentOrigin = currentTab?.gameOrigin.kind !== "none";
   const autoSave = useAtomValue(autoSaveAtom);
   const { documentDir } = useLoaderData({ from: "/" });
   const boardRef = useRef(null);
@@ -77,10 +78,10 @@ function BoardAnalysis() {
     });
   }, [setCurrentTab, currentTab, documentDir, store]);
   useEffect(() => {
-    if (tabFile && autoSave && dirty) {
+    if (hasPersistentOrigin && autoSave && dirty) {
       saveFile();
     }
-  }, [tabFile, saveFile, autoSave, dirty]);
+  }, [hasPersistentOrigin, saveFile, autoSave, dirty]);
 
   const addGame = useCallback(() => {
     if (!tabFile) return;
