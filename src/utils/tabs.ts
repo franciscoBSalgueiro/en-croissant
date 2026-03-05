@@ -38,15 +38,47 @@ function getDefaultGameFilename(headers: GameHeaders) {
   return `${today}_${time}_analysis`;
 }
 
+const gameOriginSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("none"),
+  }),
+  z.object({
+    kind: z.literal("file"),
+    file: fileMetadataSchema,
+    gameNumber: z.number(),
+  }),
+  z.object({
+    kind: z.literal("temp_file"),
+    file: fileMetadataSchema,
+    gameNumber: z.number(),
+  }),
+]);
+
 export const tabSchema = z.object({
   name: z.string(),
   value: z.string(),
   type: z.enum(["new", "play", "analysis", "puzzles"]),
-  gameNumber: z.number().nullish(),
-  file: fileMetadataSchema.nullish(),
+  gameOrigin: gameOriginSchema,
 });
 
+export type GameOrigin = z.infer<typeof gameOriginSchema>;
 export type Tab = z.infer<typeof tabSchema>;
+
+export function getTabFile(tab?: Tab | null): FileMetadata | undefined {
+  if (!tab) return undefined;
+  if (tab.gameOrigin.kind === "file" || tab.gameOrigin.kind === "temp_file") {
+    return tab.gameOrigin.file;
+  }
+  return undefined;
+}
+
+export function getTabGameNumber(tab?: Tab | null): number {
+  if (!tab) return 0;
+  if (tab.gameOrigin.kind === "file" || tab.gameOrigin.kind === "temp_file") {
+    return tab.gameOrigin.gameNumber;
+  }
+  return 0;
+}
 
 export function genID() {
   function S4() {
@@ -61,17 +93,15 @@ export async function createTab({
   setActiveTab,
   pgn,
   headers,
-  fileInfo,
-  gameNumber,
+  gameOrigin,
   position,
 }: {
-  tab: Omit<Tab, "value">;
+  tab: Omit<Tab, "value" | "gameOrigin">;
   setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
   setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
   pgn?: string;
   headers?: GameHeaders;
-  fileInfo?: FileMetadata;
-  gameNumber?: number;
+  gameOrigin?: GameOrigin;
   position?: number[];
 }) {
   const id = genID();
@@ -88,28 +118,18 @@ export async function createTab({
   }
 
   setTabs((prev) => {
+    const nextTab = {
+      ...tab,
+      value: id,
+      gameOrigin: gameOrigin ?? { kind: "none" },
+    };
     if (
       prev.length === 0 ||
       (prev.length === 1 && prev[0].type === "new" && tab.type !== "new")
     ) {
-      return [
-        {
-          ...tab,
-          value: id,
-          file: fileInfo,
-          gameNumber,
-        },
-      ];
+      return [nextTab];
     }
-    return [
-      ...prev,
-      {
-        ...tab,
-        value: id,
-        file: fileInfo,
-        gameNumber,
-      },
-    ];
+    return [...prev, nextTab];
   });
   setActiveTab(id);
   return id;
@@ -135,10 +155,15 @@ export async function saveToFile({
   isUserSave?: boolean;
 }) {
   let filePath: string;
-  const isTempFile = tab?.file && (await isInTempDir(tab.file.path));
+  const currentOrigin = tab?.gameOrigin;
+  const fileOrigin =
+    currentOrigin?.kind === "file" || currentOrigin?.kind === "temp_file"
+      ? currentOrigin
+      : undefined;
+  const isTempFile = currentOrigin?.kind === "temp_file";
 
-  if (tab?.file && !(isTempFile && isUserSave)) {
-    filePath = tab.file.path;
+  if (fileOrigin && !(isTempFile && isUserSave)) {
+    filePath = fileOrigin.file.path;
   } else {
     const headers = store.getState().headers;
     const suggestedName = getDefaultGameFilename(headers) || "Game";
@@ -163,31 +188,36 @@ export async function saveToFile({
       filePath = userChoice.concat(".pgn");
     }
 
-    if (isTempFile) {
-      await copyFile(tab!.file!.path, filePath);
+    if (isTempFile && fileOrigin) {
+      await copyFile(fileOrigin.file.path, filePath);
     }
 
-    const numGames = isTempFile ? tab!.file!.numGames : 1;
+    const numGames = isTempFile && fileOrigin ? fileOrigin.file.numGames : 1;
+    const gameNumber = fileOrigin?.gameNumber ?? 0;
     setCurrentTab((prev) => {
       return {
         ...prev,
-        file: {
-          type: "file",
-          name: filePath,
-          path: filePath,
-          numGames,
-          metadata: {
-            tags: [],
-            type: "game",
+        gameOrigin: {
+          kind: "file",
+          gameNumber,
+          file: {
+            type: "file",
+            name: filePath,
+            path: filePath,
+            numGames,
+            metadata: {
+              tags: [],
+              type: "game",
+            },
+            lastModified: Date.now(),
           },
-          lastModified: Date.now(),
         },
       };
     });
   }
   await commands.writeGame(
     filePath,
-    tab?.gameNumber || 0,
+    fileOrigin?.gameNumber ?? 0,
     `${getPGN(store.getState().root, {
       headers: store.getState().headers,
       comments: true,

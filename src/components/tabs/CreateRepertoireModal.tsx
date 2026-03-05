@@ -78,7 +78,11 @@ export default function CreateRepertoireModal({
       setTabs,
       setActiveTab,
       pgn,
-      fileInfo,
+      gameOrigin: {
+        kind: "file",
+        file: fileInfo,
+        gameNumber: 0,
+      },
     });
 
     store.set(tabFamily(id), "practice");

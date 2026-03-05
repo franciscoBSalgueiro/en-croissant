@@ -10,7 +10,7 @@ import type { FileMetadata } from "@/components/files/file";
 import { addRecentFileAtom, tabFamily } from "@/state/atoms";
 import { unwrap } from "@/utils/unwrap";
 import { parsePGN } from "./chess";
-import { createTab, type Tab } from "./tabs";
+import { createTab, isInTempDir, type Tab } from "./tabs";
 import { getGameName } from "./treeReducer";
 
 export function usePlatform() {
@@ -32,12 +32,14 @@ export async function openFile(
   const store = getDefaultStore();
   const gameNumber = options?.gameNumber ?? 0;
   let fileInfo: FileMetadata;
+  let isTempOrigin = false;
   let pgn = options?.pgn;
   let tabName = "Untitled";
   let recentName = "Untitled";
 
   if (typeof file === "string") {
     const count = unwrap(await commands.countPgnGames(file));
+    isTempOrigin = await isInTempDir(file);
     if (pgn === undefined) {
       pgn = unwrap(await commands.readGames(file, gameNumber, gameNumber))[0];
     }
@@ -64,6 +66,7 @@ export async function openFile(
     }
   } else {
     fileInfo = file;
+    isTempOrigin = await isInTempDir(file.path);
     if (pgn === undefined) {
       pgn = unwrap(
         await commands.readGames(file.path, gameNumber, gameNumber),
@@ -81,8 +84,11 @@ export async function openFile(
     setTabs,
     setActiveTab,
     pgn: pgn || "",
-    fileInfo,
-    gameNumber,
+    gameOrigin: {
+      kind: isTempOrigin ? "temp_file" : "file",
+      file: fileInfo,
+      gameNumber,
+    },
   });
 
   if (fileInfo.metadata.type === "repertoire") {

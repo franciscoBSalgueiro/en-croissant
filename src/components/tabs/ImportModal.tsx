@@ -27,7 +27,7 @@ import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
 import { createFile, openFile } from "@/utils/files";
 import { getLichessGame } from "@/utils/lichess/api";
-import type { Tab } from "@/utils/tabs";
+import { isInTempDir, type Tab } from "@/utils/tabs";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import GenericCard from "../common/GenericCard";
@@ -107,6 +107,9 @@ export default function ImportModal({
             };
           }
           const tree = await parsePGN(input);
+          const originKind = (await isInTempDir(fileInfo.path))
+            ? "temp_file"
+            : "file";
           setCurrentTab((prev) => {
             sessionStorage.setItem(
               prev.value,
@@ -115,8 +118,11 @@ export default function ImportModal({
             return {
               ...prev,
               name: getGameName(tree.headers),
-              file: fileInfo,
-              gameNumber: 0,
+              gameOrigin: {
+                kind: originKind,
+                file: fileInfo,
+                gameNumber: 0,
+              },
               type: "analysis",
             };
           });
@@ -171,6 +177,9 @@ export default function ImportModal({
         return {
           ...prev,
           name: getGameName(tree.headers),
+          gameOrigin: {
+            kind: "none",
+          },
           type: "analysis",
         };
       });
@@ -193,6 +202,9 @@ export default function ImportModal({
         return {
           ...prev,
           name: t("Home.Card.AnalysisBoard.Title"),
+          gameOrigin: {
+            kind: "none",
+          },
           type: "analysis",
         };
       });

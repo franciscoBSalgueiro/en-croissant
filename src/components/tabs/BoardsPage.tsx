@@ -10,7 +10,7 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { createTab, genID, type Tab } from "@/utils/tabs";
+import { createTab, genID, getTabFile, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -49,7 +49,12 @@ export default function BoardsPage() {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
+        if (
+          tabState &&
+          getTabFile(closedTab) &&
+          tabState.state.dirty &&
+          !forced
+        ) {
           toggleSaveModal();
           return;
         }
@@ -123,6 +128,7 @@ export default function BoardsPage() {
             name: tab.name,
             value: id,
             type: tab.type,
+            gameOrigin: tab.gameOrigin,
           },
         ]);
         startTransition(() => setActiveTab(id));

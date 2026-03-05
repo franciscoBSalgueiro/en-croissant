@@ -69,6 +69,9 @@ const firstTab: Tab = {
   name: "New Tab",
   value: genID(),
   type: "new",
+  gameOrigin: {
+    kind: "none",
+  },
 };
 
 export const tabsAtom = atomWithStorage<Tab[]>(

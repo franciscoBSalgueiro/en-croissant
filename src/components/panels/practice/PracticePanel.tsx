@@ -58,6 +58,7 @@ import {
   practiceSessionStatsAtom,
   practiceStateAtom,
 } from "@/state/atoms";
+import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import { findFen, getNodeAtPath } from "@/utils/treeReducer";
 import RepertoireInfo from "./RepertoireInfo";
 
@@ -72,12 +73,13 @@ function PracticePanel() {
   const currentFen = useStore(store, (s) => s.currentNode().fen);
 
   const currentTab = useAtomValue(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
   const [resetModal, toggleResetModal] = useToggle();
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      file: currentTab?.file?.path || "",
-      game: currentTab?.gameNumber || 0,
+      file: tabFile?.path || "",
+      game: getTabGameNumber(currentTab),
     }),
   );
 
@@ -668,7 +670,7 @@ function PracticePanel() {
       <ConfirmModal
         title={t("Board.Practice.Reset.Title")}
         description={t("Board.Practice.Reset.Description", {
-          name: currentTab?.file?.name,
+          name: tabFile?.name,
         })}
         opened={resetModal}
         onClose={toggleResetModal}
