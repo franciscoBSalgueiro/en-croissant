@@ -61,6 +61,7 @@ import {
   forceEnPassant,
   positionFromFen,
 } from "@/utils/chessops";
+import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
@@ -172,17 +173,18 @@ function Board({
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.SWAP_ORIENTATION.keys, () => toggleOrientation());
   const currentTab = useAtomValue(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      file: currentTab?.file?.path || "",
-      game: currentTab?.gameNumber || 0,
+      file: tabFile?.path || "",
+      game: getTabGameNumber(currentTab),
     }),
   );
 
   const setPracticeState = useSetAtom(practiceStateAtom);
-  const setSessionStats = useSetAtom(practiceSessionStatsAtom);
+  const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
 
   async function makeMove(move: NormalMove) {
@@ -198,7 +200,9 @@ function Board({
       const timeTaken = Date.now() - cardStartTime;
 
       if (san !== c.answer) {
-        updateCardPerformance(setDeck, i, c.card, 1);
+        if (sessionStats.mode !== "full") {
+          updateCardPerformance(setDeck, i, c.card, 1);
+        }
         setPracticeState({
           phase: "incorrect",
           currentFen: c.fen,

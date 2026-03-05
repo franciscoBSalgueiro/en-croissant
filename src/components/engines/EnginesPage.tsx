@@ -128,18 +128,20 @@ export default function EnginesPage() {
           </SimpleGrid>
         </ScrollArea>
         {!selectedEngine || selected === undefined ? (
-          <Center h="100%">
-            <Stack align="center" gap="sm">
-              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
-                <IconCpu size={40} />
-              </ThemeIcon>
-              <Text c="dimmed" fw={500} size="lg">
-                {t("Engines.Settings.NoEngine")}
-              </Text>
-            </Stack>
-          </Center>
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
+            <Center h="100%">
+              <Stack align="center" gap="sm">
+                <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                  <IconCpu size={40} />
+                </ThemeIcon>
+                <Text c="dimmed" fw={500} size="lg">
+                  {t("Engines.Settings.NoEngine")}
+                </Text>
+              </Stack>
+            </Center>
+          </Paper>
         ) : (
-          <Paper withBorder p="md" h="100%">
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             {selectedEngine.type === "local" &&
             selectedEngine.runtime === "uci" ? (
               <EngineSettings selected={selected} setSelected={setSelected} />
@@ -488,6 +490,7 @@ function EngineSettings({
                   key={o.value.name}
                   label={o.value.name}
                   checked={!!o.value.value}
+                  disabled={o.value.name === "UCI_Chess960"}
                   onChange={(e) =>
                     setSetting(
                       o.value.name,

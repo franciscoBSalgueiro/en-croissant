@@ -243,6 +243,11 @@ function GameTable() {
               setActiveTab,
               pgn: record.moves,
               headers: record,
+              gameOrigin: {
+                kind: "database",
+                database: file,
+                gameId: record.id,
+              },
             });
             navigate({ to: "/" });
           }}

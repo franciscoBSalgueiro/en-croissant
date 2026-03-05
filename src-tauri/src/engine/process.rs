@@ -11,7 +11,7 @@ use vampirc_uci::UciMessage;
 
 use crate::error::Error;
 
-use super::types::GoMode;
+use super::{normalize_uci_moves_for_fen, types::GoMode};
 
 #[cfg(target_os = "windows")]
 pub const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -128,10 +128,11 @@ impl BaseEngine {
     }
 
     pub async fn set_position(&mut self, fen: &str, moves: &[String]) -> Result<(), Error> {
+        let normalized_moves = normalize_uci_moves_for_fen(fen, moves)?;
         let cmd = if moves.is_empty() {
             format!("position fen {}", fen)
         } else {
-            format!("position fen {} moves {}", fen, moves.join(" "))
+            format!("position fen {} moves {}", fen, normalized_moves.join(" "))
         };
         self.send(&cmd).await
     }
@@ -158,5 +159,15 @@ impl BaseEngine {
             }
         }
         Err(Error::EngineDisconnected)
+    }
+
+    pub fn kill_sync(&mut self) {
+        let _ = self.child.start_kill();
+    }
+}
+
+impl Drop for BaseEngine {
+    fn drop(&mut self) {
+        let _ = self.child.start_kill();
     }
 }

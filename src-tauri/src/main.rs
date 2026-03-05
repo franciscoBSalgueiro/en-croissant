@@ -65,6 +65,7 @@ use crate::{
     chess::get_best_moves,
     db::{
         delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
+        write_db_game,
     },
     fs::{download_file, file_exists, get_file_metadata},
     opening::{
@@ -145,6 +146,7 @@ fn main() {
             create_indexes,
             edit_db_info,
             delete_db_game,
+            write_db_game,
             delete_database,
             export_to_pgn,
             authenticate,
@@ -246,8 +248,18 @@ fn main() {
             Ok(())
         })
         .manage(AppState::default())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                let state = app.state::<AppState>();
+                for entry in state.engine_processes.iter() {
+                    if let Ok(mut process) = entry.value().try_lock() {
+                        process.kill_sync();
+                    }
+                }
+            }
+        });
 }
 
 #[tauri::command]

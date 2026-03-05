@@ -24,6 +24,7 @@ import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
 import { getTreeStats } from "@/utils/repertoire";
+import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import FenSearch from "./FenSearch";
@@ -39,7 +40,9 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
   const currentNode = getNodeAtPath(root, position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
-  const isReportoire = currentTab?.file?.metadata.type === "repertoire";
+  const tabFile = getTabFile(currentTab);
+  const gameNumber = getTabGameNumber(currentTab);
+  const isReportoire = tabFile?.metadata.type === "repertoire";
 
   const { t } = useTranslation();
 
@@ -61,7 +64,7 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
             changeTitle={(title: string) => {
               setGames((prev) => {
                 const newGames = new Map(prev);
-                newGames.set(currentTab?.gameNumber || 0, title);
+                newGames.set(gameNumber, title);
                 return newGames;
               });
             }}
@@ -103,7 +106,8 @@ function GameSelectorAccordion({
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
 
-  const gameNumber = currentTab?.gameNumber || 0;
+  const tabFile = getTabFile(currentTab);
+  const gameNumber = getTabGameNumber(currentTab);
   const currentName = games.get(gameNumber) || "Untitled";
 
   const keyMap = useAtomValue(keyMapAtom);
@@ -112,11 +116,11 @@ function GameSelectorAccordion({
   useHotkeys(
     keyMap.NEXT_GAME.keys,
     () => {
-      if (!currentTab?.file?.numGames) return;
-      setPage(Math.min(gameNumber + 1, currentTab.file.numGames - 1));
+      if (!tabFile?.numGames) return;
+      setPage(Math.min(gameNumber + 1, tabFile.numGames - 1));
     },
     {
-      enabled: !!currentTab?.file,
+      enabled: !!tabFile,
     },
   );
 
@@ -124,11 +128,12 @@ function GameSelectorAccordion({
     keyMap.PREVIOUS_GAME.keys,
     () => setPage(Math.max(0, gameNumber - 1)),
     {
-      enabled: !!currentTab?.file,
+      enabled: !!tabFile,
     },
   );
 
-  if (!currentTab?.file) return null;
+  if (!tabFile) return null;
+  const filePath = tabFile.path;
 
   async function setPage(page: number, forced?: boolean) {
     if (!forced && dirty) {
@@ -137,30 +142,46 @@ function GameSelectorAccordion({
       return;
     }
 
-    if (!currentTab?.file) return;
-
-    const data = unwrap(
-      await commands.readGames(currentTab.file.path, page, page),
-    );
+    const data = unwrap(await commands.readGames(filePath, page, page));
     const tree = await parsePGN(data[0]);
     setState(tree);
 
     setCurrentTab((prev) => {
-      if (!prev) return prev;
+      if (
+        prev.gameOrigin.kind !== "file" &&
+        prev.gameOrigin.kind !== "temp_file"
+      ) {
+        return prev;
+      }
       return {
         ...prev,
-        gameNumber: page,
+        gameOrigin: {
+          ...prev.gameOrigin,
+          gameNumber: page,
+        },
       };
     });
   }
 
   async function deleteGame(index: number) {
-    if (!currentTab?.file) return;
-    await commands.deleteGame(currentTab.file.path, index);
+    await commands.deleteGame(filePath, index);
     setCurrentTab((prev) => {
-      if (!prev.file) return prev;
-      prev.file.numGames -= 1;
-      return { ...prev };
+      if (
+        prev.gameOrigin.kind !== "file" &&
+        prev.gameOrigin.kind !== "temp_file"
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        gameOrigin: {
+          ...prev.gameOrigin,
+          file: {
+            ...prev.gameOrigin.file,
+            numGames: prev.gameOrigin.file.numGames - 1,
+          },
+        },
+      };
     });
     setGames(new Map());
   }
@@ -205,9 +226,9 @@ function GameSelectorAccordion({
                 setGames={setGames}
                 setPage={setPage}
                 deleteGame={deleteGame}
-                path={currentTab.file.path}
+                path={filePath}
                 activePage={gameNumber || 0}
-                total={currentTab.file.numGames}
+                total={tabFile.numGames}
               />
             </Box>
           </Accordion.Panel>

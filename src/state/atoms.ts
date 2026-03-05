@@ -74,6 +74,9 @@ const firstTab: Tab = {
   name: "New Tab",
   value: genID(),
   type: "new",
+  gameOrigin: {
+    kind: "none",
+  },
 };
 
 export const tabsAtom = atomWithStorage<Tab[]>(
@@ -363,6 +366,21 @@ export const gameSameTimeControlAtom = atomWithStorage<boolean>(
   true,
 );
 
+export const gameOpeningBookPathAtom = atomWithStorage<string | null>(
+  "game-opening-book-path",
+  null,
+);
+
+export const gameOpeningBookEnabledAtom = atomWithStorage<boolean>(
+  "game-opening-book-enabled",
+  false,
+);
+
+export const gameOpeningBookMaxPlyAtom = atomWithStorage<number>(
+  "game-opening-book-max-ply",
+  40,
+);
+
 function tabValue<
   T extends object | string | boolean | number | null | undefined,
 >(family: AtomFamily<string, PrimitiveAtom<T>>) {
@@ -600,6 +618,8 @@ export const practiceStateFamily = atomFamily((tab: string) =>
 export const practiceStateAtom = tabValue(practiceStateFamily);
 
 export type PracticeSessionStats = {
+  mode: "anki" | "full";
+  remainingPositions: number[];
   correct: number;
   incorrect: number;
   streak: number;
@@ -608,6 +628,8 @@ export type PracticeSessionStats = {
 
 const practiceSessionStatsFamily = atomFamily((tab: string) =>
   atom<PracticeSessionStats>({
+    mode: "anki",
+    remainingPositions: [],
     correct: 0,
     incorrect: 0,
     streak: 0,

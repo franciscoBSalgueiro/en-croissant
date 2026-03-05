@@ -74,10 +74,9 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
   const threat = useAtomValue(currentThreatAtom);
   const store = useContext(TreeStateContext)!;
   const rootFen = useStore(store, (s) => s.root.fen);
-  const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
   const moves = useStore(
     store,
-    useShallow((s) => getVariationLine(s.root, s.position, is960)),
+    useShallow((s) => getVariationLine(s.root, s.position)),
   );
   const theme = useMantineTheme();
 

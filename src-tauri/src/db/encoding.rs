@@ -123,7 +123,9 @@ fn invalid_data(message: &str) -> Error {
 }
 
 pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, Error> {
-    let root_position = Chess::from_setup(initial_fen.into(), CastlingMode::Chess960)
+    let setup = initial_fen.into_setup();
+    let castling_mode = CastlingMode::detect(&setup);
+    let root_position = Chess::from_setup(setup, castling_mode)
         .or_else(PositionError::ignore_too_much_material)
         .unwrap();
 
@@ -341,22 +343,6 @@ pub fn decode_game_to_movetext(moves_bytes: &[u8], initial_fen: Fen) -> Result<S
     let decoded = decode_game(moves_bytes, initial_fen)?;
     let mut state = render_state;
     Ok(render_nodes(&decoded.nodes, &mut state))
-}
-
-#[allow(dead_code)]
-pub fn decode_moves(moves_bytes: Vec<u8>, initial_fen: Fen) -> Result<Vec<String>, Error> {
-    let mut chess = Chess::from_setup(initial_fen.into(), CastlingMode::Chess960)
-        .or_else(PositionError::ignore_too_much_material)
-        .unwrap();
-    let mut moves = Vec::new();
-    for byte in iter_mainline_move_bytes(&moves_bytes) {
-        let Some(m) = decode_move(byte, &chess) else {
-            break;
-        };
-        let san = SanPlus::from_move_and_play_unchecked(&mut chess, m);
-        moves.push(san.to_string());
-    }
-    Ok(moves)
 }
 
 #[cfg(test)]

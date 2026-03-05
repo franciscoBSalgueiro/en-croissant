@@ -25,7 +25,7 @@ import {
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN } from "@/utils/chess";
-import { saveToFile } from "@/utils/tabs";
+import { getTabFile, saveToFile } from "@/utils/tabs";
 import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -46,6 +46,8 @@ function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
+  const hasPersistentOrigin = currentTab?.gameOrigin.kind !== "none";
   const autoSave = useAtomValue(autoSaveAtom);
   const { documentDir } = useLoaderData({ from: "/" });
   const boardRef = useRef(null);
@@ -66,25 +68,47 @@ function BoardAnalysis() {
       store,
     });
   }, [setCurrentTab, currentTab, documentDir, store]);
+  const userSaveFile = useCallback(async () => {
+    saveToFile({
+      dir: documentDir,
+      setCurrentTab,
+      tab: currentTab,
+      store,
+      isUserSave: true,
+    });
+  }, [setCurrentTab, currentTab, documentDir, store]);
   useEffect(() => {
-    if (currentTab?.file && autoSave && dirty) {
+    if (hasPersistentOrigin && autoSave && dirty) {
       saveFile();
     }
-  }, [currentTab?.file, saveFile, autoSave, dirty]);
+  }, [hasPersistentOrigin, saveFile, autoSave, dirty]);
 
   const addGame = useCallback(() => {
-    if (!currentTab?.file) return;
+    if (!tabFile) return;
     setCurrentTab((prev) => {
-      if (!prev?.file) return prev;
-      prev.gameNumber = prev.file.numGames;
-      prev.file.numGames += 1;
-      return { ...prev };
+      if (
+        prev.gameOrigin.kind !== "file" &&
+        prev.gameOrigin.kind !== "temp_file"
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        gameOrigin: {
+          ...prev.gameOrigin,
+          gameNumber: prev.gameOrigin.file.numGames,
+          file: {
+            ...prev.gameOrigin.file,
+            numGames: prev.gameOrigin.file.numGames + 1,
+          },
+        },
+      };
     });
     reset();
-    writeTextFile(currentTab.file.path, `\n\n${defaultPGN()}\n\n`, {
+    writeTextFile(tabFile.path, `\n\n${defaultPGN()}\n\n`, {
       append: true,
     });
-  }, [setCurrentTab, reset, currentTab?.file?.path]);
+  }, [setCurrentTab, reset, tabFile]);
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabled = useAtomValue(allEnabledAtom);
@@ -95,7 +119,7 @@ function BoardAnalysis() {
     currentTabSelectedAtom,
   );
   const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
-  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
+  const isRepertoire = tabFile?.metadata.type === "repertoire";
   const practicing =
     currentTabSelected === "practice" && practiceTabSelected === "train";
   const practiceState = useAtomValue(practiceStateAtom);
@@ -109,7 +133,7 @@ function BoardAnalysis() {
   }, [practicing, setPracticePath]);
 
   useHotkeys([
-    [keyMap.SAVE_FILE.keys, () => saveFile()],
+    [keyMap.SAVE_FILE.keys, () => userSaveFile()],
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
   useHotkeys([
@@ -285,7 +309,7 @@ function BoardAnalysis() {
                   editingMode={editingMode}
                   toggleEditingMode={toggleEditingMode}
                   dirty={dirty}
-                  saveFile={saveFile}
+                  saveFile={userSaveFile}
                 />
               }
             />

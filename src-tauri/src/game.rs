@@ -1,9 +1,16 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap, fs::File, io::{BufRead, BufReader, Cursor, Read, Write}, ops::ControlFlow, path::PathBuf, sync::Arc, time::Instant
+};
 
 use dashmap::DashMap;
 use log::{error, info};
+use pgn_reader::{Reader, RawTag, SanPlus, Skip, Visitor};
+use polyglot_book_rs::PolyglotBook;
+use rand::{seq::IteratorRandom, Rng};
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, Chess, Color, EnPassantMode, Position};
+use shakmaty::{
+    fen::Fen,  uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position,
+};
 use specta::Type;
 use tauri::AppHandle;
 use tauri_specta::Event;
@@ -51,6 +58,19 @@ pub struct GameConfig {
     pub initial_fen: Option<String>,
     #[serde(default)]
     pub initial_moves: Vec<String>,
+    pub opening_book: Option<OpeningBookConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OpeningBookConfig {
+    pub path: String,
+    #[serde(default = "default_opening_book_max_ply")]
+    pub max_ply: usize,
+}
+
+fn default_opening_book_max_ply() -> usize {
+    40
 }
 
 #[derive(Clone, Debug, Serialize, Type, PartialEq)]
@@ -162,6 +182,8 @@ struct GameController {
     shutdown_tx: Option<watch::Sender<bool>>,
     move_notify_tx: Option<tokio::sync::mpsc::Sender<()>>,
     engine_thinking: bool,
+    polyglot_book: Option<PolyglotBook>,
+    polyglot_max_ply: usize,
 }
 
 impl GameController {
@@ -212,6 +234,8 @@ impl GameController {
             shutdown_tx: None,
             move_notify_tx: None,
             engine_thinking: false,
+            polyglot_book: None,
+            polyglot_max_ply: 0,
         };
 
         for uci_str in &initial_moves {
@@ -548,13 +572,38 @@ impl GameManager {
             }
         }
 
+        let OpeningBookResult {
+            config,
+            polyglot_book,
+            polyglot_max_ply,
+        } = apply_opening_book(config)?;
+        let castling_mode = CastlingMode::detect(
+            config
+                .clone()
+                .initial_fen
+                .unwrap_or_default()
+                .parse::<Fen>()
+                .unwrap_or_default()
+                .as_setup(),
+        );
+
         let mut controller = GameController::new(game_id.clone(), config.clone())?;
+        controller.polyglot_book = polyglot_book;
+        controller.polyglot_max_ply = polyglot_max_ply;
 
         if let PlayerConfig::Engine { path, options, .. } = &config.white {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
             for opt in options {
+                if opt.name == "UCI_Chess960" {
+                    continue;
+                }
                 engine.set_option(&opt.name, &opt.value).await?;
+            }
+            if castling_mode.is_chess960() {
+                engine.set_option("UCI_Chess960", "true").await?;
+            } else {
+                engine.set_option("UCI_Chess960", "false").await?;
             }
             controller.white_engine = Some(Arc::new(Mutex::new(engine)));
         }
@@ -563,7 +612,15 @@ impl GameManager {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
             for opt in options {
+                if opt.name == "UCI_Chess960" {
+                    continue;
+                }
                 engine.set_option(&opt.name, &opt.value).await?;
+            }
+            if castling_mode.is_chess960() {
+                engine.set_option("UCI_Chess960", "true").await?;
+            } else {
+                engine.set_option("UCI_Chess960", "false").await?;
             }
             controller.black_engine = Some(Arc::new(Mutex::new(engine)));
         }
@@ -791,6 +848,356 @@ impl Default for GameManager {
     }
 }
 
+#[derive(Clone, Debug)]
+struct OpeningBookSelection {
+    initial_fen: String,
+    initial_moves: Vec<String>,
+}
+
+struct OpeningBookResult {
+    config: GameConfig,
+    polyglot_book: Option<PolyglotBook>,
+    polyglot_max_ply: usize,
+}
+
+fn select_random_epd_entry(reader: impl BufRead) -> Result<OpeningBookSelection, Error> {
+    let mut rng = rand::thread_rng();
+
+    let selected_line = reader
+        .lines()
+        .map_while(Result::ok)
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .choose(&mut rng)
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Opening book EPD has no entries",
+            )
+        })?;
+
+    Ok(OpeningBookSelection {
+        initial_fen: selected_line,
+        initial_moves: Vec::new(),
+    })
+}
+
+struct OpeningBookPgnVisitor {
+    selected: Option<OpeningBookSelection>,
+    seen: usize,
+    current_position: Chess,
+    initial_position: Chess,
+    castling_mode: CastlingMode,
+    initial_fen: Option<String>,
+    moves: Vec<String>,
+    skip: bool,
+}
+
+impl OpeningBookPgnVisitor {
+    fn new() -> Self {
+        let start = Chess::default();
+        Self {
+            selected: None,
+            seen: 0,
+            current_position: start.clone(),
+            initial_position: start,
+            castling_mode: CastlingMode::Standard,
+            initial_fen: None,
+            moves: Vec::new(),
+            skip: false,
+        }
+    }
+}
+
+impl Visitor for OpeningBookPgnVisitor {
+    type Output = Option<OpeningBookSelection>;
+    type Tags = ();
+    type Movetext = ();
+
+    fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
+        let start = Chess::default();
+        self.current_position = start.clone();
+        self.initial_position = start;
+        self.castling_mode = CastlingMode::Standard;
+        self.initial_fen = None;
+        self.moves.clear();
+        self.skip = false;
+        ControlFlow::Continue(())
+    }
+
+    fn tag(
+        &mut self,
+        _tags: &mut Self::Tags,
+        key: &[u8],
+        value: RawTag<'_>,
+    ) -> ControlFlow<Self::Output> {
+        if key == b"FEN" {
+            // RawTag is bytes in 0.30, need manual conversion
+            let fen_text = String::from_utf8_lossy(value.as_bytes()).into_owned();
+            
+            match parse_fen_to_position(&fen_text) {
+                Ok(position) => {
+                    let parsed_fen: Fen = match fen_text.parse() {
+                        Ok(fen) => fen,
+                        Err(_) => {
+                            self.skip = true;
+                            return ControlFlow::Continue(());
+                        }
+                    };
+                    self.current_position = position.clone();
+                    self.initial_position = position;
+                    self.castling_mode = CastlingMode::detect(parsed_fen.as_setup());
+                    self.initial_fen = Some(fen_text);
+                }
+                Err(_) => {
+                    self.skip = true;
+                }
+            }
+        }
+        ControlFlow::Continue(())
+    }
+
+    fn begin_movetext(
+        &mut self,
+        _tags: Self::Tags,
+    ) -> ControlFlow<Self::Output, Self::Movetext> {
+        ControlFlow::Continue(())
+    }
+
+    fn begin_variation(
+        &mut self,
+        _movetext: &mut Self::Movetext,
+    ) -> ControlFlow<Self::Output, Skip> {
+        // Skip parsing moves if self.skip was set during headers
+        ControlFlow::Continue(Skip(self.skip)) 
+    }
+
+    fn san(
+        &mut self, 
+        _movetext: &mut Self::Movetext, 
+        san: SanPlus
+    ) -> ControlFlow<Self::Output> {
+        // Double check skip, though begin_variation handles most cases
+        if self.skip {
+            return ControlFlow::Continue(());
+        }
+
+        let mv = match san.san.to_move(&self.current_position) {
+            Ok(mv) => mv,
+            Err(_) => {
+                self.skip = true;
+                return ControlFlow::Continue(());
+            }
+        };
+
+        let uci = UciMove::from_move(mv, self.castling_mode).to_string();
+        self.moves.push(uci);
+        self.current_position.play_unchecked(mv);
+        
+        ControlFlow::Continue(())
+    }
+
+    fn end_game(&mut self, _movetext: Self::Movetext) -> Self::Output {
+        if self.skip || self.moves.is_empty() {
+            return None;
+        }
+
+        let initial_fen = self.initial_fen.clone().unwrap_or_else(|| {
+            Fen::from_position(&self.initial_position, EnPassantMode::Legal).to_string()
+        });
+
+        let candidate = OpeningBookSelection {
+            initial_fen,
+            initial_moves: self.moves.clone(),
+        };
+
+        self.seen += 1;
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0..self.seen) == 0 {
+            self.selected = Some(candidate.clone());
+        }
+
+        Some(candidate)
+    }
+}
+
+fn select_random_pgn_entry(input: impl Read) -> Result<OpeningBookSelection, Error> {
+    let mut reader = Reader::new(input);
+    let mut visitor = OpeningBookPgnVisitor::new();
+
+    while reader.read_game(&mut visitor)?.is_some() {}
+
+    visitor.selected.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Opening book PGN has no valid games",
+        )
+        .into()
+    })
+}
+
+fn read_zip_inner(path: &str) -> Result<(String, Vec<u8>), Error> {
+    let file = File::open(path)?;
+    let mut archive = zip::ZipArchive::new(BufReader::new(file))?;
+    if archive.len() != 1 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Opening book zip must contain exactly one file",
+        )
+        .into());
+    }
+    let mut inner = archive.by_index(0)?;
+    let name = inner.name().to_string();
+    let mut buf = Vec::new();
+    inner.read_to_end(&mut buf)?;
+    Ok((name, buf))
+}
+
+fn opening_book_ext(name: &str) -> Option<&str> {
+    let lower = name.to_ascii_lowercase();
+    if lower.ends_with(".epd") {
+        Some("epd")
+    } else if lower.ends_with(".pgn") {
+        Some("pgn")
+    } else if lower.ends_with(".bin") {
+        Some("bin")
+    } else {
+        None
+    }
+}
+
+fn normalize_polyglot_uci(uci: &str) -> String {
+    match uci {
+        "e1h1" => "e1g1".to_string(),
+        "e1a1" => "e1c1".to_string(),
+        "e8h8" => "e8g8".to_string(),
+        "e8a8" => "e8c8".to_string(),
+        _ => uci.to_string(),
+    }
+}
+
+fn choose_weighted_index(weights: &[u16], rng: &mut impl Rng) -> usize {
+    let total: u64 = weights.iter().map(|w| *w as u64).sum();
+    if total == 0 {
+        return rng.gen_range(0..weights.len());
+    }
+
+    let mut target = rng.gen_range(0..total);
+    for (index, weight) in weights.iter().enumerate() {
+        let weight = *weight as u64;
+        if target < weight {
+            return index;
+        }
+        target -= weight;
+    }
+
+    weights.len().saturating_sub(1)
+}
+
+fn apply_opening_book(config: GameConfig) -> Result<OpeningBookResult, Error> {
+    let Some(opening_book) = &config.opening_book else {
+        return Ok(OpeningBookResult {
+            config,
+            polyglot_book: None,
+            polyglot_max_ply: 0,
+        });
+    };
+
+    let path = &opening_book.path;
+    let max_ply = opening_book.max_ply.max(1);
+    let ext = PathBuf::from(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase());
+
+    let is_human_vs_human = matches!(
+        (&config.white, &config.black),
+        (PlayerConfig::Human { .. }, PlayerConfig::Human { .. })
+    );
+
+    enum BookAction {
+        Selection(OpeningBookSelection),
+        Polyglot(PolyglotBook),
+        Skip,
+    }
+
+    let action = match ext.as_deref() {
+        Some("epd") => {
+            BookAction::Selection(select_random_epd_entry(BufReader::new(File::open(path)?))?)
+        }
+        Some("pgn") => BookAction::Selection(select_random_pgn_entry(File::open(path)?)?),
+        Some("bin") => {
+            if is_human_vs_human {
+                BookAction::Skip
+            } else {
+                BookAction::Polyglot(PolyglotBook::load(path)?)
+            }
+        }
+        Some("zip") => {
+            let (inner_name, data) = read_zip_inner(path)?;
+            match opening_book_ext(&inner_name) {
+                Some("epd") => BookAction::Selection(select_random_epd_entry(BufReader::new(
+                    Cursor::new(data),
+                ))?),
+                Some("pgn") => BookAction::Selection(select_random_pgn_entry(Cursor::new(data))?),
+                Some("bin") => {
+                    if is_human_vs_human {
+                        BookAction::Skip
+                    } else {
+                        let mut temp = tempfile::NamedTempFile::new()?;
+                        temp.write_all(&data)?;
+                        temp.flush()?;
+                        let temp_path = temp.path().to_str().ok_or_else(|| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                "Temporary Polyglot book path is not valid UTF-8",
+                            )
+                        })?;
+                        BookAction::Polyglot(PolyglotBook::load(temp_path)?)
+                    }
+                }
+                _ => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "Zip must contain a .pgn, .epd, or .bin file",
+                    )
+                    .into())
+                }
+            }
+        }
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Unsupported opening book format. Use .pgn, .epd, .bin, or .zip",
+            )
+            .into())
+        }
+    };
+
+    match action {
+        BookAction::Selection(selection) => {
+            let mut next = config;
+            next.initial_fen = Some(selection.initial_fen);
+            next.initial_moves = selection.initial_moves;
+            Ok(OpeningBookResult {
+                config: next,
+                polyglot_book: None,
+                polyglot_max_ply: 0,
+            })
+        }
+        BookAction::Polyglot(book) => Ok(OpeningBookResult {
+            config,
+            polyglot_book: Some(book),
+            polyglot_max_ply: max_ply,
+        }),
+        BookAction::Skip => Ok(OpeningBookResult {
+            config,
+            polyglot_book: None,
+            polyglot_max_ply: 0,
+        }),
+    }
+}
+
 fn spawn_engine_task(
     game_id: &GameId,
     controller: &Arc<RwLock<GameController>>,
@@ -953,11 +1360,85 @@ async fn game_loop(
     info!("Game loop ended for {}", game_id);
 }
 
+fn try_polyglot_book_move(controller: &GameController) -> Option<String> {
+    let book = controller.polyglot_book.as_ref()?;
+
+    if controller.moves.len() >= controller.polyglot_max_ply {
+        return None;
+    }
+
+    let fen = Fen::from_position(&controller.position, EnPassantMode::Legal).to_string();
+    let entries = book.get_all_moves_from_fen(&fen);
+
+    if entries.is_empty() {
+        return None;
+    }
+
+    let mut rng = rand::thread_rng();
+    let legal_moves = entries
+        .into_iter()
+        .filter_map(|entry| {
+            let uci = normalize_polyglot_uci(&entry.move_string);
+            let parsed = UciMove::from_ascii(uci.as_bytes()).ok()?;
+            parsed.to_move(&controller.position).ok()?;
+            Some((uci, entry.weight))
+        })
+        .collect::<Vec<_>>();
+
+    if legal_moves.is_empty() {
+        return None;
+    }
+
+    let weights = legal_moves.iter().map(|(_, w)| *w).collect::<Vec<_>>();
+    let selected = choose_weighted_index(&weights, &mut rng);
+    Some(legal_moves[selected].0.clone())
+}
+
 async fn request_engine_move(
     game_id: &str,
     controller: &Arc<RwLock<GameController>>,
     app: &AppHandle,
 ) -> Result<(), Error> {
+    // Try polyglot book move first (only for engine turns with a loaded book)
+    {
+        let ctrl = controller.read().await;
+        let book_move = try_polyglot_book_move(&ctrl);
+        let turn = ctrl.position.turn();
+        drop(ctrl);
+
+        if let Some(book_uci) = book_move {
+            let mut ctrl = controller.write().await;
+            ctrl.engine_thinking = false;
+
+            if ctrl.status != GameStatus::Playing || ctrl.position.turn() != turn {
+                return Ok(());
+            }
+
+            let game_move = ctrl.apply_move(&book_uci)?;
+            let (white_time, black_time) = ctrl.get_current_times();
+
+            GameMoveEvent {
+                game_id: game_id.to_string(),
+                moves: ctrl.moves.clone(),
+                fen: game_move.fen_after,
+                white_time,
+                black_time,
+            }
+            .emit(app)?;
+
+            if let GameStatus::Finished { result } = &ctrl.status {
+                GameOverEvent {
+                    game_id: game_id.to_string(),
+                    result: result.clone(),
+                    moves: ctrl.moves.clone(),
+                }
+                .emit(app)?;
+            }
+
+            return Ok(());
+        }
+    }
+
     let (engine_arc, go_mode, initial_fen, moves, turn) = {
         let ctrl = controller.read().await;
 

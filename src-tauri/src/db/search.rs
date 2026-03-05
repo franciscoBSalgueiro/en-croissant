@@ -3,13 +3,17 @@ use diesel::prelude::*;
 use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, FromSetup, Position, Setup};
+use shakmaty::{
+    fen::Fen, san::SanPlus, Bitboard, ByColor, CastlingMode, Chess, FromSetup, Position, Setup,
+};
 use specta::Type;
 use std::{
+    cmp::Reverse,
+    collections::BinaryHeap,
     path::PathBuf,
     sync::{
-        atomic::{AtomicI32, AtomicUsize, Ordering},
-        Arc,
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
     },
     time::Instant,
 };
@@ -53,8 +57,10 @@ pub enum PositionQuery {
 
 impl PositionQuery {
     pub fn exact_from_fen(fen: &str) -> Result<PositionQuery, Error> {
-        let position: Chess =
-            Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Chess960)?;
+        let fen = Fen::from_ascii(fen.as_bytes())?;
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        let position: Chess = setup.position(castling_mode)?;
         let pawn_home = get_pawn_home(position.board());
         let material = get_material_count(position.board());
         Ok(PositionQuery::Exact(ExactData {
@@ -163,7 +169,9 @@ fn get_move_after_match(
 ) -> Result<Option<String>, Error> {
     let mut chess = if let Some(fen) = fen {
         let fen = Fen::from_ascii(fen.as_bytes())?;
-        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)?
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        Chess::from_setup(setup, castling_mode)?
     } else {
         Chess::default()
     };
@@ -299,8 +307,11 @@ pub async fn search_position(
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
     const MAX_SAMPLES: usize = 10;
-    let sample_games: [AtomicI32; MAX_SAMPLES] = std::array::from_fn(|_| AtomicI32::new(0));
-    let sample_count = AtomicUsize::new(0);
+    // Min-heap of (elo_key, game_id) to track top-rated sample games.
+    // Using Reverse so peek() returns the entry with the lowest ELO,
+    // which we can evict when a higher-rated game is found.
+    let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
+        Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES + 1));
 
     let processed = AtomicUsize::new(0);
 
@@ -373,13 +384,17 @@ pub async fn search_position(
             };
             if position_query.can_reach(&end_material, entry.pawn_home) {
                 if let Ok(Some(m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
-                    let current_count = sample_count.load(Ordering::Relaxed);
-                    if current_count < MAX_SAMPLES {
-                        let idx = sample_count.fetch_add(1, Ordering::Relaxed);
-                        if idx < MAX_SAMPLES {
-                            sample_games[idx].store(entry.id, Ordering::Relaxed);
+                    let elo_key = entry.white_elo.max(entry.black_elo);
+                    let mut heap = top_games.lock().unwrap();
+                    if heap.len() < MAX_SAMPLES {
+                        heap.push(Reverse((elo_key, entry.id)));
+                    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
+                        if elo_key > min_elo {
+                            heap.pop();
+                            heap.push(Reverse((elo_key, entry.id)));
                         }
                     }
+                    drop(heap);
 
                     openings
                         .entry(m)
@@ -413,11 +428,11 @@ pub async fn search_position(
             v
         })
         .collect();
-    let final_count = sample_count.load(Ordering::Relaxed).min(MAX_SAMPLES);
-    let ids: Vec<i32> = sample_games[..final_count]
-        .iter()
-        .map(|a| a.load(Ordering::Relaxed))
-        .filter(|&id| id != 0)
+    let ids: Vec<i32> = top_games
+        .into_inner()
+        .unwrap()
+        .into_iter()
+        .map(|Reverse((_, id))| id)
         .collect();
 
     info!("finished search in {:?}", start.elapsed());
@@ -429,6 +444,7 @@ pub async fn search_position(
         .inner_join(events::table.on(games::event_id.eq(events::id)))
         .inner_join(sites::table.on(games::site_id.eq(sites::id)))
         .filter(games::id.eq_any(ids))
+        .order((games::white_elo.desc(), games::black_elo.desc()))
         .load(db)?;
     let normalized_games = normalize_games(games);
     let file_path = file.clone();

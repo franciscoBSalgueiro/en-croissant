@@ -5,6 +5,7 @@ import {
   Checkbox,
   Divider,
   Group,
+  NumberInput,
   Paper,
   Portal,
   ScrollArea,
@@ -20,6 +21,7 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
@@ -51,6 +53,9 @@ import {
   currentGameStateAtom,
   currentPlayersAtom,
   gameInputColorAtom,
+  gameOpeningBookEnabledAtom,
+  gameOpeningBookMaxPlyAtom,
+  gameOpeningBookPathAtom,
   gamePlayer1SettingsAtom,
   gamePlayer2SettingsAtom,
   gameSameTimeControlAtom,
@@ -60,6 +65,7 @@ import { positionFromFen } from "@/utils/chessops";
 import type { GameHeaders } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../common/EngineLogsView";
+import FileInput from "../common/FileInput";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -131,6 +137,7 @@ function BoardGame() {
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const setResult = useStore(store, (s) => s.setResult);
   const appendMove = useStore(store, (s) => s.appendMove);
+  const resetTree = useStore(store, (s) => s.reset);
 
   const [, setTabs] = useAtom(tabsAtom);
 
@@ -146,6 +153,15 @@ function BoardGame() {
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
   const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
+  const [openingBookPath, setOpeningBookPath] = useAtom(
+    gameOpeningBookPathAtom,
+  );
+  const [openingBookEnabled, setOpeningBookEnabled] = useAtom(
+    gameOpeningBookEnabledAtom,
+  );
+  const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(
+    gameOpeningBookMaxPlyAtom,
+  );
 
   const hasEngine =
     players.white.type === "engine" || players.black.type === "engine";
@@ -256,7 +272,7 @@ function BoardGame() {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
       path: settings.engine?.path ?? "",
-      options: (settings.engine?.settings ?? [])
+      options: (settings.engineSettings ?? settings.engine?.settings ?? [])
         .filter((s) => s.name !== "MultiPV")
         .map((s) => ({
           name: s.name,
@@ -304,6 +320,10 @@ function BoardGame() {
         : null,
       initialFen: root.fen === INITIAL_FEN ? null : root.fen,
       initialMoves,
+      openingBook:
+        openingBookEnabled && openingBookPath
+          ? { path: openingBookPath, maxPly: Math.max(1, openingBookMaxPly) }
+          : null,
     } as GameConfig;
 
     try {
@@ -314,6 +334,17 @@ function BoardGame() {
       setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
 
       setGameState("playing");
+
+      setFen(state.initialFen);
+      for (const move of mapBackendMoves(state.moves)) {
+        const parsed = parseUci(move.uci);
+        if (parsed) {
+          appendMove({
+            payload: parsed,
+            clock: move.clock ?? undefined,
+          });
+        }
+      }
 
       const now = new Date();
       const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ".");
@@ -363,7 +394,7 @@ function BoardGame() {
       setHeaders({
         ...headers,
         ...newHeaders,
-        fen: root.fen,
+        fen: state.initialFen,
       });
 
       setTabs((prev) =>
@@ -560,11 +591,23 @@ function BoardGame() {
     setGameState("settingUp");
     setWhiteTime(null);
     setBlackTime(null);
-    setFen(INITIAL_FEN);
-    setHeaders({
-      ...headers,
-      result: "*",
+    resetTree();
+  }
+
+  async function handleSelectOpeningBook() {
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Opening Book",
+          extensions: ["pgn", "epd", "bin", "zip"],
+        },
+      ],
     });
+
+    if (typeof selected === "string") {
+      setOpeningBookPath(selected);
+    }
   }
 
   return (
@@ -659,22 +702,65 @@ function BoardGame() {
                       </Group>
                     </Box>
 
-                    <Checkbox
-                      label={t("Board.Opponent.SameTimeControl")}
-                      checked={sameTimeControl}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setSameTimeControl(checked);
-                        if (checked) {
-                          setPlayer2Settings((prev) => ({
-                            ...prev,
-                            timeControl: player1Settings.timeControl,
-                            timeUnit: player1Settings.timeUnit,
-                            incrementUnit: player1Settings.incrementUnit,
-                          }));
-                        }
-                      }}
-                    />
+                    <Paper withBorder p="sm">
+                      <Stack>
+                        <Checkbox
+                          label={t("Board.Opponent.SameTimeControl")}
+                          checked={sameTimeControl}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSameTimeControl(checked);
+                            if (checked) {
+                              setPlayer2Settings((prev) => ({
+                                ...prev,
+                                timeControl: player1Settings.timeControl,
+                                timeUnit: player1Settings.timeUnit,
+                                incrementUnit: player1Settings.incrementUnit,
+                              }));
+                            }
+                          }}
+                        />
+
+                        <Divider variant="dashed" />
+
+                        <Checkbox
+                          label="Enable Opening Book"
+                          checked={openingBookEnabled}
+                          onChange={(e) =>
+                            setOpeningBookEnabled(e.currentTarget.checked)
+                          }
+                        />
+
+                        {openingBookEnabled && (
+                          <>
+                            <FileInput
+                              label="Opening book (.pgn/.epd/.bin/.zip)"
+                              description={t("Import.PGN.ClickToSelect")}
+                              filename={openingBookPath}
+                              onClick={handleSelectOpeningBook}
+                            />
+                            {openingBookPath?.includes(".bin") && (
+                              <NumberInput
+                                label="Polyglot max plies"
+                                description="Maximum number of plies from the starting position that the opening book will be used for."
+                                min={1}
+                                value={openingBookMaxPly}
+                                onChange={(value) => {
+                                  if (
+                                    typeof value === "number" &&
+                                    Number.isFinite(value)
+                                  ) {
+                                    setOpeningBookMaxPly(
+                                      Math.max(1, Math.trunc(value)),
+                                    );
+                                  }
+                                }}
+                              />
+                            )}
+                          </>
+                        )}
+                      </Stack>
+                    </Paper>
 
                     <Group>
                       <Button

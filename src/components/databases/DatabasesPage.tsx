@@ -200,18 +200,20 @@ export default function DatabasesPage() {
         </ScrollArea>
 
         {selectedDatabase === null ? (
-          <Center h="100%">
-            <Stack align="center" gap="sm">
-              <ThemeIcon size={80} radius="100%" variant="light" color="gray">
-                <IconDatabase size={40} />
-              </ThemeIcon>
-              <Text c="dimmed" fw={500} size="lg">
-                {t("Databases.NoSelection")}
-              </Text>
-            </Stack>
-          </Center>
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
+            <Center h="100%">
+              <Stack align="center" gap="sm">
+                <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                  <IconDatabase size={40} />
+                </ThemeIcon>
+                <Text c="dimmed" fw={500} size="lg">
+                  {t("Databases.NoSelection")}
+                </Text>
+              </Stack>
+            </Center>
+          </Paper>
         ) : (
-          <Paper withBorder p="md" h="100%">
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 {selectedDatabase.type === "error" ? (

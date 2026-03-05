@@ -10,7 +10,7 @@ use std::{
 
 use derivative::Derivative;
 use governor::{Quota, RateLimiter};
-use log::info;
+use log::{info, warn};
 use nonzero_ext::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -80,7 +80,20 @@ impl EngineProcess {
     }
 
     async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
+        let fen_changed = options.fen != self.options.fen;
+        let fen: Fen = options.fen.parse()?;
+        let setup = fen.as_setup();
+        let castling_mode = CastlingMode::detect(setup);
         let pos = parse_fen_and_apply_moves(&options.fen, &options.moves)?;
+
+        if fen_changed {
+            if castling_mode.is_chess960() {
+                self.set_option("UCI_Chess960", "true").await?;
+            } else {
+                self.set_option("UCI_Chess960", "false").await?;
+            }
+        }
+
         let multipv = options
             .extra_options
             .iter()
@@ -91,12 +104,12 @@ impl EngineProcess {
         self.real_multipv = multipv.min(pos.legal_moves().len() as u16);
 
         for option in &options.extra_options {
-            if !self.options.extra_options.contains(option) {
+            if !self.options.extra_options.contains(option) && option.name != "UCI_Chess960" {
                 self.set_option(&option.name, &option.value).await?;
             }
         }
 
-        if options.fen != self.options.fen || options.moves != self.options.moves {
+        if fen_changed || options.moves != self.options.moves {
             self.set_position(&options.fen, &options.moves).await?;
         }
         self.last_depth = 0;
@@ -131,6 +144,10 @@ impl EngineProcess {
         self.base.quit().await?;
         self.running = false;
         Ok(())
+    }
+
+    pub fn kill_sync(&mut self) {
+        self.base.kill_sync();
     }
 }
 
@@ -355,54 +372,60 @@ pub async fn get_best_moves(
         let mut proc = process.lock().await;
         match parse_one(&line) {
             UciMessage::Info(attrs) => {
-                if let Ok(best_moves) =
-                    parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves)
-                {
-                    if best_moves.score.lower_bound == Some(true)
-                        || best_moves.score.upper_bound == Some(true)
-                    {
-                        continue;
-                    }
-                    let multipv = best_moves.multipv;
-                    let cur_depth = best_moves.depth;
-                    let cur_nodes = best_moves.nodes;
-                    if multipv as usize == proc.best_moves.len() + 1 {
-                        proc.best_moves.push(best_moves);
-                        if multipv == proc.real_multipv {
-                            if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                                && cur_depth >= proc.last_depth
-                                && lim.check().is_ok()
-                            {
-                                let progress = match proc.go_mode {
-                                    GoMode::Depth(depth) => {
-                                        (cur_depth as f64 / depth as f64) * 100.0
+                match parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves) {
+                    Ok(best_moves) => {
+                        if best_moves.score.lower_bound == Some(true)
+                            || best_moves.score.upper_bound == Some(true)
+                        {
+                            continue;
+                        }
+                        let multipv = best_moves.multipv;
+                        let cur_depth = best_moves.depth;
+                        let cur_nodes = best_moves.nodes;
+                        if multipv as usize == proc.best_moves.len() + 1 {
+                            proc.best_moves.push(best_moves);
+                            if multipv == proc.real_multipv {
+                                if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                    && cur_depth >= proc.last_depth
+                                    && lim.check().is_ok()
+                                {
+                                    let progress = match proc.go_mode {
+                                        GoMode::Depth(depth) => {
+                                            (cur_depth as f64 / depth as f64) * 100.0
+                                        }
+                                        GoMode::Time(time) => {
+                                            (proc.start.elapsed().as_millis() as f64 / time as f64)
+                                                * 100.0
+                                        }
+                                        GoMode::Nodes(nodes) => {
+                                            (cur_nodes as f64 / nodes as f64) * 100.0
+                                        }
+                                        GoMode::PlayersTime(_) => 99.99,
+                                        GoMode::Infinite => 99.99,
+                                    };
+                                    BestMovesPayload {
+                                        best_lines: proc.best_moves.clone(),
+                                        engine: id.clone(),
+                                        tab: tab.clone(),
+                                        fen: proc.options.fen.clone(),
+                                        moves: proc.options.moves.clone(),
+                                        progress,
                                     }
-                                    GoMode::Time(time) => {
-                                        (proc.start.elapsed().as_millis() as f64 / time as f64)
-                                            * 100.0
-                                    }
-                                    GoMode::Nodes(nodes) => {
-                                        (cur_nodes as f64 / nodes as f64) * 100.0
-                                    }
-                                    GoMode::PlayersTime(_) => 99.99,
-                                    GoMode::Infinite => 99.99,
-                                };
-                                BestMovesPayload {
-                                    best_lines: proc.best_moves.clone(),
-                                    engine: id.clone(),
-                                    tab: tab.clone(),
-                                    fen: proc.options.fen.clone(),
-                                    moves: proc.options.moves.clone(),
-                                    progress,
+                                    .emit(&app)?;
+                                    proc.last_depth = cur_depth;
+                                    proc.last_best_moves = proc.best_moves.clone();
+                                    proc.last_progress = progress as f32;
                                 }
-                                .emit(&app)?;
-                                proc.last_depth = cur_depth;
-                                proc.last_best_moves = proc.best_moves.clone();
-                                proc.last_progress = progress as f32;
+                                proc.best_moves.clear();
                             }
-                            proc.best_moves.clear();
                         }
                     }
+                    Err(e) => match e {
+                        Error::NoMovesFound => {}
+                        _ => {
+                            warn!("Failed to parse info line: {}, error: {:?}", line, e);
+                        }
+                    },
                 }
             }
             UciMessage::BestMove { .. } => {
@@ -474,8 +497,11 @@ pub async fn analyze_game(
     let (mut proc, mut reader) = EngineProcess::new(path).await?;
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
+    let setup = fen.as_setup().clone();
+    let castling_mode = CastlingMode::detect(&setup);
+    println!("Castling mode: {:?}", castling_mode);
 
-    let mut chess: Chess = fen.clone().into_position(CastlingMode::Chess960)?;
+    let mut chess: Chess = setup.position(castling_mode)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
     options

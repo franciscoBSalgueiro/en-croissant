@@ -20,6 +20,7 @@ import { useToggle } from "@mantine/hooks";
 import {
   IconArrowBack,
   IconArrowRight,
+  IconBook,
   IconCheck,
   IconFlame,
   IconInfoCircle,
@@ -45,15 +46,19 @@ import {
   updateCardPerformance,
 } from "@/components/files/opening";
 import {
+  currentEvalOpenAtom,
   currentInvisibleAtom,
   currentPracticeTabAtom,
+  currentShowCommentsAtom,
   currentTabAtom,
   deckAtomFamily,
   type PracticeData,
+  type PracticeSessionStats,
   practiceCardStartTimeAtom,
   practiceSessionStatsAtom,
   practiceStateAtom,
 } from "@/state/atoms";
+import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import { findFen, getNodeAtPath } from "@/utils/treeReducer";
 import RepertoireInfo from "./RepertoireInfo";
 
@@ -68,12 +73,13 @@ function PracticePanel() {
   const currentFen = useStore(store, (s) => s.currentNode().fen);
 
   const currentTab = useAtomValue(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
   const [resetModal, toggleResetModal] = useToggle();
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
-      file: currentTab?.file?.path || "",
-      game: currentTab?.gameNumber || 0,
+      file: tabFile?.path || "",
+      game: getTabGameNumber(currentTab),
     }),
   );
 
@@ -117,32 +123,85 @@ function PracticePanel() {
   const stats = getStats(deck.positions);
 
   const setInvisible = useSetAtom(currentInvisibleAtom);
+  const setShowComments = useSetAtom(currentShowCommentsAtom);
+  const setEvalOpen = useSetAtom(currentEvalOpenAtom);
   const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const setCardStartTime = useSetAtom(practiceCardStartTimeAtom);
 
-  const newPractice = useCallback(() => {
-    if (deck.positions.length === 0) return;
-    const c = getCardForReview(deck.positions);
-    if (!c) {
-      setPracticeState({ phase: "idle" });
-      setPracticePath(null);
-      return;
+  const newPractice = useCallback(
+    (stats?: Partial<PracticeSessionStats>) => {
+      if (deck.positions.length === 0) return;
+
+      const currentMode = stats?.mode ?? sessionStats.mode;
+      const remaining =
+        stats?.remainingPositions ?? sessionStats.remainingPositions;
+
+      let c: (typeof deck.positions)[0] | null | undefined;
+
+      if (currentMode === "full") {
+        if (remaining.length > 0) {
+          c = deck.positions[remaining[0]];
+        } else {
+          c = null;
+        }
+      } else {
+        c = getCardForReview(deck.positions);
+      }
+
+      if (!c) {
+        setPracticeState({ phase: "idle" });
+        setPracticePath(null);
+        setInvisible(false);
+        setShowComments(true);
+        setEvalOpen(true);
+        return;
+      }
+      const path = findFen(c.fen, root);
+      goToMove(path);
+      setPracticePath(path);
+      setInvisible(true);
+      setShowComments(false);
+      setEvalOpen(false);
+      setCardStartTime(Date.now());
+      setPracticeState({ phase: "waiting", currentFen: c.fen });
+    },
+    [
+      deck.positions,
+      sessionStats.mode,
+      sessionStats.remainingPositions,
+      root,
+      goToMove,
+      setPracticePath,
+      setInvisible,
+      setShowComments,
+      setEvalOpen,
+      setCardStartTime,
+      setPracticeState,
+    ],
+  );
+
+  useEffect(() => {
+    if (practiceState.phase === "correct" && sessionStats.mode === "full") {
+      const timer = setTimeout(() => {
+        const remainingPositions = sessionStats.remainingPositions.slice(1);
+        setSessionStats((prev) => ({
+          ...prev,
+          remainingPositions,
+          correct: prev.correct + 1,
+          streak: prev.streak + 1,
+          bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
+        }));
+        newPractice({ remainingPositions, mode: "full" });
+      }, 300);
+      return () => clearTimeout(timer);
     }
-    const path = findFen(c.fen, root);
-    goToMove(path);
-    setPracticePath(path);
-    setInvisible(true);
-    setCardStartTime(Date.now());
-    setPracticeState({ phase: "waiting", currentFen: c.fen });
   }, [
-    deck.positions,
-    root,
-    goToMove,
-    setPracticePath,
-    setInvisible,
-    setCardStartTime,
-    setPracticeState,
+    practiceState.phase,
+    sessionStats.mode,
+    sessionStats.remainingPositions,
+    newPractice,
+    setSessionStats,
   ]);
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {
@@ -166,17 +225,43 @@ function PracticePanel() {
   }
 
   function startPractice() {
-    setSessionStats({
+    const stats: Partial<PracticeSessionStats> = {
+      mode: "anki",
+      remainingPositions: [],
       correct: 0,
       incorrect: 0,
       streak: 0,
       bestStreak: 0,
-    });
-    newPractice();
+    };
+    setSessionStats((prev) => ({ ...prev, ...stats }));
+    newPractice(stats);
+  }
+
+  function startFullPractice() {
+    const indices = deck.positions.map((_, i) => i);
+    const stats: Partial<PracticeSessionStats> = {
+      mode: "full",
+      remainingPositions: indices,
+      correct: 0,
+      incorrect: 0,
+      streak: 0,
+      bestStreak: 0,
+    };
+    setSessionStats((prev) => ({ ...prev, ...stats }));
+    newPractice(stats);
   }
 
   function skipCard() {
-    newPractice();
+    if (
+      sessionStats.mode === "full" &&
+      sessionStats.remainingPositions.length > 0
+    ) {
+      const remainingPositions = sessionStats.remainingPositions.slice(1);
+      setSessionStats((prev) => ({ ...prev, remainingPositions }));
+      newPractice({ remainingPositions });
+    } else {
+      newPractice();
+    }
   }
 
   useHotkeys("1", () => handleQualityRating(1), {
@@ -423,11 +508,33 @@ function PracticePanel() {
                         variant="light"
                         fullWidth
                         onClick={startPractice}
+                        leftSection={<IconTarget size={20} />}
+                        justify="space-between"
+                        rightSection={
+                          <Badge size="sm" variant="white" color="blue">
+                            {stats.due + stats.unseen}
+                          </Badge>
+                        }
                       >
-                        {t("Board.Practice.StartPractice")} (
-                        {stats.due + stats.unseen})
+                        {t("Board.Practice.StartPractice")}
                       </Button>
                     )}
+                    <Button
+                      size="md"
+                      variant="light"
+                      color="gray"
+                      fullWidth
+                      onClick={startFullPractice}
+                      leftSection={<IconBook size={20} />}
+                      justify="space-between"
+                      rightSection={
+                        <Badge size="sm" variant="white" color="gray">
+                          {deck.positions.length}
+                        </Badge>
+                      }
+                    >
+                      {t("Board.Practice.PracticeFullRepertoire")}
+                    </Button>
                   </Stack>
                 )}
 
@@ -452,24 +559,49 @@ function PracticePanel() {
                         </Button>
                       </Stack>
                     ) : (
-                      <Text ta="center" fz="sm" c="dimmed">
-                        {t("Board.Practice.MakeYourMove")}
-                      </Text>
+                      <Group gap="xs" justify="center">
+                        <Text ta="center" fz="sm" c="dimmed">
+                          {t("Board.Practice.MakeYourMove")}
+                        </Text>
+                        <Button
+                          variant="light"
+                          size="compact-xs"
+                          color="red"
+                          onClick={() => {
+                            setPracticeState({ phase: "idle" });
+                            setPracticePath(null);
+                            setInvisible(false);
+                            setShowComments(true);
+                            setEvalOpen(true);
+                            setSessionStats({
+                              mode: "anki",
+                              remainingPositions: [],
+                              correct: 0,
+                              incorrect: 0,
+                              streak: 0,
+                              bestStreak: 0,
+                            });
+                          }}
+                        >
+                          {t("Common.Stop")}
+                        </Button>
+                      </Group>
                     )}
                   </Paper>
                 )}
 
-                {practiceState.phase === "correct" && (
-                  <QualityRatingPanel
-                    onRate={handleQualityRating}
-                    card={
-                      practiceState.positionIndex !== undefined
-                        ? deck.positions[practiceState.positionIndex].card
-                        : undefined
-                    }
-                    timeTaken={practiceState.timeTaken}
-                  />
-                )}
+                {practiceState.phase === "correct" &&
+                  sessionStats.mode !== "full" && (
+                    <QualityRatingPanel
+                      onRate={handleQualityRating}
+                      card={
+                        practiceState.positionIndex !== undefined
+                          ? deck.positions[practiceState.positionIndex].card
+                          : undefined
+                      }
+                      timeTaken={practiceState.timeTaken}
+                    />
+                  )}
 
                 {practiceState.phase === "incorrect" && (
                   <Paper p="sm" withBorder>
@@ -538,7 +670,7 @@ function PracticePanel() {
       <ConfirmModal
         title={t("Board.Practice.Reset.Title")}
         description={t("Board.Practice.Reset.Description", {
-          name: currentTab?.file?.name,
+          name: tabFile?.name,
         })}
         opened={resetModal}
         onClose={toggleResetModal}
@@ -551,7 +683,12 @@ function PracticePanel() {
           setDeck({ positions: cards, logs: [] });
           setPracticeState({ phase: "idle" });
           setPracticePath(null);
+          setInvisible(false);
+          setShowComments(true);
+          setEvalOpen(true);
           setSessionStats({
+            mode: "anki",
+            remainingPositions: [],
             correct: 0,
             incorrect: 0,
             streak: 0,

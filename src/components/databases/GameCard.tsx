@@ -11,6 +11,7 @@ import { IconTrash, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { useSWRConfig } from "swr";
 import { commands, type NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
@@ -28,6 +29,7 @@ function GameCard({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { mutate: globalMutate } = useSWRConfig();
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -52,6 +54,11 @@ function GameCard({
                     setActiveTab,
                     pgn: game.moves,
                     headers: game,
+                    gameOrigin: {
+                      kind: "database",
+                      database: file,
+                      gameId: game.id,
+                    },
                   });
                   navigate({ to: "/" });
                 }}
@@ -65,7 +72,16 @@ function GameCard({
                 variant="subtle"
                 color="red"
                 onClick={() => {
-                  commands.deleteDbGame(file, game.id).then(() => mutate());
+                  commands.deleteDbGame(file, game.id).then(() => {
+                    mutate();
+                    globalMutate(
+                      (key) =>
+                        Array.isArray(key) &&
+                        (key[0] === "players" || key[0] === "tournaments"),
+                      undefined,
+                      { revalidate: true },
+                    );
+                  });
                 }}
               >
                 <IconTrash size="1.2rem" stroke={1.5} />

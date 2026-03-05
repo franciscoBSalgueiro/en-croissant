@@ -285,7 +285,11 @@ function DatabasePanel() {
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
-          <GamesTable games={openingData?.games || []} loading={isLoading} />
+          <GamesTable
+            games={openingData?.games || []}
+            loading={isLoading}
+            databasePath={dbType.type === "local" ? dbType.options.path : null}
+          />
         </PanelWithError>
         <PanelWithError
           value="options"
