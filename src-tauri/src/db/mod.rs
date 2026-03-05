@@ -1830,7 +1830,6 @@ pub async fn write_db_game(
         return Err(Error::GameNotFound(game_id.to_string()));
     }
 
-    delete_orphaned_data(db)?;
     Ok(())
 }
 
