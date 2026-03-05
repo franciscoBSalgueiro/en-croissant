@@ -63,6 +63,7 @@ use crate::puzzle::{
 use crate::sound::get_sound_server_port;
 use crate::{
     chess::get_best_moves,
+    onnx::maia_eval,
     db::{
         delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
         write_db_game,
@@ -171,7 +172,8 @@ fn main() {
             preload_reference_db,
             get_progress,
             clear_progress,
-            get_sound_server_port
+            get_sound_server_port,
+            maia_eval,
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
