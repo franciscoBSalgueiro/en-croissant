@@ -245,7 +245,7 @@ impl GameController {
             status: self.status.clone(),
             initial_fen: self.initial_fen.clone(),
             moves: self.moves.clone(),
-            current_fen: Fen::from_position(self.position.clone(), EnPassantMode::Legal)
+            current_fen: Fen::from_position(&self.position.clone(), EnPassantMode::Legal)
                 .to_string(),
             ply: self.moves.len() as u32,
             turn: turn.to_string(),
@@ -257,7 +257,7 @@ impl GameController {
     }
 
     fn position_key(position: &Chess) -> String {
-        let fen = Fen::from_position(position.clone(), EnPassantMode::Legal).to_string();
+        let fen = Fen::from_position(&position.clone(), EnPassantMode::Legal).to_string();
         fen.split_whitespace().take(4).collect::<Vec<_>>().join(" ")
     }
 
@@ -281,7 +281,7 @@ impl GameController {
         let uci = UciMove::from_ascii(uci_str.as_bytes())?;
         let mv = uci.to_move(&self.position)?;
 
-        let san = SanPlus::from_move_and_play_unchecked(&mut self.position.clone(), &mv);
+        let san = SanPlus::from_move_and_play_unchecked(&mut self.position.clone(), mv);
 
         let clock = self.clock.as_ref().and_then(|c| {
             if self.position.turn() == Color::White {
@@ -291,7 +291,7 @@ impl GameController {
             }
         });
 
-        self.position.play_unchecked(&mv);
+        self.position.play_unchecked(mv);
 
         let pos_key = Self::position_key(&self.position);
         *self.position_history.entry(pos_key).or_insert(0) += 1;
@@ -318,7 +318,8 @@ impl GameController {
             .map(|c| (c.white_time, c.black_time))
             .unwrap_or((None, None));
 
-        let fen_after = Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
+        let fen_after =
+            Fen::from_position(&self.position.clone(), EnPassantMode::Legal).to_string();
 
         let game_move = GameMove {
             uci: uci_str.to_string(),
@@ -339,9 +340,9 @@ impl GameController {
         let uci = UciMove::from_ascii(uci_str.as_bytes())?;
         let mv = uci.to_move(&self.position)?;
 
-        let san = SanPlus::from_move_and_play_unchecked(&mut self.position.clone(), &mv);
+        let san = SanPlus::from_move_and_play_unchecked(&mut self.position.clone(), mv);
 
-        self.position.play_unchecked(&mv);
+        self.position.play_unchecked(mv);
 
         let pos_key = Self::position_key(&self.position);
         *self.position_history.entry(pos_key).or_insert(0) += 1;
@@ -352,7 +353,8 @@ impl GameController {
             .map(|c| (c.white_time, c.black_time))
             .unwrap_or((None, None));
 
-        let fen_after = Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
+        let fen_after =
+            Fen::from_position(&self.position.clone(), EnPassantMode::Legal).to_string();
 
         let game_move = GameMove {
             uci: uci_str.to_string(),
@@ -379,7 +381,7 @@ impl GameController {
         for m in &self.moves {
             let uci = UciMove::from_ascii(m.uci.as_bytes())?;
             let mv = uci.to_move(&self.position)?;
-            self.position.play_unchecked(&mv);
+            self.position.play_unchecked(mv);
             let pos_key = Self::position_key(&self.position);
             *self.position_history.entry(pos_key).or_insert(0) += 1;
         }
@@ -674,7 +676,8 @@ impl GameManager {
         controller.check_game_end();
 
         let (white_time, black_time) = controller.get_current_times();
-        let fen = Fen::from_position(controller.position.clone(), EnPassantMode::Legal).to_string();
+        let fen =
+            Fen::from_position(&controller.position.clone(), EnPassantMode::Legal).to_string();
 
         GameMoveEvent {
             game_id: game_id.to_string(),

@@ -40,6 +40,9 @@ pub enum Error {
     IllegalSan(#[from] shakmaty::san::SanError),
 
     #[error(transparent)]
+    Maia(#[from] maia_rust::Error),
+
+    #[error(transparent)]
     Diesel(#[from] diesel::result::Error),
 
     #[error(transparent)]

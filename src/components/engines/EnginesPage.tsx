@@ -54,7 +54,6 @@ import LocalImage from "../common/LocalImage";
 import OpenFolderButton from "../common/OpenFolderButton";
 import LinesSlider from "../panels/analysis/LinesSlider";
 import AddEngine from "./AddEngine";
-
 export default function EnginesPage() {
   const { t } = useTranslation();
 
@@ -69,6 +68,8 @@ export default function EnginesPage() {
   if (!engines) return null;
 
   const selectedEngine = selected !== undefined ? engines[selected] : null;
+
+  const maiaEloOptions = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].map(String);
 
   return (
     <Stack h="100%" px="lg" pb="lg">
@@ -139,7 +140,8 @@ export default function EnginesPage() {
           </Center>
         ) : (
           <Paper withBorder p="md" h="100%">
-            {selectedEngine.type === "local" ? (
+            {selectedEngine.type === "local" &&
+            selectedEngine.runtime === "uci" ? (
               <EngineSettings selected={selected} setSelected={setSelected} />
             ) : (
               <Stack>
@@ -157,6 +159,28 @@ export default function EnginesPage() {
                     });
                   }}
                 />
+
+                {selectedEngine.type === "local" &&
+                  selectedEngine.runtime === "maia" && (
+                    <Select
+                      w="50%"
+                      label={t("Engines.Settings.DefaultMaiaElo")}
+                      data={maiaEloOptions}
+                      value={
+                        selectedEngine.elo?.toString() || "1500"
+                      }
+                      onChange={(v) => {
+                        setEngines(async (prev) => {
+                          const copy = [...(await prev)];
+                          const val = Number(v);
+                          if (val) {
+                            (copy[selected] as LocalEngine).elo = val;
+                          }
+                          return copy;
+                        });
+                      }}
+                    />
+                  )}
 
                 <Divider
                   variant="dashed"
@@ -181,6 +205,8 @@ export default function EnginesPage() {
                         if (setting) {
                           setting.value = v;
                         } else {
+                          if (!copy[selected].settings)
+                            copy[selected].settings = [];
                           copy[selected].settings?.push({
                             name: "MultiPV",
                             value: v,

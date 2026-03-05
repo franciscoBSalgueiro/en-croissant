@@ -56,7 +56,7 @@ function EngineSettingsForm({
   const local = engine.type === "local";
 
   const { data: config } = useSWRImmutable(
-    local && engine.path ? ["engine-config", engine.path] : null,
+    local && isUciEngine(engine) && engine.path ? ["engine-config", engine.path] : null,
     async ([, path]) => {
       return unwrap(await commands.getEngineConfig(path));
     },
@@ -115,13 +115,13 @@ function EngineSettingsForm({
         />
       )}
 
-      {!minimal && multiPv !== undefined && (
+      {!minimal && (
         <Group grow>
           <Text size="sm" fw="bold">
             {t("Engines.Settings.NumOfLines")}
           </Text>
           <LinesSlider
-            value={Number(multiPv)}
+            value={Number(multiPv) || 1}
             setValue={(v) => updateSetting("MultiPV", v)}
             color={color}
           />

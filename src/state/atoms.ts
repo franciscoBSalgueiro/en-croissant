@@ -58,7 +58,7 @@ const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, Input>) => {
     .array(
       itemSchema.catch((ctx) => {
         // Log the actual Zod error here
-        warn(`Dropped invalid item: ${ctx.issues}`);
+        warn(`Dropped invalid item: ${JSON.stringify(ctx.value)}`);
         return catchValue;
       }),
     )

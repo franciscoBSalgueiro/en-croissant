@@ -14,7 +14,7 @@ pub fn apply_uci_moves(pos: &mut Chess, moves: &[String]) -> Result<(), Error> {
     for m in moves {
         let uci = UciMove::from_ascii(m.as_bytes())?;
         let mv = uci.to_move(pos)?;
-        pos.play_unchecked(&mv);
+        pos.play_unchecked(mv);
     }
     Ok(())
 }

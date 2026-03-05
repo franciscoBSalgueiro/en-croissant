@@ -8,6 +8,7 @@ mod db;
 mod engine;
 mod error;
 mod game;
+mod onnx;
 
 mod fs;
 mod lexer;
@@ -26,6 +27,7 @@ use dashmap::DashMap;
 use db::{DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use game::GameManager;
+use maia_rust::Maia;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
 
 use log::LevelFilter;
@@ -88,6 +90,7 @@ pub struct AppState {
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
+    maia_sessions: DashMap<(String, String), Maia>,
     analysis_cancel_flags: DashMap<String, Arc<AtomicBool>>,
     auth: AuthState,
     game_manager: GameManager,

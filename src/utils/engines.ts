@@ -61,9 +61,9 @@ export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
 const localMaiaEngineSchema = z.object({
   ...localEngineBaseSchema.shape,
   runtime: z.literal("maia"),
-  // maia does not support time control. Put null field here to make accessing localEngine's goMode when needed easier.
+  // maia does not support time control. Put empty field here to make accessing localEngine's goMode when needed easier.
   // Also in case future ONNX models supports time control
-  go: z.null(),
+  go: z.undefined(),
 });
 export type LocalMaiaEngine = z.output<typeof localMaiaEngineSchema>;
 
@@ -92,17 +92,16 @@ const rawEngineSchema = z.discriminatedUnion("type", [
   remoteEngineSchema,
 ]);
 export const engineSchema = z.preprocess((val) => {
-  // Migration logic: default to 'uci' for old local engine missing 'runtime'
-  if (
-    val &&
-    typeof val === "object" &&
-    "type" in val &&
-    val.type === "local" &&
-    !("runtime" in val)
-  ) {
-    return { ...val, runtime: "uci" };
+  if (!val || typeof val !== "object" || Array.isArray(val)) {
+    return val;
   }
-  return val;
+  const processed = { ...val } as Record<string, any>;
+  // Migration logic: default to 'uci' for old local engine missing 'runtime'
+  if (processed.type === "local" && !("runtime" in processed)) {
+    processed.runtime = "uci";
+  }
+
+  return processed;
 }, rawEngineSchema);
 export type Engine = z.output<typeof engineSchema>;
 
