@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "新增資料庫",
     "Board.Database.Stats": "統計",
     "Board.Database.TimeControl": "時限",
+    "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "",
     "Board.Opponent.Increment": "",
     "Board.Opponent.SameTimeControl": "",

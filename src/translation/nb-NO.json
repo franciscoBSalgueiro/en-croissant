@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "legg til en database",
     "Board.Database.Stats": "Statestikk",
     "Board.Database.TimeControl": "Tidskontroll",
+    "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "",
     "Board.Opponent.Increment": "",
     "Board.Opponent.SameTimeControl": "",

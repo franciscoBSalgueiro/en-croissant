@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "데이터베이스를 추가",
     "Board.Database.Stats": "통계",
     "Board.Database.TimeControl": "타임 컨트롤",
+    "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "사람",
     "Board.Opponent.Increment": "증초",
     "Board.Opponent.SameTimeControl": "같은 시간 설정",
