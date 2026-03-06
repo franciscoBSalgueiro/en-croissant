@@ -7,6 +7,7 @@ import { defineConfig } from "vite";
 import * as os from "node:os";
 
 const isDebug = !!process.env.TAURI_ENV_DEBUG;
+const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -23,17 +24,23 @@ export default defineConfig({
     ],
     server: {
         port: 1420,
+        strictPort: true,
+        host: host || false,
+        hmr: host
+            ? {
+                  protocol: "ws",
+                  host,
+                  port: 1421,
+              }
+            : undefined,
+        watch: {
+            ignored: ["**/src-tauri/**"],
+        },
     },
     build: {
         minify: isDebug ? false : "esbuild",
         sourcemap: isDebug ? "inline" : false,
-        rollupOptions: {
-            output: {
-                entryFileNames: "assets/[name].js",
-                chunkFileNames: "assets/[name].js",
-                assetFileNames: "assets/[name].[ext]",
-            },
-        },
+        target: process.env.TAURI_ENV_PLATFORM == "windows" ? "chrome105" : "safari13",
     },
     resolve: {
         alias: [{ find: "@", replacement: resolve(__dirname, "./src") }],
