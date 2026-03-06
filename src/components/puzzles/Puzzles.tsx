@@ -79,6 +79,8 @@ function Puzzles({ id }: { id: string }) {
   });
   const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
 
+  const currentMove = useStore(store, (s) => s.currentNode().move);
+
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
 
@@ -284,29 +286,32 @@ function Puzzles({ id }: { id: string }) {
       ? positionFromFen(puzzles[currentPuzzle]?.fen)[0]?.turn
       : null;
 
-  const lastMovePlayed = () => store.getState().currentNode().move;
+
 
   // return true if the last move is null or undefined, or if the last played move is the last move in the current puzzle.
   const currentlyOnLastMoveOrNoLastMove = (): boolean => {
-    if (!lastMovePlayed()) return true;
+    if (!currentMove) return true;
 
-    const moves = puzzles[currentPuzzle].moves;
-    const lastMoveIndex = moves.indexOf(makeUci(lastMovePlayed()!));
+    const moves = puzzles[currentPuzzle]?.moves;
+    if (!moves) return true;
 
+    const lastMoveIndex = moves.indexOf(makeUci(currentMove));
     return lastMoveIndex + 1 === moves.length;
   };
 
   const nextMoveUci = () => {
     const curPuzzle = puzzles[currentPuzzle];
-    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(lastMovePlayed()!)) + 1;
+    if (!curPuzzle || !currentMove) return;
+
+    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
     const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
-    if (!nextMoveUci) return
+    if (!nextMoveUci) return;
 
     const nextMove = parseUci(nextMoveUci);
-    if (!nextMove || !isNormal(nextMove)) return
+    if (!nextMove || !isNormal(nextMove)) return;
 
-    return nextMove
-  }
+    return nextMove;
+  };
 
   return (
     <>
